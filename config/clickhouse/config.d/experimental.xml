@@ -1,4 +1,7 @@
--- ClickHouse config: enable experimental features
 <clickhouse>
-    <allow_experimental_database_materialized_postgresql>1</allow_experimental_database_materialized_postgresql>
+    <profiles>
+        <default>
+            <allow_experimental_database_materialized_postgresql>1</allow_experimental_database_materialized_postgresql>
+        </default>
+    </profiles>
 </clickhouse>

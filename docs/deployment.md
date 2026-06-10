@@ -6,7 +6,7 @@
 
 - Docker Desktop (with Docker Compose v2)
 - 4GB+ RAM available for Docker
-- Ports available: 5432, 8055, 3000, 8123, 9000
+- Ports available: 5432, 8055, 3001, 8123, 9000
 
 ### Quick Start
 
@@ -34,7 +34,7 @@ docker compose ps
 | Service | URL | Purpose |
 |---------|-----|---------|
 | Directus | http://localhost:8055 | Schema management, API, admin |
-| Metabase | http://localhost:3000 | Internal BI dashboards |
+| Metabase | http://localhost:3001 | Internal BI dashboards |
 | PostgreSQL | localhost:5432 | Canonical data store |
 | ClickHouse HTTP | http://localhost:8123 | Analytical queries |
 | ClickHouse Native | localhost:9000 | Native protocol |

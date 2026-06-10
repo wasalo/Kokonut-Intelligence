@@ -2,21 +2,7 @@ services:
   database:
     volumes:
       - ./config/postgres:/var/lib/postgresql/custom:ro
-    environment:
-      POSTGRES_PASSWORD: dev-password-change-me
 
   directus:
     environment:
-      SECRET: dev-secret-change-me-at-least-32-chars
-      ADMIN_EMAIL: admin@kokonut.local
-      ADMIN_PASSWORD: dev-admin-password
-      PUBLIC_URL: http://localhost:8055
       LOG_LEVEL: "debug"
-
-  clickhouse:
-    environment:
-      CLICKHOUSE_PASSWORD: dev-clickhouse-password
-
-  metabase:
-    environment:
-      MB_DB_PASS: dev-password-change-me

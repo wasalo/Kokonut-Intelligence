@@ -30,7 +30,7 @@ docker compose ps
 open http://localhost:8055
 
 # 5. Access Metabase
-open http://localhost:3000
+open http://localhost:3001
 ```
 
 ## Services
@@ -38,7 +38,7 @@ open http://localhost:3000
 | Service | URL | Purpose |
 |---------|-----|---------|
 | Directus | http://localhost:8055 | Schema management, API, admin UI |
-| Metabase | http://localhost:3000 | Internal BI dashboards |
+| Metabase | http://localhost:3001 | Internal BI dashboards |
 | ClickHouse HTTP | http://localhost:8123 | Analytical queries |
 | PostgreSQL | localhost:5432 | Canonical data store |
 

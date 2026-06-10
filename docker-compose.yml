@@ -70,7 +70,7 @@ services:
     image: metabase/metabase:latest
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - metabase-data:/metabase-data
     environment:
@@ -94,7 +94,6 @@ services:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-logs:/var/log/clickhouse-server
       - ./config/clickhouse/config.d:/etc/clickhouse-server/config.d:ro
-      - ./config/clickhouse/users.d:/etc/clickhouse-server/users.d:ro
     environment:
       CLICKHOUSE_DB: kokonut_analytics
       CLICKHOUSE_USER: kokonut
