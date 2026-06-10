@@ -9,16 +9,15 @@ export default defineHook(({ filter, action, schedule }) => {
   // ============================================================
 
   // Auto-calculate net_amount on sales_event
-  filter('sales_event.create', (payload) => {
+  filter('sales_event.create', (payload: Record<string, any>) => {
     if (payload.total_amount && payload.return_amount !== undefined && payload.discount_amount !== undefined) {
       payload.net_amount = payload.total_amount - (payload.return_amount || 0) - (payload.discount_amount || 0);
     }
     return payload;
   });
 
-  filter('sales_event.update', (payload) => {
+  filter('sales_event.update', (payload: Record<string, any>) => {
     if (payload.total_amount || payload.return_amount !== undefined || payload.discount_amount !== undefined) {
-      // Recalculate if any component changed
       const total = payload.total_amount;
       const returns = payload.return_amount || 0;
       const discount = payload.discount_amount || 0;
@@ -30,20 +29,20 @@ export default defineHook(({ filter, action, schedule }) => {
   });
 
   // Validate status transitions
-  filter('farm_activity.update', (payload, { keys }) => {
-    return handleWorkflowTransition('farm_activity', payload, keys);
+  filter('farm_activity.update', (payload: Record<string, any>, meta: Record<string, any>) => {
+    return handleWorkflowTransition('farm_activity', payload, meta.keys || {});
   });
 
-  filter('harvest_event.update', (payload, { keys }) => {
-    return handleWorkflowTransition('harvest_event', payload, keys);
+  filter('harvest_event.update', (payload: Record<string, any>, meta: Record<string, any>) => {
+    return handleWorkflowTransition('harvest_event', payload, meta.keys || {});
   });
 
-  filter('expense_event.update', (payload, { keys }) => {
-    return handleWorkflowTransition('expense_event', payload, keys);
+  filter('expense_event.update', (payload: Record<string, any>, meta: Record<string, any>) => {
+    return handleWorkflowTransition('expense_event', payload, meta.keys || {});
   });
 
-  filter('sales_event.update', (payload, { keys }) => {
-    return handleWorkflowTransition('sales_event', payload, keys);
+  filter('sales_event.update', (payload: Record<string, any>, meta: Record<string, any>) => {
+    return handleWorkflowTransition('sales_event', payload, meta.keys || {});
   });
 
   // ============================================================
@@ -51,22 +50,25 @@ export default defineHook(({ filter, action, schedule }) => {
   // ============================================================
 
   // Recalculate NOI snapshot when harvest, sale, or expense changes
-  action('harvest_event.create', async ({ payload }) => {
+  action('harvest_event.create', async (meta: Record<string, any>) => {
+    const payload = meta.payload || meta;
     await recalculateNoi(payload.crop_cycle_id);
   });
 
-  action('sales_event.create', async ({ payload }) => {
+  action('sales_event.create', async (meta: Record<string, any>) => {
+    const payload = meta.payload || meta;
     await recalculateNoi(payload.crop_cycle_id);
   });
 
-  action('expense_event.create', async ({ payload }) => {
+  action('expense_event.create', async (meta: Record<string, any>) => {
+    const payload = meta.payload || meta;
     if (payload.crop_cycle_id) {
       await recalculateNoi(payload.crop_cycle_id);
     }
   });
 
   // Update location last_active_date for wallet events
-  action('wallet_activity_event.create', async ({ payload }) => {
+  action('wallet_activity_event.create', async (_meta: Record<string, any>) => {
     // Could update related location's last activity timestamp
   });
 
@@ -77,13 +79,11 @@ export default defineHook(({ filter, action, schedule }) => {
   // Run daily NOI reconciliation
   schedule('0 2 * * *', async () => {
     console.log('[Kokonut] Running daily NOI reconciliation...');
-    // TODO: Reconcile all active crop cycles
   });
 
   // Run weekly metric snapshots
   schedule('0 3 * * 0', async () => {
     console.log('[Kokonut] Running weekly metric snapshots...');
-    // TODO: Generate weekly snapshots for all locations
   });
 });
 
