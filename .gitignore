@@ -1,0 +1,56 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data directories (persistent state)
+data/
+
+# Directus
+data/uploads/
+uploads/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.env.venv
+
+# ClickHouse
+data/clickhouse/
+
+# PostgreSQL
+data/postgres/
+
+# Metabase
+data/metabase/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Backups
+backups/
+
+# Snapshots (managed separately)
+schemas/directus/snapshots/

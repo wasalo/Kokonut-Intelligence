@@ -1,0 +1,19 @@
+{
+  "name": "kokonut-hooks",
+  "version": "0.1.0",
+  "description": "Kokonut Intelligence Platform - Directus lifecycle hooks",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@directus/sdk": "^17.0.0"
+  },
+  "devDependencies": {
+    "@directus/extensions-sdk": "^11.0.0",
+    "typescript": "^5.5.0"
+  }
+}

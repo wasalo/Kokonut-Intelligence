@@ -1,0 +1,121 @@
+{
+  "baserow": {
+    "url": "https://api.baserow.io",
+    "token": "YOUR_BASEROW_TOKEN"
+  },
+  "directus": {
+    "url": "http://localhost:8055",
+    "email": "admin@kokonut.network",
+    "password": "CHANGE_ME"
+  },
+  "table_map": {
+    "Locations": "location",
+    "Farms": "farm",
+    "Plots": "plot",
+    "Crops": "crop",
+    "Crop Cycles": "crop_cycle",
+    "Activities": "farm_activity",
+    "Harvests": "harvest_event",
+    "Sales": "sales_event",
+    "Expenses": "expense_event",
+    "Losses": "loss_event",
+    "Soil Samples": "soil_sample",
+    "Species Observations": "species_observation",
+    "Wallets": "wallet_profile",
+    "Partners": "partner"
+  },
+  "field_mappings": {
+    "tables": {
+      "Locations": {
+        "field_map": {
+          "Name": "name",
+          "Slug": "slug",
+          "Description": "description",
+          "Country": "country",
+          "Region": "region",
+          "Latitude": "latitude",
+          "Longitude": "longitude",
+          "Baseline Revenue": "baseline_revenue",
+          "Baseline Asset Value": "baseline_asset_value",
+          "Baseline Cash Flow": "baseline_cash_flow",
+          "Status": "status"
+        },
+        "transforms": {
+          "Latitude": "number",
+          "Longitude": "number",
+          "Baseline Revenue": "number",
+          "Baseline Asset Value": "number",
+          "Baseline Cash Flow": "number"
+        }
+      },
+      "Farms": {
+        "field_map": {
+          "Name": "name",
+          "Slug": "slug",
+          "Description": "description",
+          "Farm Type": "farm_type",
+          "Total Area": "total_area",
+          "Area Unit": "area_unit",
+          "Status": "status"
+        },
+        "transforms": {
+          "Total Area": "number"
+        }
+      },
+      "Expenses": {
+        "field_map": {
+          "Date": "expense_date",
+          "Category": "category",
+          "Subcategory": "subcategory",
+          "Description": "description",
+          "Vendor": "vendor",
+          "Amount": "amount",
+          "Currency": "currency",
+          "Is Capex": "is_capex",
+          "Status": "status",
+          "Notes": "notes"
+        },
+        "transforms": {
+          "Amount": "number",
+          "Is Capex": "bool"
+        }
+      },
+      "Harvests": {
+        "field_map": {
+          "Harvest Date": "harvest_date",
+          "Quantity": "quantity",
+          "Unit": "unit",
+          "Quality Grade": "quality_grade",
+          "Destination": "destination",
+          "Loss Amount": "loss_amount",
+          "Loss Reason": "loss_reason",
+          "Notes": "notes"
+        },
+        "transforms": {
+          "Quantity": "number",
+          "Loss Amount": "number"
+        }
+      },
+      "Sales": {
+        "field_map": {
+          "Sale Date": "sale_date",
+          "Buyer": "buyer",
+          "Buyer Type": "buyer_type",
+          "Quantity": "quantity",
+          "Unit": "unit",
+          "Price Per Unit": "price_per_unit",
+          "Total Amount": "total_amount",
+          "Currency": "currency",
+          "Payment Status": "payment_status",
+          "Payment Date": "payment_date",
+          "Notes": "notes"
+        },
+        "transforms": {
+          "Quantity": "number",
+          "Price Per Unit": "number",
+          "Total Amount": "number"
+        }
+      }
+    }
+  }
+}

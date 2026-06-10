@@ -1,0 +1,100 @@
+# Architecture
+
+## System Overview
+
+The Kokonut Intelligence Platform is a governed, open-source data operating system for regenerative farm operations, financial performance, ecological outcomes, and Web3 verification.
+
+## Core Principles
+
+1. **The schema is the product** — Dashboards, spreadsheets, agents, and blockchain views are interfaces. The durable asset is the canonical schema, metric dictionary, verification logic, and API contract.
+
+2. **Web3 is a proof layer, not source of truth** — Canonical operational and financial data lives in PostgreSQL. Blockchain provides proofs, coordination, and public verifiability.
+
+3. **Humans and AI agents use the same governed objects** — Different interfaces over the same canonical objects, permissions, and audit trails.
+
+## Technology Stack
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    INTERFACES                           │
+│  Directus Studio │ Metabase │ Baserow │ API │ Agents   │
+└────────┬────────┴─────┬─────┴────┬─────┴──┬──┴────┬────┘
+         │              │          │        │       │
+┌────────▼──────────────▼──────────▼────────▼───────▼────┐
+│                    DIRECTUS                             │
+│          REST API │ GraphQL │ SDK │ Flows              │
+│          Permissions │ Automations │ Webhooks           │
+└────────┬───────────────────────────────────────────────┘
+         │
+┌────────▼───────────────────────────────────────────────┐
+│                 POSTGRESQL + POSTGIS                     │
+│                                                         │
+│  Master Data    Operational Facts    Financial Facts    │
+│  ──────────     ────────────────     ──────────────    │
+│  locations      farm_activity        financial_txn      │
+│  farms          harvest_event        expense_event      │
+│  plots          sales_event          crop_cost_alloc    │
+│  crops          loss_event           noi_snapshot       │
+│  crop_cycle     labor_event          cash_flow_snap     │
+│  partners       field_note           value_flow_event   │
+│                                                         │
+│  Environmental    Web3/Attestation    Modeled Outputs   │
+│  ─────────────    ────────────────    ──────────────    │
+│  soil_sample      wallet_profile      forecast_scenario  │
+│  species_obs      attestation_record  forecast_output    │
+│  remote_sensing   digital_lego_usage  metric_definition  │
+│  weather          treasury_event      report_snapshot    │
+│  sensor_reading   governance_event    ai_summary         │
+└────────┬───────────────────────────────────────────────┘
+         │
+┌────────▼───────────────────────────────────────────────┐
+│                   CLICKHOUSE                            │
+│                                                         │
+│  events_raw │ wallet_events │ sensor_readings           │
+│  weather_events │ financial_events │ dlego_events       │
+│                                                         │
+│  Materialized Views:                                     │
+│  daily_event_counts │ hourly_sensor_stats               │
+│  daily_wallet_activity │ monthly_financial_summary      │
+└─────────────────────────────────────────────────────────┘
+```
+
+## Data Lifecycle
+
+Every important record follows four states:
+
+```
+Raw → Normalized → Verified → Published
+ │        │           │          │
+ │        │           │          └─ Available to dashboards, APIs, attestations
+ │        │           └─ Reviewed, validated, linked to evidence
+ │        └─ Mapped to Kokonut canonical schema
+ └─ Unmodified source payload
+```
+
+## Schema Management
+
+Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus snapshots capture the API-layer state.
+
+- `schemas/postgres/` — Source of truth for database schema
+- `schemas/directus/` — Directus snapshot exports
+- `schemas/clickhouse/` — Analytical event schemas
+
+## API Layers
+
+| Layer | Protocol | Auth | Use Case |
+|-------|----------|------|----------|
+| Directus REST | HTTP REST | Bearer token | CRUD, admin, integrations |
+| Directus GraphQL | GraphQL | Bearer token | Complex queries, frontend |
+| Directus SDK | JavaScript | Session | Application integration |
+| ClickHouse HTTP | HTTP | Basic auth | Analytical queries |
+| Directus MCP | MCP | Scoped token | AI agent access |
+
+## Security Model
+
+- **Roles:** Admin, Operator, Analyst, Partner, Developer, Agent
+- **Policies:** Per-collection, per-action, per-field permissions
+- **Field-level:** Sensitive fields hidden per role
+- **Row-level:** Filter rules restrict record visibility
+- **Audit:** All mutations logged to `audit_log`
+- **Evidence:** Raw evidence stored off-chain; hashes/CIDs on-chain
