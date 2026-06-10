@@ -24,3 +24,6 @@ GRANT ALL ON SCHEMA public TO kokonut;
 
 -- Set default search path
 ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut;
+
+-- Metabase application database (separate from Kokonut data)
+CREATE DATABASE metabase OWNER kokonut;
