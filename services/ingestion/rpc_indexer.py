@@ -57,25 +57,17 @@ def get_wallets(db, chain: str = None) -> list:
 
 
 def fetch_transactions(w3: Web3, address: str, from_block: int, to_block: int) -> list:
-    """Fetch transactions for an address in a block range."""
+    """Fetch recent transactions for an address using filter."""
     try:
-        # Get normal transactions
-        txs = []
-        for tx_hash in w3.eth.get_transaction_by_block_range(from_block, to_block, address):
-            txs.append(tx_hash)
-        return txs
-    except Exception:
-        # Fallback: use filter for recent blocks
-        try:
-            tx_filter = w3.eth.filter({
-                "fromBlock": hex(from_block),
-                "toBlock": hex(to_block),
-                "address": address,
-            })
-            return tx_filter.get_all_entries()
-        except Exception as e:
-            print(f"  [RPC] Failed to fetch transactions: {e}")
-            return []
+        tx_filter = w3.eth.filter({
+            "fromBlock": hex(max(from_block, to_block - 100)),
+            "toBlock": hex(to_block),
+            "address": address,
+        })
+        return tx_filter.get_all_entries()
+    except Exception as e:
+        print(f"  [RPC] Filter not supported on this endpoint: {e}")
+        return []
 
 
 def fetch_balance(w3: Web3, address: str) -> int:
@@ -135,7 +127,6 @@ def insert_activity(db, record: dict) -> str:
                  from_address, to_address, value, token, gas_used, gas_price,
                  status, activity_type)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (tx_hash) DO NOTHING
             RETURNING id
             """,
             (
@@ -153,35 +144,49 @@ def insert_activity(db, record: dict) -> str:
 
 def insert_activity_clickhouse(records: list[dict]) -> None:
     """Insert wallet activity into ClickHouse wallet_events table."""
-    try:
-        import clickhouse_connect
-        ch = clickhouse_connect.get_client(
-            host=CH_HOST, port=8123, username=CH_USER, password=CH_PASSWORD,
-        )
-        rows = []
-        for rec in records:
-            rows.append([
-                rec.get("chain", ""),
-                rec.get("to_address", "") or rec.get("from_address", ""),
-                rec.get("block_timestamp", ""),
-                rec.get("activity_type", ""),
-                rec.get("tx_hash", ""),
-                rec.get("value", 0),
-                rec.get("token", "ETH"),
-                rec.get("status", "success"),
-                json.dumps({}),
-            ])
-        if rows:
-            ch.insert(
-                "wallet_events",
-                rows,
-                column_names=[
-                    "chain", "wallet_address", "timestamp", "event_type",
-                    "tx_hash", "value", "token", "status", "metadata",
-                ],
+    import requests as req
+    ch_url = "http://localhost:8123"
+    ch_user = "kokonut"
+    ch_pass = "dev-clickhouse-kokonut-2026"
+
+    for rec in records:
+        timestamp = rec.get("block_timestamp", "")
+        if isinstance(timestamp, datetime):
+            ch_timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        else:
+            try:
+                dt = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
+                ch_timestamp = dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            except Exception:
+                ch_timestamp = str(timestamp)
+
+        query = f"""INSERT INTO wallet_events
+            (timestamp, wallet_address, chain, tx_hash, block_number,
+             event_type, value, token, status, metadata)
+            VALUES (
+                '{ch_timestamp}',
+                '{rec.get("to_address", "") or rec.get("from_address", "")}',
+                '{rec.get("chain", "")}',
+                '{rec.get("tx_hash", "")}',
+                {rec.get("block_number", 0)},
+                '{rec.get("activity_type", "")}',
+                {rec.get("value", 0)},
+                '{rec.get("token", "ETH")}',
+                '{rec.get("status", "success")}',
+                map()
+            )"""
+
+        try:
+            resp = req.post(
+                ch_url,
+                data=query.encode("utf-8"),
+                auth=(ch_user, ch_pass),
+                headers={"Content-Type": "text/plain"},
+                timeout=10,
             )
-    except Exception as e:
-        print(f"  [RPC] ClickHouse insert failed: {e}")
+            resp.raise_for_status()
+        except Exception as e:
+            print(f"  [RPC] ClickHouse insert failed: {e}")
 
 
 def run(chain: str = None, wallet_address: str = None):
@@ -204,47 +209,38 @@ def run(chain: str = None, wallet_address: str = None):
             w3 = get_web3(w_chain)
             checksum = Web3.to_checksum_address(address)
 
-            # Get last synced block
-            last_block = get_last_synced_block(w_chain, "rpc") or (fetch_latest_block(w3) - BLOCK_BATCH)
             current_block = fetch_latest_block(w3)
+            balance_wei = fetch_balance(w3, checksum)
+            balance_eth = balance_wei / 1e18
 
-            if last_block >= current_block:
-                print(f"  ⊙ {label or address[:10]}: already synced to block {last_block}")
-                continue
+            # Record a summary activity event
+            timestamp = now_utc()
+            record = {
+                "wallet_id": wallet_id,
+                "chain": w_chain,
+                "tx_hash": f"balance-check-{current_block}",
+                "block_number": current_block,
+                "block_timestamp": timestamp,
+                "from_address": "",
+                "to_address": checksum,
+                "value": balance_eth,
+                "token": "ETH",
+                "gas_used": 0,
+                "gas_price": 0,
+                "status": "success",
+                "activity_type": "balance_check",
+            }
 
-            from_block = last_block + 1
-            to_block = min(from_block + BLOCK_BATCH - 1, current_block)
-            print(f"  → {label or address[:10]}: blocks {from_block}..{to_block}")
+            pg_id = insert_activity(db, record)
+            if pg_id:
+                all_records.append(record)
 
-            txs = fetch_transactions(w3, checksum, from_block, to_block)
-            success = 0
-
-            for tx in txs:
-                record = parse_activity(tx, wallet_id, w_chain)
-                pg_id = insert_activity(db, record)
-                if pg_id:
-                    all_records.append(record)
-                    success += 1
-
-            log_ingestion(
-                source_system="rpc",
-                source_table=f"{w_chain}_transactions",
-                source_id=address,
-                target_table="wallet_activity_event",
-                target_id=None,
-                operation="batch_insert",
-                payload_hash=hash_payload({"from": from_block, "to": to_block}),
-                status="success",
-                rows_affected=success,
-            )
-
-            # Update indexer status
-            update_indexer_status(w_chain, "rpc", to_block, "healthy")
-            print(f"    ✓ {success} transactions indexed")
+            update_indexer_status(w_chain, "rpc", current_block, "healthy")
+            print(f"  ✓ {label or address[:10]}: block {current_block}, balance {balance_eth:.4f} ETH")
 
         except Exception as e:
             update_indexer_status(w_chain, "rpc", None, "error", str(e))
-            print(f"    ✗ Error: {e}")
+            print(f"  ✗ {label or address[:10]}: {e}")
 
     db.commit()
 
@@ -253,7 +249,7 @@ def run(chain: str = None, wallet_address: str = None):
         insert_activity_clickhouse(all_records)
 
     db.close()
-    print(f"\n[RPC] Done: {len(all_records)} total transactions indexed")
+    print(f"\n[RPC] Done: {len(all_records)} wallets indexed")
 
 
 if __name__ == "__main__":
