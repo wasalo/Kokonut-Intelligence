@@ -56,16 +56,15 @@ def parse_weather(data: dict, location_id: str) -> dict:
         "location_id": location_id,
         "observation_date": obs_date,
         "temperature_c": main.get("temp"),
-        "feels_like_c": main.get("feels_like"),
         "humidity_pct": main.get("humidity"),
         "precipitation_mm": rain.get("1h", 0) or rain.get("3h", 0),
         "wind_speed_kmh": (wind.get("speed", 0) or 0) * 3.6,
         "wind_direction_deg": wind.get("deg"),
         "pressure_hpa": main.get("pressure"),
-        "visibility_m": data.get("visibility"),
+        "visibility_km": (data.get("visibility") or 0) / 1000,
         "cloud_cover_pct": clouds.get("all"),
         "source": "openweathermap",
-        "station_id": data.get("id"),
+        "station_id": str(data.get("id", "")),
         "metadata": json.dumps({
             "weather_main": data.get("weather", [{}])[0].get("main"),
             "weather_description": data.get("weather", [{}])[0].get("description"),
@@ -82,56 +81,75 @@ def insert_weather(db, record: dict) -> str:
         cur.execute(
             """
             INSERT INTO weather_observation
-                (location_id, observation_date, temperature_c, feels_like_c,
+                (location_id, observation_date, temperature_c,
                  humidity_pct, precipitation_mm, wind_speed_kmh, wind_direction_deg,
-                 pressure_hpa, visibility_m, cloud_cover_pct, source, station_id, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                 pressure_hpa, visibility_km, cloud_cover_pct, source, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
             RETURNING id
             """,
             (
                 record["location_id"], record["observation_date"],
-                record["temperature_c"], record["feels_like_c"],
+                record["temperature_c"],
                 record["humidity_pct"], record["precipitation_mm"],
                 record["wind_speed_kmh"], record["wind_direction_deg"],
-                record["pressure_hpa"], record["visibility_m"],
+                record["pressure_hpa"], record["visibility_km"],
                 record["cloud_cover_pct"], record["source"],
-                record["station_id"], record["metadata"],
+                record["metadata"],
             ),
         )
         return str(cur.fetchone()[0])
 
 
 def insert_weather_clickhouse(records: list[dict]) -> None:
-    """Insert weather records into ClickHouse weather_events table."""
-    try:
-        import clickhouse_connect
-        ch = clickhouse_connect.get_client(
-            host="localhost", port=8123,
-            username="kokonut", password="dev-clickhouse-kokonut-2026",
-        )
-        for rec in records:
-            ch.insert(
-                "weather_events",
-                [[
-                    rec.get("location_id", ""),
-                    rec.get("observation_date", ""),
-                    rec.get("temperature_c") or 0,
-                    rec.get("precipitation_mm") or 0,
-                    rec.get("humidity_pct") or 0,
-                    rec.get("wind_speed_kmh") or 0,
-                    rec.get("pressure_hpa") or 0,
-                    rec.get("cloud_cover_pct") or 0,
-                    "openweathermap",
-                    json.dumps(rec.get("metadata", {})),
-                ]],
-                column_names=[
-                    "location_id", "timestamp", "temperature", "precipitation",
-                    "humidity", "wind_speed", "pressure", "cloud_cover",
-                    "source", "metadata",
-                ],
+    """Insert weather records into ClickHouse weather_events table via HTTP."""
+    import requests as req
+    from datetime import datetime, timezone
+    ch_url = "http://localhost:8123"
+    ch_user = "kokonut"
+    ch_pass = "dev-clickhouse-kokonut-2026"
+
+    for rec in records:
+        meta = rec.get("metadata", {})
+        if isinstance(meta, str):
+            meta = json.loads(meta)
+        meta_str = ",".join(f"'{k}','{v}'" for k, v in meta.items()) if meta else ""
+        meta_map = f"map({meta_str})" if meta_str else "map()"
+
+        # Parse ISO timestamp to ClickHouse DateTime64 format
+        obs_date = rec.get("observation_date", "")
+        try:
+            dt = datetime.fromisoformat(obs_date.replace("Z", "+00:00"))
+            ch_timestamp = dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+        except Exception:
+            ch_timestamp = obs_date
+
+        query = f"""INSERT INTO weather_events
+            (timestamp, location_id, source, temperature_c, precipitation_mm,
+             humidity_pct, wind_speed_kmh, solar_radiation_wm2, cloud_cover_pct, metadata)
+            VALUES (
+                '{ch_timestamp}',
+                '{rec.get("location_id", "")}',
+                'openweathermap',
+                {rec.get("temperature_c") or 0},
+                {rec.get("precipitation_mm") or 0},
+                {rec.get("humidity_pct") or 0},
+                {rec.get("wind_speed_kmh") or 0},
+                {rec.get("solar_radiation_wm2") or 0},
+                {rec.get("cloud_cover_pct") or 0},
+                {meta_map}
+            )"""
+
+        try:
+            resp = req.post(
+                ch_url,
+                data=query.encode("utf-8"),
+                auth=(ch_user, ch_pass),
+                headers={"Content-Type": "text/plain"},
+                timeout=10,
             )
-    except Exception as e:
-        print(f"[Weather] ClickHouse insert failed: {e}")
+            resp.raise_for_status()
+        except Exception as e:
+            print(f"[Weather] ClickHouse insert failed: {e}")
 
 
 def run(location_id: str = None):
