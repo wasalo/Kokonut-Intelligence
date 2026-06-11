@@ -112,9 +112,19 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   ├── clickhouse/     # ClickHouse config
 │   └── directus/       # Directus permissions SQL
 ├── schemas/
-│   ├── postgres/       # 9 schema files, 55 tables
+│   ├── postgres/       # 10 schema files, 56 tables
 │   ├── directus/       # Directus snapshots
-│   └── clickhouse/     # Analytical schemas
+│   └── clickhouse/     # Analytical schemas (6 tables + 5 views)
+├── services/
+│   └── ingestion/      # External data ingestion scripts
+│       ├── base.py     # Common utilities (DB, logging, retry)
+│       ├── config.py   # API keys and connection config
+│       ├── weather.py  # OpenWeatherMap ingestion
+│       ├── rpc_indexer.py    # Ethereum/L2 wallet activity
+│       ├── market_data.py    # Commodity prices
+│       ├── remote_sensing.py # NDVI/NDRE CSV upload
+│       ├── subgraph_indexer.py # The Graph subgraphs
+│       └── eas_indexer.py    # EAS attestation ingestion
 ├── extensions/
 │   └── kokonut-hooks/  # Directus lifecycle hooks
 │       └── src/
@@ -126,6 +136,30 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 ├── scripts/            # Setup, seed, backup, snapshot
 ├── docs/               # Architecture, data dictionary, API reference
 └── dashboards/         # Metabase dashboard definitions
+```
+
+## External Data Ingestion
+
+Python scripts in `services/ingestion/` fetch data from external APIs and insert into the canonical schema.
+
+| Script | Source | Target Tables | Schedule |
+|--------|--------|---------------|----------|
+| `weather.py` | OpenWeatherMap API | `weather_observation` + ClickHouse `weather_events` | Every 3 hours |
+| `rpc_indexer.py` | Ethereum/Optimism/Base/Arbitrum RPC | `wallet_activity_event` + ClickHouse `wallet_events` | Every 15 min |
+| `market_data.py` | FAO GIEWS commodity prices | `price_observation` | Daily |
+| `remote_sensing.py` | Manual CSV upload | `remote_sensing_observation` | On demand |
+| `subgraph_indexer.py` | The Graph (EAS) | `attestation_schema`, `attestation_record` | Hourly |
+| `eas_indexer.py` | EAS GraphQL API | `attestation_record` | Hourly |
+
+```bash
+# Run weather ingestion
+python -m services.ingestion.weather
+
+# Run RPC indexer for specific chain
+python -m services.ingestion.rpc_indexer --chain ethereum
+
+# Upload remote sensing CSV
+python -m services.ingestion.remote_sensing --file data.csv
 ```
 
 ## Data Lifecycle

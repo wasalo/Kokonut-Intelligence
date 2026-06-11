@@ -4,6 +4,27 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-10
+
+### Added
+- **Milestone 3: External data ingestion**
+- ClickHouse event store: applied 6 event tables + 5 materialized views
+- New schema `010_market_data.sql`: `price_observation` table for commodity prices
+- Common ingestion framework (`services/ingestion/`): base utilities, config, logging, retry logic
+- Weather ingestion (`weather.py`): OpenWeatherMap API → `weather_observation` + ClickHouse `weather_events`
+- RPC ingestion (`rpc_indexer.py`): Ethereum/Optimism/Base/Arbitrum wallet activity → `wallet_activity_event` + ClickHouse `wallet_events`
+- Market data ingestion (`market_data.py`): FAO GIEWS commodity prices → `price_observation`
+- Remote sensing CSV ingestion (`remote_sensing.py`): manual NDVI/NDRE upload → `remote_sensing_observation`
+- Subgraph ingestion (`subgraph_indexer.py`): EAS schemas + attestations via The Graph
+- EAS attestation ingestion (`eas_indexer.py`): direct EAS GraphQL API → `attestation_record`
+- Chain indexer health tracking via `chain_indexer_status` table
+- Free public RPC endpoints configured in `.env.example` (no API key required)
+- Ingestion logging to `ingestion_log` table for all external data sources
+
+### Changed
+- Updated `seed.sh` to apply ClickHouse schemas on setup
+- Updated `.env.example` with weather, RPC, and EAS configuration
+
 ## [0.4.0] - 2026-06-10
 
 ### Added

@@ -43,6 +43,22 @@ done
 echo ""
 echo "Schema applied successfully."
 
+# Apply ClickHouse schemas
+echo ""
+echo "Applying ClickHouse schemas..."
+CH_CONTAINER="kokonut-intelligence-clickhouse-1"
+CH_SCHEMA_DIR="$PROJECT_DIR/schemas/clickhouse"
+if docker ps --format '{{.Names}}' | grep -q "$CH_CONTAINER"; then
+    for ch_file in "$CH_SCHEMA_DIR"/*.sql; do
+        filename=$(basename "$ch_file")
+        echo "  Applying: $filename"
+        docker exec -i "$CH_CONTAINER" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --multiquery < "$ch_file"
+    done
+    echo "ClickHouse schemas applied."
+else
+    echo "ClickHouse not running — skipping."
+fi
+
 # Apply Directus permissions
 echo ""
 echo "Applying Directus permissions..."
