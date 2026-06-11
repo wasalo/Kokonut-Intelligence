@@ -78,9 +78,20 @@
 | `wallet_profile` | Wallet identity | address, chain, role |
 | `wallet_activity_event` | Chain transaction | tx_hash, activity_type, value |
 | `digital_lego_usage` | Protocol interaction | protocol_id, action_type, amount |
-| `attestation_schema` | EAS schema definition | schema_uid, chain |
+| `attestation_schema` | EAS schema definition | schema_uid, chain, schema_text |
 | `attestation_record` | Verification attestation | attestation_uid, status, claim_data |
 | `treasury_event` | Token flow | flow_direction, amount, token |
+| `chain_indexer_status` | Ingestion health tracking | chain, indexer_type, last_synced_block |
+
+### Ingestion & Observability
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `price_observation` | Commodity price data | commodity_code, price_date, price_per_unit, source |
+| `ingestion_log` | External data fetch log | source_system, target_table, status, processing_time_ms |
+| `workflow_history` | State transition audit | entity_type, entity_id, from_state, to_state, changed_by |
+| `approval` | Approval records | entity_type, entity_id, decision, decided_by |
+| `file_upload` | Uploaded files | filename, storage_path, mime_type |
 
 ### Modeled Outputs
 

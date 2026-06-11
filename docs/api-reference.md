@@ -107,11 +107,18 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 Base URL: `http://localhost:8123`
 
 ```bash
-# Query
-curl "http://localhost:8123/?query=SELECT+count()+FROM+events_raw"
+# Query (with auth)
+curl -u "kokonut:YOUR_PASSWORD" \
+  "http://localhost:8123/?query=SELECT+count()+FROM+events_raw"
 
-# With auth
-curl "http://localhost:8123/?query=SELECT+*+FROM+events_raw+LIMIT+10&user=kokonut&password=YOUR_PASSWORD"
+# Insert via POST body
+curl -u "kokonut:YOUR_PASSWORD" \
+  -X POST -d "INSERT INTO weather_events FORMAT JSONEachRow {...}" \
+  "http://localhost:8123/"
+
+# Native protocol (port 9000)
+docker exec -it kokonut-intelligence-clickhouse-1 \
+  clickhouse-client --user kokonut --password YOUR_PASSWORD
 ```
 
 ## Directus MCP (AI Agent Access)

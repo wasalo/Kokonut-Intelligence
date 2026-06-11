@@ -17,10 +17,10 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    INTERFACES                           │
-│  Directus Studio │ Metabase │ Baserow │ API │ Agents   │
-└────────┬────────┴─────┬─────┴────┬─────┴──┬──┴────┬────┘
-         │              │          │        │       │
-┌────────▼──────────────▼──────────▼────────▼───────▼────┐
+│  Directus Studio │ Metabase │ API │ Agents             │
+└────────┬────────┴─────┬─────┴──┬──┴────┬───────────────┘
+         │              │        │       │
+┌────────▼──────────────▼────────▼───────▼───────────────┐
 │                    DIRECTUS                             │
 │          REST API │ GraphQL │ SDK │ Flows              │
 │          Permissions │ Automations │ Webhooks           │
@@ -43,8 +43,22 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 │  soil_sample      wallet_profile      forecast_scenario  │
 │  species_obs      attestation_record  forecast_output    │
 │  remote_sensing   digital_lego_usage  metric_definition  │
-│  weather          treasury_event      report_snapshot    │
+│  weather_obs      attestation_schema  report_snapshot    │
 │  sensor_reading   governance_event    ai_summary         │
+│  price_observation                    ingestion_log      │
+└────────┬───────────────────────────────────────────────┘
+         │
+┌────────▼───────────────────────────────────────────────┐
+│              PYTHON INGESTION LAYER                     │
+│                                                         │
+│  weather.py       → OpenWeatherMap API                  │
+│  rpc_indexer.py   → Ethereum/L2 public RPC              │
+│  market_data.py   → World Bank Pink Sheet               │
+│  remote_sensing.py → CSV upload (NDVI/NDRE)            │
+│  eas_indexer.py   → EAS GraphQL API                     │
+│                                                         │
+│  All scripts: services/ingestion/                       │
+│  Common framework: base.py (DB, logging, retry)         │
 └────────┬───────────────────────────────────────────────┘
          │
 ┌────────▼───────────────────────────────────────────────┐
@@ -56,6 +70,7 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 │  Materialized Views:                                     │
 │  daily_event_counts │ hourly_sensor_stats               │
 │  daily_wallet_activity │ monthly_financial_summary      │
+│  daily_weather_summary                                  │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -92,9 +107,23 @@ Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus sna
 
 ## Security Model
 
-- **Roles:** Admin, Operator, Analyst, Partner, Developer, Agent
-- **Policies:** Per-collection, per-action, per-field permissions
+- **Roles:** Administrator, Field Worker, Supervisor, Manager, Finance, Analyst
+- **Policies:** Per-collection, per-action, per-field permissions (84 rules across 5 policies)
 - **Field-level:** Sensitive fields hidden per role
 - **Row-level:** Filter rules restrict record visibility
 - **Audit:** All mutations logged to `audit_log`
 - **Evidence:** Raw evidence stored off-chain; hashes/CIDs on-chain
+
+## Data Ingestion
+
+External data flows through Python scripts in `services/ingestion/`:
+
+| Source | Script | Frequency | Target |
+|--------|--------|-----------|--------|
+| OpenWeatherMap | `weather.py` | On demand | `weather_observation` + ClickHouse |
+| Ethereum/L2 RPC | `rpc_indexer.py` | On demand | `wallet_activity_event` + ClickHouse |
+| World Bank | `market_data.py` | On demand | `price_observation` |
+| CSV upload | `remote_sensing.py` | On demand | `remote_sensing_observation` |
+| EAS API | `eas_indexer.py` | On demand | `attestation_record` |
+
+All ingestion is logged to `ingestion_log` with source, status, and timing. Chain indexer health tracked in `chain_indexer_status`.

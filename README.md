@@ -142,24 +142,29 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 
 Python scripts in `services/ingestion/` fetch data from external APIs and insert into the canonical schema.
 
-| Script | Source | Target Tables | Schedule |
-|--------|--------|---------------|----------|
-| `weather.py` | OpenWeatherMap API | `weather_observation` + ClickHouse `weather_events` | Every 3 hours |
-| `rpc_indexer.py` | Ethereum/Optimism/Base/Arbitrum RPC | `wallet_activity_event` + ClickHouse `wallet_events` | Every 15 min |
-| `market_data.py` | FAO GIEWS commodity prices | `price_observation` | Daily |
-| `remote_sensing.py` | Manual CSV upload | `remote_sensing_observation` | On demand |
-| `subgraph_indexer.py` | The Graph (EAS) | `attestation_schema`, `attestation_record` | Hourly |
-| `eas_indexer.py` | EAS GraphQL API | `attestation_record` | Hourly |
+| Script | Source | Target Tables | Status |
+|--------|--------|---------------|--------|
+| `weather.py` | OpenWeatherMap API | `weather_observation` + ClickHouse `weather_events` | Working |
+| `rpc_indexer.py` | Ethereum/L2 public RPC | `wallet_activity_event` + ClickHouse `wallet_events` | Working |
+| `market_data.py` | World Bank Pink Sheet (seed data) | `price_observation` | Working |
+| `remote_sensing.py` | Manual CSV upload | `remote_sensing_observation` | Working |
+| `eas_indexer.py` | EAS GraphQL API (Optimism/Base) | `attestation_record` + `attestation_schema` | Working |
 
 ```bash
 # Run weather ingestion
-python -m services.ingestion.weather
+python3 -m services.ingestion.weather
 
 # Run RPC indexer for specific chain
-python -m services.ingestion.rpc_indexer --chain ethereum
+python3 -m services.ingestion.rpc_indexer --chain ethereum
 
 # Upload remote sensing CSV
-python -m services.ingestion.remote_sensing --file data.csv
+python3 -m services.ingestion.remote_sensing --file data/sample_remote_sensing.csv
+
+# Seed commodity prices
+python3 -m services.ingestion.market_data
+
+# Index EAS attestations
+python3 -m services.ingestion.eas_indexer --chain optimism
 ```
 
 ## Data Lifecycle

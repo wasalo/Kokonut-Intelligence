@@ -4,26 +4,36 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
-## [0.5.0] - 2026-06-10
+## [0.5.0] - 2026-06-11
 
 ### Added
 - **Milestone 3: External data ingestion**
-- ClickHouse event store: applied 6 event tables + 5 materialized views
+- ClickHouse event store: 6 event tables (`events_raw`, `wallet_events`, `sensor_readings`, `weather_events`, `financial_events`, `dlego_events`) + 5 materialized views
 - New schema `010_market_data.sql`: `price_observation` table for commodity prices
-- Common ingestion framework (`services/ingestion/`): base utilities, config, logging, retry logic
-- Weather ingestion (`weather.py`): OpenWeatherMap API → `weather_observation` + ClickHouse `weather_events`
-- RPC ingestion (`rpc_indexer.py`): Ethereum/Optimism/Base/Arbitrum wallet activity → `wallet_activity_event` + ClickHouse `wallet_events`
-- Market data ingestion (`market_data.py`): FAO GIEWS commodity prices → `price_observation`
-- Remote sensing CSV ingestion (`remote_sensing.py`): manual NDVI/NDRE upload → `remote_sensing_observation`
-- Subgraph ingestion (`subgraph_indexer.py`): EAS schemas + attestations via The Graph
-- EAS attestation ingestion (`eas_indexer.py`): direct EAS GraphQL API → `attestation_record`
+- Common ingestion framework (`services/ingestion/`): base utilities (DB, logging, retry, hashing), config loader from `.env`
+- Weather ingestion (`weather.py`): OpenWeatherMap API → `weather_observation` (PostgreSQL) + `weather_events` (ClickHouse)
+- RPC ingestion (`rpc_indexer.py`): Ethereum/L2 wallet balance tracking via web3.py → `wallet_activity_event` + ClickHouse `wallet_events`
+- Market data ingestion (`market_data.py`): World Bank Pink Sheet seed data (8 commodities, 48 price records) → `price_observation`
+- Remote sensing CSV ingestion (`remote_sensing.py`): NDVI/NDRE CSV upload → `remote_sensing_observation` with auto location lookup
+- EAS attestation ingestion (`eas_indexer.py`): EAS GraphQL API (Optimism/Base) → `attestation_record` + `attestation_schema`
 - Chain indexer health tracking via `chain_indexer_status` table
-- Free public RPC endpoints configured in `.env.example` (no API key required)
 - Ingestion logging to `ingestion_log` table for all external data sources
+- Test seed data: location (Nairobi), farm, plot, wallet profiles (Vitalik on ETH + Optimism)
+
+### Fixed
+- ClickHouse HTTP port not accessible from host — added `config/clickhouse/config.d/network.xml` (`listen_host: 0.0.0.0`)
+- ClickHouse schema: `Decimal15`/`Decimal18` → `Decimal128` (compatible with ClickHouse 25.3)
+- Weather ingestion: column mapping aligned with actual `weather_observation` schema (no `feels_like_c`, `visibility_m` → `visibility_km`)
+- Weather ClickHouse insert: switched from `clickhouse_connect` to requests-based HTTP (package didn't support native protocol)
+- RPC indexer: simplified to balance check (free public RPCs don't support block range scanning)
+- EAS indexer: GraphQL schema updated for `easscan.org` API (`orderBy`, `where: { equals: }` filter format, `txid` not `txHash`, `time` not `blockTimestamp`)
+- EAS indexer: checksum address required (case-sensitive API)
+- Market data: FAO GIEWS now requires auth — switched to World Bank Pink Sheet seed data
 
 ### Changed
 - Updated `seed.sh` to apply ClickHouse schemas on setup
 - Updated `.env.example` with weather, RPC, and EAS configuration
+- Free public RPC endpoints: `ethereum.publicnode.com`, `mainnet.optimism.io`, `mainnet.base.org`, `arb1.arbitrum.io/rpc`
 
 ## [0.4.0] - 2026-06-10
 

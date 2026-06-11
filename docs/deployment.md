@@ -85,8 +85,25 @@ docker compose -f docker-compose.yml up -d
 | `ADMIN_PASSWORD` | Directus admin password | Yes |
 | `PUBLIC_URL` | Public URL for Directus | Yes |
 | `CLICKHOUSE_PASSWORD` | ClickHouse password | Yes |
+| `OpenWeatherMap_API_KEY` | OpenWeatherMap API key (free tier) | For weather |
+| `ETH_RPC_URL` | Ethereum RPC endpoint | For RPC indexer |
+| `OPTIMISM_RPC_URL` | Optimism RPC endpoint | For RPC indexer |
+| `BASE_RPC_URL` | Base RPC endpoint | For RPC indexer |
+| `ARBITRUM_RPC_URL` | Arbitrum RPC endpoint | For RPC indexer |
 | `BASEROW_API_URL` | Baserow API URL | For migration |
 | `BASEROW_TOKEN` | Baserow API token | For migration |
+
+### Python Dependencies
+
+Ingestion scripts require Python 3.9+ with:
+
+```bash
+pip3 install requests web3 clickhouse-connect psycopg2-binary
+```
+
+### ClickHouse Configuration
+
+ClickHouse requires `listen_host: 0.0.0.0` to accept HTTP connections from the host. This is configured in `config/clickhouse/config.d/network.xml` and applied automatically by `seed.sh`.
 
 ## Database Management
 
