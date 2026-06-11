@@ -68,7 +68,11 @@
 | `species_observation` | Biodiversity count | species_name, count, method |
 | `remote_sensing_observation` | NDVI/NDRE | ndvi, ndre, canopy_cover_pct |
 | `weather_observation` | Weather data | temperature_c, precipitation_mm |
-| `sensor_reading` | Device reading | sensor_id, value, unit |
+| `sensor_type` | Sensor type definition | code, name, default_unit, default_min, default_max |
+| `sensor_device` | Registered sensor device | device_id, sensor_type_id, location_id, model, status |
+| `sensor_reading` | Device reading | sensor_id, value, unit, quality, anomaly_flag |
+| `alert_rule` | Threshold-based rule | sensor_type_id, operator, threshold, severity, cooldown_minutes |
+| `sensor_alert` | Triggered alert | alert_rule_id, reading_id, severity, status |
 | `mrv_claim` | Structured verification claim | claim_type, claim_data, status |
 
 ### Web3 & Attestation

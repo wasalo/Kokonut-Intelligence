@@ -112,9 +112,9 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   ├── clickhouse/     # ClickHouse config
 │   └── directus/       # Directus permissions SQL
 ├── schemas/
-│   ├── postgres/       # 10 schema files, 56 tables
+│   ├── postgres/       # 11 schema files, 60 tables
 │   ├── directus/       # Directus snapshots
-│   └── clickhouse/     # Analytical schemas (6 tables + 5 views)
+│   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── services/
 │   └── ingestion/      # External data ingestion scripts
 │       ├── base.py     # Common utilities (DB, logging, retry)
@@ -123,8 +123,10 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │       ├── rpc_indexer.py    # Ethereum/L2 wallet activity
 │       ├── market_data.py    # Commodity prices
 │       ├── remote_sensing.py # NDVI/NDRE CSV upload
-│       ├── subgraph_indexer.py # The Graph subgraphs
-│       └── eas_indexer.py    # EAS attestation ingestion
+│       ├── eas_indexer.py    # EAS attestation ingestion
+│       ├── sensor_ingester.py # Sensor CSV + single reading
+│       ├── mock_sensors.py   # Mock sensor data generator
+│       └── anomaly_detector.py # Threshold-based alert engine
 ├── extensions/
 │   └── kokonut-hooks/  # Directus lifecycle hooks
 │       └── src/
@@ -149,6 +151,9 @@ Python scripts in `services/ingestion/` fetch data from external APIs and insert
 | `market_data.py` | World Bank Pink Sheet (seed data) | `price_observation` | Working |
 | `remote_sensing.py` | Manual CSV upload | `remote_sensing_observation` | Working |
 | `eas_indexer.py` | EAS GraphQL API (Optimism/Base) | `attestation_record` + `attestation_schema` | Working |
+| `sensor_ingester.py` | CSV / single reading | `sensor_reading` + ClickHouse `sensor_readings` | Working |
+| `mock_sensors.py` | Internal (test data) | `sensor_device` + `sensor_reading` + ClickHouse | Working |
+| `anomaly_detector.py` | Threshold rules | `sensor_alert` + auto MRV claims | Working |
 
 ```bash
 # Run weather ingestion
@@ -165,6 +170,16 @@ python3 -m services.ingestion.market_data
 
 # Index EAS attestations
 python3 -m services.ingestion.eas_indexer --chain optimism
+
+# Sensor ingestion (batch CSV)
+python3 -m services.ingestion.sensor_ingester --file data/sensors.csv
+
+# Generate mock sensor data (for testing)
+python3 -m services.ingestion.mock_sensors --setup
+python3 -m services.ingestion.mock_sensors --generate --count 96 --anomalies
+
+# Run anomaly detection
+python3 -m services.ingestion.anomaly_detector
 ```
 
 ## Data Lifecycle

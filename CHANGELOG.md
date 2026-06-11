@@ -4,6 +4,17 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-11
+
+### Added
+- **Milestone 4: Real-time Sensor Streams**
+- New schema `011_sensor_registry.sql`: `sensor_type` (7 seeded), `sensor_device`, `alert_rule`, `sensor_alert` tables + ALTER `mrv_claim`
+- ClickHouse materialized views `003_sensor_views.sql`: `mv_hourly_sensor_stats`, `mv_daily_sensor_summary`, `mv_sensor_reading_rate`
+- Sensor ingestion (`sensor_ingester.py`): batch CSV + single reading + list sensors
+- Mock sensor data generator (`mock_sensors.py`): setup devices, generate readings (normal + anomaly), cleanup
+- Anomaly detection engine (`anomaly_detector.py`): 8 default alert rules (soil_moisture/soil_temperature/air_temperature/humidity/light/rainfall/water_level/frost), cooldown, auto-create MRV claims for critical alerts
+- Sensor types: soil_moisture, soil_temperature, air_temperature, humidity, light, rainfall, water_level
+
 ## [0.5.0] - 2026-06-11
 
 ### Added

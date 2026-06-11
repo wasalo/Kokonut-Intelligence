@@ -70,7 +70,8 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 │  Materialized Views:                                     │
 │  daily_event_counts │ hourly_sensor_stats               │
 │  daily_wallet_activity │ monthly_financial_summary      │
-│  daily_weather_summary                                  │
+│  daily_weather_summary │ daily_sensor_summary           │
+│  sensor_reading_rate                                    │
 └─────────────────────────────────────────────────────────┘
 ```
 
