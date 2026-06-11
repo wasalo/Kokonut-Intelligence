@@ -103,6 +103,19 @@ def run(file_path: str, location_id: str = None):
     success = 0
     errors = 0
 
+    # If no location_id provided, build lookup from plot → farm → location
+    plot_location_map = {}
+    if not location_id:
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT p.id, f.location_id
+                FROM plot p
+                JOIN farm f ON p.farm_id = f.id
+                WHERE f.location_id IS NOT NULL
+            """)
+            for row in cur.fetchall():
+                plot_location_map[str(row[0])] = str(row[1])
+
     with open(file_path, "r") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
@@ -117,7 +130,7 @@ def run(file_path: str, location_id: str = None):
             continue
 
         try:
-            record = parse_row(row, location_id)
+            record = parse_row(row, location_id or plot_location_map.get(row.get("plot_id", "")))
             pg_id = insert_observation(db, record)
 
             log_ingestion(

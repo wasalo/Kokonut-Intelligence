@@ -22,7 +22,6 @@ from .base import get_db, log_ingestion, hash_payload, retry, update_indexer_sta
 
 # EAS GraphQL endpoints per chain
 EAS_ENDPOINTS = {
-    "ethereum": "https://attest.sh",
     "optimism": "https://optimism.easscan.org",
     "base": "https://base.easscan.org",
 }
@@ -31,30 +30,31 @@ EAS_ENDPOINTS = {
 ATTESTATIONS_BY_RECIPIENT = """
 query GetAttestations($recipient: String!, $after: Int!) {
     attestations(
-        where: { recipient: $recipient }
-        order: { blockNumber: desc }
+        where: { recipient: { equals: $recipient } }
+        orderBy: { time: desc }
         take: 100
         skip: $after
     ) {
         id
-        txHash
+        txid
         schema { id schema }
         attester
         recipient
         data
-        blockNumber
-        blockTimestamp
+        time
+        timeCreated
         revocable
         revoked
         expirationTime
     }
 }
+"""
 
 SCHEMAS_BY_CREATOR = """
 query GetSchemas($creator: String!, $after: Int!) {
-    schemaRegistrations(
-        where: { creator: $creator }
-        order: { blockNumber: desc }
+    schemata(
+        where: { creator: { equals: $creator } }
+        orderBy: { time: desc }
         take: 100
         skip: $after
     ) {
@@ -63,9 +63,8 @@ query GetSchemas($creator: String!, $after: Int!) {
         creator
         resolver
         revocable
-        blockNumber
-        blockTimestamp
-        txHash
+        time
+        txid
     }
 }
 """
@@ -74,7 +73,9 @@ query GetSchemas($creator: String!, $after: Int!) {
 @retry(max_retries=3, backoff=2.0)
 def query_eas(chain: str, query: str, variables: dict) -> dict:
     """Execute GraphQL query against EAS."""
-    endpoint = EAS_ENDPOINTS.get(chain, EAS_ENDPOINTS["ethereum"])
+    endpoint = EAS_ENDPOINTS.get(chain)
+    if not endpoint:
+        raise ValueError(f"No EAS endpoint configured for chain: {chain}")
     resp = requests.post(
         f"{endpoint}/graphql",
         json={"query": query, "variables": variables},
@@ -89,10 +90,18 @@ def insert_attestation(db, att: dict, chain: str) -> str:
     """Insert EAS attestation into PostgreSQL."""
     attestation_uid = att["id"]
     block_ts = datetime.fromtimestamp(
-        int(att.get("blockTimestamp", 0)), tz=timezone.utc
+        int(att.get("time", 0)), tz=timezone.utc
     ).isoformat()
 
     with db.cursor() as cur:
+        # Check if already exists
+        cur.execute(
+            "SELECT id FROM attestation_record WHERE attestation_uid = %s",
+            (attestation_uid,),
+        )
+        if cur.fetchone():
+            return None
+
         # Check if schema exists, create if not
         schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
         schema_text = att.get("schema", {}).get("schema", "") if att.get("schema") else ""
@@ -120,26 +129,26 @@ def insert_attestation(db, att: dict, chain: str) -> str:
         cur.execute(
             """
             INSERT INTO attestation_record
-                (schema_id, attestation_uid, subject_id, subject_type,
-                 claim_data, status, attestation_tx, chain)
+                (schema_id, attestation_uid, subject_type,
+                 claim_data, status, tx_hash, chain, attested_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (attestation_uid) DO NOTHING
             RETURNING id
             """,
             (
                 schema_id, attestation_uid,
-                att.get("recipient", ""), "wallet",
+                "wallet",
                 json.dumps({
                     "attester": att.get("attester"),
+                    "recipient": att.get("recipient"),
                     "data": att.get("data"),
-                    "block_number": att.get("blockNumber"),
                     "revocable": att.get("revocable"),
                     "revoked": att.get("revoked"),
                     "expiration_time": att.get("expirationTime"),
                 }),
                 "revoked" if att.get("revoked") else "attested",
-                att.get("txHash", ""),
+                att.get("txid", ""),
                 chain,
+                block_ts,
             ),
         )
         row = cur.fetchone()
@@ -160,7 +169,7 @@ def run(chain: str = None):
 
     wallet_map = {}
     for w_id, w_addr, w_chain in wallets:
-        wallet_map.setdefault(w_chain.lower(), []).append((w_id, w_addr.lower()))
+        wallet_map.setdefault(w_chain.lower(), []).append((w_id, w_addr))
 
     for c in chains:
         print(f"[EAS] Indexing {c}...")
@@ -198,15 +207,15 @@ def run(chain: str = None):
                         break
 
                     for att in attestations:
-                        block_num = int(att.get("blockNumber", 0))
-                        if block_num <= last_block:
+                        att_time = int(att.get("time", 0))
+                        if att_time <= last_block:
                             continue
 
                         insert_attestation(db, att, c)
                         total_inserted += 1
 
-                        if block_num > max_block:
-                            max_block = block_num
+                        if att_time > max_block:
+                            max_block = att_time
 
                     offset += len(attestations)
                     if len(attestations) < 100:
@@ -241,6 +250,6 @@ def run(chain: str = None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="EAS attestation ingestion")
-    parser.add_argument("--chain", choices=["ethereum", "optimism", "base"])
+    parser.add_argument("--chain", choices=["optimism", "base"])
     args = parser.parse_args()
     run(chain=args.chain)
