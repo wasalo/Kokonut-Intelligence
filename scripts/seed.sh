@@ -43,6 +43,17 @@ done
 echo ""
 echo "Schema applied successfully."
 
+# Apply Directus permissions
+echo ""
+echo "Applying Directus permissions..."
+PERMISSIONS_FILE="$PROJECT_DIR/config/directus/permissions.sql"
+if [ -f "$PERMISSIONS_FILE" ]; then
+    docker exec -i "$DB_CONTAINER" psql -U kokonut -d kokonut_intelligence < "$PERMISSIONS_FILE"
+    echo "Directus permissions applied."
+else
+    echo "No permissions file found at $PERMISSIONS_FILE — skipping."
+fi
+
 # Seed expense categories
 echo ""
 echo "Seeding expense categories..."
@@ -105,5 +116,5 @@ echo "Next steps:"
 echo "  1. Access Directus at http://localhost:8055"
 echo "  2. Create your admin account (if not auto-created)"
 echo "  3. Import Baserow data: python migrations/baserow_to_postgres/migrate.py --config config.json --dry-run"
-echo "  4. Configure Metabase at http://localhost:3000"
+echo "  4. Configure Metabase at http://localhost:3001"
 echo ""

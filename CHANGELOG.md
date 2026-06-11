@@ -4,6 +4,21 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-10
+
+### Added
+- **Milestone 2: Staff-managed operations UX**
+- New schema `009_operations_ux.sql`: `workflow_history`, `file_upload`, `approval` tables
+- Added `submitted_at` columns to all 7 operational tables (farm_activity, harvest_event, sales_event, expense_event, loss_event, labor_event, field_note)
+- Added `updated_by` and `updated_at` to loss_event, labor_event, field_note
+- Role-based approval routing: finance approves expenses, managers approve operational records
+- Workflow history logging — every state transition recorded to `workflow_history` table
+- Rule-based AI helpers (`ai-helpers.ts`): expense auto-categorization, amount validation, harvest quantity checks, date validation, field note summarization, labor cost auto-calculation
+- Metrics calculator with real SQL queries for NOI, loss rate, operating margin — writes to `noi_snapshot` table
+- 5 Directus roles: Field Worker, Supervisor, Manager, Finance, Analyst
+- 84 permission rules across 5 policies with row-level and field-level access control
+- Seed script applies Directus permissions on setup
+
 ## [0.3.0] - 2026-06-10
 
 ### Fixed
