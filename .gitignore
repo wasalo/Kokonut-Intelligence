@@ -54,3 +54,5 @@ backups/
 
 # Snapshots (managed separately)
 schemas/directus/snapshots/
+migrations/baserow_to_postgres/config.json
+PRD.md

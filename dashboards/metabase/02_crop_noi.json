@@ -1,0 +1,17 @@
+{
+  "name": "Crop NOI",
+  "description": "Net Operating Income analysis by crop with revenue, costs, and margins",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Crop NOI Summary",
+      "description": "NOI analysis for active crop cycles",
+      "native": {
+        "query": "SELECT \n  c.name as crop,\n  cc.season,\n  cc.planting_date,\n  cc.expected_harvest_date,\n  COALESCE(SUM(se.total_amount), 0) as gross_revenue,\n  COALESCE(SUM(se.return_amount + se.discount_amount), 0) as returns_discounts,\n  COALESCE(SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount), 0) as net_revenue,\n  COALESCE(SUM(ee.amount), 0) as direct_costs,\n  CASE \n    WHEN SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount) > 0 \n    THEN ROUND(\n      (SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount) - SUM(ee.amount)) / \n      NULLIF(SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount), 0) * 100, \n      2\n    )\n    ELSE 0 \n  END as operating_margin_pct,\n  COUNT(DISTINCT h.id) as harvest_count,\n  COALESCE(SUM(h.quantity), 0) as total_harvest_kg\nFROM crop_cycle cc\nJOIN crop c ON cc.crop_id = c.id\nLEFT JOIN sales_event se ON cc.id = se.crop_cycle_id\nLEFT JOIN expense_event ee ON cc.id = ee.crop_cycle_id\nLEFT JOIN harvest_event h ON cc.id = h.crop_cycle_id\nWHERE cc.status = 'active'\nGROUP BY c.name, cc.season, cc.planting_date, cc.expected_harvest_date\nORDER BY operating_margin_pct DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}

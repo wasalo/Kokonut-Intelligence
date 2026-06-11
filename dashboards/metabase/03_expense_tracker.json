@@ -1,0 +1,17 @@
+{
+  "name": "Expense Tracker",
+  "description": "Expense analysis by category with direct vs shared cost breakdown",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Expense Summary by Category",
+      "description": "Expenses grouped by category and cost type",
+      "native": {
+        "query": "SELECT \n  ec.name as category,\n  ec.is_direct,\n  COUNT(ee.id) as transaction_count,\n  SUM(ee.amount) as total_amount,\n  AVG(ee.amount) as avg_transaction,\n  MAX(ee.expense_date) as last_expense_date,\n  MIN(ee.expense_date) as first_expense_date,\n  CASE \n    WHEN ec.is_direct = true \n    THEN 'Direct Cost' \n    ELSE 'Shared Cost' \n  END as cost_type\nFROM expense_event ee\nJOIN expense_category ec ON ee.category = ec.name\nWHERE ee.status != 'rejected'\nGROUP BY ec.name, ec.is_direct\nORDER BY total_amount DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}

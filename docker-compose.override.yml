@@ -1,8 +1,4 @@
 services:
-  database:
-    volumes:
-      - ./config/postgres:/var/lib/postgresql/custom:ro
-
   directus:
     environment:
       LOG_LEVEL: "debug"

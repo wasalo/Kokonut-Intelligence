@@ -7,6 +7,13 @@
  * Net Revenue = Gross Sales - Returns - Discounts
  */
 
+// Database client set by the hook initialization
+let db: any;
+
+export function setDb(databaseClient: any) {
+  db = databaseClient;
+}
+
 interface NoiCalculation {
   cropCycleId: string;
   locationId: string;
@@ -25,16 +32,13 @@ interface NoiCalculation {
 }
 
 /**
- * Main NOI calculation function
- * This would be called by Directus hooks or manually
+ * Main NOI calculation function with actual database queries
  */
 export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation> {
-  // In production, this would query the Directus API or database
-  // For now, it's a structural skeleton
 
   const calculation: NoiCalculation = {
     cropCycleId,
-    locationId: '', // populated from crop cycle
+    locationId: '',
     periodStart: new Date(),
     periodEnd: new Date(),
     grossRevenue: 0,
@@ -49,18 +53,57 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
     inputs: {},
   };
 
+  // Get crop cycle info
+  const cropCycle = await db('crop_cycle')
+    .where('id', cropCycleId)
+    .first();
+  
+  if (cropCycle) {
+    calculation.locationId = cropCycle.location_id || '';
+    calculation.periodStart = cropCycle.planting_date || new Date();
+    calculation.periodEnd = cropCycle.expected_harvest_date || new Date();
+  }
+
   // Step 1: Get all sales for this crop cycle
-  // SELECT SUM(total_amount) FROM sales_event WHERE crop_cycle_id = $1 AND status = 'verified'
-  // SELECT SUM(return_amount + discount_amount) FROM sales_event WHERE crop_cycle_id = $1
+  const salesResult = await db('sales_event')
+    .where('crop_cycle_id', cropCycleId)
+    .where('status', '!=', 'rejected')
+    .sum('total_amount as gross')
+    .sum('return_amount as returns')
+    .sum('discount_amount as discounts')
+    .first();
+
+  calculation.grossRevenue = parseFloat(salesResult?.gross || '0');
+  calculation.returnsAndDiscounts = parseFloat(salesResult?.returns || '0') + parseFloat(salesResult?.discounts || '0');
 
   // Step 2: Get all direct expenses for this crop cycle
-  // SELECT SUM(amount) FROM expense_event WHERE crop_cycle_id = $1 AND status IN ('approved', 'paid')
+  const expenseResult = await db('expense_event')
+    .where('crop_cycle_id', cropCycleId)
+    .where('status', 'in', ['approved', 'paid'])
+    .sum('amount as total')
+    .first();
+
+  calculation.directCropCosts = parseFloat(expenseResult?.total || '0');
 
   // Step 3: Get allocated shared expenses
-  // SELECT SUM(allocated_amount) FROM crop_cost_allocation WHERE crop_cycle_id = $1
+  const allocationResult = await db('crop_cost_allocation')
+    .where('crop_cycle_id', cropCycleId)
+    .sum('allocated_amount as total')
+    .first();
+
+  calculation.allocatedSharedCosts = parseFloat(allocationResult?.total || '0');
 
   // Step 4: Get harvest data for loss rate
-  // SELECT SUM(quantity), SUM(loss_amount) FROM harvest_event WHERE crop_cycle_id = $1
+  const harvestResult = await db('harvest_event')
+    .where('crop_cycle_id', cropCycleId)
+    .where('status', '!=', 'rejected')
+    .sum('quantity as total_harvest')
+    .sum('loss_amount as total_loss')
+    .first();
+
+  const totalHarvest = parseFloat(harvestResult?.total_harvest || '0');
+  const totalLoss = parseFloat(harvestResult?.total_loss || '0');
+  calculation.lossRatePct = totalHarvest > 0 ? (totalLoss / totalHarvest) * 100 : 0;
 
   // Calculate outputs
   calculation.netRevenue = calculation.grossRevenue - calculation.returnsAndDiscounts;
@@ -77,12 +120,17 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
  * Batch calculate NOI for all active crop cycles
  */
 export async function batchCalculateNoi(locationId?: string): Promise<NoiCalculation[]> {
-  // Get all active crop cycles, optionally filtered by location
-  const cropCycles: string[] = []; // populated from DB
+  let query = db('crop_cycle').where('status', 'active');
+  
+  if (locationId) {
+    query = query.where('location_id', locationId);
+  }
 
+  const cropCycles = await query.select('id');
   const results: NoiCalculation[] = [];
-  for (const ccId of cropCycles) {
-    const result = await calculateNoi(ccId);
+
+  for (const cc of cropCycles) {
+    const result = await calculateNoi(cc.id);
     results.push(result);
   }
 

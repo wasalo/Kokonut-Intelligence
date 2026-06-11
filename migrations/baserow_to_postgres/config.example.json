@@ -5,115 +5,415 @@
   },
   "directus": {
     "url": "http://localhost:8055",
-    "email": "admin@kokonut.network",
-    "password": "CHANGE_ME"
+    "email": "YOUR_ADMIN_EMAIL",
+    "password": "YOUR_ADMIN_PASSWORD"
   },
   "table_map": {
     "Locations": "location",
-    "Farms": "farm",
-    "Plots": "plot",
-    "Crops": "crop",
-    "Crop Cycles": "crop_cycle",
-    "Activities": "farm_activity",
-    "Harvests": "harvest_event",
-    "Sales": "sales_event",
-    "Expenses": "expense_event",
-    "Losses": "loss_event",
-    "Soil Samples": "soil_sample",
-    "Species Observations": "species_observation",
-    "Wallets": "wallet_profile",
-    "Partners": "partner"
+    "Kokonut Farms": "farm",
+    "Land Lots": "plot",
+    "Species": "crop",
+    "Staff": "staff",
+    "Equipment": "infrastructure_asset",
+    "Organizations": "partner",
+    "Digital Legos Tracker": "digital_lego_usage",
+    "Departments": "department",
+    "Job roles": "job_role",
+    "Development Phases": "development_phase",
+    "Framework Steps": "framework_step",
+    "Weekly Planning": "weekly_plan",
+    "Impact Dimensions": "impact_dimension",
+    "Impact Frameworks": "impact_framework",
+    "Forms of Capital": "form_of_capital",
+    "SDGs": "sdg",
+    "Objectives": "objective",
+    "Funding": "funding",
+    "Funding Milestones": "funding_milestone",
+    "Milestones Outcomes": "milestone_outcome",
+    "Impact": "impact_record",
+    "EBF": "ebf_record",
+    "Ecosystem Infra Stack": "infrastructure_asset",
+    "Ecosystem Branches": "ecosystem_branch",
+    "Kokonut Dependencies": "dependency",
+    "Biofactory": "infrastructure_asset",
+    "Ground Analytics": "ground_analytics_snapshot",
+    "F001 — Activity Report": "farm_activity",
+    "F002 — Expenses": "expense_event",
+    "F003 — Activity Outputs": "activity_output",
+    "F004 — Activity Metrics": "activity_metric",
+    "F005 -- Resources Inputs": "resource_input",
+    "Kokonut Farm Tasks": "farm_task"
   },
   "field_mappings": {
     "tables": {
       "Locations": {
         "field_map": {
-          "Name": "name",
-          "Slug": "slug",
+          "Municipality": "name",
           "Description": "description",
-          "Country": "country",
-          "Region": "region",
-          "Latitude": "latitude",
-          "Longitude": "longitude",
-          "Baseline Revenue": "baseline_revenue",
-          "Baseline Asset Value": "baseline_asset_value",
-          "Baseline Cash Flow": "baseline_cash_flow",
-          "Status": "status"
+          "Province": "region",
+          "UUID": "slug"
+        },
+        "transforms": {}
+      },
+      "Kokonut Farms": {
+        "field_map": {
+          "Title": "name",
+          "Farm Description": "description",
+          "Start": "start_date",
+          "Actual end date": "end_date",
+          "Land Size": "total_area",
+          "Project Location": "location",
+          "Project Coordinates": "coordinates",
+          "UUID": "slug",
+          "Data Hub": "is_active"
         },
         "transforms": {
-          "Latitude": "number",
-          "Longitude": "number",
-          "Baseline Revenue": "number",
-          "Baseline Asset Value": "number",
-          "Baseline Cash Flow": "number"
+          "Land Size": "number",
+          "Data Hub": "bool"
         }
       },
-      "Farms": {
+      "Species": {
         "field_map": {
           "Name": "name",
-          "Slug": "slug",
-          "Description": "description",
-          "Farm Type": "farm_type",
-          "Total Area": "total_area",
-          "Area Unit": "area_unit",
-          "Status": "status"
+          "Scientific Name": "scientific_name",
+          "Type": "crop_category",
+          "Weeks to Maturity": "growing_season_days"
         },
         "transforms": {
-          "Total Area": "number"
+          "Weeks to Maturity": "number"
         }
       },
-      "Expenses": {
+      "Staff": {
         "field_map": {
+          "Name": "name",
+          "Phone": "phone",
+          "Email": "email",
+          "UUID": "slug",
+          "Active": "is_active"
+        },
+        "transforms": {
+          "Active": "bool"
+        }
+      },
+      "Equipment": {
+        "field_map": {
+          "Name": "name",
+          "Description": "description",
+          "Category": "asset_type",
+          "Quantity": "quantity",
+          "UUID": "slug"
+        },
+        "transforms": {
+          "Quantity": "number"
+        },
+        "defaults": {
+          "asset_type": "pump"
+        }
+      },
+      "Organizations": {
+        "field_map": {
+          "Name": "name",
+          "Notes": "description",
+          "Active": "is_active"
+        },
+        "transforms": {
+          "Active": "bool"
+        }
+      },
+      "Digital Legos Tracker": {
+        "field_map": {
+          "Name": "notes",
+          "Notes": "notes",
+          "Status": "action_type",
+          "URL": "evidence_urls"
+        },
+        "transforms": {
+          "URL": "url_to_array"
+        }
+      },
+      "Departments": {
+        "field_map": {
+          "Name": "name",
+          "Description": "description"
+        },
+        "transforms": {}
+      },
+      "Job roles": {
+        "field_map": {
+          "Name": "name",
+          "Description": "description"
+        },
+        "transforms": {}
+      },
+      "Development Phases": {
+        "field_map": {
+          "Name": "name",
+          "Description": "description"
+        },
+        "transforms": {}
+      },
+      "Framework Steps": {
+        "field_map": {
+          "Title": "name",
+          "Duration in days": "duration_days",
+          "Description": "description",
+          "Type": "step_type"
+        },
+        "transforms": {
+          "Duration in days": "number"
+        }
+      },
+      "Weekly Planning": {
+        "field_map": {
+          "Week": "name",
+          "Notes": "description",
+          "Date Start": "week_start",
+          "Date End": "week_end",
+          "Budget Forecast": "budget_forecast"
+        },
+        "transforms": {
+          "Budget Forecast": "number"
+        }
+      },
+      "Impact Dimensions": {
+        "field_map": {
+          "Name": "name",
+          "Description": "description",
+          "Active": "is_active"
+        },
+        "transforms": {
+          "Active": "bool"
+        }
+      },
+      "Impact Frameworks": {
+        "field_map": {
+          "Name": "name",
+          "Description": "description",
+          "Source": "url"
+        },
+        "transforms": {}
+      },
+      "Forms of Capital": {
+        "field_map": {
+          "Name": "name",
+          "Notes": "description",
+          "Active": "is_active"
+        },
+        "transforms": {
+          "Active": "bool"
+        }
+      },
+      "SDGs": {
+        "field_map": {
+          "Name": "name",
+          "Notes": "description",
+          "Active": "is_active"
+        },
+        "transforms": {
+          "Active": "bool"
+        }
+      },
+      "Objectives": {
+        "field_map": {
+          "Title": "name",
+          "Description": "description",
+          "Date": "target_date"
+        },
+        "transforms": {}
+      },
+      "Funding": {
+        "field_map": {
+          "Program": "name",
+          "Overview": "description",
+          "Grant Amount": "grant_amount",
+          "Crowdfunding Amount": "crowdfunding_amount",
+          "Date": "funding_date",
+          "UUID": "slug"
+        },
+        "transforms": {
+          "Grant Amount": "number",
+          "Crowdfunding Amount": "number"
+        }
+      },
+      "Funding Milestones": {
+        "field_map": {
+          "Title": "name",
+          "Priority": "priority",
+          "Start Date": "start_date",
+          "End Date": "end_date",
+          "Description": "description",
+          "UUID": "slug"
+        },
+        "transforms": {}
+      },
+      "Milestones Outcomes": {
+        "field_map": {
+          "Title": "name",
+          "Description": "description",
+          "Output Proof": "proof_url",
+          "UUID": "slug"
+        },
+        "transforms": {}
+      },
+      "Impact": {
+        "field_map": {
+          "Name": "name",
+          "Work Description": "work_description",
+          "Impact Description": "impact_description",
+          "Work Date Start": "work_start_date",
+          "Work Date End": "work_end_date",
+          "Impact Proof": "evidence_url",
+          "Impact URL": "impact_url",
+          "Impact Verification": "verification_notes",
+          "Impact Level": "impact_level",
+          "Impact Score": "impact_score",
+          "UUID": "slug"
+        },
+        "transforms": {
+          "Impact Score": "number"
+        }
+      },
+      "EBF": {
+        "field_map": {
+          "Name": "name",
+          "Notes": "description",
+          "Active": "is_active"
+        },
+        "transforms": {
+          "Active": "bool"
+        }
+      },
+      "Ecosystem Infra Stack": {
+        "field_map": {
+          "Name": "name",
+          "Notes": "description",
+          "Active": "is_active",
+          "URL": "metadata"
+        },
+        "transforms": {
+          "Active": "bool",
+          "URL": "url_to_json"
+        },
+        "defaults": {
+          "asset_type": "greenhouse"
+        }
+      },
+      "Ecosystem Branches": {
+        "field_map": {
+          "Name": "name",
+          "Notes": "description",
+          "Active": "is_active"
+        },
+        "transforms": {
+          "Active": "bool"
+        }
+      },
+      "Kokonut Dependencies": {
+        "field_map": {
+          "Name": "name",
+          "Notes": "description",
+          "URL": "url"
+        },
+        "transforms": {}
+      },
+      "Biofactory": {
+        "field_map": {
+          "Product": "name",
+          "Notes": "description",
+          "Date": "production_date"
+        },
+        "transforms": {}
+      },
+      "Ground Analytics": {
+        "field_map": {
+          "Name": "name",
+          "Notes": "description",
+          "Active": "is_active"
+        },
+        "transforms": {
+          "Active": "bool"
+        }
+      },
+      "F001 — Activity Report": {
+        "field_map": {
+          "Activity Name": "description",
+          "Start Date": "activity_date",
+          "Activity Description": "description",
+          "Duration": "labor_hours",
+          "Activity End date": "notes"
+        },
+        "transforms": {
+          "Duration": "number"
+        },
+        "defaults": {
+          "activity_type": "general",
+          "location_id": "default"
+        }
+      },
+      "F002 — Expenses": {
+        "field_map": {
+          "Name": "name",
+          "Expense Notes": "description",
           "Date": "expense_date",
           "Category": "category",
-          "Subcategory": "subcategory",
+          "Monto a Depositar": "amount",
+          "US$ Rate": "exchange_rate",
+          "Expense Status": "status",
+          "UUID": "slug"
+        },
+        "transforms": {
+          "Monto a Depositar": "number",
+          "US$ Rate": "number"
+        }
+      },
+      "F003 — Activity Outputs": {
+        "field_map": {
+          "Deliverable Name": "name",
           "Description": "description",
-          "Vendor": "vendor",
-          "Amount": "amount",
-          "Currency": "currency",
-          "Is Capex": "is_capex",
-          "Status": "status",
-          "Notes": "notes"
+          "Proof URL": "proof_url",
+          "UUID": "slug"
+        },
+        "transforms": {}
+      },
+      "F004 — Activity Metrics": {
+        "field_map": {
+          "Indicator": "name",
+          "Value": "value",
+          "Proof URL": "proof_url",
+          "Description": "description",
+          "UUID": "slug"
         },
         "transforms": {
-          "Amount": "number",
-          "Is Capex": "bool"
+          "Value": "number"
         }
       },
-      "Harvests": {
+      "F005 -- Resources Inputs": {
         "field_map": {
-          "Harvest Date": "harvest_date",
-          "Quantity": "quantity",
-          "Unit": "unit",
-          "Quality Grade": "quality_grade",
-          "Destination": "destination",
-          "Loss Amount": "loss_amount",
-          "Loss Reason": "loss_reason",
-          "Notes": "notes"
+          "Name": "name",
+          "Notes": "description",
+          "Active": "is_active",
+          "UUID": "slug"
         },
         "transforms": {
-          "Quantity": "number",
-          "Loss Amount": "number"
+          "Active": "bool"
         }
       },
-      "Sales": {
+      "Kokonut Farm Tasks": {
         "field_map": {
-          "Sale Date": "sale_date",
-          "Buyer": "buyer",
-          "Buyer Type": "buyer_type",
+          "Title": "name",
+          "Start": "start_date",
+          "Duration in days": "duration_days",
+          "Actual end date": "end_date",
+          "Category": "category",
           "Quantity": "quantity",
-          "Unit": "unit",
-          "Price Per Unit": "price_per_unit",
-          "Total Amount": "total_amount",
-          "Currency": "currency",
-          "Payment Status": "payment_status",
-          "Payment Date": "payment_date",
-          "Notes": "notes"
+          "Quoted Cost per Unit": "cost_per_unit",
+          "Description": "description",
+          "UUID": "slug"
         },
         "transforms": {
+          "Duration in days": "number",
           "Quantity": "number",
-          "Price Per Unit": "number",
-          "Total Amount": "number"
+          "Quoted Cost per Unit": "number"
         }
       }
     }

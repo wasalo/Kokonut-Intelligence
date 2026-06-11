@@ -1,0 +1,17 @@
+{
+  "name": "Farm Operations",
+  "description": "Overview of farm operations including harvest volumes and activity counts",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Farm Operations Summary",
+      "description": "Summary of farm operations by location",
+      "native": {
+        "query": "SELECT \n  l.name as location,\n  f.name as farm,\n  COUNT(DISTINCT p.id) as plot_count,\n  COUNT(DISTINCT cc.id) as active_crop_cycles,\n  COALESCE(SUM(h.quantity), 0) as total_harvest_kg,\n  COUNT(DISTINCT fa.id) as total_activities,\n  COALESCE(SUM(CASE WHEN cc.status = 'active' THEN 1 ELSE 0 END), 0) as active_cycles\nFROM farm f\nJOIN location l ON f.location_id = l.id\nLEFT JOIN plot p ON f.id = p.farm_id\nLEFT JOIN crop_cycle cc ON p.id = cc.plot_id\nLEFT JOIN harvest_event h ON cc.id = h.crop_cycle_id\nLEFT JOIN farm_activity fa ON cc.id = fa.crop_cycle_id\nWHERE f.status = 'active'\nGROUP BY l.name, f.name\nORDER BY total_harvest_kg DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}

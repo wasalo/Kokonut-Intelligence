@@ -55,6 +55,7 @@ services:
       DB_DATABASE: "kokonut_intelligence"
       DB_USER: "kokonut"
       DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_SEARCH_PATH: "public,kokonut"
       CACHE_ENABLED: "true"
       CACHE_AUTO_PURGE: "true"
       CACHE_STORE: "redis"

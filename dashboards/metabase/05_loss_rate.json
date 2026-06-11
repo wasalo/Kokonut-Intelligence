@@ -1,0 +1,17 @@
+{
+  "name": "Loss Rate",
+  "description": "Loss rate analysis by crop and loss type with financial impact",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Loss Rate by Crop",
+      "description": "Loss rates and financial impact by crop and loss type",
+      "native": {
+        "query": "SELECT \n  c.name as crop,\n  le.loss_type,\n  COUNT(le.id) as loss_events,\n  SUM(le.quantity) as total_loss_kg,\n  SUM(h.quantity) as total_harvest_kg,\n  CASE \n    WHEN SUM(h.quantity) > 0 \n    THEN ROUND(SUM(le.quantity) / SUM(h.quantity) * 100, 2)\n    ELSE 0 \n  END as loss_rate_pct,\n  SUM(le.estimated_value) as loss_value,\n  COUNT(DISTINCT le.crop_cycle_id) as affected_cycles\nFROM loss_event le\nJOIN crop_cycle cc ON le.crop_cycle_id = cc.id\nJOIN crop c ON cc.crop_id = c.id\nJOIN harvest_event h ON cc.id = h.crop_cycle_id\nWHERE le.status != 'rejected'\nGROUP BY c.name, le.loss_type\nORDER BY loss_rate_pct DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}

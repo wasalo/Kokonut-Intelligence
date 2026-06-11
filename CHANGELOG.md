@@ -4,6 +4,68 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-10
+
+### Fixed
+- **CRITICAL:** Fixed Species → Crop mapping (was mapping crop data to biodiversity table)
+- **CRITICAL:** Fixed all 5 Metabase SQL queries (23 broken column references: `weight_kg`→`quantity`, `returns`→`return_amount`, `discounts`→`discount_amount`, `h.date`→`harvest_date`, `se.date`→`sale_date`, `ee.date`→`expense_date`, `ec.is_direct_cost`→`ec.is_direct`)
+- **CRITICAL:** Fixed all 5 Metabase JSON templates to match corrected SQL queries
+- **CRITICAL:** Fixed `digital_lego_usage` field mapping (was targeting nonexistent columns)
+- **CRITICAL:** Fixed F001 Activity Report field mapping (was targeting nonexistent columns)
+- **CRITICAL:** Fixed Directus schema snapshot (was empty, now contains 109 collections, 1212 fields, 149 relations)
+- Fixed `ecosystem_branch` table missing CREATE TABLE definition
+- Fixed `DB_SEARCH_PATH` mismatch (was `kokonut,public`, now `public,kokonut` to match actual table locations)
+- Fixed `asset_type` values (was `equipment`, `ecosystem_infrastructure`, now valid values `pump`, `greenhouse`)
+- Fixed `net_amount` calculation bug on partial sales_event updates
+- Fixed `infrastructure_asset.url` column missing from schema
+- Fixed NOT NULL constraints: `plot.farm_id`, `species_observation.location_id`, `partner.slug`, `infrastructure_asset.location_id`, `infrastructure_asset.asset_type`
+
+### Added
+- Created `ecosystem_branch` table with proper columns and FK constraints
+- Created PRD-required tables: `inventory_event`, `maintenance_event`, `revenue_event`
+- Added 37 foreign key constraints for Baserow migration tables
+- Added `url_to_array` transform for converting URLs to PostgreSQL arrays
+- Added `.env.example` file for migration scripts
+- Implemented NOI calculator with actual database queries
+- Implemented scheduled tasks (daily NOI reconciliation, weekly metric snapshots)
+- Added workflow state machine for `loss_event`, `labor_event`, `field_note`, `ai_summary`
+- Updated `config.example.json` to match current configuration
+
+### Changed
+- Removed hardcoded secrets from `config.json` and `direct_insert.py` (now use environment variables)
+- Removed duplicate Baserow table mappings (kept canonical sources only)
+- Removed dead volume mount from `docker-compose.override.yml`
+- Removed unused `@directus/sdk` dependency from extension
+- Updated `migrate.py` to read credentials from environment variables
+- Updated `direct_insert.py` to read credentials from environment variables
+
+## [0.2.0] - 2026-06-10
+
+### Added
+- Migrated 32 Baserow tables to PostgreSQL (1,923 total rows)
+- 22 new PostgreSQL tables created for Baserow migration: `farm_task`, `department`, `job_role`, `funding`, `impact_record`, `dependency`, `ecosystem_branch`, `resource_input`, `development_phase`, `framework_step`, `weekly_plan`, `impact_dimension`, `impact_framework`, `form_of_capital`, `sdg`, `objective`, `funding_milestone`, `milestone_outcome`, `ebf_record`, `ground_analytics_snapshot`, `activity_metric`, `activity_output`
+- Directus collection metadata for 22 new tables
+- Directus field definitions for key tables (40 fields)
+- Foreign key constraints: `farm_task` → `farm`, `location`, `plot`, `crop_cycle`, `staff`; `funding` → `partner`
+- Directus relations metadata for UI integration
+- `slugify` transform for generating slugs from names
+- `url_to_json` transform for converting URL strings to JSON objects
+- `defaults` support in migration config for required fields
+- `direct_insert.py` script for bypassing Directus API (direct PostgreSQL insertion)
+
+### Fixed
+- NOT NULL constraints relaxed: `plot.farm_id`, `species_observation.location_id`, `species_observation.observation_date`, `partner.slug`, `infrastructure_asset.location_id`, `infrastructure_asset.asset_type`
+- Added `url` column to `infrastructure_asset` table
+- Partner table slug auto-generation from name field
+- Infrastructure asset `asset_type` default value for Baserow data
+- Python 3.9 compatibility for `dict | None` syntax in migration script
+- Baserow API response format handling (list vs dict)
+
+### Changed
+- Migration script now supports `defaults` config for required fields
+- Migration script auto-generates slugs for `partner` table
+- Field mapping updated to store URLs as JSON in `metadata` column
+
 ## [0.1.0] - 2026-06-10
 
 ### Added

@@ -20,7 +20,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import requests
 
@@ -46,7 +46,11 @@ class BaserowClient:
             headers=self.headers,
         )
         resp.raise_for_status()
-        return resp.json().get("results", [])
+        data = resp.json()
+        # Handle both list and dict responses
+        if isinstance(data, list):
+            return data
+        return data.get("results", [])
 
     def get_fields(self, table_id: int) -> list[dict]:
         """Get field definitions for a table."""
@@ -55,7 +59,11 @@ class BaserowClient:
             headers=self.headers,
         )
         resp.raise_for_status()
-        return resp.json().get("results", [])
+        data = resp.json()
+        # Handle both list and dict responses
+        if isinstance(data, list):
+            return data
+        return data.get("results", [])
 
     def get_rows(self, table_id: int, page: int = 1, size: int = 200) -> dict:
         """Get paginated rows from a table."""
@@ -138,13 +146,14 @@ class FieldMapper:
     def __init__(self, mapping_config: dict):
         self.mappings = mapping_config
 
-    def map_table(self, baserow_table_name: str) -> dict | None:
+    def map_table(self, baserow_table_name: str) -> Optional[dict]:
         return self.mappings.get("tables", {}).get(baserow_table_name)
 
     def transform_row(
-        self, row: dict, field_defs: list[dict], table_mapping: dict
+        self, row: dict, field_defs: list[dict], table_mapping: dict, target_collection: str = ""
     ) -> dict:
         """Transform a Baserow row to canonical schema format."""
+        import re
         result = {}
 
         for baserow_field, target_col in table_mapping.get("field_map", {}).items():
@@ -156,6 +165,21 @@ class FieldMapper:
                     value = self._apply_transform(value, transform)
                 result[target_col] = value
 
+        # Auto-generate slug from name if target has slug field but no slug in result
+        if target_collection == "partner" and "slug" not in result:
+            name_value = result.get("name")
+            if name_value:
+                base_slug = re.sub(r'[^a-z0-9]+', '-', str(name_value).lower().strip())
+                # Add source_id suffix to ensure uniqueness
+                source_id = str(row.get("id", ""))
+                result["slug"] = f"{base_slug}-{source_id}"
+
+        # Apply defaults for missing fields
+        defaults = table_mapping.get("defaults", {})
+        for col, default_val in defaults.items():
+            if col not in result:
+                result[col] = default_val
+
         # Add source lineage
         result["source_system"] = "baserow"
         result["source_id"] = str(row.get("id", ""))
@@ -164,20 +188,39 @@ class FieldMapper:
 
     def _apply_transform(self, value: Any, transform: str) -> Any:
         """Apply a named transform to a value."""
+        import re
         transforms = {
             "date_to_iso": lambda v: v if v else None,
             "number": lambda v: float(v) if v else None,
+            "decimal": lambda v: round(float(v), 2) if v else None,
             "string": lambda v: str(v) if v else None,
             "bool": lambda v: v if isinstance(v, bool) else str(v).lower() in ("true", "yes", "1"),
+            "slugify": lambda v: re.sub(r'[^a-z0-9]+', '-', str(v).lower().strip()) if v else None,
+            "url_to_json": lambda v: {"url": v} if v else None,
+            "url_to_array": lambda v: [v] if v else None,
+            "select_value": lambda v: v.get("value", v) if isinstance(v, dict) else v,
         }
         fn = transforms.get(transform, lambda v: v)
         return fn(value)
 
 
 def load_config(config_path: str) -> dict:
-    """Load migration configuration."""
+    """Load migration configuration with environment variable overrides."""
+    import os
     with open(config_path) as f:
-        return json.load(f)
+        config = json.load(f)
+    
+    # Override with environment variables if available
+    if os.environ.get('BASEROW_TOKEN'):
+        config['baserow']['token'] = os.environ['BASEROW_TOKEN']
+    if os.environ.get('BASEROW_URL'):
+        config['baserow']['url'] = os.environ['BASEROW_URL']
+    if os.environ.get('ADMIN_EMAIL'):
+        config['directus']['email'] = os.environ['ADMIN_EMAIL']
+    if os.environ.get('ADMIN_PASSWORD'):
+        config['directus']['password'] = os.environ['ADMIN_PASSWORD']
+    
+    return config
 
 
 def compute_hash(data: Any) -> str:
@@ -233,7 +276,7 @@ def run_migration(config: dict, dry_run: bool = True):
         # Transform rows
         transformed = []
         for row in rows:
-            mapped = mapper.transform_row(row, fields, table_mapping)
+            mapped = mapper.transform_row(row, fields, table_mapping, target_collection)
             if mapped:
                 transformed.append(mapped)
 

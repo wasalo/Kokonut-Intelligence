@@ -1,0 +1,17 @@
+{
+  "name": "Harvest & Sales",
+  "description": "Monthly harvest volumes and sales revenue analysis by crop",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Monthly Harvest & Sales",
+      "description": "Monthly harvest and sales trends by crop",
+      "native": {
+        "query": "SELECT \n  DATE_TRUNC('month', h.harvest_date) as month,\n  c.name as crop,\n  COUNT(h.id) as harvest_count,\n  SUM(h.quantity) as total_harvest_kg,\n  COUNT(DISTINCT se.id) as sales_count,\n  SUM(se.total_amount) as total_sales,\n  AVG(se.price_per_unit) as avg_price_per_kg,\n  SUM(h.quantity) * AVG(se.price_per_unit) as potential_revenue\nFROM harvest_event h\nJOIN crop_cycle cc ON h.crop_cycle_id = cc.id\nJOIN crop c ON cc.crop_id = c.id\nLEFT JOIN sales_event se ON cc.id = se.crop_cycle_id \n  AND se.sale_date >= h.harvest_date\nWHERE h.status != 'rejected'\nGROUP BY DATE_TRUNC('month', h.harvest_date), c.name\nORDER BY month DESC, total_harvest_kg DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}
