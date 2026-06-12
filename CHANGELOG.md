@@ -9,10 +9,16 @@ All notable changes to the Kokonut Intelligence Platform.
 - Development local CID adapter with deterministic `local://sha256/<hash>` references.
 - Registry, attestation, and agent helper CLIs for Common Data Schema validation, MRV payload preparation, private-data hash metadata, and capability manifest metadata.
 - Directus metadata drift test covering invalid collection sort fields and stale field metadata.
+- EAS on Celo: Foundry project with `KokonutResolver` contract (attester-gating resolver), deploy script, and fuzz-tested unit tests.
+- EAS Python integration: `EASClient`, `SchemaEncoder`, `EASSigner`, offchain attestation signing/verification, and schema definitions for 5 Kokonut schemas (MRV, impact, financial, harvest, compliance).
+- EAS CLI (`python3 -m services.attestation.cli`): schema registration, onchain attestation, offchain attestation, revocation, query, and chain info commands.
+- Celo chain configuration: RPC URLs, EAS contract addresses, and chain config for Celo mainnet, Alfajores, Optimism, and Base.
+- Celo EAS seed data (`schemas/seeds/014_pilot_celo_eas.sql`): chain indexer status and placeholder schema rows for 5 Kokonut schemas.
 
 ### Changed
 - JavaScript and Python SDK examples now use the canonical `draft -> submitted -> verified -> published` lifecycle.
 - Documentation now states EAS/private-data boundaries, external `Kokonut-Agentic-Marketplace` scope, and deferred dApp session ingestion.
+- Attestation guide updated with Celo workflow, CLI usage, offchain attestations, and private data strategy.
 
 ### Fixed
 - Cleared invalid Directus `sort_field` metadata for Baserow-migrated collections where no physical `sort` column exists.

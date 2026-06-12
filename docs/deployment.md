@@ -90,6 +90,9 @@ docker compose -f docker-compose.yml up -d
 | `OPTIMISM_RPC_URL` | Optimism RPC endpoint | For RPC indexer |
 | `BASE_RPC_URL` | Base RPC endpoint | For RPC indexer |
 | `ARBITRUM_RPC_URL` | Arbitrum RPC endpoint | For RPC indexer |
+| `CELO_RPC_URL` | Celo RPC endpoint (default: `https://forno.celo.org`) | For EAS attestation |
+| `ATTESTER_PRIVATE_KEY` | Private key for EAS attestation wallet | For EAS attestation |
+| `EAS_RESOLVER_ADDRESS` | EAS resolver contract address (`0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`) | For EAS attestation |
 | `BASEROW_API_URL` | Baserow API URL | For migration |
 | `BASEROW_TOKEN` | Baserow API token | For migration |
 
@@ -100,6 +103,34 @@ Ingestion scripts require Python 3.9+ with:
 ```bash
 pip3 install requests web3 clickhouse-connect psycopg2-binary
 ```
+
+### Foundry (Solidity Contracts)
+
+```bash
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Build contracts
+cd contracts && forge build
+
+# Run tests
+cd contracts && forge test
+
+# Deploy resolver to Celo mainnet (requires ATTESTER_PRIVATE_KEY in .env)
+cd contracts && forge script script/DeployKokonutResolver.s.sol \
+  --rpc-url https://forno.celo.org \
+  --broadcast \
+  --verify
+```
+
+**Celo EAS Contracts:**
+
+| Contract | Address |
+|----------|---------|
+| EAS | `0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92` |
+| SchemaRegistry | `0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34` |
+| KokonutResolver | `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` |
 
 ### ClickHouse Configuration
 

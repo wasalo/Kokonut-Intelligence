@@ -90,6 +90,24 @@
 | `treasury_event` | Token flow | flow_direction, amount, token |
 | `chain_indexer_status` | Ingestion health tracking | chain, indexer_type, last_synced_block |
 
+#### EAS Celo Schemas
+
+| Schema | UID | Chain | Use Case |
+|--------|-----|-------|----------|
+| `kokonut-mrv` | `0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54` | Celo | MRV claims (location, crop, quantity, evidence) |
+| `kokonut-impact` | `0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe` | Celo | Environmental impact (soil carbon, biodiversity, NDVI) |
+| `kokonut-financial` | `0x75b42beb85dd852134dfaff3de41b8dc361ed0cb2bf93ce3009c8ec082de905b` | Celo | Financial summaries (NOI, revenue, costs) |
+| `kokonut-harvest` | `0xb359f9756e3cb3597e4048dccae2842083359906fbae8dc8c0e9af8ac1b3ccff` | Celo | Harvest verification (quantity, quality, date) |
+| `kokonut-compliance` | `0x59632edcf1d04be0c2dcfd572282bbd4dac518e7a92872ec45ade29876ef95f5` | Celo | Partner compliance and audit trails |
+
+#### EAS Celo Contracts
+
+| Contract | Address | Chain |
+|----------|---------|-------|
+| EAS | `0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92` | Celo |
+| SchemaRegistry | `0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34` | Celo |
+| KokonutResolver | `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` | Celo |
+
 ### Registry, Inventory, Maintenance, And Agents
 
 | Entity | Description | Key Fields |

@@ -60,7 +60,7 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 │  rpc_indexer.py   → Ethereum/L2 public RPC              │
 │  market_data.py   → World Bank Pink Sheet               │
 │  remote_sensing.py → CSV upload (NDVI/NDRE)            │
-│  eas_indexer.py   → EAS GraphQL API                     │
+│  eas_indexer.py   → EAS GraphQL API (Celo/Optimism/Base)   │
 │                                                         │
 │  All scripts: services/ingestion/                       │
 │  Common framework: base.py (DB, logging, retry)         │
@@ -137,3 +137,33 @@ External data flows through Python scripts in `services/ingestion/`:
 DApp session ingestion and metrics are deferred. Current Web3 ingestion remains focused on wallet activity, protocol interactions, EAS attestations, and governed value-flow records.
 
 All ingestion is logged to `ingestion_log` with source, status, and timing. Chain indexer health tracked in `chain_indexer_status`.
+
+## EAS on Celo
+
+Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet.
+
+**Deployed Contracts:**
+
+| Contract | Address |
+|----------|---------|
+| EAS | `0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92` |
+| SchemaRegistry | `0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34` |
+| KokonutResolver | `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` |
+
+**Registered Schemas:**
+
+| Schema | UID | Use Case |
+|--------|-----|----------|
+| `kokonut-mrv` | `0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54` | MRV claims |
+| `kokonut-impact` | `0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe` | Environmental impact |
+| `kokonut-financial` | `0x75b42beb85dd852134dfaff3de41b8dc361ed0cb2bf93ce3009c8ec082de905b` | Financial summaries |
+| `kokonut-harvest` | `0xb359f9756e3cb3597e4048dccae2842083359906fbae8dc8c0e9af8ac1b3ccff` | Harvest verification |
+| `kokonut-compliance` | `0x59632edcf1d04be0c2dcfd572282bbd4dac518e7a92872ec45ade29876ef95f5` | Partner compliance |
+
+**Attester wallets:** Deployer `0x3394C45b5938127EB56603A6051dF26CFAF08C26` + Kokonut multisig `0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5`
+
+**Resolver ownership:** Transferred to Kokonut multisig.
+
+**Smart contracts:** `contracts/` (Foundry project) with `KokonutResolver.sol` gating attestation to allowed attesters. Build/test with `forge build` and `forge test`.
+
+**Chain expansion:** New chains get testnet-first deployments. EAS chain config in `services/attestation/config.py` and `services/ingestion/config.py`. Add new chain config to expand.

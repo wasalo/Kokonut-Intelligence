@@ -24,6 +24,7 @@ from .base import get_db, log_ingestion, hash_payload, retry
 EAS_ENDPOINTS = {
     "optimism": "https://optimism.easscan.org",
     "base": "https://base.easscan.org",
+    "celo": "https://celo.easscan.org",
 }
 
 # GraphQL queries

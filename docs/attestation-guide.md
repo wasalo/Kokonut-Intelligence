@@ -229,11 +229,95 @@ SET status = 'published',
 WHERE id = 'RECORD_UUID';
 ```
 
+## EAS on Celo
+
+Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet.
+
+### Deployed Contracts
+
+| Contract | Address | Explorer |
+|----------|---------|----------|
+| EAS | `0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92` | [celoscan.io](https://celoscan.io/address/0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92) |
+| SchemaRegistry | `0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34` | [celoscan.io](https://celoscan.io/address/0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34) |
+| KokonutResolver | `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` | [celoscan.io](https://celoscan.io/address/0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad) |
+| Kokonut Multisig | `0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5` | [celoscan.io](https://celoscan.io/address/0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5) |
+
+### Kokonut Schemas
+
+| Schema | UID | Use Case |
+|--------|-----|----------|
+| `kokonut-mrv` | `0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54` | MRV claims (location, crop, quantity, evidence) |
+| `kokonut-impact` | `0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe` | Environmental impact (soil carbon, biodiversity, NDVI) |
+| `kokonut-financial` | `0x75b42beb85dd852134dfaff3de41b8dc361ed0cb2bf93ce3009c8ec082de905b` | Financial summaries (NOI, revenue, costs) |
+| `kokonut-harvest` | `0xb359f9756e3cb3597e4048dccae2842083359906fbae8dc8c0e9af8ac1b3ccff` | Harvest verification (quantity, quality, date) |
+| `kokonut-compliance` | `0x59632edcf1d04be0c2dcfd572282bbd4dac518e7a92872ec45ade29876ef95f5` | Partner compliance and audit trails |
+
+### Attester Wallets
+
+| Wallet | Address | Role |
+|--------|---------|------|
+| Deployer | `0x3394C45b5938127EB56603A6051dF26CFAF08C26` | Schema registration, initial attestations |
+| Kokonut Multisig | `0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5` | Resolver owner, governance attestations |
+
+### CLI Usage
+
+```bash
+# Show chain config and attester info
+python3 -m services.attestation.cli info --chain celo
+
+# List available schema definitions
+python3 -m services.attestation.cli schema list
+
+# Create an onchain attestation on Celo
+python3 -m services.attestation.cli attest \
+  --schema 0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54 \
+  --recipient 0xRECIPIENT \
+  --data '[{"name":"locationId","type":"string","value":"..."}]' \
+  --chain celo
+
+# Create a signed offchain attestation (no gas)
+python3 -m services.attestation.cli offchain-attest \
+  --schema 0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54 \
+  --recipient 0xRECIPIENT \
+  --data '[{"name":"locationId","type":"string","value":"..."}]' \
+  --chain celo
+
+# Revoke an attestation
+python3 -m services.attestation.cli revoke \
+  --schema 0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54 \
+  --uid 0xATTESTATION_UID \
+  --chain celo
+
+# Query an attestation from onchain
+python3 -m services.attestation.cli query --uid 0xATTESTATION_UID --chain celo
+```
+
+### Offchain Attestations
+
+Offchain attestations are EIP-712 signed messages that can be verified without gas. They are useful for:
+- High-frequency attestations where gas cost is prohibitive
+- Attestations that need to be shared privately before being anchored onchain
+- Lightweight verification workflows
+
+Offchain attestations are stored in `attestation_record` with `status='offchain'`.
+
+### Private Data
+
+Private MRV evidence stays offchain. The attestation stores only:
+- `evidenceHash`: SHA-256 hash of the private payload
+- `payloadCid`: Content identifier for offchain storage (local dev uses `local://sha256/<hash>`)
+
+For selective disclosure, EAS supports Merkle-tree-based private data attestations where only specific fields are revealed. This is available via the EAS SDK `PrivateData` class.
+
+For full zero-knowledge privacy (proving facts about data without revealing it), Noir ZK circuits can be used. This is a future enhancement.
+
 ## Security Considerations
 
 - Only authorized wallets can create attestations on behalf of Kokonut
+- The KokonutResolver gates attestation to allowed attesters (deployer + Kokonut multisig)
 - All attestation records are reviewed before on-chain submission
 - Private MRV evidence should not be placed on-chain or in public database fields
 - Store raw private evidence off-chain; store only hashes, CIDs, UIDs, chain labels, transaction hashes, and timestamps in public metadata
 - Revoked on-chain attestations remain on-chain; store revocation metadata while keeping lifecycle status canonical
 - Evidence hashes ensure data integrity between off-chain and on-chain
+- Resolver ownership should be transferred to the Kokonut multisig after deployment

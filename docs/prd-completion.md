@@ -13,6 +13,7 @@ This note tracks the PRD completion layer added on top of the existing Directus/
 - Source lineage extensions for environmental and sensor evidence tables.
 - Development-only local CID helper under `services/storage/`.
 - Registry, MRV, attestation, and agent helper CLIs under `services/registry/`, `services/attestation/`, and `services/agents/`.
+- EAS on Celo mainnet: 5 schemas registered, KokonutResolver deployed and owned by Kokonut multisig, attestation CLI supports onchain and offchain attestations.
 
 ## Lifecycle
 
@@ -22,7 +23,7 @@ Payment, execution, attestation, agent, and export state are stored in explicit 
 
 ## EAS Privacy Boundary
 
-Private MRV evidence stays off-chain by default. This repository prepares hashes, CIDs, request metadata, and public payload summaries only. It does not sign or submit EAS transactions unless a future configured signer service is added.
+Private MRV evidence stays off-chain by default. This repository stores hashes, CIDs, request metadata, and public payload summaries only. The attestation CLI can sign and submit EAS transactions on Celo mainnet using the configured attester wallet.
 
 For local development, `local://sha256/<hash>` CIDs are deterministic references to files in `.local-cid-store/`, which is ignored by Git.
 

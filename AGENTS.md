@@ -7,6 +7,11 @@
 - Python services live under `services/` and should be runnable with `python3 -m ...`.
 - SQL schemas live under `schemas/postgres/`; seed data lives under `schemas/seeds/`.
 - Directus hooks live under `extensions/kokonut-hooks/`.
+- Solidity contracts live under `contracts/` (Foundry project).
+- Celo is the primary EAS attestation chain. EAS v1.3.0 is deployed on Celo mainnet.
+- The KokonutResolver (`0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`) gates attestation to allowed attesters.
+- Resolver ownership is on the Kokonut multisig (`0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5`).
+- Agent contract identity, x402/ERC-8004 payments, escrow, and reputation logic are external to `Kokonut-Agentic-Marketplace`.
 
 ## Data Lifecycle
 
@@ -22,7 +27,13 @@
 - Apply pilot data: `./scripts/seed-pilot.sh`
 - Run smoke tests: `python3 -m tests.test_smoke`
 - Run CLI tests: `python3 -m tests.test_cli`
+- Run attestation tests: `python3 -m tests.test_attestation`
+- Run Directus metadata tests: `python3 -m tests.test_directus_metadata`
 - Run CI checks: `./scripts/ci-check.sh`
+- Build Solidity contracts: `cd contracts && forge build`
+- Run Solidity tests: `cd contracts && forge test`
+- Show EAS chain info: `python3 -m services.attestation.cli info --chain celo`
+- List Kokonut schemas: `python3 -m services.attestation.cli schema list`
 
 ## Development Notes
 
@@ -30,4 +41,9 @@
 - Keep seed files idempotent with `ON CONFLICT` or equivalent guards.
 - Use Compose service names (`database`, `clickhouse`) instead of generated container names.
 - Do not print, copy, or commit secrets from `.env`.
+- Never commit private keys to Git. Bots exploit leaked secrets in seconds.
 - Exposed keys require rotation and history scrubbing by an operator.
+- EAS private evidence stays offchain. Store only hashes, CIDs, UIDs, chain labels, tx hashes, and timestamps in public metadata.
+- When adding new EAS schemas, register on Celo mainnet first, then update `schemas/seeds/014_pilot_celo_eas.sql` with the actual `schema_uid`.
+- Solidity contracts use OpenZeppelin base contracts. Don't reinvent ERC/access patterns.
+- Run `forge test` before deploying any contract changes.

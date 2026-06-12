@@ -10,8 +10,8 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 | Analytics | ClickHouse 25.3 | Time-series, events, high-volume analytical queries |
 | BI | Metabase | Internal dashboards, aggregate reporting |
 | Intelligence | Python services | Fortune 500 scoring, forecasting, partner dashboards |
-| Verification | EAS + evidence storage | Attestations, claims, proof |
-| Blockchain | RPC + Subgraphs | On-chain data ingestion |
+| Verification | EAS on Celo + evidence storage | Onchain attestations, offchain signed claims, MRV proof |
+| Blockchain | RPC + Subgraphs + Foundry | On-chain data ingestion, smart contracts |
 
 ## Quick Start
 
@@ -94,6 +94,59 @@ python3 -m services.agents --example kokonut-mrv-reporter
 
 See `docs/prd-completion.md`, `docs/attestation-guide.md`, and `docs/agent-access.md` for scope and privacy boundaries.
 
+### EAS on Celo
+
+Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet.
+
+**Deployed Contracts:**
+
+| Contract | Address | Explorer |
+|----------|---------|----------|
+| EAS | `0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92` | [celoscan.io](https://celoscan.io/address/0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92) |
+| SchemaRegistry | `0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34` | [celoscan.io](https://celoscan.io/address/0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34) |
+| KokonutResolver | `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` | [celoscan.io](https://celoscan.io/address/0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad) |
+
+**Registered Schemas:**
+
+| Schema | UID | Use Case |
+|--------|-----|----------|
+| `kokonut-mrv` | `0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54` | MRV claims (location, crop, quantity, evidence) |
+| `kokonut-impact` | `0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe` | Environmental impact (soil carbon, biodiversity, NDVI) |
+| `kokonut-financial` | `0x75b42beb85dd852134dfaff3de41b8dc361ed0cb2bf93ce3009c8ec082de905b` | Financial summaries (NOI, revenue, costs) |
+| `kokonut-harvest` | `0xb359f9756e3cb3597e4048dccae2842083359906fbae8dc8c0e9af8ac1b3ccff` | Harvest verification (quantity, quality, date) |
+| `kokonut-compliance` | `0x59632edcf1d04be0c2dcfd572282bbd4dac518e7a92872ec45ade29876ef95f5` | Partner compliance and audit trails |
+
+**Attester wallets:** Deployer `0x3394C45b5938127EB56603A6051dF26CFAF08C26` + Kokonut multisig `0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5`
+
+**Resolver ownership:** Transferred to Kokonut multisig.
+
+```bash
+# Show chain config and attester info
+python3 -m services.attestation.cli info --chain celo
+
+# List available schema definitions
+python3 -m services.attestation.cli schema list
+
+# Create an onchain attestation on Celo
+python3 -m services.attestation.cli attest \
+  --schema 0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54 \
+  --recipient 0xRECIPIENT \
+  --data '[{"name":"locationId","type":"string","value":"..."}]' \
+  --chain celo
+
+# Create a gasless offchain attestation (EIP-712 signed)
+python3 -m services.attestation.cli offchain-attest \
+  --schema 0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54 \
+  --recipient 0xRECIPIENT \
+  --data '[{"name":"locationId","type":"string","value":"..."}]' \
+  --chain celo
+
+# Query an attestation from onchain
+python3 -m services.attestation.cli query --uid 0xATTESTATION_UID --chain celo
+```
+
+**Smart contracts** are under `contracts/` (Foundry project). The `KokonutResolver` gates attestation to allowed attesters. Build and test with `forge build` and `forge test`.
+
 ## Data Entry
 
 Directus Studio at `http://localhost:8055` is the primary data entry interface.
@@ -137,9 +190,17 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   ├── postgres/       # PostgreSQL init scripts
 │   ├── clickhouse/     # ClickHouse config
 │   └── directus/       # Directus permissions SQL
+├── contracts/          # Foundry project (Solidity)
+│   ├── src/
+│   │   └── KokonutResolver.sol   # EAS resolver (attester gating)
+│   ├── script/
+│   │   └── DeployKokonutResolver.s.sol
+│   ├── test/
+│   │   └── KokonutResolver.t.sol
+│   └── lib/            # OpenZeppelin, EAS contracts
 ├── schemas/
-│   ├── postgres/       # 13 schema files, 50+ tables
-│   ├── seeds/          # Base and pilot seed data (15 files)
+│   ├── postgres/       # 14 schema files, 50+ tables
+│   ├── seeds/          # Base and pilot seed data (16 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── sdk/
@@ -153,10 +214,21 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   ├── rpc_indexer.py    # Ethereum/L2 wallet activity
 │   │   ├── market_data.py    # Commodity prices
 │   │   ├── remote_sensing.py # NDVI/NDRE CSV upload
-│   │   ├── eas_indexer.py    # EAS attestation ingestion
+│   │   ├── eas_indexer.py    # EAS attestation ingestion (Celo/Optimism/Base)
 │   │   ├── sensor_ingester.py # Sensor CSV + single reading
 │   │   ├── mock_sensors.py   # Mock sensor data generator
 │   │   └── anomaly_detector.py # Threshold-based alert engine
+│   ├── attestation/    # EAS attestation service
+│   │   ├── cli.py            # CLI: schema, attest, offchain-attest, revoke, query, info
+│   │   ├── eas_client.py     # EASClient (web3.py contract wrapper)
+│   │   ├── schema_encoder.py # SchemaEncoder (ABI encode/decode)
+│   │   ├── signer.py         # Wallet/signer management
+│   │   ├── offchain.py       # Offchain EIP-712 signed attestations
+│   │   ├── publisher.py      # Onchain attestation orchestration
+│   │   ├── schemas.py        # 5 Kokonut schema definitions
+│   │   ├── payload.py        # Privacy-preserving request metadata
+│   │   ├── config.py         # EAS chain config + contract addresses
+│   │   └── contracts/        # EAS + SchemaRegistry ABIs
 │   ├── analytics/      # Intelligence services
 │   │   ├── cli.py            # CLI for ecology analytics
 │   │   ├── ecology.py        # Soil carbon, biodiversity, scenario comparison
@@ -192,7 +264,6 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   ├── exporter.py       # CSV/JSON/Parquet export
 │   │   └── report_generator.py # Report snapshots with hash verification
 │   ├── registry/       # Common Data Schema + MRV payload helpers
-│   ├── attestation/    # Privacy-preserving attestation request helpers
 │   ├── agents/         # Agent capability manifest helpers
 │   └── storage/        # Local development CID adapter
 ├── extensions/
@@ -204,7 +275,8 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │           └── ai-helpers.ts         # Auto-categorization, validation
 ├── migrations/         # Baserow migration scripts
 ├── scripts/            # Setup, seed, backup, snapshot
-├── docs/               # Architecture, data dictionary, API reference
+├── tests/              # Smoke, CLI, seed idempotency, attestation, metadata tests
+├── docs/               # Architecture, data dictionary, API reference, attestation guide
 └── dashboards/
     ├── metabase/       # Metabase dashboard definitions
     └── directus/       # Partner dashboard templates (buyer, funder, vendor, operator)
@@ -220,7 +292,7 @@ Python scripts in `services/ingestion/` fetch data from external APIs and insert
 | `rpc_indexer.py` | Ethereum/L2 public RPC | `wallet_activity_event` + ClickHouse `wallet_events` | Working |
 | `market_data.py` | World Bank Pink Sheet (seed data) | `price_observation` | Working |
 | `remote_sensing.py` | Manual CSV upload | `remote_sensing_observation` | Working |
-| `eas_indexer.py` | EAS GraphQL API (Optimism/Base) | `attestation_record` + `attestation_schema` | Working |
+| `eas_indexer.py` | EAS GraphQL API (Celo/Optimism/Base) | `attestation_record` + `attestation_schema` | Working |
 | `sensor_ingester.py` | CSV / single reading | `sensor_reading` + ClickHouse `sensor_readings` | Working |
 | `mock_sensors.py` | Internal (test data) | `sensor_device` + `sensor_reading` + ClickHouse | Working |
 | `anomaly_detector.py` | Threshold rules | `sensor_alert` + auto MRV claims | Working |
@@ -335,6 +407,8 @@ Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 12 pilot seed f
 | `010_pilot_mrv_claims.sql` | MRV claims and verification reviews |
 | `011_pilot_partners_extended.sql` | Additional buyers and cross-buyer sales |
 | `012_pilot_bioinputs.sql` | Bioinput expenses and biofactory infrastructure |
+| `013_pilot_registry_mrv_agents.sql` | Farm registry, inventory, maintenance, revenue, MRV events, attestation requests, agent metadata |
+| `014_pilot_celo_eas.sql` | Celo chain indexer status and EAS schema registrations |
 
 ```bash
 # Seed all pilot farm data
@@ -408,7 +482,7 @@ Row-level security ensures partners see only their own data.
 | [Deployment](docs/deployment.md) | Docker setup, environment variables, backup |
 | [Sandbox](docs/sandbox.md) | Developer quickstart with hello-world tutorial |
 | [Subgraph Guide](docs/subgraph-guide.md) | Subgraph indexer configuration and usage |
-| [Attestation Guide](docs/attestation-guide.md) | EAS attestation workflow |
+| [Attestation Guide](docs/attestation-guide.md) | EAS on Celo: schemas, onchain/offchain attestation, private data, CLI |
 | [Partner Dashboards](docs/partner-dashboards.md) | Dashboard flexibility (Directus/Metabase/Custom) |
 | [Agent Access](docs/agent-access.md) | MCP, agent-scoped tokens, audit logging |
 | [Export Guide](docs/export-guide.md) | Data export and report snapshots |

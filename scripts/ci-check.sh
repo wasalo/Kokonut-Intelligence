@@ -34,6 +34,9 @@ check "Import services.analytics.ecology" "python3 -c 'import services.analytics
 check "Import services.fortune500.calculator" "python3 -c 'import services.fortune500.calculator'"
 check "Import services.revenue_multiplier.analyzer" "python3 -c 'import services.revenue_multiplier.analyzer'"
 check "Import services.export.report_generator" "python3 -c 'import services.export.report_generator'"
+check "Import services.attestation.cli" "python3 -c 'import services.attestation.cli'"
+check "Import services.attestation.eas_client" "python3 -c 'import services.attestation.eas_client'"
+check "Import services.attestation.schema_encoder" "python3 -c 'import services.attestation.schema_encoder'"
 echo ""
 
 # 2. CLI parsers
@@ -43,6 +46,7 @@ check "analytics CLI --help" "python3 -m services.analytics.cli --help"
 check "revenue_multiplier CLI --help" "python3 -m services.revenue_multiplier.cli --help"
 check "fortune500 CLI --help" "python3 -m services.fortune500.cli --help"
 check "report_generator CLI --help" "python3 -m services.export.report_generator --help"
+check "attestation CLI --help" "python3 -m services.attestation.cli --help"
 echo ""
 
 # 3. TypeScript extension build (if node_modules present)

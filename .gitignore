@@ -50,6 +50,10 @@ Thumbs.db
 logs/
 .local-cid-store/
 
+# Foundry
+contracts/out/
+contracts/cache/
+
 # Backups
 backups/
 
