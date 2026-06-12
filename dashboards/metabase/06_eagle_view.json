@@ -1,0 +1,95 @@
+{
+  "name": "Eagle View",
+  "description": "Platform-wide overview: farms, finances, harvest, environment, attestations, sensors, and trends",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Platform Overview",
+      "description": "Total locations, farms, plots, crop cycles, partners, staff, infrastructure",
+      "native": {
+        "query": "SELECT\n  (SELECT COUNT(*) FROM location WHERE status = 'active') as total_locations,\n  (SELECT COUNT(*) FROM farm WHERE status = 'active') as total_farms,\n  (SELECT COUNT(*) FROM plot) as total_plots,\n  (SELECT COUNT(*) FROM crop_cycle WHERE status = 'active') as active_crop_cycles,\n  (SELECT COUNT(*) FROM partner) as total_partners,\n  (SELECT COUNT(*) FROM staff) as total_staff,\n  (SELECT COUNT(*) FROM infrastructure_asset) as total_infrastructure;",
+        "template-tags": {}
+      },
+      "display": "number",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Financial Summary",
+      "description": "Revenue, expenses, NOI, and operating margin",
+      "native": {
+        "query": "SELECT\n  COALESCE(SUM(se.total_amount), 0) as gross_revenue,\n  COALESCE(SUM(se.return_amount + se.discount_amount), 0) as returns_discounts,\n  COALESCE(SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount), 0) as net_revenue,\n  COALESCE(SUM(ee.amount), 0) as total_expenses,\n  COALESCE(SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount), 0) - COALESCE(SUM(ee.amount), 0) as noi,\n  CASE\n    WHEN SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount) > 0\n    THEN ROUND(\n      (SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount) - SUM(ee.amount)) /\n      NULLIF(SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount), 0) * 100::numeric,\n      2\n    )\n    ELSE 0\n  END as operating_margin_pct\nFROM sales_event se\nLEFT JOIN expense_event ee ON se.crop_cycle_id = ee.crop_cycle_id\nWHERE se.status != 'rejected';",
+        "template-tags": {}
+      },
+      "display": "table",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Harvest & Loss by Crop",
+      "description": "Harvest volume, loss rate, and sales by crop",
+      "native": {
+        "query": "SELECT\n  c.name as crop,\n  COUNT(DISTINCT h.id) as harvest_events,\n  COALESCE(SUM(h.quantity), 0) as total_harvest_kg,\n  COALESCE(SUM(le.quantity), 0) as total_loss_kg,\n  CASE\n    WHEN SUM(h.quantity) > 0\n    THEN ROUND(SUM(COALESCE(le.quantity, 0)) / SUM(h.quantity) * 100, 2)\n    ELSE 0\n  END as loss_rate_pct,\n  COALESCE(SUM(se.total_amount), 0) as total_sales_usd\nFROM crop c\nJOIN crop_cycle cc ON c.id = cc.crop_id\nLEFT JOIN harvest_event h ON cc.id = h.crop_cycle_id AND h.status != 'rejected'\nLEFT JOIN loss_event le ON cc.id = le.crop_cycle_id AND le.status != 'rejected'\nLEFT JOIN sales_event se ON cc.id = se.crop_cycle_id AND se.status != 'rejected'\nGROUP BY c.name\nORDER BY total_harvest_kg DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Monthly Revenue Trend",
+      "description": "Net revenue, expenses, and NOI trend over last 12 months",
+      "native": {
+        "query": "WITH monthly_revenue AS (SELECT DATE_TRUNC('month', sale_date) as month, COUNT(DISTINCT id) as sales_count, COALESCE(SUM(total_amount), 0) as gross_revenue, COALESCE(SUM(return_amount + discount_amount), 0) as returns_discounts, COALESCE(SUM(total_amount) - SUM(return_amount + discount_amount), 0) as net_revenue FROM sales_event WHERE status != 'rejected' AND sale_date >= CURRENT_DATE - INTERVAL '12 months' GROUP BY DATE_TRUNC('month', sale_date)), monthly_expenses AS (SELECT DATE_TRUNC('month', expense_date) as month, COALESCE(SUM(amount), 0) as period_expenses FROM expense_event WHERE status != 'rejected' AND expense_date >= CURRENT_DATE - INTERVAL '12 months' GROUP BY DATE_TRUNC('month', expense_date)) SELECT COALESCE(r.month, e.month) as month, COALESCE(r.sales_count, 0) as sales_count, COALESCE(r.gross_revenue, 0) as gross_revenue, COALESCE(r.returns_discounts, 0) as returns_discounts, COALESCE(r.net_revenue, 0) as net_revenue, COALESCE(e.period_expenses, 0) as period_expenses, COALESCE(r.net_revenue, 0) - COALESCE(e.period_expenses, 0) as period_noi FROM monthly_revenue r FULL JOIN monthly_expenses e ON r.month = e.month ORDER BY month DESC;",
+        "template-tags": {}
+      },
+      "display": "line",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Attestation Coverage",
+      "description": "Onchain/offchain attestation status and coverage by claim type",
+      "native": {
+        "query": "SELECT\n  COALESCE(ar.claim_type, 'unattested') as claim_type,\n  COUNT(ar.id) as total_records,\n  COUNT(CASE WHEN ar.status = 'published' THEN 1 END) as published,\n  COUNT(CASE WHEN ar.status = 'verified' THEN 1 END) as verified,\n  COUNT(CASE WHEN ar.status = 'draft' THEN 1 END) as draft,\n  COUNT(CASE WHEN ar.chain IS NOT NULL THEN 1 END) as onchain_count,\n  COUNT(CASE WHEN ar.chain IS NULL THEN 1 END) as offchain_count,\n  CASE\n    WHEN COUNT(ar.id) > 0\n    THEN ROUND(COUNT(CASE WHEN ar.status = 'published' THEN 1 END)::numeric / COUNT(ar.id) * 100, 1)\n    ELSE 0\n  END as publication_rate_pct\nFROM attestation_record ar\nGROUP BY ar.claim_type\nORDER BY total_records DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Sensor & Alert Status",
+      "description": "Active sensors, readings, and alert counts by type",
+      "native": {
+        "query": "SELECT\n  st.name as sensor_type,\n  COUNT(DISTINCT sd.id) as device_count,\n  COUNT(DISTINCT sr.id) as total_readings,\n  COALESCE(AVG(sr.value), 0) as avg_value,\n  COUNT(DISTINCT sa.id) as total_alerts,\n  COUNT(CASE WHEN sa.severity = 'critical' THEN 1 END) as critical_alerts,\n  MAX(sr.reading_time) as latest_reading\nFROM sensor_type st\nLEFT JOIN sensor_device sd ON st.id = sd.sensor_type_id AND sd.status = 'active'\nLEFT JOIN sensor_reading sr ON sd.id = sr.sensor_id\nLEFT JOIN sensor_alert sa ON sr.id = sa.reading_id\nGROUP BY st.name\nORDER BY device_count DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Environmental Health",
+      "description": "Soil carbon, biodiversity, and NDVI by plot",
+      "native": {
+        "query": "SELECT\n  l.name as location,\n  f.name as farm,\n  p.name as plot,\n  COALESCE(sc.carbon_tonnes_per_ha, 0) as soil_carbon,\n  COALESCE(so.species_count, 0) as species_count,\n  COALESCE(rs.ndvi, 0) as latest_ndvi\nFROM plot p\nJOIN farm f ON p.farm_id = f.id\nJOIN location l ON f.location_id = l.id\nLEFT JOIN LATERAL (\n  SELECT carbon_tonnes_per_ha\n  FROM soil_carbon_measurement\n  WHERE plot_id = p.id\n  ORDER BY measurement_date DESC\n  LIMIT 1\n) sc ON true\nLEFT JOIN LATERAL (\n  SELECT COUNT(DISTINCT species_name) as species_count\n  FROM species_observation\n  WHERE plot_id = p.id\n) so ON true\nLEFT JOIN LATERAL (\n  SELECT ndvi\n  FROM remote_sensing_observation\n  WHERE plot_id = p.id\n  ORDER BY observation_date DESC\n  LIMIT 1\n) rs ON true\nORDER BY l.name, f.name, p.name;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Expense Breakdown",
+      "description": "Expenses by category with direct vs shared classification",
+      "native": {
+        "query": "SELECT\n  ec.name as category,\n  CASE WHEN ec.is_direct = true THEN 'Direct' ELSE 'Shared' END as cost_type,\n  COUNT(ee.id) as transaction_count,\n  SUM(ee.amount) as total_amount,\n  AVG(ee.amount) as avg_transaction\nFROM expense_event ee\nJOIN expense_category ec ON ee.category = ec.name\nWHERE ee.status != 'rejected'\nGROUP BY ec.name, ec.is_direct\nORDER BY total_amount DESC;",
+        "template-tags": {}
+      },
+      "display": "pie",
+      "display_is_open": true,
+      "database_id": 2
+    }
+  ]
+}

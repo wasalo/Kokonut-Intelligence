@@ -29,6 +29,11 @@ This directory contains SQL queries and JSON import templates for Metabase dashb
 - **SQL**: `sql/05_loss_rate.sql`
 - **Description**: Loss rate analysis by crop and loss type with financial impact
 
+### 6. Eagle View (NEW)
+- **File**: `06_eagle_view.json`
+- **SQL**: `sql/06_eagle_view_overview.sql` through `sql/12_eagle_view_monthly_trend.sql`
+- **Description**: Platform-wide overview: KPIs, financials, harvest, environment, attestations, sensors, and monthly trends
+
 ## Usage
 
 ### Option 1: Manual SQL Queries
@@ -51,11 +56,11 @@ This directory contains SQL queries and JSON import templates for Metabase dashb
 
 ## Database Connection
 - **Database**: Kokonut Intelligence (ID: 2)
-- **Schema**: `kokonut`
-- **Tables**: All tables in the `kokonut` schema are available
+- **Schema**: `public` (all tables live in the `public` schema)
+- **Tables**: All tables are accessible without a schema prefix
 
 ## Notes
-- All queries use the `kokonut` schema prefix
+- All queries use bare table names (e.g., `farm`, `harvest_event`) — no schema prefix needed
 - Queries filter out rejected records by default
 - NULL values are handled with COALESCE
 - Dates are truncated to month level for trend analysis

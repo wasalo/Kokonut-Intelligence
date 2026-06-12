@@ -9,7 +9,7 @@ SELECT
   SUM(h.quantity) as total_harvest_kg,
   CASE 
     WHEN SUM(h.quantity) > 0 
-    THEN ROUND(SUM(le.quantity) / SUM(h.quantity) * 100, 2)
+    THEN ROUND(SUM(le.quantity) / SUM(h.quantity) * 100::numeric, 2)
     ELSE 0 
   END as loss_rate_pct,
   SUM(le.estimated_value) as loss_value,

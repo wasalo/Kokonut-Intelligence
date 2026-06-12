@@ -14,7 +14,7 @@ SELECT
     WHEN SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount) > 0 
     THEN ROUND(
       (SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount) - SUM(ee.amount)) / 
-      NULLIF(SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount), 0) * 100, 
+      NULLIF(SUM(se.total_amount) - SUM(se.return_amount + se.discount_amount), 0) * 100::numeric, 
       2
     )
     ELSE 0 
