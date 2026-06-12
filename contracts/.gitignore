@@ -1,0 +1,9 @@
+# Compiler output
+out/
+cache/
+
+# Dependencies
+lib/
+
+# Environment
+.env
