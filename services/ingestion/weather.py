@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 import requests
 
 from .base import get_db, log_ingestion, hash_payload, retry
-from .config import OPENWEATHERMAP_API_KEY
+from .config import OPENWEATHERMAP_API_KEY, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 API_BASE = "https://api.openweathermap.org/data/2.5/weather"
 
@@ -48,13 +48,13 @@ def parse_weather(data: dict, location_id: str) -> dict:
     rain = data.get("rain", {})
     clouds = data.get("clouds", {})
 
-    # Convert timestamp to ISO format
     obs_timestamp = data.get("dt", 0)
-    obs_date = datetime.fromtimestamp(obs_timestamp, tz=timezone.utc).isoformat()
+    obs_datetime = datetime.fromtimestamp(obs_timestamp, tz=timezone.utc)
 
     return {
         "location_id": location_id,
-        "observation_date": obs_date,
+        "observation_date": obs_datetime.date().isoformat(),
+        "observation_time": obs_datetime.time().replace(microsecond=0).isoformat(),
         "temperature_c": main.get("temp"),
         "humidity_pct": main.get("humidity"),
         "precipitation_mm": rain.get("1h", 0) or rain.get("3h", 0),
@@ -81,14 +81,15 @@ def insert_weather(db, record: dict) -> str:
         cur.execute(
             """
             INSERT INTO weather_observation
-                (location_id, observation_date, temperature_c,
+                (location_id, observation_date, observation_time, temperature_c,
                  humidity_pct, precipitation_mm, wind_speed_kmh, wind_direction_deg,
                  pressure_hpa, visibility_km, cloud_cover_pct, source, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
             RETURNING id
             """,
             (
                 record["location_id"], record["observation_date"],
+                record["observation_time"],
                 record["temperature_c"],
                 record["humidity_pct"], record["precipitation_mm"],
                 record["wind_speed_kmh"], record["wind_direction_deg"],
@@ -104,9 +105,7 @@ def insert_weather_clickhouse(records: list[dict]) -> None:
     """Insert weather records into ClickHouse weather_events table via HTTP."""
     import requests as req
     from datetime import datetime, timezone
-    ch_url = "http://localhost:8123"
-    ch_user = "kokonut"
-    ch_pass = "dev-clickhouse-kokonut-2026"
+    ch_url = f"http://{CH_HOST}:{CH_PORT}"
 
     for rec in records:
         meta = rec.get("metadata", {})
@@ -115,13 +114,13 @@ def insert_weather_clickhouse(records: list[dict]) -> None:
         meta_str = ",".join(f"'{k}','{v}'" for k, v in meta.items()) if meta else ""
         meta_map = f"map({meta_str})" if meta_str else "map()"
 
-        # Parse ISO timestamp to ClickHouse DateTime64 format
         obs_date = rec.get("observation_date", "")
+        obs_time = rec.get("observation_time") or "00:00:00"
         try:
-            dt = datetime.fromisoformat(obs_date.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(f"{obs_date}T{obs_time}+00:00")
             ch_timestamp = dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
         except Exception:
-            ch_timestamp = obs_date
+            ch_timestamp = f"{obs_date} {obs_time}"
 
         query = f"""INSERT INTO weather_events
             (timestamp, location_id, source, temperature_c, precipitation_mm,
@@ -143,7 +142,7 @@ def insert_weather_clickhouse(records: list[dict]) -> None:
             resp = req.post(
                 ch_url,
                 data=query.encode("utf-8"),
-                auth=(ch_user, ch_pass),
+                auth=(CH_USER, CH_PASSWORD),
                 headers={"Content-Type": "text/plain"},
                 timeout=10,
             )

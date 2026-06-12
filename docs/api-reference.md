@@ -117,7 +117,7 @@ curl -u "kokonut:YOUR_PASSWORD" \
   "http://localhost:8123/"
 
 # Native protocol (port 9000)
-docker exec -it kokonut-intelligence-clickhouse-1 \
+docker compose exec clickhouse \
   clickhouse-client --user kokonut --password YOUR_PASSWORD
 ```
 

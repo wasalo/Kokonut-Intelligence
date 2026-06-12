@@ -15,7 +15,10 @@ from typing import Any, Optional
 import psycopg2
 import psycopg2.extras
 
-from .config import PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD
+from .config import (
+    PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD,
+    CH_HOST, CH_USER, CH_PASSWORD,
+)
 
 
 def get_db():
@@ -34,7 +37,7 @@ def get_clickhouse():
     try:
         import clickhouse_connect
         return clickhouse_connect.get_client(
-            host=PG_HOST,  # Same Docker host
+            host=CH_HOST,
             port=8123,
             username=CH_USER,
             password=CH_PASSWORD,

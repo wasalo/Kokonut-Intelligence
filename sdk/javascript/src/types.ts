@@ -103,7 +103,7 @@ export interface ExpenseEvent {
   allocation_method: 'direct' | 'proportional' | 'equal';
   receipt_url?: string;
   expense_date: string;
-  status: 'raw' | 'normalized' | 'verified' | 'published' | 'approved' | 'rejected';
+  status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
   recorded_by?: string;
   created_at: string;
   updated_at: string;
@@ -111,7 +111,7 @@ export interface ExpenseEvent {
 
 export interface SensorReading {
   id: string;
-  sensor_device_id: string;
+  sensor_id: string;
   crop_cycle_id?: string;
   plot_id?: string;
   reading_date: string;
@@ -145,7 +145,7 @@ export interface AttestationRecord {
   claim_type: string;
   claim_data: Record<string, any>;
   evidence_hashes?: string[];
-  status: 'draft' | 'pending' | 'approved' | 'rejected' | 'attested' | 'revoked';
+  status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
   reviewer_id?: string;
   review_notes?: string;
   chain?: string;
@@ -165,7 +165,7 @@ export interface ReportSnapshot {
   generated_by: string;
   period_start?: string;
   period_end?: string;
-  status: 'generated' | 'published' | 'archived';
+  status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
   created_at: string;
 }
 

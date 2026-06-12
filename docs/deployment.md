@@ -127,10 +127,10 @@ Snapshots are saved to `schemas/directus/snapshots/`.
 
 ```bash
 # PostgreSQL
-docker exec -it kokonut-intelligence-database-1 psql -U kokonut -d kokonut_intelligence
+docker compose exec database psql -U kokonut -d kokonut_intelligence
 
 # ClickHouse
-docker exec -it kokonut-intelligence-clickhouse-1 clickhouse-client -u kokonut --password YOUR_PASSWORD
+docker compose exec clickhouse clickhouse-client -u kokonut --password YOUR_PASSWORD
 ```
 
 ## Troubleshooting

@@ -57,6 +57,51 @@ CREATE INDEX IF NOT EXISTS idx_sensor_device_plot ON sensor_device(plot_id);
 CREATE INDEX IF NOT EXISTS idx_sensor_device_type ON sensor_device(sensor_type_id);
 CREATE INDEX IF NOT EXISTS idx_sensor_device_status ON sensor_device(status);
 
+-- Ensure sensor readings point at registered devices. Older dev databases may
+-- contain slugs in sensor_reading.sensor_id, so translate known slugs first.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'sensor_reading'
+          AND column_name = 'sensor_id'
+          AND data_type <> 'uuid'
+    ) THEN
+        UPDATE sensor_reading sr
+        SET sensor_id = sd.id::text
+        FROM sensor_device sd
+        WHERE sr.sensor_id = sd.slug;
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM sensor_reading
+            WHERE sensor_id !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        ) THEN
+            ALTER TABLE sensor_reading
+            ALTER COLUMN sensor_id TYPE UUID USING sensor_id::uuid;
+        ELSE
+            RAISE NOTICE 'Skipping sensor_reading.sensor_id UUID migration because unmatched non-UUID sensor IDs remain.';
+        END IF;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'sensor_reading'
+          AND column_name = 'sensor_id'
+          AND data_type = 'uuid'
+    ) AND NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'sensor_reading_sensor_id_fkey'
+    ) THEN
+        ALTER TABLE sensor_reading
+        ADD CONSTRAINT sensor_reading_sensor_id_fkey
+        FOREIGN KEY (sensor_id) REFERENCES sensor_device(id) ON DELETE RESTRICT;
+    END IF;
+END $$;
+
 -- Alert rule configuration
 CREATE TABLE IF NOT EXISTS alert_rule (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

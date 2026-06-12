@@ -59,7 +59,7 @@ financial performance, ecological outcomes, and impact metrics.
 **Collection:** `attestation_record`
 **Filters:**
 - `claim_type` IN (`impact`, `mrv`)
-- `status` = `attested`
+- `status` = `published`
 
 **Fields:** `claim_data`, `attested_at`, `chain`
 

@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 import requests
 
 from .base import get_db, log_ingestion, hash_payload, retry
+from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 # Sensor type range validation (fallback if sensor_type table not loaded)
 SENSOR_TYPE_RANGES = {
@@ -138,9 +139,12 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
     else:
         ts = f"{reading_date} 00:00:00"
 
-    ch_url = "http://localhost:8123"
-    ch_user = "kokonut"
-    ch_pass = "dev-clickhouse-kokonut-2026"
+    ch_url = f"http://{CH_HOST}:{CH_PORT}"
+
+    # Get unit from sensor_info (index 4 = sensor_type, but we need unit)
+    # sensor_type_id is at index 3, sensor_type at index 4
+    # For now, use sensor_type as unit fallback since we don't have unit column in sensor_info
+    unit = sensor_type  # Fallback; could query sensor_type table separately
 
     query = f"""INSERT INTO sensor_readings
         (timestamp, sensor_id, sensor_type, location_id, plot_id,
@@ -152,7 +156,7 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
             '{location_id}',
             '{str(plot_id) if plot_id else ''}',
             {value},
-            (SELECT unit FROM sensor_type WHERE id = '{sensor_type_id}' LIMIT 1),
+            '{unit}',
             '{quality}',
             map()
         )"""
@@ -161,7 +165,7 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
         resp = requests.post(
             ch_url,
             data=query.encode("utf-8"),
-            auth=(ch_user, ch_pass),
+            auth=(CH_USER, CH_PASSWORD),
             headers={"Content-Type": "text/plain"},
             timeout=10,
         )

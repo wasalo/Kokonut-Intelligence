@@ -16,6 +16,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 import time
 from datetime import datetime, timezone, timedelta
@@ -128,6 +129,36 @@ COMMODITY_SEED_DATA = {
     },
 }
 
+CROP_ALIASES = {
+    "COFFEE": ["coffee", "arabica coffee"],
+    "COCOA": ["cocoa", "cacao", "trinitario cacao"],
+    "PALM_OIL": ["palm", "oil palm", "palm oil"],
+    "RICE": ["rice"],
+    "MAIZE": ["maize", "corn"],
+    "SUGAR": ["sugar", "sugarcane", "sugar cane"],
+    "TEA": ["tea"],
+    "BANANA": ["banana", "bananas", "plantain"],
+}
+
+
+def normalize_name(value: str) -> str:
+    """Normalize crop and commodity names for forgiving matching."""
+    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+def find_crop_id(crops: list[tuple], commodity_code: str, commodity_name: str):
+    """Match commodity prices to local crop names using aliases and containment."""
+    candidates = [commodity_code.replace("_", " "), commodity_name]
+    candidates.extend(CROP_ALIASES.get(commodity_code, []))
+    normalized_candidates = [normalize_name(candidate) for candidate in candidates]
+
+    for crop_id, crop_name in crops:
+        crop_norm = normalize_name(crop_name)
+        for candidate in normalized_candidates:
+            if candidate and (crop_norm == candidate or candidate in crop_norm or crop_norm in candidate):
+                return crop_id
+    return None
+
 
 def insert_price(db, record: dict) -> str:
     """Insert price observation into PostgreSQL. Returns record ID."""
@@ -162,10 +193,10 @@ def run(commodity: str = None):
     """Main ingestion entry point."""
     db = get_db()
 
-    # Get active crops
+    # Get crops for commodity matching
     with db.cursor() as cur:
         cur.execute("SELECT id, name FROM crop")
-        crops = {row[1].upper(): row[0] for row in cur.fetchall()}
+        crops = cur.fetchall()
 
     commodities = [commodity] if commodity else list(COMMODITY_SEED_DATA.keys())
 
@@ -180,7 +211,7 @@ def run(commodity: str = None):
 
         info = COMMODITY_SEED_DATA[code]
         try:
-            crop_id = crops.get(code)
+            crop_id = find_crop_id(crops, code, info["name"])
             inserted = 0
 
             for price_point in info["prices"]:
@@ -194,7 +225,7 @@ def run(commodity: str = None):
                     "currency": "USD",
                     "source": "world_bank_pink_sheet",
                     "source_url": "https://www.worldbank.org/en/research/commodity-markets",
-                    "metadata": json.dumps({"source_type": "seed_data"}),
+                    "metadata": {"source_type": "seed_data"},
                 }
                 insert_price(db, record)
                 inserted += 1

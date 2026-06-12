@@ -46,7 +46,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         FROM price_observation po
         JOIN crop c ON po.crop_id = c.id
         ORDER BY po.price_date DESC
-    """, (location_id,))
+    """)
     prices = [dict(r) for r in cur.fetchall()]
 
     cur.close()

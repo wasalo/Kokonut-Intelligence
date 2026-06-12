@@ -342,7 +342,7 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
         ('farm_activity', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
         ('harvest_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
-        ('expense_event', 'read', '{"status":{"_in":["verified","published","approved","paid"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
+        ('expense_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
         ('sales_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
         ('loss_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
         ('labor_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),

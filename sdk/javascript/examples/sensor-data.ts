@@ -12,7 +12,7 @@ const client = new KokonutClient('http://localhost:8055', {
 });
 
 interface SensorPayload {
-  sensor_device_id: string;
+  sensor_id: string;
   plot_id?: string;
   reading_date: string;
   value: number;
@@ -40,7 +40,7 @@ async function main() {
   const readings: SensorPayload[] = Array.from({ length: 24 }, (_, i) => {
     const ts = new Date(now.getTime() - (23 - i) * 3600000);
     return {
-      sensor_device_id: deviceId,
+      sensor_id: deviceId,
       plot_id: plotId,
       reading_date: ts.toISOString(),
       value: 22 + Math.random() * 3 + (i === 20 ? 15 : 0),
@@ -73,7 +73,7 @@ async function main() {
   });
   console.log(`\nRecent anomalies from DB: ${recentAnomalies.length}`);
   for (const a of recentAnomalies) {
-    console.log(`  ${a.reading_date} device=${a.sensor_device_id}: ${a.value}${a.unit}`);
+    console.log(`  ${a.reading_date} device=${a.sensor_id}: ${a.value}${a.unit}`);
   }
 }
 

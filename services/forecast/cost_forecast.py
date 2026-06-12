@@ -16,7 +16,7 @@ def get_historical_costs(location_id: str) -> Dict[str, float]:
         cur.execute("""
             SELECT category, SUM(amount) as total
             FROM expense_event
-            WHERE location_id = %s AND status IN ('approved', 'published')
+            WHERE location_id = %s AND status IN ('verified', 'published')
             GROUP BY category
         """, (location_id,))
         rows = cur.fetchall()

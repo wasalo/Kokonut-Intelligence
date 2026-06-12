@@ -92,7 +92,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
 
     # Calculate attestation value
     total_claims = sum(c["count"] for c in claims)
-    attested_claims = attestations.get("attested", 0)
+    attested_claims = attestations.get("published", 0)
     attestation_revenue = attested_claims * IMPACT_CERTIFICATE_PRICE
 
     total_revenue = carbon_revenue + biodiversity_revenue + attestation_revenue

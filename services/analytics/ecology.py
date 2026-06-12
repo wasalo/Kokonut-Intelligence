@@ -26,7 +26,7 @@ def compare_soil_carbon(conn, location_id: str) -> Dict[str, Any]:
             p.name as plot_name,
             measurement_date,
             carbon_tonnes_per_ha,
-            methodology,
+            measurement_method,
             depth_cm
         FROM soil_carbon_measurement sc
         LEFT JOIN plot p ON sc.plot_id = p.id
@@ -63,13 +63,13 @@ def compare_soil_carbon(conn, location_id: str) -> Dict[str, Any]:
             "baseline": {
                 "date": baseline["measurement_date"].isoformat() if hasattr(baseline["measurement_date"], "isoformat") else str(baseline["measurement_date"]),
                 "carbon_tonnes_per_ha": float(baseline["carbon_tonnes_per_ha"]),
-                "methodology": baseline["methodology"],
+                "measurement_method": baseline["measurement_method"],
                 "depth_cm": baseline["depth_cm"],
             },
             "latest": {
                 "date": latest["measurement_date"].isoformat() if hasattr(latest["measurement_date"], "isoformat") else str(latest["measurement_date"]),
                 "carbon_tonnes_per_ha": float(latest["carbon_tonnes_per_ha"]),
-                "methodology": latest["methodology"],
+                "measurement_method": latest["measurement_method"],
                 "depth_cm": latest["depth_cm"],
             },
             "delta_tonnes_per_ha": round(delta, 4),
@@ -106,7 +106,7 @@ def compute_biodiversity(conn, location_id: str) -> Dict[str, Any]:
         SELECT
             observation_date,
             plot_id,
-            species_list,
+            species_name,
             count,
             habitat_type,
             notes
@@ -122,16 +122,15 @@ def compute_biodiversity(conn, location_id: str) -> Dict[str, Any]:
 
     observations = []
     for row in rows:
-        species_list = row.get("species_list") or []
+        species_name = row.get("species_name") or ""
         count = row.get("count", 0) or 0
 
         # Shannon diversity index: H = -sum(p_i * ln(p_i))
         shannon = 0.0
-        if species_list and count > 0:
+        if species_name and count > 0:
             # Count individuals per species
             sp_counts: Dict[str, int] = {}
-            for sp in species_list:
-                sp_counts[sp] = sp_counts.get(sp, 0) + 1
+            sp_counts[species_name] = sp_counts.get(species_name, 0) + count
             total = sum(sp_counts.values())
             if total > 0:
                 for sp_count in sp_counts.values():
@@ -143,7 +142,7 @@ def compute_biodiversity(conn, location_id: str) -> Dict[str, Any]:
             "observation_date": row["observation_date"].isoformat() if hasattr(row["observation_date"], "isoformat") else str(row["observation_date"]),
             "plot_id": str(row["plot_id"]) if row.get("plot_id") else None,
             "species_count": count,
-            "unique_species": len(species_list) if species_list else 0,
+            "unique_species": 1 if species_name else 0,
             "shannon_index": round(shannon, 4),
             "habitat_type": row.get("habitat_type"),
         })
@@ -275,9 +274,9 @@ def sensitivity_analysis(
 
 def _estimate_noi(scenario: Dict[str, Any]) -> float:
     """Quick NOI estimate without DB writes."""
-    from .forecast.pricing import project_prices
-    from .forecast.yield_forecast import project_yields
-    from .forecast.cost_forecast import project_costs
+    from services.forecast.pricing import project_prices
+    from services.forecast.yield_forecast import project_yields
+    from services.forecast.cost_forecast import project_costs
 
     # Simplified calculation
     pa = scenario.get("price_assumptions", {})

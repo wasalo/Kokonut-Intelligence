@@ -8,6 +8,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BACKUP_DIR="$PROJECT_DIR/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
+DB_SERVICE="${DB_SERVICE:-database}"
+CH_SERVICE="${CH_SERVICE:-clickhouse}"
 
 mkdir -p "$BACKUP_DIR"
 
@@ -25,7 +28,7 @@ fi
 # Backup PostgreSQL
 echo "Backing up PostgreSQL..."
 PG_BACKUP="$BACKUP_DIR/postgres_$TIMESTAMP.sql.gz"
-docker exec kokonut-intelligence-database-1 \
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
     pg_dump -U kokonut -d kokonut_intelligence \
     --clean --if-exists --no-owner --no-privileges \
     | gzip > "$PG_BACKUP"
@@ -33,14 +36,14 @@ docker exec kokonut-intelligence-database-1 \
 echo "  PostgreSQL backup: $PG_BACKUP"
 
 # Backup ClickHouse (if running)
-if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps clickhouse | grep -q "Up"; then
+if docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" --query "SELECT 1" > /dev/null 2>&1; then
     echo "Backing up ClickHouse..."
     CH_BACKUP="$BACKUP_DIR/clickhouse_$TIMESTAMP.sql.gz"
-    docker exec kokonut-intelligence-clickhouse-1 \
-        clickhouse-client --query "SHOW TABLES" \
+    docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" \
+        clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" --query "SHOW TABLES" \
         > /dev/null 2>&1 && \
-    docker exec kokonut-intelligence-clickhouse-1 \
-        clickhouse-client --multiquery \
+    docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" \
+        clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" --multiquery \
         --query "SELECT * FROM system.tables" \
         | gzip > "$CH_BACKUP" || true
     echo "  ClickHouse backup: $CH_BACKUP"

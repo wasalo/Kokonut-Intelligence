@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS forecast_scenario (
     -- Versioning
     version INTEGER DEFAULT 1,
     parent_scenario_id UUID REFERENCES forecast_scenario(id),
-    status VARCHAR(50) DEFAULT 'draft', -- draft, active, archived
+    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, verified, published, rejected
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_by UUID,
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS report_snapshot (
     report_data JSONB NOT NULL,
     snapshot_hash VARCHAR(255),
     file_url TEXT,
-    status VARCHAR(50) DEFAULT 'generated', -- generated, published, archived
+    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, verified, published, rejected
     created_at TIMESTAMPTZ DEFAULT NOW(),
     created_by UUID
 );
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS dashboard_dataset (
     query_sql TEXT,
     refresh_interval_minutes INTEGER,
     last_refreshed_at TIMESTAMPTZ,
-    status VARCHAR(50) DEFAULT 'active',
+    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, verified, published, rejected
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_by UUID
@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS ai_summary (
     model_version VARCHAR(100),
     confidence NUMERIC(5,4),
     -- Review
-    status VARCHAR(50) DEFAULT 'draft', -- draft, reviewed, approved, published
+    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, verified, published, rejected
     reviewed_by UUID,
     reviewed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW(),

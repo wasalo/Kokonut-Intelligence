@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from .base import get_db, log_ingestion, hash_payload, retry, update_indexer_status
+from .base import get_db, log_ingestion, hash_payload, retry
 
 # EAS GraphQL endpoints per chain
 EAS_ENDPOINTS = {
@@ -145,7 +145,7 @@ def insert_attestation(db, att: dict, chain: str) -> str:
                     "revoked": att.get("revoked"),
                     "expiration_time": att.get("expirationTime"),
                 }),
-                "revoked" if att.get("revoked") else "attested",
+                "rejected" if att.get("revoked") else "published",
                 att.get("txid", ""),
                 chain,
                 block_ts,
@@ -153,6 +153,51 @@ def insert_attestation(db, att: dict, chain: str) -> str:
         )
         row = cur.fetchone()
         return str(row[0]) if row else None
+
+
+def get_last_attestation_time(db, chain: str) -> int:
+    """Get the last indexed EAS attestation timestamp for a chain."""
+    with db.cursor() as cur:
+        cur.execute(
+            """
+            SELECT metadata->>'last_attestation_time'
+            FROM chain_indexer_status
+            WHERE chain = %s AND indexer_type = 'eas'
+            """,
+            (chain,),
+        )
+        row = cur.fetchone()
+    return int(row[0]) if row and row[0] else 0
+
+
+def update_eas_indexer_status(chain: str, last_attestation_time: int, status: str, error_message: str = None) -> None:
+    """Update EAS sync status without treating timestamps as block numbers."""
+    status_db = get_db()
+    try:
+        with status_db.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO chain_indexer_status
+                    (chain, indexer_type, last_synced_block, last_synced_at, status, error_message, metadata)
+                VALUES (%s, 'eas', NULL, NOW(), %s, %s, %s::jsonb)
+                ON CONFLICT (chain, indexer_type) DO UPDATE SET
+                    last_synced_block = NULL,
+                    last_synced_at = NOW(),
+                    status = EXCLUDED.status,
+                    error_message = EXCLUDED.error_message,
+                    metadata = COALESCE(chain_indexer_status.metadata, '{}'::jsonb) || EXCLUDED.metadata,
+                    updated_at = NOW()
+                """,
+                (
+                    chain,
+                    status,
+                    error_message,
+                    json.dumps({"last_attestation_time": last_attestation_time}),
+                ),
+            )
+        status_db.commit()
+    finally:
+        status_db.close()
 
 
 def run(chain: str = None):
@@ -179,22 +224,14 @@ def run(chain: str = None):
             print(f"  ⊙ No tracked wallets for {c}")
             continue
 
-        last_block = 0
-        with db.cursor() as cur:
-            cur.execute(
-                "SELECT last_synced_block FROM chain_indexer_status WHERE chain = %s AND indexer_type = 'eas'",
-                (c,),
-            )
-            row = cur.fetchone()
-            if row:
-                last_block = row[0] or 0
+        last_attestation_time = get_last_attestation_time(db, c)
 
         total_inserted = 0
 
         for w_id, w_addr in tracked_wallets:
             try:
                 offset = 0
-                max_block = last_block
+                max_attestation_time = last_attestation_time
 
                 while True:
                     data = query_eas(c, ATTESTATIONS_BY_RECIPIENT, {
@@ -208,14 +245,14 @@ def run(chain: str = None):
 
                     for att in attestations:
                         att_time = int(att.get("time", 0))
-                        if att_time <= last_block:
+                        if att_time <= last_attestation_time:
                             continue
 
-                        insert_attestation(db, att, c)
-                        total_inserted += 1
+                        if insert_attestation(db, att, c):
+                            total_inserted += 1
 
-                        if att_time > max_block:
-                            max_block = att_time
+                        if att_time > max_attestation_time:
+                            max_attestation_time = att_time
 
                     offset += len(attestations)
                     if len(attestations) < 100:
@@ -223,11 +260,11 @@ def run(chain: str = None):
 
                     time.sleep(0.5)
 
-                update_indexer_status(c, "eas", max_block, "healthy")
+                update_eas_indexer_status(c, max_attestation_time, "healthy")
                 print(f"  ✓ Wallet {w_addr[:10]}...: indexed")
 
             except Exception as e:
-                update_indexer_status(c, "eas", last_block, "error", str(e))
+                update_eas_indexer_status(c, last_attestation_time, "error", str(e))
                 print(f"  ✗ Wallet {w_addr[:10]}...: {e}")
 
         log_ingestion(

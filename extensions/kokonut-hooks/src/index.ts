@@ -19,14 +19,14 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
 
   // Helper: extract user roles from accountability
   function getUserRoles(meta: Record<string, any>): string[] {
-    const accountability = meta?. accountability || meta?.payload?._accountability;
+    const accountability = meta?.accountability || meta?.payload?._accountability;
     if (!accountability) return [];
     if (accountability.admin) return ['admin'];
     return accountability.role ? [accountability.role] : [];
   }
 
   function getUserId(meta: Record<string, any>): string | undefined {
-    const accountability = meta?. accountability || meta?.payload?._accountability;
+    const accountability = meta?.accountability || meta?.payload?._accountability;
     return accountability?.user;
   }
 
@@ -77,7 +77,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('expense_event.update', (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('expense_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     // Validate amount on update
     if (payload.amount !== undefined) {
       const errors = validateExpenseAmount(payload.amount);
@@ -87,7 +87,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     }
 
     // Workflow transition with role routing
-    return handleWorkflowTransition('expense_event', payload, meta.keys || {}, getUserRoles(meta));
+    return await handleWorkflowTransition('expense_event', payload, meta.keys || {}, getUserRoles(meta), database);
   });
 
   // --- Sales event hooks ---
@@ -134,7 +134,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     }
 
     // Workflow transition with role routing
-    return handleWorkflowTransition('sales_event', payload, meta.keys || {}, getUserRoles(meta));
+    return await handleWorkflowTransition('sales_event', payload, meta.keys || {}, getUserRoles(meta), database);
   });
 
   // --- Harvest event hooks ---
@@ -172,8 +172,8 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('harvest_event.update', (payload: Record<string, any>, meta: Record<string, any>) => {
-    return handleWorkflowTransition('harvest_event', payload, meta.keys || {}, getUserRoles(meta));
+  filter('harvest_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    return await handleWorkflowTransition('harvest_event', payload, meta.keys || {}, getUserRoles(meta), database);
   });
 
   // --- Farm activity hooks ---
@@ -194,8 +194,8 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('farm_activity.update', (payload: Record<string, any>, meta: Record<string, any>) => {
-    return handleWorkflowTransition('farm_activity', payload, meta.keys || {}, getUserRoles(meta));
+  filter('farm_activity.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    return await handleWorkflowTransition('farm_activity', payload, meta.keys || {}, getUserRoles(meta), database);
   });
 
   // --- Loss event hooks ---
@@ -209,8 +209,8 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('loss_event.update', (payload: Record<string, any>, meta: Record<string, any>) => {
-    return handleWorkflowTransition('loss_event', payload, meta.keys || {}, getUserRoles(meta));
+  filter('loss_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    return await handleWorkflowTransition('loss_event', payload, meta.keys || {}, getUserRoles(meta), database);
   });
 
   // --- Labor event hooks ---
@@ -230,8 +230,8 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('labor_event.update', (payload: Record<string, any>, meta: Record<string, any>) => {
-    return handleWorkflowTransition('labor_event', payload, meta.keys || {}, getUserRoles(meta));
+  filter('labor_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    return await handleWorkflowTransition('labor_event', payload, meta.keys || {}, getUserRoles(meta), database);
   });
 
   // --- Field note hooks ---
@@ -249,8 +249,8 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('field_note.update', (payload: Record<string, any>, meta: Record<string, any>) => {
-    return handleWorkflowTransition('field_note', payload, meta.keys || {}, getUserRoles(meta));
+  filter('field_note.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    return await handleWorkflowTransition('field_note', payload, meta.keys || {}, getUserRoles(meta), database);
   });
 
   // ============================================================

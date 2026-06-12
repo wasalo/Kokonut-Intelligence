@@ -186,15 +186,15 @@ INSERT INTO expense_category (name, code, is_direct, sort_order) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 -- Sample Expense Events
-INSERT INTO expense_event (id, location_id, expense_category_id, expense_date, amount, currency, status, allocation_method, description)
+INSERT INTO expense_event (id, location_id, category, expense_date, amount, currency, status, allocation_method, description)
 SELECT
     gen_random_uuid(),
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-    ec.id,
+    ec.name,
     d::date,
     (random() * 5000 + 500)::numeric(12,2),
     'USD',
-    'approved',
+    'verified',
     'direct',
     'Sandbox sample expense — ' || ec.name
 FROM expense_category ec
@@ -203,7 +203,7 @@ WHERE ec.code IN ('SEED', 'FERT', 'PEST', 'IRRI', 'LAB-F')
 ON CONFLICT DO NOTHING;
 
 -- Sample Expense Allocations
-INSERT INTO crop_cost_allocation (id, expense_event_id, crop_cycle_id, allocation_method, allocated_amount, allocation_pct)
+INSERT INTO crop_cost_allocation (id, expense_event_id, crop_cycle_id, allocation_method, allocated_amount, allocation_ratio)
 SELECT
     gen_random_uuid(),
     ee.id,
@@ -213,7 +213,7 @@ SELECT
     1.0
 FROM expense_event ee
 WHERE ee.location_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
-  AND ee.status = 'approved'
+  AND ee.status = 'verified'
 LIMIT 20
 ON CONFLICT DO NOTHING;
 
@@ -239,7 +239,7 @@ VALUES (
     'f5d0bc99-9c0b-4ef8-bb6d-6bb9bd380d22',
     'harvest_event',
     '{"harvestId": 1, "quantityKg": 4200, "qualityGrade": 1, "farmer": "0x1234...abcd", "timestamp": 1748793600}',
-    'attested',
+    'published',
     'optimism'
 ) ON CONFLICT DO NOTHING;
 

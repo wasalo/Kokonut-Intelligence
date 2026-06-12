@@ -98,7 +98,7 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
                    COALESCE(SUM(return_amount + discount_amount), 0) as returns,
                    COUNT(*) as sale_count
             FROM sales_event
-            WHERE location_id = %s AND status IN ('approved', 'published')
+            WHERE location_id = %s AND status IN ('verified', 'published')
         """, (location_id,))
         fin = cur.fetchone()
         if fin:
@@ -108,7 +108,7 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
         cur.execute("""
             SELECT COALESCE(SUM(amount), 0) as costs
             FROM expense_event
-            WHERE location_id = %s AND status IN ('approved', 'published')
+            WHERE location_id = %s AND status IN ('verified', 'published')
         """, (location_id,))
         cost_row = cur.fetchone()
         if cost_row:
@@ -156,7 +156,7 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
         # Governance metrics
         cur.execute("""
             SELECT COUNT(*) as total,
-                   COUNT(CASE WHEN status IN ('approved', 'published') THEN 1 END) as verified
+                   COUNT(CASE WHEN status IN ('verified', 'published') THEN 1 END) as verified
             FROM farm_activity WHERE location_id = %s
         """, (location_id,))
         gov = cur.fetchone()

@@ -19,7 +19,7 @@
 | `digital_lego_usage` | Digital Lego Usage | COUNT(distinct verified protocols) | digital_lego_usage | Weekly |
 | `soil_carbon_delta` | Soil Carbon Delta | after_carbon - baseline_carbon | soil_carbon_measurement | Quarterly |
 | `biodiversity_delta` | Biodiversity Delta | after_count - baseline_count | species_observation | Quarterly |
-| `attestation_coverage` | Attestation Coverage | attested / eligible * 100 | attestation_record | Monthly |
+| `attestation_coverage` | Attestation Coverage | published / eligible * 100 | attestation_record | Monthly |
 
 ## Core Entity Glossary
 
@@ -68,9 +68,9 @@
 | `species_observation` | Biodiversity count | species_name, count, method |
 | `remote_sensing_observation` | NDVI/NDRE | ndvi, ndre, canopy_cover_pct |
 | `weather_observation` | Weather data | temperature_c, precipitation_mm |
-| `sensor_type` | Sensor type definition | code, name, default_unit, default_min, default_max |
-| `sensor_device` | Registered sensor device | device_id, sensor_type_id, location_id, model, status |
-| `sensor_reading` | Device reading | sensor_id, value, unit, quality, anomaly_flag |
+| `sensor_type` | Sensor type definition | name, sensor_type, min_value, max_value |
+| `sensor_device` | Registered sensor device | name, sensor_type_id, location_id, status |
+| `sensor_reading` | Device reading | sensor_id, value, unit, quality |
 | `alert_rule` | Threshold-based rule | sensor_type_id, operator, threshold, severity, cooldown_minutes |
 | `sensor_alert` | Triggered alert | alert_rule_id, reading_id, severity, status |
 | `mrv_claim` | Structured verification claim | claim_type, claim_data, status |

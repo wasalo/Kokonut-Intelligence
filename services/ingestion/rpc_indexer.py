@@ -24,7 +24,7 @@ from .base import (
     get_db, log_ingestion, hash_payload, retry,
     update_indexer_status, get_last_synced_block, now_utc,
 )
-from .config import CHAIN_RPC_MAP, CH_HOST, CH_USER, CH_PASSWORD
+from .config import CHAIN_RPC_MAP, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 # Block range per request (limits API usage)
 BLOCK_BATCH = 100
@@ -54,20 +54,6 @@ def get_wallets(db, chain: str = None) -> list:
                 "SELECT id, address, chain, role, label FROM wallet_profile WHERE is_active = true"
             )
         return cur.fetchall()
-
-
-def fetch_transactions(w3: Web3, address: str, from_block: int, to_block: int) -> list:
-    """Fetch recent transactions for an address using filter."""
-    try:
-        tx_filter = w3.eth.filter({
-            "fromBlock": hex(max(from_block, to_block - 100)),
-            "toBlock": hex(to_block),
-            "address": address,
-        })
-        return tx_filter.get_all_entries()
-    except Exception as e:
-        print(f"  [RPC] Filter not supported on this endpoint: {e}")
-        return []
 
 
 def fetch_balance(w3: Web3, address: str) -> int:
@@ -145,9 +131,7 @@ def insert_activity(db, record: dict) -> str:
 def insert_activity_clickhouse(records: list[dict]) -> None:
     """Insert wallet activity into ClickHouse wallet_events table."""
     import requests as req
-    ch_url = "http://localhost:8123"
-    ch_user = "kokonut"
-    ch_pass = "dev-clickhouse-kokonut-2026"
+    ch_url = f"http://{CH_HOST}:{CH_PORT}"
 
     for rec in records:
         timestamp = rec.get("block_timestamp", "")
@@ -180,7 +164,7 @@ def insert_activity_clickhouse(records: list[dict]) -> None:
             resp = req.post(
                 ch_url,
                 data=query.encode("utf-8"),
-                auth=(ch_user, ch_pass),
+                auth=(CH_USER, CH_PASSWORD),
                 headers={"Content-Type": "text/plain"},
                 timeout=10,
             )

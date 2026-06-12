@@ -67,7 +67,7 @@ Manager/Finance approves or rejects (verified/rejected)
 Published — available to dashboards and analysts
 ```
 
-Expense-specific flow: Draft → Submitted → Approved → Paid
+Expenses use the same lifecycle; payment is tracked separately with `payment_status`.
 
 ## Data Entry
 
@@ -114,7 +114,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   └── directus/       # Directus permissions SQL
 ├── schemas/
 │   ├── postgres/       # 12 schema files, 45+ tables
-│   ├── seeds/          # Pilot farm seed data (12 files)
+│   ├── seeds/          # Base and pilot seed data (14 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── sdk/
@@ -225,10 +225,10 @@ python3 -m services.ingestion.anomaly_detector
 
 ## Data Lifecycle
 
-Every important record follows: **Raw → Normalized → Verified → Published**
+Every important record follows: **Draft → Submitted → Verified → Published**
 
-- **Raw:** Unmodified source payload
-- **Normalized:** Mapped to Kokonut canonical schema
+- **Draft:** Record created; source payload preserved where available
+- **Submitted:** Mapped to Kokonut canonical schema and submitted for review
 - **Verified:** Reviewed, validated, linked to evidence
 - **Published:** Available to dashboards, APIs, attestations
 
@@ -290,23 +290,30 @@ python3 -m services.export.report_generator --type farm_summary --location-id UU
 
 ## Pilot Farm Seed Data
 
-Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 5 seed files:
+Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 12 pilot seed files, plus 2 base seed files:
 
 | File | Content |
 |------|---------|
 | `001_pilot_farm.sql` | Location, farm, plots, crops, crop cycles, partners, staff, infrastructure |
-| `003_pilot_farm_environmental.sql` | Soil samples, weather, remote sensing, sensors, alerts |
-| `004_pilot_farm_web3.sql` | Wallet activity, digital lego usage, attestations, chain indexer status |
-| `005_pilot_farm_operations.sql` | Activities, harvests, sales, expenses, losses, labor, field notes |
+| `002_pilot_operations.sql` | Activities, harvests, sales, expenses, losses, labor, field notes |
+| `003_pilot_environmental.sql` | Soil samples, weather, remote sensing, sensors, alerts |
+| `004_pilot_web3.sql` | Wallet activity, digital lego usage, attestations, chain indexer status |
+| `005_pilot_forecasts.sql` | Forecast scenarios, forecast outputs, NOI snapshots |
 | `006_pilot_farm_dao.sql` | Governance events, metric definitions, treasury events |
+| `007_pilot_prices.sql` | Crop and commodity price observations |
+| `008_pilot_capital_flows.sql` | Capital sources, value flows, cash-flow snapshots |
+| `009_pilot_carbon_biodiversity.sql` | Soil carbon measurements, species observations, environmental baselines |
+| `010_pilot_mrv_claims.sql` | MRV claims and verification reviews |
+| `011_pilot_partners_extended.sql` | Additional buyers and cross-buyer sales |
+| `012_pilot_bioinputs.sql` | Bioinput expenses and biofactory infrastructure |
 
 ```bash
 # Seed all pilot farm data
 ./scripts/seed-pilot.sh
 
 # Or run individual files
-docker compose exec database psql -U kokonut -d kokonut_intelligence \
-  -f schemas/seeds/001_pilot_farm.sql
+docker compose exec -T database psql -U kokonut -d kokonut_intelligence \
+  < schemas/seeds/001_pilot_farm.sql
 ```
 
 ## Fortune 500 Farm Scoring
@@ -324,7 +331,7 @@ Weighted 4-pillar ranking system for regenerative farms:
 
 ```bash
 # Score a specific farm
-python3 -m services.fortune500.cli --farm <farm-id>
+python3 -m services.fortune500.cli --location-id <location-id>
 
 # Rank all farms
 python3 -m services.fortune500.cli --all
@@ -336,10 +343,10 @@ Time-series projection engine with Monte Carlo simulation:
 
 ```bash
 # Run forecast for a location (3, 6, 12 months)
-python3 -m services.analytics.forecast --location <location-id>
+python3 -m services.forecast.cli --location-id <location-id>
 
 # Custom horizon and simulations
-python3 -m services.analytics.forecast --location <location-id> \
+python3 -m services.forecast.cli --location-id <location-id> \
   --months 12 --simulations 2000
 ```
 

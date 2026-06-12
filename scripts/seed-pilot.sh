@@ -20,24 +20,36 @@ else
     exit 1
 fi
 
-DB_CONTAINER="kokonut-intelligence-database-1"
+COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
+DB_SERVICE="${DB_SERVICE:-database}"
+DB_WAIT_ATTEMPTS="${DB_WAIT_ATTEMPTS:-60}"
+
+wait_for_postgres() {
+    local attempt=1
+    until docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" pg_isready -U kokonut -d kokonut_intelligence > /dev/null 2>&1; do
+        if [ "$attempt" -ge "$DB_WAIT_ATTEMPTS" ]; then
+            echo "ERROR: PostgreSQL service '$DB_SERVICE' is not ready after $((DB_WAIT_ATTEMPTS * 2)) seconds."
+            return 1
+        fi
+        attempt=$((attempt + 1))
+        sleep 2
+    done
+}
 
 # Wait for database
 echo "Waiting for PostgreSQL..."
-until docker exec "$DB_CONTAINER" pg_isready -U kokonut -d kokonut_intelligence > /dev/null 2>&1; do
-    sleep 2
-done
+wait_for_postgres
 echo "PostgreSQL is ready."
 
-# Apply pilot seed files (only 001-005)
+# Apply all pilot seed files
 echo ""
 echo "Applying pilot farm seed data..."
 
 SEED_DIR="$PROJECT_DIR/schemas/seeds"
-for seed_file in "$SEED_DIR"/00[1-5]_pilot_*.sql; do
+for seed_file in "$SEED_DIR"/*_pilot_*.sql; do
     filename=$(basename "$seed_file")
     echo "  Applying: $filename"
-    docker exec -i "$DB_CONTAINER" psql -U kokonut -d kokonut_intelligence < "$seed_file" 2>&1 | grep -v "^SET$\|^$\|^INSERT 0" || true
+    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$seed_file" 2>&1 | grep -v "^SET$\|^$\|^INSERT 0" || true
 done
 
 echo ""

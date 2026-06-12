@@ -162,7 +162,7 @@ CREATE TABLE IF NOT EXISTS sensor_reading (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     location_id UUID NOT NULL REFERENCES location(id) ON DELETE RESTRICT,
     plot_id UUID REFERENCES plot(id),
-    sensor_id VARCHAR(255) NOT NULL,
+    sensor_id UUID NOT NULL,
     sensor_type VARCHAR(100), -- soil_moisture, soil_temperature, air_temperature, humidity, light, rainfall, water_level
     reading_date DATE NOT NULL,
     reading_time TIME,
@@ -211,7 +211,7 @@ CREATE TABLE IF NOT EXISTS mrv_claim (
     evidence_urls TEXT[],
     evidence_hashes TEXT[],
     -- Review workflow
-    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, under_review, approved, rejected, attested
+    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, verified, published, rejected
     reviewer_id UUID,
     review_notes TEXT,
     reviewed_at TIMESTAMPTZ,

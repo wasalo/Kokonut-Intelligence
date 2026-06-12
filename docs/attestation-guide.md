@@ -24,13 +24,13 @@ Kokonut uses EAS to create verifiable claims about:
 ### Workflow
 
 ```
-Register Schema → Create Claim → Review & Approve → Attest On-Chain → Query Attestations
+Register Schema → Create Claim → Verify → Publish On-Chain → Query Attestations
 ```
 
 1. **Register Schema** — Define what fields the attestation will contain
 2. **Create Claim** — Build a claim from operational data (harvest, expense, etc.)
-3. **Review & Approve** — Human or agent review before on-chain submission
-4. **Attest On-Chain** — Submit the signed attestation to EAS on Optimism/Base
+3. **Verify** — Human or agent review before on-chain submission
+4. **Publish On-Chain** — Submit the signed attestation to EAS on Optimism/Base and mark the lifecycle record as published
 5. **Query Attestations** — Retrieve and display verified claims
 
 ## Database Schema
@@ -66,7 +66,7 @@ Stores individual attestation claims and their on-chain status.
 | `claim_data` | JSONB | The attestation payload |
 | `evidence_hash` | VARCHAR(255) | Hash of supporting evidence |
 | `evidence_cids` | TEXT[] | IPFS CIDs for evidence |
-| `status` | VARCHAR(50) | `draft`, `submitted`, `approved`, `attested`, `rejected`, `revoked` |
+| `status` | VARCHAR(50) | `draft`, `submitted`, `verified`, `published`, `rejected` |
 | `chain` | VARCHAR(50) | Chain where attested |
 | `tx_hash` | VARCHAR(66) | On-chain transaction hash |
 | `attested_at` | TIMESTAMPTZ | When attested on-chain |
@@ -101,9 +101,9 @@ python3 -m services.ingestion.eas_indexer --dry-run
 ### Query Attestations via Directus REST
 
 ```bash
-# All attested harvest MRV claims
+# All published harvest MRV claims
 curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/attestation_record?filter[status][eq]=attested&filter[claim_type][eq]=mrv&fields[]=*&sort[]=-attested_at"
+  "http://localhost:8055/items/attestation_record?filter[status][eq]=published&filter[claim_type][eq]=mrv&fields[]=*&sort[]=-attested_at"
 
 # Attestations for a specific harvest event
 curl -H "Authorization: Bearer $TOKEN" \
@@ -119,7 +119,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 ```graphql
 query {
   attestation_record(
-    filter: { status: { _eq: "attested" }, claim_type: { _eq: "mrv" } }
+    filter: { status: { _eq: "published" }, claim_type: { _eq: "mrv" } }
     sort: ["-attested_at"]
     limit: 10
   ) {
@@ -185,11 +185,11 @@ INSERT INTO attestation_record (
 
 ### Step 4: Attest On-Chain
 
-Once approved, submit via EAS SDK and update the record:
+Once verified, submit via EAS SDK and update the record:
 
 ```sql
 UPDATE attestation_record
-SET status = 'attested',
+SET status = 'published',
     attestation_uid = '0x...',
     tx_hash = '0x...',
     attested_at = NOW()
@@ -200,5 +200,5 @@ WHERE id = 'RECORD_UUID';
 
 - Only authorized wallets can create attestations on behalf of Kokonut
 - All attestation records are reviewed before on-chain submission
-- Revoked attestations are marked in the database but remain on-chain
+- Revoked on-chain attestations remain on-chain; store revocation metadata while keeping lifecycle status canonical
 - Evidence hashes ensure data integrity between off-chain and on-chain

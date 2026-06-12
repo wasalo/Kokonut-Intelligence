@@ -24,9 +24,9 @@ Each agent receives a token with explicit permissions. Three levels are supporte
 
 | Scope | Permissions | Use Case |
 |-------|------------|----------|
-| `read-only` | Read access to approved collections | Data analysis, reporting agents |
+| `read-only` | Read access to verified or published collections | Data analysis, reporting agents |
 | `write-draft` | Read + create/update with `status=draft` | Data entry agents, AI summarizers |
-| `full-access` | Read + write to approved collections | Automated workflow agents |
+| `full-access` | Read + write to governed collections | Automated workflow agents |
 
 ### Creating an Agent Token
 
@@ -64,7 +64,7 @@ curl -X POST http://localhost:8055/users \
 | Agent Type | Collections | Actions | Restrictions |
 |-----------|------------|---------|-------------|
 | Harvest Analyzer | `harvest_event`, `crop_cycle`, `plot` | Read | Only `verified` status |
-| Expense Tracker | `expense_event`, `expense_category` | Read | Only `approved` status |
+| Expense Tracker | `expense_event`, `expense_category` | Read | Only `verified` or `published` status |
 | AI Summarizer | `harvest_event`, `farm_activity`, `field_note` | Read + Write draft | Can create `ai_summary` |
 | Attestation Agent | `attestation_record`, `attestation_schema` | Read + Write draft | Cannot submit on-chain |
 | Compliance Agent | `audit_log`, `workflow_history` | Read | All records |
@@ -98,12 +98,12 @@ VALUES (
 ## Workflow: Agent-Driven Data Pipeline
 
 ```
-Agent reads approved data → Creates draft summary → Requests human review → Published
+Agent reads verified data → Creates draft summary → Requests human review → Published
 ```
 
 ### Step-by-Step
 
-1. **Agent reads approved data** — Queries `harvest_event` where `status = 'verified'`
+1. **Agent reads verified data** — Queries `harvest_event` where `status = 'verified'`
 2. **Agent creates draft summary** — Writes to `ai_summary` with `status = 'draft'`
 3. **Agent requests review** — Creates a `workflow_history` entry or `approval` record
 4. **Human reviews** — Approves or rejects via Directus UI or API
@@ -182,13 +182,13 @@ Agents **cannot bypass approval gates**. The following constraints are enforced 
 
 1. **Status transitions are controlled** — Agents can only set `status = 'draft'`
 2. **Publishing requires human approval** — Directus permissions restrict `status = 'published'` to human roles
-3. **On-chain attestation requires signature** — Only approved wallets can submit to EAS
+3. **On-chain attestation requires signature** — Only authorized wallets can submit to EAS
 4. **All mutations are logged** — Even if an agent tries to escalate, the audit trail records it
 
 ### Enforcement via Directus Policies
 
 ```sql
--- Agent role CANNOT set status to 'published' or 'attested'
+-- Agent role CANNOT set status to 'published'
 INSERT INTO directus_permissions (role, collection, action, permissions, fields)
 VALUES (
     (SELECT id FROM directus_role WHERE name = 'agent-harvest-reader'),

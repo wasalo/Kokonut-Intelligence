@@ -24,10 +24,10 @@ const VALID_TRANSITIONS: Record<string, Record<string, string[]>> = {
   },
   expense_event: {
     draft: ['submitted'],
-    submitted: ['approved', 'rejected'],
-    approved: ['paid'],
+    submitted: ['verified', 'rejected'],
+    verified: ['published'],
     rejected: ['draft'],
-    paid: [],
+    published: [],
   },
   sales_event: {
     draft: ['submitted'],
@@ -59,35 +59,33 @@ const VALID_TRANSITIONS: Record<string, Record<string, string[]>> = {
   },
   ai_summary: {
     draft: ['submitted'],
-    submitted: ['reviewed', 'rejected'],
-    reviewed: ['published'],
+    submitted: ['verified', 'rejected'],
+    verified: ['published'],
     rejected: ['draft'],
     published: [],
   },
   mrv_claim: {
     draft: ['submitted'],
-    submitted: ['under_review'],
-    under_review: ['approved', 'rejected'],
-    approved: ['attested'],
+    submitted: ['verified', 'rejected'],
+    verified: ['published'],
     rejected: ['draft'],
-    attested: [],
+    published: [],
   },
   attestation_record: {
     draft: ['submitted'],
-    submitted: ['approved', 'rejected'],
-    approved: ['attested'],
+    submitted: ['verified', 'rejected'],
+    verified: ['published'],
     rejected: ['draft'],
-    attested: [],
-    revoked: [],
+    published: [],
   },
 };
 
 // Role-based approval routing: which roles can perform which transitions
 // Key = "collection:action", Value = array of allowed Directus role names
 const ROLE_ROUTING: Record<string, string[]> = {
-  'expense_event:approved': ['finance', 'admin'],
+  'expense_event:verified': ['finance', 'admin'],
   'expense_event:rejected': ['finance', 'admin'],
-  'expense_event:paid': ['finance', 'admin'],
+  'expense_event:published': ['finance', 'admin'],
   'sales_event:verified': ['finance', 'admin'],
   'sales_event:rejected': ['finance', 'admin'],
   'farm_activity:verified': ['manager', 'supervisor', 'admin'],
@@ -106,12 +104,10 @@ const ROLE_ROUTING: Record<string, string[]> = {
 const TIMESTAMP_FIELDS: Record<string, string> = {
   submitted: 'submitted_at',
   verified: 'verified_at',
-  approved: 'verified_at',
 };
 
 const USER_FIELDS: Record<string, string> = {
   verified: 'verified_by',
-  approved: 'approved_by',
   rejected: 'rejected_by',
   submitted: 'submitted_by',
 };
@@ -152,16 +148,30 @@ export function isRoleAuthorized(
  * Handles workflow transition validation
  * Called from filter hooks to block invalid transitions
  */
-export function handleWorkflowTransition(
+export async function handleWorkflowTransition(
   collection: string,
   payload: Record<string, unknown>,
   keys: Record<string, unknown>,
-  userRoles: string[] = []
-): Record<string, unknown> {
+  userRoles: string[] = [],
+  db?: any
+): Promise<Record<string, unknown>> {
   const newStatus = payload.status as string | undefined;
   if (!newStatus) return payload;
 
-  const currentStatus = keys.status as string | undefined;
+  // Get current status from database if db is available, otherwise fall back to keys
+  let currentStatus: string | undefined;
+  if (db && keys.id) {
+    try {
+      const record = await db(collection).where('id', keys.id).first('status');
+      currentStatus = record?.status as string | undefined;
+    } catch (e) {
+      // Fallback if query fails
+      currentStatus = keys.status as string | undefined;
+    }
+  } else {
+    currentStatus = keys.status as string | undefined;
+  }
+
   if (!currentStatus) return payload;
 
   if (!isValidTransition(collection, currentStatus, newStatus)) {

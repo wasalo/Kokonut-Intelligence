@@ -32,6 +32,7 @@ import time
 from datetime import datetime, timezone, timedelta
 
 from .base import get_db, log_ingestion, hash_payload
+from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 # Sample sensor configurations
 SAMPLE_SENSORS = [
@@ -272,9 +273,7 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                     pg_id = cur.fetchone()[0]
 
                 # Insert into ClickHouse
-                ch_url = "http://localhost:8123"
-                ch_user = "kokonut"
-                ch_pass = "dev-clickhouse-kokonut-2026"
+                ch_url = f"http://{CH_HOST}:{CH_PORT}"
                 ts_str = f"{reading_date} {reading_time}"
                 ch_query = f"""INSERT INTO sensor_readings
                     (timestamp, sensor_id, sensor_type, location_id, plot_id,
@@ -287,7 +286,7 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                 try:
                     import requests as req
                     resp = req.post(ch_url, data=ch_query.encode("utf-8"),
-                                    auth=(ch_user, ch_pass),
+                                    auth=(CH_USER, CH_PASSWORD),
                                     headers={"Content-Type": "text/plain"}, timeout=10)
                     resp.raise_for_status()
                 except Exception:

@@ -7,7 +7,7 @@ Logs every export to the export_log table.
 
 Usage:
     python3 -m services.export.exporter --collection harvest_event --format csv --output exports/
-    python3 -m services.export.exporter --collection expense_event --format json --filter '{"status":"approved"}'
+    python3 -m services.export.exporter --collection expense_event --format json --filter '{"status":"verified"}'
 """
 
 import argparse

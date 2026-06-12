@@ -118,7 +118,7 @@ def insert_attestation(db, att: dict, schema_map: dict) -> str:
                     "revocable": att.get("revocable"),
                     "block_number": att.get("blockNumber"),
                 }),
-                "attested",
+                "published",
                 att.get("txHash", ""),
                 "ethereum",
                 None, None,

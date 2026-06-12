@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS attestation_record (
     evidence_cids TEXT[],
     evidence_urls TEXT[],
     -- Workflow
-    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, approved, attested, rejected, revoked
+    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, verified, published, rejected
     reviewer_id UUID,
     review_notes TEXT,
     reviewed_at TIMESTAMPTZ,

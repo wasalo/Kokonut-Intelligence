@@ -291,7 +291,7 @@ export function buildSensorReadingMethods(client: any): SensorReadingMethods {
     listByDevice: (deviceId: string, options?: ListOptions) =>
       client.listItems('sensor_reading', {
         ...options,
-        filter: { ...options?.filter, sensor_device_id: deviceId },
+        filter: { ...options?.filter, sensor_id: deviceId },
       }) as Promise<SensorReading[]>,
     listByPlot: (plotId: string, options?: ListOptions) =>
       client.listItems('sensor_reading', {

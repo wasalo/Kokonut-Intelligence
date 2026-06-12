@@ -20,7 +20,7 @@ quality metrics, and delivery schedules. Designed for Directus.
 **Collection:** `harvest_event`
 **Filters:**
 - `location_id` = current user's assigned location
-- `status` IN (`approved`, `published`)
+- `status` IN (`verified`, `published`)
 
 **Fields:**
 - Sum of `quantity` (total harvest)

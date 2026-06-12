@@ -20,7 +20,7 @@ All notable changes to the Kokonut Intelligence Platform.
   - `regional_clusters.py`: Cluster proximity, shared infrastructure opportunities
 - **Revenue Multiplier CLI**: `--location-id UUID`, `--dimension`, `--json`, `--list-dimensions`
 - **Revenue Multiplier Report**: Added to `report_generator.py` as `revenue_multiplier` report type
-- **6 seed data files** for Module C dimensions:
+- **6 additional pilot seed data files** for Module C dimensions:
   - `007_pilot_prices.sql`: 16 price observations (4 crops × 4 dates)
   - `008_pilot_capital_flows.sql`: 4 capital sources, 11 value flow events, 2 cash flow snapshots
   - `009_pilot_carbon_biodiversity.sql`: 6 soil carbon measurements, 8 species observations, 3 environmental baselines
@@ -53,11 +53,11 @@ All notable changes to the Kokonut Intelligence Platform.
 ### Added
 - **Milestone 7: Pilot farm seed data & analytics**
 - Pilot farm seed data (`schemas/seeds/001_pilot_farm.sql`): location, farm, plots, crops, crop cycles, partners, staff, infrastructure, wallets
-- Pilot environmental data (`schemas/seeds/003_pilot_farm_environmental.sql`): soil samples, weather observations, remote sensing, sensor devices, alert rules, sensor readings/alerts
-- Pilot web3 data (`schemas/seeds/004_pilot_farm_web3.sql`): wallet activity events, digital lego usage, attestation schemas/records, chain indexer status
-- Pilot operations data (`schemas/seeds/005_pilot_farm_operations.sql`): farm activities, harvest events, sales events, expense events, loss events, labor events, field notes, financial summaries, attestations
+- Pilot environmental data (`schemas/seeds/003_pilot_environmental.sql`): soil samples, weather observations, remote sensing, sensor devices, alert rules, sensor readings/alerts
+- Pilot web3 data (`schemas/seeds/004_pilot_web3.sql`): wallet activity events, digital lego usage, attestation schemas/records, chain indexer status
+- Pilot forecasts and NOI data (`schemas/seeds/005_pilot_forecasts.sql`): forecast scenarios, forecast outputs, NOI snapshots
 - Pilot DAO data (`schemas/seeds/006_pilot_farm_dao.sql`): proposals, votes, delegations, treasury snapshots, metric definitions, governance settings
-- Seed orchestrator (`scripts/seed-pilot.sh`): runs all 5 seed files in order with verification
+- Seed orchestrator (`scripts/seed-pilot.sh`): runs every `*_pilot_*.sql` seed file in sorted order
 - Revenue forecast engine (`services/analytics/forecast.py`): 3-month, 6-month, 12-month projections from historical harvest/sales data
 - Monte Carlo simulation for confidence intervals on projections
 - CLI tools: `forecast.py` (run projections), `fortune500.py` (score & rank farms)

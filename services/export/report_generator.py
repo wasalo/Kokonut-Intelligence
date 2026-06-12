@@ -122,11 +122,10 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
 
     # Expense breakdown
     cur.execute("""
-        SELECT ec.name as category, COALESCE(SUM(ee.amount), 0) as total
+        SELECT ee.category, COALESCE(SUM(ee.amount), 0) as total
         FROM expense_event ee
-        JOIN expense_category ec ON ee.expense_category_id = ec.id
-        WHERE ee.location_id = %s AND ee.status = 'approved'
-        GROUP BY ec.name ORDER BY total DESC
+        WHERE ee.location_id = %s AND ee.status IN ('verified', 'published')
+        GROUP BY ee.category ORDER BY total DESC
     """, (location_id,))
     expense_breakdown = [dict(r) for r in cur.fetchall()]
 
@@ -134,7 +133,7 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
     cur.execute("""
         SELECT
             COUNT(*) as total_records,
-            COUNT(CASE WHEN status = 'attested' THEN 1 END) as attested,
+            COUNT(CASE WHEN status = 'published' THEN 1 END) as attested,
             COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft
         FROM attestation_record
         WHERE subject_type = 'location' AND subject_id = %s
@@ -167,7 +166,7 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
     return report
 
 
-def generate_crop_noi(conn, location_id: str) -> dict:
+def generate_crop_noi(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a crop net operating income report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -244,13 +243,13 @@ def generate_crop_noi(conn, location_id: str) -> dict:
     }
 
 
-def generate_environmental(conn, location_id: str) -> dict:
+def generate_environmental(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate an environmental impact report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Soil carbon measurements
     cur.execute("""
-        SELECT measurement_date, carbon_tonnes_per_ha, methodology, depth_cm
+        SELECT measurement_date, carbon_tonnes_per_ha, measurement_method, depth_cm
         FROM soil_carbon_measurement
         WHERE location_id = %s
         ORDER BY measurement_date
@@ -268,7 +267,7 @@ def generate_environmental(conn, location_id: str) -> dict:
 
     # Remote sensing
     cur.execute("""
-        SELECT observation_date, ndvi_mean, ndre_mean, cloud_cover_pct
+        SELECT observation_date, ndvi, ndre, cloud_cover_pct
         FROM remote_sensing_observation
         WHERE location_id = %s
         ORDER BY observation_date
@@ -277,7 +276,7 @@ def generate_environmental(conn, location_id: str) -> dict:
 
     # Loss events (environmental)
     cur.execute("""
-        SELECT loss_date, loss_type, loss_amount, unit, loss_reason
+        SELECT loss_date, loss_type, quantity, unit, cause
         FROM loss_event
         WHERE location_id = %s
         ORDER BY loss_date
@@ -346,7 +345,7 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
     cur.execute(
         """
         INSERT INTO report_snapshot (report_name, report_type, location_id, period_start, period_end, report_data, snapshot_hash, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 'generated')
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'published')
         RETURNING id
         """,
         (
@@ -394,6 +393,13 @@ def main():
     parser.add_argument("--verify", help="Verify a snapshot by hash")
     args = parser.parse_args()
 
+    if not args.list:
+        if not args.type:
+            parser.error("--type is required (or use --list)")
+
+        if not args.location_id:
+            parser.error("--location-id is required")
+
     conn = get_pg()
 
     if args.list:
@@ -407,12 +413,6 @@ def main():
                 print(f"{str(s['id']):<38} {s['report_type']:<20} {s['status']:<12} {str(s['created_at']):<20} {s['snapshot_hash'][:16]}")
         conn.close()
         return
-
-    if not args.type:
-        parser.error("--type is required (or use --list)")
-
-    if not args.location_id:
-        parser.error("--location-id is required")
 
     print(f"Generating {args.type} report for location {args.location_id}...")
 

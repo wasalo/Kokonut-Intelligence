@@ -36,8 +36,8 @@ open http://localhost:3001   # Metabase dashboards
 - **Expenses**: 6 months of recurring expense events
 - **Cost Allocations**: Direct allocations to crop cycles
 - **Attestation Schema**: Harvest MRV Claim
-- **Attestation Record**: 1 attested sample record
-- **Metric Definitions**: 14 governed metrics
+- **Attestation Record**: 1 published sample record with an on-chain attestation UID
+- **Metric Definitions**: 16 governed metrics
 - **Expense Categories**: 9 standard categories
 
 ### Dashboard Templates

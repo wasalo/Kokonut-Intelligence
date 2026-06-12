@@ -80,12 +80,12 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 Every important record follows four states:
 
 ```
-Raw → Normalized → Verified → Published
+Draft → Submitted → Verified → Published
  │        │           │          │
  │        │           │          └─ Available to dashboards, APIs, attestations
  │        │           └─ Reviewed, validated, linked to evidence
- │        └─ Mapped to Kokonut canonical schema
- └─ Unmodified source payload
+ │        └─ Mapped to Kokonut canonical schema and submitted for review
+ └─ Record created; source payload preserved where available
 ```
 
 ## Schema Management

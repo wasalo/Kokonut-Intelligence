@@ -48,7 +48,21 @@ def main():
 
     if args.dimension:
         import importlib
-        mod = importlib.import_module(f".dimensions.{args.dimension}", package="services.revenue_multiplier")
+        # Map dimension IDs to module names
+        module_map = {
+            "crop_mix_optimization": "crop_mix",
+            "loss_rate_reduction": "loss_reduction",
+            "buyer_channel_selection": "buyer_channel",
+            "value_added_processing": "value_added",
+            "web3_funded_replication": "web3_replication",
+            "bioinput_production": "bioinput",
+            "public_goods_funding": "public_goods",
+            "ecological_verification": "ecological_verification",
+            "partner_sponsorship": "partner_sponsorship",
+            "regional_farm_clusters": "regional_clusters",
+        }
+        module_name = module_map.get(args.dimension, args.dimension)
+        mod = importlib.import_module(f".dimensions.{module_name}", package="services.revenue_multiplier")
         from services.ingestion.base import get_db
         conn = get_db()
         result = mod.analyze(conn, args.location_id)

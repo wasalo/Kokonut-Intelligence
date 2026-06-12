@@ -70,16 +70,19 @@ def print_detailed(result):
 
 def main():
     parser = argparse.ArgumentParser(description="Kokonut Fortune 500 Calculator")
-    parser.add_argument("--farm", help="Calculate score for a specific farm (location UUID)")
+    parser.add_argument("--location-id", help="Calculate score for a specific farm (location UUID)")
+    parser.add_argument("--farm", help=argparse.SUPPRESS)  # Legacy alias
     parser.add_argument("--all", action="store_true", help="Calculate and rank all farms")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
-    if args.farm:
-        metrics = get_farm_metrics(args.farm)
+    # Handle legacy --farm alias
+    location_id = args.location_id or args.farm
+    if location_id:
+        metrics = get_farm_metrics(location_id)
         score = calculate_score(metrics)
         result = {
-            "location_id": args.farm,
+            "location_id": location_id,
             "location_name": metrics.location_name,
             "financial_score": score.financial_score,
             "ecological_score": score.ecological_score,

@@ -150,8 +150,8 @@ CREATE TABLE IF NOT EXISTS expense_event (
     receipt_hash VARCHAR(255),
     invoice_number VARCHAR(100),
     notes TEXT,
-    -- Approval workflow
-    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, approved, rejected, paid
+    -- Workflow
+    status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, verified, published, rejected
     verified_by UUID,
     verified_at TIMESTAMPTZ,
     approved_by UUID,
