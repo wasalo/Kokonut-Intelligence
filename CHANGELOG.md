@@ -4,6 +4,34 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-12
+
+### Added
+- **Milestone 7: Pilot farm seed data & analytics**
+- Pilot farm seed data (`schemas/seeds/001_pilot_farm.sql`): location, farm, plots, crops, crop cycles, partners, staff, infrastructure, wallets
+- Pilot environmental data (`schemas/seeds/003_pilot_farm_environmental.sql`): soil samples, weather observations, remote sensing, sensor devices, alert rules, sensor readings/alerts
+- Pilot web3 data (`schemas/seeds/004_pilot_farm_web3.sql`): wallet activity events, digital lego usage, attestation schemas/records, chain indexer status
+- Pilot operations data (`schemas/seeds/005_pilot_farm_operations.sql`): farm activities, harvest events, sales events, expense events, loss events, labor events, field notes, financial summaries, attestations
+- Pilot DAO data (`schemas/seeds/006_pilot_farm_dao.sql`): proposals, votes, delegations, treasury snapshots, metric definitions, governance settings
+- Seed orchestrator (`scripts/seed-pilot.sh`): runs all 5 seed files in order with verification
+- Revenue forecast engine (`services/analytics/forecast.py`): 3-month, 6-month, 12-month projections from historical harvest/sales data
+- Monte Carlo simulation for confidence intervals on projections
+- CLI tools: `forecast.py` (run projections), `fortune500.py` (score & rank farms)
+- Fortune 500 farm scoring engine (`services/fortune500/calculator.py`): weighted 4-pillar ranking (Financial 45%, Ecological 25%, Governance 15%, Growth 15%)
+- 5-tier ranking: Platinum (800+), Gold (600+), Silver (400+), Bronze (200+), Developing
+- 15 sub-metrics across the 4 pillars with normalized 0-1000 scoring
+- Directus partner dashboard templates (`dashboards/directus/`):
+  - Buyer view: production summary, upcoming harvests, sales history, quality grades, revenue trends
+  - Funder view: financial performance, NOI trends, cost breakdown, forecasts, impact attestations, ecological outcomes
+  - Vendor view: purchase summary, history, demand forecasts, payment status, category breakdown
+  - Operator view: operations overview, activity timeline, crop cycles, sensors, weather, financials, remote sensing, alerts
+- Row-level security rules for partner data isolation
+
+### Changed
+- Rewrote `001_pilot_farm.sql` with correct schema column names (removed nonexistent `slug`, `status` from crop; added `location_id` to crop_cycle; fixed `capacity` type to NUMERIC)
+- Rewrote `003_pilot_environmental.sql` with correct column names (removed nonexistent `depth_cm`, `depth_layer`, `sample_id` from soil_sample; added `rainfall_mm` to weather_observation)
+- Fixed `fortune500/calculator.py` data completeness check to use RealDictCursor column access instead of tuple indexing
+
 ## [0.7.0] - 2026-06-12
 
 ### Added

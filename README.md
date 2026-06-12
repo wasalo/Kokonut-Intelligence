@@ -9,6 +9,7 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 | Canonical core | PostgreSQL 14 + PostGIS 3.4 + Directus 11.17 | Schema, API, permissions, workflows, data entry UI |
 | Analytics | ClickHouse 25.3 | Time-series, events, high-volume analytical queries |
 | BI | Metabase | Internal dashboards, aggregate reporting |
+| Intelligence | Python services | Fortune 500 scoring, forecasting, partner dashboards |
 | Verification | EAS + evidence storage | Attestations, claims, proof |
 | Blockchain | RPC + Subgraphs | On-chain data ingestion |
 
@@ -113,6 +114,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   └── directus/       # Directus permissions SQL
 ├── schemas/
 │   ├── postgres/       # 11 schema files, 60 tables
+│   ├── seeds/          # Pilot farm seed data (5 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── sdk/
@@ -130,6 +132,11 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   ├── sensor_ingester.py # Sensor CSV + single reading
 │   │   ├── mock_sensors.py   # Mock sensor data generator
 │   │   └── anomaly_detector.py # Threshold-based alert engine
+│   ├── analytics/      # Intelligence services
+│   │   ├── forecast.py       # Revenue forecasting engine
+│   │   └── fortune500/
+│   │       ├── calculator.py # Farm scoring engine
+│   │       └── cli.py        # CLI for scoring + ranking
 │   └── export/         # Data export and report generation
 │       ├── exporter.py       # CSV/JSON/Parquet export
 │       └── report_generator.py # Report snapshots with hash verification
@@ -143,7 +150,9 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 ├── migrations/         # Baserow migration scripts
 ├── scripts/            # Setup, seed, backup, snapshot
 ├── docs/               # Architecture, data dictionary, API reference
-└── dashboards/         # Metabase dashboard definitions
+└── dashboards/
+    ├── metabase/       # Metabase dashboard definitions
+    └── directus/       # Partner dashboard templates (buyer, funder, vendor, operator)
 ```
 
 ## External Data Ingestion
@@ -252,6 +261,79 @@ python3 -m services.export.exporter --collection sensor_readings --format json -
 # Generate a farm summary report
 python3 -m services.export.report_generator --type farm_summary --location-id UUID
 ```
+
+## Pilot Farm Seed Data
+
+Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 5 seed files:
+
+| File | Content |
+|------|---------|
+| `001_pilot_farm.sql` | Location, farm, plots, crops, crop cycles, partners, staff, infrastructure |
+| `003_pilot_farm_environmental.sql` | Soil samples, weather, remote sensing, sensors, alerts |
+| `004_pilot_farm_web3.sql` | Wallet activity, digital lego usage, attestations, chain indexer status |
+| `005_pilot_farm_operations.sql` | Activities, harvests, sales, expenses, losses, labor, field notes |
+| `006_pilot_farm_dao.sql` | Governance events, metric definitions, treasury events |
+
+```bash
+# Seed all pilot farm data
+./scripts/seed-pilot.sh
+
+# Or run individual files
+docker compose exec database psql -U kokonut -d kokonut_intelligence \
+  -f schemas/seeds/001_pilot_farm.sql
+```
+
+## Fortune 500 Farm Scoring
+
+Weighted 4-pillar ranking system for regenerative farms:
+
+| Pillar | Weight | Metrics |
+|--------|--------|---------|
+| Financial | 45% | NOI, operating margin, revenue/ha, loss rate, cost/ha |
+| Ecological | 25% | NDVI, soil organic matter, data completeness, remote sensing |
+| Governance | 15% | Attestations, governance events, treasury events, metric definitions |
+| Growth | 15% | Yield improvement, revenue growth, data completeness |
+
+**Tiers:** Platinum (800+), Gold (600+), Silver (400+), Bronze (200+), Developing
+
+```bash
+# Score a specific farm
+python3 -m services.fortune500.cli --farm <farm-id>
+
+# Rank all farms
+python3 -m services.fortune500.cli --all
+```
+
+## Revenue Forecasting
+
+Time-series projection engine with Monte Carlo simulation:
+
+```bash
+# Run forecast for a location (3, 6, 12 months)
+python3 -m services.analytics.forecast --location <location-id>
+
+# Custom horizon and simulations
+python3 -m services.analytics.forecast --location <location-id> \
+  --months 12 --simulations 2000
+```
+
+**Output:**
+- Monthly revenue projections with confidence intervals
+- Bootstrap simulation for uncertainty estimation
+- Historical trend analysis from harvest and sales data
+
+## Partner Dashboards
+
+Directus dashboard templates for different partner roles in `dashboards/directus/`:
+
+| Partner | Dashboard | Key Views |
+|---------|-----------|-----------|
+| Buyer | `partner-buyer.md` | Production summary, upcoming harvests, quality grades, revenue trends |
+| Funder | `partner-funder.md` | NOI trends, cost breakdown, forecasts, impact attestations, ecological outcomes |
+| Vendor | `partner-vendor.md` | Purchase history, payment status, demand forecasts |
+| Operator | `partner-operator.md` | Operations overview, sensors, weather, crop cycles, alerts |
+
+Row-level security ensures partners see only their own data.
 
 ## Documentation
 
