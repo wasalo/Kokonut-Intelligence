@@ -97,6 +97,11 @@ def main():
     parser.add_argument("--all", action="store_true", help="Run all scenarios")
     parser.add_argument("--location-id", help="Filter by location UUID")
     parser.add_argument("--details", action="store_true", help="Show detailed scenario info (requires --scenario-id or --name)")
+    parser.add_argument("--compare", nargs="+", metavar="ID", help="Compare scenarios side-by-side")
+    parser.add_argument("--sensitivity", action="store_true", help="Run sensitivity analysis (requires --scenario-id)")
+    parser.add_argument("--variable", choices=["price", "yield", "cost"], default="price", help="Variable for sensitivity")
+    parser.add_argument("--range-pct", type=float, default=20.0, help="Range pct for sensitivity")
+    parser.add_argument("--sensitivity-steps", type=int, default=5, help="Steps for sensitivity")
     args = parser.parse_args()
 
     if args.list:
@@ -132,6 +137,20 @@ def main():
         print("Running all scenarios...")
         results = run_all_scenarios(args.location_id)
         print(f"\nCompleted {len(results)} scenarios.")
+        return
+
+    if args.compare:
+        from ..analytics.ecology import compare_scenarios
+        result = compare_scenarios(args.compare)
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.sensitivity:
+        if not args.scenario_id:
+            parser.error("--sensitivity requires --scenario-id")
+        from ..analytics.ecology import sensitivity_analysis
+        result = sensitivity_analysis(args.scenario_id, args.variable, args.range_pct, args.sensitivity_steps)
+        print(json.dumps(result, indent=2, default=str))
         return
 
     parser.print_help()

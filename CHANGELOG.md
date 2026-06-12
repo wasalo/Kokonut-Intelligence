@@ -4,6 +4,50 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-06-12
+
+### Added
+- **Module C: Revenue Multiplier Opportunity Map** (`services/revenue_multiplier/`): 10-dimension strategic analysis identifying where Kokonut's system can multiply value
+  - `crop_mix.py`: NOI/ha ranking by crop, recommends reallocation based on soil/water/market data
+  - `loss_reduction.py`: Loss Pareto analysis by type, crop, severity; identifies top reduction opportunities
+  - `buyer_channel.py`: Buyer performance scoring (net revenue, payment speed, returns rate)
+  - `value_added.py`: Raw vs processed price delta, processing ROI estimation
+  - `web3_replication.py`: On-chain funding analysis, DAO replication model viability
+  - `bioinput.py`: Bioinput spend vs conventional, on-farm production ROI
+  - `public_goods.py`: Actual vs forecasted allocation, funding→impact→funding cycle
+  - `ecological_verification.py`: Carbon credit + biodiversity credit + impact certificate monetization
+  - `partner_sponsorship.py`: Partner ROI scoring, sponsorship pipeline value
+  - `regional_clusters.py`: Cluster proximity, shared infrastructure opportunities
+- **Revenue Multiplier CLI**: `--location-id UUID`, `--dimension`, `--json`, `--list-dimensions`
+- **Revenue Multiplier Report**: Added to `report_generator.py` as `revenue_multiplier` report type
+- **6 seed data files** for Module C dimensions:
+  - `007_pilot_prices.sql`: 16 price observations (4 crops × 4 dates)
+  - `008_pilot_capital_flows.sql`: 4 capital sources, 11 value flow events, 2 cash flow snapshots
+  - `009_pilot_carbon_biodiversity.sql`: 6 soil carbon measurements, 8 species observations, 3 environmental baselines
+  - `010_pilot_mrv_claims.sql`: 4 MRV claims, 2 verification reviews
+  - `011_pilot_partners_extended.sql`: 2 additional buyer partners, 3 cross-buyer sales events
+  - `012_pilot_bioinputs.sql`: 3 bioinput expenses, 1 biofactory infrastructure asset
+
+## [0.9.0] - 2026-06-12
+
+### Added
+- **Property table** (`schemas/postgres/012_property.sql`): legal/managed property boundaries with PostGIS spatial columns, FK linked to farm
+- **16 governed metric definitions** (PRD Section 16): crop_revenue, net_crop_revenue, direct_crop_cost, allocated_shared_cost, crop_noi, loss_rate_pct, operating_margin_pct, baseline_revenue, baseline_asset_value, baseline_cash_flow, value_flowed, wallet_retention, digital_lego_usage, soil_carbon_delta, biodiversity_delta, attestation_coverage
+- **Ecology analytics service** (`services/analytics/ecology.py`): soil carbon before/after comparison, biodiversity metrics with Shannon diversity index, scenario comparison, sensitivity analysis
+- **Ecology CLI** (`services/analytics/cli.py`): `--soil-carbon`, `--biodiversity`, `--compare-scenarios`, `--sensitivity`
+- **Forecast CLI extensions**: `--compare` for scenario comparison, `--sensitivity` for variable sensitivity analysis
+
+### Changed
+- **PRD Section 7.5**: Added `protocol` table row (existed in DB but undocumented)
+- **PRD Section 8**: Updated lifecycle states from Raw/Normalized/Verified/Published to Draft/Submitted/Verified/Published
+- **Farm table**: Added `property_id` FK to link farms to legal properties
+- **Seed data**: Pilot farm now includes property record
+
+### Fixed
+- **Report generator**: Fixed `species_observation.species_count` → `species_observation.count` column reference bug
+- **Data dictionary**: Fixed display glitch in `soil_carbon_delta` formula (mixed Chinese character)
+- **Metric definitions**: Replaced 10 ad-hoc metrics with 16 PRD-governed metrics
+
 ## [0.8.0] - 2026-06-12
 
 ### Added

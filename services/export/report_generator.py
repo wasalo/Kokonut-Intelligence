@@ -259,7 +259,7 @@ def generate_environmental(conn, location_id: str) -> dict:
 
     # Species observations
     cur.execute("""
-        SELECT observation_date, species_count, habitat_type, notes
+        SELECT observation_date, count, habitat_type, notes
         FROM species_observation
         WHERE location_id = %s
         ORDER BY observation_date
@@ -302,6 +302,23 @@ def generate_environmental(conn, location_id: str) -> dict:
     }
 
 
+def generate_revenue_multiplier(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a revenue multiplier opportunity map report."""
+    from dataclasses import asdict
+    from ..revenue_multiplier.analyzer import analyze_location
+
+    result = analyze_location(location_id)
+    return {
+        "report_type": "revenue_multiplier",
+        "location_id": location_id,
+        "location_name": result.location_name,
+        "overall_score": result.overall_score,
+        "total_opportunity_usd": result.total_opportunity_usd,
+        "dimensions": [asdict(d) for d in result.dimensions],
+        "generated_at": result.generated_at,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
@@ -310,6 +327,7 @@ REPORT_GENERATORS = {
     "farm_summary": generate_farm_summary,
     "crop_noi": generate_crop_noi,
     "environmental": generate_environmental,
+    "revenue_multiplier": generate_revenue_multiplier,
 }
 
 

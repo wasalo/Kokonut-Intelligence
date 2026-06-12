@@ -8,9 +8,14 @@ INSERT INTO location (id, name, slug, description, country, region, sub_region, 
 ('a0000000-0000-0000-0000-000000000001', 'Kokonut Demo Farm — Kisumu', 'kokonut-demo-kisumu', 'Pilot farm in western Kenya for regenerative agriculture demonstration', 'Kenya', 'Nyanza', 'Kisumu County', 'Africa/Nairobi', -0.1000000, 34.7500000, 15000.00, 25000.00, 8000.00, 'active')
 ON CONFLICT (id) DO NOTHING;
 
+-- Property
+INSERT INTO property (id, location_id, name, slug, property_type, area, area_unit, description, status) VALUES
+('a0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001', 'Kokonut Demo Property', 'kokonut-demo-property', 'titled', 15.00, 'hectares', 'Main property boundary for the Kisumu demo farm', 'active')
+ON CONFLICT (id) DO NOTHING;
+
 -- Farm
-INSERT INTO farm (id, location_id, name, slug, farm_type, total_area, area_unit, status) VALUES
-('a0000000-0000-0000-0000-000000000010', 'a0000000-0000-0000-0000-000000000001', 'Main Farm', 'main-farm', 'organically_managed', 12.00, 'hectares', 'active')
+INSERT INTO farm (id, location_id, property_id, name, slug, farm_type, total_area, area_unit, status) VALUES
+('a0000000-0000-0000-0000-000000000010', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000005', 'Main Farm', 'main-farm', 'organically_managed', 12.00, 'hectares', 'active')
 ON CONFLICT (id) DO NOTHING;
 
 -- Plots (NO location_id — schema: plot has farm_id but no location_id)

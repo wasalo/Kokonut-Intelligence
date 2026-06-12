@@ -17,7 +17,7 @@
 | `value_flowed` | Value Flowed | SUM(verified, non-excluded flows) | value_flow_event | Weekly |
 | `wallet_retention` | Wallet Retention | Active in current + prior period | wallet_activity_event | Monthly |
 | `digital_lego_usage` | Digital Lego Usage | COUNT(distinct verified protocols) | digital_lego_usage | Weekly |
-| `soil_carbon_delta` | Soil Carbon Delta | after碳 - baseline碳 | soil_carbon_measurement | Quarterly |
+| `soil_carbon_delta` | Soil Carbon Delta | after_carbon - baseline_carbon | soil_carbon_measurement | Quarterly |
 | `biodiversity_delta` | Biodiversity Delta | after_count - baseline_count | species_observation | Quarterly |
 | `attestation_coverage` | Attestation Coverage | attested / eligible * 100 | attestation_record | Monthly |
 

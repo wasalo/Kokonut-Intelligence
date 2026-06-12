@@ -113,8 +113,8 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   ├── clickhouse/     # ClickHouse config
 │   └── directus/       # Directus permissions SQL
 ├── schemas/
-│   ├── postgres/       # 11 schema files, 60 tables
-│   ├── seeds/          # Pilot farm seed data (5 files)
+│   ├── postgres/       # 12 schema files, 45+ tables
+│   ├── seeds/          # Pilot farm seed data (12 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── sdk/
@@ -133,10 +133,36 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   ├── mock_sensors.py   # Mock sensor data generator
 │   │   └── anomaly_detector.py # Threshold-based alert engine
 │   ├── analytics/      # Intelligence services
-│   │   ├── forecast.py       # Revenue forecasting engine
+│   │   ├── cli.py            # CLI for ecology analytics
+│   │   ├── ecology.py        # Soil carbon, biodiversity, scenario comparison
 │   │   └── fortune500/
 │   │       ├── calculator.py # Farm scoring engine
 │   │       └── cli.py        # CLI for scoring + ranking
+│   ├── revenue_multiplier/ # Module C: Revenue Multiplier Opportunity Map
+│   │   ├── models.py         # OpportunityDimension, RevenueMultiplierMap
+│   │   ├── analyzer.py       # Main orchestrator
+│   │   ├── cli.py            # CLI for opportunity analysis
+│   │   └── dimensions/       # 10 dimension analyzers
+│   │       ├── crop_mix.py
+│   │       ├── loss_reduction.py
+│   │       ├── buyer_channel.py
+│   │       ├── value_added.py
+│   │       ├── web3_replication.py
+│   │       ├── bioinput.py
+│   │       ├── public_goods.py
+│   │       ├── ecological_verification.py
+│   │       ├── partner_sponsorship.py
+│   │       └── regional_clusters.py
+│   ├── forecast/       # Forecast engine
+│   │   ├── engine.py         # Scenario-based NOI, revenue, yield forecasting
+│   │   ├── cli.py            # CLI for forecasts, comparisons, sensitivity
+│   │   ├── config.py         # Forecast configuration
+│   │   ├── models.py         # Data models
+│   │   ├── pricing.py        # Price projections
+│   │   ├── yield_forecast.py # Yield projections
+│   │   ├── cost_forecast.py  # Cost projections
+│   │   ├── ecology.py        # Ecological score projections
+│   │   └── risk.py           # Risk adjustment + confidence intervals
 │   └── export/         # Data export and report generation
 │       ├── exporter.py       # CSV/JSON/Parquet export
 │       └── report_generator.py # Report snapshots with hash verification
