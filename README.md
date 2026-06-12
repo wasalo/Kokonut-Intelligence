@@ -13,6 +13,85 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 | Verification | EAS on Celo + evidence storage | Onchain attestations, offchain signed claims, MRV proof |
 | Blockchain | RPC + Subgraphs + Foundry | On-chain data ingestion, smart contracts |
 
+## Features, Capabilities & Possibilities
+
+### Multi-Source Data Ingestion
+
+Pull operational, environmental, and financial data from diverse sources into a single governed schema:
+
+- **Weather** — OpenWeatherMap API with temperature, precipitation, humidity, wind, and cloud cover
+- **Blockchain Activity** — Wallet balances, transfers, and contract interactions across Ethereum, Optimism, Base, Arbitrum, and Celo
+- **Remote Sensing** — NDVI, NDRE, EVI, SAVI, and canopy cover from Sentinel-2, Landsat, drone, and MODIS
+- **Commodity Markets** — World Bank Pink Sheet prices for coffee, cocoa, palm oil, rice, maize, sugar, tea, and banana
+- **IoT Sensors** — Soil moisture, temperature, humidity, rainfall, and pH with range validation and quality flagging
+- **EAS Attestations** — Onchain and offchain attestation ingestion from Celo, Optimism, and Base
+
+All ingestion is dual-written to PostgreSQL (operational) and ClickHouse (analytical) for optimal query performance.
+
+### Smart Analytics & Intelligence
+
+- **Fortune 500 Farm Scoring** — Weighted 4-pillar composite score (0–1000) across Financial (45%), Ecological (25%), Governance (15%), and Growth (15%). Farms are classified into tiers: Platinum (800+), Gold (600+), Silver (400+), Bronze (200+), or Developing. Each farm receives a detailed scorecard with benchmark comparisons against regional baselines.
+
+- **Ecological Analytics** — Soil carbon delta tracking (baseline vs. latest tonnes/ha), biodiversity index computation using the Shannon diversity index, and side-by-side forecast scenario comparison.
+
+  The **Shannon diversity index** (H') measures ecosystem health by accounting for both the number of species present (richness) and how evenly individuals are distributed among them (evenness). A higher index indicates a more diverse and resilient ecosystem. For example, a plot with 10 species evenly distributed scores higher than one dominated by a single species, even if both have the same total species count.
+
+- **Revenue Forecasting** — Scenario-based projections of revenue, NOI, yield, and cash flow using Monte Carlo simulation with configurable confidence intervals (70%–95%).
+
+  **Monte Carlo simulation** runs thousands of randomized trials, sampling from probability distributions of key variables (price, yield, cost) to model the range of possible outcomes. Instead of a single point estimate, it produces a distribution of results with confidence bands — showing not just what is expected, but how uncertain that expectation is. This lets farm managers understand best-case, worst-case, and most-likely scenarios before committing resources.
+
+- **Revenue Multiplier Opportunity Map** — 10-dimension analysis identifying the largest revenue uplift opportunities for a farm, each scored with a USD impact estimate and confidence level:
+  1. Crop mix optimization
+  2. Loss-rate reduction
+  3. Buyer/channel selection
+  4. Value-added processing
+  5. Web3-funded replication
+  6. Bioinput production
+  7. Public-goods funding loops
+  8. Ecological verification (carbon credits, biodiversity credits, impact certificates)
+  9. Partner sponsorship
+  10. Regional farm clusters
+
+### Web3 Verification & Attestation
+
+- **EAS on Celo** — 5 registered schemas (MRV, impact, financial, harvest, compliance) with EAS v1.3.0 on Celo mainnet
+- **Onchain & Offchain Attestations** — Publish verifiable claims onchain, or sign gasless EIP-712 offchain attestations for high-frequency workflows
+- **KokonutResolver** — Custom attester-gating smart contract, owned by Kokonut multisig
+- **Private Data** — Offchain storage with onchain hashes; selective disclosure via EAS PrivateData; full ZK proofs as a future layer
+
+### Governed Workflow & Metrics
+
+- **4-Stage Lifecycle** — Draft → Submitted → Verified → Published, with role-based approval routing and rejected-path rework
+- **Auto-Calculated Metrics** — NOI, loss rate, operating margin, labor cost, and net amount computed automatically on data changes
+- **AI-Assisted Data Entry** — Expense auto-categorization (40+ keyword rules), amount validation with suspicious-value flagging, harvest quantity validation against expected yield, date sanity checks, and field note summarization
+- **Full Audit Trail** — Every state transition logged to `workflow_history` with user, timestamp, and from/to state
+
+### Reporting, Dashboards & Export
+
+- **4 Partner Dashboards** — Buyer, Funder, Vendor, and Operator views with row-level security ensuring partners only see their own data
+- **5 Metabase Operational Dashboards** — Farm operations, crop NOI, expense tracker, harvest/sales trends, and loss rate analysis
+- **Multi-Format Export** — CSV, JSON, or Parquet from PostgreSQL or ClickHouse with rich filter syntax
+- **Hash-Verified Report Snapshots** — Deterministic JSON reports with SHA-256 integrity verification
+
+### Agent & Developer Ecosystem
+
+- **Agent Capability Manifests** — JSON manifests describing agent inputs, outputs, and pricing for marketplace integration
+- **Agent Task Management** — Task execution, review status, and action audit logging
+- **Python & JavaScript/TypeScript SDKs** — Typed clients with CRUD operations, auth, and aggregation
+- **MCP Integration** — AI agent access via scoped tokens with full audit logging
+- **50+ Governed Metrics** — Version-controlled metric definitions with formulas, validation tests, and deprecation policies
+
+### What You Can Build
+
+- **Regenerative Farm Verification** — End-to-end MRV pipelines that collect ground, remote, and community evidence, then anchor verified claims onchain for carbon credit markets and impact investors
+- **Automated Attestation Workflows** — Agent-driven or scheduled attestation publishing that moves records through governed lifecycle stages without manual intervention
+- **Multi-Farm Portfolio Intelligence** — Score, rank, and compare farms across financial, ecological, and governance dimensions to identify top performers and intervention opportunities
+- **Partner-Facing Dashboards** — Role-scoped views for buyers, funders, vendors, and operators that surface only relevant data with real-time metric updates
+- **Revenue Optimization** — Use the 10-dimension Revenue Multiplier to identify the highest-impact opportunities for each farm, from crop mix changes to ecological verification revenue
+- **AI Agent Orchestration** — Deploy governed agents that read canonical data, execute tasks, produce attestations, and log actions — all within the platform's permission and audit framework
+- **Carbon & Biodiversity Credit Markets** — Track soil carbon deltas, compute biodiversity indices, and generate verified impact attestations for sale on voluntary carbon markets
+- **Predictive Farm Management** — Run Monte Carlo forecasts and sensitivity analyses to stress-test farm financials under different price, yield, and cost scenarios
+
 ## Quick Start
 
 ```bash
