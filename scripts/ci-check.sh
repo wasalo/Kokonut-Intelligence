@@ -26,7 +26,7 @@ check() {
 }
 
 # 1. Python imports
-echo "[1/5] Python import validation..."
+echo "[1/6] Python import validation..."
 check "Import services.ingestion.base" "python3 -c 'import services.ingestion.base'"
 check "Import services.forecast.engine" "python3 -c 'import services.forecast.engine'"
 check "Import services.forecast.cli" "python3 -c 'import services.forecast.cli'"
@@ -37,7 +37,7 @@ check "Import services.export.report_generator" "python3 -c 'import services.exp
 echo ""
 
 # 2. CLI parsers
-echo "[2/5] CLI parser validation..."
+echo "[2/6] CLI parser validation..."
 check "forecast CLI --help" "python3 -m services.forecast.cli --help"
 check "analytics CLI --help" "python3 -m services.analytics.cli --help"
 check "revenue_multiplier CLI --help" "python3 -m services.revenue_multiplier.cli --help"
@@ -46,7 +46,7 @@ check "report_generator CLI --help" "python3 -m services.export.report_generator
 echo ""
 
 # 3. TypeScript extension build (if node_modules present)
-echo "[3/5] TypeScript extension build..."
+echo "[3/6] TypeScript extension build..."
 if [ -d "$PROJECT_DIR/extensions/kokonut-hooks/node_modules" ]; then
     cd "$PROJECT_DIR/extensions/kokonut-hooks"
     check "npm run build" "npm run build"
@@ -57,7 +57,7 @@ fi
 echo ""
 
 # 4. Seed idempotency (if DB is available)
-echo "[4/5] Seed idempotency check..."
+echo "[4/6] Seed idempotency check..."
 if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --status running --services 2>/dev/null | grep -qx 'database'; then
     check "seed.sh idempotent" "bash $SCRIPT_DIR/seed.sh"
     check "seed-pilot.sh idempotent" "bash $SCRIPT_DIR/seed-pilot.sh"
@@ -66,8 +66,13 @@ else
 fi
 echo ""
 
-# 5. Smoke test suite
-echo "[5/5] Smoke test suite..."
+# 5. Directus metadata checks
+echo "[5/6] Directus metadata checks..."
+check "directus metadata" "python3 -m tests.test_directus_metadata"
+echo ""
+
+# 6. Smoke test suite
+echo "[6/6] Smoke test suite..."
 check "smoke tests" "python3 -m tests.test_smoke"
 echo ""
 
