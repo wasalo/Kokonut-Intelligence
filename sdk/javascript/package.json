@@ -1,0 +1,22 @@
+{
+  "name": "@kokonut-intelligence/sdk",
+  "version": "0.1.0",
+  "description": "JavaScript/TypeScript SDK for Kokonut Intelligence Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo 'No tests yet'"
+  },
+  "dependencies": {
+    "@directus/sdk": "^17.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kokonut-intelligence/sdk-javascript"
+  }
+}

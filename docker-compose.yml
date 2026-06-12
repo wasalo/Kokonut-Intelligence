@@ -81,6 +81,9 @@ services:
       MB_DB_USER: "kokonut"
       MB_DB_PASS: ${POSTGRES_PASSWORD}
       MB_DB_HOST: "database"
+      MB_ENABLE_EMBEDDING: "true"
+      MB_EMBEDDING_APP_ORIGIN: "http://localhost:3001"
+      MB_EMBEDDING_SECRET_KEY: ${METABASE_EMBEDDING_SECRET_KEY:-sandbox-dev-secret-key-change-in-production}
     depends_on:
       database:
         condition: service_healthy

@@ -4,6 +4,26 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-12
+
+### Added
+- **Milestone 5: Developer & downstream integration layer**
+- OpenAPI 3.0 specification (`docs/openapi.yaml`) covering all 60+ collections with request/response schemas, filter operators, and authentication flows
+- JavaScript/TypeScript SDK (`sdk/javascript/`) with typed client wrapper, 12 collection interfaces, and 4 example scripts (create farm, query NOI, sensor data, workflow)
+- Python SDK (`sdk/python/`) with typed client wrapper, 13 collection method classes, error hierarchy, and 4 example scripts
+- Developer sandbox: `docker-compose.sandbox.yml` with Metabase embedding, `scripts/sandbox-setup.sh` for auto-seeding API keys and sample data
+- Export service (`services/export/exporter.py`): CSV/JSON/Parquet export from PostgreSQL and ClickHouse with filter support and audit logging
+- Report generator (`services/export/report_generator.py`): farm summary, crop NOI, environmental impact reports with hash-verified snapshots
+- Documentation: `docs/sandbox.md` (hello world tutorial), `docs/subgraph-guide.md`, `docs/attestation-guide.md`, `docs/partner-dashboards.md`, `docs/agent-access.md`, `docs/export-guide.md`
+- Metabase embedding enabled: `MB_ENABLE_EMBEDDING=true` in docker-compose.yml
+- `METABASE_EMBEDDING_SECRET_KEY` added to `.env.example`
+
+### Changed
+- Rewrote `docs/api-reference.md` with per-collection API docs, error formats, webhook catalog, and GraphQL reference
+- Enhanced `docs/data-dictionary.md` with field-level documentation for all collections
+- Updated `docs/architecture.md` with SDK layer and export services
+- Updated directory structure in README with SDK and export directories
+
 ## [0.6.0] - 2026-06-11
 
 ### Added

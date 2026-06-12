@@ -1,0 +1,31 @@
+# Usage: docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox up -d
+
+services:
+  metabase:
+    environment:
+      MB_ENABLE_EMBEDDING: "true"
+      MB_EMBEDDING_APP_ORIGIN: "http://localhost:3001"
+      MB_EMBEDDING_SECRET_KEY: "${METABASE_EMBEDDING_SECRET_KEY:-sandbox-dev-secret-key-change-in-production}"
+
+  sandbox-seed:
+    image: postgis/postgis:14-3.4
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./schemas:/schemas:ro
+      - ./dashboards:/dashboards:ro
+    entrypoint: ["/bin/bash", "/scripts/sandbox-setup.sh"]
+    environment:
+      PGHOST: "database"
+      PGPORT: "5432"
+      PGDATABASE: "kokonut_intelligence"
+      PGUSER: "kokonut"
+      PGPASSWORD: "${POSTGRES_PASSWORD}"
+      DIRECTUS_URL: "http://directus:8055"
+      ADMIN_EMAIL: "${ADMIN_EMAIL}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
+      METABASE_URL: "http://metabase:3000"
+    profiles:
+      - sandbox

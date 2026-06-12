@@ -115,18 +115,24 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   ├── postgres/       # 11 schema files, 60 tables
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
+├── sdk/
+│   ├── javascript/     # JS/TS SDK wrapper + examples
+│   └── python/         # Python SDK wrapper + examples
 ├── services/
-│   └── ingestion/      # External data ingestion scripts
-│       ├── base.py     # Common utilities (DB, logging, retry)
-│       ├── config.py   # API keys and connection config
-│       ├── weather.py  # OpenWeatherMap ingestion
-│       ├── rpc_indexer.py    # Ethereum/L2 wallet activity
-│       ├── market_data.py    # Commodity prices
-│       ├── remote_sensing.py # NDVI/NDRE CSV upload
-│       ├── eas_indexer.py    # EAS attestation ingestion
-│       ├── sensor_ingester.py # Sensor CSV + single reading
-│       ├── mock_sensors.py   # Mock sensor data generator
-│       └── anomaly_detector.py # Threshold-based alert engine
+│   ├── ingestion/      # External data ingestion scripts
+│   │   ├── base.py     # Common utilities (DB, logging, retry)
+│   │   ├── config.py   # API keys and connection config
+│   │   ├── weather.py  # OpenWeatherMap ingestion
+│   │   ├── rpc_indexer.py    # Ethereum/L2 wallet activity
+│   │   ├── market_data.py    # Commodity prices
+│   │   ├── remote_sensing.py # NDVI/NDRE CSV upload
+│   │   ├── eas_indexer.py    # EAS attestation ingestion
+│   │   ├── sensor_ingester.py # Sensor CSV + single reading
+│   │   ├── mock_sensors.py   # Mock sensor data generator
+│   │   └── anomaly_detector.py # Threshold-based alert engine
+│   └── export/         # Data export and report generation
+│       ├── exporter.py       # CSV/JSON/Parquet export
+│       └── report_generator.py # Report snapshots with hash verification
 ├── extensions/
 │   └── kokonut-hooks/  # Directus lifecycle hooks
 │       └── src/
@@ -202,6 +208,66 @@ The platform auto-calculates governed metrics on data changes:
 | Operating Margin | NOI recalculation | NOI as percentage of net revenue |
 | Net Amount | sales create/update | Total minus returns minus discounts |
 | Labor Cost | labor event create | Hours worked times hourly rate |
+
+## Developer SDK
+
+JavaScript/TypeScript and Python SDKs for programmatic access to the platform.
+
+```bash
+# JavaScript/TypeScript
+cd sdk/javascript && npm install && npm run build
+# See sdk/javascript/examples/ for usage
+
+# Python
+cd sdk/python && pip install -e .
+# See sdk/python/examples/ for usage
+```
+
+## Developer Sandbox
+
+Full local Docker environment with pre-seeded data and API keys.
+
+```bash
+# Start sandbox
+docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up -d
+
+# Setup API keys and sample data
+./scripts/sandbox-setup.sh
+
+# Follow the hello-world tutorial
+open docs/sandbox.md
+```
+
+## Data Export
+
+Export data to CSV, JSON, or Parquet from PostgreSQL or ClickHouse.
+
+```bash
+# Export expenses to CSV
+python3 -m services.export.exporter --collection expense_event --format csv --output exports/
+
+# Export sensor readings from ClickHouse
+python3 -m services.export.exporter --collection sensor_readings --format json --source clickhouse --output exports/
+
+# Generate a farm summary report
+python3 -m services.export.report_generator --type farm_summary --location-id UUID
+```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](docs/architecture.md) | System overview, data flow, security model |
+| [API Reference](docs/api-reference.md) | REST/GraphQL/ClickHouse API docs |
+| [OpenAPI Spec](docs/openapi.yaml) | Full OpenAPI 3.0 specification |
+| [Data Dictionary](docs/data-dictionary.md) | All collections, fields, and governed metrics |
+| [Deployment](docs/deployment.md) | Docker setup, environment variables, backup |
+| [Sandbox](docs/sandbox.md) | Developer quickstart with hello-world tutorial |
+| [Subgraph Guide](docs/subgraph-guide.md) | Subgraph indexer configuration and usage |
+| [Attestation Guide](docs/attestation-guide.md) | EAS attestation workflow |
+| [Partner Dashboards](docs/partner-dashboards.md) | Dashboard flexibility (Directus/Metabase/Custom) |
+| [Agent Access](docs/agent-access.md) | MCP, agent-scoped tokens, audit logging |
+| [Export Guide](docs/export-guide.md) | Data export and report snapshots |
 
 ## License
 
