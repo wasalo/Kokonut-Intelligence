@@ -71,6 +71,22 @@ Stores individual attestation claims and their on-chain status.
 | `tx_hash` | VARCHAR(66) | On-chain transaction hash |
 | `attested_at` | TIMESTAMPTZ | When attested on-chain |
 
+### `attestation_request`
+
+Stores request metadata before an attestation is signed or submitted. This lets MRV, report, and value-flow records move through review without exposing private evidence.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key |
+| `subject_type` | VARCHAR(100) | Subject table/type such as `mrv_event` |
+| `subject_id` | UUID | Subject record ID |
+| `event_type` | VARCHAR(100) | `mrv_submission`, `impact_report`, `value_flow`, `agent_task` |
+| `payload_cid` | TEXT | Public payload CID/reference |
+| `payload_hash` | VARCHAR(64) | SHA-256 hash of public payload |
+| `private_payload_hash` | VARCHAR(64) | SHA-256 hash of private payload, never the raw payload |
+| `execution_status` | VARCHAR(50) | `pending`, `submitted`, `confirmed`, `failed`, `cancelled` |
+| `status` | VARCHAR(50) | `draft`, `submitted`, `verified`, `published`, `rejected` |
+
 ## Using the EAS Indexer
 
 The indexer pulls attestations from the EAS GraphQL API into `attestation_record`.
@@ -95,6 +111,23 @@ python3 -m services.ingestion.eas_indexer --dry-run
 3. Creates or updates `attestation_schema` entries for new schemas
 4. Logs ingestion to `ingestion_log`
 5. Updates sync state in `chain_indexer_status`
+
+## Preparing Private-Data Requests Locally
+
+Use `services.attestation` to prepare public metadata and hashes. The helper does not sign transactions and does not submit to EAS.
+
+```bash
+python3 -m services.attestation \
+  --subject-type mrv_event \
+  --subject-id MRV_EVENT_UUID \
+  --event-type mrv_submission \
+  --payload-file public-mrv.json \
+  --private-payload-file private-evidence.json \
+  --chain optimism \
+  --pin-local
+```
+
+The command returns `payload_cid`, `payload_hash`, and `private_payload_hash`. Store those fields in `attestation_request`; keep `private-evidence.json` in controlled off-chain storage.
 
 ## API Examples
 
@@ -200,5 +233,7 @@ WHERE id = 'RECORD_UUID';
 
 - Only authorized wallets can create attestations on behalf of Kokonut
 - All attestation records are reviewed before on-chain submission
+- Private MRV evidence should not be placed on-chain or in public database fields
+- Store raw private evidence off-chain; store only hashes, CIDs, UIDs, chain labels, transaction hashes, and timestamps in public metadata
 - Revoked on-chain attestations remain on-chain; store revocation metadata while keeping lifecycle status canonical
 - Evidence hashes ensure data integrity between off-chain and on-chain

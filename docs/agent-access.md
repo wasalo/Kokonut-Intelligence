@@ -2,6 +2,25 @@
 
 Kokonut Intelligence supports AI agent access through Directus native MCP (Model Context Protocol) support. Agents interact with the same governed objects as humans, under the same permission model.
 
+Agent identity, payment, escrow, and reputation logic are not implemented in this repository. Those marketplace concerns remain external and are attributed to `Kokonut-Agentic-Marketplace`. This repository stores metadata, capability manifests, task records, action logs, and governed data access patterns.
+
+## Agent Metadata Collections
+
+| Collection | Purpose |
+|------------|---------|
+| `agent_identity` | Agent name, operator wallet metadata, manifest CID, marketplace source, and `agent_state` |
+| `agent_capability_manifest` | Versioned JSON manifest with inputs, outputs, pricing metadata, CID, and hash |
+| `agent_task` | Task inputs, outputs, output CID/hash, execution state, human review lifecycle, and optional attestation request link |
+| `agent_action_log` | Collection/action audit trail with payload hash and `action_result` |
+
+```bash
+# Print a local capability manifest example
+python3 -m services.agents --example kokonut-mrv-reporter
+
+# Validate and pin a manifest to the local CID adapter
+python3 -m services.agents --validate manifest.json --pin-local
+```
+
 ## Directus Native MCP Support
 
 Directus exposes an MCP-compatible interface that allows AI agents to read and write data using the same REST/GraphQL API that humans use. Agents authenticate with scoped tokens and are subject to role-based permissions.
@@ -67,6 +86,7 @@ curl -X POST http://localhost:8055/users \
 | Expense Tracker | `expense_event`, `expense_category` | Read | Only `verified` or `published` status |
 | AI Summarizer | `harvest_event`, `farm_activity`, `field_note` | Read + Write draft | Can create `ai_summary` |
 | Attestation Agent | `attestation_record`, `attestation_schema` | Read + Write draft | Cannot submit on-chain |
+| MRV Reporter | `farm_registry_record`, `mrv_event`, `attestation_request`, `agent_task` | Read verified + write draft/submitted metadata | Cannot sign EAS transactions |
 | Compliance Agent | `audit_log`, `workflow_history` | Read | All records |
 
 ### Permission Configuration
@@ -182,8 +202,9 @@ Agents **cannot bypass approval gates**. The following constraints are enforced 
 
 1. **Status transitions are controlled** — Agents can only set `status = 'draft'`
 2. **Publishing requires human approval** — Directus permissions restrict `status = 'published'` to human roles
-3. **On-chain attestation requires signature** — Only authorized wallets can submit to EAS
+3. **On-chain attestation requires signature** — Only authorized wallets or configured external signer services can submit to EAS
 4. **All mutations are logged** — Even if an agent tries to escalate, the audit trail records it
+5. **Marketplace logic is external** — x402/ERC-8004 payment, escrow, and reputation workflows are not handled by this repository
 
 ### Enforcement via Directus Policies
 

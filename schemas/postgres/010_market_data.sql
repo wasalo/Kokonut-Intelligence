@@ -17,6 +17,6 @@ CREATE TABLE IF NOT EXISTS price_observation (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_price_obs_crop_date ON price_observation(crop_id, price_date);
-CREATE INDEX idx_price_obs_commodity ON price_observation(commodity_code, price_date);
-CREATE INDEX idx_price_obs_source ON price_observation(source, price_date);
+CREATE INDEX IF NOT EXISTS idx_price_obs_crop_date ON price_observation(crop_id, price_date);
+CREATE INDEX IF NOT EXISTS idx_price_obs_commodity ON price_observation(commodity_code, price_date);
+CREATE INDEX IF NOT EXISTS idx_price_obs_source ON price_observation(source, price_date);

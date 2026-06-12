@@ -95,7 +95,7 @@ def generate_expenses(
             "currency": "USD",
             "is_capex": False,
             "allocation_method": "direct",
-            "status": "raw",
+            "status": "submitted",
         },
         {
             "location_id": location_id,
@@ -171,7 +171,7 @@ def main() -> None:
     opex = total - capex
     print(f"  Total: ${total:,.2f}  (OpEx: ${opex:,.2f}, CapEx: ${capex:,.2f})")
 
-    pending = [e for e in created_expenses if e.get("status") == "raw"]
+    pending = [e for e in created_expenses if e.get("status") == "submitted"]
     print(f"  Pending verification: {len(pending)}")
 
 

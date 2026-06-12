@@ -1,4 +1,4 @@
-"""Example: Full harvest lifecycle (create -> submit -> approve -> publish).
+"""Example: Full harvest lifecycle (create -> submit -> verify -> publish).
 
 Usage:
     KOKONUT_TOKEN=... python examples/workflow.py
@@ -16,9 +16,10 @@ BASE_URL = os.environ.get("KOKONUT_BASE_URL", "http://localhost:8055")
 TOKEN = os.environ.get("KOKONUT_TOKEN")
 
 VALID_TRANSITIONS = {
-    "raw": "normalized",
-    "normalized": "verified",
+    "draft": "submitted",
+    "submitted": "verified",
     "verified": "published",
+    "rejected": "submitted",
 }
 
 
@@ -53,8 +54,8 @@ def main() -> None:
     plot_id = "PLACEHOLDER_PLOT_ID"
     location_id = "PLACEHOLDER_LOCATION_ID"
 
-    # Step 1: Create raw harvest event
-    print("1. Creating raw harvest event...")
+    # Step 1: Create draft harvest event
+    print("1. Creating draft harvest event...")
     now = datetime.now(timezone.utc).isoformat()
     harvest = client.harvest_events.create({
         "crop_cycle_id": crop_cycle_id,
@@ -67,14 +68,14 @@ def main() -> None:
         "loss_amount": 80,
         "loss_unit": "kg",
         "loss_reason": "moisture_loss_during_drying",
-        "status": "raw",
+        "status": "draft",
         "notes": "Field harvest from Plot A",
     })
     print(f"  Harvest created: {harvest['id']}\n")
 
-    # Step 2: Normalize (data validation complete)
-    print("2. Normalizing harvest data...")
-    transition_harvest(client, harvest["id"], "normalized")
+    # Step 2: Submit after field data entry is complete
+    print("2. Submitting harvest data...")
+    transition_harvest(client, harvest["id"], "submitted")
     client.harvest_events.update(harvest["id"], {
         "quantity": 1420,
         "loss_amount": 80,
@@ -109,7 +110,7 @@ def main() -> None:
         "total_amount": 12070,
         "currency": "USD",
         "payment_status": "pending",
-        "status": "raw",
+        "status": "draft",
     })
     print(f"  Sale created: {sale['id']}\n")
 

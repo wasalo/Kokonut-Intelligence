@@ -1,0 +1,37 @@
+# PRD Completion Notes
+
+This note tracks the PRD completion layer added on top of the existing Directus/PostgreSQL core.
+
+## Implemented
+
+- Common Data Schema support via `farm_registry_record`, including the 13 required farm onboarding fields from Kokonut documentation.
+- Operational support tables for inventory, maintenance, and canonical revenue events: `inventory_event`, `maintenance_event`, `revenue_event`.
+- Kokonut MRV event support via `mrv_event`, with ground, remote, and community payload slots.
+- Privacy-preserving attestation request metadata via `attestation_request`, `private_payload_hash`, `payload_cid`, and `payload_hash`.
+- Agent metadata tables: `agent_identity`, `agent_capability_manifest`, `agent_task`, and `agent_action_log`.
+- Metric governance extensions on `metric_definition`: validation tests, report usage, deprecation policy, and definition state.
+- Source lineage extensions for environmental and sensor evidence tables.
+- Development-only local CID helper under `services/storage/`.
+- Registry, MRV, attestation, and agent helper CLIs under `services/registry/`, `services/attestation/`, and `services/agents/`.
+
+## Lifecycle
+
+Governed records use `draft`, `submitted`, `verified`, `published`, and `rejected`.
+
+Payment, execution, attestation, agent, and export state are stored in explicit fields such as `payment_status`, `execution_status`, `agent_state`, `action_result`, `attestation_uid`, `tx_hash`, `attested_at`, and `revocation_date`.
+
+## EAS Privacy Boundary
+
+Private MRV evidence stays off-chain by default. This repository prepares hashes, CIDs, request metadata, and public payload summaries only. It does not sign or submit EAS transactions unless a future configured signer service is added.
+
+For local development, `local://sha256/<hash>` CIDs are deterministic references to files in `.local-cid-store/`, which is ignored by Git.
+
+## Agent Boundary
+
+This repository stores agent metadata, capability manifests, task records, action logs, and governed data access patterns.
+
+Contract identity, x402/ERC-8004 payments, escrow, marketplace routing, and reputation logic remain external and are attributed to `Kokonut-Agentic-Marketplace`.
+
+## Deferred
+
+DApp session ingestion and metrics are intentionally deferred. The current implementation keeps the canonical data model ready for governed data and agent access without adding session collection, wallet session analytics, or dApp usage metrics.

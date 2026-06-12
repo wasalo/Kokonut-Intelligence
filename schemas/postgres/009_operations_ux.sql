@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS workflow_history (
     rejection_reason TEXT
 );
 
-CREATE INDEX idx_workflow_history_collection_record ON workflow_history(collection, record_id);
-CREATE INDEX idx_workflow_history_to_status ON workflow_history(to_status);
-CREATE INDEX idx_workflow_history_changed_at ON workflow_history(changed_at);
+CREATE INDEX IF NOT EXISTS idx_workflow_history_collection_record ON workflow_history(collection, record_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_history_to_status ON workflow_history(to_status);
+CREATE INDEX IF NOT EXISTS idx_workflow_history_changed_at ON workflow_history(changed_at);
 
 -- File upload: structured evidence metadata
 CREATE TABLE IF NOT EXISTS file_upload (
@@ -41,8 +41,8 @@ CREATE TABLE IF NOT EXISTS file_upload (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_file_upload_linked ON file_upload(linked_collection, linked_record_id);
-CREATE INDEX idx_file_upload_directus ON file_upload(directus_file_id);
+CREATE INDEX IF NOT EXISTS idx_file_upload_linked ON file_upload(linked_collection, linked_record_id);
+CREATE INDEX IF NOT EXISTS idx_file_upload_directus ON file_upload(directus_file_id);
 
 -- Approval: cross-cutting approval log
 CREATE TABLE IF NOT EXISTS approval (
@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS approval (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_approval_record ON approval(collection, record_id);
-CREATE INDEX idx_approval_approver ON approval(approver_id);
+CREATE INDEX IF NOT EXISTS idx_approval_record ON approval(collection, record_id);
+CREATE INDEX IF NOT EXISTS idx_approval_approver ON approval(approver_id);
 
 -- ============================================================
 -- ALTER EXISTING TABLES — add missing columns

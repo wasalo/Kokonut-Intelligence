@@ -91,6 +91,41 @@ curl -H "Authorization: Bearer $TOKEN" \
   "http://localhost:8055/items/expense_event/aggregate?groupBy=category&aggregate=sum:amount"
 ```
 
+## Registry, MRV, Attestation, And Agent Collections
+
+These collections are exposed through the same Directus `/items/{collection}` REST and GraphQL APIs as the rest of the platform.
+
+| Collection | Purpose | Notes |
+|------------|---------|-------|
+| `farm_registry_record` | Kokonut Common Data Schema farm onboarding record | Uses `draft`, `submitted`, `verified`, `published`, `rejected` lifecycle |
+| `inventory_event` | Input, tool, equipment, compost, biofertilizer, and stock movement | Evidence URLs/hashes supported |
+| `maintenance_event` | Infrastructure repair, inspection, calibration, and upkeep | Links to infrastructure assets and plots |
+| `revenue_event` | Canonical revenue facts across sales, grants, sponsorships, services, credits, and DAO disbursements | Payment state lives in `payment_status` |
+| `mrv_event` | Ground, remote, and community MRV event payload metadata | Stores CIDs/hashes, not raw private evidence |
+| `attestation_request` | EAS request preparation metadata | Signing/submission is external to this repository |
+| `agent_identity` | Agent metadata record | Contract/payment logic is external to `Kokonut-Agentic-Marketplace` |
+| `agent_capability_manifest` | Versioned capability manifest JSON and CID/hash metadata | Linked to `agent_identity` |
+| `agent_task` | Agent task inputs, outputs, execution state, and review lifecycle | Human review remains governed by lifecycle status |
+| `agent_action_log` | Audit trail for agent actions | Uses `action_result` for success/failure/skipped state |
+
+### Helper CLIs
+
+```bash
+# Common Data Schema example and validation
+python3 -m services.registry --example-farm-record
+python3 -m services.registry --validate-farm-record farm-record.json
+
+# MRV public payload preparation with optional local CID persistence
+python3 -m services.registry --prepare-mrv mrv-payload.json --pin-local
+
+# EAS request metadata preparation; private payload is hashed only
+python3 -m services.attestation --subject-type mrv_event --subject-id UUID --event-type mrv_submission --payload-file public.json --private-payload-file private.json
+
+# Agent capability manifest metadata
+python3 -m services.agents --example kokonut-mrv-reporter
+python3 -m services.agents --validate manifest.json --pin-local
+```
+
 ## GraphQL
 
 ```bash

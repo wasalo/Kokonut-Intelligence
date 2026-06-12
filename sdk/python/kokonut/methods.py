@@ -310,7 +310,7 @@ class ExpenseEventMethods(GenericMethods):
         return super().list(opts)
 
     def list_pending_approval(self, options: Optional[ListOptions] = None) -> List[ExpenseEvent]:
-        extra_filter = {"status": {"_eq": "verified"}}
+        extra_filter = {"status": {"_eq": "submitted"}}
         if options and options.filter:
             extra_filter.update(options.filter)
         opts = ListOptions(
@@ -429,7 +429,7 @@ class AttestationMethods(GenericMethods):
         return super().update(item_id, data)
 
     def list_pending(self, options: Optional[ListOptions] = None) -> List[AttestationRecord]:
-        extra_filter = {"status": {"_in": ["draft", "pending"]}}
+        extra_filter = {"status": {"_in": ["draft", "submitted"]}}
         if options and options.filter:
             extra_filter.update(options.filter)
         opts = ListOptions(

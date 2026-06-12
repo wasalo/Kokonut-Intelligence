@@ -1,5 +1,5 @@
 /**
- * Example: Create a harvest event, submit for approval, approve, and publish.
+ * Example: Create a harvest event, submit for verification, verify, and publish.
  *
  * Usage:
  *   npx tsx examples/workflow.ts
@@ -13,10 +13,11 @@ const client = new KokonutClient('http://localhost:8055', {
 });
 
 const STATE_TRANSITIONS: Record<HarvestEvent['status'], HarvestEvent['status']> = {
-  raw: 'normalized',
-  normalized: 'verified',
+  draft: 'submitted',
+  submitted: 'verified',
   verified: 'published',
   published: 'published',
+  rejected: 'submitted',
 };
 
 async function transitionHarvest(
@@ -49,7 +50,7 @@ async function main() {
   const cropCycleId = 'crop-cycle-id';
   const plotId = 'plot-id';
 
-  console.log('1. Creating raw harvest event...');
+  console.log('1. Creating draft harvest event...');
   const harvest = await client.harvestEvents.create({
     crop_cycle_id: cropCycleId,
     plot_id: plotId,
@@ -61,20 +62,20 @@ async function main() {
     net_weight: 1420,
     loss_quantity: 80,
     loss_reason: 'moisture_loss_during_drying',
-    status: 'raw',
+    status: 'draft',
     recorded_by: 'field-supervisor-001',
   });
   console.log(`  Harvest created: ${harvest.id}\n`);
 
-  console.log('2. Normalizing harvest data...');
-  await transitionHarvest(harvest.id, 'normalized');
+  console.log('2. Submitting harvest data...');
+  await transitionHarvest(harvest.id, 'submitted');
   await client.harvestEvents.update(harvest.id, {
     quantity: 1420,
     loss_quantity: 80,
   });
   console.log('');
 
-  console.log('3. Submitting for verification...');
+  console.log('3. Verifying harvest...');
   await transitionHarvest(harvest.id, 'verified');
   await client.harvestEvents.update(harvest.id, {
     status: 'verified',
@@ -100,7 +101,7 @@ async function main() {
     total_amount: 12070,
     currency: 'USD',
     payment_status: 'pending',
-    status: 'raw',
+    status: 'draft',
   });
   console.log(`  Sale created: ${sale.id}`);
 

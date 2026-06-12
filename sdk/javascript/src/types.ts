@@ -66,7 +66,7 @@ export interface HarvestEvent {
   net_weight?: number;
   loss_quantity?: number;
   loss_reason?: string;
-  status: 'raw' | 'normalized' | 'verified' | 'published';
+  status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
   recorded_by?: string;
   created_at: string;
   updated_at: string;
@@ -85,7 +85,7 @@ export interface SalesEvent {
   total_amount: number;
   currency: string;
   payment_status: 'pending' | 'partial' | 'paid' | 'overdue' | 'cancelled';
-  status: 'raw' | 'normalized' | 'verified' | 'published';
+  status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
   created_at: string;
   updated_at: string;
 }

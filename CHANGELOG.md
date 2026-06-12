@@ -4,6 +4,15 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+### Added
+- PRD completion layer: farm registry records, inventory events, maintenance events, revenue events, MRV events, attestation requests, agent metadata, agent tasks, and action logs.
+- Development local CID adapter with deterministic `local://sha256/<hash>` references.
+- Registry, attestation, and agent helper CLIs for Common Data Schema validation, MRV payload preparation, private-data hash metadata, and capability manifest metadata.
+
+### Changed
+- JavaScript and Python SDK examples now use the canonical `draft -> submitted -> verified -> published` lifecycle.
+- Documentation now states EAS/private-data boundaries, external `Kokonut-Agentic-Marketplace` scope, and deferred dApp session ingestion.
+
 ## [0.10.0] - 2026-06-12
 
 ### Added

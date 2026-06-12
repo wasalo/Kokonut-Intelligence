@@ -274,7 +274,7 @@ export function buildExpenseEventMethods(client: any): ExpenseEventMethods {
     listPendingApproval: (options?: ListOptions) =>
       client.listItems('expense_event', {
         ...options,
-        filter: { ...options?.filter, status: 'verified' },
+        filter: { ...options?.filter, status: { _eq: 'submitted' } },
       }) as Promise<ExpenseEvent[]>,
   };
 }
@@ -337,7 +337,7 @@ export function buildAttestationMethods(client: any): AttestationMethods {
     listPending: (options?: ListOptions) =>
       client.listItems('attestation_record', {
         ...options,
-        filter: { ...options?.filter, status: { _in: ['draft', 'pending'] } },
+        filter: { ...options?.filter, status: { _in: ['draft', 'submitted'] } },
       }) as Promise<AttestationRecord[]>,
     listByEntity: (entityType: string, entityId: string) =>
       client.listItems('attestation_record', {

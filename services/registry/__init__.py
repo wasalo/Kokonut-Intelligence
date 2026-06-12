@@ -1,0 +1,1 @@
+"""Farm Registry service helpers."""

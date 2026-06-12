@@ -69,6 +69,31 @@ Published — available to dashboards and analysts
 
 Expenses use the same lifecycle; payment is tracked separately with `payment_status`.
 
+## Registry, MRV, And Agents
+
+The PRD completion layer adds Kokonut farm registry, MRV, attestation request, and agent metadata support while keeping PostgreSQL and Directus as the canonical secure API layer.
+
+| Area | Tables / Services | Scope |
+|------|-------------------|-------|
+| Farm Registry | `farm_registry_record`, `services.registry` | Kokonut Common Data Schema onboarding and validation |
+| MRV | `mrv_event`, environmental lineage fields | Ground, remote, and community evidence metadata |
+| EAS Requests | `attestation_request`, `services.attestation` | Public payload hashes/CIDs and private payload hashes only |
+| Agent Metadata | `agent_identity`, `agent_capability_manifest`, `agent_task`, `agent_action_log`, `services.agents` | Metadata and task records; marketplace contract/payment logic stays external |
+| Local CID | `services.storage` | Development-only `local://sha256/<hash>` content addressing |
+
+```bash
+# Print a Common Data Schema example
+python3 -m services.registry --example-farm-record
+
+# Prepare local EAS request metadata from JSON
+python3 -m services.attestation --subject-type mrv_event --subject-id UUID --event-type mrv_submission --payload-file payload.json
+
+# Print an agent capability manifest example
+python3 -m services.agents --example kokonut-mrv-reporter
+```
+
+See `docs/prd-completion.md`, `docs/attestation-guide.md`, and `docs/agent-access.md` for scope and privacy boundaries.
+
 ## Data Entry
 
 Directus Studio at `http://localhost:8055` is the primary data entry interface.
@@ -113,8 +138,8 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   ├── clickhouse/     # ClickHouse config
 │   └── directus/       # Directus permissions SQL
 ├── schemas/
-│   ├── postgres/       # 12 schema files, 45+ tables
-│   ├── seeds/          # Base and pilot seed data (14 files)
+│   ├── postgres/       # 13 schema files, 50+ tables
+│   ├── seeds/          # Base and pilot seed data (15 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── sdk/
@@ -163,9 +188,13 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   ├── cost_forecast.py  # Cost projections
 │   │   ├── ecology.py        # Ecological score projections
 │   │   └── risk.py           # Risk adjustment + confidence intervals
-│   └── export/         # Data export and report generation
-│       ├── exporter.py       # CSV/JSON/Parquet export
-│       └── report_generator.py # Report snapshots with hash verification
+│   ├── export/         # Data export and report generation
+│   │   ├── exporter.py       # CSV/JSON/Parquet export
+│   │   └── report_generator.py # Report snapshots with hash verification
+│   ├── registry/       # Common Data Schema + MRV payload helpers
+│   ├── attestation/    # Privacy-preserving attestation request helpers
+│   ├── agents/         # Agent capability manifest helpers
+│   └── storage/        # Local development CID adapter
 ├── extensions/
 │   └── kokonut-hooks/  # Directus lifecycle hooks
 │       └── src/

@@ -12,6 +12,8 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 
 3. **Humans and AI agents use the same governed objects** — Different interfaces over the same canonical objects, permissions, and audit trails.
 
+4. **Private evidence stays off-chain by default** — Public surfaces store hashes, CIDs, attestation UIDs, chain labels, and transaction hashes. Raw private MRV payloads remain in controlled off-chain storage.
+
 ## Technology Stack
 
 ```
@@ -37,6 +39,8 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 │  crops          loss_event           noi_snapshot       │
 │  crop_cycle     labor_event          cash_flow_snap     │
 │  partners       field_note           value_flow_event   │
+│  farm_registry  inventory_event      revenue_event      │
+│                 maintenance_event                       │
 │                                                         │
 │  Environmental    Web3/Attestation    Modeled Outputs   │
 │  ─────────────    ────────────────    ──────────────    │
@@ -44,7 +48,8 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 │  species_obs      attestation_record  forecast_output    │
 │  remote_sensing   digital_lego_usage  metric_definition  │
 │  weather_obs      attestation_schema  report_snapshot    │
-│  sensor_reading   governance_event    ai_summary         │
+│  sensor_reading   mrv_event           ai_summary         │
+│  attestation_req  governance_event    agent_task         │
 │  price_observation                    ingestion_log      │
 └────────┬───────────────────────────────────────────────┘
          │
@@ -105,6 +110,7 @@ Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus sna
 | Directus SDK | JavaScript | Session | Application integration |
 | ClickHouse HTTP | HTTP | Basic auth | Analytical queries |
 | Directus MCP | MCP | Scoped token | AI agent access |
+| Helper CLIs | Python modules | Local process auth | Registry validation, local CID prep, attestation request prep, agent manifest prep |
 
 ## Security Model
 
@@ -114,6 +120,7 @@ Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus sna
 - **Row-level:** Filter rules restrict record visibility
 - **Audit:** All mutations logged to `audit_log`
 - **Evidence:** Raw evidence stored off-chain; hashes/CIDs on-chain
+- **Agent scope:** This repository stores agent metadata and tasks only; marketplace identity, payment, escrow, and reputation logic are external to `Kokonut-Agentic-Marketplace`
 
 ## Data Ingestion
 
@@ -126,5 +133,7 @@ External data flows through Python scripts in `services/ingestion/`:
 | World Bank | `market_data.py` | On demand | `price_observation` |
 | CSV upload | `remote_sensing.py` | On demand | `remote_sensing_observation` |
 | EAS API | `eas_indexer.py` | On demand | `attestation_record` |
+
+DApp session ingestion and metrics are deferred. Current Web3 ingestion remains focused on wallet activity, protocol interactions, EAS attestations, and governed value-flow records.
 
 All ingestion is logged to `ingestion_log` with source, status, and timing. Chain indexer health tracked in `chain_indexer_status`.

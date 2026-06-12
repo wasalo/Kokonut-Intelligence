@@ -56,6 +56,7 @@
 | `expense_category` | Governed expense taxonomy | name, code, is_direct |
 | `crop_cost_allocation` | Shared cost allocation | allocation_method, allocated_amount |
 | `value_flow_event` | Governed value-flow record | flow_type, amount, verified |
+| `revenue_event` | Canonical revenue fact | revenue_type, amount_usd, payment_status, status |
 | `noi_snapshot` | Crop/farm/location NOI output | noi, operating_margin_pct |
 | `cash_flow_snapshot` | Periodic cash-flow reporting | net_cash_flow, running_balance |
 
@@ -74,6 +75,7 @@
 | `alert_rule` | Threshold-based rule | sensor_type_id, operator, threshold, severity, cooldown_minutes |
 | `sensor_alert` | Triggered alert | alert_rule_id, reading_id, severity, status |
 | `mrv_claim` | Structured verification claim | claim_type, claim_data, status |
+| `mrv_event` | Kokonut MRV event payload metadata | measurement_type, payload_cid, payload_hash, private_payload_hash |
 
 ### Web3 & Attestation
 
@@ -84,8 +86,21 @@
 | `digital_lego_usage` | Protocol interaction | protocol_id, action_type, amount |
 | `attestation_schema` | EAS schema definition | schema_uid, chain, schema_text |
 | `attestation_record` | Verification attestation | attestation_uid, status, claim_data |
+| `attestation_request` | EAS request metadata before signing/submission | subject_type, payload_cid, payload_hash, execution_status |
 | `treasury_event` | Token flow | flow_direction, amount, token |
 | `chain_indexer_status` | Ingestion health tracking | chain, indexer_type, last_synced_block |
+
+### Registry, Inventory, Maintenance, And Agents
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `farm_registry_record` | Kokonut Common Data Schema onboarding record | registry_slug, project_date, forecasted_budget, record_hash |
+| `inventory_event` | Inventory, input, and bioinput movement | item_name, item_type, event_type, quantity |
+| `maintenance_event` | Asset inspection, repair, and upkeep | maintenance_type, work_performed, cost, next_service_date |
+| `agent_identity` | Agent metadata and marketplace reference | agent_name, capability_manifest_cid, agent_state |
+| `agent_capability_manifest` | Versioned agent capability manifest | version, manifest, manifest_cid, manifest_hash |
+| `agent_task` | Agent task execution and review record | task_type, inputs, output_cid, execution_status, review_status |
+| `agent_action_log` | Agent action audit trail | action, collection, record_id, action_result |
 
 ### Ingestion & Observability
 

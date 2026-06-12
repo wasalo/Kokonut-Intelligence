@@ -33,7 +33,20 @@ INSERT INTO metric_definition (id, metric_key, display_name, description, formul
 ('a0000000-0000-0000-0000-00000000021d', 'soil_carbon_delta', 'Soil Carbon Delta', 'Soil carbon after intervention minus baseline', 'after_carbon - baseline_carbon', ARRAY['soil_carbon_measurement'], 'All plots with baseline and follow-up measurements', 'Plots with only baseline or only follow-up excluded', 'tonnes/ha', 'numeric', 'platform', 1, 'quarterly', TRUE),
 ('a0000000-0000-0000-0000-00000000021e', 'biodiversity_delta', 'Biodiversity Delta', 'Species count after intervention minus baseline', 'after_count - baseline_count', ARRAY['species_observation'], 'All locations with baseline and follow-up observations', 'Locations with only baseline or only follow-up excluded', 'count', 'count', 'platform', 1, 'quarterly', TRUE),
 ('a0000000-0000-0000-0000-00000000021f', 'attestation_coverage', 'Attestation Coverage', 'Published attestations / eligible publishable claims', '(published / eligible) * 100', ARRAY['attestation_record'], 'All eligible publishable claims', 'Draft and rejected claims excluded', '%', 'percentage', 'platform', 1, 'monthly', TRUE)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (metric_key) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description,
+    formula = EXCLUDED.formula,
+    source_tables = EXCLUDED.source_tables,
+    inclusion_rules = EXCLUDED.inclusion_rules,
+    exclusion_rules = EXCLUDED.exclusion_rules,
+    unit = EXCLUDED.unit,
+    data_type = EXCLUDED.data_type,
+    owner = EXCLUDED.owner,
+    version = EXCLUDED.version,
+    update_frequency = EXCLUDED.update_frequency,
+    active = EXCLUDED.active,
+    updated_at = NOW();
 
 -- Treasury Events (columns: id, location_id, wallet_id, chain, event_date, flow_direction, amount, token, token_amount, usd_value, source, purpose, tx_hash, verified, notes)
 INSERT INTO treasury_event (id, location_id, wallet_id, chain, event_date, flow_direction, amount, token, token_amount, usd_value, source, purpose, tx_hash, verified, notes) VALUES
