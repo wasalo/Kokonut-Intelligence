@@ -18,11 +18,7 @@ contract KokonutResolver is SchemaResolver, Ownable {
     /// @param eas Address of the EAS contract on this chain.
     /// @param owner Address that can manage allowed attesters.
     /// @param initialAttesters Addresses to allow immediately.
-    constructor(
-        IEAS eas,
-        address owner,
-        address[] memory initialAttesters
-    ) SchemaResolver(eas) Ownable(owner) {
+    constructor(IEAS eas, address owner, address[] memory initialAttesters) SchemaResolver(eas) Ownable(owner) {
         for (uint256 i = 0; i < initialAttesters.length; i++) {
             allowedAttesters[initialAttesters[i]] = true;
             emit AttesterAdded(initialAttesters[i]);
@@ -44,17 +40,11 @@ contract KokonutResolver is SchemaResolver, Ownable {
         return false;
     }
 
-    function onAttest(
-        Attestation calldata attestation,
-        uint256
-    ) internal override returns (bool) {
+    function onAttest(Attestation calldata attestation, uint256) internal override returns (bool) {
         return allowedAttesters[attestation.attester];
     }
 
-    function onRevoke(
-        Attestation calldata attestation,
-        uint256
-    ) internal override returns (bool) {
+    function onRevoke(Attestation calldata attestation, uint256) internal override returns (bool) {
         return allowedAttesters[attestation.attester];
     }
 }

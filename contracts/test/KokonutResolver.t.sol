@@ -17,11 +17,7 @@ contract KokonutResolverTest is Test {
         address[] memory attesters = new address[](2);
         attesters[0] = attester1;
         attesters[1] = attester2;
-        resolver = new KokonutResolver(
-            IEAS(easMock),
-            owner,
-            attesters
-        );
+        resolver = new KokonutResolver(IEAS(easMock), owner, attesters);
     }
 
     function test_initial_attesters_allowed() public view {

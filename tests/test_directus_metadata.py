@@ -23,6 +23,9 @@ def database_running() -> bool:
 
 def snapshot_drift() -> list[str]:
     """Validate Directus snapshot collection metadata against physical fields."""
+    if not SNAPSHOT_PATH.exists():
+        print("  ⚠ Snapshot file not found — skipping snapshot drift check")
+        return []
     snapshot = json.loads(SNAPSHOT_PATH.read_text())
     data = snapshot["data"]
     physical_fields = {

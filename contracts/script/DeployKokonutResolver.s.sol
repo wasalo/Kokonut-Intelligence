@@ -26,11 +26,7 @@ contract DeployKokonutResolver is Script {
         initialAttesters[1] = KOKONUT_MULTISIG;
 
         vm.startBroadcast(deployerKey);
-        resolver = new KokonutResolver(
-            IEAS(easAddress),
-            deployer,
-            initialAttesters
-        );
+        resolver = new KokonutResolver(IEAS(easAddress), deployer, initialAttesters);
         vm.stopBroadcast();
 
         console.log("KokonutResolver deployed at:", address(resolver));
