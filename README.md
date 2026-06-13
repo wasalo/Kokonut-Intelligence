@@ -554,6 +554,7 @@ Row-level security ensures partners see only their own data.
 
 | Document | Description |
 |----------|-------------|
+| [User Guide](docs/user-guide.md) | End-to-step walkthrough for all roles: data entry, workflows, dashboards, analytics, export |
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
 | [API Reference](docs/api-reference.md) | REST/GraphQL/ClickHouse API docs |
 | [OpenAPI Spec](docs/openapi.yaml) | Full OpenAPI 3.0 specification |

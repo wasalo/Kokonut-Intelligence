@@ -17,6 +17,7 @@ All notable changes to the Kokonut Intelligence Platform.
 - CI workflow (`.github/workflows/ci.yml`): Python checks, Directus hooks build, Foundry contracts (fmt, build, test) — runs on push, PR, and manual dispatch.
 - Foundry dependencies committed to repo (`contracts/lib/`): forge-std, eas-contracts, openzeppelin-contracts, openzeppelin-contracts-upgradeable.
 - PostgreSQL schema constraints (`015_constraints.sql`): 18 enum types, 37 CHECK constraints, 48 auto-update triggers, 3 UNIQUE constraints, ~55 ON DELETE SET NULL, ~50 FK indexes.
+- End-to-end user guide (`docs/user-guide.md`): role-based walkthroughs for Field Worker, Supervisor, Manager, Finance, Analyst, Admin, and partner roles (Buyer, Funder, Vendor, Operator) — covers data entry, workflow lifecycle, dashboards, analytics, export, SDK, and attestations.
 
 ### Changed
 - JavaScript and Python SDK examples now use the canonical `draft -> submitted -> verified -> published` lifecycle.
