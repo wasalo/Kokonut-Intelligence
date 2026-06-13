@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
 from typing import Any
 
 from .eas_client import EASClient
 from .config import DEFAULT_CHAIN, KOKONUT_MULTISIG, EAS_RESOLVER_ADDRESS
-from .schemas import KOKONUT_SCHEMAS, get_schema_text
-from .schema_encoder import parse_schema, encode_data
+from .schemas import KOKONUT_SCHEMAS
 
 
 def register_kokonut_schemas(

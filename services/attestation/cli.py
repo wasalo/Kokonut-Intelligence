@@ -177,7 +177,7 @@ def _handle_query(args: argparse.Namespace) -> None:
 
 
 def _handle_info(args: argparse.Namespace) -> None:
-    from .config import get_chain_config, EAS_CHAIN_CONFIG, KOKONUT_MULTISIG, ATTESTER_PRIVATE_KEY
+    from .config import get_chain_config, KOKONUT_MULTISIG, ATTESTER_PRIVATE_KEY
     from .signer import EASSigner
 
     config = get_chain_config(args.chain)

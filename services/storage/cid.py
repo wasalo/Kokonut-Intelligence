@@ -10,11 +10,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 
 DEFAULT_STORE_DIR = Path(".local-cid-store")
 LOCAL_CID_PREFIX = "local://sha256/"
+_HEX64_RE = re.compile(r'^[0-9a-f]{64}$')
 
 
 def canonical_bytes(payload: Any) -> bytes:
@@ -33,6 +35,8 @@ def make_local_cid(payload: Any) -> str:
 
 
 def _path_for_hash(digest: str, store_dir: Path) -> Path:
+    if not _HEX64_RE.match(digest):
+        raise ValueError(f"Invalid SHA-256 digest (must be 64 hex chars): {digest!r}")
     return store_dir / "sha256" / f"{digest}.json"
 
 

@@ -2,25 +2,6 @@
 -- ClickHouse: Sensor Analytics Materialized Views
 -- ============================================================
 
--- Hourly sensor statistics (avg, min, max per sensor per hour)
-CREATE MATERIALIZED VIEW IF NOT EXISTS mv_hourly_sensor_stats
-ENGINE = SummingMergeTree()
-PARTITION BY toYYYYMM(hour)
-ORDER BY (hour, sensor_id, sensor_type)
-AS SELECT
-    toStartOfHour(timestamp) AS hour,
-    sensor_id,
-    sensor_type,
-    location_id,
-    avg(value) AS avg_value,
-    min(value) AS min_value,
-    max(value) AS max_value,
-    count() AS reading_count,
-    avgIf(value, quality = 'good') AS avg_good_value,
-    countIf(quality != 'good') AS suspect_count
-FROM sensor_readings
-GROUP BY hour, sensor_id, sensor_type, location_id;
-
 -- Daily sensor summary (per location per day)
 CREATE MATERIALIZED VIEW IF NOT EXISTS mv_daily_sensor_summary
 ENGINE = SummingMergeTree()

@@ -13,14 +13,13 @@ Usage:
 import argparse
 import csv
 import hashlib
-import io
 import json
 import os
-import sys
+import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 import psycopg2
 import psycopg2.extras
@@ -54,6 +53,46 @@ CH_PORT = int(os.environ.get("CH_PORT", "8123"))
 CH_USER = os.environ.get("CH_USER", "kokonut")
 CH_PASSWORD = os.environ.get("CLICKHOUSE_PASSWORD", "dev-clickhouse-kokonut-2026")
 CH_DB = os.environ.get("CH_DB", "default")
+
+ALLOWED_COLLECTIONS = frozenset({
+    "harvest_event", "sales_event", "expense_event",
+    "weather_observation", "remote_sensing_observation",
+    "sensor_reading", "farm_activity", "soil_sample",
+    "crop_cycle", "crop", "location", "farm", "plot",
+    "partner", "staff", "infrastructure",
+    "noi_snapshot", "forecast_output", "forecast_scenario",
+    "attestation_record", "treasury_event", "sensor_alert",
+    "agent_identity", "agent_task", "agent_action_log",
+    "inventory_event", "maintenance_event", "revenue_event",
+    "mrv_event", "attestation_request", "sensor_device",
+    "loss_event", "field_note", "soil_carbon_measurement",
+    "species_observation", "report_snapshot", "export_log",
+})
+
+VALID_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+
+
+def _validate_identifier(name: str, label: str = "identifier") -> str:
+    """Validate that a string is a safe SQL identifier (alphanumeric + underscore)."""
+    if not VALID_IDENTIFIER_RE.match(name):
+        raise ValueError(f"Invalid {label}: {name!r}")
+    return name
+
+
+def _validate_collection(collection: str) -> str:
+    """Validate collection name against allowlist."""
+    _validate_identifier(collection, "collection")
+    if collection not in ALLOWED_COLLECTIONS:
+        raise ValueError(
+            f"Invalid collection: {collection!r}. "
+            f"Allowed: {', '.join(sorted(ALLOWED_COLLECTIONS))}"
+        )
+    return collection
+
+
+def _sanitize_filename(name: str) -> str:
+    """Sanitize a string for safe use in filenames."""
+    return re.sub(r'[^a-zA-Z0-9_]', '_', name)
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +153,7 @@ class Exporter:
         filters: Optional[dict] = None,
         user_id: Optional[str] = None,
     ) -> ExportResult:
+        _validate_collection(collection)
         os.makedirs(output_dir, exist_ok=True)
 
         start = time.time()
@@ -123,10 +163,17 @@ class Exporter:
         else:
             rows, columns = self._query_postgres(collection, filters)
 
-        # Generate filename
+        # Generate filename (sanitized)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        filename = f"{collection}_{timestamp}.{fmt}"
+        safe_name = _sanitize_filename(collection)
+        filename = f"{safe_name}_{timestamp}.{fmt}"
         file_path = os.path.join(output_dir, filename)
+
+        # Validate resolved path stays within output_dir
+        resolved_output = os.path.realpath(output_dir)
+        resolved_path = os.path.realpath(os.path.dirname(os.path.join(output_dir, filename)))
+        if not resolved_path.startswith(resolved_output + os.sep) and resolved_path != resolved_output:
+            raise ValueError(f"Path traversal detected in output path: {file_path}")
 
         # Write file
         if fmt == "csv":
@@ -153,6 +200,7 @@ class Exporter:
     # ------------------------------------------------------------------
 
     def _query_postgres(self, collection: str, filters: Optional[dict]):
+        _validate_identifier(collection, "table name")
         conn = get_pg()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -184,6 +232,7 @@ class Exporter:
         return clean_rows, columns
 
     def _query_clickhouse(self, collection: str, filters: Optional[dict]):
+        _validate_identifier(collection, "table name")
         client = get_ch()
         if client is None:
             raise RuntimeError("ClickHouse client unavailable")
@@ -193,6 +242,7 @@ class Exporter:
         if filters:
             where_parts = []
             for k, v in filters.items():
+                _validate_identifier(k, "filter key")
                 where_parts.append(f"{k} = {{{k}}}")
                 params[k] = v
             where_clause = "WHERE " + " AND ".join(where_parts) if where_parts else ""
@@ -208,6 +258,7 @@ class Exporter:
         conditions = []
         params = []
         for key, value in filters.items():
+            _validate_identifier(key, "filter key")
             if isinstance(value, dict):
                 for op, val in value.items():
                     if op == "$gte":

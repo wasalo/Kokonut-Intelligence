@@ -106,7 +106,8 @@ CREATE TABLE IF NOT EXISTS financial_events
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (location_id, transaction_type, timestamp);
+ORDER BY (location_id, transaction_type, timestamp)
+TTL toDateTime(timestamp) + INTERVAL 2 YEAR;
 
 -- Digital Lego usage events
 CREATE TABLE IF NOT EXISTS dlego_events
@@ -125,4 +126,5 @@ CREATE TABLE IF NOT EXISTS dlego_events
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(timestamp)
-ORDER BY (protocol_id, timestamp);
+ORDER BY (protocol_id, timestamp)
+TTL toDateTime(timestamp) + INTERVAL 2 YEAR;

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
 from web3 import Web3
@@ -11,7 +9,7 @@ from web3.constants import ADDRESS_ZERO
 
 from .config import get_chain_config, load_abi, DEFAULT_CHAIN, EAS_RESOLVER_ADDRESS
 from .signer import EASSigner
-from .schema_encoder import parse_schema, encode_data
+from .schema_encoder import encode_data
 
 
 class EASClient:
