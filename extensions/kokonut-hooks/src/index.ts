@@ -1,6 +1,12 @@
 import { defineHook } from '@directus/extensions-sdk';
 import { calculateNoi, batchCalculateNoi, storeNoiSnapshot, setDb } from './metrics-calculator.js';
-import { handleWorkflowTransition, logWorkflowTransition } from './workflow.js';
+import {
+  handleWorkflowTransition,
+  logWorkflowTransition,
+  consumePendingTransition,
+  LIFECYCLE_COLLECTIONS,
+} from './workflow.js';
+import { resolveUserRoles } from './roles.js';
 import {
   autoCategorizeExpense,
   validateExpenseAmount,
@@ -14,32 +20,37 @@ import {
   autoSummarizeFieldNote,
 } from './ai-helpers.js';
 
+/** Collections with only workflow enforcement (no create-time validation). */
+const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
+  (c) =>
+    ![
+      'farm_activity',
+      'harvest_event',
+      'expense_event',
+      'sales_event',
+      'loss_event',
+      'labor_event',
+      'field_note',
+    ].includes(c)
+);
+
 export default defineHook(({ filter, action, schedule }, { database }) => {
   setDb(database);
-
-  // Helper: extract user roles from accountability
-  function getUserRoles(meta: Record<string, any>): string[] {
-    const accountability = meta?.accountability || meta?.payload?._accountability;
-    if (!accountability) return [];
-    if (accountability.admin) return ['admin'];
-    return accountability.role ? [accountability.role] : [];
-  }
 
   function getUserId(meta: Record<string, any>): string | undefined {
     const accountability = meta?.accountability || meta?.payload?._accountability;
     return accountability?.user;
   }
 
-  // Helper: log workflow transition after DB write
   async function logTransition(
     collection: string,
     recordId: string,
-    fromStatus: string | undefined,
     toStatus: string,
     userId: string | undefined,
     meta: Record<string, any>
   ) {
     try {
+      const fromStatus = consumePendingTransition(collection, recordId);
       const notes = meta?.payload?.rejection_reason || undefined;
       await logWorkflowTransition(
         database, collection, recordId, fromStatus, toStatus, userId, undefined, notes
@@ -49,16 +60,31 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     }
   }
 
+  async function applyWorkflow(
+    collection: string,
+    payload: Record<string, any>,
+    meta: Record<string, any>
+  ) {
+    const userRoles = await resolveUserRoles(database, meta);
+    return await handleWorkflowTransition(
+      collection, payload, meta.keys || {}, userRoles, database
+    );
+  }
+
+  // Register workflow-only filter hooks
+  for (const collection of WORKFLOW_ONLY_COLLECTIONS) {
+    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+      return await applyWorkflow(collection, payload, meta);
+    });
+  }
+
   // ============================================================
   // Filter hooks (blocking - run before DB write)
   // ============================================================
 
-  // --- Expense event hooks ---
   filter('expense_event.create', (payload: Record<string, any>) => {
-    // Auto-categorize if category is blank
     autoCategorizeExpense(payload);
 
-    // Validate amount
     if (payload.amount !== undefined) {
       const errors = validateExpenseAmount(payload.amount);
       if (errors.length > 0) {
@@ -66,7 +92,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
-    // Validate date
     if (payload.expense_date) {
       const dateError = validateExpenseDate(payload.expense_date);
       if (dateError) {
@@ -78,7 +103,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('expense_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    // Validate amount on update
     if (payload.amount !== undefined) {
       const errors = validateExpenseAmount(payload.amount);
       if (errors.length > 0) {
@@ -86,13 +110,10 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
-    // Workflow transition with role routing
-    return await handleWorkflowTransition('expense_event', payload, meta.keys || {}, getUserRoles(meta), database);
+    return await applyWorkflow('expense_event', payload, meta);
   });
 
-  // --- Sales event hooks ---
   filter('sales_event.create', (payload: Record<string, any>) => {
-    // Auto-calculate net_amount
     if (payload.total_amount !== undefined) {
       payload.net_amount = calculateNetAmount(
         payload.total_amount || 0,
@@ -101,7 +122,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       );
     }
 
-    // Validate amount
     if (payload.total_amount !== undefined) {
       const errors = validateSalesAmount(payload.total_amount);
       if (errors.length > 0) {
@@ -109,7 +129,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
-    // Validate date
     if (payload.sale_date) {
       const dateError = validateNotFutureDate(payload.sale_date);
       if (dateError) {
@@ -121,7 +140,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('sales_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    // Recalculate net_amount if amount fields change
     if (payload.total_amount !== undefined || payload.return_amount !== undefined || payload.discount_amount !== undefined) {
       const current = await database('sales_event')
         .where('id', meta.keys?.[0] || payload.id)
@@ -133,13 +151,10 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       payload.net_amount = calculateNetAmount(total, returns, discount);
     }
 
-    // Workflow transition with role routing
-    return await handleWorkflowTransition('sales_event', payload, meta.keys || {}, getUserRoles(meta), database);
+    return await applyWorkflow('sales_event', payload, meta);
   });
 
-  // --- Harvest event hooks ---
   filter('harvest_event.create', (payload: Record<string, any>) => {
-    // Auto-calculate loss_estimated_value
     if (payload.loss_amount && !payload.loss_estimated_value) {
       const estimated = autoCalculateLossValue(
         payload.loss_amount,
@@ -152,16 +167,13 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
-    // Validate quantity
     if (payload.quantity !== undefined) {
       const warnings = validateHarvestQuantity(payload.quantity, payload.expected_yield);
-      // Warnings don't block, but we log them
       if (warnings.length > 0) {
         console.log(`[Kokonut] Harvest warnings: ${warnings.join('; ')}`);
       }
     }
 
-    // Validate date
     if (payload.harvest_date) {
       const dateError = validateNotFutureDate(payload.harvest_date);
       if (dateError) {
@@ -173,12 +185,10 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('harvest_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await handleWorkflowTransition('harvest_event', payload, meta.keys || {}, getUserRoles(meta), database);
+    return await applyWorkflow('harvest_event', payload, meta);
   });
 
-  // --- Farm activity hooks ---
   filter('farm_activity.create', (payload: Record<string, any>) => {
-    // Validate date
     if (payload.activity_date) {
       const dateError = validateNotFutureDate(payload.activity_date);
       if (dateError) {
@@ -186,7 +196,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
-    // Auto-calculate labor cost
     if (payload.labor_hours && payload.hourly_rate && !payload.labor_cost) {
       payload.labor_cost = calculateLaborCost(payload.labor_hours, payload.hourly_rate);
     }
@@ -195,10 +204,9 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('farm_activity.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await handleWorkflowTransition('farm_activity', payload, meta.keys || {}, getUserRoles(meta), database);
+    return await applyWorkflow('farm_activity', payload, meta);
   });
 
-  // --- Loss event hooks ---
   filter('loss_event.create', (payload: Record<string, any>) => {
     if (payload.loss_date) {
       const dateError = validateNotFutureDate(payload.loss_date);
@@ -210,12 +218,10 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('loss_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await handleWorkflowTransition('loss_event', payload, meta.keys || {}, getUserRoles(meta), database);
+    return await applyWorkflow('loss_event', payload, meta);
   });
 
-  // --- Labor event hooks ---
   filter('labor_event.create', (payload: Record<string, any>) => {
-    // Auto-calculate total_cost
     if (payload.hours_worked && payload.hourly_rate && !payload.total_cost) {
       payload.total_cost = calculateLaborCost(payload.hours_worked, payload.hourly_rate);
     }
@@ -231,12 +237,10 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('labor_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await handleWorkflowTransition('labor_event', payload, meta.keys || {}, getUserRoles(meta), database);
+    return await applyWorkflow('labor_event', payload, meta);
   });
 
-  // --- Field note hooks ---
   filter('field_note.create', (payload: Record<string, any>) => {
-    // Auto-summarize long content
     autoSummarizeFieldNote(payload);
 
     if (payload.note_date) {
@@ -250,30 +254,24 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('field_note.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    return await handleWorkflowTransition('field_note', payload, meta.keys || {}, getUserRoles(meta), database);
+    return await applyWorkflow('field_note', payload, meta);
   });
 
   // ============================================================
   // Action hooks (non-blocking - run after DB write)
   // ============================================================
 
-  // Log workflow transitions and recalculate NOI
-  const workflowCollections = [
-    'farm_activity', 'harvest_event', 'expense_event',
-    'sales_event', 'loss_event', 'labor_event', 'field_note',
-  ];
-
-  for (const collection of workflowCollections) {
+  for (const collection of LIFECYCLE_COLLECTIONS) {
     action(`${collection}.update`, async (meta: Record<string, any>) => {
       const newStatus = meta?.payload?.status;
-      if (newStatus) {
+      const recordId = meta.keys?.[0] ?? meta.keys?.id;
+      if (newStatus && recordId) {
         const userId = getUserId(meta);
-        await logTransition(collection, meta.keys?.[0], undefined, newStatus, userId, meta);
+        await logTransition(collection, recordId, newStatus, userId, meta);
       }
     });
   }
 
-  // NOI recalculation on harvest, sale, or expense changes
   action('harvest_event.create', async (meta: Record<string, any>) => {
     const payload = meta.payload || meta;
     await recalculateNoi(payload.crop_cycle_id);
@@ -295,7 +293,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   // Scheduled hooks
   // ============================================================
 
-  // Daily NOI reconciliation at 02:00 UTC
   schedule('0 2 * * *', async () => {
     console.log('[Kokonut] Running daily NOI reconciliation...');
     try {
@@ -306,7 +303,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     }
   });
 
-  // Weekly metric snapshots — Sunday 03:00 UTC
   schedule('0 3 * * 0', async () => {
     console.log('[Kokonut] Running weekly metric snapshots...');
     try {
@@ -327,10 +323,6 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     }
   });
 });
-
-// ============================================================
-// Helper functions
-// ============================================================
 
 async function recalculateNoi(cropCycleId: string | undefined) {
   if (!cropCycleId) return;

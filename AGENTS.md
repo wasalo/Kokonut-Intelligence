@@ -29,7 +29,7 @@
 - Run CLI tests: `python3 -m tests.test_cli`
 - Run attestation tests: `python3 -m tests.test_attestation`
 - Run Directus metadata tests: `python3 -m tests.test_directus_metadata`
-- Run CI checks: `./scripts/ci-check.sh`
+- Run CI checks: `./scripts/ci-check.sh` (also runs on push via `.github/workflows/ci.yml`)
 - Build Solidity contracts: `cd contracts && forge build`
 - Run Solidity tests: `cd contracts && forge test`
 - Show EAS chain info: `python3 -m services.attestation.cli info --chain celo`

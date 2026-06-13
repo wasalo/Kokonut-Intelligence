@@ -68,7 +68,7 @@ services:
       FILES_MAX_UPLOAD_SIZE: "50mb"
 
   metabase:
-    image: metabase/metabase:latest
+    image: metabase/metabase:v0.53.2
     restart: unless-stopped
     ports:
       - "3001:3000"

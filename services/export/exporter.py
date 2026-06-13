@@ -25,34 +25,18 @@ import psycopg2
 import psycopg2.extras
 
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
-def _load_env():
-    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
-    if env_path.exists():
-        with open(env_path) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, _, value = line.partition("=")
-                    os.environ.setdefault(key.strip(), value.strip())
-
-
-_load_env()
-
-PG_HOST = os.environ.get("PG_HOST", "localhost")
-PG_PORT = int(os.environ.get("PG_PORT", "5432"))
-PG_DB = os.environ.get("PG_DB", "kokonut_intelligence")
-PG_USER = os.environ.get("PG_USER", "kokonut")
-PG_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "dev-kokonut-postgres-2026")
-
-CH_HOST = os.environ.get("CH_HOST", "localhost")
-CH_PORT = int(os.environ.get("CH_PORT", "8123"))
-CH_USER = os.environ.get("CH_USER", "kokonut")
-CH_PASSWORD = os.environ.get("CLICKHOUSE_PASSWORD", "dev-clickhouse-kokonut-2026")
-CH_DB = os.environ.get("CH_DB", "default")
+from ..common.db import (
+    CH_DB,
+    CH_HOST,
+    CH_PASSWORD,
+    CH_PORT,
+    CH_USER,
+    PG_DB,
+    PG_HOST,
+    PG_PASSWORD,
+    PG_PORT,
+    PG_USER,
+)
 
 ALLOWED_COLLECTIONS = frozenset({
     "harvest_event", "sales_event", "expense_event",

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 KOKONUT_SCHEMAS: dict[str, dict[str, Any]] = {
     "kokonut-mrv": {
         "schema": "string locationId, string farmId, string cropType, string activityType, uint256 quantity, string unit, uint256 measurementDate, string evidenceHash, string payloadCid",
@@ -35,6 +33,16 @@ KOKONUT_SCHEMAS: dict[str, dict[str, Any]] = {
         "description": "Partner compliance and audit trail attestation",
         "claim_type": "compliance",
     },
+}
+
+
+# Maps CLI/Python schema keys to attestation_schema.name in the database
+SCHEMA_DB_NAMES: dict[str, str] = {
+    "kokonut-mrv": "Kokonut MRV",
+    "kokonut-impact": "Kokonut Impact",
+    "kokonut-financial": "Kokonut Financial",
+    "kokonut-harvest": "Kokonut Harvest",
+    "kokonut-compliance": "Kokonut Compliance",
 }
 
 

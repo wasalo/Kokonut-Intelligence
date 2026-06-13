@@ -118,6 +118,14 @@ def test_cli_info():
     assert "0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92" in result.stdout
 
 
+def test_schema_db_name_mapping():
+    """Test CLI schema keys map to database display names."""
+    from services.attestation.schemas import SCHEMA_DB_NAMES, KOKONUT_SCHEMAS
+
+    assert SCHEMA_DB_NAMES["kokonut-mrv"] == "Kokonut MRV"
+    assert len(SCHEMA_DB_NAMES) == len(KOKONUT_SCHEMAS)
+
+
 def test_abi_files_exist():
     """Test that ABI files are present."""
     from pathlib import Path
@@ -141,6 +149,7 @@ if __name__ == "__main__":
         test_cli_help,
         test_cli_schema_list,
         test_cli_info,
+        test_schema_db_name_mapping,
         test_abi_files_exist,
     ]
 

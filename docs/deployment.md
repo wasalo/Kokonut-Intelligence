@@ -61,7 +61,7 @@ cp .env.example .env
 # Set PUBLIC_URL to your domain
 
 # Start with production overrides
-docker compose -f docker-compose.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # Set up reverse proxy (nginx/caddy) for HTTPS
 ```
@@ -75,10 +75,46 @@ docker compose -f docker-compose.yml up -d
 | Storage | 50GB SSD | 100GB SSD |
 | Network | 1Gbps | 1Gbps |
 
+### Ingestion Scheduler
+
+Ingestion services are CLI tools and are not started by Docker Compose. Schedule them with cron, systemd timers, or a job runner on the host or VM.
+
+Example cron entries (adjust paths and timezone as needed):
+
+```cron
+# Weather — every 6 hours
+0 */6 * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.weather >> /var/log/kokonut/weather.log 2>&1
+
+# Market data — daily at 06:00 UTC
+0 6 * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.market_data >> /var/log/kokonut/market.log 2>&1
+
+# EAS indexer — every 15 minutes
+*/15 * * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.eas_indexer >> /var/log/kokonut/eas.log 2>&1
+
+# RPC wallet indexer — every 30 minutes
+*/30 * * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.rpc_indexer >> /var/log/kokonut/rpc.log 2>&1
+
+# Sensor ingester — every 5 minutes (when devices are active)
+*/5 * * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.sensor_ingester >> /var/log/kokonut/sensors.log 2>&1
+```
+
+Ensure `KOKONUT_ENV=production` and all required secrets are set in the environment used by the scheduler. Use `./scripts/health-check.sh` after deploy to verify service connectivity.
+
+### Production Compose
+
+For production deployments, use the production overlay to avoid exposing database ports and apply memory limits:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+Place Directus and Metabase behind a reverse proxy (nginx, Caddy) with TLS termination.
+
 ### Environment Variables
 
 | Variable | Description | Required |
 |----------|-------------|----------|
+| `KOKONUT_ENV` | Runtime mode: `development` (default) or `production` | No |
 | `POSTGRES_PASSWORD` | PostgreSQL password | Yes |
 | `DIRECTUS_SECRET` | JWT signing secret (32+ chars) | Yes |
 | `ADMIN_EMAIL` | Directus admin email | Yes |

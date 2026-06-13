@@ -6,88 +6,58 @@
  * and audit trail via workflow_history table.
  */
 
-// Valid status transitions per collection
-const VALID_TRANSITIONS: Record<string, Record<string, string[]>> = {
-  farm_activity: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  harvest_event: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  expense_event: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  sales_event: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  loss_event: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  labor_event: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  field_note: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  ai_summary: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  mrv_claim: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
-  attestation_record: {
-    draft: ['submitted'],
-    submitted: ['verified', 'rejected'],
-    verified: ['published'],
-    rejected: ['draft'],
-    published: [],
-  },
+/** Standard governed lifecycle transitions. */
+export const STANDARD_TRANSITIONS: Record<string, string[]> = {
+  draft: ['submitted'],
+  submitted: ['verified', 'rejected'],
+  verified: ['published'],
+  rejected: ['draft'],
+  published: [],
 };
 
-// Role-based approval routing: which roles can perform which transitions
-// Key = "collection:action", Value = array of allowed Directus role names
+/** All collections governed by lifecycle_status. */
+export const LIFECYCLE_COLLECTIONS = [
+  'farm_activity',
+  'harvest_event',
+  'expense_event',
+  'sales_event',
+  'loss_event',
+  'labor_event',
+  'field_note',
+  'ai_summary',
+  'mrv_claim',
+  'attestation_record',
+  'forecast_scenario',
+  'report_snapshot',
+  'dashboard_dataset',
+  'farm_registry_record',
+  'inventory_event',
+  'maintenance_event',
+  'revenue_event',
+  'mrv_event',
+  'attestation_request',
+] as const;
+
+export type LifecycleCollection = (typeof LIFECYCLE_COLLECTIONS)[number];
+
+// Valid status transitions per collection
+const VALID_TRANSITIONS: Record<string, Record<string, string[]>> =
+  Object.fromEntries(
+    LIFECYCLE_COLLECTIONS.map((c) => [c, { ...STANDARD_TRANSITIONS }])
+  );
+
+// Role-based approval routing: which role slugs can perform which transitions
+// Slugs are normalized from directus_roles.name (e.g. "Finance" → "finance")
 const ROLE_ROUTING: Record<string, string[]> = {
   'expense_event:verified': ['finance', 'admin'],
   'expense_event:rejected': ['finance', 'admin'],
   'expense_event:published': ['finance', 'admin'],
   'sales_event:verified': ['finance', 'admin'],
   'sales_event:rejected': ['finance', 'admin'],
+  'sales_event:published': ['finance', 'admin'],
+  'revenue_event:verified': ['finance', 'admin'],
+  'revenue_event:rejected': ['finance', 'admin'],
+  'revenue_event:published': ['finance', 'admin'],
   'farm_activity:verified': ['manager', 'supervisor', 'admin'],
   'farm_activity:rejected': ['manager', 'supervisor', 'admin'],
   'harvest_event:verified': ['manager', 'supervisor', 'admin'],
@@ -98,7 +68,30 @@ const ROLE_ROUTING: Record<string, string[]> = {
   'labor_event:rejected': ['manager', 'supervisor', 'admin'],
   'field_note:verified': ['manager', 'supervisor', 'admin'],
   'field_note:rejected': ['manager', 'supervisor', 'admin'],
+  'mrv_claim:verified': ['manager', 'supervisor', 'admin'],
+  'mrv_claim:rejected': ['manager', 'supervisor', 'admin'],
+  'mrv_claim:published': ['manager', 'admin'],
+  'mrv_event:verified': ['manager', 'supervisor', 'admin'],
+  'mrv_event:rejected': ['manager', 'supervisor', 'admin'],
+  'mrv_event:published': ['manager', 'admin'],
+  'attestation_record:verified': ['manager', 'admin'],
+  'attestation_record:rejected': ['manager', 'admin'],
+  'attestation_record:published': ['admin'],
+  'attestation_request:verified': ['manager', 'admin'],
+  'attestation_request:rejected': ['manager', 'admin'],
+  'attestation_request:published': ['admin'],
+  'ai_summary:verified': ['manager', 'supervisor', 'admin'],
+  'ai_summary:rejected': ['manager', 'supervisor', 'admin'],
+  'forecast_scenario:verified': ['manager', 'analyst', 'admin'],
+  'forecast_scenario:published': ['manager', 'admin'],
+  'report_snapshot:verified': ['analyst', 'manager', 'admin'],
+  'report_snapshot:published': ['manager', 'admin'],
+  'farm_registry_record:verified': ['manager', 'admin'],
+  'farm_registry_record:published': ['admin'],
 };
+
+// Stash from_status between filter (pre-write) and action (post-write) hooks
+const pendingTransitions = new Map<string, string>();
 
 // Fields to auto-set based on transition
 const TIMESTAMP_FIELDS: Record<string, string> = {
@@ -111,6 +104,32 @@ const USER_FIELDS: Record<string, string> = {
   rejected: 'rejected_by',
   submitted: 'submitted_by',
 };
+
+function transitionKey(collection: string, recordId: string): string {
+  return `${collection}:${recordId}`;
+}
+
+/** Stash the pre-update status for action-hook audit logging. */
+export function stashPendingTransition(
+  collection: string,
+  recordId: string,
+  fromStatus: string | undefined
+): void {
+  if (fromStatus) {
+    pendingTransitions.set(transitionKey(collection, recordId), fromStatus);
+  }
+}
+
+/** Consume the stashed from_status (returns undefined if none). */
+export function consumePendingTransition(
+  collection: string,
+  recordId: string
+): string | undefined {
+  const key = transitionKey(collection, recordId);
+  const fromStatus = pendingTransitions.get(key);
+  pendingTransitions.delete(key);
+  return fromStatus;
+}
 
 /**
  * Validates that a status transition is allowed
@@ -158,14 +177,15 @@ export async function handleWorkflowTransition(
   const newStatus = payload.status as string | undefined;
   if (!newStatus) return payload;
 
+  const recordId = (keys.id ?? keys[0]) as string | undefined;
+
   // Get current status from database if db is available, otherwise fall back to keys
   let currentStatus: string | undefined;
-  if (db && keys.id) {
+  if (db && recordId) {
     try {
-      const record = await db(collection).where('id', keys.id).first('status');
+      const record = await db(collection).where('id', recordId).first('status');
       currentStatus = record?.status as string | undefined;
     } catch (e) {
-      // Fallback if query fails
       currentStatus = keys.status as string | undefined;
     }
   } else {
@@ -174,7 +194,12 @@ export async function handleWorkflowTransition(
 
   if (!currentStatus) return payload;
 
+  if (recordId) {
+    stashPendingTransition(collection, recordId, currentStatus);
+  }
+
   if (!isValidTransition(collection, currentStatus, newStatus)) {
+    if (recordId) pendingTransitions.delete(transitionKey(collection, recordId));
     throw new Error(
       `Invalid status transition for ${collection}: ${currentStatus} → ${newStatus}. ` +
       `Valid transitions: ${VALID_TRANSITIONS[collection]?.[currentStatus]?.join(', ') || 'none'}`
@@ -182,6 +207,7 @@ export async function handleWorkflowTransition(
   }
 
   if (!isRoleAuthorized(collection, newStatus, userRoles)) {
+    if (recordId) pendingTransitions.delete(transitionKey(collection, recordId));
     const key = `${collection}:${newStatus}`;
     const allowedRoles = ROLE_ROUTING[key]?.join(', ') || 'unknown';
     throw new Error(
@@ -192,20 +218,17 @@ export async function handleWorkflowTransition(
 
   const now = new Date().toISOString();
 
-  // Auto-set timestamp fields
   const tsField = TIMESTAMP_FIELDS[newStatus];
   if (tsField) {
     payload[tsField] = now;
   }
 
-  // Auto-set user fields from accountability (if provided via payload)
   const userField = USER_FIELDS[newStatus];
   const accountability = payload._accountability as Record<string, any> | undefined;
   if (userField && accountability?.user) {
     payload[userField] = accountability.user;
   }
 
-  // Set rejection reason if provided
   if (newStatus === 'rejected' && payload.rejection_reason) {
     payload.rejection_reason = payload.rejection_reason;
   }
@@ -273,12 +296,12 @@ export async function getApprovalQueue(
   const collections = [
     'farm_activity', 'harvest_event', 'expense_event',
     'sales_event', 'loss_event', 'labor_event', 'field_note',
+    'mrv_claim', 'attestation_record', 'attestation_request', 'mrv_event',
   ];
 
   const results: any[] = [];
 
   for (const collection of collections) {
-    // Find records in submitted status
     let query = db(collection).where('status', 'submitted');
 
     if (locationId) {
@@ -288,7 +311,6 @@ export async function getApprovalQueue(
     const records = await query.select('id', 'location_id', 'created_at', 'status');
 
     for (const record of records) {
-      // Check if any role can approve this
       const canApprove = getValidNextStatusesForRole(collection, 'submitted', userRoles);
       if (canApprove.length > 0) {
         results.push({

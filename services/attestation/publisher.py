@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
+import psycopg2
+
+from ..ingestion.base import get_db
 from .eas_client import EASClient
 from .config import DEFAULT_CHAIN, KOKONUT_MULTISIG, EAS_RESOLVER_ADDRESS
-from .schemas import KOKONUT_SCHEMAS
+from .schemas import KOKONUT_SCHEMAS, SCHEMA_DB_NAMES
 
 
 def register_kokonut_schemas(
@@ -121,10 +124,33 @@ def get_schema(
 
 
 def _resolve_schema_uid(schema_name: str, chain: str) -> str:
-    """Resolve a schema name to its UID. For now, raises if not registered."""
+    """Resolve a schema name or alias to its onchain UID via attestation_schema."""
     if schema_name.startswith("0x"):
         return schema_name
+
+    db_name = SCHEMA_DB_NAMES.get(schema_name, schema_name)
+
+    try:
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT schema_uid FROM attestation_schema
+                WHERE (name = %s OR name ILIKE %s)
+                  AND chain = %s AND active = TRUE
+                ORDER BY version DESC
+                LIMIT 1
+                """,
+                (db_name, schema_name, chain),
+            )
+            row = cur.fetchone()
+        conn.close()
+        if row and row[0]:
+            return row[0]
+    except psycopg2.Error:
+        pass
+
     raise ValueError(
-        f"Schema '{schema_name}' not yet registered on {chain}. "
-        f"Run 'python3 -m services.attestation.cli schema register --name {schema_name} --chain {chain}' first."
+        f"Schema '{schema_name}' not found for chain '{chain}'. "
+        f"Register onchain and seed attestation_schema, or pass a 0x schema UID."
     )
