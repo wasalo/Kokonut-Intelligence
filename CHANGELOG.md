@@ -14,15 +14,22 @@ All notable changes to the Kokonut Intelligence Platform.
 - EAS CLI (`python3 -m services.attestation.cli`): schema registration, onchain attestation, offchain attestation, revocation, query, and chain info commands.
 - Celo chain configuration: RPC URLs, EAS contract addresses, and chain config for Celo mainnet, Alfajores, Optimism, and Base.
 - Celo EAS seed data (`schemas/seeds/014_pilot_celo_eas.sql`): chain indexer status and placeholder schema rows for 5 Kokonut schemas.
+- CI workflow (`.github/workflows/ci.yml`): Python checks, Directus hooks build, Foundry contracts (fmt, build, test) — runs on push, PR, and manual dispatch.
+- Foundry dependencies committed to repo (`contracts/lib/`): forge-std, eas-contracts, openzeppelin-contracts, openzeppelin-contracts-upgradeable.
+- PostgreSQL schema constraints (`015_constraints.sql`): 18 enum types, 37 CHECK constraints, 48 auto-update triggers, 3 UNIQUE constraints, ~55 ON DELETE SET NULL, ~50 FK indexes.
 
 ### Changed
 - JavaScript and Python SDK examples now use the canonical `draft -> submitted -> verified -> published` lifecycle.
 - Documentation now states EAS/private-data boundaries, external `Kokonut-Agentic-Marketplace` scope, and deferred dApp session ingestion.
 - Attestation guide updated with Celo workflow, CLI usage, offchain attestations, and private data strategy.
+- Solidity contracts formatted with `forge fmt` (single-line constructor/function signatures).
+- `contracts/.gitignore` no longer excludes `lib/` — Foundry dependencies now committed for CI reliability.
+- CI uses committed dependencies instead of `forge install`.
 
 ### Fixed
 - Cleared invalid Directus `sort_field` metadata for Baserow-migrated collections where no physical `sort` column exists.
 - Removed stale Directus field metadata that referenced nonexistent PostgreSQL columns.
+- Directus metadata snapshot test skips gracefully when gitignored `schema_latest.json` is absent (fixes CI failure).
 
 ## [0.10.0] - 2026-06-12
 
