@@ -39,13 +39,30 @@ echo "  PostgreSQL backup: $PG_BACKUP"
 if docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" --query "SELECT 1" > /dev/null 2>&1; then
     echo "Backing up ClickHouse..."
     CH_BACKUP="$BACKUP_DIR/clickhouse_$TIMESTAMP.sql.gz"
-    docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" \
-        clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" --query "SHOW TABLES" \
-        > /dev/null 2>&1 && \
-    docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" \
-        clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" --multiquery \
-        --query "SELECT * FROM system.tables" \
-        | gzip > "$CH_BACKUP" || true
+
+    # Dump schema (CREATE TABLE statements)
+    SCHEMA_DUMP=$(docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" \
+        clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" \
+        --query "SHOW CREATE TABLE kokonut_analytics.sensor_readings" 2>/dev/null || true)
+
+    # Dump data from all user tables
+    {
+        echo "-- ClickHouse backup: $TIMESTAMP"
+        echo "-- Schema and data for kokonut_analytics database"
+        echo ""
+
+        # List and dump each user table
+        for TABLE in $(docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" \
+            clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" \
+            --query "SELECT name FROM system.tables WHERE database = 'kokonut_analytics' AND engine != 'MaterializedView' AND engine != 'View'" 2>/dev/null); do
+            echo "-- Table: $TABLE"
+            docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" \
+                clickhouse-client --user kokonut --password "${CLICKHOUSE_PASSWORD:-}" \
+                --query "SELECT * FROM kokonut_analytics.$TABLE FORMAT CSVWithNames" 2>/dev/null || true
+            echo ""
+        done
+    } | gzip > "$CH_BACKUP"
+
     echo "  ClickHouse backup: $CH_BACKUP"
 fi
 

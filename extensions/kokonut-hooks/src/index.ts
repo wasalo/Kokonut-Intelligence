@@ -38,7 +38,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   setDb(database);
 
   function getUserId(meta: Record<string, any>): string | undefined {
-    const accountability = meta?.accountability || meta?.payload?._accountability;
+    const accountability = meta?.accountability;
     return accountability?.user;
   }
 
@@ -66,8 +66,9 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     meta: Record<string, any>
   ) {
     const userRoles = await resolveUserRoles(database, meta);
+    const accountability = meta?.accountability || meta?.payload?._accountability;
     return await handleWorkflowTransition(
-      collection, payload, meta.keys || {}, userRoles, database
+      collection, payload, meta.keys || {}, userRoles, database, accountability
     );
   }
 
@@ -103,6 +104,11 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('expense_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    // Re-run auto-categorization if category was cleared
+    if (!payload.category || payload.category === '') {
+      autoCategorizeExpense(payload);
+    }
+
     if (payload.amount !== undefined) {
       const errors = validateExpenseAmount(payload.amount);
       if (errors.length > 0) {

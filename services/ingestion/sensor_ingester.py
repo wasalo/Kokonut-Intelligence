@@ -20,6 +20,7 @@ Usage:
 import argparse
 import csv
 import json
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -28,6 +29,13 @@ import requests
 
 from .base import get_db, log_ingestion, hash_payload, retry
 from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+
+# Validation patterns for ClickHouse SQL interpolation
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+_TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')
+_QUALITY_RE = re.compile(r'^(good|suspect|missing|estimated)$')
+_SENSOR_TYPE_RE = re.compile(r'^[a-z_]+$')
+_UNIT_RE = re.compile(r'^[a-zA-Z°%µ]+$')
 
 # Sensor type range validation (fallback if sensor_type table not loaded)
 SENSOR_TYPE_RANGES = {
@@ -46,6 +54,18 @@ CSV_COLUMNS = {
     "reading_time",
     "value",
 }
+
+
+def _validate_ch_value(value: str, pattern: re.Pattern, name: str) -> str:
+    """Validate a value against a regex pattern for ClickHouse SQL safety."""
+    if not pattern.match(value):
+        raise ValueError(f"Invalid {name} for ClickHouse insert: {value!r}")
+    return value
+
+
+def _ch_str(value: str) -> str:
+    """Escape a string value for ClickHouse SQL single-quoted context."""
+    return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
 def get_sensor_type_ranges(db) -> dict:
@@ -139,12 +159,21 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
     else:
         ts = f"{reading_date} 00:00:00"
 
+    # Validate all interpolated values for SQL safety
+    _validate_ch_value(ts, _TS_RE, "timestamp")
+    _validate_ch_value(str(sensor_id), _UUID_RE, "sensor_id")
+    _validate_ch_value(sensor_type, _SENSOR_TYPE_RE, "sensor_type")
+    _validate_ch_value(str(location_id), _UUID_RE, "location_id")
+    if plot_id:
+        _validate_ch_value(str(plot_id), _UUID_RE, "plot_id")
+    _validate_ch_value(quality, _QUALITY_RE, "quality")
+
     ch_url = f"http://{CH_HOST}:{CH_PORT}"
 
-    # Get unit from sensor_info (index 4 = sensor_type, but we need unit)
-    # sensor_type_id is at index 3, sensor_type at index 4
-    # For now, use sensor_type as unit fallback since we don't have unit column in sensor_info
-    unit = sensor_type  # Fallback; could query sensor_type table separately
+    # Use the sensor_type name as a readable unit label for ClickHouse
+    unit = sensor_type
+    if not _UNIT_RE.match(unit):
+        unit = "unknown"
 
     query = f"""INSERT INTO sensor_readings
         (timestamp, sensor_id, sensor_type, location_id, plot_id,
@@ -177,133 +206,137 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
 def run_csv(file_path: str):
     """Batch ingest sensor readings from CSV."""
     db = get_db()
-    ranges = get_sensor_type_ranges(db)
+    try:
+        ranges = get_sensor_type_ranges(db)
 
-    with open(file_path, "r") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
+        with open(file_path, "r") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
 
-    print(f"[Sensor] Processing {len(rows)} readings from {file_path}...")
-    success = 0
-    warnings = 0
-    errors = 0
+        print(f"[Sensor] Processing {len(rows)} readings from {file_path}...")
+        success = 0
+        warnings = 0
+        errors = 0
 
-    for i, row in enumerate(rows):
-        device_id = row.get("device_id", "").strip()
-        reading_date = row.get("reading_date", "").strip()
-        reading_time = row.get("reading_time", "").strip()
-        value_str = row.get("value", "").strip()
+        for i, row in enumerate(rows):
+            device_id = row.get("device_id", "").strip()
+            reading_date = row.get("reading_date", "").strip()
+            reading_time = row.get("reading_time", "").strip()
+            value_str = row.get("value", "").strip()
 
-        if not device_id or not reading_date or not value_str:
-            errors += 1
-            print(f"  ✗ Row {i + 1}: missing required fields (device_id, reading_date, value)")
-            continue
+            if not device_id or not reading_date or not value_str:
+                errors += 1
+                print(f"  ✗ Row {i + 1}: missing required fields (device_id, reading_date, value)")
+                continue
 
-        try:
-            value = float(value_str)
-        except ValueError:
-            errors += 1
-            print(f"  ✗ Row {i + 1}: invalid value '{value_str}'")
-            continue
+            try:
+                value = float(value_str)
+            except ValueError:
+                errors += 1
+                print(f"  ✗ Row {i + 1}: invalid value '{value_str}'")
+                continue
 
-        # Look up sensor
-        sensor_info = get_sensor_by_id_or_slug(db, device_id)
-        if not sensor_info:
-            errors += 1
-            print(f"  ✗ Row {i + 1}: sensor '{device_id}' not found")
-            continue
+            # Look up sensor
+            sensor_info = get_sensor_by_id_or_slug(db, device_id)
+            if not sensor_info:
+                errors += 1
+                print(f"  ✗ Row {i + 1}: sensor '{device_id}' not found")
+                continue
 
-        # Validate range
-        sensor_type = sensor_info[4]
-        range_warnings = validate_reading(value, sensor_type, ranges)
-        quality = "good"
-        if range_warnings:
-            quality = "suspect"
-            warnings += 1
-            print(f"  ⚠ Row {i + 1}: {', '.join(range_warnings)}")
+            # Validate range
+            sensor_type = sensor_info[4]
+            range_warnings = validate_reading(value, sensor_type, ranges)
+            quality = "good"
+            if range_warnings:
+                quality = "suspect"
+                warnings += 1
+                print(f"  ⚠ Row {i + 1}: {', '.join(range_warnings)}")
 
-        try:
-            pg_id = insert_reading(db, sensor_info, reading_date, reading_time, value, quality,
-                                    {"csv_row": i + 1, "source_file": file_path})
-            insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality)
+            try:
+                pg_id = insert_reading(db, sensor_info, reading_date, reading_time, value, quality,
+                                        {"csv_row": i + 1, "source_file": file_path})
+                insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality)
 
-            log_ingestion(
-                source_system="csv_upload",
-                source_table="sensor_csv",
-                source_id=f"row_{i + 1}",
-                target_table="sensor_reading",
-                target_id=pg_id,
-                operation="insert",
-                payload_hash=hash_payload(row),
-                status="success",
-                rows_affected=1,
-            )
-            success += 1
+                log_ingestion(
+                    source_system="csv_upload",
+                    source_table="sensor_csv",
+                    source_id=f"row_{i + 1}",
+                    target_table="sensor_reading",
+                    target_id=pg_id,
+                    operation="insert",
+                    payload_hash=hash_payload(row),
+                    status="success",
+                    rows_affected=1,
+                )
+                success += 1
 
-        except Exception as e:
-            errors += 1
-            log_ingestion(
-                source_system="csv_upload",
-                source_table="sensor_csv",
-                source_id=f"row_{i + 1}",
-                target_table="sensor_reading",
-                target_id=None,
-                operation="insert",
-                payload_hash=hash_payload(row),
-                status="failed",
-                error_message=str(e),
-            )
-            print(f"  ✗ Row {i + 1}: {e}")
+            except Exception as e:
+                errors += 1
+                log_ingestion(
+                    source_system="csv_upload",
+                    source_table="sensor_csv",
+                    source_id=f"row_{i + 1}",
+                    target_table="sensor_reading",
+                    target_id=None,
+                    operation="insert",
+                    payload_hash=hash_payload(row),
+                    status="failed",
+                    error_message=str(e),
+                )
+                print(f"  ✗ Row {i + 1}: {e}")
 
-    db.commit()
-    db.close()
-    print(f"\n[Sensor] Done: {success} success, {warnings} warnings, {errors} errors")
+        db.commit()
+        print(f"\n[Sensor] Done: {success} success, {warnings} warnings, {errors} errors")
+    finally:
+        db.close()
 
 
 def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str = None):
     """Ingest a single sensor reading (API-style)."""
     db = get_db()
-    ranges = get_sensor_type_ranges(db)
+    try:
+        ranges = get_sensor_type_ranges(db)
 
-    sensor_info = get_sensor_by_id_or_slug(db, sensor_id)
-    if not sensor_info:
-        print(f"[Sensor] ERROR: sensor '{sensor_id}' not found")
-        sys.exit(1)
+        sensor_info = get_sensor_by_id_or_slug(db, sensor_id)
+        if not sensor_info:
+            print(f"[Sensor] ERROR: sensor '{sensor_id}' not found")
+            sys.exit(1)
 
-    now = datetime.now(timezone.utc)
-    reading_date = date_str or now.strftime("%Y-%m-%d")
-    reading_time = time_str or now.strftime("%H:%M:%S")
+        now = datetime.now(timezone.utc)
+        reading_date = date_str or now.strftime("%Y-%m-%d")
+        reading_time = time_str or now.strftime("%H:%M:%S")
 
-    # Validate
-    sensor_type = sensor_info[4]
-    range_warnings = validate_reading(value, sensor_type, ranges)
-    quality = "good"
-    if range_warnings:
-        quality = "suspect"
-        for w in range_warnings:
-            print(f"  ⚠ {w}")
+        # Validate
+        sensor_type = sensor_info[4]
+        range_warnings = validate_reading(value, sensor_type, ranges)
+        quality = "good"
+        if range_warnings:
+            quality = "suspect"
+            for w in range_warnings:
+                print(f"  ⚠ {w}")
 
-    pg_id = insert_reading(db, sensor_info, reading_date, reading_time, value, quality,
-                            {"source": "api", "ingested_at": now.isoformat()})
-    insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality)
+        pg_id = insert_reading(db, sensor_info, reading_date, reading_time, value, quality,
+                                {"source": "api", "ingested_at": now.isoformat()})
+        insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality)
 
-    log_ingestion(
-        source_system="api",
-        source_table="sensor_api",
-        source_id=sensor_id,
-        target_table="sensor_reading",
-        target_id=pg_id,
-        operation="insert",
-        payload_hash=hash_payload({"sensor_id": sensor_id, "value": value}),
-        status="success",
-        rows_affected=1,
-    )
+        log_ingestion(
+            source_system="api",
+            source_table="sensor_api",
+            source_id=sensor_id,
+            target_table="sensor_reading",
+            target_id=pg_id,
+            operation="insert",
+            payload_hash=hash_payload({"sensor_id": sensor_id, "value": value}),
+            status="success",
+            rows_affected=1,
+        )
 
-    db.commit()
-    db.close()
+        db.commit()
 
-    name = sensor_info[1]
-    print(f"[Sensor] ✓ {name}: {value} ({sensor_type}) at {reading_date} {reading_time}")
+        name = sensor_info[1]
+        print(f"[Sensor] ✓ {name}: {value} ({sensor_type}) at {reading_date} {reading_time}")
+    finally:
+        db.close()
 
 
 def list_sensors():

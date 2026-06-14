@@ -27,12 +27,18 @@ import argparse
 import json
 import math
 import random
+import re
 import sys
 import time
 from datetime import datetime, timezone, timedelta
 
 from .base import get_db, log_ingestion, hash_payload
 from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+
+# Validation patterns for ClickHouse SQL interpolation
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+_TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')
+_SENSOR_TYPE_RE = re.compile(r'^[a-z_]+$')
 
 # Sample sensor configurations
 SAMPLE_SENSORS = [
@@ -97,6 +103,13 @@ SAMPLE_SENSORS = [
         "noise": 0.0,
     },
 ]
+
+
+def _validate_ch_value(value: str, pattern: re.Pattern, name: str) -> str:
+    """Validate a value against a regex pattern for ClickHouse SQL safety."""
+    if not pattern.match(value):
+        raise ValueError(f"Invalid {name} for ClickHouse insert: {value!r}")
+    return value
 
 
 def get_or_create_location(db):
@@ -199,109 +212,117 @@ def generate_reading(sensor: dict, timestamp: datetime, inject_anomaly: bool = F
 def generate_data(count: int = 96, inject_anomalies: bool = False):
     """Generate sensor readings for all active sensors."""
     db = get_db()
-    sensors = []
-    with db.cursor() as cur:
-        cur.execute("""
-            SELECT sd.id, sd.name, sd.slug, sd.sensor_type_id, st.name as sensor_type,
-                   sd.location_id, sd.plot_id, sd.status, sd.protocol,
-                   sd.metadata
-            FROM sensor_device sd
-            JOIN sensor_type st ON sd.sensor_type_id = st.id
-            WHERE sd.status = 'active'
-        """)
-        sensors = cur.fetchall()
+    try:
+        sensors = []
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT sd.id, sd.name, sd.slug, sd.sensor_type_id, st.name as sensor_type,
+                       sd.location_id, sd.plot_id, sd.status, sd.protocol,
+                       sd.metadata
+                FROM sensor_device sd
+                JOIN sensor_type st ON sd.sensor_type_id = st.id
+                WHERE sd.status = 'active'
+            """)
+            sensors = cur.fetchall()
 
-    if not sensors:
-        print("[MockSensors] No active sensors found. Run --setup first.")
-        db.close()
-        return
+        if not sensors:
+            print("[MockSensors] No active sensors found. Run --setup first.")
+            return
 
-    print(f"[MockSensors] Generating {count} readings for {len(sensors)} sensors...")
+        print(f"[MockSensors] Generating {count} readings for {len(sensors)} sensors...")
 
-    now = datetime.now(timezone.utc)
-    interval = timedelta(hours=24) / count
+        now = datetime.now(timezone.utc)
+        interval = timedelta(hours=24) / count
 
-    total = 0
-    anomalies_injected = 0
+        total = 0
+        anomalies_injected = 0
 
-    for sensor in sensors:
-        sensor_id, name, slug, stid, stype, loc_id, plot_id, status, protocol, metadata = sensor
-        sensor_meta = metadata if isinstance(metadata, dict) else json.loads(metadata or "{}")
+        for sensor in sensors:
+            sensor_id, name, slug, stid, stype, loc_id, plot_id, status, protocol, metadata = sensor
+            sensor_meta = metadata if isinstance(metadata, dict) else json.loads(metadata or "{}")
 
-        # Build sensor_info tuple for insert_reading
-        sensor_info = (sensor_id, name, slug, stid, stype, loc_id, plot_id, status, protocol)
+            # Build sensor_info tuple for insert_reading
+            sensor_info = (sensor_id, name, slug, stid, stype, loc_id, plot_id, status, protocol)
 
-        for i in range(count):
-            ts = now - timedelta(hours=24) + (interval * i)
-            reading_date = ts.strftime("%Y-%m-%d")
-            reading_time = ts.strftime("%H:%M:%S")
+            for i in range(count):
+                ts = now - timedelta(hours=24) + (interval * i)
+                reading_date = ts.strftime("%Y-%m-%d")
+                reading_time = ts.strftime("%H:%M:%S")
 
-            # Decide if this reading should be an anomaly
-            is_anomaly = inject_anomalies and random.random() < 0.03  # 3% chance
+                # Decide if this reading should be an anomaly
+                is_anomaly = inject_anomalies and random.random() < 0.03  # 3% chance
 
-            value = generate_reading(
-                {"base_value": sensor_meta.get("base_value", 0),
-                 "daily_variation": sensor_meta.get("daily_variation", 0),
-                 "noise": sensor_meta.get("noise", 0)},
-                ts,
-                inject_anomaly=is_anomaly,
-            )
+                value = generate_reading(
+                    {"base_value": sensor_meta.get("base_value", 0),
+                     "daily_variation": sensor_meta.get("daily_variation", 0),
+                     "noise": sensor_meta.get("noise", 0)},
+                    ts,
+                    inject_anomaly=is_anomaly,
+                )
 
-            if is_anomaly:
-                anomalies_injected += 1
+                if is_anomaly:
+                    anomalies_injected += 1
 
-            # Insert into PostgreSQL
-            try:
-                with db.cursor() as cur:
-                    cur.execute(
-                        """
-                        INSERT INTO sensor_reading
-                            (location_id, plot_id, sensor_id, sensor_type, reading_date,
-                             reading_time, value, unit, quality, metadata)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s,
-                                (SELECT unit FROM sensor_type WHERE id = %s),
-                                %s, %s::jsonb)
-                        RETURNING id
-                        """,
-                        (
-                            loc_id, plot_id, str(sensor_id), stype,
-                            reading_date, reading_time, value, stid,
-                            "good" if not is_anomaly else "suspect",
-                            json.dumps({"mock": True, "anomaly": is_anomaly}),
-                        ),
-                    )
-                    pg_id = cur.fetchone()[0]
-
-                # Insert into ClickHouse
-                ch_url = f"http://{CH_HOST}:{CH_PORT}"
-                ts_str = f"{reading_date} {reading_time}"
-                ch_query = f"""INSERT INTO sensor_readings
-                    (timestamp, sensor_id, sensor_type, location_id, plot_id,
-                     value, unit, quality, metadata)
-                    VALUES (
-                        '{ts_str}', '{sensor_id}', '{stype}', '{loc_id}',
-                        '{str(plot_id) if plot_id else ''}',
-                        {value}, 'mock_unit', 'good', map()
-                    )"""
+                # Insert into PostgreSQL
                 try:
-                    import requests as req
-                    resp = req.post(ch_url, data=ch_query.encode("utf-8"),
-                                    auth=(CH_USER, CH_PASSWORD),
-                                    headers={"Content-Type": "text/plain"}, timeout=10)
-                    resp.raise_for_status()
-                except Exception:
-                    pass
+                    with db.cursor() as cur:
+                        cur.execute(
+                            """
+                            INSERT INTO sensor_reading
+                                (location_id, plot_id, sensor_id, sensor_type, reading_date,
+                                 reading_time, value, unit, quality, metadata)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s,
+                                    (SELECT unit FROM sensor_type WHERE id = %s),
+                                    %s, %s::jsonb)
+                            RETURNING id
+                            """,
+                            (
+                                loc_id, plot_id, str(sensor_id), stype,
+                                reading_date, reading_time, value, stid,
+                                "good" if not is_anomaly else "suspect",
+                                json.dumps({"mock": True, "anomaly": is_anomaly}),
+                            ),
+                        )
+                        pg_id = cur.fetchone()[0]
 
-                total += 1
+                    # Insert into ClickHouse
+                    ch_url = f"http://{CH_HOST}:{CH_PORT}"
+                    ts_str = f"{reading_date} {reading_time}"
 
-            except Exception as e:
-                print(f"  ✗ {name} @ {ts}: {e}")
+                    # Validate interpolated values
+                    _validate_ch_value(ts_str, _TS_RE, "timestamp")
+                    _validate_ch_value(str(sensor_id), _UUID_RE, "sensor_id")
+                    _validate_ch_value(stype, _SENSOR_TYPE_RE, "sensor_type")
+                    _validate_ch_value(str(loc_id), _UUID_RE, "location_id")
 
-        print(f"  ✓ {name}: {count} readings")
+                    ch_query = f"""INSERT INTO sensor_readings
+                        (timestamp, sensor_id, sensor_type, location_id, plot_id,
+                         value, unit, quality, metadata)
+                        VALUES (
+                            '{ts_str}', '{sensor_id}', '{stype}', '{loc_id}',
+                            '{str(plot_id) if plot_id else ''}',
+                            {value}, 'mock_unit', 'good', map()
+                        )"""
+                    try:
+                        import requests as req
+                        resp = req.post(ch_url, data=ch_query.encode("utf-8"),
+                                        auth=(CH_USER, CH_PASSWORD),
+                                        headers={"Content-Type": "text/plain"}, timeout=10)
+                        resp.raise_for_status()
+                    except Exception:
+                        pass
 
-    db.commit()
-    db.close()
-    print(f"\n[MockSensors] Done: {total} readings, {anomalies_injected} anomalies")
+                    total += 1
+
+                except Exception as e:
+                    print(f"  ✗ {name} @ {ts}: {e}")
+
+            print(f"  ✓ {name}: {count} readings")
+
+        db.commit()
+        print(f"\n[MockSensors] Done: {total} readings, {anomalies_injected} anomalies")
+    finally:
+        db.close()
 
 
 def cleanup():

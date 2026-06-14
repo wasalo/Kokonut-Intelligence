@@ -60,7 +60,6 @@ class EASClient:
             revocable,
         ).build_transaction({
             "from": self.signer.address,
-            "nonce": self.signer.get_nonce(),
             "chainId": self.config["chain_id"],
         })
 
@@ -126,7 +125,6 @@ class EASClient:
             }
         ).build_transaction({
             "from": self.signer.address,
-            "nonce": self.signer.get_nonce(),
             "chainId": self.config["chain_id"],
         })
 
@@ -171,7 +169,6 @@ class EASClient:
 
         tx = self.eas.functions.multiAttest(eas_attestations).build_transaction({
             "from": self.signer.address,
-            "nonce": self.signer.get_nonce(),
             "chainId": self.config["chain_id"],
         })
 
@@ -208,7 +205,6 @@ class EASClient:
             }
         ).build_transaction({
             "from": self.signer.address,
-            "nonce": self.signer.get_nonce(),
             "chainId": self.config["chain_id"],
         })
 

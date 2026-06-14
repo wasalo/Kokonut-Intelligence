@@ -234,7 +234,8 @@ export function calculateNetAmount(
   returnAmount: number = 0,
   discountAmount: number = 0
 ): number {
-  return totalAmount - returnAmount - discountAmount;
+  const net = totalAmount - returnAmount - discountAmount;
+  return Math.max(0, net);
 }
 
 /**

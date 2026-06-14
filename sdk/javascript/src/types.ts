@@ -16,10 +16,12 @@ export interface Farm {
   id: string;
   location_id: string;
   name: string;
-  farm_type: 'operational' | 'nursery' | 'processing' | 'storage';
+  slug: string;
+  description?: string;
+  farm_type: 'conventional' | 'organic' | 'syntropic' | 'agroforestry' | 'hybrid';
   total_area: number;
-  area_unit: 'ha' | 'acres' | 'm2';
-  status: 'active' | 'inactive';
+  area_unit: 'hectares' | 'acres' | 'm2';
+  status: 'active' | 'inactive' | 'archived';
   created_at: string;
   updated_at: string;
 }
@@ -28,12 +30,13 @@ export interface Plot {
   id: string;
   farm_id: string;
   name: string;
+  slug: string;
   area: number;
-  area_unit: 'ha' | 'acres' | 'm2';
+  area_unit: 'hectares' | 'acres' | 'm2';
   soil_type?: string;
   water_source?: string;
   boundary?: Record<string, any>;
-  status: 'active' | 'fallow' | 'retired';
+  status: 'active' | 'inactive' | 'archived';
   created_at: string;
   updated_at: string;
 }
@@ -58,33 +61,41 @@ export interface HarvestEvent {
   id: string;
   crop_cycle_id: string;
   plot_id: string;
+  location_id: string;
   harvest_date: string;
   quantity: number;
   unit: string;
   quality_grade?: string;
-  gross_weight?: number;
-  net_weight?: number;
-  loss_quantity?: number;
+  destination?: string;
+  loss_amount?: number;
+  loss_unit?: string;
   loss_reason?: string;
+  loss_estimated_value?: number;
+  evidence_urls?: string[];
+  notes?: string;
   status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
-  recorded_by?: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface SalesEvent {
   id: string;
-  crop_cycle_id: string;
-  harvest_event_id?: string;
-  buyer_id?: string;
-  buyer_name: string;
+  harvest_id?: string;
+  crop_cycle_id?: string;
+  location_id: string;
+  partner_id?: string;
   sale_date: string;
+  buyer?: string;
+  buyer_type?: string;
   quantity: number;
   unit: string;
-  price_per_unit: number;
+  price_per_unit?: number;
   total_amount: number;
   currency: string;
   payment_status: 'pending' | 'partial' | 'paid' | 'overdue' | 'cancelled';
+  return_amount?: number;
+  discount_amount?: number;
+  net_amount?: number;
   status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
   created_at: string;
   updated_at: string;
@@ -92,19 +103,22 @@ export interface SalesEvent {
 
 export interface ExpenseEvent {
   id: string;
-  crop_cycle_id?: string;
+  location_id: string;
   plot_id?: string;
-  location_id?: string;
+  crop_cycle_id?: string;
+  expense_date: string;
   category: string;
-  description: string;
+  subcategory?: string;
+  description?: string;
+  vendor?: string;
   amount: number;
   currency: string;
-  vendor?: string;
-  allocation_method: 'direct' | 'proportional' | 'equal';
-  receipt_url?: string;
-  expense_date: string;
+  is_capex?: boolean;
+  allocation_method?: 'direct' | 'proportional' | 'equal' | 'area_based';
+  evidence_urls?: string[];
+  invoice_number?: string;
+  notes?: string;
   status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
-  recorded_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -112,14 +126,14 @@ export interface ExpenseEvent {
 export interface SensorReading {
   id: string;
   sensor_id: string;
-  crop_cycle_id?: string;
+  location_id?: string;
   plot_id?: string;
+  sensor_type?: string;
   reading_date: string;
+  reading_time?: string;
   value: number;
   unit: string;
-  quality: 'good' | 'suspect' | 'bad';
-  anomaly_flag: boolean;
-  anomaly_score?: number;
+  quality: 'good' | 'suspect' | 'missing' | 'estimated';
   metadata?: Record<string, any>;
   created_at: string;
 }
@@ -138,19 +152,17 @@ export interface WalletProfile {
 
 export interface AttestationRecord {
   id: string;
-  attestation_uid?: string;
   schema_id?: string;
-  entity_type: string;
-  entity_id: string;
-  claim_type: string;
+  attestation_uid?: string;
+  subject_id?: string;
+  subject_type: string;
   claim_data: Record<string, any>;
-  evidence_hashes?: string[];
   status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
-  reviewer_id?: string;
-  review_notes?: string;
+  tx_hash?: string;
   chain?: string;
+  reviewer_id?: string;
+  reviewed_at?: string;
   attested_at?: string;
-  expires_at?: string;
   created_at: string;
   updated_at: string;
 }

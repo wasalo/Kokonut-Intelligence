@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS plot (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     farm_id UUID NOT NULL REFERENCES farm(id) ON DELETE RESTRICT,
     name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255),
+    slug VARCHAR(255) NOT NULL,
     description TEXT,
     area NUMERIC(12,4),
     area_unit VARCHAR(20) DEFAULT 'hectares',

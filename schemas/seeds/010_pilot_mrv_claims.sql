@@ -13,6 +13,6 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Verification Reviews
 INSERT INTO verification_review (id, claim_id, reviewer_id, review_date, method, result, notes, created_at) VALUES
-('a0000000-0000-0000-0000-000000000390', 'a0000000-0000-0000-0000-000000000380', 'a0000000-0000-0000-0000-000000000060', '2026-03-18', 'lab_verification', 'verified', 'Lab results confirmed. Carbon gain of 3.4 t/ha is consistent with regenerative practice.', '2026-03-18 10:00:00+00'),
-('a0000000-0000-0000-0000-000000000391', 'a0000000-0000-0000-0000-000000000381', 'a0000000-0000-0000-0000-000000000060', '2026-03-18', 'lab_verification', 'verified', 'Lab results confirmed. Carbon gain of 3.0 t/ha on clay soil.', '2026-03-18 10:00:00+00')
+('a0000000-0000-0000-0000-000000000390', 'a0000000-0000-0000-0000-000000000380', 'a0000000-0000-0000-0000-000000000060', '2026-03-18', 'lab_verification', 'approved', 'Lab results confirmed. Carbon gain of 3.4 t/ha is consistent with regenerative practice.', '2026-03-18 10:00:00+00'),
+('a0000000-0000-0000-0000-000000000391', 'a0000000-0000-0000-0000-000000000381', 'a0000000-0000-0000-0000-000000000060', '2026-03-18', 'lab_verification', 'approved', 'Lab results confirmed. Carbon gain of 3.0 t/ha on clay soil.', '2026-03-18 10:00:00+00')
 ON CONFLICT (id) DO NOTHING;

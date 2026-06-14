@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS harvest_event (
     source_id VARCHAR(255),
     source_raw JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_by UUID,
     updated_by UUID
 );
@@ -117,6 +118,7 @@ CREATE TABLE IF NOT EXISTS sales_event (
     source_id VARCHAR(255),
     source_raw JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_by UUID,
     updated_by UUID
 );
@@ -163,6 +165,7 @@ CREATE TABLE IF NOT EXISTS expense_event (
     source_id VARCHAR(255),
     source_raw JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
     created_by UUID,
     updated_by UUID
 );

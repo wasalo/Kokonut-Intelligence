@@ -219,6 +219,25 @@ ALTER TABLE sensor_alert        ADD CONSTRAINT chk_alert_status CHECK (status::a
 ALTER TABLE wallet_activity_event DROP CONSTRAINT IF EXISTS chk_wallet_activity_status;
 ALTER TABLE wallet_activity_event ADD CONSTRAINT chk_wallet_activity_status CHECK (status::wallet_tx_status IS NOT NULL);
 
+-- ============================================================
+-- 2b. Positive-value CHECK constraints
+-- ============================================================
+
+ALTER TABLE harvest_event DROP CONSTRAINT IF EXISTS chk_harvest_quantity_positive;
+ALTER TABLE harvest_event ADD CONSTRAINT chk_harvest_quantity_positive CHECK (quantity > 0);
+
+ALTER TABLE sales_event DROP CONSTRAINT IF EXISTS chk_sales_quantity_positive;
+ALTER TABLE sales_event ADD CONSTRAINT chk_sales_quantity_positive CHECK (quantity > 0);
+
+ALTER TABLE sales_event DROP CONSTRAINT IF EXISTS chk_sales_amount_positive;
+ALTER TABLE sales_event ADD CONSTRAINT chk_sales_amount_positive CHECK (total_amount > 0);
+
+ALTER TABLE expense_event DROP CONSTRAINT IF EXISTS chk_expense_amount_positive;
+ALTER TABLE expense_event ADD CONSTRAINT chk_expense_amount_positive CHECK (amount > 0);
+
+ALTER TABLE labor_event DROP CONSTRAINT IF EXISTS chk_labor_hours_positive;
+ALTER TABLE labor_event ADD CONSTRAINT chk_labor_hours_positive CHECK (hours_worked > 0);
+
 -- --- Indexer status ---
 ALTER TABLE chain_indexer_status DROP CONSTRAINT IF EXISTS chk_indexer_status;
 ALTER TABLE chain_indexer_status ADD CONSTRAINT chk_indexer_status CHECK (status::indexer_status IS NOT NULL);

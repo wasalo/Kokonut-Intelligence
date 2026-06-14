@@ -12,6 +12,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -21,7 +22,19 @@ import requests
 from .base import get_db, log_ingestion, hash_payload, retry
 from .config import OPENWEATHERMAP_API_KEY, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
+# Validation patterns for ClickHouse SQL interpolation
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+_TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+_STR_RE = re.compile(r'^[a-zA-Z0-9_\-\. ]+$')
+
 API_BASE = "https://api.openweathermap.org/data/2.5/weather"
+
+
+def _validate_ch_value(value: str, pattern: re.Pattern, name: str) -> str:
+    """Validate a value against a regex pattern for ClickHouse SQL safety."""
+    if not pattern.match(value):
+        raise ValueError(f"Invalid {name} for ClickHouse insert: {value!r}")
+    return value
 
 
 @retry(max_retries=3, backoff=2.0)
@@ -122,12 +135,17 @@ def insert_weather_clickhouse(records: list[dict]) -> None:
         except Exception:
             ch_timestamp = f"{obs_date} {obs_time}"
 
+        # Validate interpolated values
+        location_id = rec.get("location_id", "")
+        if location_id:
+            _validate_ch_value(str(location_id), _UUID_RE, "location_id")
+
         query = f"""INSERT INTO weather_events
             (timestamp, location_id, source, temperature_c, precipitation_mm,
              humidity_pct, wind_speed_kmh, solar_radiation_wm2, cloud_cover_pct, metadata)
             VALUES (
                 '{ch_timestamp}',
-                '{rec.get("location_id", "")}',
+                '{location_id}',
                 'openweathermap',
                 {rec.get("temperature_c") or 0},
                 {rec.get("precipitation_mm") or 0},

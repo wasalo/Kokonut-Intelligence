@@ -149,6 +149,17 @@ CREATE INDEX IF NOT EXISTS idx_sensor_alert_status ON sensor_alert(status);
 CREATE INDEX IF NOT EXISTS idx_sensor_alert_severity ON sensor_alert(severity);
 CREATE INDEX IF NOT EXISTS idx_sensor_alert_triggered ON sensor_alert(triggered_at);
 
+-- FK for claim_id (links to mrv_claim if auto-created)
+DO $$ BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'sensor_alert_claim_id_fkey'
+    ) THEN
+        ALTER TABLE sensor_alert
+        ADD CONSTRAINT sensor_alert_claim_id_fkey
+        FOREIGN KEY (claim_id) REFERENCES mrv_claim(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
 -- Sensor-to-claim workflow (extends existing mrv_claim)
 -- Add sensor-specific columns to support sensor data provenance
 ALTER TABLE mrv_claim ADD COLUMN IF NOT EXISTS sensor_device_id UUID REFERENCES sensor_device(id);

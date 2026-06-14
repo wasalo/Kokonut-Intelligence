@@ -88,10 +88,40 @@ const ROLE_ROUTING: Record<string, string[]> = {
   'report_snapshot:published': ['manager', 'admin'],
   'farm_registry_record:verified': ['manager', 'admin'],
   'farm_registry_record:published': ['admin'],
+  'inventory_event:verified': ['manager', 'supervisor', 'admin'],
+  'inventory_event:rejected': ['manager', 'supervisor', 'admin'],
+  'inventory_event:published': ['manager', 'admin'],
+  'maintenance_event:verified': ['manager', 'supervisor', 'admin'],
+  'maintenance_event:rejected': ['manager', 'supervisor', 'admin'],
+  'maintenance_event:published': ['manager', 'admin'],
+  'dashboard_dataset:verified': ['analyst', 'manager', 'admin'],
+  'dashboard_dataset:published': ['manager', 'admin'],
 };
 
 // Stash from_status between filter (pre-write) and action (post-write) hooks
-const pendingTransitions = new Map<string, string>();
+const pendingTransitions = new Map<string, { fromStatus: string; expiresAt: number }>();
+
+const PENDING_TRANSITION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const PENDING_TRANSITION_MAX_SIZE = 1000;
+
+function evictExpiredTransitions(): void {
+  const now = Date.now();
+  for (const [key, entry] of pendingTransitions) {
+    if (now > entry.expiresAt) {
+      pendingTransitions.delete(key);
+    }
+  }
+  // If still over max size, delete oldest entries (Map preserves insertion order)
+  if (pendingTransitions.size > PENDING_TRANSITION_MAX_SIZE) {
+    const excess = pendingTransitions.size - PENDING_TRANSITION_MAX_SIZE;
+    let deleted = 0;
+    for (const key of pendingTransitions.keys()) {
+      if (deleted >= excess) break;
+      pendingTransitions.delete(key);
+      deleted++;
+    }
+  }
+}
 
 // Fields to auto-set based on transition
 const TIMESTAMP_FIELDS: Record<string, string> = {
@@ -116,7 +146,11 @@ export function stashPendingTransition(
   fromStatus: string | undefined
 ): void {
   if (fromStatus) {
-    pendingTransitions.set(transitionKey(collection, recordId), fromStatus);
+    evictExpiredTransitions();
+    pendingTransitions.set(transitionKey(collection, recordId), {
+      fromStatus,
+      expiresAt: Date.now() + PENDING_TRANSITION_TTL_MS,
+    });
   }
 }
 
@@ -126,9 +160,9 @@ export function consumePendingTransition(
   recordId: string
 ): string | undefined {
   const key = transitionKey(collection, recordId);
-  const fromStatus = pendingTransitions.get(key);
+  const entry = pendingTransitions.get(key);
   pendingTransitions.delete(key);
-  return fromStatus;
+  return entry?.fromStatus;
 }
 
 /**
@@ -172,7 +206,8 @@ export async function handleWorkflowTransition(
   payload: Record<string, unknown>,
   keys: Record<string, unknown>,
   userRoles: string[] = [],
-  db?: any
+  db?: any,
+  accountability?: Record<string, any>
 ): Promise<Record<string, unknown>> {
   const newStatus = payload.status as string | undefined;
   if (!newStatus) return payload;
@@ -224,7 +259,6 @@ export async function handleWorkflowTransition(
   }
 
   const userField = USER_FIELDS[newStatus];
-  const accountability = payload._accountability as Record<string, any> | undefined;
   if (userField && accountability?.user) {
     payload[userField] = accountability.user;
   }

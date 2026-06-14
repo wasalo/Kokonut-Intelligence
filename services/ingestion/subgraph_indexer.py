@@ -101,7 +101,7 @@ def insert_attestation(db, att: dict, schema_map: dict) -> str:
             """
             INSERT INTO attestation_record
                 (schema_id, attestation_uid, subject_id, subject_type,
-                 claim_data, status, attestation_tx, chain, reviewer_id, reviewed_at)
+                 claim_data, status, tx_hash, chain, reviewer_id, reviewed_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (attestation_uid) DO NOTHING
             RETURNING id

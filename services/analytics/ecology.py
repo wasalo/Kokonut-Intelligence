@@ -120,30 +120,34 @@ def compute_biodiversity(conn, location_id: str) -> Dict[str, Any]:
     if not rows:
         return {"location_id": location_id, "observations": [], "summary": None}
 
+    # Aggregate species counts across all observations for Shannon index
+    species_totals: Dict[str, int] = {}
+    for row in rows:
+        species_name = row.get("species_name") or ""
+        count = row.get("count", 0) or 0
+        if species_name and count > 0:
+            species_totals[species_name] = species_totals.get(species_name, 0) + count
+
+    # Calculate Shannon diversity index: H = -sum(p_i * ln(p_i))
+    shannon_index = 0.0
+    total_individuals = sum(species_totals.values())
+    if total_individuals > 0:
+        for sp_count in species_totals.values():
+            if sp_count > 0:
+                p = sp_count / total_individuals
+                shannon_index -= p * math.log(p)
+
     observations = []
     for row in rows:
         species_name = row.get("species_name") or ""
         count = row.get("count", 0) or 0
 
-        # Shannon diversity index: H = -sum(p_i * ln(p_i))
-        shannon = 0.0
-        if species_name and count > 0:
-            # Count individuals per species
-            sp_counts: Dict[str, int] = {}
-            sp_counts[species_name] = sp_counts.get(species_name, 0) + count
-            total = sum(sp_counts.values())
-            if total > 0:
-                for sp_count in sp_counts.values():
-                    if sp_count > 0:
-                        p = sp_count / total
-                        shannon -= p * math.log(p)
-
         observations.append({
             "observation_date": row["observation_date"].isoformat() if hasattr(row["observation_date"], "isoformat") else str(row["observation_date"]),
             "plot_id": str(row["plot_id"]) if row.get("plot_id") else None,
             "species_count": count,
-            "unique_species": 1 if species_name else 0,
-            "shannon_index": round(shannon, 4),
+            "unique_species": len(species_totals),
+            "shannon_index": round(shannon_index, 4),
             "habitat_type": row.get("habitat_type"),
         })
 

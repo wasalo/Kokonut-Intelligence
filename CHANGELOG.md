@@ -26,11 +26,35 @@ All notable changes to the Kokonut Intelligence Platform.
 - Solidity contracts formatted with `forge fmt` (single-line constructor/function signatures).
 - `contracts/.gitignore` no longer excludes `lib/` — Foundry dependencies now committed for CI reliability.
 - CI uses committed dependencies instead of `forge install`.
+- ClickHouse HTTP inserts now validate all interpolated values against strict regex patterns before SQL interpolation.
+- `pendingTransitions` Map now has 30-minute TTL and 1000-entry cap to prevent memory leaks.
+- Role cache in `roles.ts` now has 5-minute TTL with automatic expiration.
+- `storeNoiSnapshot` now uses `INSERT ... ON CONFLICT DO UPDATE` to prevent TOCTOU races.
+- `calculateNetAmount` now clamps to zero minimum (prevents negative net amounts).
+- Shannon diversity index now computed across all observations for a location (not per-row).
+- Field Worker create permissions now exclude `status` — lifecycle starts at `draft` by default.
+- `harvest_event`, `sales_event`, `expense_event` now have `updated_at` column with auto-update trigger.
+- `plot.slug` is now `NOT NULL` (consistent with `location.slug`, `farm.slug`, `partner.slug`).
+- `eas_indexer.py --chain` now accepts `celo` in addition to `optimism` and `base`.
+- ClickHouse backup script now dumps actual table data, not just `system.tables` metadata.
+- `verification_review.result` seed data corrected from `verified` to `approved`.
+- `014_directus_metadata_repair.sql` wrapped in `DO $$ EXCEPTION` guard — skips cleanly when Directus not installed.
+- `expense_event.update` now re-runs auto-categorization if category is cleared.
+- JS/TS SDK types corrected: `Farm.farm_type`, `Plot.slug`, `HarvestEvent.location_id`, `SalesEvent` fields, `ExpenseEvent` fields, `SensorReading.quality`, `AttestationRecord` fields.
 
 ### Fixed
 - Cleared invalid Directus `sort_field` metadata for Baserow-migrated collections where no physical `sort` column exists.
 - Removed stale Directus field metadata that referenced nonexistent PostgreSQL columns.
 - Directus metadata snapshot test skips gracefully when gitignored `schema_latest.json` is absent (fixes CI failure).
+- Workflow `USER_FIELDS` accountability stamping — `verified_by`/`rejected_by`/`submitted_by` now correctly written from `meta.accountability`.
+- `subgraph_indexer.py` INSERT column `attestation_tx` corrected to `tx_hash` to match schema.
+- DB connection leaks fixed in `sensor_ingester.py`, `mock_sensors.py`, `eas_indexer.py` — all use `try/finally` blocks.
+- `sensor_alert.claim_id` now has FK constraint to `mrv_claim(id)`.
+- Nonce double-consumption in `eas_client.py` — removed redundant `get_nonce()` from `build_transaction` calls.
+- Hardcoded dev credentials removed from `services/common/db.py` — secrets now required via environment variables.
+- Added `ROLE_ROUTING` for `inventory_event`, `maintenance_event`, `dashboard_dataset` — prevents unauthorized transitions.
+- Added Directus permissions for `revenue_event` (Finance and Manager policies).
+- Added CHECK constraints: `quantity > 0` on harvest/sales, `total_amount > 0` on sales, `amount > 0` on expense, `hours_worked > 0` on labor.
 
 ## [0.10.0] - 2026-06-12
 

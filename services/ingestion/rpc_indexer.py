@@ -14,6 +14,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -26,11 +27,22 @@ from .base import (
 )
 from .config import CHAIN_RPC_MAP, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
+# Validation patterns for ClickHouse SQL interpolation
+_STR_RE = re.compile(r'^[a-zA-Z0-9_\-\. ]+$')
+_STR_LOOSE_RE = re.compile(r'^[a-zA-Z0-9_\-\.:/ ]+$')
+
 # Block range per request (limits API usage)
 BLOCK_BATCH = 100
 
 # Activity type detection
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+
+
+def _validate_ch_value(value: str, pattern: re.Pattern, name: str) -> str:
+    """Validate a value against a regex pattern for ClickHouse SQL safety."""
+    if not pattern.match(value):
+        raise ValueError(f"Invalid {name} for ClickHouse insert: {value!r}")
+    return value
 
 
 def get_web3(chain: str) -> Web3:
@@ -144,19 +156,38 @@ def insert_activity_clickhouse(records: list[dict]) -> None:
             except Exception:
                 ch_timestamp = str(timestamp)
 
+        # Validate interpolated values for SQL safety
+        chain = rec.get("chain", "")
+        if chain:
+            _validate_ch_value(chain, _STR_RE, "chain")
+
+        tx_hash = rec.get("tx_hash", "")
+        if tx_hash:
+            _validate_ch_value(tx_hash, _STR_LOOSE_RE, "tx_hash")
+
+        activity_type = rec.get("activity_type", "")
+        if activity_type:
+            _validate_ch_value(activity_type, _STR_RE, "activity_type")
+
+        token = rec.get("token", "ETH")
+        _validate_ch_value(token, _STR_RE, "token")
+
+        status = rec.get("status", "success")
+        _validate_ch_value(status, _STR_RE, "status")
+
         query = f"""INSERT INTO wallet_events
             (timestamp, wallet_address, chain, tx_hash, block_number,
              event_type, value, token, status, metadata)
             VALUES (
                 '{ch_timestamp}',
                 '{rec.get("to_address", "") or rec.get("from_address", "")}',
-                '{rec.get("chain", "")}',
-                '{rec.get("tx_hash", "")}',
+                '{chain}',
+                '{tx_hash}',
                 {rec.get("block_number", 0)},
-                '{rec.get("activity_type", "")}',
+                '{activity_type}',
                 {rec.get("value", 0)},
-                '{rec.get("token", "ETH")}',
-                '{rec.get("status", "success")}',
+                '{token}',
+                '{status}',
                 map()
             )"""
 

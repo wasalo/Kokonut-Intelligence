@@ -50,3 +50,10 @@
 - Solidity contracts use OpenZeppelin base contracts. Don't reinvent ERC/access patterns.
 - Run `forge test` before deploying any contract changes.
 - Run `forge fmt` before committing Solidity changes.
+- ClickHouse HTTP inserts must validate all interpolated values against strict regex patterns before SQL interpolation.
+- Directus hooks pass accountability via `meta.accountability`, not `payload._accountability`.
+- Role cache in `roles.ts` has a 5-minute TTL; invalidate with `clearRoleCache()` in tests.
+- `pendingTransitions` Map has 30-minute TTL and 1000-entry cap to prevent memory leaks.
+- Use `try/finally` with `db.close()` for all PostgreSQL connection blocks in ingestion scripts.
+- `verify_review.result` uses `approved`/`rejected`/`needs_info`, not `verified`.
+- Field Worker create permissions exclude `status` — lifecycle starts at `draft` by default.

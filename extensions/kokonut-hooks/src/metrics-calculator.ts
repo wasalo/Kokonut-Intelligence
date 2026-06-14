@@ -147,32 +147,23 @@ export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
     inputs: JSON.stringify(calc.inputs),
   };
 
-  // Check if snapshot exists for this crop_cycle_id
-  const existing = await db('noi_snapshot')
-    .where('crop_cycle_id', snapshotData.crop_cycle_id)
-    .first();
-
-  if (existing) {
-    // Update existing snapshot
-    await db('noi_snapshot')
-      .where('crop_cycle_id', snapshotData.crop_cycle_id)
-      .update({
-        gross_revenue: snapshotData.gross_revenue,
-        net_revenue: snapshotData.net_revenue,
-        direct_crop_costs: snapshotData.direct_crop_costs,
-        allocated_shared_costs: snapshotData.allocated_shared_costs,
-        total_costs: snapshotData.total_costs,
-        noi: snapshotData.noi,
-        operating_margin_pct: snapshotData.operating_margin_pct,
-        loss_rate_pct: snapshotData.loss_rate_pct,
-        calculation_version: snapshotData.calculation_version,
-        calculated_at: snapshotData.calculated_at,
-        inputs: snapshotData.inputs,
-      });
-  } else {
-    // Insert new snapshot
-    await db('noi_snapshot').insert(snapshotData);
-  }
+  // Upsert: insert or update existing snapshot for this crop_cycle_id
+  await db('noi_snapshot')
+    .insert(snapshotData)
+    .onConflict('crop_cycle_id')
+    .merge({
+      gross_revenue: snapshotData.gross_revenue,
+      net_revenue: snapshotData.net_revenue,
+      direct_crop_costs: snapshotData.direct_crop_costs,
+      allocated_shared_costs: snapshotData.allocated_shared_costs,
+      total_costs: snapshotData.total_costs,
+      noi: snapshotData.noi,
+      operating_margin_pct: snapshotData.operating_margin_pct,
+      loss_rate_pct: snapshotData.loss_rate_pct,
+      calculation_version: snapshotData.calculation_version,
+      calculated_at: snapshotData.calculated_at,
+      inputs: snapshotData.inputs,
+    });
 }
 
 /**

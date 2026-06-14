@@ -126,10 +126,10 @@ open http://localhost:3001
 | Role | Access | Description |
 |------|--------|-------------|
 | Administrator | Full | Platform admin, all permissions |
-| Field Worker | Create/read own location | Field data entry: activities, harvests, expenses, sales, losses, notes |
+| Field Worker | Create/read own location | Field data entry: activities, harvests, expenses, sales, losses, notes. Cannot set `status` on create (lifecycle starts at `draft`) |
 | Supervisor | Read all, submit | Can submit records for approval, read all locations |
 | Manager | Approve all | Can approve/verify all operational records |
-| Finance | Approve expenses, verify sales | Approves expense claims, verifies sales transactions |
+| Finance | Approve expenses, verify sales, approve revenue | Approves expense claims, verifies sales transactions, approves revenue events |
 | Analyst | Read verified/published | Read-only access to verified data for analysis |
 
 ## Workflow
@@ -147,6 +147,18 @@ Published — available to dashboards and analysts
 ```
 
 Expenses use the same lifecycle; payment is tracked separately with `payment_status`.
+
+## Security & Data Integrity
+
+- **No hardcoded secrets** — `services/common/db.py` requires `POSTGRES_PASSWORD` and `CLICKHOUSE_PASSWORD` via environment variables. No dev fallbacks in source.
+- **ClickHouse SQL safety** — All HTTP inserts validate interpolated values against strict regex patterns (`_UUID_RE`, `_TS_RE`, `_SENSOR_TYPE_RE`) before SQL interpolation.
+- **Workflow accountability** — `verified_by`, `rejected_by`, and `submitted_by` are stamped from `meta.accountability.user` on every state transition.
+- **Field Worker scoping** — Create permissions exclude `status`, `submitted_by`, `verified_by`, `rejected_by`, and all lifecycle audit fields. Records always start as `draft`.
+- **Role-based approval routing** — `inventory_event`, `maintenance_event`, and `dashboard_dataset` are routed through manager/admin roles (not unrestricted).
+- **Nonce management** — EAS transactions use a single `get_nonce()` call per transaction (no double-consumption).
+- **Connection lifecycle** — All PostgreSQL connection blocks use `try/finally` with `db.close()`.
+- **Role cache TTL** — Role lookups cached for 5 minutes; stale entries auto-expire.
+- **Pending transitions cap** — Workflow state stashes expire after 30 minutes; max 1000 entries to prevent memory leaks.
 
 ## Registry, MRV, And Agents
 
@@ -278,7 +290,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   └── KokonutResolver.t.sol
 │   └── lib/            # OpenZeppelin, EAS contracts
 ├── schemas/
-│   ├── postgres/       # 14 schema files, 50+ tables
+│   ├── postgres/       # 15 schema files, 50+ tables
 │   ├── seeds/          # Base and pilot seed data (16 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
@@ -421,7 +433,7 @@ The platform auto-calculates governed metrics on data changes:
 | Crop NOI | harvest/sales/expense create | Net revenue minus direct costs minus allocated shared costs |
 | Loss Rate | harvest create | Loss amount as percentage of total harvest |
 | Operating Margin | NOI recalculation | NOI as percentage of net revenue |
-| Net Amount | sales create/update | Total minus returns minus discounts |
+| Net Amount | sales create/update | Total minus returns minus discounts (clamped to zero minimum) |
 | Labor Cost | labor event create | Hours worked times hourly rate |
 
 ## Developer SDK

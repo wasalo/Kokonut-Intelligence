@@ -204,90 +204,92 @@ def update_eas_indexer_status(chain: str, last_attestation_time: int, status: st
 def run(chain: str = None):
     """Main ingestion entry point."""
     db = get_db()
-    chains = [chain] if chain else list(EAS_ENDPOINTS.keys())
+    try:
+        chains = [chain] if chain else list(EAS_ENDPOINTS.keys())
 
-    # Get wallet addresses to track
-    with db.cursor() as cur:
-        cur.execute(
-            "SELECT id, address, chain FROM wallet_profile WHERE is_active = true"
-        )
-        wallets = cur.fetchall()
+        # Get wallet addresses to track
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT id, address, chain FROM wallet_profile WHERE is_active = true"
+            )
+            wallets = cur.fetchall()
 
-    wallet_map = {}
-    for w_id, w_addr, w_chain in wallets:
-        wallet_map.setdefault(w_chain.lower(), []).append((w_id, w_addr))
+        wallet_map = {}
+        for w_id, w_addr, w_chain in wallets:
+            wallet_map.setdefault(w_chain.lower(), []).append((w_id, w_addr))
 
-    for c in chains:
-        print(f"[EAS] Indexing {c}...")
-        tracked_wallets = wallet_map.get(c, [])
+        for c in chains:
+            print(f"[EAS] Indexing {c}...")
+            tracked_wallets = wallet_map.get(c, [])
 
-        if not tracked_wallets:
-            print(f"  ⊙ No tracked wallets for {c}")
-            continue
+            if not tracked_wallets:
+                print(f"  ⊙ No tracked wallets for {c}")
+                continue
 
-        last_attestation_time = get_last_attestation_time(db, c)
+            last_attestation_time = get_last_attestation_time(db, c)
 
-        total_inserted = 0
+            total_inserted = 0
 
-        for w_id, w_addr in tracked_wallets:
-            try:
-                offset = 0
-                max_attestation_time = last_attestation_time
+            for w_id, w_addr in tracked_wallets:
+                try:
+                    offset = 0
+                    max_attestation_time = last_attestation_time
 
-                while True:
-                    data = query_eas(c, ATTESTATIONS_BY_RECIPIENT, {
-                        "recipient": w_addr,
-                        "after": offset,
-                    })
+                    while True:
+                        data = query_eas(c, ATTESTATIONS_BY_RECIPIENT, {
+                            "recipient": w_addr,
+                            "after": offset,
+                        })
 
-                    attestations = data.get("attestations", [])
-                    if not attestations:
-                        break
+                        attestations = data.get("attestations", [])
+                        if not attestations:
+                            break
 
-                    for att in attestations:
-                        att_time = int(att.get("time", 0))
-                        if att_time <= last_attestation_time:
-                            continue
+                        for att in attestations:
+                            att_time = int(att.get("time", 0))
+                            if att_time <= last_attestation_time:
+                                continue
 
-                        if insert_attestation(db, att, c):
-                            total_inserted += 1
+                            if insert_attestation(db, att, c):
+                                total_inserted += 1
 
-                        if att_time > max_attestation_time:
-                            max_attestation_time = att_time
+                            if att_time > max_attestation_time:
+                                max_attestation_time = att_time
 
-                    offset += len(attestations)
-                    if len(attestations) < 100:
-                        break
+                        offset += len(attestations)
+                        if len(attestations) < 100:
+                            break
 
-                    time.sleep(0.5)
+                        time.sleep(0.5)
 
-                update_eas_indexer_status(c, max_attestation_time, "healthy")
-                print(f"  ✓ Wallet {w_addr[:10]}...: indexed")
+                    update_eas_indexer_status(c, max_attestation_time, "healthy")
+                    print(f"  ✓ Wallet {w_addr[:10]}...: indexed")
 
-            except Exception as e:
-                update_eas_indexer_status(c, last_attestation_time, "error", str(e))
-                print(f"  ✗ Wallet {w_addr[:10]}...: {e}")
+                except Exception as e:
+                    update_eas_indexer_status(c, last_attestation_time, "error", str(e))
+                    print(f"  ✗ Wallet {w_addr[:10]}...: {e}")
 
-        log_ingestion(
-            source_system="eas_api",
-            source_table=f"{c}_attestations",
-            source_id=c,
-            target_table="attestation_record",
-            target_id=None,
-            operation="batch_insert",
-            payload_hash=hash_payload({"chain": c, "wallets": len(tracked_wallets)}),
-            status="success",
-            rows_affected=total_inserted,
-        )
-        print(f"  Total: {total_inserted} attestations")
+            log_ingestion(
+                source_system="eas_api",
+                source_table=f"{c}_attestations",
+                source_id=c,
+                target_table="attestation_record",
+                target_id=None,
+                operation="batch_insert",
+                payload_hash=hash_payload({"chain": c, "wallets": len(tracked_wallets)}),
+                status="success",
+                rows_affected=total_inserted,
+            )
+            print(f"  Total: {total_inserted} attestations")
 
-    db.commit()
-    db.close()
-    print(f"\n[EAS] Done")
+        db.commit()
+        print(f"\n[EAS] Done")
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="EAS attestation ingestion")
-    parser.add_argument("--chain", choices=["optimism", "base"])
+    parser.add_argument("--chain", choices=["optimism", "base", "celo"])
     args = parser.parse_args()
     run(chain=args.chain)
