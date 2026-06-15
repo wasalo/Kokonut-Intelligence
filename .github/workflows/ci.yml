@@ -17,11 +17,11 @@ jobs:
       POSTGRES_PASSWORD: ci-placeholder
       CLICKHOUSE_PASSWORD: ci-placeholder
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -52,11 +52,11 @@ jobs:
       run:
         working-directory: extensions/kokonut-hooks
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: npm
@@ -80,7 +80,7 @@ jobs:
       run:
         working-directory: contracts
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: recursive
