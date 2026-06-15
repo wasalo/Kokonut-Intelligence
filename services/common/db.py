@@ -17,6 +17,8 @@ def _require_secret(name: str) -> str:
     value = os.environ.get(name, "")
     if value:
         return value
+    if IS_DEV:
+        return f"placeholder-{name.lower()}"
     raise RuntimeError(
         f"{name} is required. Set the variable in your .env file or environment."
     )
