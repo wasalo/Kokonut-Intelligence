@@ -29,6 +29,10 @@ BEGIN
         INSERT INTO directus_roles (id, name, icon, description) VALUES
             ('a1000000-0000-0000-0000-000000000005', 'Analyst', 'analytics', 'Data analysts — read-only access to verified/published data');
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_roles WHERE name = 'Auditor') THEN
+        INSERT INTO directus_roles (id, name, icon, description) VALUES
+            ('a1000000-0000-0000-0000-000000000009', 'Auditor', 'verified', 'Compliance/audit — read-only access to all statuses for forensic review');
+    END IF;
 END $$;
 
 -- ============================================================
@@ -57,6 +61,10 @@ BEGIN
         INSERT INTO directus_policies (id, name, icon, admin_access, app_access, description) VALUES
             ('b1000000-0000-0000-0000-000000000005', 'Analyst Policy', 'analytics', false, true, 'Policy for data analysts');
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_policies WHERE name = 'Auditor Policy') THEN
+        INSERT INTO directus_policies (id, name, icon, admin_access, app_access, description) VALUES
+            ('b1000000-0000-0000-0000-000000000009', 'Auditor Policy', 'verified', false, true, 'Policy for compliance/audit — read-only to all statuses');
+    END IF;
 END $$;
 
 -- ============================================================
@@ -84,6 +92,10 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM directus_access WHERE role = 'a1000000-0000-0000-0000-000000000005') THEN
         INSERT INTO directus_access (id, role, policy, sort) VALUES
             ('c1000000-0000-0000-0000-000000000005', 'a1000000-0000-0000-0000-000000000005', 'b1000000-0000-0000-0000-000000000005', 1);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_access WHERE role = 'a1000000-0000-0000-0000-000000000009') THEN
+        INSERT INTO directus_access (id, role, policy, sort) VALUES
+            ('c1000000-0000-0000-0000-000000000009', 'a1000000-0000-0000-0000-000000000009', 'b1000000-0000-0000-0000-000000000009', 1);
     END IF;
 END $$;
 
@@ -360,7 +372,45 @@ END IF;
 END $$;
 
 -- ============================================================
--- 9. AGENT ROLES — Scoped roles for AI agent access
+-- 9. AUDITOR POLICY permissions — read-only, ALL statuses
+-- ============================================================
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'farm_activity') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('expense_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('sales_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('loss_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('labor_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('field_note', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('noi_snapshot', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('metric_definition', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('metric_value', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('workflow_history', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('approval', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('expense_category', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('attestation_record', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('mrv_claim', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('dashboard_dataset', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('report_snapshot', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('forecast_scenario', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('forecast_output', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('revenue_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('water_access', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('capex_breakdown', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('attestation_plan', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('agent_identity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('agent_task', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('agent_action_log', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('digital_lego_usage', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
+        ('capital_source', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009');
+END IF;
+END $$;
+
+-- ============================================================
+-- 10. AGENT ROLES — Scoped roles for AI agent access
 -- ============================================================
 
 DO $$

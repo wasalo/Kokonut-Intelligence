@@ -133,8 +133,26 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     risk_noi = risk_adjust_noi(total_noi, risk_factor)
     risk_rev = risk_adjust_revenue(total_revenue, risk_factor)
 
-    # Cash flow (simplified: NOI minus capex estimate)
-    capex_estimate = total_area * 200  # $200/ha for equipment
+    # Cash flow — structured capex from capex_breakdown table
+    db = get_db()
+    with db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("""
+            SELECT category, SUM(amount_usd) as total,
+                   SUM(CASE WHEN is_recurring THEN COALESCE(annual_depreciation_usd, amount_usd) ELSE amount_usd END) as annual_cost
+            FROM capex_breakdown
+            WHERE location_id = %s AND status IN ('verified', 'published')
+            GROUP BY category
+        """, (location_id,))
+        capex_rows = cur.fetchall()
+    db.close()
+
+    if capex_rows:
+        capex_by_category = {r["category"]: float(r["annual_cost"]) for r in capex_rows}
+        capex_estimate = sum(capex_by_category.values())
+    else:
+        capex_by_category = {"equipment": total_area * 200}
+        capex_estimate = total_area * 200  # fallback: $200/ha
+
     cash_flow = total_noi - capex_estimate
     cf_low, cf_high = calculate_confidence_interval(cash_flow, risk_factor)
 
@@ -184,7 +202,9 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
         _make_output(scenario_id, location_id, "projected_cash_flow_usd",
                       round(cash_flow, 2), "usd", round(cf_low, 2), round(cf_high, 2),
                       period_start, period_end,
-                      {"noi": total_noi, "capex": capex_estimate}),
+                      {"noi": total_noi, "capex": capex_estimate,
+                       "capex_by_category": {k: round(v, 2) for k, v in capex_by_category.items()},
+                       "capex_source": "capex_breakdown" if capex_rows else "fallback_200_per_ha"}),
         _make_output(scenario_id, location_id, "public_goods_allocation_usd",
                       round(public_goods, 2), "usd",
                       round(public_goods * 0.85, 2), round(public_goods * 1.15, 2),

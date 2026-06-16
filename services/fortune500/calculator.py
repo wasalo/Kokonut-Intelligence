@@ -48,11 +48,14 @@ class FarmMetrics:
     revenue_per_ha_usd: float = 0
     operating_margin_pct: float = 0
     loss_rate_pct: float = 0
+    total_capex_usd: float = 0
 
     # Ecological
     avg_ndvi: float = 0
     soil_organic_matter_pct: float = 0
     ecological_score: float = 0
+    carbon_sequestration_tonnes: float = 0
+    carbon_credit_value_usd: float = 0
 
     # Governance
     total_activities: int = 0
@@ -65,6 +68,13 @@ class FarmMetrics:
     yield_growth_pct: float = 0
     projected_revenue_growth_pct: float = 0
     area_ha: float = 0
+
+    # Infrastructure & Planning (new)
+    water_access_score: float = 0  # avg reliability * quality from water_access
+    capital_source_count: int = 0
+    digital_lego_count: int = 0
+    attestation_plan_count: int = 0
+    attestation_plan_active: int = 0
 
 
 @dataclass
@@ -252,6 +262,65 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
                 (projected_revenue - metrics.total_revenue_usd) / metrics.total_revenue_usd * 100
             )
 
+        # Carbon sequestration and credit value from forecast engine
+        cur.execute("""
+            SELECT metric_name, value
+            FROM forecast_output
+            WHERE location_id = %s AND metric_name IN ('carbon_sequestration_tonnes', 'carbon_credit_value_usd')
+            ORDER BY created_at DESC LIMIT 2
+        """, (location_id,))
+        for row in cur.fetchall():
+            if row["metric_name"] == "carbon_sequestration_tonnes":
+                metrics.carbon_sequestration_tonnes = float(row["value"])
+            elif row["metric_name"] == "carbon_credit_value_usd":
+                metrics.carbon_credit_value_usd = float(row["value"])
+
+        # Water access score (avg of reliability * quality across sources)
+        cur.execute("""
+            SELECT AVG(reliability_score * COALESCE(quality_score, 50) / 100) as avg_score
+            FROM water_access
+            WHERE location_id = %s AND status = 'active'
+        """, (location_id,))
+        water = cur.fetchone()
+        if water and water["avg_score"]:
+            metrics.water_access_score = float(water["avg_score"])
+
+        # Capital sources
+        cur.execute("SELECT COUNT(*) as cnt FROM capital_source WHERE status = 'active'")
+        cs = cur.fetchone()
+        metrics.capital_source_count = cs["cnt"] if cs else 0
+
+        # Digital Lego usage
+        cur.execute("""
+            SELECT COUNT(DISTINCT protocol_id) as cnt
+            FROM digital_lego_usage
+            WHERE location_id = %s
+        """, (location_id,))
+        dl = cur.fetchone()
+        metrics.digital_lego_count = dl["cnt"] if dl else 0
+
+        # Attestation plan
+        cur.execute("""
+            SELECT COUNT(*) as total,
+                   COUNT(CASE WHEN status IN ('in_progress', 'achieved') THEN 1 END) as active
+            FROM attestation_plan
+            WHERE location_id = %s
+        """, (location_id,))
+        ap = cur.fetchone()
+        if ap:
+            metrics.attestation_plan_count = ap["total"]
+            metrics.attestation_plan_active = ap["active"]
+
+        # Total capex from capex_breakdown
+        cur.execute("""
+            SELECT COALESCE(SUM(amount_usd), 0) as total_capex
+            FROM capex_breakdown
+            WHERE location_id = %s AND status IN ('verified', 'published')
+        """, (location_id,))
+        capex = cur.fetchone()
+        if capex:
+            metrics.total_capex_usd = float(capex["total_capex"])
+
     db.close()
     return metrics
 
@@ -272,6 +341,11 @@ def score_financial(m: FarmMetrics) -> float:
     loss_score = min(100, max(0, (1 - m.loss_rate_pct / 50) * 100))
     scores.append(loss_score)
 
+    # Carbon credit value as revenue supplement
+    if m.carbon_credit_value_usd > 0:
+        carbon_score = min(100, (m.carbon_credit_value_usd / max(m.total_revenue_usd, 1)) * 100)
+        scores.append(carbon_score)
+
     return sum(scores) / len(scores) * 10 if scores else 0
 
 
@@ -290,6 +364,15 @@ def score_ecological(m: FarmMetrics) -> float:
     # Ecological score from forecast engine (if available)
     if m.ecological_score > 0:
         scores.append(min(100, m.ecological_score))
+
+    # Carbon sequestration (bonus: positive tonnes = positive signal)
+    if m.carbon_sequestration_tonnes > 0:
+        carbon_eco_score = min(100, m.carbon_sequestration_tonnes * 10)
+        scores.append(carbon_eco_score)
+
+    # Water access quality (0-100 scale)
+    if m.water_access_score > 0:
+        scores.append(min(100, m.water_access_score))
 
     return sum(scores) / len(scores) * 10 if scores else 500
 
@@ -311,6 +394,16 @@ def score_governance(m: FarmMetrics) -> float:
 
     # Data completeness
     scores.append(m.data_completeness_pct)
+
+    # Attestation plan maturity (planned + in_progress + achieved)
+    if m.attestation_plan_count > 0:
+        plan_maturity = (m.attestation_plan_active / m.attestation_plan_count) * 100
+        scores.append(min(100, plan_maturity))
+
+    # Digital Lego adoption
+    if m.digital_lego_count > 0:
+        lego_score = min(100, m.digital_lego_count * 20)
+        scores.append(lego_score)
 
     return sum(scores) / len(scores) * 10 if scores else 500
 
