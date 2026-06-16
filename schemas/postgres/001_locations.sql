@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS location (
     baseline_revenue NUMERIC(15,2),
     baseline_asset_value NUMERIC(15,2),
     baseline_cash_flow NUMERIC(15,2),
+    baseline_cost NUMERIC(15,2),
     baseline_assumptions JSONB DEFAULT '{}',
     baseline_source VARCHAR(255),
     baseline_date DATE,

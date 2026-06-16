@@ -14,6 +14,7 @@
 | `baseline_revenue` | Baseline Revenue | location.baseline_revenue | location | Once |
 | `baseline_asset_value` | Baseline Asset Value | location.baseline_asset_value | location | Once |
 | `baseline_cash_flow` | Baseline Cash Flow | location.baseline_cash_flow | location | Once |
+| `baseline_cost` | Baseline Cost | location.baseline_cost | location | Once |
 | `value_flowed` | Value Flowed | SUM(verified, non-excluded flows) | value_flow_event | Weekly |
 | `wallet_retention` | Wallet Retention | Active in current + prior period | wallet_activity_event | Monthly |
 | `digital_lego_usage` | Digital Lego Usage | COUNT(distinct verified protocols) | digital_lego_usage | Weekly |

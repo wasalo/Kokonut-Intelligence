@@ -48,6 +48,7 @@ class Location:
     baseline_revenue: Optional[float] = None
     baseline_asset_value: Optional[float] = None
     baseline_cash_flow: Optional[float] = None
+    baseline_cost: Optional[float] = None
     baseline_assumptions: Optional[Dict[str, Any]] = None
     baseline_source: Optional[str] = None
     baseline_date: Optional[str] = None

@@ -7,6 +7,10 @@ export interface Location {
   baseline_revenue?: number;
   baseline_asset_value?: number;
   baseline_cash_flow?: number;
+  baseline_cost?: number;
+  baseline_assumptions?: Record<string, any>;
+  baseline_source?: string;
+  baseline_date?: string;
   status: 'active' | 'inactive' | 'archived';
   created_at: string;
   updated_at: string;

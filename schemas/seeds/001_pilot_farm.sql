@@ -4,8 +4,8 @@
 -- ============================================================
 
 -- Location
-INSERT INTO location (id, name, slug, description, country, region, sub_region, timezone, latitude, longitude, baseline_revenue, baseline_asset_value, baseline_cash_flow, status) VALUES
-('a0000000-0000-0000-0000-000000000001', 'Kokonut Demo Farm — Kisumu', 'kokonut-demo-kisumu', 'Pilot farm in western Kenya for regenerative agriculture demonstration', 'Kenya', 'Nyanza', 'Kisumu County', 'Africa/Nairobi', -0.1000000, 34.7500000, 15000.00, 25000.00, 8000.00, 'active')
+INSERT INTO location (id, name, slug, description, country, region, sub_region, timezone, latitude, longitude, baseline_revenue, baseline_asset_value, baseline_cash_flow, baseline_cost, status) VALUES
+('a0000000-0000-0000-0000-000000000001', 'Kokonut Demo Farm — Kisumu', 'kokonut-demo-kisumu', 'Pilot farm in western Kenya for regenerative agriculture demonstration', 'Kenya', 'Nyanza', 'Kisumu County', 'Africa/Nairobi', -0.1000000, 34.7500000, 15000.00, 25000.00, 8000.00, 12000.00, 'active')
 ON CONFLICT (id) DO NOTHING;
 
 -- Property

@@ -163,6 +163,7 @@ ALTER TABLE agent_task          DROP CONSTRAINT IF EXISTS chk_agent_task_review;
 ALTER TABLE agent_task          ADD CONSTRAINT chk_agent_task_review CHECK (review_status::lifecycle_status IS NOT NULL);
 
 -- --- Entity status tables ---
+ALTER TABLE location ADD COLUMN IF NOT EXISTS baseline_cost NUMERIC(15,2);
 ALTER TABLE location            DROP CONSTRAINT IF EXISTS chk_location_status;
 ALTER TABLE location            ADD CONSTRAINT chk_location_status CHECK (status::entity_status IS NOT NULL);
 

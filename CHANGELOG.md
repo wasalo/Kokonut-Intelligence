@@ -5,6 +5,7 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Baseline Cost field** (`location.baseline_cost`): pre-intervention operating cost baseline on `location` table, matching existing `baseline_revenue`, `baseline_asset_value`, `baseline_cash_flow` pattern. Added across schema, seed data (metric definitions + pilot farm), Python SDK, JS SDK, OpenAPI spec (Location, LocationCreate, LocationUpdate), data dictionary, and PRD. Pilot farm baseline_cost = `12000.00`.
 - PRD completion layer: farm registry records, inventory events, maintenance events, revenue events, MRV events, attestation requests, agent metadata, agent tasks, and action logs.
 - Development local CID adapter with deterministic `local://sha256/<hash>` references.
 - Registry, attestation, and agent helper CLIs for Common Data Schema validation, MRV payload preparation, private-data hash metadata, and capability manifest metadata.
@@ -84,7 +85,7 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ### Added
 - **Property table** (`schemas/postgres/012_property.sql`): legal/managed property boundaries with PostGIS spatial columns, FK linked to farm
-- **16 governed metric definitions** (PRD Section 16): crop_revenue, net_crop_revenue, direct_crop_cost, allocated_shared_cost, crop_noi, loss_rate_pct, operating_margin_pct, baseline_revenue, baseline_asset_value, baseline_cash_flow, value_flowed, wallet_retention, digital_lego_usage, soil_carbon_delta, biodiversity_delta, attestation_coverage
+- **17 governed metric definitions** (PRD Section 16): crop_revenue, net_crop_revenue, direct_crop_cost, allocated_shared_cost, crop_noi, loss_rate_pct, operating_margin_pct, baseline_revenue, baseline_asset_value, baseline_cash_flow, baseline_cost, value_flowed, wallet_retention, digital_lego_usage, soil_carbon_delta, biodiversity_delta, attestation_coverage
 - **Ecology analytics service** (`services/analytics/ecology.py`): soil carbon before/after comparison, biodiversity metrics with Shannon diversity index, scenario comparison, sensitivity analysis
 - **Ecology CLI** (`services/analytics/cli.py`): `--soil-carbon`, `--biodiversity`, `--compare-scenarios`, `--sensitivity`
 - **Forecast CLI extensions**: `--compare` for scenario comparison, `--sensitivity` for variable sensitivity analysis
