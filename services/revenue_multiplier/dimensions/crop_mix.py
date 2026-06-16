@@ -131,6 +131,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         "best_crop": best_crop,
         "worst_crop": worst_crop,
         "price_trends": {c: {"latest": v[0] if v else 0, "count": len(v)} for c, v in price_by_crop.items()},
+        "projected_revenue_by_crop": projected_revenue_by_crop,
+        "projected_noi_by_crop": projected_noi_by_crop,
     }
 
     return OpportunityDimension(

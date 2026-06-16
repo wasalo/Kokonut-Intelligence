@@ -56,6 +56,17 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     """, (location_id,))
     attestations = {r["status"]: r["count"] for r in cur.fetchall()}
 
+    # Get ecological score from forecast engine
+    cur.execute("""
+        SELECT value, inputs
+        FROM forecast_output
+        WHERE location_id = %s AND metric_name = 'ecological_score_forecast'
+        ORDER BY created_at DESC LIMIT 1
+    """, (location_id,))
+    eco_forecast = cur.fetchone()
+    eco_score_forecast = float(eco_forecast["value"]) if eco_forecast and eco_forecast["value"] else None
+    eco_inputs = dict(eco_forecast["inputs"]) if eco_forecast and eco_forecast["inputs"] else {}
+
     cur.close()
 
     # Calculate carbon credit potential
@@ -99,7 +110,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     has_carbon = len(carbon_data) > 0
     has_species = len(species_data) > 0
     has_claims = total_claims > 0
-    score = (30 if has_carbon else 0) + (30 if has_species else 0) + (40 if has_claims else 0)
+    has_forecast = eco_score_forecast is not None
+    score = (25 if has_carbon else 0) + (25 if has_species else 0) + (30 if has_claims else 0) + (20 if has_forecast else 0)
 
     details = {
         "carbon_delta_tonnes": round(total_carbon_delta, 2),
@@ -110,6 +122,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         "attestation_revenue": round(attestation_revenue, 2),
         "total_verification_revenue": round(total_revenue, 2),
         "claim_breakdown": {c["claim_type"]: c["count"] for c in claims},
+        "ecological_score_forecast": eco_score_forecast,
+        "ecological_score_inputs": eco_inputs,
     }
 
     return OpportunityDimension(

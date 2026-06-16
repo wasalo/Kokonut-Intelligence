@@ -63,6 +63,7 @@ class FarmMetrics:
     # Growth
     revenue_growth_pct: float = 0
     yield_growth_pct: float = 0
+    projected_revenue_growth_pct: float = 0
     area_ha: float = 0
 
 
@@ -237,6 +238,20 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
                 / float(prev_yield["prev_yield"]) * 100
             )
 
+        # Forecast-projected revenue growth (from forecast engine)
+        cur.execute("""
+            SELECT value, inputs
+            FROM forecast_output
+            WHERE location_id = %s AND metric_name = 'projected_revenue_usd'
+            ORDER BY created_at DESC LIMIT 1
+        """, (location_id,))
+        proj_rev = cur.fetchone()
+        if proj_rev and proj_rev["value"] and metrics.total_revenue_usd > 0:
+            projected_revenue = float(proj_rev["value"])
+            metrics.projected_revenue_growth_pct = (
+                (projected_revenue - metrics.total_revenue_usd) / metrics.total_revenue_usd * 100
+            )
+
     db.close()
     return metrics
 
@@ -304,9 +319,14 @@ def score_growth(m: FarmMetrics) -> float:
     """Score growth trajectory (0-1000)."""
     scores = []
 
-    # Revenue growth
-    if m.revenue_growth_pct > 0:
-        scores.append(min(100, m.revenue_growth_pct * 5))
+    # Revenue growth: 50/50 blend of historical YoY and forecast-projected
+    if m.projected_revenue_growth_pct != 0:
+        blended_revenue_growth = (m.revenue_growth_pct * 0.5) + (m.projected_revenue_growth_pct * 0.5)
+    else:
+        blended_revenue_growth = m.revenue_growth_pct
+
+    if blended_revenue_growth > 0:
+        scores.append(min(100, blended_revenue_growth * 5))
     else:
         scores.append(50)
 

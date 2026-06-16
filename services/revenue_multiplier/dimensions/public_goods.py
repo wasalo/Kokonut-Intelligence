@@ -46,11 +46,22 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     """, (location_id,))
     cf = dict(cur.fetchone()) if cur.rowcount else {}
 
+    # Get forecasted public goods allocation from forecast engine
+    cur.execute("""
+        SELECT value, inputs
+        FROM forecast_output
+        WHERE location_id = %s AND metric_name = 'public_goods_allocation_usd'
+        ORDER BY created_at DESC LIMIT 1
+    """, (location_id,))
+    forecast_row = cur.fetchone()
+    forecast_output_value = float(forecast_row["value"]) if forecast_row and forecast_row["value"] else None
+
     cur.close()
 
     # Calculate metrics
     allocation_rate = (actual / revenue * 100) if revenue > 0 else 0
-    forecasted = float(cf.get("public_goods_allocation", 0))
+    forecasted = forecast_output_value if forecast_output_value is not None else float(cf.get("public_goods_allocation", 0))
+    forecast_source = "forecast_output" if forecast_output_value is not None else "cash_flow_snapshot"
     forecast_accuracy = (actual / forecasted * 100) if forecasted > 0 else 0
 
     # Score: actual allocation rate
@@ -63,6 +74,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     details = {
         "actual_allocation": round(actual, 2),
         "forecasted_allocation": round(forecasted, 2),
+        "forecast_source": forecast_source,
+        "forecast_output_value": round(forecast_output_value, 2) if forecast_output_value is not None else None,
         "total_revenue": round(revenue, 2),
         "allocation_rate_pct": round(allocation_rate, 1),
         "forecast_accuracy_pct": round(forecast_accuracy, 1),

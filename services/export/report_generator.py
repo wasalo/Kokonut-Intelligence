@@ -293,6 +293,79 @@ def generate_revenue_multiplier(conn, location_id: str, period_start: str = None
     }
 
 
+def generate_forecast_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a forecast summary report across all scenarios."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Get all scenarios for this location
+    cur.execute("""
+        SELECT id, name, scenario_type, status, assumptions, created_at
+        FROM forecast_scenario
+        WHERE location_id = %s
+        ORDER BY created_at DESC
+    """, (location_id,))
+    scenarios = [dict(r) for r in cur.fetchall()]
+
+    # Get all forecast outputs grouped by scenario
+    cur.execute("""
+        SELECT
+            fo.scenario_id,
+            fs.name as scenario_name,
+            fs.scenario_type,
+            fo.metric_name,
+            fo.value,
+            fo.unit,
+            fo.confidence_low,
+            fo.confidence_high,
+            fo.inputs,
+            fo.period_start,
+            fo.period_end,
+            fo.calculated_at
+        FROM forecast_output fo
+        JOIN forecast_scenario fs ON fo.scenario_id = fs.id
+        WHERE fo.location_id = %s
+        ORDER BY fs.scenario_type, fo.metric_name
+    """, (location_id,))
+    outputs = [dict(r) for r in cur.fetchall()]
+
+    # Group outputs by scenario
+    scenarios_data = {}
+    for out in outputs:
+        sid = str(out["scenario_id"])
+        if sid not in scenarios_data:
+            scenarios_data[sid] = {
+                "scenario_name": out["scenario_name"],
+                "scenario_type": out["scenario_type"],
+                "period_start": out["period_start"],
+                "period_end": out["period_end"],
+                "calculated_at": out["calculated_at"].isoformat() if out["calculated_at"] else None,
+                "metrics": {},
+            }
+        scenarios_data[sid]["metrics"][out["metric_name"]] = {
+            "value": float(out["value"]) if out["value"] else None,
+            "unit": out["unit"],
+            "confidence_low": float(out["confidence_low"]) if out["confidence_low"] else None,
+            "confidence_high": float(out["confidence_high"]) if out["confidence_high"] else None,
+            "inputs": dict(out["inputs"]) if out["inputs"] else {},
+        }
+
+    # Get location info
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    loc = cur.fetchone()
+    location_name = loc["name"] if loc else "Unknown"
+
+    cur.close()
+
+    return {
+        "report_type": "forecast",
+        "location_id": location_id,
+        "location_name": location_name,
+        "scenario_count": len(scenarios_data),
+        "scenarios": scenarios_data,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
@@ -302,6 +375,7 @@ REPORT_GENERATORS = {
     "crop_noi": generate_crop_noi,
     "environmental": generate_environmental,
     "revenue_multiplier": generate_revenue_multiplier,
+    "forecast": generate_forecast_summary,
 }
 
 

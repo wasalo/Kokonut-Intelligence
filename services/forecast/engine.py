@@ -90,7 +90,9 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     # Carbon sequestration estimate
     som_change_pct = eco_proj.get("som_projected", 3.0) - eco_baseline.get("soil_organic_matter_pct", 3.0)
     carbon_tonnes = estimate_carbon_sequestration(total_area, abs(som_change_pct))
-    carbon_credit_value = carbon_tonnes * 30  # $30/tonne CO2e
+    from ..revenue_multiplier.config import get_config
+    carbon_price_per_tonne = float(get_config(key="carbon_credit_price_usd"))
+    carbon_credit_value = carbon_tonnes * carbon_price_per_tonne
 
     # Revenue per crop
     revenue_by_crop = {}
@@ -157,7 +159,8 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
         _make_output(scenario_id, location_id, "projected_noi_usd",
                       total_noi, "usd", risk_noi["confidence_low"],
                       risk_noi["confidence_high"], period_start, period_end,
-                      {"total_revenue": total_revenue, "total_costs": total_costs}),
+                      {"total_revenue": total_revenue, "total_costs": total_costs,
+                       "noi_by_crop": {k: v["noi"] for k, v in noi_by_crop.items()}}),
         _make_output(scenario_id, location_id, "operating_margin_pct",
                       round(overall_margin, 2), "pct",
                       round(overall_margin * 0.8, 2), round(overall_margin * 1.2, 2),
@@ -207,7 +210,7 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
                       round(carbon_credit_value, 2), "usd",
                       round(carbon_credit_value * 0.8, 2), round(carbon_credit_value * 1.2, 2),
                       period_start, period_end,
-                      {"carbon_tonnes": carbon_tonnes, "price_per_tonne": 30}),
+                      {"carbon_tonnes": carbon_tonnes, "price_per_tonne": carbon_price_per_tonne}),
     ]
 
     # Per-cycle outputs
