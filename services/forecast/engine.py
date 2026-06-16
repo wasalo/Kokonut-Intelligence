@@ -20,7 +20,10 @@ from .models import (
     GrowthAssumptions, ScenarioAssumptions,
 )
 from .pricing import get_historical_avg_prices, project_prices
-from .yield_forecast import get_crop_areas_for_location, project_yields, calculate_total_yield
+from .yield_forecast import (
+    get_crop_areas_for_location, project_yields, calculate_total_yield,
+    get_historical_loss_rate, apply_loss_adjustment,
+)
 from .cost_forecast import get_historical_costs, project_costs, allocate_shared_costs
 from .ecology import get_ecological_baseline, project_ecological_score, estimate_carbon_sequestration
 from .risk import (
@@ -75,6 +78,11 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     projected_prices = project_prices(hist_prices, pa, ga.price_appreciation_pct)
     projected_yields = project_yields(crop_areas, ya, ga)
     total_area = sum(v["area_ha"] for v in projected_yields.values())
+
+    # Apply loss adjustment using historical loss rate
+    historical_loss_rate = get_historical_loss_rate(location_id)
+    projected_yields = apply_loss_adjustment(projected_yields, historical_loss_rate)
+
     projected_costs = project_costs(hist_costs, ca, ga, total_area)
     shared_alloc = allocate_shared_costs(projected_costs["total_shared"], projected_yields)
     eco_proj = project_ecological_score(eco_baseline)
@@ -136,6 +144,11 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     period_start = scenario.get("assumptions", {}).get("period", "").split(" to ")[0] if scenario.get("assumptions", {}).get("period") else "2026-04-01"
     period_end = scenario.get("assumptions", {}).get("period", "").split(" to ")[1] if scenario.get("assumptions", {}).get("period") and " to " in scenario.get("assumptions", {}).get("period", "") else "2027-03-31"
 
+    loss_adjusted_total = round(sum(
+        v.get("loss_adjusted_yield_tonnes", v["total_yield_tonnes"])
+        for v in projected_yields.values()
+    ), 2)
+
     outputs = [
         _make_output(scenario_id, location_id, "projected_revenue_usd",
                       total_revenue, "usd", risk_rev["confidence_low"],
@@ -155,7 +168,16 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
                       round(calculate_total_yield(projected_yields) * 0.85, 2),
                       round(calculate_total_yield(projected_yields) * 1.15, 2),
                       period_start, period_end,
-                      {"yields": {k: v["total_yield_tonnes"] for k, v in projected_yields.items()}}),
+                      {"yields": {k: v["total_yield_tonnes"] for k, v in projected_yields.items()},
+                       "loss_rate": historical_loss_rate}),
+        _make_output(scenario_id, location_id, "loss_adjusted_yield_tonnes",
+                      loss_adjusted_total, "tonnes",
+                      round(loss_adjusted_total * 0.85, 2),
+                      round(loss_adjusted_total * 1.15, 2),
+                      period_start, period_end,
+                      {"gross_yield": round(calculate_total_yield(projected_yields), 2),
+                       "loss_rate": historical_loss_rate,
+                       "loss_adjusted_yields": {k: v.get("loss_adjusted_yield_tonnes", v["total_yield_tonnes"]) for k, v in projected_yields.items()}}),
         _make_output(scenario_id, location_id, "projected_cash_flow_usd",
                       round(cash_flow, 2), "usd", round(cf_low, 2), round(cf_high, 2),
                       period_start, period_end,
@@ -219,6 +241,9 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
 
     # Write outputs to database
     _write_outputs(outputs)
+
+    # Write dashboard dataset for BI integration
+    _write_dashboard_dataset(scenario_id, location_id, outputs, scenario_type)
 
     # Update scenario status
     db = get_db()
@@ -296,6 +321,48 @@ def _write_outputs(outputs: List[Dict[str, Any]]) -> None:
             ))
     db.commit()
     db.close()
+
+
+def _write_dashboard_dataset(
+    scenario_id: str, location_id: str,
+    outputs: List[Dict[str, Any]], scenario_type: str,
+) -> None:
+    """Write forecast summary to dashboard_dataset for BI integration."""
+    try:
+        summary = {}
+        for out in outputs:
+            summary[out["metric_name"]] = {
+                "value": out["value"],
+                "unit": out["unit"],
+                "confidence_low": out["confidence_low"],
+                "confidence_high": out["confidence_high"],
+            }
+
+        db = get_db()
+        with db.cursor() as cur:
+            cur.execute("""
+                INSERT INTO dashboard_dataset
+                    (id, location_id, dataset_type, query_sql, status,
+                     metadata, created_at)
+                VALUES (%s, %s, 'forecast', %s, 'published', %s::jsonb, NOW())
+                ON CONFLICT (id) DO UPDATE SET
+                    metadata = EXCLUDED.metadata,
+                    status = 'published',
+                    updated_at = NOW()
+            """, (
+                str(uuid.uuid4()),
+                location_id,
+                f"SELECT * FROM forecast_output WHERE scenario_id = '{scenario_id}'",
+                json.dumps({
+                    "scenario_id": scenario_id,
+                    "scenario_type": scenario_type,
+                    "outputs": summary,
+                }),
+            ))
+        db.commit()
+        db.close()
+    except Exception as e:
+        print(f"[Forecast] Warning: Failed to write dashboard_dataset: {e}")
 
 
 def run_all_scenarios(location_id: Optional[str] = None) -> List[Dict[str, Any]]:

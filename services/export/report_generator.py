@@ -354,6 +354,38 @@ def list_snapshots(conn, location_id: str = None):
     return snapshots
 
 
+def _verify_snapshot(conn, snapshot_id_or_hash: str) -> None:
+    """Verify a snapshot's hash integrity."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute(
+        "SELECT id, report_name, report_type, report_data, snapshot_hash, status FROM report_snapshot WHERE id = %s OR snapshot_hash = %s",
+        (snapshot_id_or_hash, snapshot_id_or_hash),
+    )
+    row = cur.fetchone()
+    cur.close()
+
+    if not row:
+        print(f"Snapshot not found: {snapshot_id_or_hash}")
+        return
+
+    stored_hash = row["snapshot_hash"]
+    report_data = row["report_data"]
+
+    recomputed = compute_hash(report_data)
+
+    print(f"Snapshot:   {row['id']}")
+    print(f"Report:     {row['report_name']} ({row['report_type']})")
+    print(f"Status:     {row['status']}")
+    print(f"Stored:     {stored_hash}")
+    print(f"Recomputed: {recomputed}")
+
+    if stored_hash == recomputed:
+        print("Result:     PASS -- hash matches, report is intact")
+    else:
+        print("Result:     FAIL -- hash mismatch, report may have been tampered with")
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -386,6 +418,11 @@ def main():
             print("-" * 120)
             for s in snapshots:
                 print(f"{str(s['id']):<38} {s['report_type']:<20} {s['status']:<12} {str(s['created_at']):<20} {s['snapshot_hash'][:16]}")
+        conn.close()
+        return
+
+    if args.verify:
+        _verify_snapshot(conn, args.verify)
         conn.close()
         return
 

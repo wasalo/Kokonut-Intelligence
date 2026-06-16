@@ -358,3 +358,135 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('expense_category', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000005');
 END IF;
 END $$;
+
+-- ============================================================
+-- 9. AGENT ROLES — Scoped roles for AI agent access
+-- ============================================================
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM directus_roles WHERE name = 'Agent Read-Only') THEN
+        INSERT INTO directus_roles (id, name, icon, description) VALUES
+            ('a1000000-0000-0000-0000-000000000006', 'Agent Read-Only', 'smart_toy', 'AI agent — read-only access to verified/published data');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_roles WHERE name = 'Agent Write') THEN
+        INSERT INTO directus_roles (id, name, icon, description) VALUES
+            ('a1000000-0000-0000-0000-000000000007', 'Agent Write', 'smart_toy', 'AI agent — can create draft records, submit for review');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_roles WHERE name = 'Agent Full') THEN
+        INSERT INTO directus_roles (id, name, icon, description) VALUES
+            ('a1000000-0000-0000-0000-000000000008', 'Agent Full', 'smart_toy', 'AI agent — full access (requires human approval for high-risk ops)');
+    END IF;
+END $$;
+
+-- Agent policies
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM directus_policies WHERE name = 'Agent Read-Only Policy') THEN
+        INSERT INTO directus_policies (id, name, icon, admin_access, app_access, description) VALUES
+            ('b1000000-0000-0000-0000-000000000006', 'Agent Read-Only Policy', 'smart_toy', false, true, 'Policy for AI agents — read-only');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_policies WHERE name = 'Agent Write Policy') THEN
+        INSERT INTO directus_policies (id, name, icon, admin_access, app_access, description) VALUES
+            ('b1000000-0000-0000-0000-000000000007', 'Agent Write Policy', 'smart_toy', false, true, 'Policy for AI agents — can create drafts');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_policies WHERE name = 'Agent Full Policy') THEN
+        INSERT INTO directus_policies (id, name, icon, admin_access, app_access, description) VALUES
+            ('b1000000-0000-0000-0000-000000000008', 'Agent Full Policy', 'smart_toy', false, true, 'Policy for AI agents — full access with approval gates');
+    END IF;
+END $$;
+
+-- Link agent roles to policies
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM directus_access WHERE role = 'a1000000-0000-0000-0000-000000000006') THEN
+        INSERT INTO directus_access (id, role, policy, sort) VALUES
+            ('c1000000-0000-0000-0000-000000000006', 'a1000000-0000-0000-0000-000000000006', 'b1000000-0000-0000-0000-000000000006', 1);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_access WHERE role = 'a1000000-0000-0000-0000-000000000007') THEN
+        INSERT INTO directus_access (id, role, policy, sort) VALUES
+            ('c1000000-0000-0000-0000-000000000007', 'a1000000-0000-0000-0000-000000000007', 'b1000000-0000-0000-0000-000000000007', 1);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM directus_access WHERE role = 'a1000000-0000-0000-0000-000000000008') THEN
+        INSERT INTO directus_access (id, role, policy, sort) VALUES
+            ('c1000000-0000-0000-0000-000000000008', 'a1000000-0000-0000-0000-000000000008', 'b1000000-0000-0000-0000-000000000008', 1);
+    END IF;
+END $$;
+
+-- Agent Read-Only permissions (read verified/published data + agent tables)
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000006' AND collection = 'farm_activity') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('farm_activity', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('harvest_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('expense_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('sales_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('loss_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('labor_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('field_note', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('mrv_claim', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('attestation_record', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('agent_identity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('agent_task', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('metric_definition', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('forecast_scenario', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
+        ('forecast_output', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000006');
+END IF;
+END $$;
+
+-- Agent Write permissions (create draft records + agent tables)
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000007' AND collection = 'farm_activity') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('mrv_claim', 'create', '{}', '{}', 'claim_type,claim_date,claim_data,source_record_ids,evidence_urls,location_id,plot_id', 'b1000000-0000-0000-0000-000000000007'),
+        ('mrv_claim', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('field_note', 'create', '{}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000007'),
+        ('field_note', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_identity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_identity', 'create', '{}', '{}', 'name,agent_type,description,capabilities,wallet_address', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_task', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_task', 'create', '{}', '{}', 'task_type,input_data,location_id', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_task', 'update', '{}', '{}', 'execution_status,execution_result,error_message', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_action_log', 'create', '{}', '{}', 'task_id,action,collection,record_id,payload_hash,action_result,metadata', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_action_log', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('metric_definition', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('forecast_scenario', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('forecast_output', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('expense_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
+        ('sales_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007');
+END IF;
+END $$;
+
+-- Agent Full permissions (read all, create, update — no publish)
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000008' AND collection = 'farm_activity') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('farm_activity', 'create', '{}', '{}', 'activity_type,activity_date,description,labor_hours,labor_cost,materials_used,evidence_urls,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000008'),
+        ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('harvest_event', 'create', '{}', '{}', 'harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000008'),
+        ('expense_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('expense_event', 'create', '{}', '{}', 'expense_date,category,subcategory,description,vendor,amount,currency,is_capex,allocation_method,allocation_weight,evidence_urls,invoice_number,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000008'),
+        ('mrv_claim', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('mrv_claim', 'create', '{}', '{}', 'claim_type,claim_date,claim_data,source_record_ids,evidence_urls,location_id,plot_id', 'b1000000-0000-0000-0000-000000000008'),
+        ('mrv_claim', 'update', '{}', '{}', 'status,review_notes', 'b1000000-0000-0000-0000-000000000008'),
+        ('field_note', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('field_note', 'create', '{}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_identity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_identity', 'create', '{}', '{}', 'name,agent_type,description,capabilities,wallet_address', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_task', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_task', 'create', '{}', '{}', 'task_type,input_data,location_id', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_task', 'update', '{}', '{}', 'execution_status,execution_result,error_message', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_action_log', 'create', '{}', '{}', 'task_id,action,collection,record_id,payload_hash,action_result,metadata', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_action_log', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('metric_definition', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('forecast_scenario', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('forecast_output', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('attestation_record', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('attestation_request', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('attestation_request', 'create', '{}', '{}', 'subject_type,subject_id,event_type,location_id', 'b1000000-0000-0000-0000-000000000008'),
+        ('workflow_history', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
+        ('expense_category', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008');
+END IF;
+END $$;

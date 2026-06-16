@@ -5,6 +5,15 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **FR gap fixes**: Comprehensive audit-driven improvements across 10 functional requirements:
+  - FR1: `schema_version` columns on 9 master tables (location, farm, plot, partner, infrastructure_asset, staff, crop, expense_category, capital_source)
+  - FR2: `processor_version` wired into `log_ingestion()`; `source_raw` written before normalization in weather ingestion; ingestion status CLI (`python3 -m services.ingestion.status`)
+  - FR4: Farm-level operating margin aggregation SQL (`dashboards/metabase/sql/14_farm_operating_margin.sql`)
+  - FR5: Environmental trends SQL for NDVI/soil carbon/biodiversity time-series (`dashboards/metabase/sql/13_environmental_trends.sql`)
+  - FR6: Loss-adjusted yield in forecast engine; `dashboard_dataset` writes from forecast engine
+  - FR7: Direct FK `treasury_event.capital_source_id`; `digital_lego_usage.user_id` column
+  - FR9: `--verify` handler in report generator; public aggregate views (`v_public_farm_summary`, `v_public_metric_summary`, `v_public_attestation_summary`); `frozen`/`frozen_at`/`frozen_by` columns on `report_snapshot` with immutability trigger
+  - FR10: 3 agent roles (Agent Read-Only, Agent Write, Agent Full) in Directus permissions; agent action logging utility (`services/agents/logging.py`); `high_risk`/`requires_human_approval` flags on `agent_task` and `agent_action_log`
 - **Baseline Cost field** (`location.baseline_cost`): pre-intervention operating cost baseline on `location` table, matching existing `baseline_revenue`, `baseline_asset_value`, `baseline_cash_flow` pattern. Added across schema, seed data (metric definitions + pilot farm), Python SDK, JS SDK, OpenAPI spec (Location, LocationCreate, LocationUpdate), data dictionary, and PRD. Pilot farm baseline_cost = `12000.00`.
 - PRD completion layer: farm registry records, inventory events, maintenance events, revenue events, MRV events, attestation requests, agent metadata, agent tasks, and action logs.
 - Development local CID adapter with deterministic `local://sha256/<hash>` references.

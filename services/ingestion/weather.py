@@ -88,7 +88,7 @@ def parse_weather(data: dict, location_id: str) -> dict:
     }
 
 
-def insert_weather(db, record: dict) -> str:
+def insert_weather(db, record: dict, source_raw: dict = None) -> str:
     """Insert weather observation into PostgreSQL. Returns record ID."""
     with db.cursor() as cur:
         cur.execute(
@@ -96,8 +96,8 @@ def insert_weather(db, record: dict) -> str:
             INSERT INTO weather_observation
                 (location_id, observation_date, observation_time, temperature_c,
                  humidity_pct, precipitation_mm, wind_speed_kmh, wind_direction_deg,
-                 pressure_hpa, visibility_km, cloud_cover_pct, source, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                 pressure_hpa, visibility_km, cloud_cover_pct, source, metadata, source_raw)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb)
             RETURNING id
             """,
             (
@@ -109,6 +109,7 @@ def insert_weather(db, record: dict) -> str:
                 record["pressure_hpa"], record["visibility_km"],
                 record["cloud_cover_pct"], record["source"],
                 record["metadata"],
+                json.dumps(source_raw) if source_raw else None,
             ),
         )
         return str(cur.fetchone()[0])
@@ -204,7 +205,7 @@ def run(location_id: str = None):
             elapsed_ms = int((time.time() - start) * 1000)
 
             record = parse_weather(raw, loc_id)
-            pg_id = insert_weather(db, record)
+            pg_id = insert_weather(db, record, source_raw=raw)
             records.append(record)
 
             log_ingestion(

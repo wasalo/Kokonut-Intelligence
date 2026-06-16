@@ -29,6 +29,24 @@ def get_crop_areas_for_location(location_id: str) -> List[Dict[str, Any]]:
     ]
 
 
+def get_historical_loss_rate(location_id: str) -> float:
+    """Get average historical loss rate for a location (0.0-1.0)."""
+    from ..ingestion.base import get_db
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT COALESCE(
+                AVG(CASE WHEN quantity > 0 THEN loss_amount / quantity ELSE 0 END),
+                0.05
+            )
+            FROM harvest_event
+            WHERE location_id = %s AND quantity > 0
+        """, (location_id,))
+        row = cur.fetchone()
+    db.close()
+    return float(row[0]) if row else 0.05
+
+
 def project_yields(
     crop_areas: List[Dict[str, Any]],
     yield_assumptions: YieldAssumptions,
@@ -66,3 +84,22 @@ def project_yields(
 def calculate_total_yield(projected: Dict[str, Dict[str, float]]) -> float:
     """Sum total yield across all crops."""
     return sum(v["total_yield_tonnes"] for v in projected.values())
+
+
+def apply_loss_adjustment(
+    projected: Dict[str, Dict[str, float]],
+    loss_rate: float,
+) -> Dict[str, Dict[str, float]]:
+    """Apply post-harvest loss adjustment to projected yields.
+
+    Args:
+        projected: Output of project_yields().
+        loss_rate: Historical loss rate (0.0-1.0), e.g. 0.05 = 5% loss.
+
+    Returns:
+        Same dict with loss_adjusted_yield_tonnes added per crop.
+    """
+    for crop_name, data in projected.items():
+        gross = data["total_yield_tonnes"]
+        data["loss_adjusted_yield_tonnes"] = round(gross * (1 - loss_rate), 4)
+    return projected

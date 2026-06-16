@@ -52,6 +52,9 @@ def hash_payload(data: Any) -> str:
     return hashlib.sha256(serialized.encode()).hexdigest()
 
 
+INGESTION_PROCESSOR_VERSION = "1.0.0"
+
+
 def log_ingestion(
     source_system: str,
     source_table: str,
@@ -64,6 +67,7 @@ def log_ingestion(
     error_message: Optional[str] = None,
     rows_affected: int = 0,
     processing_time_ms: int = 0,
+    processor_version: Optional[str] = None,
 ) -> None:
     """Log ingestion event to the ingestion_log table."""
     try:
@@ -73,12 +77,14 @@ def log_ingestion(
                 """
                 INSERT INTO ingestion_log
                     (source_system, source_table, source_id, target_table, target_id,
-                     operation, payload_hash, status, error_message, rows_affected, processing_time_ms)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     operation, payload_hash, status, error_message, rows_affected,
+                     processing_time_ms, processor_version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     source_system, source_table, source_id, target_table, target_id,
-                    operation, payload_hash, status, error_message, rows_affected, processing_time_ms,
+                    operation, payload_hash, status, error_message, rows_affected,
+                    processing_time_ms, processor_version or INGESTION_PROCESSOR_VERSION,
                 ),
             )
         db.commit()
