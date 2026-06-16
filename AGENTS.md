@@ -45,6 +45,9 @@
 - Water resilience: `python3 -m services.analytics --water-resilience --location-id UUID`
 - Crop diversity: `python3 -m services.analytics --crop-diversity --location-id UUID`
 - Intervention impact: `python3 -m services.analytics --intervention-impact --location-id UUID`
+- Soil health: `python3 -m services.analytics --soil-health --location-id UUID`
+- Water access: `python3 -m services.analytics --water-access --location-id UUID`
+- Environmental baseline: `python3 -m services.analytics --environmental-baseline --location-id UUID`
 - Ingestion status: `python3 -m services.ingestion.status log --source openweathermap`
 - Ingestion indexers: `python3 -m services.ingestion.status indexers`
 - Ingestion summary: `python3 -m services.ingestion.status summary`

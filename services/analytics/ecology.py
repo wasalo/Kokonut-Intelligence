@@ -426,7 +426,7 @@ def water_resilience(conn, location_id: str) -> Dict[str, Any]:
 
     # Soil moisture from sensor_reading
     cur.execute("""
-        SELECT AVG(reading_value) as avg_moisture
+        SELECT AVG(value) as avg_moisture
         FROM sensor_reading
         WHERE location_id = %s AND sensor_type = 'soil_moisture'
     """, (location_id,))
@@ -435,7 +435,7 @@ def water_resilience(conn, location_id: str) -> Dict[str, Any]:
 
     # Infrastructure: tanks, pumps, reservoirs
     cur.execute("""
-        SELECT asset_type, condition_rating
+        SELECT asset_type, condition_status
         FROM infrastructure_asset
         WHERE location_id = %s
           AND asset_type IN ('tank', 'pump', 'reservoir')
@@ -597,7 +597,7 @@ def intervention_impact(conn, location_id: str) -> Dict[str, Any]:
             activity_type,
             COUNT(*) as intervention_count,
             COALESCE(SUM(labor_hours), 0) as total_hours,
-            COALESCE(SUM(cost), 0) as total_cost
+            COALESCE(SUM(labor_cost), 0) as total_cost
         FROM farm_activity
         WHERE location_id = %s
           AND activity_type IN ('irrigation', 'planting', 'spraying')
@@ -630,4 +630,316 @@ def intervention_impact(conn, location_id: str) -> Dict[str, Any]:
         "interventions": interventions,
         "total_interventions": total_interventions,
         "total_cost": round(total_cost, 2),
+    }
+
+
+def soil_health(conn, location_id: str) -> Dict[str, Any]:
+    """Analyze soil health from soil_sample data.
+
+    Computes per-plot averages for pH, organic matter, NPK, and CEC.
+    Compares baseline vs latest observations and produces a health score (0-100).
+    """
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Latest soil samples per plot
+    cur.execute("""
+        SELECT
+            p.name as plot_name,
+            ss.ph,
+            ss.organic_matter_pct,
+            ss.nitrogen_ppm,
+            ss.phosphorus_ppm,
+            ss.potassium_ppm,
+            ss.cec,
+            ss.texture,
+            ss.sample_date
+        FROM soil_sample ss
+        JOIN plot p ON ss.plot_id = p.id
+        WHERE ss.location_id = %s
+        ORDER BY ss.sample_date DESC
+    """, (location_id,))
+    latest = [dict(r) for r in cur.fetchall()]
+
+    # Baseline soil samples (earliest per plot)
+    cur.execute("""
+        SELECT
+            p.name as plot_name,
+            ss.ph,
+            ss.organic_matter_pct,
+            ss.nitrogen_ppm,
+            ss.phosphorus_ppm,
+            ss.potassium_ppm,
+            ss.sample_date
+        FROM soil_sample ss
+        JOIN plot p ON ss.plot_id = p.id
+        WHERE ss.location_id = %s
+        ORDER BY ss.sample_date ASC
+    """, (location_id,))
+    baseline = [dict(r) for r in cur.fetchall()]
+    cur.close()
+
+    if not latest:
+        return {"location_id": location_id, "plots": [], "health_score": 0, "summary": "No soil samples found"}
+
+    # Per-plot latest values
+    plots = {}
+    for row in latest:
+        name = row["plot_name"]
+        if name not in plots:
+            plots[name] = {
+                "ph": float(row["ph"] or 0),
+                "organic_matter_pct": float(row["organic_matter_pct"] or 0),
+                "nitrogen_ppm": float(row["nitrogen_ppm"] or 0),
+                "phosphorus_ppm": float(row["phosphorus_ppm"] or 0),
+                "potassium_ppm": float(row["potassium_ppm"] or 0),
+                "cec": float(row["cec"] or 0),
+                "texture": row["texture"],
+                "sample_date": str(row["sample_date"]),
+            }
+
+    # Baseline per-plot (earliest)
+    baseline_plots = {}
+    for row in baseline:
+        name = row["plot_name"]
+        if name not in baseline_plots:
+            baseline_plots[name] = {
+                "ph": float(row["ph"] or 0),
+                "organic_matter_pct": float(row["organic_matter_pct"] or 0),
+                "nitrogen_ppm": float(row["nitrogen_ppm"] or 0),
+                "phosphorus_ppm": float(row["phosphorus_ppm"] or 0),
+                "potassium_ppm": float(row["potassium_ppm"] or 0),
+                "sample_date": str(row["sample_date"]),
+            }
+
+    # Health score: weighted composite
+    # pH optimal: 6.0-7.0 (score 100 if in range, linear falloff)
+    # OM optimal: >3% (score 100 if >=3, linear falloff)
+    # N optimal: >20ppm, P optimal: >15ppm, K optimal: >150ppm
+    plot_scores = {}
+    for name, vals in plots.items():
+        ph = vals["ph"]
+        om = vals["organic_matter_pct"]
+        n = vals["nitrogen_ppm"]
+        p = vals["phosphorus_ppm"]
+        k = vals["potassium_ppm"]
+
+        # pH score (optimal 6.0-7.0)
+        if 6.0 <= ph <= 7.0:
+            ph_score = 100
+        elif ph < 6.0:
+            ph_score = max(0, (ph / 6.0) * 100)
+        else:
+            ph_score = max(0, ((14 - ph) / 7.0) * 100)
+
+        # Organic matter score (optimal >=3%)
+        om_score = min(100, (om / 3.0) * 100)
+
+        # NPK scores
+        n_score = min(100, (n / 20.0) * 100)
+        p_score = min(100, (p / 15.0) * 100)
+        k_score = min(100, (k / 150.0) * 100)
+
+        # Weighted: pH 20%, OM 30%, N 20%, P 15%, K 15%
+        health = (ph_score * 0.20 + om_score * 0.30 + n_score * 0.20 +
+                  p_score * 0.15 + k_score * 0.15)
+        plot_scores[name] = round(health, 1)
+
+    overall_score = round(sum(plot_scores.values()) / max(len(plot_scores), 1), 1)
+
+    # Build per-plot results with deltas
+    plot_results = []
+    for name, vals in plots.items():
+        base = baseline_plots.get(name, {})
+        result = {
+            "plot_name": name,
+            "health_score": plot_scores.get(name, 0),
+            "current": vals,
+        }
+        if base:
+            result["baseline"] = base
+            result["delta"] = {
+                "ph": round(vals["ph"] - base["ph"], 2),
+                "organic_matter_pct": round(vals["organic_matter_pct"] - base["organic_matter_pct"], 3),
+                "nitrogen_ppm": round(vals["nitrogen_ppm"] - base["nitrogen_ppm"], 3),
+                "phosphorus_ppm": round(vals["phosphorus_ppm"] - base["phosphorus_ppm"], 3),
+                "potassium_ppm": round(vals["potassium_ppm"] - base["potassium_ppm"], 3),
+            }
+        plot_results.append(result)
+
+    return {
+        "location_id": location_id,
+        "plots": plot_results,
+        "health_score": overall_score,
+        "plot_count": len(plot_results),
+        "summary": f"{len(plot_results)} plots, overall health score: {overall_score}/100",
+    }
+
+
+def water_access_summary(conn, location_id: str) -> Dict[str, Any]:
+    """Summarize water access infrastructure from the water_access table.
+
+    Computes source types, reliability/quality averages, total monthly cost,
+    and an accessibility score (0-100).
+    """
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            source_type,
+            source_name,
+            reliability_score,
+            quality_score,
+            distance_km,
+            monthly_cost_usd,
+            capacity_liters,
+            status
+        FROM water_access
+        WHERE location_id = %s
+        ORDER BY reliability_score DESC
+    """, (location_id,))
+    sources = [dict(r) for r in cur.fetchall()]
+    cur.close()
+
+    if not sources:
+        return {
+            "location_id": location_id,
+            "sources": [],
+            "source_count": 0,
+            "accessibility_score": 0,
+            "summary": "No water access records found",
+        }
+
+    # Per-source details
+    source_details = []
+    for s in sources:
+        reliability = float(s["reliability_score"] or 0)
+        quality = float(s["quality_score"] or 0)
+        distance = float(s["distance_km"] or 0)
+        cost = float(s["monthly_cost_usd"] or 0)
+        capacity = float(s["capacity_liters"] or 0)
+
+        # Accessibility score: reliability 40%, quality 30%, distance 20%, capacity 10%
+        dist_score = max(0, 100 - (distance * 10))  # 0km=100, 10km=0
+        cap_score = min(100, (capacity / 10000) * 100)  # 10k liters = 100
+        accessibility = (reliability * 0.40 + quality * 0.30 +
+                         dist_score * 0.20 + cap_score * 0.10)
+
+        source_details.append({
+            "source_type": s["source_type"],
+            "source_name": s["source_name"],
+            "reliability_score": reliability,
+            "quality_score": quality,
+            "distance_km": distance,
+            "monthly_cost_usd": cost,
+            "capacity_liters": capacity,
+            "status": s["status"],
+            "accessibility_score": round(accessibility, 1),
+        })
+
+    # Aggregate metrics
+    total_monthly_cost = sum(s["monthly_cost_usd"] for s in source_details)
+    avg_reliability = sum(s["reliability_score"] for s in source_details) / len(source_details)
+    avg_quality = sum(s["quality_score"] for s in source_details) / len(source_details)
+    active_sources = [s for s in source_details if s["status"] == "active"]
+    overall_score = round(sum(s["accessibility_score"] for s in source_details) / len(source_details), 1)
+
+    return {
+        "location_id": location_id,
+        "sources": source_details,
+        "source_count": len(source_details),
+        "active_source_count": len(active_sources),
+        "avg_reliability": round(avg_reliability, 1),
+        "avg_quality": round(avg_quality, 1),
+        "total_monthly_cost_usd": round(total_monthly_cost, 2),
+        "accessibility_score": overall_score,
+        "summary": f"{len(source_details)} sources ({len(active_sources)} active), score: {overall_score}/100, ${total_monthly_cost:.0f}/month",
+    }
+
+
+def environmental_baseline(conn, location_id: str) -> Dict[str, Any]:
+    """Retrieve and summarize environmental baselines from the environmental_baseline table.
+
+    Shows current baseline values and compares to latest measurements where available.
+    """
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Get baselines
+    cur.execute("""
+        SELECT metric_name, metric_value, unit, measurement_date, source
+        FROM environmental_baseline
+        WHERE location_id = %s
+        ORDER BY metric_name
+    """, (location_id,))
+    baselines = [dict(r) for r in cur.fetchall()]
+
+    # Get latest soil carbon for comparison
+    cur.execute("""
+        SELECT AVG(carbon_tonnes_per_ha) as latest_carbon
+        FROM soil_carbon_measurement
+        WHERE location_id = %s
+    """, (location_id,))
+    carbon_row = cur.fetchone()
+    latest_carbon = float(dict(carbon_row)["latest_carbon"] or 0) if carbon_row else 0
+
+    # Get latest species count for comparison
+    cur.execute("""
+        SELECT COUNT(DISTINCT species_name) as latest_species
+        FROM species_observation
+        WHERE location_id = %s
+    """, (location_id,))
+    species_row = cur.fetchone()
+    latest_species = int(dict(species_row)["latest_species"] or 0) if species_row else 0
+
+    # Get latest NDVI for comparison
+    cur.execute("""
+        SELECT AVG(ndvi) as latest_ndvi
+        FROM remote_sensing_observation
+        WHERE location_id = %s
+    """, (location_id,))
+    ndvi_row = cur.fetchone()
+    latest_ndvi = float(dict(ndvi_row)["latest_ndvi"] or 0) if ndvi_row else 0
+
+    cur.close()
+
+    # Build baseline map
+    baseline_map = {}
+    for b in baselines:
+        baseline_map[b["metric_name"]] = {
+            "value": float(b["metric_value"] or 0),
+            "unit": b["unit"],
+            "date": str(b["measurement_date"]),
+            "source": b["source"],
+        }
+
+    # Compare baselines to latest
+    comparisons = {}
+    if "soil_carbon_tonnes_per_ha" in baseline_map:
+        base_val = baseline_map["soil_carbon_tonnes_per_ha"]["value"]
+        comparisons["soil_carbon"] = {
+            "baseline": base_val,
+            "latest": latest_carbon,
+            "delta": round(latest_carbon - base_val, 2),
+            "pct_change": round(((latest_carbon - base_val) / base_val * 100) if base_val > 0 else 0, 1),
+        }
+    if "species_count" in baseline_map:
+        base_val = baseline_map["species_count"]["value"]
+        comparisons["species_count"] = {
+            "baseline": base_val,
+            "latest": latest_species,
+            "delta": latest_species - int(base_val),
+        }
+    if "ndvi_avg" in baseline_map:
+        base_val = baseline_map["ndvi_avg"]["value"]
+        comparisons["ndvi_avg"] = {
+            "baseline": base_val,
+            "latest": round(latest_ndvi, 4),
+            "delta": round(latest_ndvi - base_val, 4),
+        }
+
+    return {
+        "location_id": location_id,
+        "baselines": baseline_map,
+        "comparisons": comparisons,
+        "baseline_count": len(baselines),
+        "summary": f"{len(baselines)} baselines tracked, {len(comparisons)} with latest comparison",
     }

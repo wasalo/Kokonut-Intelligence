@@ -2,7 +2,8 @@
 Ecology Analytics CLI
 
 Command-line interface for soil carbon, biodiversity, scenario comparison,
-NDVI trends, water resilience, crop diversity, and intervention impact.
+NDVI trends, water resilience, crop diversity, intervention impact,
+soil health, water access, and environmental baseline.
 
 Usage:
     python3 -m services.analytics.cli --soil-carbon --location-id UUID
@@ -13,6 +14,9 @@ Usage:
     python3 -m services.analytics.cli --water-resilience --location-id UUID
     python3 -m services.analytics.cli --crop-diversity --location-id UUID
     python3 -m services.analytics.cli --intervention-impact --location-id UUID
+    python3 -m services.analytics.cli --soil-health --location-id UUID
+    python3 -m services.analytics.cli --water-access --location-id UUID
+    python3 -m services.analytics.cli --environmental-baseline --location-id UUID
 """
 
 import argparse
@@ -30,7 +34,10 @@ def main():
     parser.add_argument("--water-resilience", action="store_true", help="Compute water resilience metrics")
     parser.add_argument("--crop-diversity", action="store_true", help="Compute crop diversity index")
     parser.add_argument("--intervention-impact", action="store_true", help="Analyze intervention impact")
-    parser.add_argument("--location-id", help="Location UUID (required for soil-carbon, biodiversity)")
+    parser.add_argument("--soil-health", action="store_true", help="Analyze soil health (pH, NPK, organic matter)")
+    parser.add_argument("--water-access", action="store_true", help="Summarize water access infrastructure")
+    parser.add_argument("--environmental-baseline", action="store_true", help="Show environmental baselines and latest comparisons")
+    parser.add_argument("--location-id", help="Location UUID (required for most flags)")
     parser.add_argument("--scenario-id", help="Scenario UUID (required for sensitivity)")
     parser.add_argument("--variable", choices=["price", "yield", "cost"], default="price", help="Variable for sensitivity analysis")
     parser.add_argument("--range-pct", type=float, default=20.0, help="Percentage range for sensitivity (default: 20)")
@@ -109,6 +116,36 @@ def main():
         from .ecology import intervention_impact
         conn = get_db()
         result = intervention_impact(conn, args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.soil_health:
+        if not args.location_id:
+            parser.error("--soil-health requires --location-id")
+        from .ecology import soil_health
+        conn = get_db()
+        result = soil_health(conn, args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.water_access:
+        if not args.location_id:
+            parser.error("--water-access requires --location-id")
+        from .ecology import water_access_summary
+        conn = get_db()
+        result = water_access_summary(conn, args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.environmental_baseline:
+        if not args.location_id:
+            parser.error("--environmental-baseline requires --location-id")
+        from .ecology import environmental_baseline
+        conn = get_db()
+        result = environmental_baseline(conn, args.location_id)
         conn.close()
         print(json.dumps(result, indent=2, default=str))
         return
