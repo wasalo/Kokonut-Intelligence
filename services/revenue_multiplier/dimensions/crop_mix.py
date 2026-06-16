@@ -7,6 +7,7 @@ soil type, water availability, and market prices.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -40,13 +41,17 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     """, (location_id,))
     noi_data = [dict(r) for r in cur.fetchall()]
 
-    # Get price observations
+    # Get price observations — scoped to crops grown at this location
     cur.execute("""
-        SELECT c.name as crop_name, po.price_per_unit, po.market_name
+        SELECT c.name as crop_name, po.price_per_unit, po.market_name, po.price_date
         FROM price_observation po
         JOIN crop c ON po.crop_id = c.id
+        WHERE po.crop_id IN (
+            SELECT DISTINCT cc.crop_id FROM crop_cycle cc
+            WHERE cc.location_id = %s
+        )
         ORDER BY po.price_date DESC
-    """)
+    """, (location_id,))
     prices = [dict(r) for r in cur.fetchall()]
 
     # Get forecast projections for forward-looking analysis
@@ -98,14 +103,15 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     worst_noi = avg_noi_per_ha[worst_crop]
 
     # Score: higher if there's a big gap between best and worst
+    gap_normalizer = float(get_config(conn, 'crop_mix_gap_normalizer'))
     gap = best_noi - worst_noi
-    score = min(100, max(0, gap / 10))  # $10/ha gap = 10 points
+    score = min(100, max(0, gap / gap_normalizer))
 
     # Estimate impact: reallocating worst crop area to best crop
     worst_area = crop_metrics.get(worst_crop, {}).get("total_area", 0)
     impact = gap * worst_area
 
-    # Enrich with forecast projections if available
+    # Enrich with forecast projections
     projected_revenue_by_crop = {}
     projected_noi_by_crop = {}
     if "projected_revenue_usd" in forecasts:
@@ -117,6 +123,15 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         if isinstance(inputs, dict):
             projected_noi_by_crop = inputs.get("noi_by_crop", {})
 
+    # Wire projected data into impact: forward-looking crop mix shift value
+    if projected_noi_by_crop and worst_crop in projected_noi_by_crop and best_crop in projected_noi_by_crop:
+        proj_worst_noi = projected_noi_by_crop.get(worst_crop, 0)
+        proj_best_noi = projected_noi_by_crop.get(best_crop, 0)
+        proj_gap = proj_best_noi - proj_worst_noi
+        if proj_gap > 0:
+            projected_impact = proj_gap * worst_area
+            impact = max(impact, projected_impact)
+
     # Price trends
     price_by_crop = {}
     for p in prices:
@@ -125,6 +140,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
             price_by_crop[crop] = []
         price_by_crop[crop].append(float(p["price_per_unit"]))
 
+    confidence_threshold = int(get_config(conn, 'crop_mix_confidence_threshold'))
     details = {
         "revenue_per_ha": {c: round(m["total_revenue"] / max(m["total_area"], 0.01), 2) for c, m in crop_metrics.items()},
         "noi_per_ha": {c: round(v, 2) for c, v in avg_noi_per_ha.items()},
@@ -140,8 +156,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         dimension_name="Crop Mix Optimization",
         score=round(score, 1),
         impact_usd=round(impact, 2),
-        confidence="high" if len(cycles) >= 4 else "medium",
-        current_state=f"4 crops, best={best_crop} (${best_noi:.0f}/ha), worst={worst_crop} (${worst_noi:.0f}/ha)",
+        confidence="high" if len(cycles) >= confidence_threshold else "medium",
+        current_state=f"{len(crop_metrics)} crops, best={best_crop} (${best_noi:.0f}/ha), worst={worst_crop} (${worst_noi:.0f}/ha)",
         recommendation=f"Shift {worst_area:.1f}ha from {worst_crop} to {best_crop} for +${impact:,.0f}/year",
         data_points=len(cycles),
         details=details,

@@ -1,8 +1,8 @@
 """
-Ecological Verification Monetization — Dimension 8
+Ecological Verification — Dimension 8
 
-Estimates dollar value of soil carbon, biodiversity, and vegetation verification
-as carbon credits, biodiversity credits, and impact certificates.
+Evaluates ecological score verification status and trend.
+Compares baseline vs current scores, estimates impact of maintaining/improving ecological health.
 """
 
 import psycopg2.extras
@@ -13,127 +13,140 @@ from ..config import get_config
 def analyze(conn, location_id: str) -> OpportunityDimension:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Get soil carbon changes
-    cur.execute("""
-        SELECT
-            plot_id,
-            MAX(CASE WHEN is_baseline THEN carbon_tonnes_per_ha END) as baseline,
-            MAX(CASE WHEN NOT is_baseline THEN carbon_tonnes_per_ha END) as current
-        FROM soil_carbon_measurement
-        WHERE location_id = %s
-        GROUP BY plot_id
-    """, (location_id,))
-    carbon_data = [dict(r) for r in cur.fetchall()]
-
-    # Get species observations
-    cur.execute("""
-        SELECT
-            plot_id,
-            observation_date,
-            COUNT(DISTINCT species_name) as species_count
-        FROM species_observation
-        WHERE location_id = %s
-        GROUP BY plot_id, observation_date
-        ORDER BY observation_date
-    """, (location_id,))
-    species_data = [dict(r) for r in cur.fetchall()]
-
     # Get MRV claims
     cur.execute("""
-        SELECT claim_type, status, COUNT(*) as count
-        FROM mrv_claim
-        WHERE location_id = %s
-        GROUP BY claim_type, status
+        SELECT
+            mc.claim_type,
+            mc.status,
+            mc.claimed_value,
+            mc.created_at
+        FROM mrv_claim mc
+        WHERE mc.location_id = %s
     """, (location_id,))
     claims = [dict(r) for r in cur.fetchall()]
 
-    # Get attestation records
+    # Get ecological scores from fortune500
     cur.execute("""
-        SELECT status, COUNT(*) as count
-        FROM attestation_record
-        WHERE subject_type = 'location' AND subject_id = %s
-        GROUP BY status
+        SELECT score_name, score_value
+        FROM fortune500_score
+        WHERE location_id = %s AND score_name IN ('ecological', 'carbon', 'biodiversity')
     """, (location_id,))
-    attestations = {r["status"]: r["count"] for r in cur.fetchall()}
+    scores = {r["score_name"]: float(r["score_value"] or 0) for r in cur.fetchall()}
 
-    # Get ecological score from forecast engine
+    # Get baseline ecological score
     cur.execute("""
-        SELECT value, inputs
+        SELECT metric_name, outputs
+        FROM fortune500_output
+        WHERE location_id = %s AND metric_name = 'ecological_score'
+    """, (location_id,))
+    baseline_row = cur.fetchone()
+    baseline = float(dict(baseline_row)["outputs"].get("ecological_score", 0)) if baseline_row else 0
+
+    # Get forecast: projected ecological score
+    cur.execute("""
+        SELECT metric_name, outputs
         FROM forecast_output
-        WHERE location_id = %s AND metric_name = 'ecological_score_forecast'
+        WHERE location_id = %s
+          AND metric_name = 'ecological_score_forecast'
         ORDER BY created_at DESC LIMIT 1
     """, (location_id,))
-    eco_forecast = cur.fetchone()
-    eco_score_forecast = float(eco_forecast["value"]) if eco_forecast and eco_forecast["value"] else None
-    eco_inputs = dict(eco_forecast["inputs"]) if eco_forecast and eco_forecast["inputs"] else {}
+    forecast_row = cur.fetchone()
+    forecast_score = 0
+    if forecast_row:
+        outputs = dict(forecast_row)["outputs"] or {}
+        forecast_score = float(outputs.get("ecological_score_forecast", 0) or 0)
+
+    # Get carbon data
+    cur.execute("""
+        SELECT
+            SUM(estimated_carbon_sequestered) as total_carbon
+        FROM carbon_data
+        WHERE location_id = %s
+    """, (location_id,))
+    carbon_row = cur.fetchone()
+    total_carbon = float(dict(carbon_row)["total_carbon"] or 0) if carbon_row else 0
+
+    # Get species observations
+    cur.execute("""
+        SELECT COUNT(DISTINCT species_name) as species_count
+        FROM species_observation
+        WHERE location_id = %s
+    """, (location_id,))
+    species_row = cur.fetchone()
+    species_count = int(dict(species_row)["species_count"] or 0) if species_row else 0
 
     cur.close()
 
-    # Calculate carbon credit potential
-    total_carbon_delta = 0
-    for cd in carbon_data:
-        baseline = float(cd["baseline"] or 0)
-        current = float(cd["current"] or 0)
-        total_carbon_delta += max(0, current - baseline)
+    # Current ecological score
+    current_score = scores.get("ecological", baseline)
 
-    carbon_credit_price = float(get_config(conn, 'carbon_credit_price_usd'))
-    carbon_revenue = total_carbon_delta * carbon_credit_price
+    # Scoring formula weights from config
+    carbon_weight = float(get_config(conn, 'ecological_carbon_weight'))
+    species_weight = float(get_config(conn, 'ecological_species_weight'))
+    claims_weight = float(get_config(conn, 'ecological_claims_weight'))
+    forecast_weight = float(get_config(conn, 'ecological_forecast_weight'))
 
-    # Calculate biodiversity credit potential
-    species_by_date = {}
-    for sd in species_data:
-        date = sd["observation_date"]
-        if date not in species_by_date:
-            species_by_date[date] = 0
-        species_by_date[date] += sd["species_count"]
+    # Score: composite of data completeness and score quality
+    data_score = 0
+    if total_carbon > 0:
+        data_score += carbon_weight
+    if species_count > 0:
+        data_score += species_weight
+    verified_claims = [c for c in claims if c["status"] == "verified"]
+    if verified_claims:
+        data_score += claims_weight
+    if forecast_score > 0:
+        data_score += forecast_weight
+    score = min(100, data_score)
 
-    dates = sorted(species_by_date.keys())
-    if len(dates) >= 2:
-        baseline_species = species_by_date[dates[0]]
-        current_species = species_by_date[dates[-1]]
-        species_delta = max(0, current_species - baseline_species)
-    else:
-        species_delta = 0
+    # Impact: value of ecological services
+    # Carbon sequestration value
+    carbon_price = float(get_config(conn, 'carbon_credit_price_usd'))
+    carbon_value = total_carbon * carbon_price
 
-    biodiversity_credit_price = float(get_config(conn, 'biodiversity_credit_price_usd'))
-    biodiversity_revenue = species_delta * biodiversity_credit_price
+    # Biodiversity value (species-based estimate)
+    biodiversity_price = float(get_config(conn, 'biodiversity_credit_price_usd'))
+    biodiversity_value = species_count * biodiversity_price
 
-    # Calculate attestation value
-    total_claims = sum(c["count"] for c in claims)
-    attested_claims = attestations.get("published", 0)
-    impact_certificate_price = float(get_config(conn, 'impact_certificate_price_usd'))
-    attestation_revenue = attested_claims * impact_certificate_price
+    impact = carbon_value + biodiversity_value
 
-    total_revenue = carbon_revenue + biodiversity_revenue + attestation_revenue
-
-    # Score based on data completeness and verification status
-    has_carbon = len(carbon_data) > 0
-    has_species = len(species_data) > 0
-    has_claims = total_claims > 0
-    has_forecast = eco_score_forecast is not None
-    score = (25 if has_carbon else 0) + (25 if has_species else 0) + (30 if has_claims else 0) + (20 if has_forecast else 0)
+    # Forecast-adjusted impact
+    forecast_impact = 0
+    if forecast_score > current_score:
+        forecast_impact = (forecast_score - current_score) * carbon_price * 10
 
     details = {
-        "carbon_delta_tonnes": round(total_carbon_delta, 2),
-        "carbon_credit_revenue": round(carbon_revenue, 2),
-        "species_delta": species_delta,
-        "biodiversity_credit_revenue": round(biodiversity_revenue, 2),
-        "attested_claims": attested_claims,
-        "attestation_revenue": round(attestation_revenue, 2),
-        "total_verification_revenue": round(total_revenue, 2),
-        "claim_breakdown": {c["claim_type"]: c["count"] for c in claims},
-        "ecological_score_forecast": eco_score_forecast,
-        "ecological_score_inputs": eco_inputs,
+        "current_ecological_score": round(current_score, 1),
+        "baseline_score": round(baseline, 1),
+        "forecast_score": round(forecast_score, 1),
+        "carbon_sequestered_tonnes": round(total_carbon, 2),
+        "species_count": species_count,
+        "verified_claims": len(verified_claims),
+        "total_claims": len(claims),
+        "carbon_value_usd": round(carbon_value, 2),
+        "biodiversity_value_usd": round(biodiversity_value, 2),
+        "forecast_impact_usd": round(forecast_impact, 2),
     }
+
+    impact = max(impact, forecast_impact)
 
     return OpportunityDimension(
         dimension_id="ecological_verification",
-        dimension_name="Ecological Verification Monetization",
+        dimension_name="Ecological Verification",
         score=round(score, 1),
-        impact_usd=round(total_revenue, 2),
-        confidence="high" if has_carbon and has_species else "medium",
-        current_state=f"Carbon: +{total_carbon_delta:.1f} t/ha, Species: +{species_delta}, Claims: {total_claims}",
-        recommendation=f"Monetize {total_carbon_delta:.1f}t carbon + {species_delta} species gains = ${total_revenue:,.0f}",
-        data_points=len(carbon_data) + len(species_data) + total_claims,
+        impact_usd=round(impact, 2),
+        confidence="high" if verified_claims else "medium",
+        current_state=f"Score {current_score:.0f}, {total_carbon:.0f}t carbon, {species_count} species",
+        recommendation=f"Maintain ecological score for ${impact:,.0f}/year in ecosystem services" if impact > 0 else "Establish ecological monitoring",
+        data_points=len(claims) + species_count,
         details=details,
+    )
+
+
+def _empty(dim_id, dim_name):
+    return OpportunityDimension(
+        dimension_id=dim_id, dimension_name=dim_name,
+        score=0, impact_usd=0, confidence="low",
+        current_state="No ecological data", recommendation="Set up ecological monitoring",
+        data_points=0,
     )

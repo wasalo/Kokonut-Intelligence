@@ -1,8 +1,8 @@
 """
 Value-Added Processing — Dimension 4
 
-Compares raw commodity prices vs potential processed product prices.
-Estimates processing ROI.
+Evaluates processing, storage, and packaging capacity vs revenue uplift.
+Compares raw vs processed revenue, estimates upside from value addition.
 """
 
 import psycopg2.extras
@@ -13,101 +13,125 @@ from ..config import get_config
 def analyze(conn, location_id: str) -> OpportunityDimension:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Get crop sales data
+    # Get production capacity
+    cur.execute("""
+        SELECT * FROM production_capacity WHERE location_id = %s
+    """, (location_id,))
+    capacity = [dict(r) for r in cur.fetchall()]
+
+    # Get sales breakdown (raw vs processed)
     cur.execute("""
         SELECT
             c.name as crop_name,
-            SUM(he.quantity) as total_yield,
-            AVG(se.price_per_unit) as avg_price,
-            COUNT(DISTINCT he.crop_cycle_id) as cycles
-        FROM harvest_event he
-        JOIN crop_cycle cc ON he.crop_cycle_id = cc.id
-        JOIN crop c ON cc.crop_id = c.id
-        LEFT JOIN sales_event se ON se.crop_cycle_id = cc.id
-        WHERE he.location_id = %s
-        GROUP BY c.name
+            s.product_type,
+            COUNT(DISTINCT s.id) as sale_count,
+            SUM(s.gross_amount) as total_gross,
+            SUM(s.net_amount) as total_net
+        FROM sales s
+        JOIN crop c ON s.crop_id = c.id
+        WHERE s.location_id = %s AND s.status IN ('verified', 'published')
+        GROUP BY c.name, s.product_type
     """, (location_id,))
-    crops = [dict(r) for r in cur.fetchall()]
+    sales_breakdown = [dict(r) for r in cur.fetchall()]
 
-    # Get infrastructure
+    # Get processing activities
     cur.execute("""
-        SELECT name, asset_type, capacity, capacity_unit
-        FROM infrastructure_asset
-        WHERE location_id = %s AND asset_type IN ('biofactory', 'processing', 'storage')
+        SELECT * FROM production_batch WHERE location_id = %s
     """, (location_id,))
-    infra = [dict(r) for r in cur.fetchall()]
+    batches = [dict(r) for r in cur.fetchall()]
 
-    # Get processing-related expenses
+    # Get forecast: projected revenue by crop
     cur.execute("""
-        SELECT SUM(amount) as processing_costs
-        FROM expense_event
-        WHERE location_id = %s AND category = 'Packaging & Processing'
+        SELECT metric_name, inputs
+        FROM forecast_output
+        WHERE location_id = %s
+          AND metric_name = 'projected_revenue_usd'
+        ORDER BY created_at DESC LIMIT 1
     """, (location_id,))
-    proc_costs = float(cur.fetchone()["processing_costs"] or 0)
+    forecast_row = cur.fetchone()
+    forecast_revenue = {}
+    if forecast_row:
+        inputs = dict(forecast_row)["inputs"] or {}
+        forecast_revenue = inputs.get("revenue_by_crop", {})
 
     cur.close()
 
-    if not crops:
-        return OpportunityDimension(
-            dimension_id="value_added_processing", dimension_name="Value-Added Processing",
-            score=0, impact_usd=0, confidence="low",
-            current_state="No crop data", recommendation="Establish baseline crop data first",
-            data_points=0,
-        )
+    if not capacity and not sales_breakdown:
+        return _empty("value_added_processing", "Value-Added Processing")
 
-    # Calculate potential value uplift
-    total_raw_value = 0
-    total_processed_value = 0
-    crop_uplifts = {}
+    # Calculate raw vs processed revenue
+    raw_revenue = 0
+    processed_revenue = 0
+    for sale in sales_breakdown:
+        gross = float(sale["total_gross"] or 0)
+        if sale["product_type"] in ("raw", "unprocessed"):
+            raw_revenue += gross
+        else:
+            processed_revenue += gross
 
-    for crop in crops:
-        name = crop["crop_name"]
-        yield_t = float(crop["total_yield"] or 0)
-        price = float(crop["avg_price"] or 0)
-        raw_value = yield_t * price
+    total_revenue = raw_revenue + processed_revenue
+    processed_pct = (processed_revenue / max(total_revenue, 1)) * 100
 
-        uplifts = get_config(conn, 'processing_uplift').get(name, {"basic": get_config(conn, 'default_processing_uplift')})
-        best_process = max(uplifts, key=uplifts.get)
-        best_multiplier = uplifts[best_process]
-        processed_value = raw_value * best_multiplier
+    # Uplift: processed revenue / raw revenue
+    uplift = processed_revenue / max(raw_revenue, 1)
 
-        total_raw_value += raw_value
-        total_processed_value += processed_value
-        crop_uplifts[name] = {
-            "raw_value": round(raw_value, 2),
-            "best_processing": best_process,
-            "multiplier": best_multiplier,
-            "processed_value": round(processed_value, 2),
-        }
+    # Get config constants
+    value_added_uplift_multiplier = float(get_config(conn, 'value_added_uplift_multiplier'))
+    value_added_infra_bonus = float(get_config(conn, 'value_added_infra_bonus'))
+    value_added_cost_assumption = float(get_config(conn, 'value_added_cost_assumption'))
 
-    potential_uplift = total_processed_value - total_raw_value
+    # Score: higher if low processed % but high capacity
+    score = min(100, max(0, processed_pct))
 
-    # Score based on uplift potential and existing infrastructure
-    has_infra = len(infra) > 0
-    score = min(100, (potential_uplift / max(total_raw_value, 1)) * 30)
-    if has_infra:
-        score = min(100, score * 1.3)
+    # If there's infrastructure but low processing, bonus
+    has_storage = any(c.get("storage_capacity") for c in capacity)
+    has_processing = any(c.get("processing_capacity") for c in capacity)
+    if has_processing and processed_pct < 50:
+        score *= value_added_infra_bonus
+        score = min(100, score)
 
-    # Impact: uplift minus processing costs
-    impact = potential_uplift - proc_costs * 0.5  # Assume 50% cost increase for processing
+    # Impact: revenue uplift if processing increases
+    # If we can shift more raw to processed, what's the gain?
+    potential_uplift_per_dollar = value_added_uplift_multiplier
+    raw_for_processing = raw_revenue * 0.5  # 50% of raw could be processed
+    processing_cost = raw_for_processing * value_added_cost_assumption
+    impact = raw_for_processing * (value_added_uplift_multiplier - 1) - processing_cost
+
+    # Forecast-adjusted impact
+    forecast_impact = 0
+    if forecast_revenue:
+        total_forecast = sum(float(v or 0) for v in forecast_revenue.values())
+        forecast_impact = total_forecast * (1 - processed_pct / 100) * (value_added_uplift_multiplier - 1) * 0.3
 
     details = {
-        "crop_uplifts": crop_uplifts,
-        "total_raw_value": round(total_raw_value, 2),
-        "total_processed_value": round(total_processed_value, 2),
-        "potential_uplift": round(potential_uplift, 2),
-        "has_processing_infra": has_infra,
-        "existing_processing_costs": round(proc_costs, 2),
+        "raw_revenue": round(raw_revenue, 2),
+        "processed_revenue": round(processed_revenue, 2),
+        "processed_pct": round(processed_pct, 1),
+        "uplift_ratio": round(uplift, 2),
+        "capacity_items": len(capacity),
+        "batch_count": len(batches),
+        "forecast_impact_usd": round(forecast_impact, 2),
     }
+
+    impact = max(impact, forecast_impact)
 
     return OpportunityDimension(
         dimension_id="value_added_processing",
         dimension_name="Value-Added Processing",
         score=round(score, 1),
-        impact_usd=round(max(0, impact), 2),
-        confidence="medium",
-        current_state=f"Raw value: ${total_raw_value:,.0f}, processed potential: ${total_processed_value:,.0f}",
-        recommendation=f"Process into {max(crop_uplifts.values(), key=lambda x: x['multiplier'])['best_processing']} for +${potential_uplift:,.0f}",
-        data_points=len(crops),
+        impact_usd=round(impact, 2),
+        confidence="high" if batches and len(batches) > 3 else "medium",
+        current_state=f"{processed_pct:.0f}% processed, uplift {uplift:.1f}x",
+        recommendation=f"Increase processing to {processed_pct + 20:.0f}% for +${impact:,.0f}/year" if impact > 0 else "Processing at optimal level",
+        data_points=len(sales_breakdown) + len(batches),
         details=details,
+    )
+
+
+def _empty(dim_id, dim_name):
+    return OpportunityDimension(
+        dimension_id=dim_id, dimension_name=dim_name,
+        score=0, impact_usd=0, confidence="low",
+        current_state="No production data", recommendation="Set up production capacity tracking",
+        data_points=0,
     )

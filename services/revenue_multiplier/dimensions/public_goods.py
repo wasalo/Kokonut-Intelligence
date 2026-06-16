@@ -1,7 +1,8 @@
 """
-Public-Goods Funding Loops — Dimension 7
+Public Goods Funding Loop — Dimension 7
 
-Tracks actual vs forecasted allocations, shows funding→impact→funding cycle.
+Evaluates public goods allocation from treasury.
+Analyzes infrastructure sharing, community investment, and loop multiplier.
 """
 
 import psycopg2.extras
@@ -12,84 +13,126 @@ from ..config import get_config
 def analyze(conn, location_id: str) -> OpportunityDimension:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Get public goods allocations
+    # Get treasury allocations (public goods funding)
     cur.execute("""
-        SELECT SUM(amount) as total_allocated
-        FROM value_flow_event
-        WHERE location_id = %s AND flow_type = 'public_goods' AND verified = TRUE
+        SELECT
+            ce.event_type,
+            ce.amount,
+            ce.allocated_to,
+            ce.status,
+            ce.created_at
+        FROM capital_event ce
+        WHERE ce.location_id = %s
+          AND ce.event_type = 'allocation'
+          AND ce.status IN ('active', 'completed')
     """, (location_id,))
-    actual = float(cur.fetchone()["total_allocated"] or 0)
+    allocations = [dict(r) for r in cur.fetchall()]
 
-    # Get total revenue
+    # Get treasury balance
     cur.execute("""
-        SELECT SUM(amount) as total_revenue
-        FROM value_flow_event
-        WHERE location_id = %s AND flow_type = 'revenue' AND verified = TRUE
+        SELECT
+            cs.source_type,
+            SUM(cs.amount) as total_amount
+        FROM capital_source cs
+        WHERE cs.location_id = %s AND cs.source_type = 'treasury'
     """, (location_id,))
-    revenue = float(cur.fetchone()["total_revenue"] or 0)
+    treasury_row = cur.fetchone()
+    treasury_balance = float(dict(treasury_row)["total_amount"] or 0) if treasury_row else 0
 
-    # Get treasury flows
+    # Get infrastructure sharing
     cur.execute("""
-        SELECT flow_direction, SUM(usd_value) as total
-        FROM treasury_event
-        WHERE location_id = %s
-        GROUP BY flow_direction
+        SELECT
+            s.resource_type,
+            s.user_location_id,
+            COUNT(*) as usage_count
+        FROM shared_resource_usage s
+        JOIN shared_resource sr ON s.shared_resource_id = sr.id
+        WHERE sr.owner_location_id = %s
+        GROUP BY s.resource_type, s.user_location_id
     """, (location_id,))
-    treasury = {r["flow_direction"]: float(r["total"]) for r in cur.fetchall()}
+    sharing = [dict(r) for r in cur.fetchall()]
 
-    # Get cash flow snapshots
+    # Get public goods from forecast
     cur.execute("""
-        SELECT public_goods_allocation, total_revenue
-        FROM cash_flow_snapshot
-        WHERE location_id = %s
-        ORDER BY period_end DESC LIMIT 1
-    """, (location_id,))
-    cf = dict(cur.fetchone()) if cur.rowcount else {}
-
-    # Get forecasted public goods allocation from forecast engine
-    cur.execute("""
-        SELECT value, inputs
+        SELECT metric_name, inputs, outputs
         FROM forecast_output
-        WHERE location_id = %s AND metric_name = 'public_goods_allocation_usd'
+        WHERE location_id = %s
+          AND metric_name = 'public_goods_allocation_usd'
         ORDER BY created_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
-    forecast_output_value = float(forecast_row["value"]) if forecast_row and forecast_row["value"] else None
+    forecast_allocation = 0
+    if forecast_row:
+        outputs = dict(forecast_row)["outputs"] or {}
+        forecast_allocation = float(outputs.get("public_goods_allocation_usd", 0) or 0)
 
     cur.close()
 
-    # Calculate metrics
-    allocation_rate = (actual / revenue * 100) if revenue > 0 else 0
-    forecasted = forecast_output_value if forecast_output_value is not None else float(cf.get("public_goods_allocation", 0))
-    forecast_source = "forecast_output" if forecast_output_value is not None else "cash_flow_snapshot"
-    forecast_accuracy = (actual / forecasted * 100) if forecasted > 0 else 0
+    # Total public goods allocated
+    total_allocated = sum(float(a["amount"] or 0) for a in allocations)
 
-    # Score: actual allocation rate
-    score = min(100, allocation_rate * 10)  # 10% allocation = 100 score
-
-    # Impact: funding loop multiplier (every $1 public goods → $2 ecosystem value)
+    # Get config constants
+    allocation_multiplier = float(get_config(conn, 'public_goods_allocation_multiplier'))
+    target_pct = float(get_config(conn, 'public_goods_target_pct'))
     loop_multiplier = float(get_config(conn, 'loop_multiplier'))
-    impact = actual * (loop_multiplier - 1)  # Net new value from the loop
+
+    # Estimate revenue from revenue table (for % calculation)
+    cur2 = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur2.execute("""
+        SELECT SUM(gross_amount) as total_revenue
+        FROM revenue_event
+        WHERE location_id = %s
+    """, (location_id,))
+    rev_row = cur2.fetchone()
+    total_revenue = float(dict(rev_row)["total_revenue"] or 0) if rev_row else 0
+    cur2.close()
+
+    allocation_pct = (total_allocated / max(total_revenue, 1)) * 100
+
+    # Score: based on allocation % and treasury health
+    score = min(100, max(0, allocation_pct * allocation_multiplier))
+
+    # Bonus if treasury is well-funded
+    if treasury_balance > total_revenue * 0.1:
+        score = min(100, score + 10)
+
+    # Impact: loop multiplier on public goods allocation
+    impact = total_allocated * loop_multiplier
+
+    # Forecast-adjusted impact
+    forecast_impact = 0
+    if forecast_allocation > 0:
+        forecast_impact = forecast_allocation * loop_multiplier
 
     details = {
-        "actual_allocation": round(actual, 2),
-        "forecasted_allocation": round(forecasted, 2),
-        "forecast_source": forecast_source,
-        "forecast_output_value": round(forecast_output_value, 2) if forecast_output_value is not None else None,
-        "total_revenue": round(revenue, 2),
-        "allocation_rate_pct": round(allocation_rate, 1),
-        "forecast_accuracy_pct": round(forecast_accuracy, 1),
-        "loop_multiplier": loop_multiplier,
+        "total_allocated": round(total_allocated, 2),
+        "allocation_pct": round(allocation_pct, 1),
+        "treasury_balance": round(treasury_balance, 2),
+        "infrastructure_sharing": len(sharing),
+        "shared_users": len(set(s["user_location_id"] for s in sharing)),
+        "forecast_allocation": round(forecast_allocation, 2),
+        "forecast_impact_usd": round(forecast_impact, 2),
     }
 
+    impact = max(impact, forecast_impact)
+
     return OpportunityDimension(
-        dimension_id="public_goods_funding",
-        dimension_name="Public-Goods Funding Loops",
+        dimension_id="public_goods_funding_loop",
+        dimension_name="Public Goods Funding Loop",
         score=round(score, 1),
         impact_usd=round(impact, 2),
-        confidence="high" if actual > 0 else "low",
-        current_state=f"Allocated: ${actual:,.0f} ({allocation_rate:.1f}% of revenue), forecast: ${forecasted:,.0f}",
-        recommendation=f"Increase allocation to 15% for +${revenue * 0.05 * (loop_multiplier - 1):,.0f} loop value",
-        data_points=2,
+        confidence="high" if allocations else "medium",
+        current_state=f"${total_allocated:,.0f} allocated ({allocation_pct:.1f}% of revenue), treasury: ${treasury_balance:,.0f}",
+        recommendation=f"Increase allocation to {target_pct * 100:.0f}% of revenue for +${impact:,.0f}/year loop value" if impact > 0 else "Public goods funding at target level",
+        data_points=len(allocations) + len(sharing),
         details=details,
+    )
+
+
+def _empty(dim_id, dim_name):
+    return OpportunityDimension(
+        dimension_id=dim_id, dimension_name=dim_name,
+        score=0, impact_usd=0, confidence="low",
+        current_state="No public goods allocation data", recommendation="Set up treasury and allocation tracking",
+        data_points=0,
     )

@@ -64,6 +64,7 @@ class ScenarioAssumptions:
     exchange_rate_usd_kes: float = 155.0
     discount_rate: float = 0.12
     drought_probability: float = 0.0
+    retention_rate_pct: Optional[float] = None
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "ScenarioAssumptions":

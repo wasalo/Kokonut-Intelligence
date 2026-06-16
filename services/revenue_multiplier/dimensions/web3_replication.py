@@ -1,7 +1,8 @@
 """
 Web3-Funded Replication — Dimension 5
 
-Analyzes on-chain funding, cost of capital, and replication model viability.
+Evaluates capital sources and funding for farm expansion.
+Analyzes treasury reserves, grants, DeFi protocols, and token launches.
 """
 
 import psycopg2.extras
@@ -12,83 +13,131 @@ from ..config import get_config
 def analyze(conn, location_id: str) -> OpportunityDimension:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Get treasury events
-    cur.execute("""
-        SELECT
-            flow_direction,
-            SUM(usd_value) as total_value,
-            COUNT(*) as event_count
-        FROM treasury_event
-        WHERE location_id = %s
-        GROUP BY flow_direction
-    """, (location_id,))
-    treasury = {r["flow_direction"]: float(r["total_value"]) for r in cur.fetchall()}
-
-    # Get digital lego usage
-    cur.execute("""
-        SELECT
-            protocol_id,
-            SUM(value_attributed) as total_value,
-            COUNT(*) as usage_count
-        FROM digital_lego_usage
-        WHERE location_id = %s
-        GROUP BY protocol_id
-    """, (location_id,))
-    lego = [dict(r) for r in cur.fetchall()]
-
     # Get capital sources
     cur.execute("""
-        SELECT source_type, SUM(amount) as total_amount
-        FROM capital_source
-        WHERE location_id = %s
-        GROUP BY source_type
+        SELECT
+            cs.source_type,
+            cs.amount,
+            cs.status,
+            cs.name
+        FROM capital_source cs
+        WHERE cs.location_id = %s AND cs.status IN ('active', 'completed', 'received')
     """, (location_id,))
-    capital = {r["source_type"]: float(r["total_amount"]) for r in cur.fetchall()}
+    sources = [dict(r) for r in cur.fetchall()]
 
-    # Get value flows
+    # Get capital events
     cur.execute("""
-        SELECT flow_type, SUM(amount) as total_amount
-        FROM value_flow_event
-        WHERE location_id = %s AND verified = TRUE
-        GROUP BY flow_type
+        SELECT
+            ce.event_type,
+            ce.amount,
+            ce.status
+        FROM capital_event ce
+        WHERE ce.location_id = %s
     """, (location_id,))
-    flows = {r["flow_type"]: float(r["total_amount"]) for r in cur.fetchall()}
+    events = [dict(r) for r in cur.fetchall()]
+
+    # Get digital lego usage (DeFi, token, attestations)
+    cur.execute("""
+        SELECT
+            dl.protocol,
+            dl.amount,
+            dl.status
+        FROM digital_lego_usage dl
+        WHERE dl.location_id = %s AND dl.status IN ('active', 'completed')
+    """, (location_id,))
+    defi = [dict(r) for r in cur.fetchall()]
+
+    # Get forecast: projected revenue
+    cur.execute("""
+        SELECT metric_name, outputs
+        FROM forecast_output
+        WHERE location_id = %s
+          AND metric_name = 'projected_revenue_usd'
+        ORDER BY created_at DESC LIMIT 1
+    """, (location_id,))
+    forecast_row = cur.fetchone()
+    forecast_revenue = 0
+    if forecast_row:
+        outputs = dict(forecast_row)["outputs"] or {}
+        forecast_revenue = float(outputs.get("projected_revenue_usd", 0) or 0)
 
     cur.close()
 
-    # Calculate Web3 metrics
-    inflows = treasury.get("inflow", 0) + sum(capital.values())
-    outflows = treasury.get("outflow", 0)
-    net_funding = inflows - outflows
-    dao_share = capital.get("dao", 0) / max(inflows, 1) * 100
-    lego_value = sum(l["total_value"] for l in lego)
+    # Capital composition
+    source_types = {}
+    total_capital = 0
+    for src in sources:
+        t = src["source_type"]
+        amt = float(src["amount"] or 0)
+        source_types[t] = source_types.get(t, 0) + amt
+        total_capital += amt
 
-    # Score: more funding sources = higher score
-    funding_sources = len(capital)
-    score = min(100, funding_sources * 20 + (1 if net_funding > 0 else 0) * 20)
+    # Event-based capital
+    for evt in events:
+        amt = float(evt["amount"] or 0)
+        total_capital += amt
 
-    # Impact: replication cost estimate
+    # DeFi-based capital
+    defi_count = len(defi)
+    total_defi = sum(float(d["amount"] or 0) for d in defi)
+
+    # Replication cost from config
     replication_cost = float(get_config(conn, 'replication_cost_usd'))
-    farms_replicable = net_funding / replication_cost if net_funding > replication_cost else 0
+    loop_multiplier = float(get_config(conn, 'loop_multiplier'))
+    funding_sources_multiplier = float(get_config(conn, 'web3_funding_sources_multiplier'))
+    funding_bonus = float(get_config(conn, 'web3_funding_bonus'))
+
+    # Score: based on funding diversity and amount
+    score = min(100, max(0, len(source_types) * funding_sources_multiplier))
+
+    # Bonus for positive net funding
+    if total_capital > replication_cost:
+        score += funding_bonus
+        score = min(100, score)
+
+    # Impact: how many farms could be funded
+    farms_funded = total_capital / max(replication_cost, 1)
+    if farms_funded > 1:
+        impact = (farms_funded - 1) * loop_multiplier * replication_cost
+    else:
+        impact = 0
+
+    # Forecast-adjusted impact
+    forecast_impact = 0
+    if forecast_revenue > 0:
+        savings_for_replication = forecast_revenue * 0.05  # 5% savings
+        forecast_impact = savings_for_replication * loop_multiplier
 
     details = {
-        "treasury": treasury,
-        "capital_sources": capital,
-        "value_flows": flows,
-        "lego_usage": lego,
-        "net_funding": round(net_funding, 2),
-        "dao_share_pct": round(dao_share, 1),
-        "farms_replicable": round(farms_replicable, 1),
+        "total_capital_raised": round(total_capital, 2),
+        "capital_by_type": {k: round(v, 2) for k, v in source_types.items()},
+        "defi_protocols": defi_count,
+        "defi_total_value": round(total_defi, 2),
+        "replication_cost": replication_cost,
+        "loop_multiplier": loop_multiplier,
+        "farms_funded": round(farms_funded, 1),
+        "forecast_impact_usd": round(forecast_impact, 2),
     }
+
+    impact = max(impact, forecast_impact)
 
     return OpportunityDimension(
         dimension_id="web3_funded_replication",
         dimension_name="Web3-Funded Replication",
         score=round(score, 1),
-        impact_usd=round(farms_replicable * replication_cost, 2),
-        confidence="medium",
-        current_state=f"Inflows: ${inflows:,.0f}, DAO: {dao_share:.0f}%, Lego value: ${lego_value:,.0f}",
-        recommendation=f"Scale to {farms_replicable:.0f} additional farms via DAO funding",
-        data_points=len(lego) + len(capital),
+        impact_usd=round(impact, 2),
+        confidence="medium" if sources else "low",
+        current_state=f"${total_capital:,.0f} raised, {len(source_types)} sources, {farms_funded:.1f} farms",
+        recommendation=f"Raise ${replication_cost - total_capital:,.0f} more for 1 full farm replication" if total_capital < replication_cost else f"Ready to replicate {farms_funded:.0f} farms",
+        data_points=len(sources) + len(events) + len(defi),
         details=details,
+    )
+
+
+def _empty(dim_id, dim_name):
+    return OpportunityDimension(
+        dimension_id=dim_id, dimension_name=dim_name,
+        score=0, impact_usd=0, confidence="low",
+        current_state="No capital sources", recommendation="Set up treasury and capital tracking",
+        data_points=0,
     )

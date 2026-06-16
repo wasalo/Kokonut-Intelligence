@@ -27,17 +27,35 @@ def get_latest_prices(location_id: str) -> Dict[str, float]:
     return {row[0]: float(row[1]) for row in rows if row[1]}
 
 
-def get_historical_avg_prices(months: int = 12) -> Dict[str, float]:
-    """Get average prices over last N months for each crop."""
+def get_historical_avg_prices(months: int = 12, location_id: Optional[str] = None) -> Dict[str, float]:
+    """Get average prices over last N months for each crop.
+
+    If location_id is provided, only include price observations for crops
+    grown at that location (via crop_cycle). Otherwise returns global averages.
+    """
     db = get_db()
     with db.cursor() as cur:
-        cur.execute("""
-            SELECT c.name, AVG(po.price_per_unit) as avg_price
-            FROM price_observation po
-            JOIN crop c ON po.crop_id = c.id
-            WHERE po.price_date >= CURRENT_DATE - INTERVAL '%s months'
-            GROUP BY c.name
-        """, (months,))
+        if location_id:
+            cur.execute("""
+                SELECT c.name, AVG(po.price_per_unit) as avg_price
+                FROM price_observation po
+                JOIN crop c ON po.crop_id = c.id
+                WHERE po.price_date >= CURRENT_DATE - INTERVAL '%s months'
+                  AND po.crop_id IN (
+                      SELECT DISTINCT cc.crop_id
+                      FROM crop_cycle cc
+                      WHERE cc.location_id = %s
+                  )
+                GROUP BY c.name
+            """, (months, location_id))
+        else:
+            cur.execute("""
+                SELECT c.name, AVG(po.price_per_unit) as avg_price
+                FROM price_observation po
+                JOIN crop c ON po.crop_id = c.id
+                WHERE po.price_date >= CURRENT_DATE - INTERVAL '%s months'
+                GROUP BY c.name
+            """, (months,))
         rows = cur.fetchall()
     db.close()
     return {row[0]: float(row[1]) for row in rows if row[1]}

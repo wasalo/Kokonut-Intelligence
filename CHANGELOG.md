@@ -5,6 +5,34 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Module C: Revenue Multiplier — Cross-module integration** (Tiers 1–6, all 10 dimensions):
+  - `crop_mix.py`: Fixed SQL bug (price_observation now scoped to location's crops via subquery); wired `projected_revenue_by_crop` and `projected_noi_by_crop` from `forecast_output` into impact calculation
+  - `loss_reduction.py`: Added forecast integration (`projected_yield_tonnes`, `loss_adjusted_yield_tonnes`)
+  - `buyer_channel.py`: Added forecast integration (`projected_revenue_usd`)
+  - `value_added.py`: Added forecast integration (`projected_revenue_usd`)
+  - `web3_replication.py`: Added forecast integration (`projected_revenue_usd`)
+  - `bioinput.py`: Wired soil health trend into score; added forecast integration (`projected_yield_tonnes`)
+  - `public_goods.py`: Wired treasury allocation query into score/impact; added forecast integration (`public_goods_allocation_usd`)
+  - `ecological_verification.py`: Added config-driven component weights (4 weights)
+  - `partner_sponsorship.py`: Wired capital partner query into score; added forecast integration (`projected_revenue_usd`)
+  - `regional_clusters.py`: Wired infrastructure sharing query into score; added forecast integration (`projected_revenue_usd`)
+  - `analyzer.py`: 10 hardcoded dimension weights now read from DB via `get_config()` at runtime
+- **Module C: Configurable constants** (35 new → 48 total):
+  - `config.py`: 35 new defaults for scoring formulas (all 10 dimensions) and analyzer weights
+  - `015_revenue_multiplier_config.sql`: 35 new seed rows with `ON CONFLICT` upsert
+- **Module D: Biodiversity credit value in forecast** — `estimate_biodiversity_value(conn, location_id)` in `ecology.py` queries `species_observation`, computes Shannon diversity index, returns species count × `$35/species` from config
+- **Module D: Forecast outputs** — 3 new forecast outputs (14 total):
+  - `biodiversity_credit_value_usd`: biodiversity credits priced from species observations
+  - `retained_value_usd`: NOI × retention rate (historical or scenario override)
+  - `retention_rate_pct`: historical reinvestment rate or scenario assumption
+- **Module D: Retained value projection** — `_get_retention_rate()` queries `value_flow_event` for historical reinvestment rate; `ScenarioAssumptions.retention_rate_pct` allows scenario override
+- **Module D: Metric computation automation** — `--all-locations` flag on metrics CLI; `scripts/compute-metrics.sh` for post-seed metric population
+- **Module D: Dynamic calculation version** — `CALCULATION_VERSION` now date-based (`vYYYY.MM`), auto-bumps monthly
+- **Module D: Metric version tracking** — `compute_metric` writes `metadata['version']` from `metric_definition.version`
+- **Module D: Location-scoped pricing** — `get_historical_avg_prices()` now accepts `location_id` to scope price observations to crops grown at that location (fixes cross-location contamination)
+- **Auditor role** (`a1000000-0000-0000-0000-000000000009`): read-only access to ALL statuses (draft/submitted/rejected/verified/published), 28 collection permissions
+- **Dashboard dataset seeds** (`017_dashboard_datasets.sql`): 5 example dataset definitions for BI integration
+- **Module B schema** (`019_module_b_gaps.sql`): `water_access`, `capex_breakdown`, `attestation_plan` tables
 - **FR gap fixes**: Comprehensive audit-driven improvements across 10 functional requirements:
   - FR1: `schema_version` columns on 9 master tables (location, farm, plot, partner, infrastructure_asset, staff, crop, expense_category, capital_source)
   - FR2: `processor_version` wired into `log_ingestion()`; `source_raw` written before normalization in weather ingestion; ingestion status CLI (`python3 -m services.ingestion.status`)
@@ -58,6 +86,9 @@ All notable changes to the Kokonut Intelligence Platform.
 - `014_directus_metadata_repair.sql` wrapped in `DO $$ EXCEPTION` guard — skips cleanly when Directus not installed.
 - `expense_event.update` now re-runs auto-categorization if category is cleared.
 - JS/TS SDK types corrected: `Farm.farm_type`, `Plot.slug`, `HarvestEvent.location_id`, `SalesEvent` fields, `ExpenseEvent` fields, `SensorReading.quality`, `AttestationRecord` fields.
+- **Revenue multiplier dimensions**: All 45 hardcoded constants now read from DB via `get_config()` (scoring formulas + analyzer weights)
+- **Fortune500 scoring**: Growth pillar now blends 50/50 historical YoY + forecast-projected revenue growth; Ecological pillar includes forecast ecological score + carbon sequestration + water access; Governance pillar includes attestation plan maturity + digital lego adoption
+- **Forecast engine**: Revenue projection now uses location-scoped price observations (was global); public goods allocation reads from forecast output; capex uses structured breakdown from `capex_breakdown` table with `$200/ha` fallback
 
 ### Fixed
 - Cleared invalid Directus `sort_field` metadata for Baserow-migrated collections where no physical `sort` column exists.
@@ -75,6 +106,9 @@ All notable changes to the Kokonut Intelligence Platform.
 - Forecast engine now filters excluded value flows in cost projections.
 - Fortune500 calculator now reads ecological_score from forecast_output.
 - Fortune500 growth scoring now uses year-over-year revenue and yield deltas.
+- **Module C SQL bug**: `crop_mix.py` price_observation query now scoped to location's crops via subquery (was fetching global prices)
+- **Module C connection ordering**: `analyzer.py` now reads config-driven weights before closing DB connection
+- **Module D price contamination**: `get_historical_avg_prices()` now accepts `location_id` to scope price observations to crops grown at that location
 
 ## [0.10.0] - 2026-06-12
 

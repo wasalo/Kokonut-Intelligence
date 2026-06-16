@@ -8,10 +8,8 @@ opportunity map for a given location.
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
-import psycopg2
-import psycopg2.extras
-
 from ..ingestion.base import get_db
+from ..revenue_multiplier.config import get_config
 from .models import OpportunityDimension, RevenueMultiplierMap
 
 
@@ -54,22 +52,31 @@ def analyze_location(location_id: str) -> RevenueMultiplierMap:
                 data_points=0,
             ))
 
+    # Read config-driven weights before closing connection
+    weight_keys = {
+        "crop_mix_optimization": "weight_crop_mix",
+        "loss_rate_reduction": "weight_loss_reduction",
+        "buyer_channel_selection": "weight_buyer_channel",
+        "value_added_processing": "weight_value_added",
+        "web3_funded_replication": "weight_web3_replication",
+        "bioinput_production": "weight_bioinput",
+        "public_goods_funding": "weight_public_goods",
+        "ecological_verification": "weight_ecological_verification",
+        "partner_sponsorship": "weight_partner_sponsorship",
+        "regional_farm_clusters": "weight_regional_clusters",
+    }
+    weights = {}
+    for dim in dimensions:
+        key = weight_keys.get(dim.dimension_id)
+        if key:
+            weights[dim.dimension_id] = float(get_config(conn, key))
+        else:
+            weights[dim.dimension_id] = 1.0
+
     conn.close()
 
     # Calculate overall metrics
     total_impact = sum(d.impact_usd for d in dimensions)
-    weights = {
-        "crop_mix_optimization": 1.5,
-        "loss_rate_reduction": 1.2,
-        "buyer_channel_selection": 1.0,
-        "value_added_processing": 1.0,
-        "web3_funded_replication": 0.8,
-        "bioinput_production": 0.8,
-        "public_goods_funding": 0.7,
-        "ecological_verification": 1.0,
-        "partner_sponsorship": 0.8,
-        "regional_farm_clusters": 0.6,
-    }
     total_weight = sum(weights.values())
     overall_score = sum(d.score * weights.get(d.dimension_id, 1.0) for d in dimensions) / total_weight
 

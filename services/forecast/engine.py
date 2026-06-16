@@ -25,7 +25,10 @@ from .yield_forecast import (
     get_historical_loss_rate, apply_loss_adjustment,
 )
 from .cost_forecast import get_historical_costs, project_costs, allocate_shared_costs
-from .ecology import get_ecological_baseline, project_ecological_score, estimate_carbon_sequestration
+from .ecology import (
+    get_ecological_baseline, project_ecological_score,
+    estimate_carbon_sequestration, estimate_biodiversity_value,
+)
 from .risk import (
     calculate_risk_factor, risk_adjust_noi, risk_adjust_revenue,
     calculate_confidence_interval,
@@ -69,7 +72,7 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     ga = GrowthAssumptions.from_dict(scenario.get("growth_assumptions", {}))
 
     # Get historical data
-    hist_prices = get_historical_avg_prices(12)
+    hist_prices = get_historical_avg_prices(12, location_id=location_id)
     crop_areas = get_crop_areas_for_location(location_id)
     hist_costs = get_historical_costs(location_id)
     eco_baseline = get_ecological_baseline(location_id)
@@ -93,6 +96,16 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     from ..revenue_multiplier.config import get_config
     carbon_price_per_tonne = float(get_config(key="carbon_credit_price_usd"))
     carbon_credit_value = carbon_tonnes * carbon_price_per_tonne
+
+    # Biodiversity credit value estimate
+    _db = get_db()
+    bio_value = estimate_biodiversity_value(_db, location_id)
+    biodiversity_credit_value = bio_value["total_value_usd"]
+    _db.close()
+
+    # Retained value projection
+    retention_rate = _get_retention_rate(sa, location_id)
+    retained_value = total_noi * (retention_rate / 100)
 
     # Revenue per crop
     revenue_by_crop = {}
@@ -231,6 +244,25 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
                       round(carbon_credit_value * 0.8, 2), round(carbon_credit_value * 1.2, 2),
                       period_start, period_end,
                       {"carbon_tonnes": carbon_tonnes, "price_per_tonne": carbon_price_per_tonne}),
+        _make_output(scenario_id, location_id, "biodiversity_credit_value_usd",
+                      round(biodiversity_credit_value, 2), "usd",
+                      round(biodiversity_credit_value * 0.8, 2), round(biodiversity_credit_value * 1.2, 2),
+                      period_start, period_end,
+                      {"species_count": bio_value["species_count"],
+                       "shannon_index": bio_value["shannon_index"],
+                       "price_per_species": bio_value["credit_price_per_species"]}),
+        _make_output(scenario_id, location_id, "retained_value_usd",
+                      round(retained_value, 2), "usd",
+                      round(retained_value * 0.8, 2), round(retained_value * 1.2, 2),
+                      period_start, period_end,
+                      {"noi": total_noi, "retention_rate_pct": retention_rate,
+                       "source": "scenario_assumption" if sa.retention_rate_pct is not None else "historical_rate"}),
+        _make_output(scenario_id, location_id, "retention_rate_pct",
+                      round(retention_rate, 2), "pct",
+                      round(retention_rate * 0.9, 2), round(retention_rate * 1.1, 2),
+                      period_start, period_end,
+                      {"retention_rate_pct": retention_rate,
+                       "source": "scenario_assumption" if sa.retention_rate_pct is not None else "historical_rate"}),
     ]
 
     # Per-cycle outputs
@@ -291,8 +323,36 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
         "risk_adjusted_noi": risk_noi["risk_adjusted_noi"],
         "risk_factor": risk_factor,
         "ecological_score": eco_proj["ecological_score"],
+        "biodiversity_credit_value": round(biodiversity_credit_value, 2),
+        "retained_value": round(retained_value, 2),
+        "retention_rate_pct": round(retention_rate, 2),
         "outputs_written": len(outputs),
     }
+
+
+def _get_retention_rate(sa: ScenarioAssumptions, location_id: str) -> float:
+    """Get retention rate: scenario assumption if provided, else historical rate."""
+    if sa.retention_rate_pct is not None:
+        return sa.retention_rate_pct
+
+    # Historical rate from value_flow_event
+    db = get_db()
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT
+                SUM(CASE WHEN flow_type = 'reinvestment' THEN amount ELSE 0 END) as reinvested,
+                SUM(CASE WHEN flow_type = 'revenue' THEN amount ELSE 0 END) as revenue
+            FROM value_flow_event
+            WHERE location_id = %s AND verified = TRUE
+        """, (location_id,))
+        row = cur.fetchone()
+    db.close()
+
+    if row and row[1] and float(row[1]) > 0:
+        return round(float(row[0] or 0) / float(row[1]) * 100, 2)
+
+    # Default: 20% reinvestment rate
+    return 20.0
 
 
 def _make_output(

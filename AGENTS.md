@@ -37,6 +37,9 @@
 - Show EAS chain info: `python3 -m services.attestation.cli info --chain celo`
 - List Kokonut schemas: `python3 -m services.attestation.cli schema list`
 - Compute metrics: `python3 -m services.metrics --compute --metric value_flowed --location-id UUID`
+- Compute all metrics (single location): `python3 -m services.metrics --compute --all --location-id UUID`
+- Compute all metrics (all locations): `python3 -m services.metrics --compute --all-locations`
+- Compute all metrics (script): `./scripts/compute-metrics.sh`
 - List metrics: `python3 -m services.metrics --list`
 - NDVI trends: `python3 -m services.analytics --ndvi-trends --location-id UUID`
 - Water resilience: `python3 -m services.analytics --water-resilience --location-id UUID`
@@ -67,6 +70,10 @@
 - `verify_review.result` uses `approved`/`rejected`/`needs_info`, not `verified`.
 - Field Worker create permissions exclude `status` — lifecycle starts at `draft` by default.
 - `metric_value` table stores computed governed metric results.
+- Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate `metric_value`.
 - `revenue_multiplier_config` table stores dimension constants (DB-backed, not hardcoded).
 - Forecast engine writes per-cycle outputs with `crop_cycle_id`.
 - Forecast engine estimates carbon sequestration from SOM changes.
+- Forecast engine prices biodiversity credits from species observation count.
+- Forecast engine projects retained value from historical reinvestment rates.
+- `CALCULATION_VERSION` is date-based (`vYYYY.MM`), auto-bumps monthly.

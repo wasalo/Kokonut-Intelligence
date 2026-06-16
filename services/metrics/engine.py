@@ -45,7 +45,10 @@ def compute_metric(
         cur.close()
         return result
 
-    # Store result
+    # Store result with version metadata
+    metadata = result.get("metadata", {})
+    metadata["version"] = definition.get("version", 1)
+
     cur.execute("""
         INSERT INTO metric_value
             (metric_id, location_id, period_start, period_end, value, unit,
@@ -61,7 +64,7 @@ def compute_metric(
         definition.get("unit"),
         result.get("computation_method", metric_key),
         result.get("source_record_ids", []),
-        json.dumps(result.get("metadata", {})),
+        json.dumps(metadata),
     ))
     row = cur.fetchone()
     conn.commit()

@@ -36,7 +36,7 @@ All ingestion is dual-written to PostgreSQL (operational) and ClickHouse (analyt
 
   The **Shannon diversity index** (H') measures ecosystem health by accounting for both the number of species present (richness) and how evenly individuals are distributed among them (evenness). A higher index indicates a more diverse and resilient ecosystem. For example, a plot with 10 species evenly distributed scores higher than one dominated by a single species, even if both have the same total species count.
 
-- **Revenue Forecasting** — Scenario-based projections of revenue, NOI, yield, and cash flow using Monte Carlo simulation with configurable confidence intervals (70%–95%). Per-cycle outputs with `crop_cycle_id` for crop-level granularity, and carbon sequestration estimation (tonnes CO2e + USD value) from soil organic matter changes.
+- **Revenue Forecasting** — Scenario-based projections of revenue, NOI, yield, and cash flow using Monte Carlo simulation with configurable confidence intervals (70%–95%). Per-cycle outputs with `crop_cycle_id` for crop-level granularity, carbon sequestration estimation (tonnes CO2e + USD value) from soil organic matter changes, biodiversity credit pricing from species observations, and retained value projection from historical reinvestment rates.
 
   **Monte Carlo simulation** runs thousands of randomized trials, sampling from probability distributions of key variables (price, yield, cost) to model the range of possible outcomes. Instead of a single point estimate, it produces a distribution of results with confidence bands — showing not just what is expected, but how uncertain that expectation is. This lets farm managers understand best-case, worst-case, and most-likely scenarios before committing resources.
 
@@ -62,7 +62,7 @@ All ingestion is dual-written to PostgreSQL (operational) and ClickHouse (analyt
 ### Governed Workflow & Metrics
 
 - **4-Stage Lifecycle** — Draft → Submitted → Verified → Published, with role-based approval routing and rejected-path rework
-- **Metric Computation Engine** — 17 computed metrics via calculator plugin pattern, with CLI for on-demand or batch computation. Results stored in `metric_value` with source lineage
+- **Metric Computation Engine** — 17 computed metrics via calculator plugin pattern, with CLI for on-demand or batch computation. Results stored in `metric_value` with source lineage. Supports single-location, all-metrics, or all-locations computation.
 - **Auto-Calculated Metrics** — NOI, loss rate, operating margin, labor cost, and net amount computed automatically on data changes
 - **AI-Assisted Data Entry** — Expense auto-categorization (40+ keyword rules), amount validation with suspicious-value flagging, harvest quantity validation against expected yield, date sanity checks, and field note summarization
 - **Full Audit Trail** — Every state transition logged to `workflow_history` with user, timestamp, and from/to state
@@ -345,8 +345,8 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │       └── regional_clusters.py
 │   ├── metrics/        # Metric computation engine
 │   │   ├── engine.py         # compute_metric, compute_all orchestrators
-│   │   ├── cli.py            # --compute, --list, --all, --metric flags
-│   │   └── calculators/      # 7 metric calculators
+│   │   ├── cli.py            # --compute, --list, --all, --all-locations flags
+│   │   └── calculators/      # 13 metric calculators
 │   │       ├── value_flowed.py
 │   │       ├── wallet_retention.py
 │   │       ├── digital_lego.py
@@ -354,7 +354,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │       ├── soil_carbon_delta.py
 │   │       ├── biodiversity_delta.py
 │   │       └── operating_margin.py
-│   ├── forecast/       # Forecast engine
+│   ├── forecast/       # Forecast engine (14 outputs)
 │   │   ├── engine.py         # Scenario-based NOI, revenue, yield forecasting
 │   │   ├── cli.py            # CLI for forecasts, comparisons, sensitivity
 │   │   ├── config.py         # Forecast configuration
@@ -378,7 +378,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │           ├── metrics-calculator.ts # NOI, loss rate, operating margin
 │           └── ai-helpers.ts         # Auto-categorization, validation
 ├── migrations/         # Baserow migration scripts
-├── scripts/            # Setup, seed, backup, snapshot
+├── scripts/            # Setup, seed, backup, snapshot, compute-metrics
 ├── tests/              # Smoke, CLI, seed idempotency, attestation, metadata tests
 ├── docs/               # Architecture, data dictionary, API reference, attestation guide
 └── dashboards/
@@ -470,6 +470,12 @@ python3 -m services.metrics --compute --metric value_flowed --location-id UUID
 # Compute all available metrics for a location
 python3 -m services.metrics --compute --all --location-id UUID
 
+# Compute all metrics for all locations
+python3 -m services.metrics --compute --all-locations
+
+# Or use the convenience script (post-seed)
+./scripts/compute-metrics.sh
+
 # List all registered metric definitions
 python3 -m services.metrics --list
 ```
@@ -538,7 +544,7 @@ Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 14 pilot seed f
 | `012_pilot_bioinputs.sql` | Bioinput expenses and biofactory infrastructure |
 | `013_pilot_registry_mrv_agents.sql` | Farm registry, inventory, maintenance, revenue, MRV events, attestation requests, agent metadata |
 | `014_pilot_celo_eas.sql` | Celo chain indexer status and EAS schema registrations |
-| `015_revenue_multiplier_config.sql` | 13 configurable constants for revenue multiplier dimensions |
+| `015_revenue_multiplier_config.sql` | 48 configurable constants for revenue multiplier dimensions |
 | `016_pilot_dapp_sessions.sql` | 12 dApp session records for Web3 engagement tracking |
 
 ```bash
@@ -590,6 +596,8 @@ python3 -m services.forecast.cli --location-id <location-id> \
 - Historical trend analysis from harvest and sales data
 - Per-cycle outputs with `crop_cycle_id` for crop-level granularity
 - Carbon sequestration estimation from soil organic matter changes
+- Biodiversity credit value from species observation counts
+- Retained value projection from historical reinvestment rates
 
 ## Environmental Analytics
 

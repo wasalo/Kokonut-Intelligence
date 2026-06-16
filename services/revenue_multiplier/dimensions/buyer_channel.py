@@ -1,8 +1,8 @@
 """
-Buyer/Channel Selection — Dimension 3
+Buyer Channel Optimization — Dimension 3
 
-Scores buyers by net revenue, payment speed, returns rate.
-Identifies best-performing channels.
+Optimizes buyer selection for best terms (payment timing, returns, volume).
+Compares buyer performance metrics, recommends channel shifts.
 """
 
 import psycopg2.extras
@@ -13,92 +13,137 @@ from ..config import get_config
 def analyze(conn, location_id: str) -> OpportunityDimension:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Get sales by buyer
+    # Get sales grouped by buyer
     cur.execute("""
         SELECT
-            buyer,
-            buyer_type,
-            partner_id,
-            SUM(total_amount) as gross_revenue,
-            SUM(return_amount) as returns,
-            SUM(discount_amount) as discounts,
-            SUM(net_amount) as net_revenue,
-            COUNT(*) as sale_count,
-            COUNT(CASE WHEN payment_status = 'paid' THEN 1 END) as paid_count,
-            COUNT(CASE WHEN payment_status = 'overdue' THEN 1 END) as overdue_count
-        FROM sales_event
-        WHERE location_id = %s
-        GROUP BY buyer, buyer_type, partner_id
-        ORDER BY net_revenue DESC
+            b.name as buyer_name,
+            b.tier as buyer_tier,
+            COUNT(DISTINCT s.id) as sale_count,
+            SUM(s.gross_amount) as total_gross,
+            SUM(s.net_amount) as total_net,
+            SUM(COALESCE(s.discount_amount, 0)) as total_discounts,
+            SUM(COALESCE(s.return_amount, 0)) as total_returns,
+            AVG(s.days_to_payment) as avg_days_to_payment
+        FROM sales s
+        JOIN buyer b ON s.buyer_id = b.id
+        WHERE s.location_id = %s AND s.status IN ('verified', 'published')
+        GROUP BY b.id, b.name, b.tier
     """, (location_id,))
-    buyer_data = [dict(r) for r in cur.fetchall()]
+    buyers = [dict(r) for r in cur.fetchall()]
+
+    # Get buyer performance scores
+    cur.execute("""
+        SELECT * FROM buyer_performance WHERE location_id = %s
+    """, (location_id,))
+    performance = [dict(r) for r in cur.fetchall()]
+
+    # Get forecast: projected revenue by buyer
+    cur.execute("""
+        SELECT metric_name, inputs
+        FROM forecast_output
+        WHERE location_id = %s
+          AND metric_name = 'projected_revenue_usd'
+        ORDER BY created_at DESC LIMIT 1
+    """, (location_id,))
+    forecast_row = cur.fetchone()
+    forecast_revenue = {}
+    if forecast_row:
+        inputs = dict(forecast_row)["inputs"] or {}
+        forecast_revenue = inputs.get("revenue_by_crop", {})
 
     cur.close()
 
-    if not buyer_data:
-        return OpportunityDimension(
-            dimension_id="buyer_channel_selection", dimension_name="Buyer/Channel Selection",
-            score=0, impact_usd=0, confidence="low",
-            current_state="No sales data", recommendation="Start tracking sales by buyer",
-            data_points=0,
+    if not buyers:
+        return _empty("buyer_channel_optimization", "Buyer Channel Optimization")
+
+    # Calculate scores for each buyer
+    scores = []
+    for buyer in buyers:
+        gross = float(buyer["total_gross"] or 0)
+        net = float(buyer["total_net"] or 0)
+        returns = float(buyer["total_returns"] or 0)
+        discounts = float(buyer["total_discounts"] or 0)
+        days = float(buyer["avg_days_to_payment"] or 0)
+
+        # Payment rate: lower days = better
+        payment_score = max(0, 100 - days) / 100
+
+        # Returns rate: lower returns = better
+        returns_score = (1 - returns / max(gross, 1)) if gross > 0 else 0
+
+        # Net-per-sale: higher = better
+        net_per_sale = net / max(buyer["sale_count"], 1)
+
+        w_payment = float(get_config(conn, 'buyer_payment_weight'))
+        w_returns = float(get_config(conn, 'buyer_returns_weight'))
+        w_netsale = float(get_config(conn, 'buyer_netsale_weight'))
+
+        buyer_score = (
+            payment_score * w_payment +
+            returns_score * w_returns +
+            (net_per_sale / float(get_config(conn, 'buyer_netsale_normalizer'))) * w_netsale
         )
+        scores.append({
+            "buyer": buyer["buyer_name"],
+            "tier": buyer["buyer_tier"],
+            "sale_count": buyer["sale_count"],
+            "avg_days_to_payment": round(days, 1),
+            "returns_rate_pct": round(returns / max(gross, 1) * 100, 1),
+            "net_per_sale": round(net_per_sale, 2),
+            "score": round(buyer_score, 3),
+        })
 
-    # Score each buyer
-    buyer_scores = {}
-    for b in buyer_data:
-        buyer = b["buyer"]
-        returns_rate = float(b["returns"]) / max(float(b["gross_revenue"]), 1) * 100
-        payment_rate = float(b["paid_count"]) / max(b["sale_count"], 1) * 100
-        net_per_sale = float(b["net_revenue"]) / max(b["sale_count"], 1)
+    scores.sort(key=lambda x: x["score"], reverse=True)
 
-        # Score: high net, low returns, fast payment
-        score = (payment_rate * 0.4) + ((100 - returns_rate) * 0.3) + (min(net_per_sale / 100, 100) * 0.3)
-        buyer_scores[buyer] = {
-            "score": round(score, 1),
-            "net_revenue": float(b["net_revenue"]),
-            "returns_rate": round(returns_rate, 2),
-            "payment_rate": round(payment_rate, 1),
-            "buyer_type": b["buyer_type"],
-        }
+    # Best and worst buyers
+    best = scores[0]
+    worst = scores[-1]
 
-    # Find best buyer and channel type
-    best_buyer = max(buyer_scores, key=lambda k: buyer_scores[k]["score"])
-    worst_buyer = min(buyer_scores, key=lambda k: buyer_scores[k]["score"])
+    # Score: difference between best and worst
+    gap = best["score"] - worst["score"]
+    score = min(100, max(0, gap * 100))
 
-    # Channel type analysis
-    channel_types = {}
-    for b in buyer_data:
-        ct = b["buyer_type"] or "unknown"
-        if ct not in channel_types:
-            channel_types[ct] = {"net": 0, "count": 0}
-        channel_types[ct]["net"] += float(b["net_revenue"])
-        channel_types[ct]["count"] += 1
+    # Impact: shifting worst buyer's volume to best buyer
+    total_net = sum(float(b["total_net"] or 0) for b in buyers)
+    worst_net = next((float(b["total_net"] or 0) for b in buyers if b["buyer_name"] == worst["buyer"]), 0)
+    impact = worst_net * (best["score"] - worst["score"])
 
-    # Score overall
-    unique_buyers = len(buyer_scores)
-    overall_score = min(100, unique_buyers * 25)  # 4+ buyers = 100
+    # Forecast-adjusted impact
+    forecast_impact = 0
+    if forecast_revenue:
+        total_forecast = sum(float(v or 0) for v in forecast_revenue.values())
+        forecast_impact = total_forecast * (best["score"] - worst["score"]) * 0.5
 
-    # Impact: switching from worst to best buyer
-    best_net = buyer_scores[best_buyer]["net_revenue"]
-    worst_net = buyer_scores[worst_buyer]["net_revenue"]
-    buyer_uplift_pct = float(get_config(conn, 'buyer_uplift_pct')) / 100
-    impact = max(0, best_net - worst_net) * buyer_uplift_pct
-
+    buyer_count_multiplier = float(get_config(conn, 'buyer_count_multiplier'))
+    confidence_threshold = int(get_config(conn, 'buyer_confidence_threshold'))
     details = {
-        "buyer_scores": buyer_scores,
-        "channel_types": channel_types,
-        "best_buyer": best_buyer,
-        "worst_buyer": worst_buyer,
+        "buyer_count": len(buyers),
+        "best_buyer": best,
+        "worst_buyer": worst,
+        "all_buyers": scores,
+        "total_net_sales": round(total_net, 2),
+        "forecast_impact_usd": round(forecast_impact, 2),
     }
 
+    impact = max(impact, forecast_impact)
+
     return OpportunityDimension(
-        dimension_id="buyer_channel_selection",
-        dimension_name="Buyer/Channel Selection",
-        score=round(overall_score, 1),
+        dimension_id="buyer_channel_optimization",
+        dimension_name="Buyer Channel Optimization",
+        score=round(score, 1),
         impact_usd=round(impact, 2),
-        confidence="medium" if unique_buyers >= 2 else "low",
-        current_state=f"{unique_buyers} buyers, best={best_buyer}, channel types: {list(channel_types.keys())}",
-        recommendation=f"Grow {best_buyer} relationship, evaluate {worst_buyer} performance",
-        data_points=sum(b["sale_count"] for b in buyer_data),
+        confidence="high" if len(buyers) >= confidence_threshold else "medium",
+        current_state=f"{len(buyers)} buyers, best={best['buyer']} (score {best['score']:.2f})",
+        recommendation=f"Shift volume from {worst['buyer']} to {best['buyer']} for +${impact:,.0f}/year",
+        data_points=len(buyers),
         details=details,
+    )
+
+
+def _empty(dim_id, dim_name):
+    return OpportunityDimension(
+        dimension_id=dim_id, dimension_name=dim_name,
+        score=0, impact_usd=0, confidence="low",
+        current_state="No buyer data", recommendation="Record sales with buyer attribution",
+        data_points=0,
     )
