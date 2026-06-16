@@ -19,6 +19,13 @@ All notable changes to the Kokonut Intelligence Platform.
 - Foundry dependencies committed to repo (`contracts/lib/`): forge-std, eas-contracts, openzeppelin-contracts, openzeppelin-contracts-upgradeable.
 - PostgreSQL schema constraints (`015_constraints.sql`): 18 enum types, 37 CHECK constraints, 48 auto-update triggers, 3 UNIQUE constraints, ~55 ON DELETE SET NULL, ~50 FK indexes.
 - End-to-end user guide (`docs/user-guide.md`): role-based walkthroughs for Field Worker, Supervisor, Manager, Finance, Analyst, Admin, and partner roles (Buyer, Funder, Vendor, Operator) — covers data entry, workflow lifecycle, dashboards, analytics, export, SDK, and attestations.
+- **Metric computation engine** (`services/metrics/`): `metric_value` table, 7 calculators (value_flowed, wallet_retention, digital_lego_usage, attestation_coverage, soil_carbon_delta, biodiversity_delta, operating_margin_pct), CLI with `--compute`, `--list`, `--all` flags.
+- **Revenue multiplier config** (`schemas/postgres/016_revenue_multiplier_config.sql`): DB-backed configurable constants replacing 13 hardcoded values across all 10 dimensions.
+- **Environmental analytics**: 4 new functions — `ndvi_trends`, `water_resilience`, `crop_diversity`, `intervention_impact` — with CLI flags.
+- **Cross-module integration**: Fortune500 ← forecast (ecological_score), Fortune500 ← revenue_multiplier (growth signal), revenue_multiplier ← forecast (projected NOI in crop_mix), forecast exclusion logic (is_excluded filtering), forecast per-cycle outputs (crop_cycle_id), carbon sequestration forecast (carbon_sequestration_tonnes + carbon_credit_value_usd).
+- **dapp_session pilot data** (`schemas/seeds/016_pilot_dapp_sessions.sql`): 12 dapp session records.
+- **ClickHouse Web3 views**: `mv_monthly_wallet_unique_active`, `mv_daily_dlego_protocol_usage`, `mv_dlego_value_by_location`.
+- **SQL bug fixes**: Added `WHERE location_id` to capital_source queries in `web3_replication.py` and `partner_sponsorship.py`.
 
 ### Changed
 - JavaScript and Python SDK examples now use the canonical `draft -> submitted -> verified -> published` lifecycle.
@@ -56,6 +63,9 @@ All notable changes to the Kokonut Intelligence Platform.
 - Added `ROLE_ROUTING` for `inventory_event`, `maintenance_event`, `dashboard_dataset` — prevents unauthorized transitions.
 - Added Directus permissions for `revenue_event` (Finance and Manager policies).
 - Added CHECK constraints: `quantity > 0` on harvest/sales, `total_amount > 0` on sales, `amount > 0` on expense, `hours_worked > 0` on labor.
+- Forecast engine now filters excluded value flows in cost projections.
+- Fortune500 calculator now reads ecological_score from forecast_output.
+- Fortune500 growth scoring now uses year-over-year revenue and yield deltas.
 
 ## [0.10.0] - 2026-06-12
 

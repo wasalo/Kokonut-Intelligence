@@ -14,7 +14,8 @@ def get_crop_areas_for_location(location_id: str) -> List[Dict[str, Any]]:
     db = get_db()
     with db.cursor() as cur:
         cur.execute("""
-            SELECT c.name, c.id, cc.area_planted, cc.expected_yield, cc.expected_yield_unit
+            SELECT c.name, c.id, cc.id as cycle_id, cc.area_planted,
+                   cc.expected_yield, cc.expected_yield_unit
             FROM crop_cycle cc
             JOIN crop c ON cc.crop_id = c.id
             WHERE cc.location_id = %s AND cc.status = 'completed'
@@ -22,8 +23,8 @@ def get_crop_areas_for_location(location_id: str) -> List[Dict[str, Any]]:
         rows = cur.fetchall()
     db.close()
     return [
-        {"crop_name": r[0], "crop_id": r[1], "area": float(r[2] or 0),
-         "yield": float(r[3] or 0), "unit": r[4]}
+        {"crop_name": r[0], "crop_id": r[1], "cycle_id": str(r[2]),
+         "area": float(r[3] or 0), "yield": float(r[4] or 0), "unit": r[5]}
         for r in rows
     ]
 

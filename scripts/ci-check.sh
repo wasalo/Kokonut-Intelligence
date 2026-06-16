@@ -37,6 +37,7 @@ check "Import services.export.report_generator" "python3 -c 'import services.exp
 check "Import services.attestation.cli" "python3 -c 'import services.attestation.cli'"
 check "Import services.attestation.eas_client" "python3 -c 'import services.attestation.eas_client'"
 check "Import services.attestation.schema_encoder" "python3 -c 'import services.attestation.schema_encoder'"
+check "Import services.metrics.engine" "python3 -c 'import services.metrics.engine'"
 echo ""
 
 # 2. CLI parsers
@@ -47,6 +48,7 @@ check "revenue_multiplier CLI --help" "python3 -m services.revenue_multiplier.cl
 check "fortune500 CLI --help" "python3 -m services.fortune500.cli --help"
 check "report_generator CLI --help" "python3 -m services.export.report_generator --help"
 check "attestation CLI --help" "python3 -m services.attestation.cli --help"
+check "metrics CLI --help" "python3 -m services.metrics --help"
 echo ""
 
 # 3. TypeScript extension build (if node_modules present)

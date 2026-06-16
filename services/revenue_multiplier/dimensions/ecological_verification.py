@@ -7,12 +7,7 @@ as carbon credits, biodiversity credits, and impact certificates.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
-
-
-# Market prices for ecological credits (conservative estimates)
-CARBON_CREDIT_PRICE = 25.0  # USD per tonne CO2e
-BIODIVERSITY_CREDIT_PRICE = 35.0  # USD per unit of biodiversity gain
-IMPACT_CERTIFICATE_PRICE = 10.0  # USD per verified claim
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -70,7 +65,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         current = float(cd["current"] or 0)
         total_carbon_delta += max(0, current - baseline)
 
-    carbon_revenue = total_carbon_delta * CARBON_CREDIT_PRICE
+    carbon_credit_price = float(get_config(conn, 'carbon_credit_price_usd'))
+    carbon_revenue = total_carbon_delta * carbon_credit_price
 
     # Calculate biodiversity credit potential
     species_by_date = {}
@@ -88,12 +84,14 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     else:
         species_delta = 0
 
-    biodiversity_revenue = species_delta * BIODIVERSITY_CREDIT_PRICE
+    biodiversity_credit_price = float(get_config(conn, 'biodiversity_credit_price_usd'))
+    biodiversity_revenue = species_delta * biodiversity_credit_price
 
     # Calculate attestation value
     total_claims = sum(c["count"] for c in claims)
     attested_claims = attestations.get("published", 0)
-    attestation_revenue = attested_claims * IMPACT_CERTIFICATE_PRICE
+    impact_certificate_price = float(get_config(conn, 'impact_certificate_price_usd'))
+    attestation_revenue = attested_claims * impact_certificate_price
 
     total_revenue = carbon_revenue + biodiversity_revenue + attestation_revenue
 

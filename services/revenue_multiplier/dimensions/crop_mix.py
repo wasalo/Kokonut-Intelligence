@@ -49,6 +49,16 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     """)
     prices = [dict(r) for r in cur.fetchall()]
 
+    # Get forecast projections for forward-looking analysis
+    cur.execute("""
+        SELECT metric_name, inputs
+        FROM forecast_output
+        WHERE location_id = %s
+          AND metric_name IN ('projected_revenue_usd', 'projected_noi_usd')
+        ORDER BY created_at DESC LIMIT 2
+    """, (location_id,))
+    forecasts = {r["metric_name"]: r["inputs"] for r in cur.fetchall()}
+
     cur.close()
 
     if not cycles:
@@ -94,6 +104,18 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Estimate impact: reallocating worst crop area to best crop
     worst_area = crop_metrics.get(worst_crop, {}).get("total_area", 0)
     impact = gap * worst_area
+
+    # Enrich with forecast projections if available
+    projected_revenue_by_crop = {}
+    projected_noi_by_crop = {}
+    if "projected_revenue_usd" in forecasts:
+        inputs = forecasts["projected_revenue_usd"]
+        if isinstance(inputs, dict):
+            projected_revenue_by_crop = inputs.get("revenue_by_crop", {})
+    if "projected_noi_usd" in forecasts:
+        inputs = forecasts["projected_noi_usd"]
+        if isinstance(inputs, dict):
+            projected_noi_by_crop = inputs.get("noi_by_crop", {})
 
     # Price trends
     price_by_crop = {}

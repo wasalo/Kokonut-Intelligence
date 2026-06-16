@@ -6,6 +6,7 @@ Tracks actual vs forecasted allocations, shows funding→impact→funding cycle.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -56,8 +57,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     score = min(100, allocation_rate * 10)  # 10% allocation = 100 score
 
     # Impact: funding loop multiplier (every $1 public goods → $2 ecosystem value)
-    LOOP_MULTIPLIER = 2.5
-    impact = actual * (LOOP_MULTIPLIER - 1)  # Net new value from the loop
+    loop_multiplier = float(get_config(conn, 'loop_multiplier'))
+    impact = actual * (loop_multiplier - 1)  # Net new value from the loop
 
     details = {
         "actual_allocation": round(actual, 2),
@@ -65,7 +66,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         "total_revenue": round(revenue, 2),
         "allocation_rate_pct": round(allocation_rate, 1),
         "forecast_accuracy_pct": round(forecast_accuracy, 1),
-        "loop_multiplier": LOOP_MULTIPLIER,
+        "loop_multiplier": loop_multiplier,
     }
 
     return OpportunityDimension(
@@ -75,7 +76,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         impact_usd=round(impact, 2),
         confidence="high" if actual > 0 else "low",
         current_state=f"Allocated: ${actual:,.0f} ({allocation_rate:.1f}% of revenue), forecast: ${forecasted:,.0f}",
-        recommendation=f"Increase allocation to 15% for +${revenue * 0.05 * (LOOP_MULTIPLIER - 1):,.0f} loop value",
+        recommendation=f"Increase allocation to 15% for +${revenue * 0.05 * (loop_multiplier - 1):,.0f} loop value",
         data_points=2,
         details=details,
     )

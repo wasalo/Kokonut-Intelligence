@@ -32,11 +32,11 @@ All ingestion is dual-written to PostgreSQL (operational) and ClickHouse (analyt
 
 - **Fortune 500 Farm Scoring** — Weighted 4-pillar composite score (0–1000) across Financial (45%), Ecological (25%), Governance (15%), and Growth (15%). Farms are classified into tiers: Platinum (800+), Gold (600+), Silver (400+), Bronze (200+), or Developing. Each farm receives a detailed scorecard with benchmark comparisons against regional baselines.
 
-- **Ecological Analytics** — Soil carbon delta tracking (baseline vs. latest tonnes/ha), biodiversity index computation using the Shannon diversity index, and side-by-side forecast scenario comparison.
+- **Ecological Analytics** — Soil carbon delta tracking (baseline vs. latest tonnes/ha), biodiversity index computation using the Shannon diversity index, NDVI vegetation index trends, water resilience scoring, crop diversity analysis, intervention impact tracking, and side-by-side forecast scenario comparison.
 
   The **Shannon diversity index** (H') measures ecosystem health by accounting for both the number of species present (richness) and how evenly individuals are distributed among them (evenness). A higher index indicates a more diverse and resilient ecosystem. For example, a plot with 10 species evenly distributed scores higher than one dominated by a single species, even if both have the same total species count.
 
-- **Revenue Forecasting** — Scenario-based projections of revenue, NOI, yield, and cash flow using Monte Carlo simulation with configurable confidence intervals (70%–95%).
+- **Revenue Forecasting** — Scenario-based projections of revenue, NOI, yield, and cash flow using Monte Carlo simulation with configurable confidence intervals (70%–95%). Per-cycle outputs with `crop_cycle_id` for crop-level granularity, and carbon sequestration estimation (tonnes CO2e + USD value) from soil organic matter changes.
 
   **Monte Carlo simulation** runs thousands of randomized trials, sampling from probability distributions of key variables (price, yield, cost) to model the range of possible outcomes. Instead of a single point estimate, it produces a distribution of results with confidence bands — showing not just what is expected, but how uncertain that expectation is. This lets farm managers understand best-case, worst-case, and most-likely scenarios before committing resources.
 
@@ -62,6 +62,7 @@ All ingestion is dual-written to PostgreSQL (operational) and ClickHouse (analyt
 ### Governed Workflow & Metrics
 
 - **4-Stage Lifecycle** — Draft → Submitted → Verified → Published, with role-based approval routing and rejected-path rework
+- **Metric Computation Engine** — 17 computed metrics via calculator plugin pattern, with CLI for on-demand or batch computation. Results stored in `metric_value` with source lineage
 - **Auto-Calculated Metrics** — NOI, loss rate, operating margin, labor cost, and net amount computed automatically on data changes
 - **AI-Assisted Data Entry** — Expense auto-categorization (40+ keyword rules), amount validation with suspicious-value flagging, harvest quantity validation against expected yield, date sanity checks, and field note summarization
 - **Full Audit Trail** — Every state transition logged to `workflow_history` with user, timestamp, and from/to state
@@ -291,7 +292,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   └── lib/            # OpenZeppelin, EAS contracts
 ├── schemas/
 │   ├── postgres/       # 15 schema files, 50+ tables
-│   ├── seeds/          # Base and pilot seed data (16 files)
+│   ├── seeds/          # Base and pilot seed data (18 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── sdk/
@@ -330,6 +331,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   ├── models.py         # OpportunityDimension, RevenueMultiplierMap
 │   │   ├── analyzer.py       # Main orchestrator
 │   │   ├── cli.py            # CLI for opportunity analysis
+│   │   ├── config.py         # DB-backed configurable constants
 │   │   └── dimensions/       # 10 dimension analyzers
 │   │       ├── crop_mix.py
 │   │       ├── loss_reduction.py
@@ -341,6 +343,17 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │       ├── ecological_verification.py
 │   │       ├── partner_sponsorship.py
 │   │       └── regional_clusters.py
+│   ├── metrics/        # Metric computation engine
+│   │   ├── engine.py         # compute_metric, compute_all orchestrators
+│   │   ├── cli.py            # --compute, --list, --all, --metric flags
+│   │   └── calculators/      # 7 metric calculators
+│   │       ├── value_flowed.py
+│   │       ├── wallet_retention.py
+│   │       ├── digital_lego.py
+│   │       ├── attestation_coverage.py
+│   │       ├── soil_carbon_delta.py
+│   │       ├── biodiversity_delta.py
+│   │       └── operating_margin.py
 │   ├── forecast/       # Forecast engine
 │   │   ├── engine.py         # Scenario-based NOI, revenue, yield forecasting
 │   │   ├── cli.py            # CLI for forecasts, comparisons, sensitivity
@@ -436,6 +449,31 @@ The platform auto-calculates governed metrics on data changes:
 | Net Amount | sales create/update | Total minus returns minus discounts (clamped to zero minimum) |
 | Labor Cost | labor event create | Hours worked times hourly rate |
 
+### Computed Metrics (Metric Engine)
+
+Additional metrics computed on-demand via `python3 -m services.metrics`:
+
+| Metric | Calculator | Description |
+|--------|-----------|-------------|
+| Value Flowed | `value_flowed` | Sum of verified, non-excluded value flow events (USD) |
+| Wallet Retention | `wallet_retention` | Percentage of wallets active in both measurement periods |
+| Digital Lego Usage | `digital_lego` | Distinct DeFi protocols used per location |
+| Attestation Coverage | `attestation_coverage` | Published attestations / eligible records × 100 |
+| Soil Carbon Delta | `soil_carbon_delta` | Latest − baseline soil organic carbon (tonnes/ha) |
+| Biodiversity Delta | `biodiversity_delta` | Species count change + Shannon index delta |
+| Operating Margin % | `operating_margin` | NOI / net revenue × 100 |
+
+```bash
+# Compute a specific metric for a location
+python3 -m services.metrics --compute --metric value_flowed --location-id UUID
+
+# Compute all available metrics for a location
+python3 -m services.metrics --compute --all --location-id UUID
+
+# List all registered metric definitions
+python3 -m services.metrics --list
+```
+
 ## Developer SDK
 
 JavaScript/TypeScript and Python SDKs for programmatic access to the platform.
@@ -482,7 +520,7 @@ python3 -m services.export.report_generator --type farm_summary --location-id UU
 
 ## Pilot Farm Seed Data
 
-Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 12 pilot seed files, plus 2 base seed files:
+Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 14 pilot seed files, plus 2 base seed files:
 
 | File | Content |
 |------|---------|
@@ -500,6 +538,8 @@ Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 12 pilot seed f
 | `012_pilot_bioinputs.sql` | Bioinput expenses and biofactory infrastructure |
 | `013_pilot_registry_mrv_agents.sql` | Farm registry, inventory, maintenance, revenue, MRV events, attestation requests, agent metadata |
 | `014_pilot_celo_eas.sql` | Celo chain indexer status and EAS schema registrations |
+| `015_revenue_multiplier_config.sql` | 13 configurable constants for revenue multiplier dimensions |
+| `016_pilot_dapp_sessions.sql` | 12 dApp session records for Web3 engagement tracking |
 
 ```bash
 # Seed all pilot farm data
@@ -548,6 +588,26 @@ python3 -m services.forecast.cli --location-id <location-id> \
 - Monthly revenue projections with confidence intervals
 - Bootstrap simulation for uncertainty estimation
 - Historical trend analysis from harvest and sales data
+- Per-cycle outputs with `crop_cycle_id` for crop-level granularity
+- Carbon sequestration estimation from soil organic matter changes
+
+## Environmental Analytics
+
+CLI for ecological analysis computed from existing data:
+
+```bash
+# NDVI vegetation index trends over time
+python3 -m services.analytics --ndvi-trends --location-id UUID
+
+# Water resilience scoring (rainfall patterns, drought events)
+python3 -m services.analytics --water-resilience --location-id UUID
+
+# Crop diversity analysis (Shannon index, species counts)
+python3 -m services.analytics --crop-diversity --location-id UUID
+
+# Intervention impact tracking (before/after comparison)
+python3 -m services.analytics --intervention-impact --location-id UUID
+```
 
 ## Partner Dashboards
 

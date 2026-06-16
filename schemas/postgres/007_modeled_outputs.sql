@@ -88,6 +88,27 @@ CREATE TABLE IF NOT EXISTS metric_version (
     UNIQUE(metric_id, version)
 );
 
+-- Computed metric values (output of metric computation engine)
+CREATE TABLE IF NOT EXISTS metric_value (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    metric_id UUID NOT NULL REFERENCES metric_definition(id),
+    location_id UUID REFERENCES location(id),
+    period_start DATE,
+    period_end DATE,
+    value NUMERIC(15,4),
+    unit VARCHAR(50),
+    computation_method VARCHAR(100),
+    source_record_ids UUID[],
+    computed_at TIMESTAMPTZ DEFAULT NOW(),
+    verified BOOLEAN DEFAULT FALSE,
+    metadata JSONB DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_metric_value_metric ON metric_value(metric_id);
+CREATE INDEX IF NOT EXISTS idx_metric_value_location ON metric_value(location_id);
+CREATE INDEX IF NOT EXISTS idx_metric_value_period ON metric_value(period_start, period_end);
+CREATE INDEX IF NOT EXISTS idx_metric_value_computed ON metric_value(computed_at);
+
 -- Report snapshots (frozen report outputs)
 CREATE TABLE IF NOT EXISTS report_snapshot (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

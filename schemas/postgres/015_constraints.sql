@@ -665,7 +665,23 @@ CREATE INDEX IF NOT EXISTS idx_agent_task_request ON agent_task(attestation_requ
 CREATE INDEX IF NOT EXISTS idx_agent_identity_wallet ON agent_identity(operator_wallet);
 
 -- ============================================================
--- 7. Data integrity comment
+-- 7. Additional columns for existing tables
+-- ============================================================
+
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS metric_id UUID;
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS location_id UUID;
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS period_start DATE;
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS period_end DATE;
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS value NUMERIC(15,4);
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS unit VARCHAR(50);
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS computation_method VARCHAR(100);
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS source_record_ids UUID[];
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS computed_at TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT FALSE;
+ALTER TABLE metric_value ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+
+-- ============================================================
+-- 8. Data integrity comment
 -- ============================================================
 
 COMMENT ON COLUMN attestation_record.claim_data IS

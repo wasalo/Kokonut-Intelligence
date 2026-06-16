@@ -182,6 +182,61 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
                 data_points += 1
         metrics.data_completeness_pct = (data_points / total_points) * 100
 
+        # Ecological score from forecast engine
+        cur.execute("""
+            SELECT value FROM forecast_output
+            WHERE location_id = %s AND metric_name = 'ecological_score_forecast'
+            ORDER BY created_at DESC LIMIT 1
+        """, (location_id,))
+        eco_score = cur.fetchone()
+        if eco_score and eco_score["value"]:
+            metrics.ecological_score = float(eco_score["value"])
+
+        # Growth signal from revenue multiplier opportunity
+        cur.execute("""
+            SELECT COALESCE(SUM(total_amount), 0) as revenue
+            FROM sales_event
+            WHERE location_id = %s AND status IN ('verified', 'published')
+              AND sale_date >= NOW() - INTERVAL '365 days'
+        """, (location_id,))
+        recent_rev = cur.fetchone()
+        recent_revenue = float(recent_rev["revenue"]) if recent_rev else 0
+
+        cur.execute("""
+            SELECT COALESCE(SUM(total_amount), 0) as revenue
+            FROM sales_event
+            WHERE location_id = %s AND status IN ('verified', 'published')
+              AND sale_date >= NOW() - INTERVAL '730 days'
+              AND sale_date < NOW() - INTERVAL '365 days'
+        """, (location_id,))
+        prev_rev = cur.fetchone()
+        prev_revenue = float(prev_rev["revenue"]) if prev_rev else 0
+
+        if prev_revenue > 0:
+            metrics.revenue_growth_pct = ((recent_revenue - prev_revenue) / prev_revenue) * 100
+
+        # Yield growth
+        cur.execute("""
+            SELECT AVG(actual_yield) as current_yield
+            FROM crop_cycle
+            WHERE location_id = %s AND status = 'completed'
+              AND actual_harvest_date >= NOW() - INTERVAL '365 days'
+        """, (location_id,))
+        cur_yield = cur.fetchone()
+        cur.execute("""
+            SELECT AVG(actual_yield) as prev_yield
+            FROM crop_cycle
+            WHERE location_id = %s AND status = 'completed'
+              AND actual_harvest_date >= NOW() - INTERVAL '730 days'
+              AND actual_harvest_date < NOW() - INTERVAL '365 days'
+        """, (location_id,))
+        prev_yield = cur.fetchone()
+        if cur_yield and prev_yield and prev_yield["prev_yield"] and cur_yield["current_yield"]:
+            metrics.yield_growth_pct = (
+                (float(cur_yield["current_yield"]) - float(prev_yield["prev_yield"]))
+                / float(prev_yield["prev_yield"]) * 100
+            )
+
     db.close()
     return metrics
 

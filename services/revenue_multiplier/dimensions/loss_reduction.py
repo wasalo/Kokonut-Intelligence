@@ -7,6 +7,7 @@ Identifies highest-impact reduction opportunities.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -85,8 +86,9 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Score: lower loss rate = better, but high loss = high opportunity
     score = min(100, loss_rate * 5)  # 20% loss rate = 100 score
 
-    # Impact: reducing top loss type by 50%
-    impact = top_impact * 0.5
+    # Impact: reducing top loss type by target percentage
+    loss_reduction_target = float(get_config(conn, 'loss_reduction_target_pct')) / 100
+    impact = top_impact * loss_reduction_target
 
     details = {
         "loss_by_type": loss_by_type,
@@ -103,7 +105,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         impact_usd=round(impact, 2),
         confidence="high" if len(losses) >= 3 else "medium",
         current_state=f"Loss rate: {loss_rate:.1f}%, top type: {top_type} (${top_impact:,.0f})",
-        recommendation=f"Target {top_type} losses for 50% reduction = ${impact:,.0f}/year savings",
+        recommendation=f"Target {top_type} losses for {float(get_config(conn, 'loss_reduction_target_pct')):.0f}% reduction = ${impact:,.0f}/year savings",
         data_points=len(losses) + len(harvest_losses),
         details=details,
     )

@@ -6,6 +6,7 @@ Analyzes on-chain funding, cost of capital, and replication model viability.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -39,6 +40,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     cur.execute("""
         SELECT source_type, SUM(amount) as total_amount
         FROM capital_source
+        WHERE location_id = %s
         GROUP BY source_type
     """, (location_id,))
     capital = {r["source_type"]: float(r["total_amount"]) for r in cur.fetchall()}
@@ -65,9 +67,9 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     funding_sources = len(capital)
     score = min(100, funding_sources * 20 + (1 if net_funding > 0 else 0) * 20)
 
-    # Impact: replication cost estimate (assume $15,000 per new farm)
-    REPLICATION_COST = 15000
-    farms_replicable = net_funding / REPLICATION_COST if net_funding > REPLICATION_COST else 0
+    # Impact: replication cost estimate
+    replication_cost = float(get_config(conn, 'replication_cost_usd'))
+    farms_replicable = net_funding / replication_cost if net_funding > replication_cost else 0
 
     details = {
         "treasury": treasury,
@@ -83,7 +85,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         dimension_id="web3_funded_replication",
         dimension_name="Web3-Funded Replication",
         score=round(score, 1),
-        impact_usd=round(farms_replicable * REPLICATION_COST, 2),
+        impact_usd=round(farms_replicable * replication_cost, 2),
         confidence="medium",
         current_state=f"Inflows: ${inflows:,.0f}, DAO: {dao_share:.0f}%, Lego value: ${lego_value:,.0f}",
         recommendation=f"Scale to {farms_replicable:.0f} additional farms via DAO funding",

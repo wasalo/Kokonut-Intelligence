@@ -6,6 +6,7 @@ Scores partner ROI, tracks sponsorship pipeline value.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -43,6 +44,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     cur.execute("""
         SELECT source_type, SUM(amount) as total_amount
         FROM capital_source
+        WHERE location_id = %s
         GROUP BY source_type
     """, (location_id,))
     capital = {r["source_type"]: float(r["total_amount"]) for r in cur.fetchall()}
@@ -59,7 +61,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
 
     # Impact: sponsorship potential from new partners
     avg_partner_value = total_partner_revenue / max(unique_partners, 1)
-    new_partners_potential = 3  # Conservative: 3 new partners
+    new_partners_potential = int(get_config(conn, 'new_partners_potential'))
     impact = avg_partner_value * new_partners_potential
 
     details = {

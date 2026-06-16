@@ -73,3 +73,49 @@ AS SELECT
     avgState(humidity_pct) AS avg_humidity
 FROM weather_events
 GROUP BY location_id, day;
+
+-- ============================================================
+-- Web3 Aggregation Views
+-- ============================================================
+
+-- Monthly unique active wallets per chain
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_monthly_wallet_unique_active
+ENGINE = SummingMergeTree()
+PARTITION BY toYYYYMM(month)
+ORDER BY (chain, month)
+AS SELECT
+    toStartOfMonth(timestamp) AS month,
+    chain,
+    uniqExact(wallet_address) AS unique_wallets,
+    count() AS total_events
+FROM wallet_events
+GROUP BY month, chain;
+
+-- Daily Digital Lego protocol usage
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_daily_dlego_protocol_usage
+ENGINE = SummingMergeTree()
+PARTITION BY toYYYYMM(day)
+ORDER BY (protocol_id, day)
+AS SELECT
+    toDate(timestamp) AS day,
+    protocol_id,
+    action_type,
+    chain,
+    count() AS action_count,
+    sum(amount) AS total_amount
+FROM dlego_events
+GROUP BY day, protocol_id, action_type, chain;
+
+-- Monthly Digital Lego value by location
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_dlego_value_by_location
+ENGINE = SummingMergeTree()
+PARTITION BY toYYYYMM(month)
+ORDER BY (location_id, month)
+AS SELECT
+    toStartOfMonth(timestamp) AS month,
+    ifNull(location_id, toUUID('00000000-0000-0000-0000-000000000000')) AS location_id,
+    protocol_id,
+    sum(amount) AS total_value,
+    count() AS usage_count
+FROM dlego_events
+GROUP BY month, location_id, protocol_id;

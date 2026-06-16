@@ -94,6 +94,12 @@ echo "Seeding metric definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/000_metric_definitions.sql"
 echo "Metric definitions seeded."
 
+# Seed revenue multiplier config
+echo ""
+echo "Seeding revenue multiplier config..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/015_revenue_multiplier_config.sql"
+echo "Revenue multiplier config seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""

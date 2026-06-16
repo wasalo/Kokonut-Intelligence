@@ -7,15 +7,7 @@ Estimates processing ROI.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
-
-
-# Processing value uplift factors (industry estimates)
-PROCESSING_UPLIFT = {
-    "Maize": {"flour": 1.8, "porridge_mix": 2.2, "animal_feed": 1.3},
-    "Cassava": {"flour": 2.0, "chips": 1.5, "starch": 2.5},
-    "Beans": {"packaged": 1.4, "flour": 1.6, "sprouted": 2.0},
-    "Sweet Potato": {"dried_chips": 1.6, "flour": 1.8, "puree": 2.0},
-}
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -74,7 +66,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         price = float(crop["avg_price"] or 0)
         raw_value = yield_t * price
 
-        uplifts = PROCESSING_UPLIFT.get(name, {"basic": 1.3})
+        uplifts = get_config(conn, 'processing_uplift').get(name, {"basic": get_config(conn, 'default_processing_uplift')})
         best_process = max(uplifts, key=uplifts.get)
         best_multiplier = uplifts[best_process]
         processed_value = raw_value * best_multiplier

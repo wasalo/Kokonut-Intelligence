@@ -19,6 +19,8 @@ MODULES = [
     "services.revenue_multiplier.cli",
     "services.export.report_generator",
     "services.export.exporter",
+    "services.metrics.engine",
+    "services.metrics.cli",
 ]
 
 

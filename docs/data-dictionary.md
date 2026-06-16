@@ -121,6 +121,14 @@
 | `agent_task` | Agent task execution and review record | task_type, inputs, output_cid, execution_status, review_status |
 | `agent_action_log` | Agent action audit trail | action, collection, record_id, action_result |
 
+### Analytics & Configuration
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `metric_value` | Computed governed metric results | metric_id, location_id, value, period |
+| `revenue_multiplier_config` | DB-backed dimension constants | config_key, config_value |
+| `forecast_output` | Forecast engine outputs | metric_name, value, crop_cycle_id |
+
 ### Ingestion & Observability
 
 | Entity | Description | Key Fields |

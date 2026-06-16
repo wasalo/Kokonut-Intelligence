@@ -36,6 +36,12 @@
 - Format Solidity: `cd contracts && forge fmt`
 - Show EAS chain info: `python3 -m services.attestation.cli info --chain celo`
 - List Kokonut schemas: `python3 -m services.attestation.cli schema list`
+- Compute metrics: `python3 -m services.metrics --compute --metric value_flowed --location-id UUID`
+- List metrics: `python3 -m services.metrics --list`
+- NDVI trends: `python3 -m services.analytics --ndvi-trends --location-id UUID`
+- Water resilience: `python3 -m services.analytics --water-resilience --location-id UUID`
+- Crop diversity: `python3 -m services.analytics --crop-diversity --location-id UUID`
+- Intervention impact: `python3 -m services.analytics --intervention-impact --location-id UUID`
 
 ## Development Notes
 
@@ -57,3 +63,7 @@
 - Use `try/finally` with `db.close()` for all PostgreSQL connection blocks in ingestion scripts.
 - `verify_review.result` uses `approved`/`rejected`/`needs_info`, not `verified`.
 - Field Worker create permissions exclude `status` — lifecycle starts at `draft` by default.
+- `metric_value` table stores computed governed metric results.
+- `revenue_multiplier_config` table stores dimension constants (DB-backed, not hardcoded).
+- Forecast engine writes per-cycle outputs with `crop_cycle_id`.
+- Forecast engine estimates carbon sequestration from SOM changes.

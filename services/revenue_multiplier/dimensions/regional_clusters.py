@@ -7,6 +7,7 @@ and regional benchmarks.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -66,9 +67,9 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     score = min(100, nearby_count * 20 + farm_count * 10)
 
     # Impact: shared infrastructure savings
-    SHARED_SAVINGS_PER_HA = 50  # $50/ha savings from shared processing, transport
+    shared_savings_per_ha = float(get_config(conn, 'shared_savings_per_ha_usd'))
     cluster_area = total_area + sum(10 for _ in nearby)  # Estimate 10ha per nearby location
-    impact = cluster_area * SHARED_SAVINGS_PER_HA
+    impact = cluster_area * shared_savings_per_ha
 
     details = {
         "location_name": loc.get("name"),

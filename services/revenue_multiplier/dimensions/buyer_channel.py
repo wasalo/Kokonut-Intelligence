@@ -7,6 +7,7 @@ Identifies best-performing channels.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -80,7 +81,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Impact: switching from worst to best buyer
     best_net = buyer_scores[best_buyer]["net_revenue"]
     worst_net = buyer_scores[worst_buyer]["net_revenue"]
-    impact = max(0, best_net - worst_net) * 0.3  # 30% uplift potential
+    buyer_uplift_pct = float(get_config(conn, 'buyer_uplift_pct')) / 100
+    impact = max(0, best_net - worst_net) * buyer_uplift_pct
 
     details = {
         "buyer_scores": buyer_scores,

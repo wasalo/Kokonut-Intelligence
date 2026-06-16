@@ -9,7 +9,10 @@ from .models import CostAssumptions, GrowthAssumptions
 
 
 def get_historical_costs(location_id: str) -> Dict[str, float]:
-    """Get total costs by category for a location from expense_event."""
+    """Get total costs by category for a location from expense_event.
+
+    Excludes costs that are flagged in excluded_value_event.
+    """
     from ..ingestion.base import get_db
     db = get_db()
     with db.cursor() as cur:
@@ -17,6 +20,11 @@ def get_historical_costs(location_id: str) -> Dict[str, float]:
             SELECT category, SUM(amount) as total
             FROM expense_event
             WHERE location_id = %s AND status IN ('verified', 'published')
+              AND id NOT IN (
+                  SELECT DISTINCT value_flow_id
+                  FROM excluded_value_event
+                  WHERE value_flow_id IS NOT NULL
+              )
             GROUP BY category
         """, (location_id,))
         rows = cur.fetchall()

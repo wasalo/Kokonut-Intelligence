@@ -6,6 +6,7 @@ Analyzes bioinput spending vs conventional, estimates on-farm production ROI.
 
 import psycopg2.extras
 from ..models import OpportunityDimension
+from ..config import get_config
 
 
 def analyze(conn, location_id: str) -> OpportunityDimension:
@@ -57,11 +58,13 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     if biofactory:
         # Estimate production capacity value
         capacity = float(biofactory["capacity"] or 500)
-        production_value = bioinput_cost * 0.7  # 70% savings
+        bioinput_savings_pct = float(get_config(conn, 'bioinput_savings_pct')) / 100
+        production_value = bioinput_cost * bioinput_savings_pct
         impact = production_value
     else:
         # Estimate benefit of switching to on-farm production
-        impact = bioinput_cost * 0.5 if bioinput_cost > 0 else conventional_cost * 0.3
+        switching_benefit_pct = float(get_config(conn, 'bioinput_switching_benefit_pct')) / 100
+        impact = bioinput_cost * switching_benefit_pct if bioinput_cost > 0 else conventional_cost * 0.3
 
     details = {
         "bioinput_cost": round(bioinput_cost, 2),

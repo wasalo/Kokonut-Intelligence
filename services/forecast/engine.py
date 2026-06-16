@@ -22,7 +22,7 @@ from .models import (
 from .pricing import get_historical_avg_prices, project_prices
 from .yield_forecast import get_crop_areas_for_location, project_yields, calculate_total_yield
 from .cost_forecast import get_historical_costs, project_costs, allocate_shared_costs
-from .ecology import get_ecological_baseline, project_ecological_score
+from .ecology import get_ecological_baseline, project_ecological_score, estimate_carbon_sequestration
 from .risk import (
     calculate_risk_factor, risk_adjust_noi, risk_adjust_revenue,
     calculate_confidence_interval,
@@ -78,6 +78,11 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     projected_costs = project_costs(hist_costs, ca, ga, total_area)
     shared_alloc = allocate_shared_costs(projected_costs["total_shared"], projected_yields)
     eco_proj = project_ecological_score(eco_baseline)
+
+    # Carbon sequestration estimate
+    som_change_pct = eco_proj.get("som_projected", 3.0) - eco_baseline.get("soil_organic_matter_pct", 3.0)
+    carbon_tonnes = estimate_carbon_sequestration(total_area, abs(som_change_pct))
+    carbon_credit_value = carbon_tonnes * 30  # $30/tonne CO2e
 
     # Revenue per crop
     revenue_by_crop = {}
@@ -171,7 +176,46 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
                       risk_noi["confidence_low"], risk_noi["confidence_high"],
                       period_start, period_end,
                       {"base_noi": total_noi, "risk_factor": risk_factor}),
+        _make_output(scenario_id, location_id, "carbon_sequestration_tonnes",
+                      round(carbon_tonnes, 2), "tonnes",
+                      round(carbon_tonnes * 0.8, 2), round(carbon_tonnes * 1.2, 2),
+                      period_start, period_end,
+                      {"som_change_pct": round(som_change_pct, 4), "area_ha": total_area}),
+        _make_output(scenario_id, location_id, "carbon_credit_value_usd",
+                      round(carbon_credit_value, 2), "usd",
+                      round(carbon_credit_value * 0.8, 2), round(carbon_credit_value * 1.2, 2),
+                      period_start, period_end,
+                      {"carbon_tonnes": carbon_tonnes, "price_per_tonne": 30}),
     ]
+
+    # Per-cycle outputs
+    cycle_id_map = {}
+    for ca in crop_areas:
+        name = ca["crop_name"]
+        cycle_id = ca.get("cycle_id")
+        if cycle_id and name not in cycle_id_map:
+            cycle_id_map[name] = cycle_id
+
+    for crop_name, cycle_id in cycle_id_map.items():
+        crop_data = noi_by_crop.get(crop_name, {})
+        if not crop_data:
+            continue
+        outputs.append(_make_output(
+            scenario_id, location_id, "crop_noi_usd",
+            crop_data["noi"], "usd",
+            round(crop_data["noi"] * 0.8, 2), round(crop_data["noi"] * 1.2, 2),
+            period_start, period_end,
+            {"crop": crop_name, "revenue": crop_data["revenue"], "costs": crop_data["costs"]},
+            crop_cycle_id=cycle_id,
+        ))
+        outputs.append(_make_output(
+            scenario_id, location_id, "crop_margin_pct",
+            crop_data["margin_pct"], "pct",
+            round(crop_data["margin_pct"] * 0.8, 2), round(crop_data["margin_pct"] * 1.2, 2),
+            period_start, period_end,
+            {"crop": crop_name},
+            crop_cycle_id=cycle_id,
+        ))
 
     # Write outputs to database
     _write_outputs(outputs)
@@ -209,6 +253,7 @@ def _make_output(
     confidence_low: float, confidence_high: float,
     period_start: str, period_end: str,
     inputs: Dict[str, Any],
+    crop_cycle_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create a forecast output record."""
     return {
@@ -226,6 +271,7 @@ def _make_output(
         "calculation_version": CALCULATION_VERSION,
         "calculated_at": datetime.now(timezone.utc),
         "inputs": json.dumps(inputs),
+        "crop_cycle_id": crop_cycle_id,
     }
 
 
@@ -238,15 +284,15 @@ def _write_outputs(outputs: List[Dict[str, Any]]) -> None:
                 INSERT INTO forecast_output
                     (id, scenario_id, location_id, metric_name, period_start, period_end,
                      value, unit, confidence_low, confidence_high, confidence_level,
-                     calculation_version, calculated_at, inputs)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                     calculation_version, calculated_at, inputs, crop_cycle_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
                 ON CONFLICT (id) DO NOTHING
             """, (
                 out["id"], out["scenario_id"], out["location_id"],
                 out["metric_name"], out["period_start"], out["period_end"],
                 out["value"], out["unit"], out["confidence_low"], out["confidence_high"],
                 out["confidence_level"], out["calculation_version"],
-                out["calculated_at"], out["inputs"],
+                out["calculated_at"], out["inputs"], out.get("crop_cycle_id"),
             ))
     db.commit()
     db.close()
