@@ -16,6 +16,8 @@ SELECT
     COUNT(DISTINCT ns.crop_cycle_id) AS crop_cycles
 FROM farm f
 JOIN location l ON f.location_id = l.id
-LEFT JOIN noi_snapshot ns ON ns.location_id = l.id
+LEFT JOIN plot p ON f.id = p.farm_id
+LEFT JOIN crop_cycle cc ON p.id = cc.plot_id
+LEFT JOIN noi_snapshot ns ON ns.crop_cycle_id = cc.id
 GROUP BY f.id, f.name, l.name
 ORDER BY total_noi DESC;

@@ -12,7 +12,7 @@ const client = new KokonutClient('http://localhost:8055', {
 });
 
 async function main() {
-  await client.login('admin@example.com', 'password123');
+  await client.login('admin@example.com', process.env.ADMIN_PASSWORD || 'changeme');
 
   const location = await client.locations.create({
     name: 'Finca El Paraiso',

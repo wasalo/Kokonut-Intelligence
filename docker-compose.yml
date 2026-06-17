@@ -10,8 +10,8 @@ services:
       POSTGRES_USER: kokonut
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: kokonut_intelligence
-    ports:
-      - "5432:5432"
+    networks:
+      - databases
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
       interval: 10s
@@ -23,6 +23,8 @@ services:
   cache:
     image: redis:7-alpine
     restart: unless-stopped
+    networks:
+      - databases
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -42,6 +44,9 @@ services:
         condition: service_healthy
       cache:
         condition: service_healthy
+    networks:
+      - databases
+      - apps
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:8055/server/ping || exit 1"]
       interval: 10s
@@ -66,6 +71,15 @@ services:
       LOG_LEVEL: "info"
       WEBSOCKETS_ENABLED: "true"
       FILES_MAX_UPLOAD_SIZE: "50mb"
+      RATE_LIMITER_ENABLED: "true"
+      RATE_LIMITER_STORE: "redis"
+      RATE_LIMITER_POINTS: "100"
+      RATE_LIMITER_DURATION: "1"
+      LOGIN_RATELIMIT_ENABLED: "true"
+      LOGIN_RATELIMIT_POINTS: "5"
+      LOGIN_RATELIMIT_DURATION: "900000"
+      CORS_ORIGIN: ${CORS_ORIGIN:-"http://localhost:8055,http://localhost:3001"}
+      PUBLIC_RESTRICT: "true"
 
   metabase:
     image: metabase/metabase:v0.53.2
@@ -74,6 +88,9 @@ services:
       - "3001:3000"
     volumes:
       - metabase-data:/metabase-data
+    networks:
+      - databases
+      - apps
     environment:
       MB_DB_TYPE: "postgres"
       MB_DB_DBNAME: "metabase"
@@ -97,13 +114,12 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:25.3
     restart: unless-stopped
-    ports:
-      - "8123:8123"
-      - "9000:9000"
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - clickhouse-logs:/var/log/clickhouse-server
       - ./config/clickhouse/config.d:/etc/clickhouse-server/config.d:ro
+    networks:
+      - databases
     environment:
       CLICKHOUSE_DB: kokonut_analytics
       CLICKHOUSE_USER: kokonut
@@ -126,3 +142,9 @@ volumes:
   metabase-data:
   clickhouse-data:
   clickhouse-logs:
+
+networks:
+  databases:
+    driver: bridge
+  apps:
+    driver: bridge

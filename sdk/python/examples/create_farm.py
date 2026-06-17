@@ -19,7 +19,7 @@ def main() -> None:
     client = KokonutClient(BASE_URL, token=TOKEN)
 
     if not TOKEN:
-        client.login("admin@example.com", "password123")
+        client.login("admin@example.com", os.environ.get("ADMIN_PASSWORD", "changeme"))
 
     location = client.locations.create({
         "name": "Finca El Paraiso",

@@ -26,6 +26,17 @@
       "database_id": 2
     },
     {
+      "name": "Farm Operating Margin",
+      "description": "Operating margin aggregated per farm via crop cycles",
+      "native": {
+        "query": "SELECT f.name AS farm_name, l.name AS location_name, COALESCE(SUM(ns.gross_revenue), 0) AS total_revenue, COALESCE(SUM(ns.noi), 0) AS total_noi, CASE WHEN COALESCE(SUM(ns.gross_revenue), 0) > 0 THEN ROUND((SUM(ns.noi) / SUM(ns.gross_revenue) * 100)::numeric, 2) ELSE 0 END AS operating_margin_pct, COUNT(DISTINCT ns.crop_cycle_id) AS crop_cycles FROM farm f JOIN location l ON f.location_id = l.id LEFT JOIN plot p ON f.id = p.farm_id LEFT JOIN crop_cycle cc ON p.id = cc.plot_id LEFT JOIN noi_snapshot ns ON ns.crop_cycle_id = cc.id GROUP BY f.id, f.name, l.name ORDER BY total_noi DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
       "name": "Harvest & Loss by Crop",
       "description": "Harvest volume, loss rate, and sales by crop",
       "native": {

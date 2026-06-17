@@ -47,7 +47,7 @@ def main() -> None:
     client = KokonutClient(BASE_URL, token=TOKEN)
 
     if not TOKEN:
-        client.login("admin@example.com", "password123")
+        client.login("admin@example.com", os.environ.get("ADMIN_PASSWORD", "changeme"))
 
     # These would be real UUIDs from your platform
     crop_cycle_id = "PLACEHOLDER_CROP_CYCLE_ID"

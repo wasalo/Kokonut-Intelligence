@@ -45,7 +45,7 @@ async function transitionHarvest(
 }
 
 async function main() {
-  await client.login('admin@example.com', 'password123');
+  await client.login('admin@example.com', process.env.ADMIN_PASSWORD || 'changeme');
 
   const cropCycleId = 'crop-cycle-id';
   const plotId = 'plot-id';

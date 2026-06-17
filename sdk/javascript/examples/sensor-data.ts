@@ -31,7 +31,7 @@ function detectAnomaly(readings: SensorPayload[], windowSize = 5): boolean[] {
 }
 
 async function main() {
-  await client.login('admin@example.com', 'password123');
+  await client.login('admin@example.com', process.env.ADMIN_PASSWORD || 'changeme');
 
   const deviceId = 'sensor-plot-a-001';
   const plotId = 'plot-a-id';
