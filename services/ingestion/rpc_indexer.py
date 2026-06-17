@@ -21,11 +21,14 @@ from datetime import datetime, timezone
 
 from web3 import Web3
 
+from ..common.logging import get_logger
 from .base import (
     get_db, log_ingestion, hash_payload, retry,
     update_indexer_status, get_last_synced_block, now_utc,
 )
 from .config import CHAIN_RPC_MAP, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+
+logger = get_logger("ingestion.rpc")
 
 # Validation patterns for ClickHouse SQL interpolation
 _STR_RE = re.compile(r'^[a-zA-Z0-9_\-\. ]+$')
@@ -201,7 +204,7 @@ def insert_activity_clickhouse(records: list[dict]) -> None:
             )
             resp.raise_for_status()
         except Exception as e:
-            print(f"  [RPC] ClickHouse insert failed: {e}")
+            logger.warning("ClickHouse insert failed: %s", e)
 
 
 def run(chain: str = None, wallet_address: str = None):
@@ -213,10 +216,10 @@ def run(chain: str = None, wallet_address: str = None):
         wallets = [w for w in wallets if w[1].lower() == wallet_address.lower()]
 
     if not wallets:
-        print("[RPC] No active wallets found.")
+        logger.info("No active wallets found.")
         return
 
-    print(f"[RPC] Indexing {len(wallets)} wallets...")
+    logger.info("Indexing %d wallets...", len(wallets))
     all_records = []
 
     for wallet_id, address, w_chain, role, label in wallets:
@@ -251,11 +254,11 @@ def run(chain: str = None, wallet_address: str = None):
                 all_records.append(record)
 
             update_indexer_status(w_chain, "rpc", current_block, "healthy")
-            print(f"  ✓ {label or address[:10]}: block {current_block}, balance {balance_eth:.4f} ETH")
+            logger.info("  ✓ %s: block %d, balance %.4f ETH", label or address[:10], current_block, balance_eth)
 
         except Exception as e:
             update_indexer_status(w_chain, "rpc", None, "error", str(e))
-            print(f"  ✗ {label or address[:10]}: {e}")
+            logger.error("  ✗ %s: %s", label or address[:10], e)
 
     db.commit()
 
@@ -264,7 +267,7 @@ def run(chain: str = None, wallet_address: str = None):
         insert_activity_clickhouse(all_records)
 
     db.close()
-    print(f"\n[RPC] Done: {len(all_records)} wallets indexed")
+    logger.info("Done: %d wallets indexed", len(all_records))
 
 
 if __name__ == "__main__":

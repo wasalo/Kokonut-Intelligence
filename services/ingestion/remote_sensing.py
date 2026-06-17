@@ -21,7 +21,10 @@ import sys
 import time
 from datetime import datetime, timezone
 
+from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload
+
+logger = get_logger("ingestion.remote_sensing")
 
 
 REQUIRED_COLUMNS = {"plot_id", "observation_date"}
@@ -120,13 +123,13 @@ def run(file_path: str, location_id: str = None):
         reader = csv.DictReader(f)
         rows = list(reader)
 
-    print(f"[RemoteSensing] Processing {len(rows)} rows from {file_path}...")
+    logger.info("Processing %d rows from %s...", len(rows), file_path)
 
     for i, row in enumerate(rows):
         validation_errors = validate_row(row)
         if validation_errors:
             errors += 1
-            print(f"  ✗ Row {i + 1}: {', '.join(validation_errors)}")
+            logger.warning("  ✗ Row %d: %s", i + 1, ', '.join(validation_errors))
             continue
 
         try:
@@ -159,11 +162,11 @@ def run(file_path: str, location_id: str = None):
                 status="failed",
                 error_message=str(e),
             )
-            print(f"  ✗ Row {i + 1}: {e}")
+            logger.error("  ✗ Row %d: %s", i + 1, e)
 
     db.commit()
     db.close()
-    print(f"\n[RemoteSensing] Done: {success} success, {errors} errors")
+    logger.info("Done: %d success, %d errors", success, errors)
 
 
 if __name__ == "__main__":

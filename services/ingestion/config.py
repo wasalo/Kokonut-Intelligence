@@ -19,6 +19,11 @@ from ..common.db import (
     PG_USER,
 )
 
+# Retry configuration
+RETRY_MAX_RETRIES = int(os.environ.get("INGESTION_MAX_RETRIES", "3"))
+RETRY_BACKOFF = float(os.environ.get("INGESTION_BACKOFF", "2.0"))
+RETRY_JITTER = float(os.environ.get("INGESTION_JITTER", "0.5"))
+
 # OpenWeatherMap
 OPENWEATHERMAP_API_KEY = os.environ.get("OpenWeatherMap_API_KEY", "")
 

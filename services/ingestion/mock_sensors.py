@@ -32,8 +32,11 @@ import sys
 import time
 from datetime import datetime, timezone, timedelta
 
+from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload
 from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+
+logger = get_logger("ingestion.mock_sensors")
 
 # Validation patterns for ClickHouse SQL interpolation
 _UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
@@ -147,14 +150,14 @@ def setup_sensors():
         st_name = sensor["sensor_type_name"]
         st_id = type_ids.get(st_name)
         if not st_id:
-            print(f"  ✗ Sensor type '{st_name}' not found — run 011_sensor_registry.sql first")
+            logger.warning("  ✗ Sensor type '%s' not found — run 011_sensor_registry.sql first", st_name)
             continue
 
         with db.cursor() as cur:
             # Check if slug exists
             cur.execute("SELECT id FROM sensor_device WHERE slug = %s", (sensor["slug"],))
             if cur.fetchone():
-                print(f"  ⊙ {sensor['name']}: already exists")
+                logger.info("  ⊙ %s: already exists", sensor['name'])
                 continue
 
             cur.execute(
@@ -176,11 +179,11 @@ def setup_sensors():
             )
             sid = cur.fetchone()[0]
             created += 1
-            print(f"  ✓ {sensor['name']}: {sid}")
+            logger.info("  ✓ %s: %s", sensor['name'], sid)
 
     db.commit()
     db.close()
-    print(f"\n[MockSensors] {created} sensors registered")
+    logger.info("%d sensors registered", created)
 
 
 def generate_reading(sensor: dict, timestamp: datetime, inject_anomaly: bool = False) -> float:
@@ -226,10 +229,10 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
             sensors = cur.fetchall()
 
         if not sensors:
-            print("[MockSensors] No active sensors found. Run --setup first.")
+            logger.info("No active sensors found. Run --setup first.")
             return
 
-        print(f"[MockSensors] Generating {count} readings for {len(sensors)} sensors...")
+        logger.info("Generating %d readings for %d sensors...", count, len(sensors))
 
         now = datetime.now(timezone.utc)
         interval = timedelta(hours=24) / count
@@ -315,12 +318,12 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                     total += 1
 
                 except Exception as e:
-                    print(f"  ✗ {name} @ {ts}: {e}")
+                    logger.error("  ✗ %s @ %s: %s", name, ts, e)
 
-            print(f"  ✓ {name}: {count} readings")
+            logger.info("  ✓ %s: %d readings", name, count)
 
         db.commit()
-        print(f"\n[MockSensors] Done: {total} readings, {anomalies_injected} anomalies")
+        logger.info("Done: %d readings, %d anomalies", total, anomalies_injected)
     finally:
         db.close()
 
@@ -334,7 +337,7 @@ def cleanup():
         cur.execute("DELETE FROM sensor_device WHERE metadata->>'mock' IS NOT NULL OR name LIKE 'Soil Moisture%' OR name LIKE 'Weather Station%' OR name LIKE 'Rain Gauge%'")
     db.commit()
     db.close()
-    print("[MockSensors] Cleanup done")
+    logger.info("Cleanup done")
 
 
 if __name__ == "__main__":

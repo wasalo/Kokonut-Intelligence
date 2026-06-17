@@ -27,8 +27,11 @@ from datetime import datetime, timezone
 
 import requests
 
+from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, retry
 from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+
+logger = get_logger("ingestion.sensor")
 
 # Validation patterns for ClickHouse SQL interpolation
 _UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
@@ -200,7 +203,7 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
         )
         resp.raise_for_status()
     except Exception as e:
-        print(f"  [Sensor] ClickHouse insert failed: {e}")
+        logger.warning("ClickHouse insert failed: %s", e)
 
 
 def run_csv(file_path: str):
@@ -213,7 +216,7 @@ def run_csv(file_path: str):
             reader = csv.DictReader(f)
             rows = list(reader)
 
-        print(f"[Sensor] Processing {len(rows)} readings from {file_path}...")
+        logger.info("Processing %d readings from %s...", len(rows), file_path)
         success = 0
         warnings = 0
         errors = 0
@@ -226,21 +229,21 @@ def run_csv(file_path: str):
 
             if not device_id or not reading_date or not value_str:
                 errors += 1
-                print(f"  ✗ Row {i + 1}: missing required fields (device_id, reading_date, value)")
+                logger.warning("  ✗ Row %d: missing required fields (device_id, reading_date, value)", i + 1)
                 continue
 
             try:
                 value = float(value_str)
             except ValueError:
                 errors += 1
-                print(f"  ✗ Row {i + 1}: invalid value '{value_str}'")
+                logger.warning("  ✗ Row %d: invalid value '%s'", i + 1, value_str)
                 continue
 
             # Look up sensor
             sensor_info = get_sensor_by_id_or_slug(db, device_id)
             if not sensor_info:
                 errors += 1
-                print(f"  ✗ Row {i + 1}: sensor '{device_id}' not found")
+                logger.warning("  ✗ Row %d: sensor '%s' not found", i + 1, device_id)
                 continue
 
             # Validate range
@@ -250,7 +253,7 @@ def run_csv(file_path: str):
             if range_warnings:
                 quality = "suspect"
                 warnings += 1
-                print(f"  ⚠ Row {i + 1}: {', '.join(range_warnings)}")
+                logger.warning("  ⚠ Row %d: %s", i + 1, ', '.join(range_warnings))
 
             try:
                 pg_id = insert_reading(db, sensor_info, reading_date, reading_time, value, quality,
@@ -283,10 +286,10 @@ def run_csv(file_path: str):
                     status="failed",
                     error_message=str(e),
                 )
-                print(f"  ✗ Row {i + 1}: {e}")
+                logger.error("  ✗ Row %d: %s", i + 1, e)
 
         db.commit()
-        print(f"\n[Sensor] Done: {success} success, {warnings} warnings, {errors} errors")
+        logger.info("Done: %d success, %d warnings, %d errors", success, warnings, errors)
     finally:
         db.close()
 
@@ -299,7 +302,7 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
 
         sensor_info = get_sensor_by_id_or_slug(db, sensor_id)
         if not sensor_info:
-            print(f"[Sensor] ERROR: sensor '{sensor_id}' not found")
+            logger.error("Sensor '%s' not found", sensor_id)
             sys.exit(1)
 
         now = datetime.now(timezone.utc)
@@ -313,7 +316,7 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
         if range_warnings:
             quality = "suspect"
             for w in range_warnings:
-                print(f"  ⚠ {w}")
+                logger.warning("  ⚠ %s", w)
 
         pg_id = insert_reading(db, sensor_info, reading_date, reading_time, value, quality,
                                 {"source": "api", "ingested_at": now.isoformat()})
@@ -334,7 +337,7 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
         db.commit()
 
         name = sensor_info[1]
-        print(f"[Sensor] ✓ {name}: {value} ({sensor_type}) at {reading_date} {reading_time}")
+        logger.info("✓ %s: %.2f (%s) at %s %s", name, value, sensor_type, reading_date, reading_time)
     finally:
         db.close()
 
@@ -346,14 +349,12 @@ def list_sensors():
     db.close()
 
     if not sensors:
-        print("[Sensor] No active sensors found.")
+        logger.info("No active sensors found.")
         return
 
-    print(f"[Sensor] {len(sensors)} active sensors:\n")
-    print(f"  {'Name':<25} {'Type':<20} {'Location':<10} {'Protocol':<10} {'ID'}")
-    print(f"  {'─' * 25} {'─' * 20} {'─' * 10} {'─' * 10} {'─' * 36}")
+    logger.info("%d active sensors:", len(sensors))
     for sid, name, slug, stid, stype, loc_id, plot_id, status, protocol in sensors:
-        print(f"  {name:<25} {stype:<20} {str(loc_id)[:8]:<10} {protocol or '—':<10} {sid}")
+        logger.info("  %s | %s | %s | %s | %s", name, stype, str(loc_id)[:8], protocol or '—', sid)
 
 
 if __name__ == "__main__":

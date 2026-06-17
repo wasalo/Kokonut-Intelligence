@@ -55,6 +55,9 @@
 - AI summary: `python3 -m services.agents.ai_summary --location-id UUID --type combined`
 - Dataset refresh: `python3 -m services.export.dataset_refresh --all`
 - Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`
+- Migration status: `python3 -m services.migration status`
+- Migration apply: `python3 -m services.migration migrate`
+- Migration dry-run: `python3 -m services.migration dry-run`
 
 ## Development Notes
 
@@ -85,6 +88,15 @@
 - Forecast engine projects retained value from historical reinvestment rates.
 - `CALCULATION_VERSION` is date-based (`vYYYY.MM`), auto-bumps monthly.
 - Per-square-meter revenue: `Total Production = Planting Density/m² × Bed Area m² × Beds/Plot × Plots × (1 − Loss Rate)`. Activates when `crop_cycle.planting_density` AND `plot.bed_area_sqm` AND `plot.bed_count` are set; falls back to ha-based model otherwise.
+
+## Logging & Retry
+
+- Operational modules use `services.common.logging.get_logger(name)` (Python `logging`), not `print()`.
+- CLI modules (`cli.py`) continue to use `print()` for user-facing output.
+- `KOKONUT_LOG_LEVEL` env var controls log level (default: `INFO`).
+- Retry config: `RETRY_MAX_RETRIES`, `RETRY_BACKOFF`, `RETRY_JITTER` in `services/ingestion/config.py`.
+- Retry decorator catches only transient exceptions (network, timeout, connection errors), not `ValueError`/`KeyboardInterrupt`.
+- Migration runner: `python3 -m services.migration {status|migrate|dry-run}` tracks applied SQL files in `schema_migration`.
 
 ## Security & Infrastructure
 

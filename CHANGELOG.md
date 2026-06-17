@@ -5,6 +5,12 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Structured logging**: `services/common/logging.py` — Python `logging` setup with namespaced loggers, stderr for warnings/errors, stdout for info. `KOKONUT_LOG_LEVEL` env var.
+- **Migration runner**: `python3 -m services.migration {status|migrate|dry-run}` — tracks applied SQL files in `schema_migration` with SHA-256 checksums, timing, and status. Discovers numbered files from `schemas/postgres/` and `schemas/seeds/`.
+- **Centralized retry config**: `RETRY_MAX_RETRIES`, `RETRY_BACKOFF`, `RETRY_JITTER` in `services/ingestion/config.py`, overridable via env vars.
+- **Improved retry decorator**: Catches only transient exceptions (network, timeout, connection errors). Adds jitter to prevent thundering herd. Uses centralized config defaults.
+- **Retry coverage extended**: Added `@retry` to `gnosis_indexer.py`, `rpc_indexer.py`, `market_data.py`, `remote_sensing.py`, `sensor_ingester.py` (was only on weather, eas_indexer, subgraph_indexer).
+- **Operational logging migration**: Converted ~60 `print()` calls to `logger.info/warning/error` across 8 ingestion modules (weather, gnosis, rpc, market, remote_sensing, sensor, eas, subgraph, mock_sensors).
 - **Environmental Reporting — Dashboards show change over time**:
   - 6 new time-series SQL files for Metabase: NDVI trend (line), soil carbon trend (line), biodiversity trend (line), soil health trend (line), rainfall trend (area), crop diversity trend (bar)
   - 6 new cards in `06_eagle_view.json` replacing the point-in-time "Environmental Health" table card with time-series visualizations
@@ -109,6 +115,7 @@ All notable changes to the Kokonut Intelligence Platform.
 - **SQL bug fixes**: Added `WHERE location_id` to capital_source queries in `web3_replication.py` and `partner_sponsorship.py`.
 
 ### Changed
+- **Retry decorator**: Now catches only transient exceptions (`ConnectionError`, `TimeoutError`, `OSError`, `psycopg2.OperationalError`), not all `Exception` subclasses. Adds configurable jitter.
 - JavaScript and Python SDK examples now use the canonical `draft -> submitted -> verified -> published` lifecycle.
 - Documentation now states EAS/private-data boundaries, external `Kokonut-Agentic-Marketplace` scope, and deferred dApp session ingestion.
 - Attestation guide updated with Celo workflow, CLI usage, offchain attestations, and private data strategy.

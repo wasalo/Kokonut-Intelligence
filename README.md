@@ -267,7 +267,7 @@ Directus Studio at `http://localhost:8055` is the primary data entry interface.
 
 ## Schema Management
 
-Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus snapshots capture the API-layer state.
+Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus snapshots capture the API-layer state. The migration runner tracks applied files in `schema_migration` with checksums and timing.
 
 ```bash
 # Apply all schemas and seed data
@@ -278,6 +278,15 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 
 # Snapshot Directus schema
 ./scripts/schema-snapshot.sh
+
+# Migration runner — show status
+python3 -m services.migration status
+
+# Migration runner — apply pending
+python3 -m services.migration migrate
+
+# Migration runner — dry-run
+python3 -m services.migration dry-run
 ```
 
 ## Directory Structure

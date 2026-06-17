@@ -27,6 +27,7 @@ from typing import Optional
 
 from web3 import Web3
 
+from ..common.logging import get_logger
 from .base import (
     get_db, log_ingestion, hash_payload, retry,
     update_indexer_status, get_last_synced_block, now_utc,
@@ -35,6 +36,8 @@ from .config import (
     GNOSIS_RPC_URL, KOKONUT_DAO_CHAIN, KOKONUT_MOLOCH_ADDRESSES,
     CH_HOST, CH_PORT, CH_USER, CH_PASSWORD,
 )
+
+logger = get_logger("ingestion.gnosis")
 
 # Validation patterns for ClickHouse SQL interpolation
 _STR_RE = re.compile(r'^[a-zA-Z0-9_\-\. ]+$')
@@ -357,7 +360,7 @@ def insert_activity_clickhouse(record: dict) -> None:
         )
         resp.raise_for_status()
     except Exception as e:
-        print(f"  [Gnosis] ClickHouse insert failed: {e}")
+        logger.warning("ClickHouse insert failed: %s", e)
 
 
 DECODE_MAP = {
@@ -384,15 +387,15 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
     if start_block is None:
         # First run — start from a recent block (Gnosis is ~38M blocks as of 2026)
         start_block = max(0, w3.eth.block_number - 10000)
-        print(f"[Gnosis] First run — starting from block {start_block}")
+        logger.info("First run — starting from block %d", start_block)
 
     end_block = to_block or w3.eth.block_number
     if start_block > end_block:
-        print(f"[Gnosis] Already synced to block {end_block}")
+        logger.info("Already synced to block %d", end_block)
         db.close()
         return
 
-    print(f"[Gnosis] Indexing blocks {start_block} → {end_block} ({end_block - start_block + 1} blocks)")
+    logger.info("Indexing blocks %d → %d (%d blocks)", start_block, end_block, end_block - start_block + 1)
 
     # Get contract instances
     moloch = get_moloch_contract(w3)
@@ -406,7 +409,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
 
     while batch_start <= end_block:
         batch_end = min(batch_start + BLOCK_BATCH - 1, end_block)
-        print(f"  [Gnosis] Scanning blocks {batch_start} → {batch_end}...")
+        logger.info("  Scanning blocks %d → %d...", batch_start, batch_end)
 
         try:
             # Query logs for Moloch contract events
@@ -477,7 +480,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 total_events += 1
 
         except Exception as e:
-            print(f"  [Gnosis] Block range {batch_start}-{batch_end} failed: {e}")
+            logger.error("  Block range %d-%d failed: %s", batch_start, batch_end, e)
             update_indexer_status(chain, "rpc", batch_start, "error", str(e))
 
         batch_start = batch_end + 1
@@ -487,7 +490,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
     db.commit()
     db.close()
 
-    print(f"\n[Gnosis] Done: {total_events} events indexed from blocks {start_block} → {end_block}")
+    logger.info("Done: %d events indexed from blocks %d → %d", total_events, start_block, end_block)
 
 
 if __name__ == "__main__":

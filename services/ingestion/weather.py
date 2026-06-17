@@ -19,8 +19,11 @@ from datetime import datetime, timezone
 
 import requests
 
+from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, retry
 from .config import OPENWEATHERMAP_API_KEY, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+
+logger = get_logger("ingestion.weather")
 
 # Validation patterns for ClickHouse SQL interpolation
 _UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
@@ -167,13 +170,13 @@ def insert_weather_clickhouse(records: list[dict]) -> None:
             )
             resp.raise_for_status()
         except Exception as e:
-            print(f"[Weather] ClickHouse insert failed: {e}")
+            logger.warning("ClickHouse insert failed: %s", e)
 
 
 def run(location_id: str = None):
     """Main ingestion entry point."""
     if not OPENWEATHERMAP_API_KEY:
-        print("[Weather] ERROR: OpenWeatherMap_API_KEY not set in .env")
+        logger.error("OpenWeatherMap_API_KEY not set in .env")
         sys.exit(1)
 
     db = get_db()
@@ -190,10 +193,10 @@ def run(location_id: str = None):
         locations = cur.fetchall()
 
     if not locations:
-        print("[Weather] No active locations with coordinates found.")
+        logger.info("No active locations with coordinates found.")
         return
 
-    print(f"[Weather] Fetching weather for {len(locations)} locations...")
+    logger.info("Fetching weather for %d locations...", len(locations))
     records = []
     success = 0
     errors = 0
@@ -221,7 +224,7 @@ def run(location_id: str = None):
                 processing_time_ms=elapsed_ms,
             )
             success += 1
-            print(f"  ✓ {name}: {record['temperature_c']}°C, {record['humidity_pct']}% humidity")
+            logger.info("  ✓ %s: %.1f°C, %d%% humidity", name, record['temperature_c'], record['humidity_pct'])
             time.sleep(0.5)  # Rate limiting
 
         except Exception as e:
@@ -237,7 +240,7 @@ def run(location_id: str = None):
                 status="failed",
                 error_message=str(e),
             )
-            print(f"  ✗ {name}: {e}")
+            logger.error("  ✗ %s: %s", name, e)
 
     db.commit()
     db.close()
@@ -246,7 +249,7 @@ def run(location_id: str = None):
     if records:
         insert_weather_clickhouse(records)
 
-    print(f"\n[Weather] Done: {success} success, {errors} errors")
+    logger.info("Done: %d success, %d errors", success, errors)
 
 
 if __name__ == "__main__":

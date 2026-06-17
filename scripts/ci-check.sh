@@ -38,6 +38,8 @@ check "Import services.attestation.cli" "python3 -c 'import services.attestation
 check "Import services.attestation.eas_client" "python3 -c 'import services.attestation.eas_client'"
 check "Import services.attestation.schema_encoder" "python3 -c 'import services.attestation.schema_encoder'"
 check "Import services.metrics.engine" "python3 -c 'import services.metrics.engine'"
+check "Import services.common.logging" "python3 -c 'import services.common.logging'"
+check "Import services.migration.cli" "python3 -c 'import services.migration.cli'"
 echo ""
 
 # 2. CLI parsers

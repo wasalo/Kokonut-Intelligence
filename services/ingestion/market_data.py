@@ -23,7 +23,10 @@ from datetime import datetime, timezone, timedelta
 
 import requests
 
+from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, retry
+
+logger = get_logger("ingestion.market")
 
 # World Bank Commodity Price Data (free, no API key)
 # https://www.worldbank.org/en/research/commodity-markets
@@ -200,13 +203,13 @@ def run(commodity: str = None):
 
     commodities = [commodity] if commodity else list(COMMODITY_SEED_DATA.keys())
 
-    print(f"[Market] Seeding prices for {len(commodities)} commodities...")
+    logger.info("Seeding prices for %d commodities...", len(commodities))
     success = 0
     errors = 0
 
     for code in commodities:
         if code not in COMMODITY_SEED_DATA:
-            print(f"  ⊙ Unknown commodity: {code}")
+            logger.warning("  ⊙ Unknown commodity: %s", code)
             continue
 
         info = COMMODITY_SEED_DATA[code]
@@ -231,15 +234,15 @@ def run(commodity: str = None):
                 inserted += 1
 
             success += 1
-            print(f"  ✓ {info['name']}: {inserted} price records seeded")
+            logger.info("  ✓ %s: %d price records seeded", info['name'], inserted)
 
         except Exception as e:
             errors += 1
-            print(f"  ✗ {info['name']}: {e}")
+            logger.error("  ✗ %s: %s", info['name'], e)
 
     db.commit()
     db.close()
-    print(f"\n[Market] Done: {success} success, {errors} errors")
+    logger.info("Done: %d success, %d errors", success, errors)
 
 
 if __name__ == "__main__":

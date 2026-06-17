@@ -7,6 +7,7 @@ logging, hashing, retry logic.
 
 import hashlib
 import json
+import random
 import time
 import functools
 from datetime import datetime, timezone
@@ -15,9 +16,22 @@ from typing import Any, Optional
 import psycopg2
 import psycopg2.extras
 
+from ..common.logging import get_logger
 from .config import (
     PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD,
     CH_HOST, CH_USER, CH_PASSWORD,
+    RETRY_MAX_RETRIES, RETRY_BACKOFF, RETRY_JITTER,
+)
+
+logger = get_logger("ingestion.base")
+
+# Transient exception types that warrant retry
+TRANSIENT_EXCEPTIONS = (
+    ConnectionError,
+    TimeoutError,
+    OSError,
+    psycopg2.OperationalError,
+    psycopg2.InterfaceError,
 )
 
 
@@ -90,7 +104,7 @@ def log_ingestion(
         db.commit()
         db.close()
     except Exception as e:
-        print(f"[Ingestion] Failed to log: {e}")
+        logger.error("Failed to log ingestion: %s", e)
 
 
 def update_indexer_status(
@@ -120,7 +134,7 @@ def update_indexer_status(
         db.commit()
         db.close()
     except Exception as e:
-        print(f"[Ingestion] Failed to update indexer status: {e}")
+        logger.error("Failed to update indexer status: %s", e)
 
 
 def get_last_synced_block(chain: str, indexer_type: str = "rpc") -> Optional[int]:
@@ -139,8 +153,17 @@ def get_last_synced_block(chain: str, indexer_type: str = "rpc") -> Optional[int
         return None
 
 
-def retry(max_retries: int = 3, backoff: float = 2.0):
-    """Decorator with exponential backoff retry."""
+def retry(
+    max_retries: int = RETRY_MAX_RETRIES,
+    backoff: float = RETRY_BACKOFF,
+    jitter: float = RETRY_JITTER,
+    exceptions=TRANSIENT_EXCEPTIONS,
+):
+    """Decorator with exponential backoff retry and jitter.
+
+    Only retries on transient exceptions (network, timeout, connection errors).
+    Permanent errors (ValueError, KeyError, etc.) propagate immediately.
+    """
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -148,12 +171,20 @@ def retry(max_retries: int = 3, backoff: float = 2.0):
             for attempt in range(max_retries):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
+                except exceptions as e:
                     last_error = e
                     if attempt < max_retries - 1:
-                        wait = backoff ** attempt
-                        print(f"[Ingestion] Retry {attempt + 1}/{max_retries} after {wait}s: {e}")
+                        wait = backoff ** attempt + random.uniform(0, jitter)
+                        logger.warning(
+                            "Retry %d/%d for %s after %.1fs: %s",
+                            attempt + 1, max_retries, func.__name__, wait, e,
+                        )
                         time.sleep(wait)
+                    else:
+                        logger.error(
+                            "All %d retries exhausted for %s: %s",
+                            max_retries, func.__name__, e,
+                        )
             raise last_error
         return wrapper
     return decorator

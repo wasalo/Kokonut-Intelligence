@@ -19,8 +19,11 @@ from datetime import datetime, timezone
 
 import requests
 
+from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, retry, update_indexer_status
 from .config import EAS_GRAPHQL_URL
+
+logger = get_logger("ingestion.subgraph")
 
 # Known subgraph endpoints (update as Kokonut deploys)
 SUBGRAPH_ENDPOINTS = {
@@ -160,10 +163,10 @@ def run(protocol: str = None):
     for proto in protocols:
         endpoint = SUBGRAPH_ENDPOINTS.get(proto)
         if not endpoint:
-            print(f"[Subgraph] Unknown protocol: {proto}")
+            logger.warning("Unknown protocol: %s", proto)
             continue
 
-        print(f"[Subgraph] Indexing {proto}...")
+        logger.info("Indexing %s...", proto)
         last_block = 0
 
         # Get last synced block
@@ -220,11 +223,11 @@ def run(protocol: str = None):
                     processing_time_ms=elapsed_ms,
                 )
                 update_indexer_status("ethereum", "subgraph", max_block, "healthy")
-                print(f"  ✓ {success} attestations indexed (blocks {last_block}..{max_block})")
+                logger.info("  ✓ %d attestations indexed (blocks %d..%d)", success, last_block, max_block)
 
             elif proto == "eas_schema":
                 # Schemas handled above
-                print(f"  ⊙ Schemas handled with eas protocol")
+                logger.info("  ⊙ Schemas handled with eas protocol")
 
         except Exception as e:
             update_indexer_status("ethereum", "subgraph", last_block, "error", str(e))
@@ -239,11 +242,11 @@ def run(protocol: str = None):
                 status="failed",
                 error_message=str(e),
             )
-            print(f"  ✗ Error: {e}")
+            logger.error("  ✗ Error: %s", e)
 
     db.commit()
     db.close()
-    print(f"\n[Subgraph] Done")
+    logger.info("Done")
 
 
 if __name__ == "__main__":

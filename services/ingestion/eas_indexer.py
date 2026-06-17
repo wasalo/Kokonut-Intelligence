@@ -18,7 +18,10 @@ from datetime import datetime, timezone
 
 import requests
 
+from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, retry
+
+logger = get_logger("ingestion.eas")
 
 # EAS GraphQL endpoints per chain
 EAS_ENDPOINTS = {
@@ -219,11 +222,11 @@ def run(chain: str = None):
             wallet_map.setdefault(w_chain.lower(), []).append((w_id, w_addr))
 
         for c in chains:
-            print(f"[EAS] Indexing {c}...")
+            logger.info("Indexing %s...", c)
             tracked_wallets = wallet_map.get(c, [])
 
             if not tracked_wallets:
-                print(f"  ⊙ No tracked wallets for {c}")
+                logger.info("  ⊙ No tracked wallets for %s", c)
                 continue
 
             last_attestation_time = get_last_attestation_time(db, c)
@@ -263,11 +266,11 @@ def run(chain: str = None):
                         time.sleep(0.5)
 
                     update_eas_indexer_status(c, max_attestation_time, "healthy")
-                    print(f"  ✓ Wallet {w_addr[:10]}...: indexed")
+                    logger.info("  ✓ Wallet %s...: indexed", w_addr[:10])
 
                 except Exception as e:
                     update_eas_indexer_status(c, last_attestation_time, "error", str(e))
-                    print(f"  ✗ Wallet {w_addr[:10]}...: {e}")
+                    logger.error("  ✗ Wallet %s...: %s", w_addr[:10], e)
 
             log_ingestion(
                 source_system="eas_api",
@@ -280,10 +283,10 @@ def run(chain: str = None):
                 status="success",
                 rows_affected=total_inserted,
             )
-            print(f"  Total: {total_inserted} attestations")
+            logger.info("  Total: %d attestations", total_inserted)
 
         db.commit()
-        print(f"\n[EAS] Done")
+        logger.info("Done")
     finally:
         db.close()
 
