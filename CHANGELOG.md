@@ -149,6 +149,14 @@ All notable changes to the Kokonut Intelligence Platform.
 - **dapp_session pilot data** (`schemas/seeds/016_pilot_dapp_sessions.sql`): 12 dapp session records.
 - **ClickHouse Web3 views**: `mv_monthly_wallet_unique_active`, `mv_daily_dlego_protocol_usage`, `mv_dlego_value_by_location`.
 - **SQL bug fixes**: Added `WHERE location_id` to capital_source queries in `web3_replication.py` and `partner_sponsorship.py`.
+- **Milestone 5 Stage 4 — JS SDK NoiMethods parity**: Added `NoiSnapshot` interface, `NoiMethods` interface, and `buildNoiMethods()` builder to JS SDK (`types.ts`, `methods.ts`, `client.ts`, `index.ts`); achieves full parity with Python SDK's 13 method groups
+- **Milestone 5 Stage 4 — JS SDK tests**: Created `sdk/javascript/src/__tests__/client.test.ts` — vitest suite testing all 14 method groups, domain-specific methods, and SDK instantiation (16 assertions)
+- **Milestone 5 Stage 4 — Pagination + error handling examples**: Created `sdk/python/examples/pagination_and_errors.py` and `sdk/javascript/examples/pagination-and-errors.ts` — page-based and offset-based pagination patterns with try/except per error type (AuthenticationError, NotFoundError, PermissionError, ValidationError)
+- **Milestone 5 Stage 4 — Partner dashboard JSON configs**: Created importable Directus dashboard templates for all 4 partner roles:
+  - `dashboards/directus/partner-buyer.json` — 5 modules (production summary, upcoming harvests, sales history, quality grades, revenue trend)
+  - `dashboards/directus/partner-funder.json` — 5 modules (financial overview, NOI by crop cycle, cost breakdown, forecast vs actual, impact attestations)
+  - `dashboards/directus/partner-vendor.json` — 5 modules (purchase summary, purchase history, upcoming demand, category breakdown, payment status)
+  - `dashboards/directus/partner-operator.json` — 6 modules (operations overview, crop cycle status, sensor dashboard, open alerts, financial summary, recent expenses)
 
 ### Changed
 - **Retry decorator**: Now catches only transient exceptions (`ConnectionError`, `TimeoutError`, `OSError`, `psycopg2.OperationalError`), not all `Exception` subclasses. Adds configurable jitter.
