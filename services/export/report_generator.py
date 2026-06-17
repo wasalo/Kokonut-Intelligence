@@ -472,11 +472,12 @@ def main():
     parser.add_argument("--period-end", help="Report period end (YYYY-MM-DD)")
     parser.add_argument("--list", action="store_true", help="List existing snapshots")
     parser.add_argument("--verify", help="Verify a snapshot by hash")
+    parser.add_argument("--auto", action="store_true", help="Generate all 5 report types for the location")
     args = parser.parse_args()
 
     if not args.list:
-        if not args.type:
-            parser.error("--type is required (or use --list)")
+        if not args.type and not args.auto:
+            parser.error("--type or --auto is required (or use --list)")
 
         if not args.location_id:
             parser.error("--location-id is required")
@@ -497,6 +498,27 @@ def main():
 
     if args.verify:
         _verify_snapshot(conn, args.verify)
+        conn.close()
+        return
+
+    if args.auto:
+        # Generate all 5 report types
+        report_types = list(REPORT_GENERATORS.keys())
+        print(f"Generating all {len(report_types)} report types for location {args.location_id}...")
+        print()
+
+        for report_type in report_types:
+            print(f"Generating {report_type}...")
+            try:
+                generator = REPORT_GENERATORS[report_type]
+                report_data = generator(conn, args.location_id, args.period_start, args.period_end)
+                snapshot_id = store_snapshot(conn, report_data, args.location_id, args.period_start, args.period_end)
+                snapshot_hash = compute_hash(report_data)
+                print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
+            except Exception as e:
+                print(f"  ✗ {report_type}: {e}")
+
+        print(f"\nDone: {len(report_types)} reports generated")
         conn.close()
         return
 

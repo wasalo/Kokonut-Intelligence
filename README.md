@@ -20,7 +20,7 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 Pull operational, environmental, and financial data from diverse sources into a single governed schema:
 
 - **Weather** — OpenWeatherMap API with temperature, precipitation, humidity, wind, and cloud cover
-- **Blockchain Activity** — Wallet balances, transfers, and contract interactions across Ethereum, Optimism, Base, Arbitrum, and Celo
+- **Blockchain Activity** — Wallet balances, transfers, and contract interactions across Ethereum, Optimism, Base, Arbitrum, Celo, and Gnosis Chain (Moloch DAO)
 - **Remote Sensing** — NDVI, NDRE, EVI, SAVI, and canopy cover from Sentinel-2, Landsat, drone, and MODIS
 - **Commodity Markets** — World Bank Pink Sheet prices for coffee, cocoa, palm oil, rice, maize, sugar, tea, and banana
 - **IoT Sensors** — Soil moisture, temperature, humidity, rainfall, and pH with range validation and quality flagging
@@ -119,8 +119,8 @@ open http://localhost:3001
 |---------|-----|---------|
 | Directus | http://localhost:8055 | Schema management, API, admin UI, primary data entry |
 | Metabase | http://localhost:3001 | Internal BI dashboards |
-| ClickHouse HTTP | http://localhost:8123 | Analytical queries |
-| PostgreSQL | localhost:5432 | Canonical data store |
+| ClickHouse | *(internal only)* | Analytical queries (Docker network) |
+| PostgreSQL | *(internal only)* | Canonical data store (Docker network) |
 
 ## Roles
 
@@ -152,6 +152,11 @@ Expenses use the same lifecycle; payment is tracked separately with `payment_sta
 ## Security & Data Integrity
 
 - **No hardcoded secrets** — `services/common/db.py` requires `POSTGRES_PASSWORD` and `CLICKHOUSE_PASSWORD` via environment variables. No dev fallbacks in source.
+- **No exposed database ports** — PostgreSQL and ClickHouse ports are not mapped to the host; accessible only via Docker network.
+- **Rate limiting** — Directus rate limiting enabled (100 req/s general, 5 login attempts per 15-min lockout).
+- **CORS restriction** — `CORS_ORIGIN` configurable; defaults to `http://localhost:8055,http://localhost:3001`.
+- **Public access control** — `PUBLIC_RESTRICT=true` disables unauthenticated data access.
+- **Named Docker networks** — `databases` (database, cache, clickhouse) and `apps` (directus, metabase) isolate service tiers.
 - **ClickHouse SQL safety** — All HTTP inserts validate interpolated values against strict regex patterns (`_UUID_RE`, `_TS_RE`, `_SENSOR_TYPE_RE`) before SQL interpolation.
 - **Workflow accountability** — `verified_by`, `rejected_by`, and `submitted_by` are stamped from `meta.accountability.user` on every state transition.
 - **Field Worker scoping** — Create permissions exclude `status`, `submitted_by`, `verified_by`, `rejected_by`, and all lifecycle audit fields. Records always start as `draft`.
@@ -292,7 +297,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   └── lib/            # OpenZeppelin, EAS contracts
 ├── schemas/
 │   ├── postgres/       # 20 schema files, 50+ tables
-│   ├── seeds/          # Base and pilot seed data (20 files)
+│   ├── seeds/          # Base and pilot seed data (22 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── sdk/
@@ -307,6 +312,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   ├── market_data.py    # Commodity prices
 │   │   ├── remote_sensing.py # NDVI/NDRE CSV upload
 │   │   ├── eas_indexer.py    # EAS attestation ingestion (Celo/Optimism/Base)
+│   │   ├── gnosis_indexer.py # Gnosis Chain Moloch DAO event indexer
 │   │   ├── sensor_ingester.py # Sensor CSV + single reading
 │   │   ├── mock_sensors.py   # Mock sensor data generator
 │   │   └── anomaly_detector.py # Threshold-based alert engine
@@ -366,9 +372,11 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   └── risk.py           # Risk adjustment + confidence intervals
 │   ├── export/         # Data export and report generation
 │   │   ├── exporter.py       # CSV/JSON/Parquet export
-│   │   └── report_generator.py # Report snapshots with hash verification
+│   │   ├── report_generator.py # Report snapshots with hash verification (--auto)
+│   │   └── dataset_refresh.py # Dashboard dataset refresh engine
 │   ├── registry/       # Common Data Schema + MRV payload helpers
-│   ├── agents/         # Agent capability manifest helpers
+│   ├── agents/         # Agent capability manifest + AI summary
+│   │   └── ai_summary.py     # AI summary generator (operations, financial, environmental)
 │   └── storage/        # Local development CID adapter
 ├── extensions/
 │   └── kokonut-hooks/  # Directus lifecycle hooks
@@ -397,6 +405,7 @@ Python scripts in `services/ingestion/` fetch data from external APIs and insert
 | `market_data.py` | World Bank Pink Sheet (seed data) | `price_observation` | Working |
 | `remote_sensing.py` | Manual CSV upload | `remote_sensing_observation` | Working |
 | `eas_indexer.py` | EAS GraphQL API (Celo/Optimism/Base) | `attestation_record` + `attestation_schema` | Working |
+| `gnosis_indexer.py` | Gnosis Chain RPC (Moloch DAO events) | `wallet_activity_event` + ClickHouse `wallet_events` | Working |
 | `sensor_ingester.py` | CSV / single reading | `sensor_reading` + ClickHouse `sensor_readings` | Working |
 | `mock_sensors.py` | Internal (test data) | `sensor_device` + `sensor_reading` + ClickHouse | Working |
 | `anomaly_detector.py` | Threshold rules | `sensor_alert` + auto MRV claims | Working |
@@ -416,6 +425,9 @@ python3 -m services.ingestion.market_data
 
 # Index EAS attestations
 python3 -m services.ingestion.eas_indexer --chain optimism
+
+# Index Gnosis Chain Moloch DAO events
+python3 -m services.ingestion.gnosis_indexer
 
 # Sensor ingestion (batch CSV)
 python3 -m services.ingestion.sensor_ingester --file data/sensors.csv
@@ -487,6 +499,21 @@ python3 -m services.metrics --compute --all-locations
 python3 -m services.metrics --list
 ```
 
+## AI Summary & Dataset Refresh
+
+```bash
+# Generate AI summary for a location (operations, financial, environmental, or combined)
+python3 -m services.agents.ai_summary --location-id UUID
+python3 -m services.agents.ai_summary --location-id UUID --type financial
+
+# Refresh dashboard datasets (executes stored SQL from dashboard_dataset table)
+python3 -m services.export.dataset_refresh --all
+python3 -m services.export.dataset_refresh --list
+
+# Auto-generate all 5 report types in one run
+python3 -m services.export.report_generator --auto --location-id UUID
+```
+
 ## Developer SDK
 
 JavaScript/TypeScript and Python SDKs for programmatic access to the platform.
@@ -556,6 +583,8 @@ Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 14 pilot seed f
 | `017_dashboard_datasets.sql` | 5 dashboard dataset definitions for BI integration |
 | `018_module_e_water_access.sql` | 3 water access records (borehole, rainwater, river) |
 | `019_per_sqm_pilot.sql` | Plot bed data for per-square-meter revenue projection |
+| `020_gnosis_chain.sql` | Gnosis Chain indexer status + Kokonut DAO wallet profiles |
+| `021_metric_versions.sql` | Metric version records for all 16 metric definitions |
 
 ```bash
 # Seed all pilot farm data

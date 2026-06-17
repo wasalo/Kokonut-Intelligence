@@ -5,6 +5,32 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Environmental Reporting — Dashboards show change over time**:
+  - 6 new time-series SQL files for Metabase: NDVI trend (line), soil carbon trend (line), biodiversity trend (line), soil health trend (line), rainfall trend (area), crop diversity trend (bar)
+  - 6 new cards in `06_eagle_view.json` replacing the point-in-time "Environmental Health" table card with time-series visualizations
+- **Financial Reporting — Farm-level operating margin**:
+  - Fixed `14_farm_operating_margin.sql` JOIN bug: was joining `ns.location_id = l.id` (attributing all location NOI to every farm); now traverses `crop_cycle → plot → farm`
+  - Added "Farm Operating Margin" card to `06_eagle_view.json`
+- **API Security — Phase 1 hardening**:
+  - Removed PostgreSQL port `5432` and ClickHouse ports `8123`/`9000` host mappings from `docker-compose.yml`
+  - Added Directus rate limiting: `RATE_LIMITER_ENABLED=true`, `RATE_LIMITER_STORE=redis`, 100 req/s, 5 login attempts/15-min lockout
+  - Added CORS config: `CORS_ORIGIN` env var (defaults to `http://localhost:8055,http://localhost:3001`)
+  - Added `PUBLIC_RESTRICT=true` to disable unauthenticated data access
+  - Added named Docker networks: `databases` (database, cache, clickhouse) + `apps` (directus, metabase)
+  - Strengthened `.env.example` placeholders: `replace-with-strong-password-min-24-chars`
+  - Fixed 8 SDK example hardcoded `password123` → env var references (Python `os.environ`, JS `process.env`)
+- **Blockchain Indexing — Phase 1 Gnosis Chain**:
+  - Added `GNOSIS_RPC_URL` to `services/ingestion/config.py` + `CHAIN_RPC_MAP`
+  - Added `KOKONUT_DAO_CHAIN` and `KOKONUT_MOLOCH_ADDRESSES` constants (treasury, token_manager, $vKKN, Loot)
+  - Created `contracts/abis/MolochV2.json` — 9 event definitions (SubmitProposal, ProcessProposal, VoteProposal, Ragequit, etc.)
+  - Created `services/ingestion/gnosis_indexer.py` — Gnosis Chain Moloch DAO event indexer with log filtering, event decoding, PostgreSQL + ClickHouse writes, sync state tracking
+  - Added `gnosis` and `celo` to `rpc_indexer.py --chain` CLI choices
+  - Created `schemas/seeds/020_gnosis_chain.sql` — chain indexer status + 4 wallet profiles + Kokonut Treasury protocol record
+- **Modeled Outputs — Gap closure**:
+  - Created `schemas/seeds/021_metric_versions.sql` — seeded v1 for all 16 metric definitions
+  - Created `services/agents/ai_summary.py` — 3 generators (operations, financial, environmental) + combined + CLI with `--list`, `--verify`
+  - Created `services/export/dataset_refresh.py` — executes stored SQL queries from `dashboard_dataset` + CLI with `--list`, `--all`
+  - Added `--auto` flag to `services/export/report_generator.py` — generates all 5 report types in one run
 - **Module E: Environmental Metrics — 3 SQL bug fixes**:
   - `ecology.py`: `reading_value` → `value` in `ndvi_trends()` and `intervention_impact()`
   - `ecology.py`: `condition_rating` → `condition_status` in `soil_health()`
@@ -107,6 +133,10 @@ All notable changes to the Kokonut Intelligence Platform.
 - **Revenue multiplier dimensions**: All 45 hardcoded constants now read from DB via `get_config()` (scoring formulas + analyzer weights)
 - **Fortune500 scoring**: Growth pillar now blends 50/50 historical YoY + forecast-projected revenue growth; Ecological pillar includes forecast ecological score + carbon sequestration + water access; Governance pillar includes attestation plan maturity + digital lego adoption
 - **Forecast engine**: Revenue projection now uses location-scoped price observations (was global); public goods allocation reads from forecast output; capex uses structured breakdown from `capex_breakdown` table with `$200/ha` fallback
+- **Docker security**: PostgreSQL and ClickHouse ports removed from host mappings; named networks isolate database and app tiers
+- **SDK examples**: All hardcoded `password123` replaced with environment variable references
+- **RPC indexer**: Now supports `gnosis` and `celo` chain choices
+- **Report generator**: `--auto` flag for batch generation of all 5 report types
 
 ### Fixed
 - Cleared invalid Directus `sort_field` metadata for Baserow-migrated collections where no physical `sort` column exists.
@@ -127,6 +157,7 @@ All notable changes to the Kokonut Intelligence Platform.
 - **Module C SQL bug**: `crop_mix.py` price_observation query now scoped to location's crops via subquery (was fetching global prices)
 - **Module C connection ordering**: `analyzer.py` now reads config-driven weights before closing DB connection
 - **Module D price contamination**: `get_historical_avg_prices()` now accepts `location_id` to scope price observations to crops grown at that location
+- **Farm-level margin JOIN bug**: `14_farm_operating_margin.sql` was joining on `location_id` directly (attributing all location NOI to every farm); now traverses `crop_cycle → plot → farm` for correct per-farm attribution
 
 ## [0.10.0] - 2026-06-12
 

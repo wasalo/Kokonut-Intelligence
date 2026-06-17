@@ -51,6 +51,10 @@
 - Ingestion status: `python3 -m services.ingestion.status log --source openweathermap`
 - Ingestion indexers: `python3 -m services.ingestion.status indexers`
 - Ingestion summary: `python3 -m services.ingestion.status summary`
+- Gnosis Chain indexer: `python3 -m services.ingestion.gnosis_indexer`
+- AI summary: `python3 -m services.agents.ai_summary --location-id UUID --type combined`
+- Dataset refresh: `python3 -m services.export.dataset_refresh --all`
+- Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`
 
 ## Development Notes
 
@@ -81,3 +85,27 @@
 - Forecast engine projects retained value from historical reinvestment rates.
 - `CALCULATION_VERSION` is date-based (`vYYYY.MM`), auto-bumps monthly.
 - Per-square-meter revenue: `Total Production = Planting Density/m² × Bed Area m² × Beds/Plot × Plots × (1 − Loss Rate)`. Activates when `crop_cycle.planting_density` AND `plot.bed_area_sqm` AND `plot.bed_count` are set; falls back to ha-based model otherwise.
+
+## Security & Infrastructure
+
+- PostgreSQL and ClickHouse ports are not exposed to the host in dev mode. Use Docker exec for direct DB access.
+- Docker networks: `databases` (database, cache, clickhouse) and `apps` (directus, metabase) isolate service tiers.
+- Directus rate limiting: 100 req/s general, 5 login attempts per 15-min lockout.
+- `PUBLIC_RESTRICT=true` disables unauthenticated data access.
+- `CORS_ORIGIN` defaults to `http://localhost:8055,http://localhost:3001`.
+- `.env.example` uses placeholder warnings (`replace-with-strong-password-min-24-chars`), not real defaults.
+
+## Blockchain Indexing
+
+- Gnosis Chain (chain ID 100) is home of the Kokonut Moloch DAO.
+- `GNOSIS_RPC_URL` defaults to `https://rpc.gnosischain.com`.
+- Kokonut Moloch DAO contracts: Treasury SAFE, Token Manager, $vKKN, Loot.
+- `contracts/abis/MolochV2.json` contains 9 Moloch v2 event definitions.
+- `services/ingestion/gnosis_indexer.py` uses log filtering + event decoding (not subgraph).
+
+## Modeled Outputs
+
+- `metric_version` table tracks formula changes for each metric definition.
+- `ai_summary` generator writes structured text summaries to `ai_summary` table.
+- `dashboard_dataset` refresh executes stored SQL queries from `dashboard_dataset.sql_query`.
+- `report_snapshot` `--auto` flag generates all 5 report types in one run.
