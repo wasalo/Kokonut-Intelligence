@@ -16,15 +16,15 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Get treasury allocations (public goods funding)
     cur.execute("""
         SELECT
-            ce.event_type,
+            ce.flow_type as event_type,
             ce.amount,
-            ce.allocated_to,
-            ce.status,
+            ce.to_entity as allocated_to,
+            CASE WHEN ce.verified THEN 'verified' ELSE 'draft' END as status,
             ce.created_at
-        FROM capital_event ce
+        FROM value_flow_event ce
         WHERE ce.location_id = %s
-          AND ce.event_type = 'allocation'
-          AND ce.status IN ('active', 'completed')
+          AND ce.flow_type IN ('allocation', 'public_goods')
+          AND ce.verified = TRUE
     """, (location_id,))
     allocations = [dict(r) for r in cur.fetchall()]
 
@@ -34,37 +34,38 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
             cs.source_type,
             SUM(cs.amount) as total_amount
         FROM capital_source cs
-        WHERE cs.location_id = %s AND cs.source_type = 'treasury'
-    """, (location_id,))
+        LEFT JOIN financial_transaction ft ON ft.capital_source_id = cs.id
+        LEFT JOIN revenue_event re ON re.capital_source_id = cs.id
+        WHERE (ft.location_id = %s OR re.location_id = %s) AND cs.source_type = 'treasury'
+        GROUP BY cs.source_type
+    """, (location_id, location_id))
     treasury_row = cur.fetchone()
     treasury_balance = float(dict(treasury_row)["total_amount"] or 0) if treasury_row else 0
 
     # Get infrastructure sharing
     cur.execute("""
         SELECT
-            s.resource_type,
-            s.user_location_id,
+            ia.asset_type as resource_type,
+            ia.location_id as user_location_id,
             COUNT(*) as usage_count
-        FROM shared_resource_usage s
-        JOIN shared_resource sr ON s.shared_resource_id = sr.id
-        WHERE sr.owner_location_id = %s
-        GROUP BY s.resource_type, s.user_location_id
+        FROM infrastructure_asset ia
+        WHERE ia.location_id = %s AND ia.status = 'active'
+        GROUP BY ia.asset_type, ia.location_id
     """, (location_id,))
     sharing = [dict(r) for r in cur.fetchall()]
 
     # Get public goods from forecast
     cur.execute("""
-        SELECT metric_name, inputs, outputs
+        SELECT metric_name, inputs, value
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name = 'public_goods_allocation_usd'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY calculated_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
     forecast_allocation = 0
     if forecast_row:
-        outputs = dict(forecast_row)["outputs"] or {}
-        forecast_allocation = float(outputs.get("public_goods_allocation_usd", 0) or 0)
+        forecast_allocation = float(dict(forecast_row).get("value") or 0)
 
     cur.close()
 
@@ -79,7 +80,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Estimate revenue from revenue table (for % calculation)
     cur2 = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur2.execute("""
-        SELECT SUM(gross_amount) as total_revenue
+        SELECT SUM(amount) as total_revenue
         FROM revenue_event
         WHERE location_id = %s
     """, (location_id,))
@@ -117,7 +118,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     impact = max(impact, forecast_impact)
 
     return OpportunityDimension(
-        dimension_id="public_goods_funding_loop",
+        dimension_id="public_goods_funding",
         dimension_name="Public Goods Funding Loop",
         score=round(score, 1),
         impact_usd=round(impact, 2),

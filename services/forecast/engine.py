@@ -161,10 +161,6 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     biodiversity_credit_value = bio_value["total_value_usd"]
     _db.close()
 
-    # Retained value projection
-    retention_rate = _get_retention_rate(sa, location_id)
-    retained_value = total_noi * (retention_rate / 100)
-
     # Revenue per crop
     revenue_by_crop = {}
     total_revenue = 0.0
@@ -197,6 +193,10 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
 
     total_costs = projected_costs["total_costs"]
     overall_margin = (total_noi / total_revenue * 100) if total_revenue > 0 else 0
+
+    # Retained value projection
+    retention_rate = _get_retention_rate(sa, location_id)
+    retained_value = total_noi * (retention_rate / 100)
 
     # Per-m² revenue (computed after total_revenue is known)
     if per_sqm_data and total_bed_area_sqm > 0:

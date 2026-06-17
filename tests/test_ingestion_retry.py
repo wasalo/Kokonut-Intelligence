@@ -35,12 +35,12 @@ def test_retry_raises_after_max_attempts():
     @retry(max_retries=2, backoff=0.01)
     def always_fail():
         calls["n"] += 1
-        raise ValueError("permanent")
+        raise ConnectionError("permanent")
 
     try:
         always_fail()
-        raise AssertionError("expected ValueError")
-    except ValueError as exc:
+        raise AssertionError("expected ConnectionError")
+    except ConnectionError as exc:
         assert str(exc) == "permanent"
     assert calls["n"] == 2
 

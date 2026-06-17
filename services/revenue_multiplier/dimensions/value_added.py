@@ -15,7 +15,9 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
 
     # Get production capacity
     cur.execute("""
-        SELECT * FROM production_capacity WHERE location_id = %s
+        SELECT * FROM infrastructure_asset
+        WHERE location_id = %s
+          AND asset_type IN ('greenhouse', 'nursery', 'biofactory', 'storage', 'processing')
     """, (location_id,))
     capacity = [dict(r) for r in cur.fetchall()]
 
@@ -23,20 +25,22 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     cur.execute("""
         SELECT
             c.name as crop_name,
-            s.product_type,
+            COALESCE(s.buyer_type, 'raw') as product_type,
             COUNT(DISTINCT s.id) as sale_count,
-            SUM(s.gross_amount) as total_gross,
-            SUM(s.net_amount) as total_net
-        FROM sales s
-        JOIN crop c ON s.crop_id = c.id
+            SUM(s.total_amount) as total_gross,
+            SUM(COALESCE(s.net_amount, s.total_amount - COALESCE(s.return_amount, 0) - COALESCE(s.discount_amount, 0))) as total_net
+        FROM sales_event s
+        JOIN crop_cycle cc ON s.crop_cycle_id = cc.id
+        JOIN crop c ON cc.crop_id = c.id
         WHERE s.location_id = %s AND s.status IN ('verified', 'published')
-        GROUP BY c.name, s.product_type
+        GROUP BY c.name, COALESCE(s.buyer_type, 'raw')
     """, (location_id,))
     sales_breakdown = [dict(r) for r in cur.fetchall()]
 
     # Get processing activities
     cur.execute("""
-        SELECT * FROM production_batch WHERE location_id = %s
+        SELECT id FROM farm_activity
+        WHERE location_id = %s AND activity_type IN ('processing', 'post_harvest', 'packaging')
     """, (location_id,))
     batches = [dict(r) for r in cur.fetchall()]
 
@@ -46,7 +50,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name = 'projected_revenue_usd'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY calculated_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
     forecast_revenue = {}
@@ -84,8 +88,8 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     score = min(100, max(0, processed_pct))
 
     # If there's infrastructure but low processing, bonus
-    has_storage = any(c.get("storage_capacity") for c in capacity)
-    has_processing = any(c.get("processing_capacity") for c in capacity)
+    has_storage = any(c.get("asset_type") == "storage" for c in capacity)
+    has_processing = any(c.get("asset_type") in ("processing", "biofactory") for c in capacity)
     if has_processing and processed_pct < 50:
         score *= value_added_infra_bonus
         score = min(100, score)

@@ -197,7 +197,7 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
         cur.execute("""
             SELECT value FROM forecast_output
             WHERE location_id = %s AND metric_name = 'ecological_score_forecast'
-            ORDER BY created_at DESC LIMIT 1
+            ORDER BY calculated_at DESC LIMIT 1
         """, (location_id,))
         eco_score = cur.fetchone()
         if eco_score and eco_score["value"]:
@@ -253,7 +253,7 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
             SELECT value, inputs
             FROM forecast_output
             WHERE location_id = %s AND metric_name = 'projected_revenue_usd'
-            ORDER BY created_at DESC LIMIT 1
+            ORDER BY calculated_at DESC LIMIT 1
         """, (location_id,))
         proj_rev = cur.fetchone()
         if proj_rev and proj_rev["value"] and metrics.total_revenue_usd > 0:
@@ -267,7 +267,7 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
             SELECT metric_name, value
             FROM forecast_output
             WHERE location_id = %s AND metric_name IN ('carbon_sequestration_tonnes', 'carbon_credit_value_usd')
-            ORDER BY created_at DESC LIMIT 2
+            ORDER BY calculated_at DESC LIMIT 2
         """, (location_id,))
         for row in cur.fetchall():
             if row["metric_name"] == "carbon_sequestration_tonnes":

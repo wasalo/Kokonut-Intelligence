@@ -44,10 +44,20 @@ def test_yield_and_cost_assumptions_roundtrip():
     assert ca.labor_usd_per_ha == 250.0
 
 
+def test_retained_value_computed_after_total_noi():
+    """Guard against using total_noi before the crop NOI loop assigns it."""
+    import inspect
+    from services.forecast.engine import run_forecast
+
+    source = inspect.getsource(run_forecast)
+    assert source.index("total_noi = 0.0") < source.index("retained_value = total_noi")
+
+
 if __name__ == "__main__":
     test_price_assumptions_defaults()
     test_price_assumptions_from_dict_ignores_unknown_keys()
     test_scenario_assumptions_from_dict()
     test_project_prices_applies_growth()
     test_yield_and_cost_assumptions_roundtrip()
+    test_retained_value_computed_after_total_noi()
     print("All forecast tests passed ✓")

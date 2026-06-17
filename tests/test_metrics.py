@@ -60,6 +60,15 @@ def test_loss_rate_formula_structure():
     assert callable(fn)
 
 
+def test_loss_rate_uses_harvest_schema_columns():
+    """Verify loss_rate_pct derives net harvest from existing schema columns."""
+    from services.metrics.calculators.loss_rate_pct import compute_loss_rate_pct
+    import inspect
+    source = inspect.getsource(compute_loss_rate_pct)
+    assert "loss_amount" in source, "loss_rate_pct must use harvest_event.loss_amount"
+    assert "saleable_quantity" not in source, "harvest_event has no saleable_quantity column"
+
+
 def test_operating_margin_delegates_to_crop_noi():
     """Verify operating_margin_pct imports the sub-calculators."""
     from services.metrics.calculators.operating_margin import compute_operating_margin
@@ -184,6 +193,7 @@ if __name__ == "__main__":
         test_all_calculators_return_required_keys,
         test_baseline_calculators_exist,
         test_loss_rate_formula_structure,
+        test_loss_rate_uses_harvest_schema_columns,
         test_operating_margin_delegates_to_crop_noi,
         test_digital_lego_has_verified_filter,
         test_loss_rate_has_fm_exclusion,

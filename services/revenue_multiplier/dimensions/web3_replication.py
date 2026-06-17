@@ -21,17 +21,21 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
             cs.status,
             cs.name
         FROM capital_source cs
-        WHERE cs.location_id = %s AND cs.status IN ('active', 'completed', 'received')
-    """, (location_id,))
+        LEFT JOIN financial_transaction ft ON ft.capital_source_id = cs.id
+        LEFT JOIN revenue_event re ON re.capital_source_id = cs.id
+        WHERE (ft.location_id = %s OR re.location_id = %s)
+          AND cs.status IN ('active', 'completed', 'received')
+        GROUP BY cs.id, cs.source_type, cs.amount, cs.status, cs.name
+    """, (location_id, location_id))
     sources = [dict(r) for r in cur.fetchall()]
 
     # Get capital events
     cur.execute("""
         SELECT
-            ce.event_type,
+            ce.flow_type as event_type,
             ce.amount,
-            ce.status
-        FROM capital_event ce
+            CASE WHEN ce.verified THEN 'verified' ELSE 'draft' END as status
+        FROM value_flow_event ce
         WHERE ce.location_id = %s
     """, (location_id,))
     events = [dict(r) for r in cur.fetchall()]
@@ -39,27 +43,27 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Get digital lego usage (DeFi, token, attestations)
     cur.execute("""
         SELECT
-            dl.protocol,
+            p.name as protocol,
             dl.amount,
-            dl.status
+            'completed' as status
         FROM digital_lego_usage dl
-        WHERE dl.location_id = %s AND dl.status IN ('active', 'completed')
+        JOIN protocol p ON dl.protocol_id = p.id
+        WHERE dl.location_id = %s
     """, (location_id,))
     defi = [dict(r) for r in cur.fetchall()]
 
     # Get forecast: projected revenue
     cur.execute("""
-        SELECT metric_name, outputs
+        SELECT metric_name, value
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name = 'projected_revenue_usd'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY calculated_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
     forecast_revenue = 0
     if forecast_row:
-        outputs = dict(forecast_row)["outputs"] or {}
-        forecast_revenue = float(outputs.get("projected_revenue_usd", 0) or 0)
+        forecast_revenue = float(dict(forecast_row).get("value") or 0)
 
     cur.close()
 

@@ -16,14 +16,14 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Get partners (via capital sources and partner events)
     cur.execute("""
         SELECT
-            ce.event_type,
-            ce.amount,
-            ce.counterparty_name,
-            ce.counterparty_type,
-            ce.status
-        FROM capital_event ce
-        WHERE ce.location_id = %s
-          AND ce.counterparty_type IN ('vendor', 'operator', 'buyer')
+            'sales' as event_type,
+            se.total_amount as amount,
+            COALESCE(p.name, se.buyer, 'Unknown') as counterparty_name,
+            COALESCE(p.partner_type, se.buyer_type, 'buyer') as counterparty_type,
+            se.status
+        FROM sales_event se
+        LEFT JOIN partner p ON se.partner_id = p.id
+        WHERE se.location_id = %s
     """, (location_id,))
     partners = [dict(r) for r in cur.fetchall()]
 
@@ -35,30 +35,29 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
             cs.name,
             cs.status
         FROM capital_source cs
-        WHERE cs.location_id = %s
-          AND cs.source_type IN ('vendor_credit', 'operator_contract', 'partner_investment')
-    """, (location_id,))
+        LEFT JOIN revenue_event re ON re.capital_source_id = cs.id
+        LEFT JOIN financial_transaction ft ON ft.capital_source_id = cs.id
+        WHERE (re.location_id = %s OR ft.location_id = %s)
+          AND cs.source_type IN ('vendor_credit', 'operator_contract', 'partner_investment', 'partner', 'sponsorship')
+        GROUP BY cs.id, cs.source_type, cs.amount, cs.name, cs.status
+    """, (location_id, location_id))
     capital_partners = [dict(r) for r in cur.fetchall()]
 
     # Get partner engagement scores
-    cur.execute("""
-        SELECT * FROM partner_engagement WHERE location_id = %s
-    """, (location_id,))
-    engagement = [dict(r) for r in cur.fetchall()]
+    engagement = []
 
     # Get forecast: projected revenue
     cur.execute("""
-        SELECT metric_name, outputs
+        SELECT metric_name, value
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name = 'projected_revenue_usd'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY calculated_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
     forecast_revenue = 0
     if forecast_row:
-        outputs = dict(forecast_row)["outputs"] or {}
-        forecast_revenue = float(outputs.get("projected_revenue_usd", 0) or 0)
+        forecast_revenue = float(dict(forecast_row).get("value") or 0)
 
     cur.close()
 

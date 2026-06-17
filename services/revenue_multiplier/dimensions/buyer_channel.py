@@ -16,26 +16,23 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Get sales grouped by buyer
     cur.execute("""
         SELECT
-            b.name as buyer_name,
-            b.tier as buyer_tier,
+            COALESCE(p.name, s.buyer, 'Unknown') as buyer_name,
+            COALESCE(p.partner_type, s.buyer_type, 'unknown') as buyer_tier,
             COUNT(DISTINCT s.id) as sale_count,
-            SUM(s.gross_amount) as total_gross,
-            SUM(s.net_amount) as total_net,
+            SUM(s.total_amount) as total_gross,
+            SUM(COALESCE(s.net_amount, s.total_amount - COALESCE(s.return_amount, 0) - COALESCE(s.discount_amount, 0))) as total_net,
             SUM(COALESCE(s.discount_amount, 0)) as total_discounts,
             SUM(COALESCE(s.return_amount, 0)) as total_returns,
-            AVG(s.days_to_payment) as avg_days_to_payment
-        FROM sales s
-        JOIN buyer b ON s.buyer_id = b.id
+            AVG(CASE WHEN s.payment_date IS NOT NULL THEN s.payment_date - s.sale_date ELSE NULL END) as avg_days_to_payment
+        FROM sales_event s
+        LEFT JOIN partner p ON s.partner_id = p.id
         WHERE s.location_id = %s AND s.status IN ('verified', 'published')
-        GROUP BY b.id, b.name, b.tier
+        GROUP BY COALESCE(p.name, s.buyer, 'Unknown'), COALESCE(p.partner_type, s.buyer_type, 'unknown')
     """, (location_id,))
     buyers = [dict(r) for r in cur.fetchall()]
 
     # Get buyer performance scores
-    cur.execute("""
-        SELECT * FROM buyer_performance WHERE location_id = %s
-    """, (location_id,))
-    performance = [dict(r) for r in cur.fetchall()]
+    performance = []
 
     # Get forecast: projected revenue by buyer
     cur.execute("""
@@ -43,7 +40,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name = 'projected_revenue_usd'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY calculated_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
     forecast_revenue = {}
@@ -54,7 +51,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     cur.close()
 
     if not buyers:
-        return _empty("buyer_channel_optimization", "Buyer Channel Optimization")
+        return _empty("buyer_channel_selection", "Buyer Channel Optimization")
 
     # Calculate scores for each buyer
     scores = []
@@ -128,7 +125,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     impact = max(impact, forecast_impact)
 
     return OpportunityDimension(
-        dimension_id="buyer_channel_optimization",
+        dimension_id="buyer_channel_selection",
         dimension_name="Buyer Channel Optimization",
         score=round(score, 1),
         impact_usd=round(impact, 2),

@@ -17,6 +17,7 @@ Usage:
 import argparse
 import csv
 import json
+import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -30,6 +31,9 @@ logger = get_logger("ingestion.remote_sensing")
 
 REQUIRED_COLUMNS = {"plot_id", "observation_date"}
 VALID_SOURCES = {"sentinel-2", "landsat", "drone", "planet", "modis", "naip", "manual"}
+_UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}$")
+_SOURCE_RE = re.compile(r"^[a-zA-Z0-9_.-]{1,50}$")
 
 
 def validate_row(row: dict) -> list:
@@ -39,6 +43,9 @@ def validate_row(row: dict) -> list:
         errors.append("missing plot_id")
     if not row.get("observation_date"):
         errors.append("missing observation_date")
+    source = row.get("source", "manual")
+    if source not in VALID_SOURCES:
+        errors.append(f"invalid source: {source}")
     return errors
 
 
@@ -56,7 +63,7 @@ def parse_row(row: dict, location_id: str = None) -> dict:
         "canopy_cover_pct": float(row["canopy_cover_pct"]) if row.get("canopy_cover_pct") else None,
         "ndwi": float(row["ndwi"]) if row.get("ndwi") else None,
         "cloud_cover_pct": float(row["cloud_cover_pct"]) if row.get("cloud_cover_pct") else None,
-        "bbox": None,
+        "bbox": build_bbox(row),
         "metadata": {},
     }
 
@@ -77,7 +84,6 @@ def build_bbox(row: dict):
 
 def insert_observation(db, record: dict) -> str:
     """Insert remote sensing observation. Returns record ID."""
-    bbox = build_bbox(record)
     with db.cursor() as cur:
         cur.execute(
             """
@@ -94,11 +100,38 @@ def insert_observation(db, record: dict) -> str:
                 record.get("ndvi"), record.get("ndre"),
                 record.get("evi"), record.get("savi"),
                 record.get("canopy_cover_pct"), record.get("ndwi"),
-                record.get("cloud_cover_pct"), bbox,
+                record.get("cloud_cover_pct"), record.get("bbox"),
                 json.dumps(record.get("metadata", {})),
             ),
         )
         return str(cur.fetchone()[0])
+
+
+def _validate_uuid(value: str, field: str, nullable: bool = False) -> str:
+    if nullable and not value:
+        return "NULL"
+    if not value or not _UUID_RE.match(str(value)):
+        raise ValueError(f"Invalid ClickHouse {field}: {value}")
+    return f"'{value}'"
+
+
+def _validate_timestamp(value: str) -> str:
+    if not _TS_RE.match(str(value)):
+        raise ValueError(f"Invalid ClickHouse timestamp: {value}")
+    return f"'{value}'"
+
+
+def _validate_source(value: str) -> str:
+    source = value or "manual"
+    if source not in VALID_SOURCES or not _SOURCE_RE.match(source):
+        raise ValueError(f"Invalid ClickHouse source: {source}")
+    return f"'{source}'"
+
+
+def _validate_number(value) -> str:
+    if value is None:
+        return "NULL"
+    return str(float(value))
 
 
 def insert_clickhouse(record: dict) -> None:
@@ -110,36 +143,32 @@ def insert_clickhouse(record: dict) -> None:
     if isinstance(ts, str) and len(ts) == 10:
         ts = ts + " 00:00:00.000"
 
-    def _safe(val):
-        if val is None:
-            return "NULL"
-        return str(val)
-
-    def _str(val):
-        if val is None:
-            return "''"
-        return f"'{str(val).replace(chr(39), chr(39)+chr(39))}'"
-
-    query = f"""INSERT INTO remote_sensing_events
-        (timestamp, observation_id, location_id, plot_id, source,
-         ndvi, ndre, evi, savi, canopy_cover_pct, ndwi, cloud_cover_pct, metadata)
-        VALUES (
-            '{ts}',
-            '{record.get('id', '')}',
-            '{record.get('location_id', '')}',
-            {_str(record.get('plot_id'))},
-            {_str(record.get('source'))},
-            {_safe(record.get('ndvi'))},
-            {_safe(record.get('ndre'))},
-            {_safe(record.get('evi'))},
-            {_safe(record.get('savi'))},
-            {_safe(record.get('canopy_cover_pct'))},
-            {_safe(record.get('ndwi'))},
-            {_safe(record.get('cloud_cover_pct'))},
-            map()
-        )"""
-
     try:
+        timestamp = _validate_timestamp(ts)
+        observation_id = _validate_uuid(record.get("id"), "observation_id")
+        location_uuid = _validate_uuid(record.get("location_id"), "location_id")
+        plot_uuid = _validate_uuid(record.get("plot_id"), "plot_id", nullable=True)
+        source = _validate_source(record.get("source"))
+
+        query = f"""INSERT INTO remote_sensing_events
+            (timestamp, observation_id, location_id, plot_id, source,
+             ndvi, ndre, evi, savi, canopy_cover_pct, ndwi, cloud_cover_pct, metadata)
+            VALUES (
+                {timestamp},
+                {observation_id},
+                {location_uuid},
+                {plot_uuid},
+                {source},
+                {_validate_number(record.get('ndvi'))},
+                {_validate_number(record.get('ndre'))},
+                {_validate_number(record.get('evi'))},
+                {_validate_number(record.get('savi'))},
+                {_validate_number(record.get('canopy_cover_pct'))},
+                {_validate_number(record.get('ndwi'))},
+                {_validate_number(record.get('cloud_cover_pct'))},
+                map()
+            )"""
+
         resp = req.post(
             ch_url,
             data=query.encode("utf-8"),

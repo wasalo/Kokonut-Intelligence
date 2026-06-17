@@ -40,18 +40,18 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
 
     # Get forecast: projected yield and loss-adjusted yield
     cur.execute("""
-        SELECT metric_name, inputs, outputs
+        SELECT metric_name, inputs, value
         FROM forecast_output
         WHERE location_id = %s
-          AND metric_name IN ('projected_yield_tonnes', 'loss_adjusted_yield_tonnes')
-        ORDER BY created_at DESC LIMIT 2
+          AND metric_name IN ('total_yield_tonnes', 'loss_adjusted_yield_tonnes')
+        ORDER BY calculated_at DESC LIMIT 2
     """, (location_id,))
     forecasts = {r["metric_name"]: r for r in cur.fetchall()}
 
     cur.close()
 
     if not cycles:
-        return _empty("loss_reduction", "Loss Reduction")
+        return _empty("loss_rate_reduction", "Loss Reduction")
 
     # Calculate historical loss rates
     loss_rates = []
@@ -79,11 +79,11 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
 
     # Forecast-adjusted impact
     forecast_impact = 0
-    if "projected_yield_tonnes" in forecasts and "loss_adjusted_yield_tonnes" in forecasts:
-        proj = forecasts["projected_yield_tonnes"]
+    if "total_yield_tonnes" in forecasts and "loss_adjusted_yield_tonnes" in forecasts:
+        proj = forecasts["total_yield_tonnes"]
         loss_adj = forecasts["loss_adjusted_yield_tonnes"]
-        proj_yield = float(proj.get("outputs", {}).get("projected_yield_tonnes", 0) or 0)
-        loss_adj_yield = float(loss_adj.get("outputs", {}).get("loss_adjusted_yield_tonnes", 0) or 0)
+        proj_yield = float(proj.get("value") or 0)
+        loss_adj_yield = float(loss_adj.get("value") or 0)
         forecast_impact = (proj_yield - loss_adj_yield) * total_revenue / max(total_area, 0.01)
 
     confidence_threshold = int(get_config(conn, 'loss_rate_confidence_threshold'))
@@ -106,7 +106,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     impact = max(potential_savings, forecast_impact)
 
     return OpportunityDimension(
-        dimension_id="loss_reduction",
+        dimension_id="loss_rate_reduction",
         dimension_name="Loss Reduction",
         score=round(score, 1),
         impact_usd=round(impact, 2),

@@ -3,6 +3,9 @@ Loss Rate % Calculator
 
 Formula: 1 - (net_harvest / gross_harvest)
 Definition: 1 - (saleable output / harvested output)
+
+The harvest_event schema stores gross output in quantity and loss output in
+loss_amount. Saleable output is therefore derived as quantity - loss_amount.
 """
 
 from typing import Dict, Any, Optional
@@ -32,7 +35,7 @@ def compute_loss_rate_pct(
     cur.execute(f"""
         SELECT
             COALESCE(SUM(he.quantity), 0) as gross_harvest,
-            COALESCE(SUM(he.saleable_quantity), 0) as net_harvest,
+            COALESCE(SUM(GREATEST(he.quantity - COALESCE(he.loss_amount, 0), 0)), 0) as net_harvest,
             COUNT(*) as harvest_count,
             ARRAY_AGG(he.id) as harvest_ids
         FROM harvest_event he
@@ -49,7 +52,7 @@ def compute_loss_rate_pct(
 
     return {
         "value": round(loss_rate, 2),
-        "computation_method": "(1 - net_harvest / gross_harvest) * 100",
+        "computation_method": "(1 - ((quantity - loss_amount) / quantity)) * 100",
         "source_record_ids": row["harvest_ids"][:100] if row["harvest_ids"] else [],
         "metadata": {
             "gross_harvest": round(gross_harvest, 2),

@@ -16,30 +16,42 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     # Get input usage
     cur.execute("""
         SELECT
-            i.name as input_name,
-            i.category,
-            i.unit,
-            SUM(ci.quantity) as total_quantity,
-            SUM(ci.total_amount) as total_cost
-        FROM crop_input ci
-        JOIN input i ON ci.input_id = i.id
-        JOIN crop_cycle cc ON ci.crop_cycle_id = cc.id
-        WHERE cc.location_id = %s
-        GROUP BY i.id, i.name, i.category, i.unit
+            COALESCE(ee.subcategory, ee.category) as input_name,
+            CASE
+                WHEN LOWER(ee.category) IN ('bioinput', 'compost', 'biofertilizer', 'organic_fertilizer')
+                     OR LOWER(COALESCE(ee.description, '')) LIKE '%%bio%%'
+                     OR LOWER(COALESCE(ee.description, '')) LIKE '%%compost%%'
+                THEN 'bioinput'
+                ELSE ee.category
+            END as category,
+            'USD' as unit,
+            COUNT(*) as total_quantity,
+            SUM(ee.amount) as total_cost
+        FROM expense_event ee
+        WHERE ee.location_id = %s
+          AND ee.status IN ('verified', 'published')
+          AND LOWER(ee.category) IN ('seeds', 'fertilizer', 'pesticide', 'pesticides', 'bioinput', 'compost', 'irrigation', 'other')
+        GROUP BY COALESCE(ee.subcategory, ee.category),
+            CASE
+                WHEN LOWER(ee.category) IN ('bioinput', 'compost', 'biofertilizer', 'organic_fertilizer')
+                     OR LOWER(COALESCE(ee.description, '')) LIKE '%%bio%%'
+                     OR LOWER(COALESCE(ee.description, '')) LIKE '%%compost%%'
+                THEN 'bioinput'
+                ELSE ee.category
+            END
     """, (location_id,))
     inputs = [dict(r) for r in cur.fetchall()]
 
     # Get soil health data
     cur.execute("""
         SELECT
-            sh.observation_date,
-            sh.ph_level,
-            sh.organic_matter,
+            sh.sample_date as observation_date,
+            sh.ph as ph_level,
+            sh.organic_matter_pct as organic_matter,
             sh.nitrogen_ppm
-        FROM soil_health sh
-        JOIN plot p ON sh.plot_id = p.id
-        WHERE p.location_id = %s
-        ORDER BY sh.observation_date DESC
+        FROM soil_sample sh
+        WHERE sh.location_id = %s
+        ORDER BY sh.sample_date DESC
         LIMIT 5
     """, (location_id,))
     soil = [dict(r) for r in cur.fetchall()]
@@ -50,7 +62,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name = 'projected_yield_tonnes'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY calculated_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
     forecast_yield = 0

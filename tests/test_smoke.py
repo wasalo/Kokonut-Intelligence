@@ -5,6 +5,7 @@ import sys
 
 MODULES = [
     "services.ingestion.base",
+    "services.ingestion.remote_sensing",
     "services.forecast.engine",
     "services.forecast.cli",
     "services.forecast.pricing",
@@ -73,6 +74,22 @@ def test_cli_parsers():
     return errors
 
 
+def test_remote_sensing_bbox_parse():
+    """Remote sensing CSV parser keeps bbox from raw row fields."""
+    from services.ingestion.remote_sensing import parse_row
+
+    record = parse_row({
+        "plot_id": "00000000-0000-0000-0000-000000000001",
+        "observation_date": "2026-01-01",
+        "source": "sentinel-2",
+        "bbox_west": "1",
+        "bbox_south": "2",
+        "bbox_east": "3",
+        "bbox_north": "4",
+    }, "00000000-0000-0000-0000-000000000002")
+    assert record["bbox"] == "SRID=4326;POLYGON((1.0 2.0,3.0 2.0,3.0 4.0,1.0 4.0,1.0 2.0))"
+
+
 if __name__ == "__main__":
     print("=== Kokonut Intelligence — Smoke Test ===")
     print("\n1. Python imports:")
@@ -81,9 +98,18 @@ if __name__ == "__main__":
     print("\n2. CLI parsers:")
     cli_errors = test_cli_parsers()
 
+    print("\n3. Remote sensing parser:")
+    parser_errors = []
+    try:
+        test_remote_sensing_bbox_parse()
+        print("  ✓ remote sensing bbox parse")
+    except Exception as e:
+        print(f"  ✗ remote sensing bbox parse: {e}")
+        parser_errors.append(("remote sensing bbox parse", e))
+
     print("\n=== Results ===")
-    total = len(MODULES) + len(["services.forecast.cli", "services.analytics.cli", "services.revenue_multiplier.cli", "services.fortune500.cli", "services.export.report_generator"])
-    errors = import_errors + cli_errors
+    total = len(MODULES) + len(["services.forecast.cli", "services.analytics.cli", "services.revenue_multiplier.cli", "services.fortune500.cli", "services.export.report_generator"]) + 1
+    errors = import_errors + cli_errors + parser_errors
     passed = total - len(errors)
     print(f"  Pass: {passed}/{total}")
     if errors:

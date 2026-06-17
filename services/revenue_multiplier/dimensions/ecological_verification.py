@@ -18,49 +18,42 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         SELECT
             mc.claim_type,
             mc.status,
-            mc.claimed_value,
+            mc.claim_data,
             mc.created_at
         FROM mrv_claim mc
         WHERE mc.location_id = %s
     """, (location_id,))
     claims = [dict(r) for r in cur.fetchall()]
 
-    # Get ecological scores from fortune500
-    cur.execute("""
-        SELECT score_name, score_value
-        FROM fortune500_score
-        WHERE location_id = %s AND score_name IN ('ecological', 'carbon', 'biodiversity')
-    """, (location_id,))
-    scores = {r["score_name"]: float(r["score_value"] or 0) for r in cur.fetchall()}
-
     # Get baseline ecological score
     cur.execute("""
-        SELECT metric_name, outputs
-        FROM fortune500_output
-        WHERE location_id = %s AND metric_name = 'ecological_score'
+        SELECT baseline_value
+        FROM environmental_baseline
+        WHERE location_id = %s AND metric_name IN ('ecological_score', 'ndvi_avg')
+        ORDER BY measurement_date DESC NULLS LAST, created_at DESC
+        LIMIT 1
     """, (location_id,))
     baseline_row = cur.fetchone()
-    baseline = float(dict(baseline_row)["outputs"].get("ecological_score", 0)) if baseline_row else 0
+    baseline = float(dict(baseline_row)["baseline_value"] or 0) if baseline_row else 0
 
     # Get forecast: projected ecological score
     cur.execute("""
-        SELECT metric_name, outputs
+        SELECT metric_name, value
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name = 'ecological_score_forecast'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY calculated_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
     forecast_score = 0
     if forecast_row:
-        outputs = dict(forecast_row)["outputs"] or {}
-        forecast_score = float(outputs.get("ecological_score_forecast", 0) or 0)
+        forecast_score = float(dict(forecast_row).get("value") or 0)
 
     # Get carbon data
     cur.execute("""
         SELECT
-            SUM(estimated_carbon_sequestered) as total_carbon
-        FROM carbon_data
+            SUM(carbon_tonnes_per_ha) as total_carbon
+        FROM soil_carbon_measurement
         WHERE location_id = %s
     """, (location_id,))
     carbon_row = cur.fetchone()
@@ -78,7 +71,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
     cur.close()
 
     # Current ecological score
-    current_score = scores.get("ecological", baseline)
+    current_score = forecast_score or baseline
 
     # Scoring formula weights from config
     carbon_weight = float(get_config(conn, 'ecological_carbon_weight'))

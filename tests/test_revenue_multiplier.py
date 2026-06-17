@@ -321,6 +321,19 @@ def test_regional_clusters_dimension():
     assert 0 <= dim.score <= 100
 
 
+def test_forecast_output_queries_use_calculated_at():
+    """Revenue multiplier dimensions must use forecast_output.calculated_at."""
+    from pathlib import Path
+
+    dimension_dir = Path(__file__).resolve().parents[1] / "services" / "revenue_multiplier" / "dimensions"
+    offenders = []
+    for path in dimension_dir.glob("*.py"):
+        source = path.read_text()
+        if "forecast_output" in source and "ORDER BY created_at" in source:
+            offenders.append(path.name)
+    assert not offenders, f"Use calculated_at for forecast_output ordering: {offenders}"
+
+
 if __name__ == "__main__":
     print("=== Revenue Multiplier Tests ===")
     tests = [
@@ -337,6 +350,7 @@ if __name__ == "__main__":
         test_ecological_verification_dimension,
         test_partner_sponsorship_dimension,
         test_regional_clusters_dimension,
+        test_forecast_output_queries_use_calculated_at,
     ]
     passed = 0
     failed = 0

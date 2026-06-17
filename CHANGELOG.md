@@ -5,6 +5,11 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Fixed
+- **Forecast retained value runtime error** (`forecast/engine.py`): Moved retained-value calculation after `total_noi` aggregation so forecasts no longer reference `total_noi` before assignment.
+- **Revenue multiplier forecast timestamp mismatch**: Replaced `forecast_output.created_at` ordering with schema-aligned `forecast_output.calculated_at` in all 10 revenue multiplier dimensions and Fortune500 forecast integration.
+- **Revenue multiplier canonical schema alignment**: Replaced legacy placeholder table/column references (`sales`, `buyer`, `capital_event`, `crop_input`, `soil_health`, `shared_resource`, `fortune500_output`, `carbon_data`, `outputs`) with canonical PostgreSQL tables (`sales_event`, `partner`, `value_flow_event`, `expense_event`, `soil_sample`, `infrastructure_asset`, `environmental_baseline`, `forecast_output.value`) so all 10 dimensions run against the live schema.
+- **Remote sensing bbox and ClickHouse safety** (`remote_sensing.py`): Preserved bbox CSV fields through parsing, added source validation, and added strict UUID/timestamp/source/number validation before ClickHouse SQL interpolation.
+- **loss_rate_pct schema mismatch** (`loss_rate_pct.py`): Replaced invalid `harvest_event.saleable_quantity` reference with schema-aligned saleable output derivation from `quantity - COALESCE(loss_amount, 0)`, clamped at zero.
 - **Critical: gnosis_indexer treasury INSERT schema mismatch** (`gnosis_indexer.py`): Fixed `insert_treasury_event()` — column names were wrong (`direction` → `flow_direction`, removed non-existent `protocol_id`/`metadata`, added `event_date`). Fixed `decode_withdraw()` to use `flow_direction` and `event_date` instead of `direction` and `block_timestamp`. Treasury events now store correctly.
 - **eas_indexer race condition** (`eas_indexer.py`): Replaced manual `SELECT` + `INSERT` with `ON CONFLICT (attestation_uid) DO NOTHING` for atomic deduplication.
 - **remote_sensing bbox PostGIS geometry** (`remote_sensing.py`): Changed `build_bbox()` from `json.dumps([west, south, east, north])` to `SRID=4326;POLYGON(...)` WKT format for proper PostGIS geometry storage.

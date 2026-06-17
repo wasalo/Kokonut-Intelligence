@@ -60,7 +60,7 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name IN ('projected_revenue_usd', 'projected_noi_usd')
-        ORDER BY created_at DESC LIMIT 2
+        ORDER BY calculated_at DESC LIMIT 2
     """, (location_id,))
     forecasts = {r["metric_name"]: r["inputs"] for r in cur.fetchall()}
 

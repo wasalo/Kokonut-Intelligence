@@ -73,10 +73,22 @@ def test_composite_score_weights():
     assert sum(WEIGHTS.values()) == 1.0
 
 
+def test_forecast_output_queries_use_calculated_at():
+    """forecast_output has calculated_at, not created_at."""
+    import inspect
+    from services.fortune500.calculator import get_farm_metrics
+
+    source = inspect.getsource(get_farm_metrics)
+    assert "ORDER BY calculated_at DESC" in source
+    assert "forecast_output" in source
+    assert "ORDER BY created_at DESC" not in source
+
+
 if __name__ == "__main__":
     test_score_financial_high_performer()
     test_score_financial_low_performer()
     test_score_ecological_with_data()
     test_score_governance_verified_activities()
     test_composite_score_weights()
+    test_forecast_output_queries_use_calculated_at()
     print("All fortune500 tests passed ✓")

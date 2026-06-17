@@ -15,59 +15,52 @@ def analyze(conn, location_id: str) -> OpportunityDimension:
 
     # Get nearby locations (within 50km)
     cur.execute("""
-        SELECT
-            l.id,
-            l.name,
-            l.latitude,
-            l.longitude,
-            ST_Distance(
-                ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-                ST_SetSRID(ST_MakePoint(
-                    (SELECT longitude FROM location WHERE id = %s),
-                    (SELECT latitude FROM location WHERE id = %s)
-                ), 4326)::geography
-            ) / 1000 as distance_km
-        FROM location l
-        WHERE l.id != %s
-          AND l.latitude IS NOT NULL
-          AND l.longitude IS NOT NULL
-        HAVING ST_Distance(
-            ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
-            ST_SetSRID(ST_MakePoint(
-                (SELECT longitude FROM location WHERE id = %s),
-                (SELECT latitude FROM location WHERE id = %s)
-            ), 4326)::geography
-        ) / 1000 <= 50
-        ORDER BY distance_km
-    """, (location_id, location_id, location_id, location_id, location_id))
+        WITH target AS (
+            SELECT latitude, longitude FROM location WHERE id = %s
+        ), nearby AS (
+            SELECT
+                l.id,
+                l.name,
+                l.latitude,
+                l.longitude,
+                ST_Distance(
+                    ST_SetSRID(ST_MakePoint(l.longitude, l.latitude), 4326)::geography,
+                    ST_SetSRID(ST_MakePoint(target.longitude, target.latitude), 4326)::geography
+                ) / 1000 as distance_km
+            FROM location l, target
+            WHERE l.id != %s
+              AND l.latitude IS NOT NULL
+              AND l.longitude IS NOT NULL
+              AND target.latitude IS NOT NULL
+              AND target.longitude IS NOT NULL
+        )
+        SELECT * FROM nearby WHERE distance_km <= 50 ORDER BY distance_km
+    """, (location_id, location_id))
     nearby = [dict(r) for r in cur.fetchall()]
 
     # Get shared infrastructure
     cur.execute("""
         SELECT
-            sr.resource_type,
+            sr.asset_type as resource_type,
             sr.capacity,
-            COUNT(sru.id) as usage_count
-        FROM shared_resource sr
-        LEFT JOIN shared_resource_usage sru ON sr.id = sru.shared_resource_id
-        WHERE sr.owner_location_id = %s
-        GROUP BY sr.id, sr.resource_type, sr.capacity
+            0 as usage_count
+        FROM infrastructure_asset sr
+        WHERE sr.location_id = %s AND sr.status = 'active'
     """, (location_id,))
     infrastructure = [dict(r) for r in cur.fetchall()]
 
     # Get forecast: projected revenue (for collective bargaining estimate)
     cur.execute("""
-        SELECT metric_name, outputs
+        SELECT metric_name, value
         FROM forecast_output
         WHERE location_id = %s
           AND metric_name = 'projected_revenue_usd'
-        ORDER BY created_at DESC LIMIT 1
+        ORDER BY calculated_at DESC LIMIT 1
     """, (location_id,))
     forecast_row = cur.fetchone()
     forecast_revenue = 0
     if forecast_row:
-        outputs = dict(forecast_row)["outputs"] or {}
-        forecast_revenue = float(outputs.get("projected_revenue_usd", 0) or 0)
+        forecast_revenue = float(dict(forecast_row).get("value") or 0)
 
     cur.close()
 
