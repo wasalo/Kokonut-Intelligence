@@ -1,0 +1,93 @@
+{
+  "name": "Partner — Vendor",
+  "description": "Purchase summary, purchase history, upcoming demand forecast, payment status, and category breakdown for vendors.",
+  "icon": "local_shipping",
+  "color": "#f57c00",
+  "modules": [
+    {
+      "name": "Purchase Summary",
+      "type": "stats",
+      "collection": "expense_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["verified", "published"] }
+      },
+      "aggregations": [
+        { "field": "amount", "function": "sum", "label": "Total Purchases" },
+        { "function": "count", "label": "Purchase Records" }
+      ]
+    },
+    {
+      "name": "Purchase History",
+      "type": "table",
+      "collection": "expense_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "category": { "_in": ["seeds", "fertilizer", "pesticides", "equipment", "irrigation"] }
+      },
+      "columns": [
+        { "field": "expense_date", "label": "Date" },
+        { "field": "category", "label": "Category" },
+        { "field": "vendor", "label": "Vendor" },
+        { "field": "description", "label": "Description" },
+        { "field": "amount", "label": "Amount" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-expense_date"]
+    },
+    {
+      "name": "Upcoming Demand",
+      "type": "table",
+      "collection": "crop_cycle",
+      "filters": {
+        "expected_harvest_date": { "_gte": "$NOW" },
+        "status": { "_in": ["planted", "growing"] },
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "crop_id.name", "label": "Crop" },
+        { "field": "expected_harvest_date", "label": "Expected Harvest" },
+        { "field": "yield_target", "label": "Target Yield" },
+        { "field": "plot_id.name", "label": "Plot" }
+      ],
+      "sort": ["expected_harvest_date"]
+    },
+    {
+      "name": "Category Breakdown",
+      "type": "donut",
+      "collection": "expense_event",
+      "group_by": "category",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["verified", "published"] }
+      }
+    },
+    {
+      "name": "Payment Status",
+      "type": "table",
+      "collection": "expense_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["submitted", "verified"] }
+      },
+      "columns": [
+        { "field": "expense_date", "label": "Date" },
+        { "field": "vendor", "label": "Vendor" },
+        { "field": "category", "label": "Category" },
+        { "field": "amount", "label": "Amount" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-expense_date"]
+    }
+  ],
+  "data_access": {
+    "expense_event": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["expense_date", "category", "vendor", "description", "amount", "status"]
+    },
+    "crop_cycle": {
+      "read": "plot_id.farm_id.location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["crop_id.name", "expected_harvest_date", "yield_target", "plot_id.name"]
+    }
+  }
+}

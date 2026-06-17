@@ -357,6 +357,90 @@ def list_sensors():
         logger.info("  %s | %s | %s | %s | %s", name, stype, str(loc_id)[:8], protocol or '—', sid)
 
 
+def check_calibration_status(db) -> list:
+    """Check calibration status for all active sensors.
+
+    Returns list of dicts with sensor info and calibration status.
+    """
+    overdue = []
+    with db.cursor() as cur:
+        cur.execute("""
+            SELECT sd.id, sd.name, sd.slug, st.name as sensor_type,
+                   sd.calibration_date, sd.calibration_interval_days,
+                   sd.location_id, l.name as location_name
+            FROM sensor_device sd
+            JOIN sensor_type st ON sd.sensor_type_id = st.id
+            LEFT JOIN location l ON sd.location_id = l.id
+            WHERE sd.status = 'active'
+              AND sd.calibration_date IS NOT NULL
+        """)
+        for row in cur.fetchall():
+            sensor_id = str(row[0])
+            name = row[1]
+            sensor_type = row[3]
+            cal_date = row[4]
+            interval_days = row[5] or 365
+            location_name = row[7] or "Unknown"
+
+            if cal_date is None:
+                continue
+
+            days_since = (datetime.now(timezone.utc).date() - cal_date).days
+            days_overdue = days_since - interval_days
+
+            if days_overdue > 0:
+                overdue.append({
+                    "sensor_id": sensor_id,
+                    "name": name,
+                    "sensor_type": sensor_type,
+                    "location_name": location_name,
+                    "calibration_date": cal_date.isoformat(),
+                    "interval_days": interval_days,
+                    "days_overdue": days_overdue,
+                })
+
+    return overdue
+
+
+def list_calibration_status():
+    """List calibration status for all active sensors."""
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            cur.execute("""
+                SELECT sd.name, st.name as sensor_type, sd.calibration_date,
+                       sd.calibration_interval_days, l.name as location_name
+                FROM sensor_device sd
+                JOIN sensor_type st ON sd.sensor_type_id = st.id
+                LEFT JOIN location l ON sd.location_id = l.id
+                WHERE sd.status = 'active'
+                ORDER BY sd.calibration_date ASC NULLS LAST
+            """)
+            sensors = cur.fetchall()
+
+        if not sensors:
+            logger.info("No active sensors found.")
+            return
+
+        logger.info("Calibration status for %d active sensors:", len(sensors))
+        today = datetime.now(timezone.utc).date()
+        for name, stype, cal_date, interval_days, loc_name in sensors:
+            if cal_date:
+                days_since = (today - cal_date).days
+                days_remaining = (interval_days or 365) - days_since
+                if days_remaining < 0:
+                    status = f"OVERDUE by {abs(days_remaining)} days"
+                elif days_remaining < 30:
+                    status = f"Due in {days_remaining} days"
+                else:
+                    status = f"OK ({days_remaining} days remaining)"
+                logger.info("  %s | %s | %s | %s | %s", name, stype, loc_name or "—", cal_date, status)
+            else:
+                logger.info("  %s | %s | %s | No calibration date set", name, stype, loc_name or "—")
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sensor data ingestion")
     parser.add_argument("--file", help="CSV file path for batch ingestion")
@@ -365,10 +449,13 @@ if __name__ == "__main__":
     parser.add_argument("--date", help="Reading date YYYY-MM-DD (with --sensor)")
     parser.add_argument("--time", help="Reading time HH:MM:SS (with --sensor)")
     parser.add_argument("--list", action="store_true", help="List active sensors")
+    parser.add_argument("--calibration", action="store_true", help="List calibration status")
     args = parser.parse_args()
 
     if args.list:
         list_sensors()
+    elif args.calibration:
+        list_calibration_status()
     elif args.file:
         run_csv(args.file)
     elif args.sensor and args.value is not None:

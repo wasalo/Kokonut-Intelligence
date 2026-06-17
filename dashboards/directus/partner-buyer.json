@@ -1,0 +1,85 @@
+{
+  "name": "Partner — Buyer",
+  "description": "Production summary, upcoming harvests, recent sales, quality grades, and revenue trends for buyers.",
+  "icon": "shopping_cart",
+  "color": "#1976d2",
+  "modules": [
+    {
+      "name": "Production Summary",
+      "type": "stats",
+      "collection": "harvest_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["verified", "published"] }
+      },
+      "aggregations": [
+        { "field": "quantity", "function": "sum", "label": "Total Harvest" },
+        { "function": "count", "label": "Harvest Records" }
+      ]
+    },
+    {
+      "name": "Upcoming Harvests",
+      "type": "table",
+      "collection": "crop_cycle",
+      "filters": {
+        "expected_harvest_date": { "_gte": "$NOW" },
+        "status": { "_in": ["planted", "growing"] },
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "cycle_name", "label": "Cycle" },
+        { "field": "crop_id.name", "label": "Crop" },
+        { "field": "expected_harvest_date", "label": "Expected Harvest" },
+        { "field": "yield_target", "label": "Yield Target" }
+      ]
+    },
+    {
+      "name": "Recent Sales",
+      "type": "table",
+      "collection": "sales_event",
+      "filters": {
+        "partner_id": { "_eq": "$CURRENT_USER.partner_id" },
+        "sale_date": { "_gte": "$NOW(-90 days)" }
+      },
+      "columns": [
+        { "field": "sale_date", "label": "Date" },
+        { "field": "crop_cycle_id.name", "label": "Crop" },
+        { "field": "quantity", "label": "Quantity" },
+        { "field": "total_amount", "label": "Amount" },
+        { "field": "payment_status", "label": "Status" }
+      ],
+      "sort": ["-sale_date"]
+    },
+    {
+      "name": "Quality Grades",
+      "type": "donut",
+      "collection": "harvest_event",
+      "group_by": "quality_grade",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "harvest_date": { "_gte": "$NOW(-6 months)" }
+      }
+    },
+    {
+      "name": "Revenue Trend",
+      "type": "line",
+      "collection": "sales_event",
+      "x_axis": { "field": "sale_date", "granularity": "month" },
+      "y_axis": { "field": "total_amount", "function": "sum" },
+      "filters": {
+        "partner_id": { "_eq": "$CURRENT_USER.partner_id" },
+        "sale_date": { "_gte": "$NOW(-12 months)" }
+      }
+    }
+  ],
+  "data_access": {
+    "sales_event": {
+      "read": "partner_id = $CURRENT_USER.partner_id",
+      "fields": ["sale_date", "quantity", "unit", "total_amount", "payment_status", "crop_cycle_id"]
+    },
+    "harvest_event": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["harvest_date", "quantity", "unit", "quality_grade", "crop_cycle_id"]
+    }
+  }
+}

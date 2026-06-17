@@ -15,6 +15,7 @@ import {
   buildAttestationMethods,
   buildReportMethods,
   buildExportMethods,
+  buildNoiMethods,
 } from './methods.js';
 import type {
   LocationMethods,
@@ -29,6 +30,7 @@ import type {
   AttestationMethods,
   ReportMethods,
   ExportMethods,
+  NoiMethods,
 } from './methods.js';
 
 export interface KokonutClientOptions {
@@ -51,6 +53,7 @@ export class KokonutClient {
   attestations: AttestationMethods;
   reports: ReportMethods;
   exports: ExportMethods;
+  noi: NoiMethods;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest());
@@ -73,6 +76,7 @@ export class KokonutClient {
     this.attestations = buildAttestationMethods(this);
     this.reports = buildReportMethods(this);
     this.exports = buildExportMethods(this);
+    this.noi = buildNoiMethods(this);
   }
 
   async login(email: string, password: string): Promise<{ token: string; refreshToken: string }> {

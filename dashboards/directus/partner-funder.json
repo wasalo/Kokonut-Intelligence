@@ -1,0 +1,87 @@
+{
+  "name": "Partner — Funder",
+  "description": "Financial performance, cost breakdown, forecast comparison, impact attestations, and ecological outcomes for funders/investors.",
+  "icon": "account_balance",
+  "color": "#388e3c",
+  "modules": [
+    {
+      "name": "Financial Overview",
+      "type": "stats",
+      "collection": "noi_snapshot",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "aggregations": [
+        { "field": "noi", "function": "sum", "label": "Total NOI" },
+        { "field": "operating_margin_pct", "function": "avg", "label": "Avg Margin %" },
+        { "field": "net_revenue", "function": "sum", "label": "Total Revenue" }
+      ]
+    },
+    {
+      "name": "NOI by Crop Cycle",
+      "type": "table",
+      "collection": "noi_snapshot",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "crop_cycle_id.name", "label": "Crop Cycle" },
+        { "field": "net_revenue", "label": "Net Revenue" },
+        { "field": "total_costs", "label": "Total Costs" },
+        { "field": "noi", "label": "NOI" },
+        { "field": "operating_margin_pct", "label": "Margin %" },
+        { "field": "period_end", "label": "Period" }
+      ],
+      "sort": ["-period_end"]
+    },
+    {
+      "name": "Cost Breakdown",
+      "type": "pie",
+      "collection": "expense_event",
+      "group_by": "category",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["verified", "published"] }
+      },
+      "value_field": "amount",
+      "value_function": "sum"
+    },
+    {
+      "name": "Forecast vs Actual",
+      "type": "bar",
+      "collection": "forecast_output",
+      "x_axis": { "field": "crop_cycle_id.name" },
+      "y_axis": [
+        { "field": "projected_revenue_usd", "label": "Forecast", "color": "#1976d2" },
+        { "field": "actual_revenue_usd", "label": "Actual", "color": "#388e3c" }
+      ]
+    },
+    {
+      "name": "Impact Attestations",
+      "type": "table",
+      "collection": "attestation_record",
+      "filters": {
+        "subject_type": "location",
+        "subject_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["verified", "published"] }
+      },
+      "columns": [
+        { "field": "attested_at", "label": "Attested" },
+        { "field": "subject_type", "label": "Type" },
+        { "field": "claim_data", "label": "Claim" },
+        { "field": "attestation_uid", "label": "UID" }
+      ],
+      "sort": ["-attested_at"]
+    }
+  ],
+  "data_access": {
+    "noi_snapshot": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["crop_cycle_id", "location_id", "period_start", "period_end", "net_revenue", "total_costs", "noi", "operating_margin_pct"]
+    },
+    "expense_event": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["expense_date", "category", "amount", "status"]
+    }
+  }
+}

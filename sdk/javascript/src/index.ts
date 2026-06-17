@@ -14,6 +14,7 @@ export type {
   AttestationRecord,
   ReportSnapshot,
   ExportLog,
+  NoiSnapshot,
   ListOptions,
   WorkflowState,
 } from './types.js';
@@ -32,4 +33,5 @@ export type {
   AttestationMethods,
   ReportMethods,
   ExportMethods,
+  NoiMethods,
 } from './methods.js';

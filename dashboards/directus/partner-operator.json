@@ -1,0 +1,119 @@
+{
+  "name": "Partner — Operator",
+  "description": "Operations overview: activity timeline, crop cycle status, sensor dashboard, weather, financials, remote sensing, and alerts for farm operators.",
+  "icon": "agriculture",
+  "color": "#7b1fa2",
+  "modules": [
+    {
+      "name": "Operations Overview",
+      "type": "stats",
+      "collection": "farm_activity",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "activity_date": { "_gte": "$NOW(-7 days)" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Activities (7d)" },
+        { "field": "labor_hours", "function": "sum", "label": "Labor Hours (7d)" }
+      ]
+    },
+    {
+      "name": "Crop Cycle Status",
+      "type": "table",
+      "collection": "crop_cycle",
+      "filters": {
+        "status": { "_in": ["planted", "growing"] },
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "cycle_name", "label": "Cycle" },
+        { "field": "crop_id.name", "label": "Crop" },
+        { "field": "planting_date", "label": "Planted" },
+        { "field": "expected_harvest_date", "label": "Expected Harvest" },
+        { "field": "yield_target", "label": "Target" }
+      ],
+      "sort": ["expected_harvest_date"]
+    },
+    {
+      "name": "Sensor Dashboard",
+      "type": "table",
+      "collection": "sensor_reading",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "reading_date": { "_gte": "$NOW(-24 hours)" }
+      },
+      "columns": [
+        { "field": "sensor_type", "label": "Type" },
+        { "field": "value", "label": "Value" },
+        { "field": "unit", "label": "Unit" },
+        { "field": "reading_date", "label": "Date" },
+        { "field": "quality", "label": "Quality" }
+      ],
+      "sort": ["-reading_date"]
+    },
+    {
+      "name": "Open Alerts",
+      "type": "table",
+      "collection": "sensor_alert",
+      "filters": {
+        "status": { "_in": ["open", "acknowledged"] },
+        "sensor_device_id.location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "severity", "label": "Severity" },
+        { "field": "message", "label": "Message" },
+        { "field": "reading_value", "label": "Value" },
+        { "field": "threshold_value", "label": "Threshold" },
+        { "field": "triggered_at", "label": "Triggered" }
+      ],
+      "sort": ["-triggered_at"]
+    },
+    {
+      "name": "Financial Summary",
+      "type": "stats",
+      "collection": "sales_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "sale_date": { "_gte": "$NOW(-30 days)" }
+      },
+      "aggregations": [
+        { "field": "total_amount", "function": "sum", "label": "Sales (30d)" },
+        { "function": "count", "label": "Sales Count (30d)" }
+      ]
+    },
+    {
+      "name": "Recent Expenses",
+      "type": "table",
+      "collection": "expense_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "expense_date": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "expense_date", "label": "Date" },
+        { "field": "category", "label": "Category" },
+        { "field": "amount", "label": "Amount" },
+        { "field": "vendor", "label": "Vendor" }
+      ],
+      "sort": ["-expense_date"]
+    }
+  ],
+  "data_access": {
+    "farm_activity": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["activity_type", "activity_date", "labor_hours", "plot_id", "notes"]
+    },
+    "crop_cycle": {
+      "read": "plot_id.farm_id.location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["cycle_name", "crop_id.name", "planting_date", "expected_harvest_date", "yield_target", "status"]
+    },
+    "sensor_reading": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["sensor_type", "value", "unit", "reading_date", "quality"]
+    },
+    "sensor_alert": {
+      "read": "sensor_device_id.location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["severity", "message", "reading_value", "threshold_value", "triggered_at", "status"]
+    }
+  }
+}

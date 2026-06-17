@@ -55,6 +55,14 @@
 - GIS boundary import: `python3 -m services.ingestion.gis_import --file boundaries.geojson --target location`
 - Market data (live): `python3 -m services.ingestion.market_data --source world_bank`
 - Market data (seed): `python3 -m services.ingestion.market_data --source seed`
+- Sensor ingestion (CSV): `python3 -m services.ingestion.sensor_ingester --file data.csv`
+- Sensor ingestion (single): `python3 -m services.ingestion.sensor_ingester --sensor UUID --value 25.3`
+- Sensor list: `python3 -m services.ingestion.sensor_ingester --list`
+- Sensor calibration: `python3 -m services.ingestion.sensor_ingester --calibration`
+- Anomaly detection: `python3 -m services.ingestion.anomaly_detector`
+- Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --sensor UUID`
+- Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check`
+- Alert rules list: `python3 -m services.ingestion.anomaly_detector --list-rules`
 - AI summary: `python3 -m services.agents.ai_summary --location-id UUID --type combined`
 - Dataset refresh: `python3 -m services.export.dataset_refresh --all`
 - Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`

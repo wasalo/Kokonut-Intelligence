@@ -142,6 +142,77 @@ export interface SensorReading {
   created_at: string;
 }
 
+export interface SensorType {
+  id: string;
+  name: string;
+  unit: string;
+  min_value?: number;
+  max_value?: number;
+  description?: string;
+  created_at: string;
+}
+
+export interface SensorDevice {
+  id: string;
+  name: string;
+  slug: string;
+  sensor_type_id: string;
+  location_id: string;
+  plot_id?: string;
+  manufacturer?: string;
+  model?: string;
+  serial_number?: string;
+  protocol?: 'http' | 'mqtt' | 'csv' | 'manual';
+  endpoint_url?: string;
+  status: 'active' | 'inactive' | 'maintenance' | 'decommissioned';
+  calibration_date?: string;
+  calibration_interval_days?: number;
+  installation_date?: string;
+  latitude?: number;
+  longitude?: number;
+  elevation_m?: number;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  sensor_type_id: string;
+  metric: 'value' | 'rate_of_change' | 'gap' | 'min' | 'max';
+  operator: 'gt' | 'lt' | 'gte' | 'lte' | 'eq' | 'neq' | 'outside_range';
+  threshold_value: number;
+  threshold_value_max?: number;
+  severity: 'info' | 'warning' | 'critical';
+  cooldown_minutes: number;
+  enabled: boolean;
+  auto_create_claim: boolean;
+  claim_type?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SensorAlert {
+  id: string;
+  sensor_device_id: string;
+  alert_rule_id: string;
+  reading_id?: string;
+  severity: 'info' | 'warning' | 'critical';
+  status: 'open' | 'acknowledged' | 'resolved' | 'false_positive';
+  message: string;
+  reading_value?: number;
+  threshold_value?: number;
+  triggered_at: string;
+  acknowledged_at?: string;
+  acknowledged_by?: string;
+  resolved_at?: string;
+  claim_id?: string;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
 export interface WalletProfile {
   id: string;
   address: string;
@@ -218,4 +289,25 @@ export interface WorkflowState {
   to_state: string;
   changed_by: string;
   notes?: string;
+}
+
+export interface NoiSnapshot {
+  id: string;
+  crop_cycle_id: string;
+  location_id: string;
+  period_start: string;
+  period_end: string;
+  gross_revenue?: number;
+  returns_and_discounts?: number;
+  net_revenue?: number;
+  direct_crop_costs?: number;
+  allocated_shared_costs?: number;
+  total_costs?: number;
+  noi?: number;
+  operating_margin_pct?: number;
+  loss_rate_pct?: number;
+  calculation_version?: string;
+  calculated_at?: string;
+  inputs?: Record<string, any>;
+  created_by?: string;
 }

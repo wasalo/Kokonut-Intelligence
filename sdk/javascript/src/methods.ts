@@ -11,6 +11,7 @@ import type {
   AttestationRecord,
   ReportSnapshot,
   ExportLog,
+  NoiSnapshot,
   ListOptions,
 } from './types.js';
 
@@ -380,5 +381,31 @@ export function buildExportMethods(client: any): ExportMethods {
         requested_by: 'sdk',
       }) as Promise<ExportLog>;
     },
+  };
+}
+
+export interface NoiMethods extends GenericMethods {
+  list(options?: ListOptions): Promise<NoiSnapshot[]>;
+  get(id: string, fields?: string[]): Promise<NoiSnapshot>;
+  create(data: Partial<NoiSnapshot>): Promise<NoiSnapshot>;
+  createMany(data: Partial<NoiSnapshot>[]): Promise<NoiSnapshot[]>;
+  update(id: string, data: Partial<NoiSnapshot>): Promise<NoiSnapshot>;
+  listByCropCycle(cropCycleId: string, options?: ListOptions): Promise<NoiSnapshot[]>;
+}
+
+export function buildNoiMethods(client: any): NoiMethods {
+  const base = createGenericMethods(client, 'noi_snapshot');
+  return {
+    ...base,
+    list: (options?: ListOptions) => client.listItems('noi_snapshot', options) as Promise<NoiSnapshot[]>,
+    get: (id: string, fields?: string[]) => client.getItem('noi_snapshot', id, fields) as Promise<NoiSnapshot>,
+    create: (data: Partial<NoiSnapshot>) => client.createItem('noi_snapshot', data) as Promise<NoiSnapshot>,
+    createMany: (data: Partial<NoiSnapshot>[]) => client.createItems('noi_snapshot', data) as Promise<NoiSnapshot[]>,
+    update: (id: string, data: Partial<NoiSnapshot>) => client.updateItem('noi_snapshot', id, data) as Promise<NoiSnapshot>,
+    listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
+      client.listItems('noi_snapshot', {
+        ...options,
+        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+      }) as Promise<NoiSnapshot[]>,
   };
 }
