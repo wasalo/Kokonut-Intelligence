@@ -103,10 +103,13 @@
 ## Security & Infrastructure
 
 - PostgreSQL and ClickHouse ports are not exposed to the host in dev mode. Use Docker exec for direct DB access.
-- Docker networks: `databases` (database, cache, clickhouse) and `apps` (directus, metabase) isolate service tiers.
+- Docker networks: `databases` (database, cache, clickhouse) and `apps` (directus, metabase, caddy) isolate service tiers.
+- Caddy reverse proxy: TLS termination (self-signed in dev, real certs in prod), request logging, security headers.
+- `CADDY_DOMAIN` env var: set to your domain for TLS; defaults to `localhost` with internal self-signed CA.
+- Directus and Metabase are accessed through Caddy (`/directus/*`, `/metabase/*`) or directly via internal ports.
 - Directus rate limiting: 100 req/s general, 5 login attempts per 15-min lockout.
 - `PUBLIC_RESTRICT=true` disables unauthenticated data access.
-- `CORS_ORIGIN` defaults to `http://localhost:8055,http://localhost:3001`.
+- `CORS_ORIGIN` defaults to `http://localhost:8055,http://localhost:3001,https://localhost`.
 - `.env.example` uses placeholder warnings (`replace-with-strong-password-min-24-chars`), not real defaults.
 
 ## Blockchain Indexing

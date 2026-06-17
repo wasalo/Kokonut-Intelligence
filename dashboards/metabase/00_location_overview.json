@@ -1,0 +1,17 @@
+{
+  "name": "Location Overview",
+  "description": "Per-location KPIs: baselines vs actuals, crop cycles, revenue, and losses",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Location KPIs",
+      "description": "Key performance indicators per location with baseline comparison",
+      "native": {
+        "query": "SELECT\n  l.name as location,\n  l.country,\n  l.region,\n  l.baseline_revenue,\n  l.baseline_cost,\n  l.baseline_cash_flow,\n  COUNT(DISTINCT f.id) as farms,\n  COUNT(DISTINCT p.id) as plots,\n  COUNT(DISTINCT cc.id) as total_crop_cycles,\n  COUNT(DISTINCT CASE WHEN cc.status = 'active' THEN cc.id END) as active_cycles,\n  COUNT(DISTINCT CASE WHEN cc.status = 'completed' THEN cc.id END) as completed_cycles,\n  COALESCE(SUM(CASE WHEN se.status IN ('verified','published') THEN se.net_amount END), 0) as actual_revenue,\n  CASE WHEN l.baseline_revenue > 0\n    THEN ROUND((COALESCE(SUM(CASE WHEN se.status IN ('verified','published') THEN se.net_amount END), 0) / l.baseline_revenue * 100), 1)\n    ELSE NULL END as revenue_vs_baseline_pct,\n  (SELECT COUNT(DISTINCT he.id) FROM harvest_event he\n   JOIN crop_cycle cc2 ON he.crop_cycle_id = cc2.id\n   WHERE cc2.location_id = l.id) as total_harvests,\n  (SELECT COUNT(DISTINCT le.id) FROM loss_event le\n   WHERE le.location_id = l.id) as total_losses,\n  (SELECT COALESCE(SUM(ee.amount), 0) FROM expense_event ee\n   WHERE ee.location_id = l.id AND ee.status != 'rejected') as total_expenses\nFROM location l\nLEFT JOIN farm f ON f.location_id = l.id\nLEFT JOIN plot p ON f.id = p.farm_id\nLEFT JOIN crop_cycle cc ON p.id = cc.plot_id\nLEFT JOIN sales_event se ON cc.id = se.crop_cycle_id\nWHERE l.status = 'active'\nGROUP BY l.id, l.name, l.country, l.region,\n         l.baseline_revenue, l.baseline_cost, l.baseline_cash_flow\nORDER BY actual_revenue DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}

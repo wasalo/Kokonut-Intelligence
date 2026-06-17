@@ -117,8 +117,9 @@ open http://localhost:3001
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Directus | http://localhost:8055 | Schema management, API, admin UI, primary data entry |
-| Metabase | http://localhost:3001 | Internal BI dashboards |
+| Caddy | https://localhost | TLS termination, reverse proxy, security headers |
+| Directus | /directus or http://localhost:8055 | Schema management, API, admin UI, primary data entry |
+| Metabase | /metabase or http://localhost:3001 | Internal BI dashboards |
 | ClickHouse | *(internal only)* | Analytical queries (Docker network) |
 | PostgreSQL | *(internal only)* | Canonical data store (Docker network) |
 

@@ -1,0 +1,45 @@
+# Caddy reverse proxy for TLS termination and request logging
+# Development: uses internal self-signed CA
+# Production: set CADDY_DOMAIN env var and mount real certs
+
+{$CADDY_DOMAIN:localhost} {
+	tls internal
+
+	log {
+		output stdout
+		format json
+	}
+
+	encode gzip
+
+	# Directus API
+	handle /directus/* {
+		uri strip_prefix /directus
+		reverse_proxy directus:8055
+	}
+
+	# Directus admin (root path)
+	handle /admin/* {
+		uri strip_prefix /admin
+		reverse_proxy directus:8055
+	}
+
+	# Metabase dashboards
+	handle /metabase/* {
+		uri strip_prefix /metabase
+		reverse_proxy metabase:3000
+	}
+
+	# Directus (default — catches everything else)
+	handle {
+		reverse_proxy directus:8055
+	}
+
+	# Security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security max-age=31536000; includeSubDomains
+	}
+}

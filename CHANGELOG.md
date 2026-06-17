@@ -5,6 +5,14 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Milestone 1 — Plot slug fix**: Added `slug` values (`plot-a`, `plot-b`, `plot-c`) to pilot plot INSERT to satisfy NOT NULL constraint
+- **Milestone 1 — Crop cost allocation**: 126 rows in `crop_cost_allocation` (21 shared expenses × 6 crop cycles); area-based proportional allocation: Maize (23.53%), Cassava (17.65%), Beans/Sweet Potato (11.76%)
+- **Milestone 1 — NOI snapshots**: 3 missing snapshots for Beans Cycle 1 ($1,807.65, 81.79%), Sweet Potato Cycle 1 ($2,175.65, 85.73%), Beans Cycle 2 ($1,503.65, 79.94%)
+- **Milestone 1 — Location Overview dashboard**: `dashboards/metabase/sql/00_location_overview.sql` + `00_location_overview.json` — per-location KPIs with baseline comparison
+- **Caddy reverse proxy** (Phase 2): TLS termination (self-signed in dev, real certs in prod), request logging, security headers. `config/caddy/Caddyfile` + `caddy` service in docker-compose.yml
+- **CORS tightening**: Updated `CORS_ORIGIN` to include `https://localhost` for Caddy TLS
+- **Gnosis indexer topic hash fix**: Corrected all 8 Moloch v2 event topic hashes from ABI keccak256 (were incorrect placeholder hashes)
+- **Docs/images placeholder**: `docs/images/README.md` with screenshot naming convention and capture instructions
 - **Metric calculator bug fixes**:
   - Fixed `loss_rate_pct` operator precedence: `(1 - net/gross) * 100` now correctly computes percentage (was `1 - net/gross * 100`)
   - Added force majeure exclusion to `loss_rate_pct` (excludes harvest events where `loss_reason` contains "force majeure")

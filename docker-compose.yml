@@ -34,8 +34,8 @@ services:
   directus:
     image: directus/directus:11.17.4
     restart: unless-stopped
-    ports:
-      - "8055:8055"
+    expose:
+      - "8055"
     volumes:
       - directus-uploads:/directus/uploads
       - ./extensions:/directus/extensions
@@ -84,8 +84,8 @@ services:
   metabase:
     image: metabase/metabase:v0.53.2
     restart: unless-stopped
-    ports:
-      - "3001:3000"
+    expose:
+      - "3000"
     volumes:
       - metabase-data:/metabase-data
     networks:
@@ -136,12 +136,30 @@ services:
       retries: 10
       start_period: 15s
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - directus
+      - metabase
+    networks:
+      - apps
+
 volumes:
   postgres-data:
   directus-uploads:
   metabase-data:
   clickhouse-data:
   clickhouse-logs:
+  caddy-data:
+  caddy-config:
 
 networks:
   databases:

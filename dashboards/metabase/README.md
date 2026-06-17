@@ -4,6 +4,11 @@ This directory contains SQL queries and JSON import templates for Metabase dashb
 
 ## Dashboards
 
+### 0. Location Overview
+- **File**: `00_location_overview.json`
+- **SQL**: `sql/00_location_overview.sql`
+- **Description**: Per-location KPIs: baselines vs actuals, crop cycles, revenue, losses, and expenses
+
 ### 1. Farm Operations
 - **File**: `01_farm_operations.json`
 - **SQL**: `sql/01_farm_operations.sql`

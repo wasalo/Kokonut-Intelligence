@@ -48,14 +48,14 @@ BLOCK_BATCH = 500
 
 # Moloch v2 event topic hashes (keccak256 of event signature)
 EVENT_TOPICS = {
-    "0x5d422e0e0381756456183198cc08894c5c163502314b6b84d8c0e1a5c7b9e1f0": "SubmitProposal",
-    "0xb7731078403ad7665d7279715a6041535164f52500f9e6e33a05f05f33a5d0f0": "ProcessProposal",
-    "0x97972c0722232593622f419f78b3500036e8b40a77f7c85f3b0c1d7e5f0a3b4": "VoteProposal",
-    "0x48294557528c60f402d233c0422a02600426f009248531c00621d4a1da89a6c0": "Ragequit",
-    "0xf718239a42c4b55f3e1b8d7c03c0d7f3e1b8d7c03c0d7f3e1b8d7c03c0d7f3e1": "Trade",
-    "0x5834ea1ac77c4f0c76a83f5e6b0a3c0d7f3e1b8d7c03c0d7f3e1b8d7c03c0d7f": "UpdateDelegate",
-    "0x7054b3270175343df0b6e4c3bc6a3c0d7f3e1b8d7c03c0d7f3e1b8d7c03c0d7f": "Withdraw",
-    "0x293838a56c2e7c4f0b6e4c3bc6a3c0d7f3e1b8d7c03c0d7f3e1b8d7c03c0d7f3": "CancelProposal",
+    "0xf947ed47cdf2861193802b34d5ee0e59be9c9ef5eb20b1210c69205ebe0c6371": "SubmitProposal",
+    "0x36bb81bc23e1666e90ce29b613dfccad1f8bf01c6793afa329d1a1bef0e7d88a": "ProcessProposal",
+    "0xb3af8d0ccb8c5065b2daf8bb24b7a0ac9a8822fac445978a1524fb9a6f560e1f": "VoteProposal",
+    "0xcad1a1c68982832d9abc314de8a1e5d5e8c81b0588961e360766736d10c3be1a": "Ragequit",
+    "0x4b5796113f074ebf8f11d5bcdeb6349b2fbe47abed78419cdcdbbc15c6fcf845": "Trade",
+    "0x53be197ae241b2f77a83eb69d1fe33148f114319ee40c630651b9974673e39cf": "UpdateDelegate",
+    "0x9b1bfa7fa9ee420a16e124f794c35ac9f90472acc99140eb2f6447c714cad8eb": "Withdraw",
+    "0x100793ceffc8a85253b319a0c8021baa6c6f289b4d548dbcc21abf086b44283c": "CancelProposal",
 }
 
 # Vote choices

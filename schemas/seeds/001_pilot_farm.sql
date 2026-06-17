@@ -19,10 +19,10 @@ INSERT INTO farm (id, location_id, property_id, name, slug, farm_type, total_are
 ON CONFLICT (id) DO NOTHING;
 
 -- Plots (NO location_id — schema: plot has farm_id but no location_id)
-INSERT INTO plot (id, farm_id, name, area, area_unit, soil_type, water_source, status) VALUES
-('a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000010', 'Plot A', 4.00, 'hectares', 'loam', 'river', 'active'),
-('a0000000-0000-0000-0000-000000000021', 'a0000000-0000-0000-0000-000000000010', 'Plot B', 3.00, 'hectares', 'clay', 'borehole', 'active'),
-('a0000000-0000-0000-0000-000000000022', 'a0000000-0000-0000-0000-000000000010', 'Plot C', 5.00, 'hectares', 'loam', 'rainfed', 'active')
+INSERT INTO plot (id, farm_id, name, slug, area, area_unit, soil_type, water_source, status) VALUES
+('a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000010', 'Plot A', 'plot-a', 4.00, 'hectares', 'loam', 'river', 'active'),
+('a0000000-0000-0000-0000-000000000021', 'a0000000-0000-0000-0000-000000000010', 'Plot B', 'plot-b', 3.00, 'hectares', 'clay', 'borehole', 'active'),
+('a0000000-0000-0000-0000-000000000022', 'a0000000-0000-0000-0000-000000000010', 'Plot C', 'plot-c', 5.00, 'hectares', 'loam', 'rainfed', 'active')
 ON CONFLICT (id) DO NOTHING;
 
 -- Crops (NO slug, NO status — schema: name, scientific_name, variety, crop_category, growing_season_days, expected_yield_per_ha, expected_yield_unit, water_needs, climate_zone)
