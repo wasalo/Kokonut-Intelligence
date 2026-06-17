@@ -53,6 +53,13 @@ ALLOWED_COLLECTIONS = frozenset({
     "species_observation", "report_snapshot", "export_log",
 })
 
+GOVERNED_COLLECTIONS = frozenset({
+    "harvest_event", "sales_event", "expense_event", "farm_activity",
+    "loss_event", "field_note", "forecast_scenario", "report_snapshot",
+    "attestation_record", "inventory_event", "maintenance_event",
+    "revenue_event", "mrv_event", "attestation_request",
+})
+
 VALID_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
 
 
@@ -136,6 +143,7 @@ class Exporter:
         output_dir: str = "exports/",
         filters: Optional[dict] = None,
         user_id: Optional[str] = None,
+        include_drafts: bool = False,
     ) -> ExportResult:
         _validate_collection(collection)
         os.makedirs(output_dir, exist_ok=True)
@@ -145,7 +153,7 @@ class Exporter:
         if self.source == "clickhouse":
             rows, columns = self._query_clickhouse(collection, filters)
         else:
-            rows, columns = self._query_postgres(collection, filters)
+            rows, columns = self._query_postgres(collection, filters, include_drafts=include_drafts)
 
         # Generate filename (sanitized)
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -183,11 +191,12 @@ class Exporter:
     # Query helpers
     # ------------------------------------------------------------------
 
-    def _query_postgres(self, collection: str, filters: Optional[dict]):
+    def _query_postgres(self, collection: str, filters: Optional[dict], include_drafts: bool = False):
         _validate_identifier(collection, "table name")
         conn = get_pg()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+        filters = self._apply_default_governance_filter(collection, filters, include_drafts)
         where_clause = ""
         params = []
         if filters:
@@ -214,6 +223,16 @@ class Exporter:
             clean_rows.append(clean)
 
         return clean_rows, columns
+
+    def _apply_default_governance_filter(self, collection: str, filters: Optional[dict], include_drafts: bool) -> Optional[dict]:
+        """Default governed exports to verified/published unless explicitly overridden."""
+        if include_drafts or collection not in GOVERNED_COLLECTIONS:
+            return filters
+
+        merged = dict(filters or {})
+        if "status" not in merged:
+            merged["status"] = {"$in": ["verified", "published"]}
+        return merged
 
     def _query_clickhouse(self, collection: str, filters: Optional[dict]):
         _validate_identifier(collection, "table name")
@@ -354,6 +373,7 @@ def main():
     parser.add_argument("--filter", default=None, help="JSON filter expression")
     parser.add_argument("--source", choices=["postgresql", "clickhouse"], default="postgresql", help="Data source")
     parser.add_argument("--user-id", default=None, help="User ID for audit log")
+    parser.add_argument("--include-drafts", action="store_true", help="Include draft/submitted/rejected records for governed collections")
     args = parser.parse_args()
 
     filters = json.loads(args.filter) if args.filter else None
@@ -364,6 +384,7 @@ def main():
         output_dir=args.output,
         filters=filters,
         user_id=args.user_id,
+        include_drafts=args.include_drafts,
     )
     print(result)
 

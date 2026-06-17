@@ -90,6 +90,17 @@ def test_remote_sensing_bbox_parse():
     assert record["bbox"] == "SRID=4326;POLYGON((1.0 2.0,3.0 2.0,3.0 4.0,1.0 4.0,1.0 2.0))"
 
 
+def test_exporter_defaults_governed_filters():
+    """Governed exports default to verified/published records."""
+    from services.export.exporter import Exporter
+
+    exporter = Exporter()
+    filters = exporter._apply_default_governance_filter("harvest_event", None, include_drafts=False)
+    assert filters == {"status": {"$in": ["verified", "published"]}}
+    assert exporter._apply_default_governance_filter("harvest_event", {"status": "draft"}, False)["status"] == "draft"
+    assert exporter._apply_default_governance_filter("harvest_event", None, include_drafts=True) is None
+
+
 if __name__ == "__main__":
     print("=== Kokonut Intelligence — Smoke Test ===")
     print("\n1. Python imports:")
@@ -107,8 +118,16 @@ if __name__ == "__main__":
         print(f"  ✗ remote sensing bbox parse: {e}")
         parser_errors.append(("remote sensing bbox parse", e))
 
+    print("\n4. Exporter governance defaults:")
+    try:
+        test_exporter_defaults_governed_filters()
+        print("  ✓ exporter governance defaults")
+    except Exception as e:
+        print(f"  ✗ exporter governance defaults: {e}")
+        parser_errors.append(("exporter governance defaults", e))
+
     print("\n=== Results ===")
-    total = len(MODULES) + len(["services.forecast.cli", "services.analytics.cli", "services.revenue_multiplier.cli", "services.fortune500.cli", "services.export.report_generator"]) + 1
+    total = len(MODULES) + len(["services.forecast.cli", "services.analytics.cli", "services.revenue_multiplier.cli", "services.fortune500.cli", "services.export.report_generator"]) + 2
     errors = import_errors + cli_errors + parser_errors
     passed = total - len(errors)
     print(f"  Pass: {passed}/{total}")

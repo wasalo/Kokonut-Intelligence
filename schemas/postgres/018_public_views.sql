@@ -30,11 +30,13 @@ FROM metric_value mv
 JOIN metric_definition md ON mv.metric_id = md.id
 JOIN location l ON mv.location_id = l.id
 WHERE md.active = TRUE
+  AND mv.verified = TRUE
   AND mv.computed_at = (
       SELECT MAX(mv2.computed_at)
       FROM metric_value mv2
       WHERE mv2.metric_id = mv.metric_id
         AND mv2.location_id = mv.location_id
+        AND mv2.verified = TRUE
   );
 
 CREATE OR REPLACE VIEW v_public_attestation_summary AS

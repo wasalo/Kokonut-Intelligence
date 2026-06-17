@@ -121,6 +121,23 @@ def test_engine_registers_all_calculators():
     assert len(CALCULATORS) == 17
 
 
+def test_public_metric_view_requires_verified_values():
+    """Public metric summary should only expose verified metric values."""
+    from pathlib import Path
+    sql = Path("schemas/postgres/018_public_views.sql").read_text()
+    assert "v_public_metric_summary" in sql
+    assert "mv.verified = TRUE" in sql
+
+
+def test_metric_definition_version_trigger_exists():
+    """Metric definition semantic changes should create metric_version rows."""
+    from pathlib import Path
+    sql = Path("schemas/postgres/024_metric_governance_enforcement.sql").read_text()
+    assert "record_metric_definition_version" in sql
+    assert "INSERT INTO metric_version" in sql
+    assert "CREATE TRIGGER trg_metric_definition_version" in sql
+
+
 # Integration tests (require running PostgreSQL)
 
 def test_calculators_return_valid_structure():
@@ -200,6 +217,8 @@ if __name__ == "__main__":
         test_loss_rate_source_record_ids,
         test_baseline_calculators_use_location_table,
         test_engine_registers_all_calculators,
+        test_public_metric_view_requires_verified_values,
+        test_metric_definition_version_trigger_exists,
         test_calculators_return_valid_structure,
         test_metric_definitions_have_governance_fields,
     ]

@@ -393,8 +393,11 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
     cur = conn.cursor()
     cur.execute(
         """
-        INSERT INTO report_snapshot (report_name, report_type, location_id, period_start, period_end, report_data, snapshot_hash, status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 'published')
+        INSERT INTO report_snapshot (
+            report_name, report_type, location_id, period_start, period_end,
+            report_data, snapshot_hash, status, frozen, frozen_at
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'published', TRUE, NOW())
         RETURNING id
         """,
         (

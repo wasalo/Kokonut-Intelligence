@@ -140,6 +140,37 @@ def test_abi_files_exist():
     assert len(sr_abi) > 0
 
 
+def test_public_payload_rejects_sensitive_keys():
+    """Public attestation metadata must not carry private evidence fields."""
+    from services.attestation.payload import prepare_attestation_request
+
+    try:
+        prepare_attestation_request(
+            "mrv_claim",
+            "claim-1",
+            "mrv",
+            {"payload_hash": "abc", "private_payload": {"secret": "raw"}},
+        )
+        assert False, "Should reject private public payload fields"
+    except ValueError as exc:
+        assert "sensitive/private" in str(exc)
+
+
+def test_public_payload_accepts_hash_metadata():
+    """Hash/CID metadata remains allowed in public attestation payloads."""
+    from services.attestation.payload import prepare_attestation_request
+
+    request = prepare_attestation_request(
+        "mrv_claim",
+        "claim-1",
+        "mrv",
+        {"payload_hash": "abc", "payload_cid": "local://sha256/abc"},
+        private_payload={"raw_evidence": "kept private"},
+    )
+    assert request["private_payload_hash"]
+    assert "private_payload" not in request
+
+
 if __name__ == "__main__":
     tests = [
         test_schema_encoder_roundtrip,
@@ -151,6 +182,8 @@ if __name__ == "__main__":
         test_cli_info,
         test_schema_db_name_mapping,
         test_abi_files_exist,
+        test_public_payload_rejects_sensitive_keys,
+        test_public_payload_accepts_hash_metadata,
     ]
 
     passed = 0

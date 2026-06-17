@@ -15,6 +15,27 @@ from typing import Any
 from services.storage.cid import hash_payload, make_local_cid, pin_json
 
 
+SENSITIVE_PUBLIC_KEYS = {
+    "private_payload",
+    "raw_evidence",
+    "source_raw",
+    "receipt_image",
+    "image_blob",
+    "file_blob",
+    "base64",
+    "secret",
+    "password",
+    "token",
+    "private_key",
+    "email",
+    "phone",
+    "worker_name",
+    "customer_name",
+    "supplier_name",
+}
+MAX_PUBLIC_STRING_LENGTH = 2048
+
+
 def prepare_attestation_request(
     subject_type: str,
     subject_id: str,
@@ -25,6 +46,8 @@ def prepare_attestation_request(
     pin_local: bool = False,
 ) -> dict[str, Any]:
     """Prepare attestation request metadata without leaking private payloads."""
+    validate_public_payload(public_payload)
+
     cid_metadata = pin_json(public_payload) if pin_local else {
         "cid": make_local_cid(public_payload),
         "hash": hash_payload(public_payload),
@@ -44,6 +67,35 @@ def prepare_attestation_request(
         "sensitive_data_policy": "Private evidence is kept off-chain; only CID/hash metadata is prepared for EAS.",
     }
     return {k: v for k, v in request.items() if v is not None}
+
+
+def validate_public_payload(payload: dict[str, Any]) -> None:
+    """Reject public attestation payload fields that commonly contain private evidence."""
+    violations = []
+
+    def walk(value: Any, path: str = "payload") -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                key_text = str(key)
+                normalized = key_text.lower()
+                if normalized in SENSITIVE_PUBLIC_KEYS or normalized.endswith("_raw") or normalized.endswith("_blob"):
+                    violations.append(f"{path}.{key_text}")
+                walk(child, f"{path}.{key_text}")
+        elif isinstance(value, list):
+            for idx, child in enumerate(value):
+                walk(child, f"{path}[{idx}]")
+        elif isinstance(value, str):
+            if len(value) > MAX_PUBLIC_STRING_LENGTH:
+                violations.append(f"{path} (string too long)")
+            if value.startswith("data:"):
+                violations.append(f"{path} (data URI)")
+
+    walk(payload)
+    if violations:
+        raise ValueError(
+            "Public attestation payload contains sensitive/private fields: "
+            + ", ".join(sorted(set(violations))[:10])
+        )
 
 
 def _load_json(path: str) -> dict[str, Any]:
