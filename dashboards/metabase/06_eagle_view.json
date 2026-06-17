@@ -70,13 +70,68 @@
       "database_id": 2
     },
     {
-      "name": "Environmental Health",
-      "description": "Soil carbon, biodiversity, and NDVI by plot",
+      "name": "NDVI Trend",
+      "description": "NDVI vegetation index trajectory per plot over time",
       "native": {
-        "query": "SELECT\n  l.name as location,\n  f.name as farm,\n  p.name as plot,\n  COALESCE(sc.carbon_tonnes_per_ha, 0) as soil_carbon,\n  COALESCE(so.species_count, 0) as species_count,\n  COALESCE(rs.ndvi, 0) as latest_ndvi\nFROM plot p\nJOIN farm f ON p.farm_id = f.id\nJOIN location l ON f.location_id = l.id\nLEFT JOIN LATERAL (\n  SELECT carbon_tonnes_per_ha\n  FROM soil_carbon_measurement\n  WHERE plot_id = p.id\n  ORDER BY measurement_date DESC\n  LIMIT 1\n) sc ON true\nLEFT JOIN LATERAL (\n  SELECT COUNT(DISTINCT species_name) as species_count\n  FROM species_observation\n  WHERE plot_id = p.id\n) so ON true\nLEFT JOIN LATERAL (\n  SELECT ndvi\n  FROM remote_sensing_observation\n  WHERE plot_id = p.id\n  ORDER BY observation_date DESC\n  LIMIT 1\n) rs ON true\nORDER BY l.name, f.name, p.name;",
+        "query": "SELECT rs.observation_date, p.name AS plot_name, rs.ndvi FROM remote_sensing_observation rs JOIN plot p ON rs.plot_id = p.id WHERE rs.ndvi IS NOT NULL ORDER BY rs.observation_date ASC, p.name;",
         "template-tags": {}
       },
-      "display": "table",
+      "display": "line",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Soil Carbon Trend",
+      "description": "Soil organic carbon measurements over time per plot",
+      "native": {
+        "query": "SELECT scm.measurement_date, p.name AS plot_name, scm.carbon_tonnes_per_ha FROM soil_carbon_measurement scm JOIN plot p ON scm.plot_id = p.id ORDER BY scm.measurement_date ASC, p.name;",
+        "template-tags": {}
+      },
+      "display": "line",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Biodiversity Trend",
+      "description": "Species count per observation date per plot",
+      "native": {
+        "query": "SELECT so.observation_date, p.name AS plot_name, COUNT(DISTINCT so.species_name) AS species_count FROM species_observation so JOIN plot p ON so.plot_id = p.id GROUP BY so.observation_date, p.name ORDER BY so.observation_date ASC, p.name;",
+        "template-tags": {}
+      },
+      "display": "line",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Soil Health Trend",
+      "description": "Soil pH and organic matter levels over time per plot",
+      "native": {
+        "query": "SELECT ss.sample_date, p.name AS plot_name, ss.ph, ss.organic_matter_pct FROM soil_sample ss JOIN plot p ON ss.plot_id = p.id ORDER BY ss.sample_date ASC, p.name;",
+        "template-tags": {}
+      },
+      "display": "line",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Rainfall Trend",
+      "description": "Precipitation and temperature over time per location",
+      "native": {
+        "query": "SELECT wo.observation_date, l.name AS location_name, SUM(wo.rainfall_mm) AS total_rainfall_mm, AVG(wo.temperature_c) AS avg_temperature_c FROM weather_observation wo JOIN location l ON wo.location_id = l.id GROUP BY wo.observation_date, l.name ORDER BY wo.observation_date ASC;",
+        "template-tags": {}
+      },
+      "display": "area",
+      "display_is_open": true,
+      "database_id": 2
+    },
+    {
+      "name": "Crop Diversity by Season",
+      "description": "Number of crop cycles and unique crops per season per plot",
+      "native": {
+        "query": "SELECT cc.season, p.name AS plot_name, COUNT(*) AS cycle_count, COUNT(DISTINCT c.name) AS unique_crops FROM crop_cycle cc JOIN crop c ON cc.crop_id = c.id JOIN plot p ON cc.plot_id = p.id WHERE cc.season IS NOT NULL GROUP BY cc.season, p.name ORDER BY cc.season ASC, p.name;",
+        "template-tags": {}
+      },
+      "display": "bar",
       "display_is_open": true,
       "database_id": 2
     },

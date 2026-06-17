@@ -5,6 +5,22 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Module E: Environmental Metrics — 3 SQL bug fixes**:
+  - `ecology.py`: `reading_value` → `value` in `ndvi_trends()` and `intervention_impact()`
+  - `ecology.py`: `condition_rating` → `condition_status` in `soil_health()`
+  - `ecology.py`: `SUM(cost)` → `SUM(labor_cost)` in `water_access_summary()`
+- **Module E: 3 new environmental analytics functions**:
+  - `soil_health()`: Latest soil condition rating + pH + organic matter percentage
+  - `water_access_summary()`: Total water sources + access type distribution + infrastructure count
+  - `environmental_baseline()`: Latest environmental metrics snapshot (soil carbon, water quality, biodiversity, NDVI)
+- **Module E: 3 new CLI flags**: `--soil-health`, `--water-access`, `--environmental-baseline`
+- **Module E: Water access seeds** (`schemas/seeds/018_module_e_water_access.sql`): 3 water access records (borehole, rainwater, river)
+- **Per-square-meter revenue logic**:
+  - Schema: `schemas/postgres/020_per_sqm_revenue.sql` — `plot.bed_count` (INTEGER), `plot.bed_area_sqm` (NUMERIC(10,2))
+  - Seeds: `schemas/seeds/019_per_sqm_pilot.sql` — Plot A (20 beds × 1.2m²), Plot B (15 beds × 1.0m²), Plot C (25 beds × 1.5m²)
+  - `yield_forecast.py`: `get_bed_areas_for_location()` returns `(bed_count, bed_area_sqm)`; `project_yields_per_sqm()` implements formula: `Total Production = Planting Density/m² × Bed Area m² × Beds/Plot × Plots × (1 − Loss Rate)`
+  - `engine.py`: Per-m² path branches when `planting_density` + bed data exist; 2 new outputs: `production_per_sqm`, `revenue_per_sqm_usd`; returns `total_bed_area_sqm`, `calculation_path`
+  - Backward compatible: existing ha-based path remains default when bed data absent
 - **Module C: Revenue Multiplier — Cross-module integration** (Tiers 1–6, all 10 dimensions):
   - `crop_mix.py`: Fixed SQL bug (price_observation now scoped to location's crops via subquery); wired `projected_revenue_by_crop` and `projected_noi_by_crop` from `forecast_output` into impact calculation
   - `loss_reduction.py`: Added forecast integration (`projected_yield_tonnes`, `loss_adjusted_yield_tonnes`)
@@ -21,10 +37,12 @@ All notable changes to the Kokonut Intelligence Platform.
   - `config.py`: 35 new defaults for scoring formulas (all 10 dimensions) and analyzer weights
   - `015_revenue_multiplier_config.sql`: 35 new seed rows with `ON CONFLICT` upsert
 - **Module D: Biodiversity credit value in forecast** — `estimate_biodiversity_value(conn, location_id)` in `ecology.py` queries `species_observation`, computes Shannon diversity index, returns species count × `$35/species` from config
-- **Module D: Forecast outputs** — 3 new forecast outputs (14 total):
+- **Module D: Forecast outputs** — 5 new forecast outputs (16 total):
   - `biodiversity_credit_value_usd`: biodiversity credits priced from species observations
   - `retained_value_usd`: NOI × retention rate (historical or scenario override)
   - `retention_rate_pct`: historical reinvestment rate or scenario assumption
+  - `production_per_sqm`: total production per square meter from bed-area formula
+  - `revenue_per_sqm_usd`: total revenue per square meter from bed-area formula
 - **Module D: Retained value projection** — `_get_retention_rate()` queries `value_flow_event` for historical reinvestment rate; `ScenarioAssumptions.retention_rate_pct` allows scenario override
 - **Module D: Metric computation automation** — `--all-locations` flag on metrics CLI; `scripts/compute-metrics.sh` for post-seed metric population
 - **Module D: Dynamic calculation version** — `CALCULATION_VERSION` now date-based (`vYYYY.MM`), auto-bumps monthly

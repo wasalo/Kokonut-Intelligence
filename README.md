@@ -32,11 +32,11 @@ All ingestion is dual-written to PostgreSQL (operational) and ClickHouse (analyt
 
 - **Fortune 500 Farm Scoring** — Weighted 4-pillar composite score (0–1000) across Financial (45%), Ecological (25%), Governance (15%), and Growth (15%). Farms are classified into tiers: Platinum (800+), Gold (600+), Silver (400+), Bronze (200+), or Developing. Each farm receives a detailed scorecard with benchmark comparisons against regional baselines.
 
-- **Ecological Analytics** — Soil carbon delta tracking (baseline vs. latest tonnes/ha), biodiversity index computation using the Shannon diversity index, NDVI vegetation index trends, water resilience scoring, crop diversity analysis, intervention impact tracking, and side-by-side forecast scenario comparison.
+- **Ecological Analytics** — Soil carbon delta tracking (baseline vs. latest tonnes/ha), biodiversity index computation using the Shannon diversity index, NDVI vegetation index trends, water resilience scoring, crop diversity analysis, intervention impact tracking, soil health assessment (condition rating, pH, organic matter), water access summary (source types, infrastructure), environmental baseline snapshot, and side-by-side forecast scenario comparison.
 
   The **Shannon diversity index** (H') measures ecosystem health by accounting for both the number of species present (richness) and how evenly individuals are distributed among them (evenness). A higher index indicates a more diverse and resilient ecosystem. For example, a plot with 10 species evenly distributed scores higher than one dominated by a single species, even if both have the same total species count.
 
-- **Revenue Forecasting** — Scenario-based projections of revenue, NOI, yield, and cash flow using Monte Carlo simulation with configurable confidence intervals (70%–95%). Per-cycle outputs with `crop_cycle_id` for crop-level granularity, carbon sequestration estimation (tonnes CO2e + USD value) from soil organic matter changes, biodiversity credit pricing from species observations, and retained value projection from historical reinvestment rates.
+- **Revenue Forecasting** — Scenario-based projections of revenue, NOI, yield, and cash flow using Monte Carlo simulation with configurable confidence intervals (70%–95%).    Per-cycle outputs with `crop_cycle_id` for crop-level granularity, carbon sequestration estimation (tonnes CO2e + USD value) from soil organic matter changes, biodiversity credit pricing from species observations, retained value projection from historical reinvestment rates, and per-square-meter revenue projection from bed-area formula.
 
   **Monte Carlo simulation** runs thousands of randomized trials, sampling from probability distributions of key variables (price, yield, cost) to model the range of possible outcomes. Instead of a single point estimate, it produces a distribution of results with confidence bands — showing not just what is expected, but how uncertain that expectation is. This lets farm managers understand best-case, worst-case, and most-likely scenarios before committing resources.
 
@@ -291,8 +291,8 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   └── KokonutResolver.t.sol
 │   └── lib/            # OpenZeppelin, EAS contracts
 ├── schemas/
-│   ├── postgres/       # 15 schema files, 50+ tables
-│   ├── seeds/          # Base and pilot seed data (18 files)
+│   ├── postgres/       # 20 schema files, 50+ tables
+│   ├── seeds/          # Base and pilot seed data (20 files)
 │   ├── directus/       # Directus snapshots
 │   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
 ├── sdk/
@@ -323,7 +323,7 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │   └── contracts/        # EAS + SchemaRegistry ABIs
 │   ├── analytics/      # Intelligence services
 │   │   ├── cli.py            # CLI for ecology analytics
-│   │   ├── ecology.py        # Soil carbon, biodiversity, scenario comparison
+│   │   ├── ecology.py        # Soil carbon, biodiversity, NDVI, water, crop diversity, intervention, soil health, water access, environmental baseline
 │   │   └── fortune500/
 │   │       ├── calculator.py # Farm scoring engine
 │   │       └── cli.py        # CLI for scoring + ranking
@@ -354,13 +354,13 @@ docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to
 │   │       ├── soil_carbon_delta.py
 │   │       ├── biodiversity_delta.py
 │   │       └── operating_margin.py
-│   ├── forecast/       # Forecast engine (14 outputs)
+│   ├── forecast/       # Forecast engine (16 outputs)
 │   │   ├── engine.py         # Scenario-based NOI, revenue, yield forecasting
 │   │   ├── cli.py            # CLI for forecasts, comparisons, sensitivity
 │   │   ├── config.py         # Forecast configuration
 │   │   ├── models.py         # Data models
 │   │   ├── pricing.py        # Price projections
-│   │   ├── yield_forecast.py # Yield projections
+│   │   ├── yield_forecast.py # Yield projections + per-m² logic
 │   │   ├── cost_forecast.py  # Cost projections
 │   │   ├── ecology.py        # Ecological score projections
 │   │   └── risk.py           # Risk adjustment + confidence intervals
@@ -462,6 +462,13 @@ Additional metrics computed on-demand via `python3 -m services.metrics`:
 | Soil Carbon Delta | `soil_carbon_delta` | Latest − baseline soil organic carbon (tonnes/ha) |
 | Biodiversity Delta | `biodiversity_delta` | Species count change + Shannon index delta |
 | Operating Margin % | `operating_margin` | NOI / net revenue × 100 |
+| Crop NOI | `crop_noi` | Net revenue − direct costs − allocated shared costs |
+| Loss Rate | `loss_rate` | Loss amount as percentage of total harvest |
+| Crop Cost | `crop_cost` | Sum of direct and allocated shared costs |
+| Revenue per Ha | `revenue_per_ha` | Net revenue / farm area |
+| Cost per Ha | `cost_per_ha` | Total cost / farm area |
+| Net Crop Revenue | `net_crop_revenue` | Total revenue minus returns and discounts |
+| Crop NOI per Ha | `crop_noi_per_ha` | Crop NOI / farm area |
 
 ```bash
 # Compute a specific metric for a location
@@ -546,6 +553,9 @@ Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 14 pilot seed f
 | `014_pilot_celo_eas.sql` | Celo chain indexer status and EAS schema registrations |
 | `015_revenue_multiplier_config.sql` | 48 configurable constants for revenue multiplier dimensions |
 | `016_pilot_dapp_sessions.sql` | 12 dApp session records for Web3 engagement tracking |
+| `017_dashboard_datasets.sql` | 5 dashboard dataset definitions for BI integration |
+| `018_module_e_water_access.sql` | 3 water access records (borehole, rainwater, river) |
+| `019_per_sqm_pilot.sql` | Plot bed data for per-square-meter revenue projection |
 
 ```bash
 # Seed all pilot farm data
@@ -598,6 +608,7 @@ python3 -m services.forecast.cli --location-id <location-id> \
 - Carbon sequestration estimation from soil organic matter changes
 - Biodiversity credit value from species observation counts
 - Retained value projection from historical reinvestment rates
+- Per-square-meter revenue projection from bed-area formula (when plot bed data is available)
 
 ## Environmental Analytics
 
@@ -615,6 +626,15 @@ python3 -m services.analytics --crop-diversity --location-id UUID
 
 # Intervention impact tracking (before/after comparison)
 python3 -m services.analytics --intervention-impact --location-id UUID
+
+# Soil health assessment (condition, pH, organic matter)
+python3 -m services.analytics --soil-health --location-id UUID
+
+# Water access summary (sources, infrastructure)
+python3 -m services.analytics --water-access --location-id UUID
+
+# Environmental baseline snapshot
+python3 -m services.analytics --environmental-baseline --location-id UUID
 ```
 
 ## Partner Dashboards

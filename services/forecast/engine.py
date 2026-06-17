@@ -23,6 +23,7 @@ from .pricing import get_historical_avg_prices, project_prices
 from .yield_forecast import (
     get_crop_areas_for_location, project_yields, calculate_total_yield,
     get_historical_loss_rate, apply_loss_adjustment,
+    get_bed_areas_for_location, project_yields_per_sqm,
 )
 from .cost_forecast import get_historical_costs, project_costs, allocate_shared_costs
 from .ecology import (
@@ -86,6 +87,63 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     historical_loss_rate = get_historical_loss_rate(location_id)
     projected_yields = apply_loss_adjustment(projected_yields, historical_loss_rate)
 
+    # Per-square-meter path: if bed data exists, compute per-m² metrics
+    bed_data = get_bed_areas_for_location(location_id)
+    per_sqm_data = None
+    total_bed_area_sqm = 0.0
+    production_per_sqm = 0.0
+    revenue_per_sqm_usd = 0.0
+
+    if bed_data["has_bed_data"] and crop_areas:
+        # Get planting density from first crop_cycle (per-m² path)
+        db_density = get_db()
+        with db_density.cursor() as cur:
+            cur.execute("""
+                SELECT cc.planting_density, cc.planting_density_unit, c.name
+                FROM crop_cycle cc
+                JOIN crop c ON cc.crop_id = c.id
+                WHERE cc.location_id = %s AND cc.status = 'completed'
+                  AND cc.planting_density IS NOT NULL AND cc.planting_density > 0
+                LIMIT 1
+            """, (location_id,))
+            density_row = cur.fetchone()
+        db_density.close()
+
+        if density_row:
+            planting_density = float(density_row[0])
+            density_unit = density_row[1] or "plants_per_sqm"
+
+            # Convert if needed (plants_per_ha → plants_per_sqm)
+            if "ha" in str(density_unit).lower():
+                planting_density = planting_density / 10000
+
+            # Use average bed dimensions across plots
+            avg_bed_area = sum(
+                p["bed_area_sqm"] for p in bed_data["plots"].values()
+            ) / max(bed_data["plot_count"], 1)
+            avg_bed_count = sum(
+                p["bed_count"] for p in bed_data["plots"].values()
+            ) / max(bed_data["plot_count"], 1)
+
+            # Get yield per ha for the first crop
+            first_crop = list(projected_yields.values())[0] if projected_yields else {}
+            yield_per_ha = first_crop.get("yield_per_ha", 0)
+
+            per_sqm_data = project_yields_per_sqm(
+                planting_density_per_sqm=planting_density,
+                bed_area_sqm=avg_bed_area,
+                bed_count=int(avg_bed_count),
+                plot_count=bed_data["plot_count"],
+                loss_rate=historical_loss_rate,
+                yield_per_ha=yield_per_ha,
+            )
+            total_bed_area_sqm = per_sqm_data["total_bed_area_sqm"]
+            production_per_sqm = per_sqm_data["yield_per_sqm"]
+
+            # Revenue per m² (will be computed after total_revenue is known)
+            # Store for later; placeholder now
+            per_sqm_data["_total_revenue"] = 0  # computed below
+
     projected_costs = project_costs(hist_costs, ca, ga, total_area)
     shared_alloc = allocate_shared_costs(projected_costs["total_shared"], projected_yields)
     eco_proj = project_ecological_score(eco_baseline)
@@ -139,6 +197,10 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
 
     total_costs = projected_costs["total_costs"]
     overall_margin = (total_noi / total_revenue * 100) if total_revenue > 0 else 0
+
+    # Per-m² revenue (computed after total_revenue is known)
+    if per_sqm_data and total_bed_area_sqm > 0:
+        revenue_per_sqm_usd = total_revenue / total_bed_area_sqm
 
     # Risk adjustment
     drought_prob = sa.drought_probability
@@ -263,6 +325,22 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
                       period_start, period_end,
                       {"retention_rate_pct": retention_rate,
                        "source": "scenario_assumption" if sa.retention_rate_pct is not None else "historical_rate"}),
+        _make_output(scenario_id, location_id, "production_per_sqm",
+                      round(production_per_sqm, 6), "tonnes_per_sqm",
+                      round(production_per_sqm * 0.85, 6), round(production_per_sqm * 1.15, 6),
+                      period_start, period_end,
+                      {"total_bed_area_sqm": total_bed_area_sqm,
+                       "total_yield_tonnes": per_sqm_data["total_yield_tonnes"] if per_sqm_data else 0,
+                       "loss_rate": historical_loss_rate,
+                       "calculation_path": "per_sqm" if per_sqm_data else "ha_fallback"}),
+        _make_output(scenario_id, location_id, "revenue_per_sqm_usd",
+                      round(revenue_per_sqm_usd, 4), "usd_per_sqm",
+                      round(revenue_per_sqm_usd * 0.85, 4), round(revenue_per_sqm_usd * 1.15, 4),
+                      period_start, period_end,
+                      {"total_revenue": total_revenue,
+                       "total_bed_area_sqm": total_bed_area_sqm,
+                       "planting_density_per_sqm": per_sqm_data["planting_density_per_sqm"] if per_sqm_data else 0,
+                       "calculation_path": "per_sqm" if per_sqm_data else "ha_fallback"}),
     ]
 
     # Per-cycle outputs
@@ -326,6 +404,10 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
         "biodiversity_credit_value": round(biodiversity_credit_value, 2),
         "retained_value": round(retained_value, 2),
         "retention_rate_pct": round(retention_rate, 2),
+        "production_per_sqm": round(production_per_sqm, 6),
+        "revenue_per_sqm_usd": round(revenue_per_sqm_usd, 4),
+        "total_bed_area_sqm": round(total_bed_area_sqm, 2),
+        "calculation_path": "per_sqm" if per_sqm_data else "ha_fallback",
         "outputs_written": len(outputs),
     }
 
