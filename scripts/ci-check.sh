@@ -38,6 +38,7 @@ check "Import services.attestation.cli" "python3 -c 'import services.attestation
 check "Import services.attestation.eas_client" "python3 -c 'import services.attestation.eas_client'"
 check "Import services.attestation.schema_encoder" "python3 -c 'import services.attestation.schema_encoder'"
 check "Import services.metrics.engine" "python3 -c 'import services.metrics.engine'"
+check "Import services.metrics.calculators" "python3 -c 'import services.metrics.calculators'"
 check "Import services.common.logging" "python3 -c 'import services.common.logging'"
 check "Import services.migration.cli" "python3 -c 'import services.migration.cli'"
 echo ""
@@ -77,6 +78,7 @@ echo ""
 # 5. Directus metadata checks
 echo "[5/8] Directus metadata checks..."
 check "directus metadata" "python3 -m tests.test_directus_metadata"
+check "metric calculators" "python3 -m tests.test_metrics"
 echo ""
 
 # 6. Smoke test suite

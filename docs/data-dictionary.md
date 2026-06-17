@@ -2,25 +2,27 @@
 
 ## Governed Metric Definitions
 
-| Metric Key | Display Name | Formula | Source Tables | Update Freq |
-|-----------|-------------|---------|--------------|-------------|
-| `crop_revenue` | Crop Revenue | SUM(sales_event.total_amount) WHERE verified | sales_event, crop_cycle | Daily |
-| `net_crop_revenue` | Net Crop Revenue | crop_revenue - returns - discounts | sales_event, crop_cycle | Daily |
-| `direct_crop_cost` | Direct Crop Cost | SUM(expense) WHERE direct allocation | expense_event, crop_cycle | Daily |
-| `allocated_shared_cost` | Allocated Shared Cost | SUM(crop_cost_allocation.allocated) | crop_cost_allocation | Daily |
-| `crop_noi` | Crop NOI | net_revenue - direct_costs - allocated_costs | noi_snapshot, crop_cycle | Daily |
-| `loss_rate_pct` | Loss Rate % | 1 - (net_harvest / gross_harvest) | harvest_event | Daily |
-| `operating_margin_pct` | Operating Margin % | crop_noi / net_revenue * 100 | noi_snapshot | Daily |
-| `baseline_revenue` | Baseline Revenue | location.baseline_revenue | location | Once |
-| `baseline_asset_value` | Baseline Asset Value | location.baseline_asset_value | location | Once |
-| `baseline_cash_flow` | Baseline Cash Flow | location.baseline_cash_flow | location | Once |
-| `baseline_cost` | Baseline Cost | location.baseline_cost | location | Once |
-| `value_flowed` | Value Flowed | SUM(verified, non-excluded flows) | value_flow_event | Weekly |
-| `wallet_retention` | Wallet Retention | Active in current + prior period | wallet_activity_event | Monthly |
-| `digital_lego_usage` | Digital Lego Usage | COUNT(distinct verified protocols) | digital_lego_usage | Weekly |
-| `soil_carbon_delta` | Soil Carbon Delta | after_carbon - baseline_carbon | soil_carbon_measurement | Quarterly |
-| `biodiversity_delta` | Biodiversity Delta | after_count - baseline_count | species_observation | Quarterly |
-| `attestation_coverage` | Attestation Coverage | published / eligible * 100 | attestation_record | Monthly |
+| Metric Key | Display Name | Formula | Source Tables | Update Freq | Report Usage | Validation |
+|-----------|-------------|---------|--------------|-------------|--------------|------------|
+| `crop_revenue` | Crop Revenue | SUM(sales_event.total_amount) WHERE verified | sales_event, crop_cycle | Daily | Crop NOI Dashboard, Eagle View Financial, Annual Impact Report | value >= 0 |
+| `net_crop_revenue` | Net Crop Revenue | crop_revenue - returns - discounts | sales_event, crop_cycle | Daily | Crop NOI Dashboard, Eagle View Financial | value >= 0 |
+| `direct_crop_cost` | Direct Crop Cost | SUM(expense) WHERE direct allocation | expense_event, crop_cycle | Daily | Crop NOI Dashboard, Eagle View Financial | value >= 0 |
+| `allocated_shared_cost` | Allocated Shared Cost | SUM(crop_cost_allocation.allocated) | crop_cost_allocation | Daily | Crop NOI Dashboard | value >= 0 |
+| `crop_noi` | Crop NOI | net_revenue - direct_costs - allocated_costs | noi_snapshot, crop_cycle | Daily | Crop NOI Dashboard, Eagle View Financial, Fortune 500 | matches formula derivation |
+| `loss_rate_pct` | Loss Rate % | 1 - (net_harvest / gross_harvest) | harvest_event | Daily | Loss Rate Dashboard, Eagle View Harvest | 0 <= value <= 100 |
+| `operating_margin_pct` | Operating Margin % | crop_noi / net_revenue * 100 | noi_snapshot | Daily | Eagle View Financial, Crop NOI Dashboard | -100 <= value <= 100 |
+| `baseline_revenue` | Baseline Revenue | location.baseline_revenue | location | Once | Fortune 500, Forecast Engine | value >= 0 |
+| `baseline_asset_value` | Baseline Asset Value | location.baseline_asset_value | location | Once | Fortune 500 | value >= 0 |
+| `baseline_cash_flow` | Baseline Cash Flow | location.baseline_cash_flow | location | Once | Fortune 500, Forecast Engine | value >= 0 |
+| `baseline_cost` | Baseline Cost | location.baseline_cost | location | Once | Fortune 500, Forecast Engine | value >= 0 |
+| `value_flowed` | Value Flowed | SUM(verified, non-excluded flows) | value_flow_event | Weekly | Value Flow Report, Revenue Multiplier | value >= 0 |
+| `wallet_retention` | Wallet Retention | Active in current + prior period | wallet_activity_event | Monthly | Value Flow Report, Revenue Multiplier | 0 <= value <= 100 |
+| `digital_lego_usage` | Digital Lego Usage | COUNT(distinct verified protocols) | digital_lego_usage | Weekly | Value Flow Report, Revenue Multiplier | value >= 0 |
+| `soil_carbon_delta` | Soil Carbon Delta | after_carbon - baseline_carbon | soil_carbon_measurement | Quarterly | Eagle View Environmental, Environmental Trends | per-plot deltas |
+| `biodiversity_delta` | Biodiversity Delta | after_count - baseline_count | species_observation | Quarterly | Eagle View Environmental, Crop Diversity Trend | includes Shannon index |
+| `attestation_coverage` | Attestation Coverage | published / eligible * 100 | attestation_record | Monthly | Eagle View Attestations, MRV Dashboard | 0 <= value <= 100 |
+
+All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `deprecation_policy` (TEXT). See `schemas/seeds/022_metric_governance.sql` for full governance data.
 
 ## Core Entity Glossary
 

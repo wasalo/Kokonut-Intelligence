@@ -18,6 +18,10 @@ from .direct_crop_cost import compute_direct_crop_cost
 from .allocated_shared_cost import compute_allocated_shared_cost
 from .crop_noi import compute_crop_noi
 from .loss_rate_pct import compute_loss_rate_pct
+from .baseline_revenue import compute_baseline_revenue
+from .baseline_asset_value import compute_baseline_asset_value
+from .baseline_cash_flow import compute_baseline_cash_flow
+from .baseline_cost import compute_baseline_cost
 
 CALCULATORS = {
     "value_flowed": compute_value_flowed,
@@ -33,4 +37,8 @@ CALCULATORS = {
     "allocated_shared_cost": compute_allocated_shared_cost,
     "crop_noi": compute_crop_noi,
     "loss_rate_pct": compute_loss_rate_pct,
+    "baseline_revenue": compute_baseline_revenue,
+    "baseline_asset_value": compute_baseline_asset_value,
+    "baseline_cash_flow": compute_baseline_cash_flow,
+    "baseline_cost": compute_baseline_cost,
 }

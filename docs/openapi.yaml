@@ -12220,6 +12220,24 @@ components:
           - annually
         active:
           type: boolean
+        validation_tests:
+          type: array
+          items:
+            type: object
+            properties:
+              test:
+                type: string
+              description:
+                type: string
+          description: Automated validation test cases for this metric
+        report_usage:
+          type: array
+          items:
+            type: string
+          description: Reports and dashboards that consume this metric
+        deprecation_policy:
+          type: string
+          description: How this metric reaches end-of-life
         created_at:
           type: string
           format: date-time
@@ -12257,6 +12275,21 @@ components:
           type: string
         active:
           type: boolean
+        validation_tests:
+          type: array
+          items:
+            type: object
+            properties:
+              test:
+                type: string
+              description:
+                type: string
+        report_usage:
+          type: array
+          items:
+            type: string
+        deprecation_policy:
+          type: string
       required:
       - metric_key
       - display_name
@@ -12291,6 +12324,21 @@ components:
           type: string
         active:
           type: boolean
+        validation_tests:
+          type: array
+          items:
+            type: object
+            properties:
+              test:
+                type: string
+              description:
+                type: string
+        report_usage:
+          type: array
+          items:
+            type: string
+        deprecation_policy:
+          type: string
     MetricVersion:
       type: object
       properties:

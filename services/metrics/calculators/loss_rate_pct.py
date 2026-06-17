@@ -27,26 +27,30 @@ def compute_loss_rate_pct(
         date_filter += " AND he.harvest_date <= %s"
         params.append(period_end)
 
+    fm_filter = " AND (he.loss_reason IS NULL OR LOWER(he.loss_reason) NOT LIKE '%force majeure%')"
+
     cur.execute(f"""
         SELECT
             COALESCE(SUM(he.quantity), 0) as gross_harvest,
             COALESCE(SUM(he.saleable_quantity), 0) as net_harvest,
-            COUNT(*) as harvest_count
+            COUNT(*) as harvest_count,
+            ARRAY_AGG(he.id) as harvest_ids
         FROM harvest_event he
         WHERE he.location_id = %s
           {date_filter}
+          {fm_filter}
     """, params)
     row = dict(cur.fetchone())
 
     gross_harvest = float(row["gross_harvest"])
     net_harvest = float(row["net_harvest"])
-    loss_rate = (1 - (net_harvest / gross_harvest) * 100) if gross_harvest > 0 else 0.0
+    loss_rate = ((1 - net_harvest / gross_harvest) * 100) if gross_harvest > 0 else 0.0
     cur.close()
 
     return {
         "value": round(loss_rate, 2),
-        "computation_method": "(1 - (net_harvest / gross_harvest)) * 100",
-        "source_record_ids": [],
+        "computation_method": "(1 - net_harvest / gross_harvest) * 100",
+        "source_record_ids": row["harvest_ids"][:100] if row["harvest_ids"] else [],
         "metadata": {
             "gross_harvest": round(gross_harvest, 2),
             "net_harvest": round(net_harvest, 2),

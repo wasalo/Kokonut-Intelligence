@@ -5,6 +5,22 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Metric calculator bug fixes**:
+  - Fixed `loss_rate_pct` operator precedence: `(1 - net/gross) * 100` now correctly computes percentage (was `1 - net/gross * 100`)
+  - Added force majeure exclusion to `loss_rate_pct` (excludes harvest events where `loss_reason` contains "force majeure")
+  - Added harvest event IDs to `loss_rate_pct` source_record_ids (was returning empty array)
+  - Fixed `operating_margin_pct` to delegate to `compute_crop_noi()` and `compute_net_crop_revenue()` sub-calculators (was computing inline NOI, ignoring `allocated_shared_cost`)
+  - Fixed `digital_lego_usage` missing `WHERE dl.verified = TRUE` filter (was counting all interactions, not just verified)
+- **4 baseline metric calculators**:
+  - `baseline_revenue.py` — reads `location.baseline_revenue`
+  - `baseline_asset_value.py` — reads `location.baseline_asset_value`
+  - `baseline_cash_flow.py` — reads `location.baseline_cash_flow`
+  - `baseline_cost.py` — reads `location.baseline_cost`
+  - All 17 metric keys now have registered calculators
+- **Metric governance seed data**: `schemas/seeds/022_metric_governance.sql` — populates `validation_tests`, `report_usage`, and `deprecation_policy` for all 18 metric definitions
+- **Metric calculator tests**: `tests/test_metrics.py` — 12 tests covering calculator registration, formula correctness, governance fields, and structural validation
+- **OpenAPI spec**: Added `validation_tests`, `report_usage`, `deprecation_policy` to `MetricDefinition`, `MetricDefinitionCreate`, and `MetricDefinitionUpdate` schemas
+- **Data dictionary**: Updated metric table with `Report Usage` and `Validation` columns
 - **Structured logging**: `services/common/logging.py` — Python `logging` setup with namespaced loggers, stderr for warnings/errors, stdout for info. `KOKONUT_LOG_LEVEL` env var.
 - **Migration runner**: `python3 -m services.migration {status|migrate|dry-run}` — tracks applied SQL files in `schema_migration` with SHA-256 checksums, timing, and status. Discovers numbered files from `schemas/postgres/` and `schemas/seeds/`.
 - **Centralized retry config**: `RETRY_MAX_RETRIES`, `RETRY_BACKOFF`, `RETRY_JITTER` in `services/ingestion/config.py`, overridable via env vars.

@@ -33,10 +33,11 @@ def compute_digital_lego_usage(
             COUNT(DISTINCT dl.protocol_id) as unique_protocols,
             COUNT(*) as total_usages,
             SUM(dl.value_attributed) as total_value,
-            ARRAY_AGG(DISTINCT p.name) as protocol_names
+            COALESCE(ARRAY_AGG(DISTINCT p.name), '{{}}') as protocol_names
         FROM digital_lego_usage dl
         LEFT JOIN protocol p ON dl.protocol_id = p.id
         WHERE dl.location_id = %s
+          AND dl.verified = TRUE
           {date_filter}
     """, params)
     row = dict(cur.fetchone())
@@ -45,6 +46,7 @@ def compute_digital_lego_usage(
         SELECT ARRAY_AGG(dl.id) as record_ids
         FROM digital_lego_usage dl
         WHERE dl.location_id = %s
+          AND dl.verified = TRUE
           {date_filter}
     """, params)
     ids_row = cur.fetchone()

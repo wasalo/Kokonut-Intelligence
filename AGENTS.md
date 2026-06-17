@@ -81,6 +81,8 @@
 - Field Worker create permissions exclude `status` — lifecycle starts at `draft` by default.
 - `metric_value` table stores computed governed metric results.
 - Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate `metric_value`.
+- Metric governance: `metric_definition` has `validation_tests`, `report_usage`, `deprecation_policy` fields populated via `schemas/seeds/022_metric_governance.sql`.
+- Baseline calculators (revenue, asset_value, cash_flow, cost) query the `location` table directly.
 - `revenue_multiplier_config` table stores dimension constants (DB-backed, not hardcoded).
 - Forecast engine writes per-cycle outputs with `crop_cycle_id`.
 - Forecast engine estimates carbon sequestration from SOM changes.
