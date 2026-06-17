@@ -107,7 +107,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'farm_activity' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'create', '{}', '{}', 'activity_type,activity_date,description,labor_hours,labor_cost,materials_used,evidence_urls,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000001');
+        ('farm_activity', 'create', '{}', '{}', 'activity_type,activity_date,description,labor_hours,labor_cost,materials_used,evidence_urls,notes,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -129,7 +129,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'harvest_event' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('harvest_event', 'create', '{}', '{}', 'harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000001');
+        ('harvest_event', 'create', '{}', '{}', 'harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -151,7 +151,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'expense_event' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('expense_event', 'create', '{}', '{}', 'expense_date,category,subcategory,description,vendor,amount,currency,is_capex,allocation_method,allocation_weight,evidence_urls,invoice_number,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000001');
+        ('expense_event', 'create', '{}', '{}', 'expense_date,category,subcategory,description,vendor,amount,currency,is_capex,allocation_method,allocation_weight,evidence_urls,invoice_number,notes,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -173,7 +173,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'sales_event' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('sales_event', 'create', '{}', '{}', 'sale_date,buyer,buyer_type,quantity,unit,price_per_unit,total_amount,currency,payment_status,payment_date,payment_method,invoice_number,return_amount,discount_amount,evidence_urls,notes,harvest_id,crop_cycle_id,partner_id,location_id', 'b1000000-0000-0000-0000-000000000001');
+        ('sales_event', 'create', '{}', '{}', 'sale_date,buyer,buyer_type,quantity,unit,price_per_unit,total_amount,currency,payment_status,payment_date,payment_method,invoice_number,return_amount,discount_amount,evidence_urls,notes,harvest_id,crop_cycle_id,partner_id,location_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -195,7 +195,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'loss_event' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('loss_event', 'create', '{}', '{}', 'loss_date,loss_type,quantity,unit,estimated_value,cause,impact_description,mitigation,severity,evidence_urls,notes,crop_cycle_id,harvest_id,plot_id,location_id', 'b1000000-0000-0000-0000-000000000001');
+        ('loss_event', 'create', '{}', '{}', 'loss_date,loss_type,quantity,unit,estimated_value,cause,impact_description,mitigation,severity,evidence_urls,notes,crop_cycle_id,harvest_id,plot_id,location_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -217,7 +217,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'labor_event' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('labor_event', 'create', '{}', '{}', 'staff_id,worker_name,work_date,hours_worked,hourly_rate,total_cost,role,activity_description,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000001');
+        ('labor_event', 'create', '{}', '{}', 'staff_id,worker_name,work_date,hours_worked,hourly_rate,total_cost,role,activity_description,notes,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -239,7 +239,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'field_note' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('field_note', 'create', '{}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000001');
+        ('field_note', 'create', '{}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -253,7 +253,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'field_note' AND action = 'update') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('field_note', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
+        ('field_note', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 

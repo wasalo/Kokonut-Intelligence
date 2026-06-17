@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 
 from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload
+from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 logger = get_logger("ingestion.remote_sensing")
 
@@ -61,14 +62,14 @@ def parse_row(row: dict, location_id: str = None) -> dict:
 
 
 def build_bbox(row: dict):
-    """Build GeoJSON bbox from CSV columns."""
+    """Build PostGIS bbox geometry from CSV columns."""
     try:
         west = float(row.get("bbox_west", 0))
         south = float(row.get("bbox_south", 0))
         east = float(row.get("bbox_east", 0))
         north = float(row.get("bbox_north", 0))
         if west or south or east or north:
-            return json.dumps([west, south, east, north])
+            return f"SRID=4326;POLYGON(({west} {south},{east} {south},{east} {north},{west} {north},{west} {south}))"
     except (ValueError, TypeError):
         pass
     return None
@@ -98,6 +99,57 @@ def insert_observation(db, record: dict) -> str:
             ),
         )
         return str(cur.fetchone()[0])
+
+
+def insert_clickhouse(record: dict) -> None:
+    """Insert remote sensing observation into ClickHouse."""
+    import requests as req
+    ch_url = f"http://{CH_HOST}:{CH_PORT}"
+
+    ts = record.get("observation_date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    if isinstance(ts, str) and len(ts) == 10:
+        ts = ts + " 00:00:00.000"
+
+    def _safe(val):
+        if val is None:
+            return "NULL"
+        return str(val)
+
+    def _str(val):
+        if val is None:
+            return "''"
+        return f"'{str(val).replace(chr(39), chr(39)+chr(39))}'"
+
+    query = f"""INSERT INTO remote_sensing_events
+        (timestamp, observation_id, location_id, plot_id, source,
+         ndvi, ndre, evi, savi, canopy_cover_pct, ndwi, cloud_cover_pct, metadata)
+        VALUES (
+            '{ts}',
+            '{record.get('id', '')}',
+            '{record.get('location_id', '')}',
+            {_str(record.get('plot_id'))},
+            {_str(record.get('source'))},
+            {_safe(record.get('ndvi'))},
+            {_safe(record.get('ndre'))},
+            {_safe(record.get('evi'))},
+            {_safe(record.get('savi'))},
+            {_safe(record.get('canopy_cover_pct'))},
+            {_safe(record.get('ndwi'))},
+            {_safe(record.get('cloud_cover_pct'))},
+            map()
+        )"""
+
+    try:
+        resp = req.post(
+            ch_url,
+            data=query.encode("utf-8"),
+            auth=(CH_USER, CH_PASSWORD),
+            headers={"Content-Type": "text/plain"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning("ClickHouse insert failed: %s", e)
 
 
 def run(file_path: str, location_id: str = None):
@@ -135,6 +187,10 @@ def run(file_path: str, location_id: str = None):
         try:
             record = parse_row(row, location_id or plot_location_map.get(row.get("plot_id", "")))
             pg_id = insert_observation(db, record)
+            record["id"] = pg_id
+
+            # Dual-write to ClickHouse
+            insert_clickhouse(record)
 
             log_ingestion(
                 source_system="csv_upload",

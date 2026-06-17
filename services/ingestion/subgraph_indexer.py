@@ -21,7 +21,7 @@ import requests
 
 from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, retry, update_indexer_status
-from .config import EAS_GRAPHQL_URL
+from .config import EAS_GRAPHQL_URL, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 logger = get_logger("ingestion.subgraph")
 
@@ -131,6 +131,53 @@ def insert_attestation(db, att: dict, schema_map: dict) -> str:
         return str(row[0]) if row else None
 
 
+def insert_clickhouse(chain: str, att: dict, status: str) -> None:
+    """Insert attestation into ClickHouse."""
+    ch_url = f"http://{CH_HOST}:{CH_PORT}"
+
+    attestation_uid = att.get("id", "")
+    schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
+    attester = att.get("attester", "")
+    recipient = att.get("recipient", "")
+
+    block_ts = datetime.fromtimestamp(
+        int(att.get("blockTimestamp", 0)), tz=timezone.utc
+    ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+    def _str(val):
+        if val is None:
+            return "''"
+        return f"'{str(val).replace(chr(39), chr(39)+chr(39))}'"
+
+    query = f"""INSERT INTO attestation_events
+        (timestamp, attestation_uid, schema_uid, chain, attester, recipient,
+         subject_type, status, revoked, metadata)
+        VALUES (
+            '{block_ts}',
+            {_str(attestation_uid)},
+            {_str(schema_uid)},
+            {_str(chain)},
+            {_str(attester)},
+            {_str(recipient)},
+            'wallet',
+            {_str(status)},
+            false,
+            map()
+        )"""
+
+    try:
+        resp = requests.post(
+            ch_url,
+            data=query.encode("utf-8"),
+            auth=(CH_USER, CH_PASSWORD),
+            headers={"Content-Type": "text/plain"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning("ClickHouse insert failed: %s", e)
+
+
 def insert_schema(db, sch: dict) -> str:
     """Insert attestation schema into PostgreSQL."""
     schema_uid = sch["id"]
@@ -204,6 +251,8 @@ def run(protocol: str = None):
                 max_block = last_block
                 for att in attestations:
                     insert_attestation(db, att, schema_map)
+                    # Dual-write to ClickHouse
+                    insert_clickhouse("ethereum", att, "published")
                     block_num = int(att.get("blockNumber", 0))
                     if block_num > max_block:
                         max_block = block_num

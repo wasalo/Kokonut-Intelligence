@@ -4,7 +4,19 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+### Fixed
+- **Critical: gnosis_indexer treasury INSERT schema mismatch** (`gnosis_indexer.py`): Fixed `insert_treasury_event()` — column names were wrong (`direction` → `flow_direction`, removed non-existent `protocol_id`/`metadata`, added `event_date`). Fixed `decode_withdraw()` to use `flow_direction` and `event_date` instead of `direction` and `block_timestamp`. Treasury events now store correctly.
+- **eas_indexer race condition** (`eas_indexer.py`): Replaced manual `SELECT` + `INSERT` with `ON CONFLICT (attestation_uid) DO NOTHING` for atomic deduplication.
+- **remote_sensing bbox PostGIS geometry** (`remote_sensing.py`): Changed `build_bbox()` from `json.dumps([west, south, east, north])` to `SRID=4326;POLYGON(...)` WKT format for proper PostGIS geometry storage.
+
 ### Added
+- **Milestone 3 Stage 1 — Source lineage completeness**: Created `schemas/postgres/023_source_lineage_fix.sql` migration to add missing `source_raw`, `updated_at`, `updated_by`, `verified_by`, `verified_at`, `rejection_reason`, `schema_version` columns to `loss_event`, `labor_event`, and `field_note` tables (all columns already existed from 009_operations_ux.sql — migration is idempotent)
+- **Milestone 2 Stage 1 — Evidence validation hooks**: Created `extensions/kokonut-hooks/src/evidence-helpers.ts` with `validateEvidenceUrls()` (max 10 files, URL length), `validateFileUpload()` (type whitelist, 50MB limit), and `validateFieldNoteImages()` (max 20 images, URL format check)
+- **Milestone 2 Stage 1 — Hook wiring**: Added evidence validation to `expense_event.create`, `sales_event.create`, `harvest_event.create`, `loss_event.create`, and `field_note.create` filter hooks
+- **Milestone 2 Stage 1 — Field Worker source fields**: Updated all 7 Field Worker `create` permissions to include `source_system,source_id,source_raw`; updated `field_note.update` to include source fields
+- **Milestone 3 Stage 2 — ClickHouse remote sensing**: Added `remote_sensing_events` table + `insert_clickhouse()` dual-write in `remote_sensing.py`
+- **Milestone 3 Stage 2 — ClickHouse financial events**: Added `writeFinancialEvent()` dual-write in hooks for `sales_event.create` and `expense_event.create`
+- **Milestone 3 Stage 2 — ClickHouse attestation events**: Added `attestation_events` table + `insert_clickhouse()` dual-write in `eas_indexer.py` and `subgraph_indexer.py`
 - **Milestone 1 — Plot slug fix**: Added `slug` values (`plot-a`, `plot-b`, `plot-c`) to pilot plot INSERT to satisfy NOT NULL constraint
 - **Milestone 1 — Crop cost allocation**: 126 rows in `crop_cost_allocation` (21 shared expenses × 6 crop cycles); area-based proportional allocation: Maize (23.53%), Cassava (17.65%), Beans/Sweet Potato (11.76%)
 - **Milestone 1 — NOI snapshots**: 3 missing snapshots for Beans Cycle 1 ($1,807.65, 81.79%), Sweet Potato Cycle 1 ($2,175.65, 85.73%), Beans Cycle 2 ($1,503.65, 79.94%)

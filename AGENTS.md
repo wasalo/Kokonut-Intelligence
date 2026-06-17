@@ -52,6 +52,9 @@
 - Ingestion indexers: `python3 -m services.ingestion.status indexers`
 - Ingestion summary: `python3 -m services.ingestion.status summary`
 - Gnosis Chain indexer: `python3 -m services.ingestion.gnosis_indexer`
+- GIS boundary import: `python3 -m services.ingestion.gis_import --file boundaries.geojson --target location`
+- Market data (live): `python3 -m services.ingestion.market_data --source world_bank`
+- Market data (seed): `python3 -m services.ingestion.market_data --source seed`
 - AI summary: `python3 -m services.agents.ai_summary --location-id UUID --type combined`
 - Dataset refresh: `python3 -m services.export.dataset_refresh --all`
 - Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`

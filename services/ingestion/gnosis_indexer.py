@@ -152,24 +152,24 @@ def insert_treasury_event(db, record: dict) -> Optional[str]:
         cur.execute(
             """
             INSERT INTO treasury_event
-                (location_id, protocol_id, chain, direction, amount, token,
-                 usd_value, source, tx_hash, block_number, block_timestamp,
-                 verified, metadata)
+                (location_id, wallet_id, chain, event_date, flow_direction,
+                 amount, token, usd_value, source, tx_hash, block_number,
+                 verified, notes)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
             (
                 record.get("location_id"),
-                record.get("protocol_id"),
+                record.get("wallet_id"),
                 record["chain"],
-                record["direction"],
+                record.get("event_date", now_utc().date()),
+                record["flow_direction"],
                 record["amount"],
-                record.get("token"),
+                record.get("token", ""),
                 record.get("usd_value"),
                 record.get("source", "moloch_dao"),
                 record["tx_hash"],
                 record["block_number"],
-                record["block_timestamp"],
                 record.get("verified", True),
                 json.dumps(record.get("metadata", {})),
             ),
@@ -295,16 +295,131 @@ def decode_withdraw(args: dict, tx_hash: str, block_number: int,
     """Decode Withdraw event into treasury_event record."""
     return {
         "chain": KOKONUT_DAO_CHAIN,
-        "direction": "outflow",
+        "flow_direction": "outflow",
         "amount": float(args.get("amount", 0)) / 1e18 if args.get("amount") else 0,
         "token": args.get("tokenAddress", ""),
         "tx_hash": tx_hash,
         "block_number": block_number,
-        "block_timestamp": block_timestamp,
+        "event_date": block_timestamp.date(),
         "metadata": {
             "member_address": args.get("memberAddress", ""),
         },
     }
+
+
+def event_to_action_type(event_name: str) -> str:
+    """Map Moloch v2 event name to digital_lego_usage.action_type."""
+    mapping = {
+        "SubmitProposal": "vote",
+        "VoteProposal": "vote",
+        "ProcessProposal": "vote",
+        "Trade": "swap",
+        "Ragequit": "withdraw",
+        "Withdraw": "withdraw",
+        "UpdateDelegate": "other",
+        "CancelProposal": "vote",
+    }
+    return mapping.get(event_name, "other")
+
+
+def get_location_from_wallet(db, wallet_id: str) -> Optional[str]:
+    """Resolve location_id from wallet_profile.owner_id where owner_type = 'farm'."""
+    with db.cursor() as cur:
+        cur.execute(
+            "SELECT owner_id FROM wallet_profile WHERE id = %s AND owner_type = 'farm' LIMIT 1",
+            (wallet_id,),
+        )
+        row = cur.fetchone()
+        return str(row[0]) if row else None
+
+
+def insert_dlego_usage(db, record: dict) -> Optional[str]:
+    """Insert digital lego usage event into PostgreSQL. Returns record ID."""
+    with db.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO digital_lego_usage
+                (wallet_id, protocol_id, location_id, usage_date,
+                 action_type, amount, token, tx_hash, chain,
+                 block_number, verified, notes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+            RETURNING id
+            """,
+            (
+                record.get("wallet_id"),
+                record.get("protocol_id"),
+                record.get("location_id"),
+                record["usage_date"],
+                record["action_type"],
+                record.get("amount"),
+                record.get("token"),
+                record.get("tx_hash"),
+                record["chain"],
+                record.get("block_number"),
+                record.get("verified", True),
+                record.get("notes"),
+            ),
+        )
+        row = cur.fetchone()
+        return str(row[0]) if row else None
+
+
+def insert_dlego_clickhouse(record: dict) -> None:
+    """Insert digital lego usage event into ClickHouse dlego_events table."""
+    import requests as req
+    ch_url = f"http://{CH_HOST}:{CH_PORT}"
+
+    usage_date = record.get("usage_date", "")
+    if hasattr(usage_date, "strftime"):
+        ch_timestamp = usage_date.strftime("%Y-%m-%d 00:00:00.000")
+    else:
+        ch_timestamp = f"{usage_date} 00:00:00.000"
+
+    chain = record.get("chain", "")
+    if chain:
+        _validate_ch_value(chain, _STR_RE, "chain")
+
+    tx_hash = record.get("tx_hash", "")
+    if tx_hash:
+        _validate_ch_value(tx_hash, _STR_LOOSE_RE, "tx_hash")
+
+    action_type = record.get("action_type", "")
+    if action_type:
+        _validate_ch_value(action_type, _STR_RE, "action_type")
+
+    def _safe(val):
+        if val is None:
+            return "NULL"
+        return str(val)
+
+    query = f"""INSERT INTO dlego_events
+        (timestamp, wallet_id, protocol_id, location_id, action_type,
+         amount, token, chain, tx_hash, metadata)
+        VALUES (
+            '{ch_timestamp}',
+            '{_safe(record.get('wallet_id', ''))}',
+            '{record.get('protocol_id', '')}',
+            '{_safe(record.get('location_id', ''))}',
+            '{action_type}',
+            {_safe(record.get('amount'))},
+            '{record.get('token', '')}',
+            '{chain}',
+            '{tx_hash}',
+            map()
+        )"""
+
+    try:
+        resp = req.post(
+            ch_url,
+            data=query.encode("utf-8"),
+            auth=(CH_USER, CH_PASSWORD),
+            headers={"Content-Type": "text/plain"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning("ClickHouse dlego insert failed: %s", e)
 
 
 def insert_activity_clickhouse(record: dict) -> None:
@@ -453,6 +568,27 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                     insert_treasury_event(db, record)
                     insert_activity_clickhouse(record)
                     total_events += 1
+
+                    # Also insert as digital_lego_usage
+                    dlego_location = None
+                    if record.get("wallet_id"):
+                        dlego_location = get_location_from_wallet(db, record["wallet_id"])
+
+                    dlego_record = {
+                        "wallet_id": record.get("wallet_id"),
+                        "protocol_id": record.get("protocol_id"),
+                        "location_id": dlego_location,
+                        "usage_date": block_timestamp.date(),
+                        "action_type": "withdraw",
+                        "amount": record.get("amount"),
+                        "token": record.get("token"),
+                        "tx_hash": tx_hash,
+                        "chain": KOKONUT_DAO_CHAIN,
+                        "block_number": block_number,
+                        "verified": True,
+                    }
+                    insert_dlego_usage(db, dlego_record)
+                    insert_dlego_clickhouse(dlego_record)
                     continue
                 else:
                     record = decoder(args, tx_hash, block_number, block_timestamp)
@@ -478,6 +614,27 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 insert_governance_event(db, record)
                 insert_activity_clickhouse(record)
                 total_events += 1
+
+                # Also insert as digital_lego_usage (protocol interaction)
+                dlego_location = None
+                if record.get("wallet_id"):
+                    dlego_location = get_location_from_wallet(db, record["wallet_id"])
+
+                dlego_record = {
+                    "wallet_id": record.get("wallet_id"),
+                    "protocol_id": record.get("protocol_id"),
+                    "location_id": dlego_location,
+                    "usage_date": block_timestamp.date(),
+                    "action_type": event_to_action_type(event_name),
+                    "amount": record.get("amount"),
+                    "token": record.get("token"),
+                    "tx_hash": tx_hash,
+                    "chain": KOKONUT_DAO_CHAIN,
+                    "block_number": block_number,
+                    "verified": True,
+                }
+                insert_dlego_usage(db, dlego_record)
+                insert_dlego_clickhouse(dlego_record)
 
         except Exception as e:
             logger.error("  Block range %d-%d failed: %s", batch_start, batch_end, e)

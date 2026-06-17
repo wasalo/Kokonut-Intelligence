@@ -20,6 +20,7 @@ import requests
 
 from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, retry
+from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 logger = get_logger("ingestion.eas")
 
@@ -98,14 +99,6 @@ def insert_attestation(db, att: dict, chain: str) -> str:
     ).isoformat()
 
     with db.cursor() as cur:
-        # Check if already exists
-        cur.execute(
-            "SELECT id FROM attestation_record WHERE attestation_uid = %s",
-            (attestation_uid,),
-        )
-        if cur.fetchone():
-            return None
-
         # Check if schema exists, create if not
         schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
         schema_text = att.get("schema", {}).get("schema", "") if att.get("schema") else ""
@@ -136,6 +129,7 @@ def insert_attestation(db, att: dict, chain: str) -> str:
                 (schema_id, attestation_uid, subject_type,
                  claim_data, status, tx_hash, chain, attested_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (attestation_uid) DO NOTHING
             RETURNING id
             """,
             (
@@ -157,6 +151,54 @@ def insert_attestation(db, att: dict, chain: str) -> str:
         )
         row = cur.fetchone()
         return str(row[0]) if row else None
+
+
+def insert_clickhouse(chain: str, att: dict, status: str) -> None:
+    """Insert attestation into ClickHouse."""
+    ch_url = f"http://{CH_HOST}:{CH_PORT}"
+
+    attestation_uid = att.get("id", "")
+    schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
+    attester = att.get("attester", "")
+    recipient = att.get("recipient", "")
+    revoked = str(att.get("revoked", False)).lower()
+
+    block_ts = datetime.fromtimestamp(
+        int(att.get("time", 0)), tz=timezone.utc
+    ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+    def _str(val):
+        if val is None:
+            return "''"
+        return f"'{str(val).replace(chr(39), chr(39)+chr(39))}'"
+
+    query = f"""INSERT INTO attestation_events
+        (timestamp, attestation_uid, schema_uid, chain, attester, recipient,
+         subject_type, status, revoked, metadata)
+        VALUES (
+            '{block_ts}',
+            {_str(attestation_uid)},
+            {_str(schema_uid)},
+            {_str(chain)},
+            {_str(attester)},
+            {_str(recipient)},
+            'wallet',
+            {_str(status)},
+            {revoked},
+            map()
+        )"""
+
+    try:
+        resp = requests.post(
+            ch_url,
+            data=query.encode("utf-8"),
+            auth=(CH_USER, CH_PASSWORD),
+            headers={"Content-Type": "text/plain"},
+            timeout=10,
+        )
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning("ClickHouse insert failed: %s", e)
 
 
 def get_last_attestation_time(db, chain: str) -> int:
@@ -255,6 +297,9 @@ def run(chain: str = None):
 
                             if insert_attestation(db, att, c):
                                 total_inserted += 1
+                                # Dual-write to ClickHouse
+                                status = "rejected" if att.get("revoked") else "published"
+                                insert_clickhouse(c, att, status)
 
                             if att_time > max_attestation_time:
                                 max_attestation_time = att_time

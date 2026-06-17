@@ -19,6 +19,10 @@ import {
   validateExpenseDate,
   autoSummarizeFieldNote,
 } from './ai-helpers.js';
+import {
+  validateEvidenceUrls,
+  validateFieldNoteImages,
+} from './evidence-helpers.js';
 
 /** Collections with only workflow enforcement (no create-time validation). */
 const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
@@ -100,6 +104,13 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
+    if (payload.evidence_urls) {
+      const errors = validateEvidenceUrls(payload.evidence_urls);
+      if (errors.length > 0) {
+        throw new Error(`Evidence validation: ${errors.join('; ')}`);
+      }
+    }
+
     return payload;
   });
 
@@ -139,6 +150,13 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       const dateError = validateNotFutureDate(payload.sale_date);
       if (dateError) {
         throw new Error(dateError);
+      }
+    }
+
+    if (payload.evidence_urls) {
+      const errors = validateEvidenceUrls(payload.evidence_urls);
+      if (errors.length > 0) {
+        throw new Error(`Evidence validation: ${errors.join('; ')}`);
       }
     }
 
@@ -187,6 +205,13 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
+    if (payload.evidence_urls) {
+      const errors = validateEvidenceUrls(payload.evidence_urls);
+      if (errors.length > 0) {
+        throw new Error(`Evidence validation: ${errors.join('; ')}`);
+      }
+    }
+
     return payload;
   });
 
@@ -220,6 +245,14 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
         throw new Error(dateError);
       }
     }
+
+    if (payload.evidence_urls) {
+      const errors = validateEvidenceUrls(payload.evidence_urls);
+      if (errors.length > 0) {
+        throw new Error(`Evidence validation: ${errors.join('; ')}`);
+      }
+    }
+
     return payload;
   });
 
@@ -256,6 +289,13 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     }
 
+    if (payload.images) {
+      const errors = validateFieldNoteImages(payload.images);
+      if (errors.length > 0) {
+        throw new Error(`Image validation: ${errors.join('; ')}`);
+      }
+    }
+
     return payload;
   });
 
@@ -286,6 +326,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   action('sales_event.create', async (meta: Record<string, any>) => {
     const payload = meta.payload || meta;
     await recalculateNoi(payload.crop_cycle_id);
+    await writeFinancialEvent('sales', payload);
   });
 
   action('expense_event.create', async (meta: Record<string, any>) => {
@@ -293,6 +334,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     if (payload.crop_cycle_id) {
       await recalculateNoi(payload.crop_cycle_id);
     }
+    await writeFinancialEvent('expense', payload);
   });
 
   // ============================================================
@@ -337,6 +379,43 @@ async function recalculateNoi(cropCycleId: string | undefined) {
     await storeNoiSnapshot(calc);
     console.log(`[Kokonut] NOI recalculated for crop cycle: ${cropCycleId}`);
   } catch (error) {
-    console.error(`[Kokonut] Failed to recalculate NOI for ${cropCycleId}:`, error);
+    console.error(`[Kokonut] Failed to recalulate NOI for ${cropCycleId}:`, error);
+  }
+}
+
+async function writeFinancialEvent(type: string, payload: Record<string, any>) {
+  try {
+    const amount = payload.total_amount || payload.amount || 0;
+    if (amount === 0) return;
+
+    const chHost = process.env.CH_HOST || 'clickhouse';
+    const chPort = process.env.CH_PORT || '8123';
+    const chUser = process.env.CH_USER || 'kokonut';
+    const chPass = process.env.CH_PASSWORD || '';
+
+    const txId = payload.id || crypto.randomUUID();
+    const ts = new Date().toISOString().replace('T', ' ').replace('Z', '');
+    const cat = payload.category || type;
+    const currency = payload.currency || 'USD';
+
+    const query = `INSERT INTO financial_events
+      (timestamp, transaction_id, location_id, transaction_type, category,
+       amount, currency, amount_usd, chain, token, metadata)
+      VALUES (
+        '${ts}', '${txId}', '${payload.location_id}', '${type}', '${cat}',
+        ${amount}, '${currency}', ${amount}, '', '', map()
+      )`;
+
+    const auth = Buffer.from(`${chUser}:${chPass}`).toString('base64');
+    await fetch(`http://${chHost}:${chPort}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+        'Authorization': `Basic ${auth}`,
+      },
+      body: query,
+    });
+  } catch (error) {
+    console.error(`[Kokonut] Failed to write financial event to ClickHouse:`, error);
   }
 }
