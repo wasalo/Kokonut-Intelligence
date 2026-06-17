@@ -33,7 +33,7 @@ def compute_allocated_shared_cost(
             COUNT(*) as allocation_count,
             COUNT(DISTINCT ca.crop_cycle_id) as cycles_allocated
         FROM crop_cost_allocation ca
-        JOIN expense_event ee ON ca.expense_event_id = ee.id
+        JOIN expense_event ee ON ca.expense_id = ee.id
         WHERE ee.location_id = %s
           AND ee.status IN ('verified', 'published')
           {date_filter}

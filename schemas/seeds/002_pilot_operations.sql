@@ -299,3 +299,51 @@ INSERT INTO crop_cost_allocation (id, crop_cycle_id, expense_id, allocation_meth
 ('d0000000-0000-0000-0000-000000000125', 'a0000000-0000-0000-0000-000000000044', 'e0000000-0000-0000-0000-000000000040', 'area_based', 1.76, 0.1176, 'Area-based allocation to Sweet Potato Cycle 1'),
 ('d0000000-0000-0000-0000-000000000126', 'a0000000-0000-0000-0000-000000000045', 'e0000000-0000-0000-0000-000000000040', 'area_based', 1.76, 0.1176, 'Area-based allocation to Beans Cycle 2')
 ON CONFLICT (id) DO NOTHING;
+
+-- Source lineage for MVP pilot operational records.
+UPDATE farm_activity
+SET schema_version = COALESCE(schema_version, 'operations-v1'),
+    source_system = COALESCE(source_system, 'pilot_seed'),
+    source_id = COALESCE(source_id, 'farm_activity:' || id::text),
+    source_raw = COALESCE(source_raw, jsonb_build_object(
+        'seed_file', '002_pilot_operations.sql',
+        'record_type', 'farm_activity',
+        'record_id', id::text
+    ))
+WHERE location_id = 'a0000000-0000-0000-0000-000000000001';
+
+UPDATE harvest_event
+SET schema_version = COALESCE(schema_version, 'operations-v1'),
+    source_system = COALESCE(source_system, 'pilot_seed'),
+    source_id = COALESCE(source_id, 'harvest_event:' || id::text),
+    source_raw = COALESCE(source_raw, jsonb_build_object(
+        'seed_file', '002_pilot_operations.sql',
+        'record_type', 'harvest_event',
+        'record_id', id::text,
+        'crop_cycle_id', crop_cycle_id::text
+    ))
+WHERE location_id = 'a0000000-0000-0000-0000-000000000001';
+
+UPDATE sales_event
+SET schema_version = COALESCE(schema_version, 'operations-v1'),
+    source_system = COALESCE(source_system, 'pilot_seed'),
+    source_id = COALESCE(source_id, 'sales_event:' || id::text),
+    source_raw = COALESCE(source_raw, jsonb_build_object(
+        'seed_file', '002_pilot_operations.sql',
+        'record_type', 'sales_event',
+        'record_id', id::text,
+        'crop_cycle_id', crop_cycle_id::text
+    ))
+WHERE location_id = 'a0000000-0000-0000-0000-000000000001';
+
+UPDATE expense_event
+SET schema_version = COALESCE(schema_version, 'operations-v1'),
+    source_system = COALESCE(source_system, 'pilot_seed'),
+    source_id = COALESCE(source_id, 'expense_event:' || id::text),
+    source_raw = COALESCE(source_raw, jsonb_build_object(
+        'seed_file', '002_pilot_operations.sql',
+        'record_type', 'expense_event',
+        'record_id', id::text,
+        'category', category
+    ))
+WHERE location_id = 'a0000000-0000-0000-0000-000000000001';

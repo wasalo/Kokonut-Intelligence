@@ -5,6 +5,10 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Fixed
+- **MVP definition-of-done runtime gaps**: Closed pilot lifecycle gaps so the seeded Kokonut Demo Farm can pass the full MVP verifier end-to-end. Pilot expenses and harvests now receive deterministic source lineage, MRV claim statuses normalize to canonical lifecycle values, public attestation summaries join through `subject_type/subject_id`, and dashboard/metric version seeds are applied by `seed-pilot.sh`.
+- **Metric computation runtime failures**: Fixed `allocated_shared_cost` to join `crop_cost_allocation.expense_id`, escaped the force-majeure `LIKE` pattern in `loss_rate_pct`, normalized `source_record_ids` before `metric_value` insertion, and added `--verify` support so computed MVP metrics can populate partner-safe public metric views.
+- **Schema idempotency with pilot data**: Expanded `schema_version.version`/master `schema_version` columns to `VARCHAR(50)`, normalized legacy lifecycle/indexer labels before enum checks, allowed zero-quantity/zero-amount secondary harvest and sale rows, and made unique constraints re-runnable on existing databases.
+- **Agent summary governance**: Added Directus `ai_summary` permissions for Agent Read-Only/Write/Full roles and tightened `services.agents.ai_summary` queries to read governed approved data (`verified`/`published`) for sales, expenses, and harvests.
 - **Forecast retained value runtime error** (`forecast/engine.py`): Moved retained-value calculation after `total_noi` aggregation so forecasts no longer reference `total_noi` before assignment.
 - **Revenue multiplier forecast timestamp mismatch**: Replaced `forecast_output.created_at` ordering with schema-aligned `forecast_output.calculated_at` in all 10 revenue multiplier dimensions and Fortune500 forecast integration.
 - **Revenue multiplier canonical schema alignment**: Replaced legacy placeholder table/column references (`sales`, `buyer`, `capital_event`, `crop_input`, `soil_health`, `shared_resource`, `fortune500_output`, `carbon_data`, `outputs`) with canonical PostgreSQL tables (`sales_event`, `partner`, `value_flow_event`, `expense_event`, `soil_sample`, `infrastructure_asset`, `environmental_baseline`, `forecast_output.value`) so all 10 dimensions run against the live schema.
@@ -16,6 +20,9 @@ All notable changes to the Kokonut Intelligence Platform.
 - **remote_sensing bbox PostGIS geometry** (`remote_sensing.py`): Changed `build_bbox()` from `json.dumps([west, south, east, north])` to `SRID=4326;POLYGON(...)` WKT format for proper PostGIS geometry storage.
 
 ### Added
+- **MVP definition-of-done verifier**: Added `tests/test_mvp_done.py` and `scripts/verify-mvp.sh` to assert pilot baselines, operational data, source lineage, governed metrics, environmental baselines, Web3 links, forecasts, dashboard datasets, public views, MRV/attestation readiness, schema/metric versions, and agent summary permissions. `ci-check.sh` now runs the verifier when the local database is available.
+- **Verified metric computation path**: `scripts/compute-metrics.sh` now runs `python3 -m services.metrics --compute --all-locations --verify --json`, producing verified metric values for public aggregate views after seeding.
+- **Digital Lego verification flag**: Added `digital_lego_usage.verified` plus index and pilot seed updates so `digital_lego_usage` metrics count approved Web3 interactions.
 - **Risk mitigation guardrails**: Added `024_metric_governance_enforcement.sql` to automatically bump `metric_definition.version` and create `metric_version` rows when metric semantics change.
 - **Milestone 3 Stage 1 — Source lineage completeness**: Created `schemas/postgres/023_source_lineage_fix.sql` migration to add missing `source_raw`, `updated_at`, `updated_by`, `verified_by`, `verified_at`, `rejection_reason`, `schema_version` columns to `loss_event`, `labor_event`, and `field_note` tables (all columns already existed from 009_operations_ux.sql — migration is idempotent)
 - **Milestone 2 Stage 1 — Evidence validation hooks**: Created `extensions/kokonut-hooks/src/evidence-helpers.ts` with `validateEvidenceUrls()` (max 10 files, URL length), `validateFileUpload()` (type whitelist, 50MB limit), and `validateFieldNoteImages()` (max 20 images, URL format check)
@@ -44,7 +51,7 @@ All notable changes to the Kokonut Intelligence Platform.
   - `baseline_cash_flow.py` — reads `location.baseline_cash_flow`
   - `baseline_cost.py` — reads `location.baseline_cost`
   - All 17 metric keys now have registered calculators
-- **Metric governance seed data**: `schemas/seeds/022_metric_governance.sql` — populates `validation_tests`, `report_usage`, and `deprecation_policy` for all 18 metric definitions
+- **Metric governance seed data**: `schemas/seeds/022_metric_governance.sql` — populates `validation_tests`, `report_usage`, and `deprecation_policy` for all 17 metric definitions
 - **Metric calculator tests**: `tests/test_metrics.py` — 12 tests covering calculator registration, formula correctness, governance fields, and structural validation
 - **OpenAPI spec**: Added `validation_tests`, `report_usage`, `deprecation_policy` to `MetricDefinition`, `MetricDefinitionCreate`, and `MetricDefinitionUpdate` schemas
 - **Data dictionary**: Updated metric table with `Report Usage` and `Validation` columns
@@ -76,7 +83,7 @@ All notable changes to the Kokonut Intelligence Platform.
   - Added `gnosis` and `celo` to `rpc_indexer.py --chain` CLI choices
   - Created `schemas/seeds/020_gnosis_chain.sql` — chain indexer status + 4 wallet profiles + Kokonut Treasury protocol record
 - **Modeled Outputs — Gap closure**:
-  - Created `schemas/seeds/021_metric_versions.sql` — seeded v1 for all 16 metric definitions
+  - Created `schemas/seeds/021_metric_versions.sql` — seeded v1 for governed metric definitions
   - Created `services/agents/ai_summary.py` — 3 generators (operations, financial, environmental) + combined + CLI with `--list`, `--verify`
   - Created `services/export/dataset_refresh.py` — executes stored SQL queries from `dashboard_dataset` + CLI with `--list`, `--all`
   - Added `--auto` flag to `services/export/report_generator.py` — generates all 5 report types in one run
@@ -166,6 +173,8 @@ All notable changes to the Kokonut Intelligence Platform.
   - `dashboards/directus/partner-operator.json` — 6 modules (operations overview, crop cycle status, sensor dashboard, open alerts, financial summary, recent expenses)
 
 ### Changed
+- `seed-pilot.sh` now applies required non-`*_pilot_*` MVP support seeds (`017_dashboard_datasets.sql`, `021_metric_versions.sql`, `022_metric_governance.sql`) and no longer masks SQL errors with `|| true`.
+- The MVP setup sequence is now `./scripts/seed.sh`, `./scripts/seed-pilot.sh`, `./scripts/compute-metrics.sh`, and `./scripts/verify-mvp.sh`; full local CI includes all four when Docker Compose database is running.
 - **Retry decorator**: Now catches only transient exceptions (`ConnectionError`, `TimeoutError`, `OSError`, `psycopg2.OperationalError`), not all `Exception` subclasses. Adds configurable jitter.
 - JavaScript and Python SDK examples now use the canonical `draft -> submitted -> verified -> published` lifecycle.
 - Documentation now states EAS/private-data boundaries, external `Kokonut-Agentic-Marketplace` scope, and deferred dApp session ingestion.
@@ -435,7 +444,7 @@ All notable changes to the Kokonut Intelligence Platform.
 - Docker Compose stack: PostgreSQL 14 + PostGIS 3.4, Directus 11.17.4, Redis 7, ClickHouse 25.3, Metabase
 - 8 PostgreSQL schema files with 58 custom tables across locations, crops, operations, finance, environmental, web3, modeled outputs, and governance domains
 - 19 expense categories seeded (12 direct, 7 shared)
-- 16 governed metric definitions with formulas, source tables, inclusion/exclusion rules
+- Governed metric definitions with formulas, source tables, inclusion/exclusion rules
 - TypeScript Directus extension (`kokonut-hooks`) with lifecycle hooks for NOI auto-calculation and workflow state machine
 - Python Baserow migration script with field mapping config and dry-run support
 - Shell scripts: `setup.sh` (bootstrap), `seed.sh` (schema + data), `backup.sh` (database backup), `schema-snapshot.sh` (Directus export)

@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--location-id", help="Location UUID")
     parser.add_argument("--period-start", help="Period start date (YYYY-MM-DD)")
     parser.add_argument("--period-end", help="Period end date (YYYY-MM-DD)")
+    parser.add_argument("--verify", action="store_true", help="Mark computed metric values as verified")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
@@ -68,7 +69,7 @@ def main():
             for loc in locations:
                 loc_id = str(loc[0])
                 loc_name = loc[1]
-                result = compute_all(conn, loc_id, args.period_start, args.period_end)
+                result = compute_all(conn, loc_id, args.period_start, args.period_end, verified=args.verify)
                 all_results[loc_name] = result
                 computed = result.get("total_computed", 0)
                 errors = result.get("total_errors", 0)
@@ -81,9 +82,9 @@ def main():
         if not args.location_id:
             parser.error("--compute requires --location-id (or use --all-locations)")
         if args.all:
-            result = compute_all(conn, args.location_id, args.period_start, args.period_end)
+            result = compute_all(conn, args.location_id, args.period_start, args.period_end, verified=args.verify)
         elif args.metric:
-            result = compute_metric(conn, args.metric, args.location_id, args.period_start, args.period_end)
+            result = compute_metric(conn, args.metric, args.location_id, args.period_start, args.period_end, verified=args.verify)
         else:
             parser.error("--compute requires --metric, --all, or --all-locations")
         conn.close()

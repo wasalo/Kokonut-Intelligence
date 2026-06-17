@@ -5,12 +5,15 @@ Reads metric definitions, dispatches to calculators, and writes results to metri
 """
 
 from datetime import datetime, timezone
+import re
 from typing import Dict, Any, Optional, List
 
 import psycopg2
 import psycopg2.extras
 
 from .calculators import CALCULATORS
+
+UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 
 def compute_metric(
@@ -19,6 +22,7 @@ def compute_metric(
     location_id: str,
     period_start: Optional[str] = None,
     period_end: Optional[str] = None,
+    verified: bool = False,
 ) -> Dict[str, Any]:
     """Compute a single metric and store the result."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -48,12 +52,18 @@ def compute_metric(
     # Store result with version metadata
     metadata = result.get("metadata", {})
     metadata["version"] = definition.get("version", 1)
+    source_record_ids = result.get("source_record_ids", []) or []
+    if isinstance(source_record_ids, str):
+        source_record_ids = [v.strip().strip('"') for v in source_record_ids.strip("{}").split(",") if v.strip()]
+    else:
+        source_record_ids = [str(v) for v in source_record_ids if v]
+    source_record_ids = [v for v in source_record_ids if UUID_RE.match(v)]
 
     cur.execute("""
         INSERT INTO metric_value
             (metric_id, location_id, period_start, period_end, value, unit,
-             computation_method, source_record_ids, computed_at, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
+             computation_method, source_record_ids, computed_at, verified, metadata)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::uuid[], NOW(), %s, %s)
         RETURNING id
     """, (
         definition["id"],
@@ -63,7 +73,8 @@ def compute_metric(
         result.get("value"),
         definition.get("unit"),
         result.get("computation_method", metric_key),
-        result.get("source_record_ids", []),
+        source_record_ids,
+        verified,
         json.dumps(metadata),
     ))
     row = cur.fetchone()
@@ -87,6 +98,7 @@ def compute_all(
     location_id: str,
     period_start: Optional[str] = None,
     period_end: Optional[str] = None,
+    verified: bool = False,
 ) -> Dict[str, Any]:
     """Compute all active metrics that have registered calculators."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -98,7 +110,7 @@ def compute_all(
     errors = []
     for key in keys:
         if key in CALCULATORS:
-            result = compute_metric(conn, key, location_id, period_start, period_end)
+            result = compute_metric(conn, key, location_id, period_start, period_end, verified=verified)
             if "error" in result:
                 errors.append({"metric_key": key, "error": result["error"]})
             else:

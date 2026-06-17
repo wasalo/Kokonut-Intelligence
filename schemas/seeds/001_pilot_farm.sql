@@ -8,6 +8,14 @@ INSERT INTO location (id, name, slug, description, country, region, sub_region, 
 ('a0000000-0000-0000-0000-000000000001', 'Kokonut Demo Farm — Kisumu', 'kokonut-demo-kisumu', 'Pilot farm in western Kenya for regenerative agriculture demonstration', 'Kenya', 'Nyanza', 'Kisumu County', 'Africa/Nairobi', -0.1000000, 34.7500000, 15000.00, 25000.00, 8000.00, 12000.00, 'active')
 ON CONFLICT (id) DO NOTHING;
 
+UPDATE location
+SET baseline_revenue = 15000.00,
+    baseline_asset_value = 25000.00,
+    baseline_cash_flow = 8000.00,
+    baseline_cost = 12000.00,
+    schema_version = COALESCE(schema_version, 'common-data-schema-v1')
+WHERE id = 'a0000000-0000-0000-0000-000000000001';
+
 -- Property
 INSERT INTO property (id, location_id, name, slug, property_type, area, area_unit, description, status) VALUES
 ('a0000000-0000-0000-0000-000000000005', 'a0000000-0000-0000-0000-000000000001', 'Kokonut Demo Property', 'kokonut-demo-property', 'titled', 15.00, 'hectares', 'Main property boundary for the Kisumu demo farm', 'active')

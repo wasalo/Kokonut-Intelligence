@@ -11,6 +11,21 @@ INSERT INTO mrv_claim (id, location_id, plot_id, claim_type, claim_date, claim_d
 ('a0000000-0000-0000-0000-000000000383', 'a0000000-0000-0000-0000-000000000001', NULL, 'vegetation_change', '2026-03-15', '{"baseline_ndvi": 0.35, "current_ndvi": 0.58, "delta": 0.23, "source": "sentinel-2"}', 'submitted', NULL, NULL, '2026-03-16 10:00:00+00')
 ON CONFLICT (id) DO NOTHING;
 
+UPDATE mrv_claim
+SET status = CASE
+        WHEN id IN ('a0000000-0000-0000-0000-000000000380', 'a0000000-0000-0000-0000-000000000381') THEN 'published'
+        WHEN id = 'a0000000-0000-0000-0000-000000000382' THEN 'verified'
+        ELSE status
+    END,
+    source_system = COALESCE(source_system, 'pilot_seed'),
+    source_id = COALESCE(source_id, 'mrv_claim:' || id::text),
+    source_raw = COALESCE(source_raw, jsonb_build_object(
+        'seed_file', '010_pilot_mrv_claims.sql',
+        'record_type', 'mrv_claim',
+        'record_id', id::text
+    ))
+WHERE location_id = 'a0000000-0000-0000-0000-000000000001';
+
 -- Verification Reviews
 INSERT INTO verification_review (id, claim_id, reviewer_id, review_date, method, result, notes, created_at) VALUES
 ('a0000000-0000-0000-0000-000000000390', 'a0000000-0000-0000-0000-000000000380', 'a0000000-0000-0000-0000-000000000060', '2026-03-18', 'lab_verification', 'approved', 'Lab results confirmed. Carbon gain of 3.4 t/ha is consistent with regenerative practice.', '2026-03-18 10:00:00+00'),

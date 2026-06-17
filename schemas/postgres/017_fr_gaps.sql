@@ -11,19 +11,32 @@ CREATE INDEX IF NOT EXISTS idx_treasury_capital_source ON treasury_event(capital
 -- FR7: Add user_id to digital_lego_usage for direct user linkage
 ALTER TABLE digital_lego_usage
     ADD COLUMN IF NOT EXISTS user_id UUID;
+ALTER TABLE digital_lego_usage
+    ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT FALSE;
 
 CREATE INDEX IF NOT EXISTS idx_dlego_user ON digital_lego_usage(user_id);
+CREATE INDEX IF NOT EXISTS idx_dlego_verified ON digital_lego_usage(verified);
 
 -- FR1: Add schema_version to master tables that lack it
-ALTER TABLE location ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
-ALTER TABLE farm ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
-ALTER TABLE plot ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
-ALTER TABLE partner ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
-ALTER TABLE infrastructure_asset ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
-ALTER TABLE staff ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
-ALTER TABLE crop ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
-ALTER TABLE expense_category ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
-ALTER TABLE capital_source ADD COLUMN IF NOT EXISTS schema_version VARCHAR(20) DEFAULT 'common-data-schema-v1';
+ALTER TABLE location ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+ALTER TABLE farm ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+ALTER TABLE plot ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+ALTER TABLE partner ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+ALTER TABLE infrastructure_asset ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+ALTER TABLE staff ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+ALTER TABLE crop ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+ALTER TABLE expense_category ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+ALTER TABLE capital_source ADD COLUMN IF NOT EXISTS schema_version VARCHAR(50) DEFAULT 'common-data-schema-v1';
+
+ALTER TABLE location ALTER COLUMN schema_version TYPE VARCHAR(50);
+ALTER TABLE farm ALTER COLUMN schema_version TYPE VARCHAR(50);
+ALTER TABLE plot ALTER COLUMN schema_version TYPE VARCHAR(50);
+ALTER TABLE partner ALTER COLUMN schema_version TYPE VARCHAR(50);
+ALTER TABLE infrastructure_asset ALTER COLUMN schema_version TYPE VARCHAR(50);
+ALTER TABLE staff ALTER COLUMN schema_version TYPE VARCHAR(50);
+ALTER TABLE crop ALTER COLUMN schema_version TYPE VARCHAR(50);
+ALTER TABLE expense_category ALTER COLUMN schema_version TYPE VARCHAR(50);
+ALTER TABLE capital_source ALTER COLUMN schema_version TYPE VARCHAR(50);
 
 -- FR10: Add high_risk flag and action initiator to agent tables
 ALTER TABLE agent_task ADD COLUMN IF NOT EXISTS high_risk BOOLEAN DEFAULT FALSE;

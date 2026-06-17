@@ -53,7 +53,7 @@ Kokonut Intelligence is an open-source platform for managing regenerative farm o
 
 ### Logging In
 
-1. Open your browser and go to `http://localhost:8055` (or your organization's Directus URL).
+1. Open your browser and go to `https://localhost/admin` for base Compose, or to your organization's Directus URL. If a local override exposes Directus directly, `http://localhost:8055` may also be available.
 2. Enter your email and password provided by your administrator.
 3. You'll land on the Directus home screen.
 
@@ -189,7 +189,7 @@ Every user is assigned a **role** that determines what they can see and do. Your
 
 **Your typical day:**
 1. Log in and browse verified/published data
-2. Use the Metabase dashboards (`http://localhost:3001`) for visual analysis
+2. Use the Metabase dashboards (`https://localhost/metabase` in base Compose) for visual analysis
 3. Export data to CSV/JSON for deeper analysis
 4. Run reports via the CLI or SDK
 
@@ -477,7 +477,7 @@ If the system suggests the wrong category, you can manually override it.
 
 To access the Dashboard module:
 
-1. Click the **Dashboard** icon in the left sidebar (or go to `http://localhost:8055/admin/content`)
+1. Click the **Dashboard** icon in the left sidebar, or use your organization's Directus admin URL
 2. Select the dashboard relevant to your role
 
 **Available dashboards by role:**
@@ -491,7 +491,7 @@ To access the Dashboard module:
 
 ### Metabase Dashboards
 
-Access Metabase at `http://localhost:3001` and log in with your credentials.
+Access Metabase at `https://localhost/metabase` in base Compose, or at your organization's Metabase URL, and log in with your credentials.
 
 **6 operational dashboards:**
 
@@ -527,8 +527,8 @@ The flagship platform-wide overview with 8 cards:
 
 | Dashboard | URL | Login |
 |-----------|-----|-------|
-| Directus | `http://localhost:8055` | Your Directus credentials |
-| Metabase | `http://localhost:3001` | Your Metabase credentials |
+| Directus | `https://localhost/admin` or organization URL | Your Directus credentials |
+| Metabase | `https://localhost/metabase` or organization URL | Your Metabase credentials |
 
 ---
 
@@ -638,18 +638,21 @@ python3 -m services.fortune500.cli --all
 Time-series projections with Monte Carlo simulation for uncertainty estimation.
 
 ```bash
-# Run forecast for 3, 6, or 12 months
-python3 -m services.forecast.cli --location-id <location-id>
+# List available forecast scenarios
+python3 -m services.forecast.cli --list
 
-# Custom horizon and simulations
-python3 -m services.forecast.cli --location-id <location-id> \
-  --months 12 --simulations 2000
+# Run all forecast scenarios for a location
+python3 -m services.forecast.cli --location-id <location-id> --all
+
+# Run or inspect a specific scenario
+python3 -m services.forecast.cli --scenario-id <scenario-id>
+python3 -m services.forecast.cli --scenario-id <scenario-id> --details
 
 # Compare scenarios
-python3 -m services.forecast.cli --location-id <location-id> --compare
+python3 -m services.forecast.cli --compare <scenario-id-1> <scenario-id-2>
 
 # Sensitivity analysis
-python3 -m services.forecast.cli --location-id <location-id> --sensitivity
+python3 -m services.forecast.cli --scenario-id <scenario-id> --sensitivity --variable price
 ```
 
 **Output:**
@@ -768,7 +771,7 @@ cd sdk/python && pip install -e .
 ```python
 from kokonut_sdk import KokonutClient
 
-client = KokonutClient("http://localhost:8055", "your-api-token")
+client = KokonutClient("https://localhost/directus", "your-api-token")
 
 # List farms
 farms = client.farms.list()
@@ -804,7 +807,7 @@ cd sdk/javascript && npm install && npm run build
 ```typescript
 import { KokonutClient } from '@kokonut/intelligence';
 
-const client = new KokonutClient('http://localhost:8055', 'your-api-token');
+const client = new KokonutClient('https://localhost/directus', 'your-api-token');
 
 // List active crop cycles
 const cycles = await client.cropCycleMethods.listActive();

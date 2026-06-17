@@ -37,6 +37,7 @@ def generate_operations_summary(conn, location_id: str) -> dict:
     cur.execute("""
         SELECT COUNT(*) as count, COALESCE(SUM(quantity), 0) as total_kg
         FROM harvest_event WHERE location_id = %s
+        AND status IN ('verified', 'published')
         AND harvest_date >= CURRENT_DATE - INTERVAL '90 days'
     """, (location_id,))
     harvests = dict(cur.fetchone())
@@ -46,7 +47,7 @@ def generate_operations_summary(conn, location_id: str) -> dict:
         SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total_usd
         FROM sales_event WHERE location_id = %s
         AND sale_date >= CURRENT_DATE - INTERVAL '90 days'
-        AND status != 'rejected'
+        AND status IN ('verified', 'published')
     """, (location_id,))
     sales = dict(cur.fetchone())
 
@@ -77,7 +78,8 @@ def generate_operations_summary(conn, location_id: str) -> dict:
     ]
 
     if sensors:
-        lines.append(f"**Sensors:** {', '.join(f\"{s['sensor_type']} ({s['count']} readings)\" for s in sensors)}")
+        sensor_strs = [f"{s['sensor_type']} ({s['count']} readings)" for s in sensors]
+        lines.append(f"**Sensors:** {', '.join(sensor_strs)}")
 
     return {
         "content": "\n".join(lines),
@@ -96,7 +98,7 @@ def generate_financial_summary(conn, location_id: str) -> dict:
         FROM sales_event se
         JOIN crop_cycle cc ON se.crop_cycle_id = cc.id
         JOIN crop c ON cc.crop_id = c.id
-        WHERE se.location_id = %s AND se.status != 'rejected'
+        WHERE se.location_id = %s AND se.status IN ('verified', 'published')
         GROUP BY c.name ORDER BY revenue DESC
     """, (location_id,))
     revenue_by_crop = [dict(r) for r in cur.fetchall()]
@@ -106,7 +108,7 @@ def generate_financial_summary(conn, location_id: str) -> dict:
         SELECT ec.name as category, COALESCE(SUM(ee.amount), 0) as total
         FROM expense_event ee
         JOIN expense_category ec ON ee.category = ec.name
-        WHERE ee.location_id = %s AND ee.status != 'rejected'
+        WHERE ee.location_id = %s AND ee.status IN ('verified', 'published')
         GROUP BY ec.name ORDER BY total DESC LIMIT 5
     """, (location_id,))
     expenses = [dict(r) for r in cur.fetchall()]
@@ -230,6 +232,8 @@ def generate_combined(conn, location_id: str) -> dict:
     all_sources = []
 
     for summary_type, gen_func in GENERATORS.items():
+        if summary_type == "combined":
+            continue
         result = gen_func(conn, location_id)
         sections.append(result["content"])
         all_sources.extend(result["source_tables"])

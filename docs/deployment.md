@@ -6,7 +6,7 @@
 
 - Docker Desktop (with Docker Compose v2)
 - 4GB+ RAM available for Docker
-- Ports available: 5432, 8055, 3001, 8123, 9000
+- Ports available for base Compose: 80 and 443. PostgreSQL, ClickHouse, Directus, and Metabase are internal Docker services unless a local override exposes additional ports.
 
 ### Quick Start
 
@@ -25,19 +25,26 @@ docker compose up -d
 # 4. Wait for health checks
 docker compose ps
 
-# 5. Apply schema and seed data
+# 5. Apply schema, seed data, metrics, and MVP checks
 ./scripts/seed.sh
+./scripts/seed-pilot.sh
+./scripts/compute-metrics.sh
+./scripts/verify-mvp.sh
 ```
 
 ### Service URLs
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Directus | http://localhost:8055 | Schema management, API, admin |
-| Metabase | http://localhost:3001 | Internal BI dashboards |
-| PostgreSQL | localhost:5432 | Canonical data store |
-| ClickHouse HTTP | http://localhost:8123 | Analytical queries |
-| ClickHouse Native | localhost:9000 | Native protocol |
+| Service | Base Compose URL | Purpose |
+|---------|------------------|---------|
+| Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
+| Directus | `https://localhost` or `https://localhost/directus` | Schema management, API, admin |
+| Directus admin | `https://localhost/admin` | Admin UI route through Caddy |
+| Metabase | `https://localhost/metabase` | Internal BI dashboards |
+| PostgreSQL | Docker service `database:5432` | Canonical data store |
+| ClickHouse HTTP | Docker service `clickhouse:8123` | Analytical queries |
+| ClickHouse Native | Docker service `clickhouse:9000` | Native protocol |
+
+Optional local overrides may expose Directus at `http://localhost:8055` and Metabase at `http://localhost:3001`. Use those direct URLs only when your Compose overlay maps the ports.
 
 ### Stopping Services
 
@@ -102,13 +109,13 @@ Ensure `KOKONUT_ENV=production` and all required secrets are set in the environm
 
 ### Production Compose
 
-For production deployments, use the production overlay to avoid exposing database ports and apply memory limits:
+For production deployments, use the production overlay to apply memory limits and keep database services internal:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
-Place Directus and Metabase behind a reverse proxy (nginx, Caddy) with TLS termination.
+Place Directus and Metabase behind Caddy or another reverse proxy with TLS termination.
 
 ### Environment Variables
 
@@ -170,7 +177,7 @@ cd contracts && forge script script/DeployKokonutResolver.s.sol \
 
 ### ClickHouse Configuration
 
-ClickHouse requires `listen_host: 0.0.0.0` to accept HTTP connections from the host. This is configured in `config/clickhouse/config.d/network.xml` and applied automatically by `seed.sh`.
+ClickHouse listens inside the Docker network for service-to-service access. Query it with `docker compose exec clickhouse ...` or expose its ports only through an intentional local override.
 
 ## Database Management
 

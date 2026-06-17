@@ -41,7 +41,7 @@ WHERE md.active = TRUE
 
 CREATE OR REPLACE VIEW v_public_attestation_summary AS
 SELECT
-    ar.location_id,
+    l.id AS location_id,
     l.name AS location_name,
     ar.claim_type,
     ar.chain,
@@ -50,6 +50,6 @@ SELECT
     MIN(ar.attested_at) AS first_attestation,
     MAX(ar.attested_at) AS latest_attestation
 FROM attestation_record ar
-JOIN location l ON ar.location_id = l.id
+JOIN location l ON ar.subject_type = 'location' AND ar.subject_id = l.id
 WHERE ar.status IN ('verified', 'published')
-GROUP BY ar.location_id, l.name, ar.claim_type, ar.chain;
+GROUP BY l.id, l.name, ar.claim_type, ar.chain;

@@ -30,6 +30,7 @@
 - Run CLI tests: `python3 -m tests.test_cli`
 - Run attestation tests: `python3 -m tests.test_attestation`
 - Run Directus metadata tests: `python3 -m tests.test_directus_metadata`
+- Verify MVP definition of done: `./scripts/verify-mvp.sh`
 - Run CI checks: `./scripts/ci-check.sh` (also runs on push via `.github/workflows/ci.yml`)
 - Build Solidity contracts: `cd contracts && forge build`
 - Run Solidity tests: `cd contracts && forge test`
@@ -39,6 +40,7 @@
 - Compute metrics: `python3 -m services.metrics --compute --metric value_flowed --location-id UUID`
 - Compute all metrics (single location): `python3 -m services.metrics --compute --all --location-id UUID`
 - Compute all metrics (all locations): `python3 -m services.metrics --compute --all-locations`
+- Compute all metrics as verified (all locations): `python3 -m services.metrics --compute --all-locations --verify`
 - Compute all metrics (script): `./scripts/compute-metrics.sh`
 - List metrics: `python3 -m services.metrics --list`
 - NDVI trends: `python3 -m services.analytics --ndvi-trends --location-id UUID`
@@ -74,6 +76,8 @@
 
 - Prefer the smallest schema/code change that fixes the issue.
 - Keep seed files idempotent with `ON CONFLICT` or equivalent guards.
+- `seed-pilot.sh` must fail on SQL errors; do not hide seed failures with `|| true`.
+- MVP setup order: `./scripts/seed.sh`, `./scripts/seed-pilot.sh`, `./scripts/compute-metrics.sh`, then `./scripts/verify-mvp.sh`.
 - Use Compose service names (`database`, `clickhouse`) instead of generated container names.
 - Do not print, copy, or commit secrets from `.env`.
 - Never commit private keys to Git. Bots exploit leaked secrets in seconds.
@@ -90,9 +94,12 @@
 - Use `try/finally` with `db.close()` for all PostgreSQL connection blocks in ingestion scripts.
 - `verify_review.result` uses `approved`/`rejected`/`needs_info`, not `verified`.
 - Field Worker create permissions exclude `status` — lifecycle starts at `draft` by default.
+- MVP-critical pilot `expense_event` and `harvest_event` rows require populated `source_system`, `source_id`, and `source_raw`.
 - `metric_value` table stores computed governed metric results.
-- Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate `metric_value`.
+- Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate verified `metric_value` rows for public metric views.
 - Metric governance: `metric_definition` has `validation_tests`, `report_usage`, `deprecation_policy` fields populated via `schemas/seeds/022_metric_governance.sql`.
+- Public aggregate views must not expose unverified metrics; `v_public_metric_summary` reads only `metric_value.verified = TRUE`.
+- Public attestation summaries join `attestation_record` to `location` through `subject_type = 'location'` and `subject_id`.
 - Baseline calculators (revenue, asset_value, cash_flow, cost) query the `location` table directly.
 - `revenue_multiplier_config` table stores dimension constants (DB-backed, not hardcoded).
 - Forecast engine writes per-cycle outputs with `crop_cycle_id`.
@@ -135,5 +142,6 @@
 
 - `metric_version` table tracks formula changes for each metric definition.
 - `ai_summary` generator writes structured text summaries to `ai_summary` table.
+- Agent-generated summaries must be drafts and must use approved governed data; Agent Write can create `ai_summary` but not publish it.
 - `dashboard_dataset` refresh executes stored SQL queries from `dashboard_dataset.sql_query`.
 - `report_snapshot` `--auto` flag generates all 5 report types in one run.

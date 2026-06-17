@@ -5,8 +5,8 @@
 
 -- Chain indexer status for Celo
 INSERT INTO chain_indexer_status (id, chain, indexer_type, last_synced_block, last_synced_at, status) VALUES
-('a0000000-0000-0000-0000-0000000001d0', 'celo', 'rpc', 0, NOW(), 'pending'),
-('a0000000-0000-0000-0000-0000000001d1', 'celo', 'eas', 0, NOW(), 'pending')
+('a0000000-0000-0000-0000-0000000001d0', 'celo', 'rpc', 0, NOW(), 'syncing'),
+('a0000000-0000-0000-0000-0000000001d1', 'celo', 'eas', 0, NOW(), 'syncing')
 ON CONFLICT (chain, indexer_type) DO UPDATE SET
     status = EXCLUDED.status,
     updated_at = NOW();

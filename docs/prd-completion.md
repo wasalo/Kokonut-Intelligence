@@ -14,6 +14,7 @@ This note tracks the PRD completion layer added on top of the existing Directus/
 - Development-only local CID helper under `services/storage/`.
 - Registry, MRV, attestation, and agent helper CLIs under `services/registry/`, `services/attestation/`, and `services/agents/`.
 - EAS on Celo mainnet: 5 schemas registered, KokonutResolver deployed and owned by Kokonut multisig, attestation CLI supports onchain and offchain attestations.
+- Pilot dApp session seed data and governed digital lego usage metrics for MVP Web3 engagement reporting.
 
 ## Lifecycle
 
@@ -33,6 +34,6 @@ This repository stores agent metadata, capability manifests, task records, actio
 
 Contract identity, x402/ERC-8004 payments, escrow, marketplace routing, and reputation logic remain external and are attributed to `Kokonut-Agentic-Marketplace`.
 
-## Deferred
+## Deferred / External
 
-DApp session ingestion and metrics are intentionally deferred. The current implementation keeps the canonical data model ready for governed data and agent access without adding session collection, wallet session analytics, or dApp usage metrics.
+Live dApp session ingestion, wallet-session analytics pipelines, agent contract identity, payments, escrow, marketplace routing, and reputation logic remain external to this repository. The current implementation includes pilot session data and governed metric support so MVP reporting can verify Web3 engagement without introducing marketplace/payment logic here.

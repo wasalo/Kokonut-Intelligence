@@ -30,7 +30,7 @@ Register Schema → Create Claim → Verify → Publish On-Chain → Query Attes
 1. **Register Schema** — Define what fields the attestation will contain
 2. **Create Claim** — Build a claim from operational data (harvest, expense, etc.)
 3. **Verify** — Human or agent review before on-chain submission
-4. **Publish On-Chain** — Submit the signed attestation to EAS on Optimism/Base and mark the lifecycle record as published
+4. **Publish On-Chain** — Submit the signed attestation to EAS on Celo and mark the lifecycle record as published
 5. **Query Attestations** — Retrieve and display verified claims
 
 ## Database Schema
@@ -94,10 +94,11 @@ The indexer pulls attestations from the EAS GraphQL API into `attestation_record
 ### Run the Indexer
 
 ```bash
-# Index from Optimism (default)
-python3 -m services.ingestion.eas_indexer --chain optimism
+# Index from Celo (primary Kokonut attestation chain)
+python3 -m services.ingestion.eas_indexer --chain celo
 
-# Index from Base
+# Index from supported secondary chains
+python3 -m services.ingestion.eas_indexer --chain optimism
 python3 -m services.ingestion.eas_indexer --chain base
 
 # Dry run
@@ -123,7 +124,7 @@ python3 -m services.attestation \
   --event-type mrv_submission \
   --payload-file public-mrv.json \
   --private-payload-file private-evidence.json \
-  --chain optimism \
+  --chain celo \
   --pin-local
 ```
 
@@ -134,17 +135,19 @@ The command returns `payload_cid`, `payload_hash`, and `private_payload_hash`. S
 ### Query Attestations via Directus REST
 
 ```bash
+DIRECTUS_URL=${DIRECTUS_URL:-https://localhost/directus}
+
 # All published harvest MRV claims
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/attestation_record?filter[status][eq]=published&filter[claim_type][eq]=mrv&fields[]=*&sort[]=-attested_at"
+curl -k -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/attestation_record?filter[status][eq]=published&filter[claim_type][eq]=mrv&fields[]=*&sort[]=-attested_at"
 
 # Attestations for a specific harvest event
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/attestation_record?filter[subject_id][eq]=HARVEST_UUID&fields[]=*,schema_id.name"
+curl -k -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/attestation_record?filter[subject_id][eq]=HARVEST_UUID&fields[]=*,schema_id.name"
 
 # Attestation schemas
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/attestation_schema?filter[active][eq]=true&fields[]=name&fields[]=schema_text&fields[]=chain"
+curl -k -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/attestation_schema?filter[active][eq]=true&fields[]=name&fields[]=schema_text&fields[]=chain"
 ```
 
 ### Query via Directus GraphQL
@@ -190,7 +193,7 @@ VALUES (
     'Soil Carbon Measurement',
     'Attests to soil carbon measurements from certified labs.',
     'uint256 locationId, uint256 carbonTonnesPerHa, uint256 measurementDate, string methodology, address lab',
-    'optimism',
+    'celo',
     true
 );
 ```
@@ -212,7 +215,7 @@ INSERT INTO attestation_record (
     claim_data, status, chain
 ) VALUES (
     'SCHEMA_UUID', 'impact', 'LOCATION_UUID', 'location',
-    '{"locationId": 1, "carbonTonnesPerHa": 42}', 'draft', 'optimism'
+    '{"locationId": 1, "carbonTonnesPerHa": 42}', 'draft', 'celo'
 );
 ```
 

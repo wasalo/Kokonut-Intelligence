@@ -19,7 +19,7 @@ Add platform screenshots here for documentation. Recommended sizes:
 ## How to Capture
 
 1. Start services: `docker compose up -d`
-2. Access Directus at http://localhost:8055
-3. Access Metabase at http://localhost:3001
+2. Access Directus at https://localhost/admin, or http://localhost:8055 if a local override exposes Directus directly
+3. Access Metabase at https://localhost/metabase, or http://localhost:3001 if a local override exposes Metabase directly
 4. Take screenshots of key workflows
 5. Save to this directory

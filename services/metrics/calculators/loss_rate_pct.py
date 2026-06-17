@@ -30,7 +30,7 @@ def compute_loss_rate_pct(
         date_filter += " AND he.harvest_date <= %s"
         params.append(period_end)
 
-    fm_filter = " AND (he.loss_reason IS NULL OR LOWER(he.loss_reason) NOT LIKE '%force majeure%')"
+    fm_filter = " AND (he.loss_reason IS NULL OR LOWER(he.loss_reason) NOT LIKE '%%force majeure%%')"
 
     cur.execute(f"""
         SELECT

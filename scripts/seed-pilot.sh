@@ -49,7 +49,19 @@ SEED_DIR="$PROJECT_DIR/schemas/seeds"
 for seed_file in "$SEED_DIR"/*_pilot_*.sql; do
     filename=$(basename "$seed_file")
     echo "  Applying: $filename"
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$seed_file" 2>&1 | grep -v "^SET$\|^$\|^INSERT 0" || true
+    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$seed_file"
+done
+
+# MVP support seeds whose filenames are not *_pilot_*.sql.
+for seed_file in \
+    "$SEED_DIR/017_dashboard_datasets.sql" \
+    "$SEED_DIR/021_metric_versions.sql" \
+    "$SEED_DIR/022_metric_governance.sql"; do
+    if [ -f "$seed_file" ]; then
+        filename=$(basename "$seed_file")
+        echo "  Applying: $filename"
+        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$seed_file"
+    fi
 done
 
 echo ""
@@ -78,8 +90,8 @@ echo "  - 5 digital lego interactions"
 echo "  - 12 dapp sessions"
 echo "  - 2 attestation schemas + 4 records"
 echo "  - 3 forecast scenarios (Baseline, Optimistic, Conservative)"
-echo "  - 24 forecast outputs"
-echo "  - 3 NOI snapshots"
+echo "  - forecast outputs and NOI snapshots"
+echo "  - dashboard datasets and metric version records"
 echo ""
 echo "Next steps:"
 echo "  1. Access Directus at http://localhost:8055"

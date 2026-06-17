@@ -70,6 +70,8 @@ echo "[4/8] Seed idempotency check..."
 if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --status running --services 2>/dev/null | grep -qx 'database'; then
     check "seed.sh idempotent" "bash $SCRIPT_DIR/seed.sh"
     check "seed-pilot.sh idempotent" "bash $SCRIPT_DIR/seed-pilot.sh"
+    check "compute metrics" "bash $SCRIPT_DIR/compute-metrics.sh"
+    check "MVP definition of done" "bash $SCRIPT_DIR/verify-mvp.sh"
 else
     echo "  ⚠ Database not running — skipping seed checks"
 fi

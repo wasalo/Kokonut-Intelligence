@@ -16,7 +16,7 @@ Built into Directus. Configure dashboards entirely through the admin UI with no 
 
 ### Setup
 
-1. Open Directus at `http://localhost:8055`
+1. Open Directus at `https://localhost/admin` in base Compose, or at your organization's Directus URL
 2. Navigate to **Dashboards** → **Create Dashboard**
 3. Add panels using the visual editor:
    - **Metric panel**: Single value (e.g., total harvest this month)
@@ -43,11 +43,11 @@ VALUES (
 
 ### Embedding
 
-Use the Directus embed URL:
+Use the Directus embed URL. Base Compose routes Directus through Caddy; direct `http://localhost:8055` URLs only work when a local override exposes that port.
 
 ```html
 <iframe
-  src="http://localhost:8055/dashboards/DASHBOARD_ID"
+  src="https://localhost/directus/dashboards/DASHBOARD_ID"
   width="100%"
   height="600"
   frameborder="0"
@@ -60,7 +60,7 @@ Metabase provides full BI capabilities with signed embedding for secure partner 
 
 ### Setup
 
-1. Open Metabase at `http://localhost:3001`
+1. Open Metabase at `https://localhost/metabase` in base Compose, or at your organization's Metabase URL
 2. Connect to the `kokonut_intelligence` PostgreSQL database
 3. Create questions and dashboards in Metabase
 4. Enable embedding in **Admin → Embedding**
@@ -84,7 +84,8 @@ def get_metabase_embed_url(resource_id, params=None):
         "exp": int(time.time()) + 300,  # 5 min expiry
     }
     token = jwt.encode(payload, METABASE_SECRET, algorithm="HS256")
-    return f"http://localhost:3001/embed/dashboard/{token}"
+    metabase_url = os.environ.get("METABASE_URL", "https://localhost/metabase")
+    return f"{metabase_url}/embed/dashboard/{token}"
 ```
 
 ### Parameterized Filters
@@ -93,7 +94,7 @@ Pass filter values to embedded dashboards:
 
 ```html
 <iframe
-  src="http://localhost:3001/embed/dashboard/TOKEN?location=costa-rica&crop=coffee"
+  src="https://localhost/metabase/embed/dashboard/TOKEN?location=costa-rica&crop=coffee"
   width="100%"
   height="600"
   frameborder="0"
@@ -135,7 +136,7 @@ npm install @directus/sdk
 ```typescript
 import { createDirectus, rest, authentication } from "@directus/sdk";
 
-const directus = createDirectus("http://localhost:8055")
+const directus = createDirectus(process.env.DIRECTUS_URL ?? "https://localhost/directus")
   .with(rest())
   .with(authentication());
 

@@ -68,7 +68,7 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
   // Step 1: Get all sales for this crop cycle
   const salesResult = await db('sales_event')
     .where('crop_cycle_id', cropCycleId)
-    .whereNot('status', 'rejected')
+    .whereIn('status', ['verified', 'published'])
     .select(
       db.raw('COALESCE(SUM(total_amount), 0) as gross'),
       db.raw('COALESCE(SUM(return_amount), 0) as returns'),
@@ -101,7 +101,7 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
   // Step 4: Get harvest data for loss rate
   const harvestResult = await db('harvest_event')
     .where('crop_cycle_id', cropCycleId)
-    .whereNot('status', 'rejected')
+    .whereIn('status', ['verified', 'published'])
     .select(
       db.raw('COALESCE(SUM(quantity), 0) as total_harvest'),
       db.raw('COALESCE(SUM(loss_amount), 0) as total_loss')
@@ -200,7 +200,7 @@ export async function batchCalculateNoi(locationId?: string): Promise<NoiCalcula
 export async function calculateLossRate(cropCycleId: string): Promise<number> {
   const harvestResult = await db('harvest_event')
     .where('crop_cycle_id', cropCycleId)
-    .whereNot('status', 'rejected')
+    .whereIn('status', ['verified', 'published'])
     .select(
       db.raw('COALESCE(SUM(quantity), 0) as total_harvest'),
       db.raw('COALESCE(SUM(loss_amount), 0) as total_loss')

@@ -9,7 +9,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "=== Kokonut Intelligence — Metric Computation ==="
 
-python3 -m services.metrics --compute --all-locations --json
+python3 -m services.metrics --compute --all-locations --verify --json
 
 echo ""
 echo "=== Metric computation complete ==="

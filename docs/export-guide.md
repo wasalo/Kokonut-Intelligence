@@ -169,7 +169,8 @@ def verify_snapshot(snapshot_data, expected_hash):
 
 ```bash
 # Trigger a CSV export via Directus Flow (if configured)
-curl -X POST http://localhost:8055/flows/trigger/EXPORT_FLOW_ID \
+DIRECTUS_URL=${DIRECTUS_URL:-https://localhost/directus}
+curl -k -X POST "$DIRECTUS_URL/flows/trigger/EXPORT_FLOW_ID" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -183,13 +184,13 @@ curl -X POST http://localhost:8055/flows/trigger/EXPORT_FLOW_ID \
 
 ```bash
 # Get the latest export file URL
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/export_log?sort[]=-created_at&limit=1&fields[]=file_url"
+curl -k -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/export_log?sort[]=-created_at&limit=1&fields[]=file_url"
 
 # Download
-curl -H "Authorization: Bearer $TOKEN" \
-  "$(curl -s -H "Authorization: Bearer $TOKEN" \
-    "http://localhost:8055/items/export_log?sort[]=-created_at&limit=1&fields[]=file_url" \
+curl -k -H "Authorization: Bearer $TOKEN" \
+  "$(curl -sk -H "Authorization: Bearer $TOKEN" \
+    "$DIRECTUS_URL/items/export_log?sort[]=-created_at&limit=1&fields[]=file_url" \
     | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['file_url'])")" \
   -o export.csv
 ```
@@ -235,7 +236,7 @@ SELECT COUNT(*) FROM harvest_event WHERE status = 'verified';
 Ensure ClickHouse is running and accessible:
 
 ```bash
-curl http://localhost:8123/ping
+docker compose exec clickhouse wget --spider -q http://localhost:8123/ping
 ```
 
 ### Snapshot hash doesn't match

@@ -2,19 +2,22 @@
 
 ## Directus REST API
 
-Base URL: `http://localhost:8055`
+Base URL through base Compose Caddy: `https://localhost/directus`
+
+If a local Compose override exposes Directus directly, `http://localhost:8055` can also be used. The examples below use `DIRECTUS_URL` so both modes work.
 
 ### Authentication
 
 ```bash
 # Login
-curl -X POST http://localhost:8055/auth/login \
+DIRECTUS_URL=${DIRECTUS_URL:-https://localhost/directus}
+curl -k -X POST "$DIRECTUS_URL/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email": "admin@kokonut.network", "password": "YOUR_PASSWORD"}'
 
 # Use token
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-  http://localhost:8055/items/location
+curl -k -H "Authorization: Bearer YOUR_TOKEN" \
+  "$DIRECTUS_URL/items/location"
 ```
 
 ### Core Endpoints
@@ -65,15 +68,15 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 
 ```bash
 # Get all active locations
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/location?filter={\"status\":{\"_eq\":\"active\"}}"
+curl -k -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/location?filter={\"status\":{\"_eq\":\"active\"}}"
 
 # Get crop cycles with related data
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/crop_cycle?fields=*,plot_id.name,crop_id.name"
+curl -k -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/crop_cycle?fields=*,plot_id.name,crop_id.name"
 
 # Create an expense event
-curl -X POST -H "Authorization: Bearer $TOKEN" \
+curl -k -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "location_id": "UUID",
@@ -84,11 +87,11 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
     "vendor": "AgroSupplies Co",
     "status": "draft"
   }' \
-  "http://localhost:8055/items/expense_event"
+  "$DIRECTUS_URL/items/expense_event"
 
 # Aggregate: total expenses by category
-curl -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/expense_event/aggregate?groupBy=category&aggregate=sum:amount"
+curl -k -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/expense_event/aggregate?groupBy=category&aggregate=sum:amount"
 ```
 
 ## Registry, MRV, Attestation, And Agent Collections
@@ -129,27 +132,27 @@ python3 -m services.agents --validate manifest.json --pin-local
 ## GraphQL
 
 ```bash
-curl -X POST -H "Authorization: Bearer $TOKEN" \
+curl -k -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "{ location { id name slug farms { id name plots { id area } } } }"
   }' \
-  http://localhost:8055/graphql
+  "$DIRECTUS_URL/graphql"
 ```
 
 ## ClickHouse HTTP API
 
-Base URL: `http://localhost:8123`
+Base URL inside the Docker network: `http://clickhouse:8123`
+
+Base Compose does not expose ClickHouse to the host. Use `docker compose exec clickhouse ...`, run clients from another service on the Docker network, or expose `8123` intentionally in a local override before using host `localhost:8123` examples.
 
 ```bash
-# Query (with auth)
-curl -u "kokonut:YOUR_PASSWORD" \
-  "http://localhost:8123/?query=SELECT+count()+FROM+events_raw"
+# Query through docker exec
+docker compose exec clickhouse clickhouse-client \
+  --user kokonut --password YOUR_PASSWORD \
+  --query "SELECT count() FROM events_raw"
 
-# Insert via POST body
-curl -u "kokonut:YOUR_PASSWORD" \
-  -X POST -d "INSERT INTO weather_events FORMAT JSONEachRow {...}" \
-  "http://localhost:8123/"
+# HTTP inserts are used by services on the Docker network.
 
 # Native protocol (port 9000)
 docker compose exec clickhouse \
@@ -164,7 +167,7 @@ Directus has native MCP support for AI agents. Configure via Directus settings o
 // Example: Using Directus SDK with MCP
 import { createDirectus, rest } from '@directus/sdk';
 
-const client = createDirectus('http://localhost:8055').with(rest());
+const client = createDirectus(process.env.DIRECTUS_URL ?? 'https://localhost/directus').with(rest());
 
 // Agent reads location data
 const locations = await client.request(

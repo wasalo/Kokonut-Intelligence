@@ -1,711 +1,275 @@
 # Kokonut Intelligence Platform
 
-Open-source intelligence layer for regenerative farm operations, financial performance, ecological outcomes, and Web3 verification.
+Open-source intelligence layer for regenerative farm operations, financial performance, ecological outcomes, partner reporting, and Web3 verification.
+
+PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores analytical events. Python services compute metrics, forecasts, exports, registry payloads, AI summaries, and ingestion jobs. EAS on Celo anchors public verification metadata while private evidence stays offchain.
+
+## Table Of Contents
+
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Local Services](#local-services)
+- [MVP Verification](#mvp-verification)
+- [Core Capabilities](#core-capabilities)
+- [Data Lifecycle And Roles](#data-lifecycle-and-roles)
+- [Metrics And Intelligence](#metrics-and-intelligence)
+- [Web3 Verification](#web3-verification)
+- [Dashboards Reports And Export](#dashboards-reports-and-export)
+- [Agents Registry And MCP](#agents-registry-and-mcp)
+- [Developer Commands](#developer-commands)
+- [Repository Layout](#repository-layout)
+- [Security And Privacy](#security-and-privacy)
+- [Documentation](#documentation)
+- [License](#license)
 
 ## Architecture
 
 | Layer | Technology | Role |
-|-------|-----------|------|
+|-------|------------|------|
 | Canonical core | PostgreSQL 14 + PostGIS 3.4 + Directus 11.17 | Schema, API, permissions, workflows, data entry UI |
-| Analytics | ClickHouse 25.3 | Time-series, events, high-volume analytical queries |
-| BI | Metabase | Internal dashboards, aggregate reporting |
-| Intelligence | Python services | Fortune 500 scoring, forecasting, partner dashboards |
-| Verification | EAS on Celo + evidence storage | Onchain attestations, offchain signed claims, MRV proof |
-| Blockchain | RPC + Subgraphs + Foundry | On-chain data ingestion, smart contracts |
+| Analytics | ClickHouse 25.3 | Time-series events and high-volume analytical queries |
+| BI | Metabase | Internal dashboards and aggregate reporting |
+| Intelligence | Python services | Metrics, forecasts, scoring, exports, ingestion, AI summaries |
+| Verification | EAS on Celo + offchain evidence storage | Onchain attestations, offchain signed claims, MRV proof metadata |
+| Contracts | Foundry + Solidity | KokonutResolver attester gating for EAS schemas |
 
-## Features, Capabilities & Possibilities
-
-### Multi-Source Data Ingestion
-
-Pull operational, environmental, and financial data from diverse sources into a single governed schema:
-
-- **Weather** — OpenWeatherMap API with temperature, precipitation, humidity, wind, and cloud cover
-- **Blockchain Activity** — Wallet balances, transfers, and contract interactions across Ethereum, Optimism, Base, Arbitrum, Celo, and Gnosis Chain (Moloch DAO)
-- **Remote Sensing** — NDVI, NDRE, EVI, SAVI, and canopy cover from Sentinel-2, Landsat, drone, and MODIS
-- **Commodity Markets** — World Bank Pink Sheet prices for coffee, cocoa, palm oil, rice, maize, sugar, tea, and banana
-- **IoT Sensors** — Soil moisture, temperature, humidity, rainfall, and pH with range validation and quality flagging
-- **EAS Attestations** — Onchain and offchain attestation ingestion from Celo, Optimism, and Base
-
-All ingestion is dual-written to PostgreSQL (operational) and ClickHouse (analytical) for optimal query performance.
-
-### Smart Analytics & Intelligence
-
-- **Fortune 500 Farm Scoring** — Weighted 4-pillar composite score (0–1000) across Financial (45%), Ecological (25%), Governance (15%), and Growth (15%). Farms are classified into tiers: Platinum (800+), Gold (600+), Silver (400+), Bronze (200+), or Developing. Each farm receives a detailed scorecard with benchmark comparisons against regional baselines.
-
-- **Ecological Analytics** — Soil carbon delta tracking (baseline vs. latest tonnes/ha), biodiversity index computation using the Shannon diversity index, NDVI vegetation index trends, water resilience scoring, crop diversity analysis, intervention impact tracking, soil health assessment (condition rating, pH, organic matter), water access summary (source types, infrastructure), environmental baseline snapshot, and side-by-side forecast scenario comparison.
-
-  The **Shannon diversity index** (H') measures ecosystem health by accounting for both the number of species present (richness) and how evenly individuals are distributed among them (evenness). A higher index indicates a more diverse and resilient ecosystem. For example, a plot with 10 species evenly distributed scores higher than one dominated by a single species, even if both have the same total species count.
-
-- **Revenue Forecasting** — Scenario-based projections of revenue, NOI, yield, and cash flow using Monte Carlo simulation with configurable confidence intervals (70%–95%).    Per-cycle outputs with `crop_cycle_id` for crop-level granularity, carbon sequestration estimation (tonnes CO2e + USD value) from soil organic matter changes, biodiversity credit pricing from species observations, retained value projection from historical reinvestment rates, and per-square-meter revenue projection from bed-area formula.
-
-  **Monte Carlo simulation** runs thousands of randomized trials, sampling from probability distributions of key variables (price, yield, cost) to model the range of possible outcomes. Instead of a single point estimate, it produces a distribution of results with confidence bands — showing not just what is expected, but how uncertain that expectation is. This lets farm managers understand best-case, worst-case, and most-likely scenarios before committing resources.
-
-- **Revenue Multiplier Opportunity Map** — 10-dimension analysis identifying the largest revenue uplift opportunities for a farm, each scored with a USD impact estimate and confidence level:
-  1. Crop mix optimization
-  2. Loss-rate reduction
-  3. Buyer/channel selection
-  4. Value-added processing
-  5. Web3-funded replication
-  6. Bioinput production
-  7. Public-goods funding loops
-  8. Ecological verification (carbon credits, biodiversity credits, impact certificates)
-  9. Partner sponsorship
-  10. Regional farm clusters
-
-### Web3 Verification & Attestation
-
-- **EAS on Celo** — 5 registered schemas (MRV, impact, financial, harvest, compliance) with EAS v1.3.0 on Celo mainnet
-- **Onchain & Offchain Attestations** — Publish verifiable claims onchain, or sign gasless EIP-712 offchain attestations for high-frequency workflows
-- **KokonutResolver** — Custom attester-gating smart contract, owned by Kokonut multisig
-- **Private Data** — Offchain storage with onchain hashes; selective disclosure via EAS PrivateData; full ZK proofs as a future layer
-
-### Governed Workflow & Metrics
-
-- **4-Stage Lifecycle** — Draft → Submitted → Verified → Published, with role-based approval routing and rejected-path rework
-- **Metric Computation Engine** — 17 computed metrics via calculator plugin pattern, with CLI for on-demand or batch computation. Results stored in `metric_value` with source lineage. Supports single-location, all-metrics, or all-locations computation.
-- **Auto-Calculated Metrics** — NOI, loss rate, operating margin, labor cost, and net amount computed automatically on data changes
-- **AI-Assisted Data Entry** — Expense auto-categorization (40+ keyword rules), amount validation with suspicious-value flagging, harvest quantity validation against expected yield, date sanity checks, and field note summarization
-- **Full Audit Trail** — Every state transition logged to `workflow_history` with user, timestamp, and from/to state
-
-### Reporting, Dashboards & Export
-
-- **4 Partner Dashboards** — Buyer, Funder, Vendor, and Operator views with row-level security ensuring partners only see their own data
-- **5 Metabase Operational Dashboards** — Farm operations, crop NOI, expense tracker, harvest/sales trends, and loss rate analysis
-- **Multi-Format Export** — CSV, JSON, or Parquet from PostgreSQL or ClickHouse with rich filter syntax
-- **Hash-Verified Report Snapshots** — Deterministic JSON reports with SHA-256 integrity verification
-
-### Agent & Developer Ecosystem
-
-- **Agent Capability Manifests** — JSON manifests describing agent inputs, outputs, and pricing for marketplace integration
-- **Agent Task Management** — Task execution, review status, and action audit logging
-- **Python & JavaScript/TypeScript SDKs** — Typed clients with CRUD operations, auth, and aggregation
-- **MCP Integration** — AI agent access via scoped tokens with full audit logging
-- **50+ Governed Metrics** — Version-controlled metric definitions with formulas, validation tests, and deprecation policies
-
-### What You Can Build
-
-- **Regenerative Farm Verification** — End-to-end MRV pipelines that collect ground, remote, and community evidence, then anchor verified claims onchain for carbon credit markets and impact investors
-- **Automated Attestation Workflows** — Agent-driven or scheduled attestation publishing that moves records through governed lifecycle stages without manual intervention
-- **Multi-Farm Portfolio Intelligence** — Score, rank, and compare farms across financial, ecological, and governance dimensions to identify top performers and intervention opportunities
-- **Partner-Facing Dashboards** — Role-scoped views for buyers, funders, vendors, and operators that surface only relevant data with real-time metric updates
-- **Revenue Optimization** — Use the 10-dimension Revenue Multiplier to identify the highest-impact opportunities for each farm, from crop mix changes to ecological verification revenue
-- **AI Agent Orchestration** — Deploy governed agents that read canonical data, execute tasks, produce attestations, and log actions — all within the platform's permission and audit framework
-- **Carbon & Biodiversity Credit Markets** — Track soil carbon deltas, compute biodiversity indices, and generate verified impact attestations for sale on voluntary carbon markets
-- **Predictive Farm Management** — Run Monte Carlo forecasts and sensitivity analyses to stress-test farm financials under different price, yield, and cost scenarios
+See [Architecture](docs/architecture.md) for system design, data flow, and security model details.
 
 ## Quick Start
 
 ```bash
-# 1. Clone and configure
+# 1. Configure environment
 cp .env.example .env
-# Edit .env with your secrets
+# Edit .env with local secrets before starting services.
 
 # 2. Start infrastructure
 docker compose up -d
 
-# 3. Verify health
-docker compose ps
+# 3. Apply schema, base seeds, and pilot data
+./scripts/seed.sh
+./scripts/seed-pilot.sh
 
-# 4. Access Directus (admin UI + data entry)
-open http://localhost:8055
+# 4. Compute verified governed metrics for public views
+./scripts/compute-metrics.sh
 
-# 5. Access Metabase (BI dashboards)
-open http://localhost:3001
+# 5. Verify the MVP definition of done
+./scripts/verify-mvp.sh
 ```
 
-## Services
+Run the full local check with:
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| Caddy | https://localhost | TLS termination, reverse proxy, security headers |
-| Directus | /directus or http://localhost:8055 | Schema management, API, admin UI, primary data entry |
-| Metabase | /metabase or http://localhost:3001 | Internal BI dashboards |
-| ClickHouse | *(internal only)* | Analytical queries (Docker network) |
-| PostgreSQL | *(internal only)* | Canonical data store (Docker network) |
+```bash
+./scripts/ci-check.sh
+```
 
-## Roles
+For sandbox-specific setup, see [Developer Sandbox](docs/sandbox.md). For deployment guidance, see [Deployment](docs/deployment.md).
+
+## Local Services
+
+Base `docker-compose.yml` exposes Caddy on the host and keeps PostgreSQL, ClickHouse, Directus, and Metabase on Docker networks unless an overlay or local override maps additional ports.
+
+| Service | Base URL | Notes |
+|---------|----------|-------|
+| Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
+| Directus API | `https://localhost/directus` | Canonical API and data access |
+| Directus admin | `https://localhost/admin` | Admin UI and data entry |
+| Metabase | `https://localhost/metabase` | BI dashboards |
+| PostgreSQL | Docker service `database:5432` | Canonical data store; use `docker compose exec database ...` |
+| ClickHouse | Docker service `clickhouse:8123` | Analytical store; use Docker network or `docker compose exec clickhouse ...` |
+
+Optional local overrides may expose Directus at `http://localhost:8055` and Metabase at `http://localhost:3001`. Use those direct URLs only if your Compose override maps the ports.
+
+## MVP Verification
+
+The MVP verifier checks a seeded pilot database, not just source files. It asserts that operational records, source lineage, governed metric values, public views, MRV/attestation readiness, forecasts, dashboard datasets, environmental baselines, Web3 usage, schema versions, metric versions, and agent summary permissions are present and coherent.
+
+```bash
+./scripts/seed.sh
+./scripts/seed-pilot.sh
+./scripts/compute-metrics.sh
+./scripts/verify-mvp.sh
+```
+
+`./scripts/compute-metrics.sh` runs `python3 -m services.metrics --compute --all-locations --verify --json`, so public aggregate views only surface verified metric results.
+
+## Core Capabilities
+
+- **Governed farm operations**: Activities, harvests, sales, expenses, losses, labor, field notes, inventory, maintenance, revenue events, and partner-scoped access through Directus.
+- **Multi-source ingestion**: Weather, market prices, remote sensing, sensors, EAS attestations, Gnosis DAO activity, wallet events, and GIS boundaries through `services/ingestion/`.
+- **Metrics and reporting**: Versioned metric definitions, calculator-backed `metric_value` records, public aggregate views, dashboard datasets, report snapshots, and CSV/JSON/Parquet exports.
+- **Forecasting and analytics**: Scenario forecasts, Fortune 500-style farm scoring, ecological analytics, water access, revenue multiplier opportunity maps, and AI-generated summaries.
+- **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, and public attestation summaries.
+- **Agent ecosystem**: Agent identities, capability manifests, tasks, action logs, AI summaries, and scoped MCP/Directus access. Contract identity, payments, escrow, and marketplace logic remain external to this repo.
+
+## Data Lifecycle And Roles
+
+Governed records use the canonical lifecycle:
+
+```text
+draft -> submitted -> verified -> published
+```
+
+`rejected` is available for rework and exception paths. Payment, attestation, execution, and domain-specific states live in dedicated fields such as `payment_status`, `attestation_uid`, `attested_at`, `execution_status`, and `revocation_date`.
 
 | Role | Access | Description |
 |------|--------|-------------|
-| Administrator | Full | Platform admin, all permissions |
-| Field Worker | Create/read own location | Field data entry: activities, harvests, expenses, sales, losses, notes. Cannot set `status` on create (lifecycle starts at `draft`) |
-| Supervisor | Read all, submit | Can submit records for approval, read all locations |
-| Manager | Approve all | Can approve/verify all operational records |
-| Finance | Approve expenses, verify sales, approve revenue | Approves expense claims, verifies sales transactions, approves revenue events |
-| Analyst | Read verified/published | Read-only access to verified data for analysis |
+| Administrator | Full | Platform admin and all permissions |
+| Field Worker | Create/read scoped records | Data entry; records start as `draft` and create permissions exclude lifecycle audit fields |
+| Supervisor | Read all, submit | Submits records for review |
+| Manager | Approve/verify operational records | Reviews and verifies governed operations |
+| Finance | Finance approvals | Approves expenses, verifies sales, and approves revenue events |
+| Analyst | Read verified/published | Read-only analysis over governed data |
 
-## Workflow
+See [User Guide](docs/user-guide.md) for role workflows and data-entry walkthroughs.
 
-Every operational record follows: **Draft → Submitted → Verified → Published**
+## Metrics And Intelligence
 
+The metric engine stores computed results in `metric_value` with source lineage, computation method, metadata, period, and verification state. Current registered calculator keys are:
+
+`value_flowed`, `wallet_retention`, `digital_lego_usage`, `attestation_coverage`, `soil_carbon_delta`, `biodiversity_delta`, `operating_margin_pct`, `crop_revenue`, `net_crop_revenue`, `direct_crop_cost`, `allocated_shared_cost`, `crop_noi`, `loss_rate_pct`, `baseline_revenue`, `baseline_asset_value`, `baseline_cash_flow`, `baseline_cost`.
+
+```bash
+# List metric definitions
+python3 -m services.metrics --list
+
+# Compute one metric for one location
+python3 -m services.metrics --compute --metric value_flowed --location-id UUID
+
+# Compute all metrics for all locations and mark results verified
+python3 -m services.metrics --compute --all-locations --verify
 ```
-Field Worker creates record (draft)
-    ↓
-Supervisor submits for review (submitted)
-    ↓
-Manager/Finance approves or rejects (verified/rejected)
-    ↓
-Published — available to dashboards and analysts
+
+Additional intelligence services include:
+
+| Service | Example |
+|---------|---------|
+| Fortune 500 farm scoring | `python3 -m services.fortune500.cli --all` |
+| Forecast scenarios | `python3 -m services.forecast.cli --all` |
+| Forecast details | `python3 -m services.forecast.cli --scenario-id UUID --details` |
+| Revenue multiplier | `python3 -m services.revenue_multiplier.cli --location-id UUID` |
+| Environmental analytics | `python3 -m services.analytics --environmental-baseline --location-id UUID` |
+| AI summary | `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined` |
+
+See [Data Dictionary](docs/data-dictionary.md) for governed metric definitions and [User Guide](docs/user-guide.md) for analytics workflows.
+
+## Web3 Verification
+
+Celo is the primary EAS attestation chain. EAS v1.3.0 is deployed on Celo mainnet, and `KokonutResolver` gates attestation to allowed attesters under Kokonut multisig ownership.
+
+README intentionally links to the source-of-truth EAS details instead of duplicating schema UIDs and contract tables:
+
+- [Attestation Guide](docs/attestation-guide.md)
+- `services/attestation/config.py`
+- `services/attestation/schemas.py`
+- `schemas/seeds/014_pilot_celo_eas.sql`
+- `contracts/src/KokonutResolver.sol`
+
+Common commands:
+
+```bash
+python3 -m services.attestation.cli info --chain celo
+python3 -m services.attestation.cli schema list
+python3 -m services.attestation.cli query --uid 0xATTESTATION_UID --chain celo
 ```
 
-Expenses use the same lifecycle; payment is tracked separately with `payment_status`.
+## Dashboards Reports And Export
 
-## Security & Data Integrity
+The platform supports Directus partner dashboards, Metabase operational dashboards, refreshable dashboard datasets, deterministic report snapshots, and exports from PostgreSQL or ClickHouse.
 
-- **No hardcoded secrets** — `services/common/db.py` requires `POSTGRES_PASSWORD` and `CLICKHOUSE_PASSWORD` via environment variables. No dev fallbacks in source.
-- **No exposed database ports** — PostgreSQL and ClickHouse ports are not mapped to the host; accessible only via Docker network.
-- **Rate limiting** — Directus rate limiting enabled (100 req/s general, 5 login attempts per 15-min lockout).
-- **CORS restriction** — `CORS_ORIGIN` configurable; defaults to `http://localhost:8055,http://localhost:3001`.
-- **Public access control** — `PUBLIC_RESTRICT=true` disables unauthenticated data access.
-- **Named Docker networks** — `databases` (database, cache, clickhouse) and `apps` (directus, metabase) isolate service tiers.
-- **ClickHouse SQL safety** — All HTTP inserts validate interpolated values against strict regex patterns (`_UUID_RE`, `_TS_RE`, `_SENSOR_TYPE_RE`) before SQL interpolation.
-- **Workflow accountability** — `verified_by`, `rejected_by`, and `submitted_by` are stamped from `meta.accountability.user` on every state transition.
-- **Field Worker scoping** — Create permissions exclude `status`, `submitted_by`, `verified_by`, `rejected_by`, and all lifecycle audit fields. Records always start as `draft`.
-- **Role-based approval routing** — `inventory_event`, `maintenance_event`, and `dashboard_dataset` are routed through manager/admin roles (not unrestricted).
-- **Nonce management** — EAS transactions use a single `get_nonce()` call per transaction (no double-consumption).
-- **Connection lifecycle** — All PostgreSQL connection blocks use `try/finally` with `db.close()`.
-- **Role cache TTL** — Role lookups cached for 5 minutes; stale entries auto-expire.
-- **Pending transitions cap** — Workflow state stashes expire after 30 minutes; max 1000 entries to prevent memory leaks.
+```bash
+# Refresh dashboard datasets
+python3 -m services.export.dataset_refresh --all
 
-## Registry, MRV, And Agents
+# Generate all report types for a location
+python3 -m services.export.report_generator --auto --location-id UUID
 
-The PRD completion layer adds Kokonut farm registry, MRV, attestation request, and agent metadata support while keeping PostgreSQL and Directus as the canonical secure API layer.
+# Export a collection
+python3 -m services.export.exporter --collection expense_event --format csv --output exports/
+```
 
-| Area | Tables / Services | Scope |
-|------|-------------------|-------|
-| Farm Registry | `farm_registry_record`, `services.registry` | Kokonut Common Data Schema onboarding and validation |
-| MRV | `mrv_event`, environmental lineage fields | Ground, remote, and community evidence metadata |
-| EAS Requests | `attestation_request`, `services.attestation` | Public payload hashes/CIDs and private payload hashes only |
-| Agent Metadata | `agent_identity`, `agent_capability_manifest`, `agent_task`, `agent_action_log`, `services.agents` | Metadata and task records; marketplace contract/payment logic stays external |
-| Local CID | `services.storage` | Development-only `local://sha256/<hash>` content addressing |
+See [Partner Dashboards](docs/partner-dashboards.md) and [Export Guide](docs/export-guide.md).
+
+## Agents Registry And MCP
+
+The registry and agent layer adds Kokonut Common Data Schema records, MRV event metadata, attestation requests, agent capability manifests, agent tasks, agent action logs, and AI summaries while keeping Directus/PostgreSQL as the governed API and data layer.
 
 ```bash
 # Print a Common Data Schema example
 python3 -m services.registry --example-farm-record
 
-# Prepare local EAS request metadata from JSON
-python3 -m services.attestation --subject-type mrv_event --subject-id UUID --event-type mrv_submission --payload-file payload.json
+# Prepare public/private-hash attestation request metadata
+python3 -m services.attestation --subject-type mrv_event --subject-id UUID --event-type mrv_submission --payload-file public.json --private-payload-file private.json
 
 # Print an agent capability manifest example
 python3 -m services.agents --example kokonut-mrv-reporter
 ```
 
-See `docs/prd-completion.md`, `docs/attestation-guide.md`, and `docs/agent-access.md` for scope and privacy boundaries.
+See [Agent Access](docs/agent-access.md) and [PRD Completion Scope](docs/prd-completion.md) for privacy and marketplace boundaries.
 
-### EAS on Celo
+## Developer Commands
 
-Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet.
-
-**Deployed Contracts:**
-
-| Contract | Address | Explorer |
-|----------|---------|----------|
-| EAS | `0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92` | [celoscan.io](https://celoscan.io/address/0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92) |
-| SchemaRegistry | `0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34` | [celoscan.io](https://celoscan.io/address/0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34) |
-| KokonutResolver | `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` | [celoscan.io](https://celoscan.io/address/0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad) |
-
-**Registered Schemas:**
-
-| Schema | UID | Use Case |
-|--------|-----|----------|
-| `kokonut-mrv` | `0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54` | MRV claims (location, crop, quantity, evidence) |
-| `kokonut-impact` | `0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe` | Environmental impact (soil carbon, biodiversity, NDVI) |
-| `kokonut-financial` | `0x75b42beb85dd852134dfaff3de41b8dc361ed0cb2bf93ce3009c8ec082de905b` | Financial summaries (NOI, revenue, costs) |
-| `kokonut-harvest` | `0xb359f9756e3cb3597e4048dccae2842083359906fbae8dc8c0e9af8ac1b3ccff` | Harvest verification (quantity, quality, date) |
-| `kokonut-compliance` | `0x59632edcf1d04be0c2dcfd572282bbd4dac518e7a92872ec45ade29876ef95f5` | Partner compliance and audit trails |
-
-**Attester wallets:** Deployer `0x3394C45b5938127EB56603A6051dF26CFAF08C26` + Kokonut multisig `0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5`
-
-**Resolver ownership:** Transferred to Kokonut multisig.
-
-```bash
-# Show chain config and attester info
-python3 -m services.attestation.cli info --chain celo
-
-# List available schema definitions
-python3 -m services.attestation.cli schema list
-
-# Create an onchain attestation on Celo
-python3 -m services.attestation.cli attest \
-  --schema 0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54 \
-  --recipient 0xRECIPIENT \
-  --data '[{"name":"locationId","type":"string","value":"..."}]' \
-  --chain celo
-
-# Create a gasless offchain attestation (EIP-712 signed)
-python3 -m services.attestation.cli offchain-attest \
-  --schema 0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54 \
-  --recipient 0xRECIPIENT \
-  --data '[{"name":"locationId","type":"string","value":"..."}]' \
-  --chain celo
-
-# Query an attestation from onchain
-python3 -m services.attestation.cli query --uid 0xATTESTATION_UID --chain celo
-```
-
-**Smart contracts** are under `contracts/` (Foundry project). The `KokonutResolver` gates attestation to allowed attesters. Build and test with `forge build` and `forge test`.
-
-## Data Entry
-
-Directus Studio at `http://localhost:8055` is the primary data entry interface.
-
-**Supported entry types:**
-- Farm activities (planting, weeding, irrigation, spraying, harvesting)
-- Harvest events with quantity, quality, and loss tracking
-- Expenses with category auto-suggestion and amount validation
-- Sales with automatic net amount calculation
-- Loss/incident records with severity and mitigation
-- Labor events with automatic cost calculation
-- Field notes with photo capture and auto-summarization
-
-**AI-assisted features (rule-based):**
-- Expense auto-categorization from description text
-- Amount validation with suspicious-value flagging
-- Harvest quantity validation against expected yield
-- Date validation (no future dates, no >1yr old expenses)
-- Field note summarization for long content
-- Automatic cost calculations (labor, loss value)
-
-## Schema Management
-
-Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus snapshots capture the API-layer state. The migration runner tracks applied files in `schema_migration` with checksums and timing.
-
-```bash
-# Apply all schemas and seed data
-./scripts/seed.sh
-
-# Apply a single schema file
-docker compose exec database psql -U kokonut -d kokonut_intelligence -f /path/to/schema.sql
-
-# Snapshot Directus schema
-./scripts/schema-snapshot.sh
-
-# Migration runner — show status
-python3 -m services.migration status
-
-# Migration runner — apply pending
-python3 -m services.migration migrate
-
-# Migration runner — dry-run
-python3 -m services.migration dry-run
-```
-
-## Directory Structure
-
-```
-├── config/
-│   ├── postgres/       # PostgreSQL init scripts
-│   ├── clickhouse/     # ClickHouse config
-│   └── directus/       # Directus permissions SQL
-├── contracts/          # Foundry project (Solidity)
-│   ├── src/
-│   │   └── KokonutResolver.sol   # EAS resolver (attester gating)
-│   ├── script/
-│   │   └── DeployKokonutResolver.s.sol
-│   ├── test/
-│   │   └── KokonutResolver.t.sol
-│   └── lib/            # OpenZeppelin, EAS contracts
-├── schemas/
-│   ├── postgres/       # 20 schema files, 50+ tables
-│   ├── seeds/          # Base and pilot seed data (22 files)
-│   ├── directus/       # Directus snapshots
-│   └── clickhouse/     # Analytical schemas (6 tables + 8 views)
-├── sdk/
-│   ├── javascript/     # JS/TS SDK wrapper + examples
-│   └── python/         # Python SDK wrapper + examples
-├── services/
-│   ├── ingestion/      # External data ingestion scripts
-│   │   ├── base.py     # Common utilities (DB, logging, retry)
-│   │   ├── config.py   # API keys and connection config
-│   │   ├── weather.py  # OpenWeatherMap ingestion
-│   │   ├── rpc_indexer.py    # Ethereum/L2 wallet activity
-│   │   ├── market_data.py    # Commodity prices
-│   │   ├── remote_sensing.py # NDVI/NDRE CSV upload
-│   │   ├── eas_indexer.py    # EAS attestation ingestion (Celo/Optimism/Base)
-│   │   ├── gnosis_indexer.py # Gnosis Chain Moloch DAO event indexer
-│   │   ├── sensor_ingester.py # Sensor CSV + single reading
-│   │   ├── mock_sensors.py   # Mock sensor data generator
-│   │   └── anomaly_detector.py # Threshold-based alert engine
-│   ├── attestation/    # EAS attestation service
-│   │   ├── cli.py            # CLI: schema, attest, offchain-attest, revoke, query, info
-│   │   ├── eas_client.py     # EASClient (web3.py contract wrapper)
-│   │   ├── schema_encoder.py # SchemaEncoder (ABI encode/decode)
-│   │   ├── signer.py         # Wallet/signer management
-│   │   ├── offchain.py       # Offchain EIP-712 signed attestations
-│   │   ├── publisher.py      # Onchain attestation orchestration
-│   │   ├── schemas.py        # 5 Kokonut schema definitions
-│   │   ├── payload.py        # Privacy-preserving request metadata
-│   │   ├── config.py         # EAS chain config + contract addresses
-│   │   └── contracts/        # EAS + SchemaRegistry ABIs
-│   ├── analytics/      # Intelligence services
-│   │   ├── cli.py            # CLI for ecology analytics
-│   │   ├── ecology.py        # Soil carbon, biodiversity, NDVI, water, crop diversity, intervention, soil health, water access, environmental baseline
-│   │   └── fortune500/
-│   │       ├── calculator.py # Farm scoring engine
-│   │       └── cli.py        # CLI for scoring + ranking
-│   ├── revenue_multiplier/ # Module C: Revenue Multiplier Opportunity Map
-│   │   ├── models.py         # OpportunityDimension, RevenueMultiplierMap
-│   │   ├── analyzer.py       # Main orchestrator
-│   │   ├── cli.py            # CLI for opportunity analysis
-│   │   ├── config.py         # DB-backed configurable constants
-│   │   └── dimensions/       # 10 dimension analyzers
-│   │       ├── crop_mix.py
-│   │       ├── loss_reduction.py
-│   │       ├── buyer_channel.py
-│   │       ├── value_added.py
-│   │       ├── web3_replication.py
-│   │       ├── bioinput.py
-│   │       ├── public_goods.py
-│   │       ├── ecological_verification.py
-│   │       ├── partner_sponsorship.py
-│   │       └── regional_clusters.py
-│   ├── metrics/        # Metric computation engine
-│   │   ├── engine.py         # compute_metric, compute_all orchestrators
-│   │   ├── cli.py            # --compute, --list, --all, --all-locations flags
-│   │   └── calculators/      # 13 metric calculators
-│   │       ├── value_flowed.py
-│   │       ├── wallet_retention.py
-│   │       ├── digital_lego.py
-│   │       ├── attestation_coverage.py
-│   │       ├── soil_carbon_delta.py
-│   │       ├── biodiversity_delta.py
-│   │       └── operating_margin.py
-│   ├── forecast/       # Forecast engine (16 outputs)
-│   │   ├── engine.py         # Scenario-based NOI, revenue, yield forecasting
-│   │   ├── cli.py            # CLI for forecasts, comparisons, sensitivity
-│   │   ├── config.py         # Forecast configuration
-│   │   ├── models.py         # Data models
-│   │   ├── pricing.py        # Price projections
-│   │   ├── yield_forecast.py # Yield projections + per-m² logic
-│   │   ├── cost_forecast.py  # Cost projections
-│   │   ├── ecology.py        # Ecological score projections
-│   │   └── risk.py           # Risk adjustment + confidence intervals
-│   ├── export/         # Data export and report generation
-│   │   ├── exporter.py       # CSV/JSON/Parquet export
-│   │   ├── report_generator.py # Report snapshots with hash verification (--auto)
-│   │   └── dataset_refresh.py # Dashboard dataset refresh engine
-│   ├── registry/       # Common Data Schema + MRV payload helpers
-│   ├── agents/         # Agent capability manifest + AI summary
-│   │   └── ai_summary.py     # AI summary generator (operations, financial, environmental)
-│   └── storage/        # Local development CID adapter
-├── extensions/
-│   └── kokonut-hooks/  # Directus lifecycle hooks
-│       └── src/
-│           ├── index.ts              # Hook registration
-│           ├── workflow.ts           # State machine + role routing
-│           ├── metrics-calculator.ts # NOI, loss rate, operating margin
-│           └── ai-helpers.ts         # Auto-categorization, validation
-├── migrations/         # Baserow migration scripts
-├── scripts/            # Setup, seed, backup, snapshot, compute-metrics
-├── tests/              # Smoke, CLI, seed idempotency, attestation, metadata tests
-├── docs/               # Architecture, data dictionary, API reference, attestation guide
-└── dashboards/
-    ├── metabase/       # Metabase dashboard definitions
-    └── directus/       # Partner dashboard templates (buyer, funder, vendor, operator)
-```
-
-## External Data Ingestion
-
-Python scripts in `services/ingestion/` fetch data from external APIs and insert into the canonical schema.
-
-| Script | Source | Target Tables | Status |
-|--------|--------|---------------|--------|
-| `weather.py` | OpenWeatherMap API | `weather_observation` + ClickHouse `weather_events` | Working |
-| `rpc_indexer.py` | Ethereum/L2 public RPC | `wallet_activity_event` + ClickHouse `wallet_events` | Working |
-| `market_data.py` | World Bank Pink Sheet (seed data) | `price_observation` | Working |
-| `remote_sensing.py` | Manual CSV upload | `remote_sensing_observation` | Working |
-| `eas_indexer.py` | EAS GraphQL API (Celo/Optimism/Base) | `attestation_record` + `attestation_schema` | Working |
-| `gnosis_indexer.py` | Gnosis Chain RPC (Moloch DAO events) | `wallet_activity_event` + ClickHouse `wallet_events` | Working |
-| `sensor_ingester.py` | CSV / single reading | `sensor_reading` + ClickHouse `sensor_readings` | Working |
-| `mock_sensors.py` | Internal (test data) | `sensor_device` + `sensor_reading` + ClickHouse | Working |
-| `anomaly_detector.py` | Threshold rules | `sensor_alert` + auto MRV claims | Working |
-
-```bash
-# Run weather ingestion
-python3 -m services.ingestion.weather
-
-# Run RPC indexer for specific chain
-python3 -m services.ingestion.rpc_indexer --chain ethereum
-
-# Upload remote sensing CSV
-python3 -m services.ingestion.remote_sensing --file data/sample_remote_sensing.csv
-
-# Seed commodity prices
-python3 -m services.ingestion.market_data
-
-# Index EAS attestations
-python3 -m services.ingestion.eas_indexer --chain optimism
-
-# Index Gnosis Chain Moloch DAO events
-python3 -m services.ingestion.gnosis_indexer
-
-# Sensor ingestion (batch CSV)
-python3 -m services.ingestion.sensor_ingester --file data/sensors.csv
-
-# Generate mock sensor data (for testing)
-python3 -m services.ingestion.mock_sensors --setup
-python3 -m services.ingestion.mock_sensors --generate --count 96 --anomalies
-
-# Run anomaly detection
-python3 -m services.ingestion.anomaly_detector
-```
-
-## Data Lifecycle
-
-Every important record follows: **Draft → Submitted → Verified → Published**
-
-- **Draft:** Record created; source payload preserved where available
-- **Submitted:** Mapped to Kokonut canonical schema and submitted for review
-- **Verified:** Reviewed, validated, linked to evidence
-- **Published:** Available to dashboards, APIs, attestations
-
-## Metrics
-
-The platform auto-calculates governed metrics on data changes:
-
-| Metric | Trigger | Description |
-|--------|---------|-------------|
-| Crop NOI | harvest/sales/expense create | Net revenue minus direct costs minus allocated shared costs |
-| Loss Rate | harvest create | Loss amount as percentage of total harvest |
-| Operating Margin | NOI recalculation | NOI as percentage of net revenue |
-| Net Amount | sales create/update | Total minus returns minus discounts (clamped to zero minimum) |
-| Labor Cost | labor event create | Hours worked times hourly rate |
-
-### Computed Metrics (Metric Engine)
-
-Additional metrics computed on-demand via `python3 -m services.metrics`:
-
-| Metric | Calculator | Description |
-|--------|-----------|-------------|
-| Value Flowed | `value_flowed` | Sum of verified, non-excluded value flow events (USD) |
-| Wallet Retention | `wallet_retention` | Percentage of wallets active in both measurement periods |
-| Digital Lego Usage | `digital_lego` | Distinct DeFi protocols used per location |
-| Attestation Coverage | `attestation_coverage` | Published attestations / eligible records × 100 |
-| Soil Carbon Delta | `soil_carbon_delta` | Latest − baseline soil organic carbon (tonnes/ha) |
-| Biodiversity Delta | `biodiversity_delta` | Species count change + Shannon index delta |
-| Operating Margin % | `operating_margin` | NOI / net revenue × 100 |
-| Crop NOI | `crop_noi` | Net revenue − direct costs − allocated shared costs |
-| Loss Rate | `loss_rate` | Loss amount as percentage of total harvest |
-| Crop Cost | `crop_cost` | Sum of direct and allocated shared costs |
-| Revenue per Ha | `revenue_per_ha` | Net revenue / farm area |
-| Cost per Ha | `cost_per_ha` | Total cost / farm area |
-| Net Crop Revenue | `net_crop_revenue` | Total revenue minus returns and discounts |
-| Crop NOI per Ha | `crop_noi_per_ha` | Crop NOI / farm area |
-
-```bash
-# Compute a specific metric for a location
-python3 -m services.metrics --compute --metric value_flowed --location-id UUID
-
-# Compute all available metrics for a location
-python3 -m services.metrics --compute --all --location-id UUID
-
-# Compute all metrics for all locations
-python3 -m services.metrics --compute --all-locations
-
-# Or use the convenience script (post-seed)
-./scripts/compute-metrics.sh
-
-# List all registered metric definitions
-python3 -m services.metrics --list
-```
-
-## AI Summary & Dataset Refresh
-
-```bash
-# Generate AI summary for a location (operations, financial, environmental, or combined)
-python3 -m services.agents.ai_summary --location-id UUID
-python3 -m services.agents.ai_summary --location-id UUID --type financial
-
-# Refresh dashboard datasets (executes stored SQL from dashboard_dataset table)
-python3 -m services.export.dataset_refresh --all
-python3 -m services.export.dataset_refresh --list
-
-# Auto-generate all 5 report types in one run
-python3 -m services.export.report_generator --auto --location-id UUID
-```
-
-## Developer SDK
-
-JavaScript/TypeScript and Python SDKs for programmatic access to the platform.
-
-```bash
-# JavaScript/TypeScript
-cd sdk/javascript && npm install && npm run build
-# See sdk/javascript/examples/ for usage
-
-# Python
-cd sdk/python && pip install -e .
-# See sdk/python/examples/ for usage
-```
-
-## Developer Sandbox
-
-Full local Docker environment with pre-seeded data and API keys.
-
-```bash
-# Start sandbox
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up -d
-
-# Setup API keys and sample data
-./scripts/sandbox-setup.sh
-
-# Follow the hello-world tutorial
-open docs/sandbox.md
-```
-
-## Data Export
-
-Export data to CSV, JSON, or Parquet from PostgreSQL or ClickHouse.
-
-```bash
-# Export expenses to CSV
-python3 -m services.export.exporter --collection expense_event --format csv --output exports/
-
-# Export sensor readings from ClickHouse
-python3 -m services.export.exporter --collection sensor_readings --format json --source clickhouse --output exports/
-
-# Generate a farm summary report
-python3 -m services.export.report_generator --type farm_summary --location-id UUID
-```
-
-## Pilot Farm Seed Data
-
-Pre-seeded data for the Kokonut Demo Farm (Kisumu, Kenya) across 14 pilot seed files, plus 2 base seed files:
-
-| File | Content |
+| Task | Command |
 |------|---------|
-| `001_pilot_farm.sql` | Location, farm, plots, crops, crop cycles, partners, staff, infrastructure |
-| `002_pilot_operations.sql` | Activities, harvests, sales, expenses, losses, labor, field notes |
-| `003_pilot_environmental.sql` | Soil samples, weather, remote sensing, sensors, alerts |
-| `004_pilot_web3.sql` | Wallet activity, digital lego usage, attestations, chain indexer status |
-| `005_pilot_forecasts.sql` | Forecast scenarios, forecast outputs, NOI snapshots |
-| `006_pilot_farm_dao.sql` | Governance events, metric definitions, treasury events |
-| `007_pilot_prices.sql` | Crop and commodity price observations |
-| `008_pilot_capital_flows.sql` | Capital sources, value flows, cash-flow snapshots |
-| `009_pilot_carbon_biodiversity.sql` | Soil carbon measurements, species observations, environmental baselines |
-| `010_pilot_mrv_claims.sql` | MRV claims and verification reviews |
-| `011_pilot_partners_extended.sql` | Additional buyers and cross-buyer sales |
-| `012_pilot_bioinputs.sql` | Bioinput expenses and biofactory infrastructure |
-| `013_pilot_registry_mrv_agents.sql` | Farm registry, inventory, maintenance, revenue, MRV events, attestation requests, agent metadata |
-| `014_pilot_celo_eas.sql` | Celo chain indexer status and EAS schema registrations |
-| `015_revenue_multiplier_config.sql` | 48 configurable constants for revenue multiplier dimensions |
-| `016_pilot_dapp_sessions.sql` | 12 dApp session records for Web3 engagement tracking |
-| `017_dashboard_datasets.sql` | 5 dashboard dataset definitions for BI integration |
-| `018_module_e_water_access.sql` | 3 water access records (borehole, rainwater, river) |
-| `019_per_sqm_pilot.sql` | Plot bed data for per-square-meter revenue projection |
-| `020_gnosis_chain.sql` | Gnosis Chain indexer status + Kokonut DAO wallet profiles |
-| `021_metric_versions.sql` | Metric version records for all 16 metric definitions |
+| Start services | `docker compose up -d` |
+| Apply schemas/base seeds | `./scripts/seed.sh` |
+| Apply pilot data | `./scripts/seed-pilot.sh` |
+| Compute verified metrics | `./scripts/compute-metrics.sh` |
+| Verify MVP DoD | `./scripts/verify-mvp.sh` |
+| Run full local CI | `./scripts/ci-check.sh` |
+| Run smoke tests | `python3 -m tests.test_smoke` |
+| Run CLI tests | `python3 -m tests.test_cli` |
+| Run attestation tests | `python3 -m tests.test_attestation` |
+| Run Directus metadata tests | `python3 -m tests.test_directus_metadata` |
+| Migration status | `python3 -m services.migration status` |
+| Apply migrations | `python3 -m services.migration migrate` |
+| Build Solidity contracts | `cd contracts && forge build` |
+| Test Solidity contracts | `cd contracts && forge test` |
 
-```bash
-# Seed all pilot farm data
-./scripts/seed-pilot.sh
+## Repository Layout
 
-# Or run individual files
-docker compose exec -T database psql -U kokonut -d kokonut_intelligence \
-  < schemas/seeds/001_pilot_farm.sql
+```text
+config/             Docker, PostgreSQL, ClickHouse, Caddy, and Directus config
+contracts/          Foundry project for KokonutResolver and EAS-related contracts
+dashboards/         Directus partner dashboard templates and Metabase assets
+docs/               Architecture, API, deployment, attestation, agent, and user docs
+extensions/         Directus lifecycle hooks, workflow rules, metric hooks, AI helpers
+migrations/         Migration tooling and legacy migration helpers
+schemas/            PostgreSQL schemas, ClickHouse schemas, Directus snapshots, seeds
+scripts/            Setup, seed, schema, metrics, backup, verification, and CI scripts
+sdk/                JavaScript/TypeScript and Python SDKs
+services/           Python services for ingestion, metrics, analytics, export, agents
+tests/              Smoke, CLI, attestation, Directus metadata, and MVP tests
 ```
 
-## Fortune 500 Farm Scoring
+## Security And Privacy
 
-Weighted 4-pillar ranking system for regenerative farms:
+- Secrets come from environment variables; do not commit `.env` or private keys.
+- Base Compose exposes Caddy only; PostgreSQL and ClickHouse remain internal to Docker networks unless a local override maps ports.
+- `PUBLIC_RESTRICT=true` disables unauthenticated public Directus data access.
+- Directus rate limiting and login throttling are enabled.
+- Public EAS metadata stores hashes, CIDs, UIDs, chain labels, transaction hashes, and timestamps; private evidence remains offchain.
+- ClickHouse HTTP insert paths validate interpolated values before SQL construction.
+- Agent-generated summaries are drafts and must use approved governed data.
 
-| Pillar | Weight | Metrics |
-|--------|--------|---------|
-| Financial | 45% | NOI, operating margin, revenue/ha, loss rate, cost/ha |
-| Ecological | 25% | NDVI, soil organic matter, data completeness, remote sensing |
-| Governance | 15% | Attestations, governance events, treasury events, metric definitions |
-| Growth | 15% | Yield improvement, revenue growth, data completeness |
-
-**Tiers:** Platinum (800+), Gold (600+), Silver (400+), Bronze (200+), Developing
-
-```bash
-# Score a specific farm
-python3 -m services.fortune500.cli --location-id <location-id>
-
-# Rank all farms
-python3 -m services.fortune500.cli --all
-```
-
-## Revenue Forecasting
-
-Time-series projection engine with Monte Carlo simulation:
-
-```bash
-# Run forecast for a location (3, 6, 12 months)
-python3 -m services.forecast.cli --location-id <location-id>
-
-# Custom horizon and simulations
-python3 -m services.forecast.cli --location-id <location-id> \
-  --months 12 --simulations 2000
-```
-
-**Output:**
-- Monthly revenue projections with confidence intervals
-- Bootstrap simulation for uncertainty estimation
-- Historical trend analysis from harvest and sales data
-- Per-cycle outputs with `crop_cycle_id` for crop-level granularity
-- Carbon sequestration estimation from soil organic matter changes
-- Biodiversity credit value from species observation counts
-- Retained value projection from historical reinvestment rates
-- Per-square-meter revenue projection from bed-area formula (when plot bed data is available)
-
-## Environmental Analytics
-
-CLI for ecological analysis computed from existing data:
-
-```bash
-# NDVI vegetation index trends over time
-python3 -m services.analytics --ndvi-trends --location-id UUID
-
-# Water resilience scoring (rainfall patterns, drought events)
-python3 -m services.analytics --water-resilience --location-id UUID
-
-# Crop diversity analysis (Shannon index, species counts)
-python3 -m services.analytics --crop-diversity --location-id UUID
-
-# Intervention impact tracking (before/after comparison)
-python3 -m services.analytics --intervention-impact --location-id UUID
-
-# Soil health assessment (condition, pH, organic matter)
-python3 -m services.analytics --soil-health --location-id UUID
-
-# Water access summary (sources, infrastructure)
-python3 -m services.analytics --water-access --location-id UUID
-
-# Environmental baseline snapshot
-python3 -m services.analytics --environmental-baseline --location-id UUID
-```
-
-## Partner Dashboards
-
-Directus dashboard templates for different partner roles in `dashboards/directus/`:
-
-| Partner | Dashboard | Key Views |
-|---------|-----------|-----------|
-| Buyer | `partner-buyer.md` | Production summary, upcoming harvests, quality grades, revenue trends |
-| Funder | `partner-funder.md` | NOI trends, cost breakdown, forecasts, impact attestations, ecological outcomes |
-| Vendor | `partner-vendor.md` | Purchase history, payment status, demand forecasts |
-| Operator | `partner-operator.md` | Operations overview, sensors, weather, crop cycles, alerts |
-
-Row-level security ensures partners see only their own data.
+See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide.md), and [Agent Access](docs/agent-access.md) for operational security details.
 
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
-| [User Guide](docs/user-guide.md) | End-to-step walkthrough for all roles: data entry, workflows, dashboards, analytics, export |
+| [User Guide](docs/user-guide.md) | Role workflows, data entry, lifecycle, dashboards, analytics, export |
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
-| [API Reference](docs/api-reference.md) | REST/GraphQL/ClickHouse API docs |
-| [OpenAPI Spec](docs/openapi.yaml) | Full OpenAPI 3.0 specification |
-| [Data Dictionary](docs/data-dictionary.md) | All collections, fields, and governed metrics |
-| [Deployment](docs/deployment.md) | Docker setup, environment variables, backup |
-| [Sandbox](docs/sandbox.md) | Developer quickstart with hello-world tutorial |
+| [API Reference](docs/api-reference.md) | Directus REST/GraphQL and ClickHouse access notes |
+| [OpenAPI Spec](docs/openapi.yaml) | OpenAPI 3.0 API specification |
+| [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |
+| [Deployment](docs/deployment.md) | Docker setup, environment variables, backup, operations |
+| [Sandbox](docs/sandbox.md) | Developer sandbox quickstart |
 | [Subgraph Guide](docs/subgraph-guide.md) | Subgraph indexer configuration and usage |
-| [Attestation Guide](docs/attestation-guide.md) | EAS on Celo: schemas, onchain/offchain attestation, private data, CLI |
-| [Partner Dashboards](docs/partner-dashboards.md) | Dashboard flexibility (Directus/Metabase/Custom) |
-| [Agent Access](docs/agent-access.md) | MCP, agent-scoped tokens, audit logging |
+| [Attestation Guide](docs/attestation-guide.md) | EAS on Celo, schemas, onchain/offchain attestations, private data |
+| [Partner Dashboards](docs/partner-dashboards.md) | Directus/Metabase/custom dashboard options |
+| [Agent Access](docs/agent-access.md) | MCP, agent-scoped tokens, permissions, audit logging |
 | [Export Guide](docs/export-guide.md) | Data export and report snapshots |
 
 ## License
 
-Open source — see LICENSE file.
+Open source. See [LICENSE](LICENSE).

@@ -101,6 +101,20 @@ END $$;
 -- 2. ALTER TABLE to add CHECK constraints
 -- ============================================================
 
+-- Normalize legacy lifecycle labels before applying enum-backed checks.
+UPDATE mrv_claim SET status = 'verified' WHERE status = 'approved';
+UPDATE mrv_claim SET status = 'published' WHERE status = 'attested';
+UPDATE expense_event SET status = 'verified' WHERE status = 'Audited';
+UPDATE expense_event SET status = 'draft' WHERE status = 'Draft';
+UPDATE expense_event SET status = 'verified' WHERE status IN ('approved', 'Ready to Pay');
+UPDATE expense_event SET status = 'published' WHERE status IN ('Paid', 'Administrative');
+UPDATE attestation_record SET status = 'verified' WHERE status = 'approved';
+UPDATE attestation_record SET status = 'published' WHERE status = 'attested';
+UPDATE attestation_record SET status = 'rejected' WHERE status = 'revoked';
+UPDATE attestation_request SET status = 'verified' WHERE status = 'approved';
+UPDATE attestation_request SET status = 'published' WHERE status = 'attested';
+UPDATE chain_indexer_status SET status = 'syncing' WHERE status = 'pending';
+
 -- --- Lifecycle status tables ---
 ALTER TABLE farm_activity       DROP CONSTRAINT IF EXISTS chk_farm_activity_status;
 ALTER TABLE farm_activity       ADD CONSTRAINT chk_farm_activity_status CHECK (status::lifecycle_status IS NOT NULL);
@@ -225,16 +239,16 @@ ALTER TABLE wallet_activity_event ADD CONSTRAINT chk_wallet_activity_status CHEC
 -- ============================================================
 
 ALTER TABLE harvest_event DROP CONSTRAINT IF EXISTS chk_harvest_quantity_positive;
-ALTER TABLE harvest_event ADD CONSTRAINT chk_harvest_quantity_positive CHECK (quantity > 0);
+ALTER TABLE harvest_event ADD CONSTRAINT chk_harvest_quantity_positive CHECK (quantity >= 0);
 
 ALTER TABLE sales_event DROP CONSTRAINT IF EXISTS chk_sales_quantity_positive;
-ALTER TABLE sales_event ADD CONSTRAINT chk_sales_quantity_positive CHECK (quantity > 0);
+ALTER TABLE sales_event ADD CONSTRAINT chk_sales_quantity_positive CHECK (quantity >= 0);
 
 ALTER TABLE sales_event DROP CONSTRAINT IF EXISTS chk_sales_amount_positive;
-ALTER TABLE sales_event ADD CONSTRAINT chk_sales_amount_positive CHECK (total_amount > 0);
+ALTER TABLE sales_event ADD CONSTRAINT chk_sales_amount_positive CHECK (total_amount >= 0);
 
 ALTER TABLE expense_event DROP CONSTRAINT IF EXISTS chk_expense_amount_positive;
-ALTER TABLE expense_event ADD CONSTRAINT chk_expense_amount_positive CHECK (amount > 0);
+ALTER TABLE expense_event ADD CONSTRAINT chk_expense_amount_positive CHECK (amount >= 0);
 
 ALTER TABLE labor_event DROP CONSTRAINT IF EXISTS chk_labor_hours_positive;
 ALTER TABLE labor_event ADD CONSTRAINT chk_labor_hours_positive CHECK (hours_worked > 0);
@@ -260,8 +274,16 @@ ALTER TABLE scheduled_job       ADD CONSTRAINT chk_job_status CHECK (status::job
 -- 3. UNIQUE constraints (missing)
 -- ============================================================
 
+ALTER TABLE plot                DROP CONSTRAINT IF EXISTS uq_plot_slug;
+DROP INDEX IF EXISTS uq_plot_slug;
 ALTER TABLE plot                ADD CONSTRAINT uq_plot_slug UNIQUE (slug);
+
+ALTER TABLE attestation_record  DROP CONSTRAINT IF EXISTS uq_attestation_record_uid;
+DROP INDEX IF EXISTS uq_attestation_record_uid;
 ALTER TABLE attestation_record  ADD CONSTRAINT uq_attestation_record_uid UNIQUE (attestation_uid);
+
+ALTER TABLE mrv_event           DROP CONSTRAINT IF EXISTS uq_mrv_event_uid;
+DROP INDEX IF EXISTS uq_mrv_event_uid;
 ALTER TABLE mrv_event           ADD CONSTRAINT uq_mrv_event_uid UNIQUE (attestation_uid);
 
 -- ============================================================

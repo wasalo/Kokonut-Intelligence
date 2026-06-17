@@ -50,8 +50,10 @@ Each agent receives a token with explicit permissions. Three levels are supporte
 ### Creating an Agent Token
 
 ```bash
+DIRECTUS_URL=${DIRECTUS_URL:-https://localhost/directus}
+
 # Create an agent role
-curl -X POST http://localhost:8055/roles \
+curl -k -X POST "$DIRECTUS_URL/roles" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -62,7 +64,7 @@ curl -X POST http://localhost:8055/roles \
   }'
 
 # Create user for the agent
-curl -X POST http://localhost:8055/users \
+curl -k -X POST "$DIRECTUS_URL/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{

@@ -11,19 +11,22 @@ docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile san
 # 2. Wait ~60 seconds for services to initialize, then run seed
 docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox run --rm sandbox-seed
 
-# 3. Open the UIs
-open http://localhost:8055   # Directus admin
-open http://localhost:3001   # Metabase dashboards
+# 3. Open the UIs through Caddy
+open https://localhost/admin      # Directus admin
+open https://localhost/metabase   # Metabase dashboards
 ```
 
 ## What's Included
 
-| Component | URL | Purpose |
-|-----------|-----|---------|
-| Directus | `http://localhost:8055` | Admin UI, REST/GraphQL API, permissions |
-| Metabase | `http://localhost:3001` | Embedded BI dashboards |
-| PostgreSQL | `localhost:5432` | Canonical data store |
-| ClickHouse | `localhost:8123` | Analytical event store |
+| Component | Base Compose URL | Purpose |
+|-----------|------------------|---------|
+| Directus | `https://localhost` or `https://localhost/directus` | Admin UI, REST/GraphQL API, permissions |
+| Directus admin | `https://localhost/admin` | Admin UI route through Caddy |
+| Metabase | `https://localhost/metabase` | Embedded BI dashboards |
+| PostgreSQL | Docker service `database:5432` | Canonical data store |
+| ClickHouse | Docker service `clickhouse:8123` | Analytical event store |
+
+Optional local overrides may expose Directus at `http://localhost:8055` and Metabase at `http://localhost:3001`. The sandbox overlay does not expose PostgreSQL or ClickHouse to the host by default.
 
 ### Pre-seeded Data
 
@@ -37,7 +40,7 @@ open http://localhost:3001   # Metabase dashboards
 - **Cost Allocations**: Direct allocations to crop cycles
 - **Attestation Schema**: Harvest MRV Claim
 - **Attestation Record**: 1 published sample record with an on-chain attestation UID
-- **Metric Definitions**: 16 governed metrics
+- **Metric Definitions**: Governed metrics with version records
 - **Expense Categories**: 9 standard categories
 
 ### Dashboard Templates
@@ -50,13 +53,14 @@ The sandbox seed script prints an admin API token. You can also generate one man
 
 ```bash
 # Login and get access token
-TOKEN=$(curl -s -X POST http://localhost:8055/auth/login \
+DIRECTUS_URL=${DIRECTUS_URL:-https://localhost/directus}
+TOKEN=$(curl -sk -X POST "$DIRECTUS_URL/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@kokonut.network","password":"KokonutDev2026!"}' \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['data']['access_token'])")
 
 # Use it
-curl -H "Authorization: Bearer $TOKEN" http://localhost:8055/items/location
+curl -sk -H "Authorization: Bearer $TOKEN" "$DIRECTUS_URL/items/location"
 ```
 
 ## Hello World: 5 API Calls
@@ -64,39 +68,39 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8055/items/location
 ### 1. List all locations
 
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/location?fields[]=id&fields[]=name&fields[]=slug" \
+curl -sk -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/location?fields[]=id&fields[]=name&fields[]=slug" \
   | python3 -m json.tool
 ```
 
 ### 2. Get a specific farm with its plots
 
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/farm?filter[slug][eq]=finca-el-naranjo&fields[]=*&fields[]=plots.*" \
+curl -sk -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/farm?filter[slug][eq]=finca-el-naranjo&fields[]=*&fields[]=plots.*" \
   | python3 -m json.tool
 ```
 
 ### 3. Query crop cycles with status
 
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/crop_cycle?fields[]=cycle_name&fields[]=status&fields[]=expected_yield&filter[status][eq]=active" \
+curl -sk -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/crop_cycle?fields[]=cycle_name&fields[]=status&fields[]=expected_yield&filter[status][eq]=active" \
   | python3 -m json.tool
 ```
 
 ### 4. List verified harvest events
 
 ```bash
-curl -s -H "Authorization: Bearer $TOKEN" \
-  "http://localhost:8055/items/harvest_event?filter[status][eq]=verified&fields[]=harvest_date&fields[]=quantity&fields[]=unit&fields[]=quality_grade&sort[]=-harvest_date" \
+curl -sk -H "Authorization: Bearer $TOKEN" \
+  "$DIRECTUS_URL/items/harvest_event?filter[status][eq]=verified&fields[]=harvest_date&fields[]=quantity&fields[]=unit&fields[]=quality_grade&sort[]=-harvest_date" \
   | python3 -m json.tool
 ```
 
 ### 5. Create a new field note (POST)
 
 ```bash
-curl -s -X POST http://localhost:8055/items/field_note \
+curl -sk -X POST "$DIRECTUS_URL/items/field_note" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -136,9 +140,9 @@ docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile san
 
 ## Troubleshooting
 
-### "Connection refused" on localhost:8055
+### Directus route is unavailable
 
-Directus is still starting. Wait 30 seconds and retry. Check logs:
+Directus is still starting or Caddy is not ready. Wait 30 seconds and retry. Check logs:
 
 ```bash
 docker compose logs directus | tail -20
@@ -169,11 +173,11 @@ The seed container runs once and exits — this is expected. Check output:
 docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox logs sandbox-seed
 ```
 
-### Port conflict on 5432 or 8055
+### Port conflict on 80 or 443
 
-Another service is using the port. Stop it or change the port mapping in `docker-compose.yml`:
+Another service is using the host HTTP/HTTPS ports. Stop it or change the Caddy port mapping in a local Compose override:
 
 ```yaml
 ports:
-  - "15432:5432"  # Use a different host port
+  - "8443:443"  # Use a different host HTTPS port
 ```

@@ -10,6 +10,10 @@ INSERT INTO protocol (id, name, slug, chain, protocol_type, category, descriptio
 ('a0000000-0000-0000-0000-000000000172', 'Regen Network', 'regen-network', 'cosmos', 'attestation', 'impact', 'Ecological impact verification')
 ON CONFLICT (id) DO NOTHING;
 
+UPDATE digital_lego_usage
+SET verified = TRUE
+WHERE location_id = 'a0000000-0000-0000-0000-000000000001';
+
 -- Wallet Activity Events (all addresses must be exactly 42 chars: 0x + 40 hex)
 INSERT INTO wallet_activity_event (id, wallet_id, chain, tx_hash, block_number, block_timestamp, activity_type, from_address, to_address, value, token, token_amount, gas_used, status) VALUES
 ('a0000000-0000-0000-0000-000000000180', 'a0000000-0000-0000-0000-000000000080', 'ethereum', '0xaaaa111111111111111111111111111111111111111111111111111111111111', 18500000, '2025-10-01 10:00:00+00', 'transfer', '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18', '0x1234567890abcdef1234567890abcdef12345678', 5.0, 'ETH', 5.0, 21000, 'success'),

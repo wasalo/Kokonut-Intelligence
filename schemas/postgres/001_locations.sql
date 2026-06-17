@@ -5,12 +5,18 @@
 -- Schema versioning
 CREATE TABLE IF NOT EXISTS schema_version (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    version VARCHAR(20) NOT NULL UNIQUE,
+    version VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
     applied_at TIMESTAMPTZ DEFAULT NOW(),
     applied_by VARCHAR(100),
     checksum VARCHAR(64)
 );
+
+ALTER TABLE schema_version ALTER COLUMN version TYPE VARCHAR(50);
+
+INSERT INTO schema_version (version, description, applied_by)
+VALUES ('common-data-schema-v1', 'Canonical Kokonut Intelligence MVP schema', 'schema bootstrap')
+ON CONFLICT (version) DO NOTHING;
 
 -- Locations
 CREATE TABLE IF NOT EXISTS location (
