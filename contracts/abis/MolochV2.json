@@ -1,0 +1,97 @@
+[
+  {
+    "anonymous": false,
+    "name": "SubmitProposal",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "proposalIndex", "type": "uint256" },
+      { "indexed": false, "name": "proposer", "type": "address" },
+      { "indexed": false, "name": "sharesRequested", "type": "uint256" },
+      { "indexed": false, "name": "lootRequested", "type": "uint256" },
+      { "indexed": false, "name": "tributeOffered", "type": "uint256" },
+      { "indexed": false, "name": "tributeToken", "type": "address" },
+      { "indexed": false, "name": "paymentRequested", "type": "uint256" },
+      { "indexed": false, "name": "paymentToken", "type": "address" },
+      { "indexed": false, "name": "details", "type": "string" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "ProcessProposal",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "proposalIndex", "type": "uint256" },
+      { "indexed": false, "name": "didPass", "type": "bool" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "VoteProposal",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "proposalIndex", "type": "uint256" },
+      { "indexed": false, "name": "memberAddress", "type": "address" },
+      { "indexed": false, "name": "vote", "type": "uint8" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "Ragequit",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "memberAddress", "type": "address" },
+      { "indexed": false, "name": "sharesToBurn", "type": "uint256" },
+      { "indexed": false, "name": "lootToBurn", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "Trade",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "tradeToken", "type": "address" },
+      { "indexed": false, "name": "tributeToken", "type": "address" },
+      { "indexed": false, "name": "tradeAmount", "type": "uint256" },
+      { "indexed": false, "name": "tributeAmount", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "UpdateDelegate",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "memberAddress", "type": "address" },
+      { "indexed": false, "name": "newDelegateKey", "type": "address" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "Withdraw",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "memberAddress", "type": "address" },
+      { "indexed": false, "name": "tokenAddress", "type": "address" },
+      { "indexed": false, "name": "amount", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "DiluteBound",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "memberAddress", "type": "address" },
+      { "indexed": false, "name": "sharesToBurn", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "CancelProposal",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "proposalIndex", "type": "uint256" },
+      { "indexed": false, "name": "proposer", "type": "address" },
+      { "indexed": false, "name": "tributeOffered", "type": "uint256" },
+      { "indexed": false, "name": "tributeToken", "type": "address" }
+    ]
+  }
+]

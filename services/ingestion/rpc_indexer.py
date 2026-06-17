@@ -269,7 +269,7 @@ def run(chain: str = None, wallet_address: str = None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RPC wallet activity ingestion")
-    parser.add_argument("--chain", choices=["ethereum", "optimism", "base", "arbitrum"])
+    parser.add_argument("--chain", choices=["ethereum", "optimism", "base", "arbitrum", "celo", "gnosis"])
     parser.add_argument("--wallet", help="Specific wallet address")
     args = parser.parse_args()
     run(chain=args.chain, wallet_address=args.wallet)

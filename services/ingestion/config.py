@@ -29,6 +29,7 @@ BASE_RPC_URL = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
 ARBITRUM_RPC_URL = os.environ.get("ARBITRUM_RPC_URL", "https://arb1.arbitrum.io/rpc")
 CELO_RPC_URL = os.environ.get("CELO_RPC_URL", "https://forno.celo.org")
 CELO_ALFAJORES_RPC_URL = os.environ.get("CELO_ALFAJORES_RPC_URL", "https://alfajores-forno.celo.org")
+GNOSIS_RPC_URL = os.environ.get("GNOSIS_RPC_URL", "https://rpc.gnosischain.com")
 
 # EAS
 EAS_GRAPHQL_URL = os.environ.get("EAS_GRAPHQL_URL", "https://attest.sh")
@@ -45,6 +46,16 @@ CHAIN_RPC_MAP = {
     "arbitrum": ARBITRUM_RPC_URL,
     "celo": CELO_RPC_URL,
     "celo-alfajores": CELO_ALFAJORES_RPC_URL,
+    "gnosis": GNOSIS_RPC_URL,
+}
+
+# Kokonut Moloch DAO contracts (Gnosis Chain)
+KOKONUT_DAO_CHAIN = "gnosis"
+KOKONUT_MOLOCH_ADDRESSES = {
+    "treasury": "0xeb55b75328a8dffd45bbf34b7e7efc431a179085",
+    "token_manager": "0x8977c56e979f0d8b76afb5ad85549acd2e96422d",
+    "vkkn_token": "0xc6b075ac3234a7ac729114b27370b552fa284690",
+    "loot_token": "0x2508a11aee11ad545bae87cd42131c04613b2099",
 }
 
 # EAS contract addresses per chain
