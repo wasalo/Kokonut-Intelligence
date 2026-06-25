@@ -7330,6 +7330,253 @@ components:
         metadata:
           type: object
           additionalProperties: true
+    GHGEmissionFactor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        factor_key:
+          type: string
+        category:
+          type: string
+        subcategory:
+          type: string
+        emission_factor:
+          type: number
+          format: double
+        unit:
+          type: string
+        source:
+          type: string
+        region:
+          type: string
+        valid_from:
+          type: string
+          format: date
+        valid_to:
+          type: string
+          format: date
+    GHGEmissionsInventory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        reporting_date:
+          type: string
+          format: date
+        reporting_period:
+          type: string
+        category:
+          type: string
+        activity_description:
+          type: string
+        quantity:
+          type: number
+          format: double
+        quantity_unit:
+          type: string
+        co2e_kg:
+          type: number
+          format: double
+        co2e_tonnes:
+          type: number
+          format: double
+        status:
+          type: string
+    TreeInventory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        species_name:
+          type: string
+        tree_count:
+          type: integer
+        avg_height_m:
+          type: number
+          format: double
+        avg_dbh_cm:
+          type: number
+          format: double
+        biomass_estimate_kg:
+          type: number
+          format: double
+        carbon_estimate_tonnes:
+          type: number
+          format: double
+        co2e_estimate_tonnes:
+          type: number
+          format: double
+        survey_date:
+          type: string
+          format: date
+        status:
+          type: string
+    CarbonBenchmark:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        benchmark_key:
+          type: string
+        name:
+          type: string
+        tree_system:
+          type: string
+        above_ground_carbon_tonnes_ha:
+          type: number
+          format: double
+        below_ground_carbon_tonnes_ha:
+          type: number
+          format: double
+        total_carbon_tonnes_ha:
+          type: number
+          format: double
+        sequestration_rate_tonnes_co2e_ha_year:
+          type: number
+          format: double
+        source:
+          type: string
+    RegenerativePracticeChecklist:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        assessment_date:
+          type: string
+          format: date
+        principle_key:
+          type: string
+        score:
+          type: integer
+          minimum: 0
+          maximum: 5
+        evidence_path:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+    ClimateImpactSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        reporting_year:
+          type: integer
+        above_ground_carbon_tonnes:
+          type: number
+          format: double
+        below_ground_carbon_tonnes:
+          type: number
+          format: double
+        total_sequestration_tonnes_co2e:
+          type: number
+          format: double
+        transport_emissions_tonnes_co2e:
+          type: number
+          format: double
+        machinery_emissions_tonnes_co2e:
+          type: number
+          format: double
+        input_emissions_tonnes_co2e:
+          type: number
+          format: double
+        total_emissions_tonnes_co2e:
+          type: number
+          format: double
+        net_climate_impact_tonnes_co2e:
+          type: number
+          format: double
+        species_count:
+          type: integer
+        shannon_index:
+          type: number
+          format: double
+        regenerative_score_total:
+          type: integer
+        methodology_version:
+          type: string
+        data_quality_score:
+          type: number
+          format: double
+        status:
+          type: string
+    CarbonBalance:
+      type: object
+      properties:
+        location_id:
+          type: string
+          format: uuid
+        reporting_year:
+          type: integer
+        above_ground_carbon_tonnes:
+          type: number
+          format: double
+        below_ground_carbon_tonnes:
+          type: number
+          format: double
+        total_sequestration_tonnes_co2e:
+          type: number
+          format: double
+        total_emissions_tonnes_co2e:
+          type: number
+          format: double
+        net_climate_impact_tonnes_co2e:
+          type: number
+          format: double
+        carbon_position:
+          type: string
+          enum: [net_sequester, net_emitter, neutral]
+    RegenerativeScore:
+      type: object
+      properties:
+        location_id:
+          type: string
+          format: uuid
+        principles:
+          type: array
+          items:
+            type: object
+            properties:
+              principle_key:
+                type: string
+              principle_name:
+                type: string
+              score:
+                type: integer
+              max_score:
+                type: integer
+        summary:
+          type: object
+          properties:
+            total_score:
+              type: integer
+            max_score:
+              type: integer
+            score_pct:
+              type: number
+              format: double
+            principles_assessed:
+              type: integer
     Plot:
       type: object
       properties:

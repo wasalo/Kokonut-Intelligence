@@ -4,6 +4,26 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+### Added
+- **Carbon & Regenerative Framework Advancement**: Full implementation of 9 new tables, 4 views, 2 seed files, and analytics CLI for grant-reviewer-grade carbon evidence.
+  - `ghg_emission_factor`: IPCC-based reference emission factors (fuel, fertilizer, pesticide, transport, machinery, electricity) with regional overrides.
+  - `ghg_emissions_inventory`: Transport, machinery, and input emissions tracking with CO2e computed from emission factors.
+  - `tree_inventory`: Above-ground carbon via allometric model (tree count, height, DBH → biomass → carbon → CO2e).
+  - `underplanting_event`: Companion species planting records with survival tracking.
+  - `carbon_benchmark`: Tree system carbon benchmarks (coconut, oil palm, mango, cacao, mixed agroforestry, native forest).
+  - `regenerative_practice_checklist`: Scored 0-5 per-principle assessment across 5 Principles of Regeneration.
+  - `framework_phase`: Framework implementation phase tracking (baseline → monitoring → verified → published).
+  - `climate_impact_summary`: Annual climate-impact summary with sequestration, emissions, biodiversity, and regenerative score.
+  - `operations_protocol`: Versioned handbook sections for soil management, biodiversity, emissions tracking, data entry, and reporting.
+  - `v_regenerative_score_summary`: Regenerative practice score summary view.
+  - `v_ghg_emissions_summary`: GHG emissions summary by category view.
+  - `v_carbon_balance`: Carbon balance (sequestration vs emissions) view with net position classification.
+  - `v_framework_phase_status`: Current framework phase per location view.
+  - `services/analytics/carbon_balance.py`: Analytics module for GHG emissions, tree carbon, carbon balance, and regenerative scoring.
+  - CLI flags: `--carbon-balance`, `--ghg-emissions`, `--tree-carbon`, `--regenerative-score`, `--emission-factors`, `--carbon-benchmarks`.
+  - Report generator: `climate_impact` report type combining all carbon framework analytics.
+  - Seeds: 19 emission factors (IPCC 2006), 8 carbon benchmarks (literature-based), 4 operations protocols, Adelphi pilot data (tree inventory, underplanting, GHG emissions, framework phases, practice checklist, climate-impact summary).
+
 ### Fixed
 - **Forecast bed-area lookup**: Fixed the per-square-meter forecast path to resolve plots through `plot -> farm -> location` instead of referencing nonexistent `plot.location_id`.
 - **Stale pilot governance drift**: Legacy `P001`/`P002`/`P003` Optimism governance rows are realigned to Gnosis/Moloch metadata during Adelphi alignment.

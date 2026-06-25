@@ -52,6 +52,12 @@
 - Soil health: `python3 -m services.analytics --soil-health --location-id UUID`
 - Water access: `python3 -m services.analytics --water-access --location-id UUID`
 - Environmental baseline: `python3 -m services.analytics --environmental-baseline --location-id UUID`
+- Carbon balance: `python3 -m services.analytics --carbon-balance --location-id UUID`
+- GHG emissions: `python3 -m services.analytics --ghg-emissions --location-id UUID`
+- Tree carbon: `python3 -m services.analytics --tree-carbon --location-id UUID`
+- Regenerative score: `python3 -m services.analytics --regenerative-score --location-id UUID`
+- Emission factors: `python3 -m services.analytics --emission-factors`
+- Carbon benchmarks: `python3 -m services.analytics --carbon-benchmarks`
 - Ingestion status: `python3 -m services.ingestion.status log --source openweathermap`
 - Ingestion indexers: `python3 -m services.ingestion.status indexers`
 - Ingestion summary: `python3 -m services.ingestion.status summary`
@@ -70,6 +76,7 @@
 - AI summary: `python3 -m services.agents.ai_summary --location-id UUID --type combined`
 - Dataset refresh: `python3 -m services.export.dataset_refresh --all`
 - Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`
+- Climate-impact report: `python3 -m services.export.report_generator --type climate_impact --location-id UUID`
 - Migration status: `python3 -m services.migration status`
 - Migration apply: `python3 -m services.migration migrate`
 - Migration dry-run: `python3 -m services.migration dry-run`

@@ -240,6 +240,38 @@ WITH checks(name, ok) AS (
               AND action = 'create'
               AND policy = 'b1000000-0000-0000-0000-000000000007'
         )
+    UNION ALL SELECT 'carbon framework schema',
+        to_regclass('public.ghg_emission_factor') IS NOT NULL
+        AND to_regclass('public.ghg_emissions_inventory') IS NOT NULL
+        AND to_regclass('public.tree_inventory') IS NOT NULL
+        AND to_regclass('public.underplanting_event') IS NOT NULL
+        AND to_regclass('public.carbon_benchmark') IS NOT NULL
+        AND to_regclass('public.regenerative_practice_checklist') IS NOT NULL
+        AND to_regclass('public.framework_phase') IS NOT NULL
+        AND to_regclass('public.climate_impact_summary') IS NOT NULL
+        AND to_regclass('public.operations_protocol') IS NOT NULL
+    UNION ALL SELECT 'carbon framework seeds',
+        (SELECT count(*) FROM ghg_emission_factor) >= 10
+        AND (SELECT count(*) FROM carbon_benchmark) >= 5
+        AND (SELECT count(*) FROM operations_protocol WHERE status = 'active') >= 4
+    UNION ALL SELECT 'carbon framework pilot records',
+        (SELECT count(*) FROM tree_inventory WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
+        AND (SELECT count(*) FROM underplanting_event WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
+        AND (SELECT count(*) FROM ghg_emissions_inventory WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
+        AND (SELECT count(*) FROM framework_phase WHERE location_id = '{PILOT_LOCATION_ID}' AND phase_status IN ('active', 'completed')) >= 1
+        AND (SELECT count(*) FROM regenerative_practice_checklist WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 5
+        AND (SELECT count(*) FROM climate_impact_summary WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
+    UNION ALL SELECT 'carbon balance views',
+        to_regclass('public.v_carbon_balance') IS NOT NULL
+        AND to_regclass('public.v_regenerative_score_summary') IS NOT NULL
+        AND to_regclass('public.v_ghg_emissions_summary') IS NOT NULL
+        AND to_regclass('public.v_framework_phase_status') IS NOT NULL
+    UNION ALL SELECT 'regenerative score view', EXISTS (
+        SELECT 1 FROM v_regenerative_score_summary
+        WHERE location_id = '{PILOT_LOCATION_ID}'
+          AND total_score > 0
+          AND score_pct > 0
+    )
 )
 SELECT name, ok FROM checks ORDER BY name;
 """

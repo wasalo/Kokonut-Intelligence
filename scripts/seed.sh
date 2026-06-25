@@ -106,6 +106,12 @@ echo "Seeding Kokonut Framework reference data..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/023_impact_frameworks.sql"
 echo "Kokonut Framework reference data seeded."
 
+# Seed Carbon Framework reference data
+echo ""
+echo "Seeding Carbon Framework reference data (emission factors, benchmarks, protocols)..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/027_carbon_framework_seeds.sql"
+echo "Carbon Framework reference data seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""

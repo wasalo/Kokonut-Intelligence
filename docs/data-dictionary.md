@@ -136,6 +136,24 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `v_public_flora_fauna_summary` | Public flora/fauna observations by farm place | species_category, species_name, plot, observation totals |
 | `v_public_project_carbon_credit_index` | Project-level carbon credit index view | forecasted, planned, realized, and total carbon credit value |
 
+### Carbon & Regenerative Framework
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `ghg_emission_factor` | GHG emission factors (IPCC, regional) | factor_key, category, emission_factor, unit, region |
+| `ghg_emissions_inventory` | Transport, machinery, input emissions | category, quantity, co2e_kg, co2e_tonnes |
+| `tree_inventory` | Above-ground carbon (allometric model) | species_name, tree_count, biomass_estimate_kg, carbon_estimate_tonnes |
+| `underplanting_event` | Companion species planting records | species_name, species_role, planting_date, survival_count |
+| `carbon_benchmark` | Tree system carbon benchmarks | tree_system, total_carbon_tonnes_ha, sequestration_rate_tonnes_co2e_ha_year |
+| `regenerative_practice_checklist` | Scored 5-principle assessment (0-5 each) | principle_key, score, evidence_path |
+| `framework_phase` | Framework implementation phase tracking | framework_key, phase, phase_status, review_cadence |
+| `climate_impact_summary` | Annual climate-impact summary | reporting_year, sequestration, emissions, net_climate_impact, regenerative_score |
+| `operations_protocol` | Versioned handbook sections | protocol_key, section, content, version, review_cadence |
+| `v_regenerative_score_summary` | Regenerative practice score summary view | total_score, score_pct, principles_assessed |
+| `v_ghg_emissions_summary` | GHG emissions summary by category view | total_co2e_tonnes, category, reporting_period |
+| `v_carbon_balance` | Carbon balance (sequestration vs emissions) view | net_climate_impact, carbon_position |
+| `v_framework_phase_status` | Current framework phase per location view | framework_key, phase, phase_status |
+
 ### Ingestion & Observability
 
 | Entity | Description | Key Fields |

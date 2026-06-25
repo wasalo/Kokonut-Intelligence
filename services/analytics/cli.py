@@ -3,7 +3,8 @@ Ecology Analytics CLI
 
 Command-line interface for soil carbon, biodiversity, scenario comparison,
 NDVI trends, water resilience, crop diversity, intervention impact,
-soil health, water access, and environmental baseline.
+soil health, water access, environmental baseline, carbon balance,
+GHG emissions, and regenerative practice scoring.
 
 Usage:
     python3 -m services.analytics.cli --soil-carbon --location-id UUID
@@ -17,6 +18,12 @@ Usage:
     python3 -m services.analytics.cli --soil-health --location-id UUID
     python3 -m services.analytics.cli --water-access --location-id UUID
     python3 -m services.analytics.cli --environmental-baseline --location-id UUID
+    python3 -m services.analytics.cli --carbon-balance --location-id UUID
+    python3 -m services.analytics.cli --ghg-emissions --location-id UUID
+    python3 -m services.analytics.cli --tree-carbon --location-id UUID
+    python3 -m services.analytics.cli --regenerative-score --location-id UUID
+    python3 -m services.analytics.cli --emission-factors
+    python3 -m services.analytics.cli --carbon-benchmarks
 """
 
 import argparse
@@ -37,6 +44,12 @@ def main():
     parser.add_argument("--soil-health", action="store_true", help="Analyze soil health (pH, NPK, organic matter)")
     parser.add_argument("--water-access", action="store_true", help="Summarize water access infrastructure")
     parser.add_argument("--environmental-baseline", action="store_true", help="Show environmental baselines and latest comparisons")
+    parser.add_argument("--carbon-balance", action="store_true", help="Compute carbon balance (sequestration vs emissions)")
+    parser.add_argument("--ghg-emissions", action="store_true", help="Compute GHG emissions breakdown by category")
+    parser.add_argument("--tree-carbon", action="store_true", help="Compute above-ground carbon from tree inventory")
+    parser.add_argument("--regenerative-score", action="store_true", help="Compute regenerative practice score (0-25)")
+    parser.add_argument("--emission-factors", action="store_true", help="List available GHG emission factors")
+    parser.add_argument("--carbon-benchmarks", action="store_true", help="List carbon benchmarks for tree systems")
     parser.add_argument("--location-id", help="Location UUID (required for most flags)")
     parser.add_argument("--scenario-id", help="Scenario UUID (required for sensitivity)")
     parser.add_argument("--variable", choices=["price", "yield", "cost"], default="price", help="Variable for sensitivity analysis")
@@ -146,6 +159,62 @@ def main():
         from .ecology import environmental_baseline
         conn = get_db()
         result = environmental_baseline(conn, args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.carbon_balance:
+        if not args.location_id:
+            parser.error("--carbon-balance requires --location-id")
+        from .carbon_balance import compute_carbon_balance
+        conn = get_db()
+        result = compute_carbon_balance(conn, args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.ghg_emissions:
+        if not args.location_id:
+            parser.error("--ghg-emissions requires --location-id")
+        from .carbon_balance import compute_ghg_emissions
+        conn = get_db()
+        result = compute_ghg_emissions(conn, args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.tree_carbon:
+        if not args.location_id:
+            parser.error("--tree-carbon requires --location-id")
+        from .carbon_balance import compute_tree_carbon
+        conn = get_db()
+        result = compute_tree_carbon(conn, args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.regenerative_score:
+        if not args.location_id:
+            parser.error("--regenerative-score requires --location-id")
+        from .carbon_balance import compute_regenerative_score
+        conn = get_db()
+        result = compute_regenerative_score(conn, args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.emission_factors:
+        from .carbon_balance import list_emission_factors
+        conn = get_db()
+        result = list_emission_factors(conn)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.carbon_benchmarks:
+        from .carbon_balance import list_carbon_benchmarks
+        conn = get_db()
+        result = list_carbon_benchmarks(conn)
         conn.close()
         print(json.dumps(result, indent=2, default=str))
         return

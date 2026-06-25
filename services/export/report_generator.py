@@ -366,6 +366,80 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
     }
 
 
+def generate_climate_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a climate-impact report for a location and year."""
+    from ..analytics.carbon_balance import (
+        compute_ghg_emissions, compute_tree_carbon,
+        compute_carbon_balance, compute_regenerative_score,
+    )
+
+    # Determine reporting year from period_start or current year
+    from datetime import datetime as _dt
+    if period_start:
+        reporting_year = int(period_start[:4])
+    else:
+        reporting_year = _dt.now(timezone.utc).year - 1  # default to last full year
+
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Location info
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    loc = cur.fetchone()
+    location_name = loc["name"] if loc else "Unknown"
+
+    # Climate impact summary (if stored)
+    cur.execute("""
+        SELECT * FROM climate_impact_summary
+        WHERE location_id = %s AND reporting_year = %s
+        LIMIT 1
+    """, (location_id, reporting_year))
+    summary_row = cur.fetchone()
+
+    # Framework phases
+    cur.execute("""
+        SELECT framework_key, phase, phase_status, phase_start_date, review_cadence
+        FROM framework_phase
+        WHERE location_id = %s AND phase_status = 'active'
+        ORDER BY framework_key
+    """, (location_id,))
+    phases = [dict(r) for r in cur.fetchall()]
+
+    # Operations protocols
+    cur.execute("""
+        SELECT protocol_key, title, section, version, review_cadence
+        FROM operations_protocol
+        WHERE status = 'active'
+        ORDER BY section
+    """, (location_id,))
+    protocols = [dict(r) for r in cur.fetchall()]
+
+    cur.close()
+
+    # Analytics from live data
+    carbon_balance = compute_carbon_balance(conn, location_id, reporting_year)
+    ghg = compute_ghg_emissions(conn, location_id)
+    tree = compute_tree_carbon(conn, location_id)
+    regen = compute_regenerative_score(conn, location_id)
+
+    return {
+        "report_type": "climate_impact",
+        "location_id": location_id,
+        "location_name": location_name,
+        "reporting_year": reporting_year,
+        "carbon_balance": carbon_balance,
+        "ghg_emissions": ghg,
+        "tree_carbon": tree,
+        "regenerative_score": regen,
+        "framework_phases": phases,
+        "operations_protocols": [
+            {"title": p["title"], "section": p["section"], "version": p["version"]}
+            for p in protocols
+        ],
+        "stored_summary": dict(summary_row) if summary_row else None,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
@@ -376,6 +450,7 @@ REPORT_GENERATORS = {
     "environmental": generate_environmental,
     "revenue_multiplier": generate_revenue_multiplier,
     "forecast": generate_forecast_summary,
+    "climate_impact": generate_climate_impact,
 }
 
 
