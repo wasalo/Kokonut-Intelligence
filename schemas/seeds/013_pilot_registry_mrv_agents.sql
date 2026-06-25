@@ -12,29 +12,50 @@ INSERT INTO farm_registry_record (
     'a0000000-0000-0000-0000-000000000500',
     'a0000000-0000-0000-0000-000000000010',
     'a0000000-0000-0000-0000-000000000001',
-    'kokonut-demo-farm-kisumu',
+    'kokonut-adelphi',
     '2025-09-01',
     85000.00,
-    120000.0000,
-    '{"coordinates":"-0.100000,34.750000","region":"Kisumu County","country":"Kenya"}',
-    'Kokonut DAO pilot allocation / partner sponsorship seed data',
-    ARRAY['maize', 'cassava', 'beans', 'sweet_potato', 'bioinputs'],
-    'cooperative',
+    15725.0000,
+    '{"community":"Gonzalo","municipality":"Sabana Grande de Boya","province":"Monte Plata","country":"Dominican Republic","coordinates":null}',
+    'Public Nouns #69 funding context, Kokonut DAO pilot allocation, and partner sponsorship seed data',
+    ARRAY['lettuce', 'passion_fruit', 'coconut', 'eggs', 'indian_yam', 'nursery', 'bioinputs'],
+    'moloch_dao',
     '70% farm operators, 20% DAO/community contributors, 10% public goods reserve',
     10.000,
-    'Kokonut Demo Farm in Kisumu models mixed-crop regenerative production, bioinput production, MRV-ready ecological tracking, and DAO-linked value flows.',
-    'Smallholder farms in the region face unstable crop income, degraded soil health, and limited access to transparent working capital.',
-    'The pilot combines governed crop economics, bioinputs, ecological monitoring, partner sales, and verifiable reporting to improve farm resilience and capital access.',
-    ARRAY['local_processors', 'direct_buyers', 'partner_sponsors'],
+    'Kokonut Adelphi is the first live Kokonut syntropic farm proof: a women-led, community-first 15,725 m2 farm in Sabana Grande de Boya with 13,838 m2 of agricultural land.',
+    'Regenerative farms need comparable operating records, transparent funding paths, and public-good accountability before they can be replicated responsibly.',
+    'Adelphi combines syntropic production, bioinputs, community operations, MRV-ready ecological tracking, and DAO-linked value flows with a 10% public goods allocation.',
+    ARRAY['local_buyers', 'direct_buyers', 'public_goods_funders', 'partner_sponsors'],
     '8a1a0b424633cd82e26b405d4fc92e8c5adf6d3467ca8fbfb4b571cc66f3832a',
     'published',
     'common-data-schema-v1',
     'pilot_seed',
-    'kokonut-demo-farm-kisumu',
-    '{"source":"pilot seed","schema":"common-data-schema-v1"}'
+    'kokonut-adelphi',
+    '{"source":"kokonut knowledge base","schema":"common-data-schema-v1","hub_url":"https://hub.kokonut.network/projects/41","total_area_m2":15725,"agricultural_land_m2":13838}'
 )
-ON CONFLICT (registry_slug) DO UPDATE SET
+ON CONFLICT (id) DO UPDATE SET
+    farm_id = EXCLUDED.farm_id,
+    location_id = EXCLUDED.location_id,
+    registry_slug = EXCLUDED.registry_slug,
+    project_date = EXCLUDED.project_date,
+    forecasted_budget = EXCLUDED.forecasted_budget,
+    land_size_m2 = EXCLUDED.land_size_m2,
+    project_location = EXCLUDED.project_location,
+    source_of_funding = EXCLUDED.source_of_funding,
+    revenue_streams = EXCLUDED.revenue_streams,
+    governance_mechanism = EXCLUDED.governance_mechanism,
+    token_allocation = EXCLUDED.token_allocation,
+    public_goods_allocation_pct = EXCLUDED.public_goods_allocation_pct,
+    project_summary = EXCLUDED.project_summary,
+    local_problem = EXCLUDED.local_problem,
+    proposed_solution = EXCLUDED.proposed_solution,
+    target_market = EXCLUDED.target_market,
+    record_hash = EXCLUDED.record_hash,
     status = EXCLUDED.status,
+    schema_version = EXCLUDED.schema_version,
+    source_system = EXCLUDED.source_system,
+    source_id = EXCLUDED.source_id,
+    source_raw = EXCLUDED.source_raw,
     updated_at = NOW();
 
 INSERT INTO inventory_event (
@@ -42,8 +63,8 @@ INSERT INTO inventory_event (
     event_type, quantity, unit, unit_cost, total_cost, currency, supplier,
     storage_location, notes, status, schema_version, source_system, source_id, source_raw
 ) VALUES
-('a0000000-0000-0000-0000-000000000510', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000040', '2025-10-10', 'Compost tea concentrate', 'biofertilizer', 'received', 40.0000, 'litres', 2.00, 80.00, 'USD', 'On-farm biofactory', 'Biofactory shed', 'Bioinput batch prepared for maize cycle.', 'verified', 'inventory-v1', 'pilot_seed', 'inventory-compost-tea-2025-10', '{"batch":"BIO-2025-10-A"}'),
-('a0000000-0000-0000-0000-000000000511', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000040', '2025-10-15', 'Compost tea concentrate', 'biofertilizer', 'consumed', 40.0000, 'litres', 2.00, 80.00, 'USD', 'On-farm biofactory', 'Plot A', 'Applied to soil preparation for maize cycle.', 'published', 'inventory-v1', 'pilot_seed', 'inventory-compost-tea-apply-2025-10', '{"application":"soil_preparation"}')
+('a0000000-0000-0000-0000-000000000510', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000040', '2025-10-10', 'Compost tea concentrate', 'biofertilizer', 'received', 40.0000, 'litres', 2.00, 80.00, 'USD', 'On-farm biofactory', 'Biofactory shed', 'Bioinput batch prepared for lettuce and syntropic bed establishment.', 'verified', 'inventory-v1', 'pilot_seed', 'inventory-compost-tea-2025-10', '{"batch":"BIO-2025-10-A"}'),
+('a0000000-0000-0000-0000-000000000511', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000020', 'a0000000-0000-0000-0000-000000000040', '2025-10-15', 'Compost tea concentrate', 'biofertilizer', 'consumed', 40.0000, 'litres', 2.00, 80.00, 'USD', 'On-farm biofactory', 'Syntropic Beds', 'Applied to soil preparation for lettuce cycle.', 'published', 'inventory-v1', 'pilot_seed', 'inventory-compost-tea-apply-2025-10', '{"application":"soil_preparation"}')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO maintenance_event (
@@ -57,10 +78,10 @@ INSERT INTO maintenance_event (
     'a0000000-0000-0000-0000-000000000070',
     '2025-11-05',
     'preventive',
-    'Solar pump seasonal inspection before dry period.',
-    'Solar pump seasonal inspection before dry period.',
-    'Cleaned filters, checked controller, replaced worn pipe coupling.',
-    'Kisumu Solar Pumps',
+    'Biofactory seasonal inspection before dry period.',
+    'Biofactory seasonal inspection before dry period.',
+    'Cleaned tanks, checked aeration, replaced worn pipe coupling.',
+    'Adelphi Bioinputs Network',
     3.50,
     '[{"part":"pipe coupling","quantity":1}]',
     45.00,
@@ -89,7 +110,7 @@ INSERT INTO revenue_event (
     'd0000000-0000-0000-0000-000000000001',
     '2025-12-28',
     'sale',
-    'Published maize sale linked to partner processor.',
+    'Published lettuce sale linked to partner buyer.',
     12735.20,
     'USD',
     12735.20,
@@ -99,7 +120,7 @@ INSERT INTO revenue_event (
     'published',
     'revenue-v1',
     'pilot_seed',
-    'revenue-maize-sale-2025-12',
+    'revenue-lettuce-sale-2025-12',
     '{"sales_event_id":"d0000000-0000-0000-0000-000000000001"}'
 )
 ON CONFLICT (id) DO NOTHING;
@@ -121,7 +142,7 @@ INSERT INTO mrv_event (
     '2026-03-16 10:00:00+00',
     '{"volumetric_water_content":19.0,"soil_temperature":24.5,"electrical_conductivity":0.72}',
     '{"ndvi":0.62,"ndre":0.45,"source":"sentinel","image_url":"local://sha256/9a61f6"}',
-    '{"crop_cycle_stage":"post_harvest","plant_health_notes":"Maize cycle closed with improved canopy cover and soil moisture retention.","disease_flags":[]}',
+    '{"crop_cycle_stage":"post_harvest","plant_health_notes":"Lettuce cycle closed with improved canopy cover and soil moisture retention.","disease_flags":[]}',
     'local://sha256/4f24f70db68140c8584b2ad3e8433a260e4f25d7c607b45cbf1dc64ceb9684b6',
     '4f24f70db68140c8584b2ad3e8433a260e4f25d7c607b45cbf1dc64ceb9684b6',
     'ec0362f71fc3233bb5e31ae6ce2aa69e74310bb774e9564c1c05a553a78d912b',
@@ -132,7 +153,7 @@ INSERT INTO mrv_event (
     'published',
     'kokonut-mrv-v1',
     'pilot_seed',
-    'mrv-maize-mixed-2026-03',
+    'mrv-lettuce-mixed-2026-03',
     '{"privacy":"private evidence stored off-chain; public record stores CID and hashes only"}'
 )
 ON CONFLICT (id) DO NOTHING;
@@ -216,7 +237,7 @@ INSERT INTO agent_task (
     'mrv_submission',
     'mrv_event',
     'a0000000-0000-0000-0000-000000000540',
-    '{"farm_id":"kokonut-demo-farm-kisumu","period_start":"2026-03-01","period_end":"2026-03-20"}',
+    '{"farm_id":"kokonut-adelphi","period_start":"2026-03-01","period_end":"2026-03-20"}',
     '{"mrv_event_id":"a0000000-0000-0000-0000-000000000540","attestation_request_id":"a0000000-0000-0000-0000-000000000550"}',
     'local://sha256/7fbf9853af506723301d455b142a998102503ee7ffb5d4cffba319f20250b85e',
     '7fbf9853af506723301d455b142a998102503ee7ffb5d4cffba319f20250b85e',

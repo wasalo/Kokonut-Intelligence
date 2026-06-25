@@ -15,6 +15,12 @@ FROM location l
 LEFT JOIN farm f ON f.location_id = l.id
 LEFT JOIN plot p ON p.farm_id = f.id
 WHERE l.status = 'active'
+  AND EXISTS (
+      SELECT 1
+      FROM farm_registry_record fr
+      WHERE fr.location_id = l.id
+        AND fr.status IN ('verified', 'published')
+  )
 GROUP BY l.id, l.name, l.country, l.region, l.status;
 
 CREATE OR REPLACE VIEW v_public_metric_summary AS
@@ -31,6 +37,13 @@ JOIN metric_definition md ON mv.metric_id = md.id
 JOIN location l ON mv.location_id = l.id
 WHERE md.active = TRUE
   AND mv.verified = TRUE
+  AND l.status = 'active'
+  AND EXISTS (
+      SELECT 1
+      FROM farm_registry_record fr
+      WHERE fr.location_id = l.id
+        AND fr.status IN ('verified', 'published')
+  )
   AND mv.computed_at = (
       SELECT MAX(mv2.computed_at)
       FROM metric_value mv2
@@ -52,4 +65,12 @@ SELECT
 FROM attestation_record ar
 JOIN location l ON ar.subject_type = 'location' AND ar.subject_id = l.id
 WHERE ar.status IN ('verified', 'published')
+  AND ar.chain = 'celo'
+  AND l.status = 'active'
+  AND EXISTS (
+      SELECT 1
+      FROM farm_registry_record fr
+      WHERE fr.location_id = l.id
+        AND fr.status IN ('verified', 'published')
+  )
 GROUP BY l.id, l.name, ar.claim_type, ar.chain;

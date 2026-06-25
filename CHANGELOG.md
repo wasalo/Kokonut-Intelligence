@@ -5,7 +5,8 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Fixed
-- **MVP definition-of-done runtime gaps**: Closed pilot lifecycle gaps so the seeded Kokonut Demo Farm can pass the full MVP verifier end-to-end. Pilot expenses and harvests now receive deterministic source lineage, MRV claim statuses normalize to canonical lifecycle values, public attestation summaries join through `subject_type/subject_id`, and dashboard/metric version seeds are applied by `seed-pilot.sh`.
+- **Stale pilot governance drift**: Legacy `P001`/`P002`/`P003` Optimism governance rows are realigned to Gnosis/Moloch metadata during Adelphi alignment.
+- **MVP definition-of-done runtime gaps**: Closed pilot lifecycle gaps so the seeded Kokonut Adelphi pilot can pass the full MVP verifier end-to-end. Pilot expenses and harvests now receive deterministic source lineage, MRV claim statuses normalize to canonical lifecycle values, public attestation summaries join through `subject_type/subject_id`, and dashboard/metric version seeds are applied by `seed-pilot.sh`.
 - **Metric computation runtime failures**: Fixed `allocated_shared_cost` to join `crop_cost_allocation.expense_id`, escaped the force-majeure `LIKE` pattern in `loss_rate_pct`, normalized `source_record_ids` before `metric_value` insertion, and added `--verify` support so computed MVP metrics can populate partner-safe public metric views.
 - **Schema idempotency with pilot data**: Expanded `schema_version.version`/master `schema_version` columns to `VARCHAR(50)`, normalized legacy lifecycle/indexer labels before enum checks, allowed zero-quantity/zero-amount secondary harvest and sale rows, and made unique constraints re-runnable on existing databases.
 - **Agent summary governance**: Added Directus `ai_summary` permissions for Agent Read-Only/Write/Full roles and tightened `services.agents.ai_summary` queries to read governed approved data (`verified`/`published`) for sales, expenses, and harvests.
@@ -20,6 +21,10 @@ All notable changes to the Kokonut Intelligence Platform.
 - **remote_sensing bbox PostGIS geometry** (`remote_sensing.py`): Changed `build_bbox()` from `json.dumps([west, south, east, north])` to `SRID=4326;POLYGON(...)` WKT format for proper PostGIS geometry storage.
 
 ### Added
+- **Kokonut Adelphi framework alignment**: Added `025_kokonut_framework_alignment.sql` with canonical framework, impact mapping, Colony/Guild, DAO proposal, farm zone, and regenerative practice evidence tables.
+- **Impact framework reference data**: Added SDGs, 8 Forms of Capital, Pillars of Value, EBF dimensions, CRISP dimensions, and 5 regeneration principles via `023_impact_frameworks.sql`.
+- **Adelphi alignment seed**: Added `024_adelphi_alignment.sql` to converge existing seeded databases on Kokonut Adelphi, Celo EAS metadata, Gnosis DAO metadata, syntropic farm zones, practice evidence, Colony-backed Guild records, and DAO proposal records.
+- **MVP verifier coverage**: Extended `tests/test_mvp_done.py` to assert Adelphi identity, Farm Registry state, Celo schema freshness, Gnosis DAO metadata, framework reference rows, Adelphi impact mappings, Guild records, and public-view filtering.
 - **MVP definition-of-done verifier**: Added `tests/test_mvp_done.py` and `scripts/verify-mvp.sh` to assert pilot baselines, operational data, source lineage, governed metrics, environmental baselines, Web3 links, forecasts, dashboard datasets, public views, MRV/attestation readiness, schema/metric versions, and agent summary permissions. `ci-check.sh` now runs the verifier when the local database is available.
 - **Verified metric computation path**: `scripts/compute-metrics.sh` now runs `python3 -m services.metrics --compute --all-locations --verify --json`, producing verified metric values for public aggregate views after seeding.
 - **Digital Lego verification flag**: Added `digital_lego_usage.verified` plus index and pilot seed updates so `digital_lego_usage` metrics count approved Web3 interactions.
@@ -173,6 +178,11 @@ All notable changes to the Kokonut Intelligence Platform.
   - `dashboards/directus/partner-operator.json` — 6 modules (operations overview, crop cycle status, sensor dashboard, open alerts, financial summary, recent expenses)
 
 ### Changed
+- **Pilot identity**: Replaced the canonical Kisumu demo identity with Kokonut Adelphi in pilot master, registry, Web3, DAO, price, value-flow, partner, and water-access seeds.
+- **Seed strictness**: Updated `seed.sh` and `seed-pilot.sh` to run PostgreSQL seeds with `ON_ERROR_STOP=1`, so SQL errors fail loudly instead of being hidden by `psql` defaults.
+- **Celo and Gnosis source-of-truth seeds**: Celo EAS seeds now refresh registered schema UIDs, names, chain, resolver, schema text, and active state on conflict. Gnosis DAO seeds now upsert Kokonut Treasury protocol and DAO wallet metadata instead of leaving stale Optimism rows untouched.
+- **Public aggregate views**: Public farm, metric, and attestation views now require a verified or published Farm Registry record before exposing a location; public attestation summaries are scoped to Celo.
+- **Guild governance model**: Documented and seeded Colony as the Guild execution/reputation layer while preserving Gnosis Moloch as treasury governance.
 - `seed-pilot.sh` now applies required non-`*_pilot_*` MVP support seeds (`017_dashboard_datasets.sql`, `021_metric_versions.sql`, `022_metric_governance.sql`) and no longer masks SQL errors with `|| true`.
 - The MVP setup sequence is now `./scripts/seed.sh`, `./scripts/seed-pilot.sh`, `./scripts/compute-metrics.sh`, and `./scripts/verify-mvp.sh`; full local CI includes all four when Docker Compose database is running.
 - **Retry decorator**: Now catches only transient exceptions (`ConnectionError`, `TimeoutError`, `OSError`, `psycopg2.OperationalError`), not all `Exception` subclasses. Adds configurable jitter.

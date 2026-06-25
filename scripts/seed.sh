@@ -50,7 +50,7 @@ SCHEMA_DIR="$PROJECT_DIR/schemas/postgres"
 for schema_file in "$SCHEMA_DIR"/*.sql; do
     filename=$(basename "$schema_file")
     echo "  Applying: $filename"
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$schema_file"
+    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$schema_file"
 done
 
 echo ""
@@ -76,7 +76,7 @@ echo ""
 echo "Applying Directus permissions..."
 PERMISSIONS_FILE="$PROJECT_DIR/config/directus/permissions.sql"
 if [ -f "$PERMISSIONS_FILE" ]; then
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$PERMISSIONS_FILE"
+    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PERMISSIONS_FILE"
     echo "Directus permissions applied."
 else
     echo "No permissions file found at $PERMISSIONS_FILE — skipping."
@@ -85,20 +85,26 @@ fi
 # Seed expense categories
 echo ""
 echo "Seeding expense categories..."
-docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/000_expense_categories.sql"
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/000_expense_categories.sql"
 echo "Expense categories seeded."
 
 # Seed metric definitions
 echo ""
 echo "Seeding metric definitions..."
-docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/000_metric_definitions.sql"
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/000_metric_definitions.sql"
 echo "Metric definitions seeded."
 
 # Seed revenue multiplier config
 echo ""
 echo "Seeding revenue multiplier config..."
-docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/015_revenue_multiplier_config.sql"
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/015_revenue_multiplier_config.sql"
 echo "Revenue multiplier config seeded."
+
+# Seed Kokonut Framework reference data
+echo ""
+echo "Seeding Kokonut Framework reference data..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/023_impact_frameworks.sql"
+echo "Kokonut Framework reference data seeded."
 
 echo ""
 echo "=== Seed Complete ==="

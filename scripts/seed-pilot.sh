@@ -49,28 +49,31 @@ SEED_DIR="$PROJECT_DIR/schemas/seeds"
 for seed_file in "$SEED_DIR"/*_pilot_*.sql; do
     filename=$(basename "$seed_file")
     echo "  Applying: $filename"
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$seed_file"
+    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
 done
 
 # MVP support seeds whose filenames are not *_pilot_*.sql.
 for seed_file in \
     "$SEED_DIR/017_dashboard_datasets.sql" \
+    "$SEED_DIR/020_gnosis_chain.sql" \
     "$SEED_DIR/021_metric_versions.sql" \
-    "$SEED_DIR/022_metric_governance.sql"; do
+    "$SEED_DIR/022_metric_governance.sql" \
+    "$SEED_DIR/023_impact_frameworks.sql" \
+    "$SEED_DIR/024_adelphi_alignment.sql"; do
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -U kokonut -d kokonut_intelligence < "$seed_file"
+        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
     fi
 done
 
 echo ""
 echo "=== Pilot Farm Data Loaded ==="
 echo ""
-echo "Location: Kokonut Demo Farm — Kisumu"
-echo "Farm: Main Farm (12 ha)"
-echo "Plots: Plot A (maize), Plot B (cassava), Plot C (mixed)"
-echo "Crops: Maize, Cassava, Beans, Sweet Potato"
+echo "Location: Kokonut Adelphi — Sabana Grande de Boya"
+echo "Farm: Kokonut Adelphi (1.5725 ha / 15,725 m2)"
+echo "Plots: Syntropic Beds, Agroforestry Corridor, Nursery & Biofactory"
+echo "Crops: Lettuce, Passion Fruit, Coconut, Eggs, Indian Yam"
 echo "Period: Oct 2025 — Mar 2026"
 echo ""
 echo "Data includes:"

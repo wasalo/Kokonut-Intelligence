@@ -10,6 +10,7 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 - [Quick Start](#quick-start)
 - [Local Services](#local-services)
 - [MVP Verification](#mvp-verification)
+- [Pilot Data And Frameworks](#pilot-data-and-frameworks)
 - [Core Capabilities](#core-capabilities)
 - [Data Lifecycle And Roles](#data-lifecycle-and-roles)
 - [Metrics And Intelligence](#metrics-and-intelligence)
@@ -31,6 +32,7 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 | BI | Metabase | Internal dashboards and aggregate reporting |
 | Intelligence | Python services | Metrics, forecasts, scoring, exports, ingestion, AI summaries |
 | Verification | EAS on Celo + offchain evidence storage | Onchain attestations, offchain signed claims, MRV proof metadata |
+| Governance and Guilds | Gnosis Moloch DAO + Colony metadata | Treasury governance, Guild contribution records, reputation snapshots |
 | Contracts | Foundry + Solidity | KokonutResolver attester gating for EAS schemas |
 
 See [Architecture](docs/architecture.md) for system design, data flow, and security model details.
@@ -81,7 +83,7 @@ Optional local overrides may expose Directus at `http://localhost:8055` and Meta
 
 ## MVP Verification
 
-The MVP verifier checks a seeded pilot database, not just source files. It asserts that operational records, source lineage, governed metric values, public views, MRV/attestation readiness, forecasts, dashboard datasets, environmental baselines, Web3 usage, schema versions, metric versions, and agent summary permissions are present and coherent.
+The MVP verifier checks a seeded pilot database, not just source files. It asserts that Kokonut Adelphi identity, operational records, source lineage, governed metric values, public views, MRV/attestation readiness, Celo EAS schema metadata, Gnosis DAO metadata, framework reference data, Colony-backed Guild records, forecasts, dashboard datasets, environmental baselines, Web3 usage, schema versions, metric versions, and agent summary permissions are present and coherent.
 
 ```bash
 ./scripts/seed.sh
@@ -92,6 +94,22 @@ The MVP verifier checks a seeded pilot database, not just source files. It asser
 
 `./scripts/compute-metrics.sh` runs `python3 -m services.metrics --compute --all-locations --verify --json`, so public aggregate views only surface verified metric results.
 
+## Pilot Data And Frameworks
+
+`./scripts/seed-pilot.sh` seeds Kokonut Adelphi as the canonical pilot location. Adelphi replaces the earlier Kisumu demo and represents the first live Kokonut syntropic farm proof in Sabana Grande de Boya, Monte Plata, Dominican Republic.
+
+Key seeded facts:
+
+- Total area: `15,725 m2`; agricultural land: `13,838 m2`.
+- Products: lettuce, passion fruit, coconut, eggs, Indian yam, nursery outputs, and bioinputs.
+- Public goods allocation: `10%`.
+- Registry slug: `kokonut-adelphi`.
+- Hub reference: `https://hub.kokonut.network/projects/41`.
+
+Framework reference data is seeded by `schemas/seeds/023_impact_frameworks.sql` and Adelphi-specific mappings by `schemas/seeds/024_adelphi_alignment.sql`. These cover SDGs, 8 Forms of Capital, Pillars of Value, EBF dimensions, CRISP risk dimensions, 5 regeneration principles, farm zones, syntropic practice evidence, Colony-backed Guild records, and DAO proposal metadata.
+
+Public aggregate views require a verified or published Farm Registry record before a location appears publicly.
+
 ## Core Capabilities
 
 - **Governed farm operations**: Activities, harvests, sales, expenses, losses, labor, field notes, inventory, maintenance, revenue events, and partner-scoped access through Directus.
@@ -99,6 +117,8 @@ The MVP verifier checks a seeded pilot database, not just source files. It asser
 - **Metrics and reporting**: Versioned metric definitions, calculator-backed `metric_value` records, public aggregate views, dashboard datasets, report snapshots, and CSV/JSON/Parquet exports.
 - **Forecasting and analytics**: Scenario forecasts, Fortune 500-style farm scoring, ecological analytics, water access, revenue multiplier opportunity maps, and AI-generated summaries.
 - **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, and public attestation summaries.
+- **Impact framework alignment**: SDGs, 8 Forms of Capital, Pillars of Value, EBF/CRISP mappings, regeneration principles, syntropic zones, and practice evidence.
+- **Guild coordination**: Colony-backed Guild metadata, contribution records, reputation snapshots, and DAO proposal links while Gnosis Moloch remains the treasury governance layer.
 - **Agent ecosystem**: Agent identities, capability manifests, tasks, action logs, AI summaries, and scoped MCP/Directus access. Contract identity, payments, escrow, and marketplace logic remain external to this repo.
 
 ## Data Lifecycle And Roles
@@ -155,6 +175,8 @@ See [Data Dictionary](docs/data-dictionary.md) for governed metric definitions a
 ## Web3 Verification
 
 Celo is the primary EAS attestation chain. EAS v1.3.0 is deployed on Celo mainnet, and `KokonutResolver` gates attestation to allowed attesters under Kokonut multisig ownership.
+
+Celo is the source of truth for Kokonut EAS schemas. Gnosis Chain is the source of truth for the Kokonut Moloch DAO treasury. Colony metadata in this repo records planned/observed Guild execution and reputation state; it does not replace Moloch treasury governance.
 
 README intentionally links to the source-of-truth EAS details instead of duplicating schema UIDs and contract tables:
 

@@ -1,14 +1,22 @@
 -- ============================================================
 -- Pilot Farm Seed Data: Web3 & On-Chain
--- Kokonut Demo Farm — Kisumu, Kenya
+-- Kokonut Adelphi — Web3 & On-Chain
 -- ============================================================
 
 -- Protocols (must exist before digital_lego_usage)
-INSERT INTO protocol (id, name, slug, chain, protocol_type, category, description) VALUES
-('a0000000-0000-0000-0000-000000000170', 'Kokonut Treasury', 'kokonut-treasury', 'optimism', 'dao', 'treasury', 'Farm treasury management protocol'),
-('a0000000-0000-0000-0000-000000000171', 'Green Bonds DAO', 'green-bonds-dao', 'ethereum', 'defi', 'lending', 'Regenerative agriculture lending protocol'),
-('a0000000-0000-0000-0000-000000000172', 'Regen Network', 'regen-network', 'cosmos', 'attestation', 'impact', 'Ecological impact verification')
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO protocol (id, name, slug, chain, protocol_type, category, contract_address, description, metadata) VALUES
+('a0000000-0000-0000-0000-000000000170', 'Kokonut Treasury', 'kokonut-treasury', 'gnosis', 'dao', 'treasury', '0xeb55b75328a8dffd45bbf34b7e7efc431a179085', 'Kokonut Moloch DAO treasury on Gnosis Chain', '{"chain_id":100,"contract_type":"moloch_v2"}'::jsonb),
+('a0000000-0000-0000-0000-000000000171', 'Public Nouns', 'public-nouns', 'ethereum', 'dao', 'public_goods', NULL, 'Public goods funding context for Kokonut Adelphi', '{"funding_context":"Nouns #69"}'::jsonb),
+('a0000000-0000-0000-0000-000000000172', 'Celo EAS', 'celo-eas', 'celo', 'attestation', 'impact', NULL, 'Ethereum Attestation Service on Celo for Kokonut MRV and impact attestations', '{"chain_id":42220,"primary_attestation_chain":true}'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+    slug = EXCLUDED.slug,
+    name = EXCLUDED.name,
+    chain = EXCLUDED.chain,
+    protocol_type = EXCLUDED.protocol_type,
+    category = EXCLUDED.category,
+    contract_address = EXCLUDED.contract_address,
+    description = EXCLUDED.description,
+    metadata = EXCLUDED.metadata;
 
 UPDATE digital_lego_usage
 SET verified = TRUE
@@ -31,16 +39,40 @@ INSERT INTO wallet_activity_event (id, wallet_id, chain, tx_hash, block_number, 
 ('a0000000-0000-0000-0000-00000000018c', 'a0000000-0000-0000-0000-000000000081', 'optimism', '0xbbbb888888888888888888888888888888888888888888888888888888888888', 12007000, '2026-02-28 10:00:00+00', 'withdraw', '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '0x1234567890abcdef1234567890abcdef12345678', 200.0, 'USDC', 200.0, 41000, 'success'),
 ('a0000000-0000-0000-0000-00000000018d', 'a0000000-0000-0000-0000-000000000081', 'optimism', '0xbbbb999999999999999999999999999999999999999999999999999999999999', 12008000, '2026-03-01 09:00:00+00', 'deposit', '0x1234567890abcdef1234567890abcdef12345678', '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 600.0, 'USDC', 600.0, 37000, 'success'),
 ('a0000000-0000-0000-0000-00000000018e', 'a0000000-0000-0000-0000-000000000080', 'ethereum', '0xaaaa666666666666666666666666666666666666666666666666666666666666', 18700000, '2026-03-10 15:00:00+00', 'transfer', '0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18', '0x1234567890abcdef1234567890abcdef12345678', 0.5, 'ETH', 0.5, 21000, 'success')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+    wallet_id = EXCLUDED.wallet_id,
+    chain = EXCLUDED.chain,
+    tx_hash = EXCLUDED.tx_hash,
+    block_number = EXCLUDED.block_number,
+    block_timestamp = EXCLUDED.block_timestamp,
+    activity_type = EXCLUDED.activity_type,
+    from_address = EXCLUDED.from_address,
+    to_address = EXCLUDED.to_address,
+    value = EXCLUDED.value,
+    token = EXCLUDED.token,
+    token_amount = EXCLUDED.token_amount,
+    gas_used = EXCLUDED.gas_used,
+    status = EXCLUDED.status;
 
 -- Digital Lego Usage
 INSERT INTO digital_lego_usage (id, wallet_id, protocol_id, location_id, usage_date, action_type, amount, token, chain, value_attributed, attribution_method, notes) VALUES
-('a0000000-0000-0000-0000-000000000190', 'a0000000-0000-0000-0000-000000000081', 'a0000000-0000-0000-0000-000000000170', 'a0000000-0000-0000-0000-000000000001', '2025-10-10', 'deposit', 1000.0, 'USDC', 'optimism', 1000.00, 'direct', 'Initial treasury deposit for farm operations'),
+('a0000000-0000-0000-0000-000000000190', 'a0000000-0000-0000-0000-000000000081', 'a0000000-0000-0000-0000-000000000170', 'a0000000-0000-0000-0000-000000000001', '2025-10-10', 'deposit', 1000.0, 'USDC', 'gnosis', 1000.00, 'direct', 'Initial treasury deposit for Adelphi operations'),
 ('a0000000-0000-0000-0000-000000000191', 'a0000000-0000-0000-0000-000000000080', 'a0000000-0000-0000-0000-000000000171', 'a0000000-0000-0000-0000-000000000001', '2025-11-15', 'lend', 3.0, 'ETH', 'ethereum', 4500.00, 'direct', 'Green bond lending for irrigation upgrade'),
-('a0000000-0000-0000-0000-000000000192', 'a0000000-0000-0000-0000-000000000081', 'a0000000-0000-0000-0000-000000000172', 'a0000000-0000-0000-0000-000000000001', '2025-12-01', 'attest', 1.0, 'REGEN', 'cosmos', 250.00, 'proportional', 'Ecological impact attestation for Plot A'),
-('a0000000-0000-0000-0000-000000000193', 'a0000000-0000-0000-0000-000000000081', 'a0000000-0000-0000-0000-000000000170', 'a0000000-0000-0000-0000-000000000001', '2026-01-05', 'withdraw', 500.0, 'USDC', 'optimism', 500.00, 'direct', 'Seed purchase withdrawal'),
-('a0000000-0000-0000-0000-000000000194', 'a0000000-0000-0000-0000-000000000081', 'a0000000-0000-0000-0000-000000000172', 'a0000000-0000-0000-0000-000000000001', '2026-02-15', 'attest', 1.0, 'REGEN', 'cosmos', 250.00, 'proportional', 'Carbon sequestration attestation for cassava plot')
-ON CONFLICT (id) DO NOTHING;
+('a0000000-0000-0000-0000-000000000192', 'a0000000-0000-0000-0000-000000000081', 'a0000000-0000-0000-0000-000000000172', 'a0000000-0000-0000-0000-000000000001', '2025-12-01', 'attest', 1.0, 'CELO', 'celo', 250.00, 'proportional', 'Ecological impact attestation for syntropic beds'),
+('a0000000-0000-0000-0000-000000000193', 'a0000000-0000-0000-0000-000000000081', 'a0000000-0000-0000-0000-000000000170', 'a0000000-0000-0000-0000-000000000001', '2026-01-05', 'withdraw', 500.0, 'USDC', 'gnosis', 500.00, 'direct', 'Seedling purchase withdrawal'),
+('a0000000-0000-0000-0000-000000000194', 'a0000000-0000-0000-0000-000000000081', 'a0000000-0000-0000-0000-000000000172', 'a0000000-0000-0000-0000-000000000001', '2026-02-15', 'attest', 1.0, 'CELO', 'celo', 250.00, 'proportional', 'Carbon and biodiversity co-benefit attestation for Adelphi')
+ON CONFLICT (id) DO UPDATE SET
+    wallet_id = EXCLUDED.wallet_id,
+    protocol_id = EXCLUDED.protocol_id,
+    location_id = EXCLUDED.location_id,
+    usage_date = EXCLUDED.usage_date,
+    action_type = EXCLUDED.action_type,
+    amount = EXCLUDED.amount,
+    token = EXCLUDED.token,
+    chain = EXCLUDED.chain,
+    value_attributed = EXCLUDED.value_attributed,
+    attribution_method = EXCLUDED.attribution_method,
+    notes = EXCLUDED.notes;
 
 -- Attestation Schemas (use unique schema_uids not already in DB)
 INSERT INTO attestation_schema (id, schema_uid, name, description, schema_text, chain, version, active) VALUES

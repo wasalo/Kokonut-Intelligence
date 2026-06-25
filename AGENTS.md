@@ -12,6 +12,8 @@
 - Celo is the primary EAS attestation chain. EAS v1.3.0 is deployed on Celo mainnet.
 - The KokonutResolver (`0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`) gates attestation to allowed attesters.
 - Resolver ownership is on the Kokonut multisig (`0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5`).
+- Kokonut Adelphi (`kokonut-adelphi`) is the canonical pilot/demo farm. Do not reintroduce the old Kisumu demo identity as source of truth.
+- Colony is the Guild execution/reputation layer. Gnosis Moloch DAO remains the treasury governance layer.
 - Agent contract identity, x402/ERC-8004 payments, escrow, and reputation logic are external to `Kokonut-Agentic-Marketplace`.
 
 ## Data Lifecycle
@@ -76,7 +78,9 @@
 
 - Prefer the smallest schema/code change that fixes the issue.
 - Keep seed files idempotent with `ON CONFLICT` or equivalent guards.
+- Seed files must correct stale source-of-truth rows on conflict when the record is canonical metadata, not only `DO NOTHING`.
 - `seed-pilot.sh` must fail on SQL errors; do not hide seed failures with `|| true`.
+- Seed scripts use `psql -v ON_ERROR_STOP=1`; preserve that behavior for all PostgreSQL seed/schema calls.
 - MVP setup order: `./scripts/seed.sh`, `./scripts/seed-pilot.sh`, `./scripts/compute-metrics.sh`, then `./scripts/verify-mvp.sh`.
 - Use Compose service names (`database`, `clickhouse`) instead of generated container names.
 - Do not print, copy, or commit secrets from `.env`.
@@ -99,7 +103,11 @@
 - Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate verified `metric_value` rows for public metric views.
 - Metric governance: `metric_definition` has `validation_tests`, `report_usage`, `deprecation_policy` fields populated via `schemas/seeds/022_metric_governance.sql`.
 - Public aggregate views must not expose unverified metrics; `v_public_metric_summary` reads only `metric_value.verified = TRUE`.
+- Public aggregate views require a verified or published `farm_registry_record` before exposing a location.
 - Public attestation summaries join `attestation_record` to `location` through `subject_type = 'location'` and `subject_id`.
+- Public attestation summaries are scoped to Celo.
+- Framework reference data is canonicalized by `schemas/seeds/023_impact_frameworks.sql`; Adelphi mappings and Guild/DAO alignment are in `schemas/seeds/024_adelphi_alignment.sql`.
+- Impact framework rows should be nonblank and active for SDGs, 8 Forms of Capital, Pillars of Value, EBF, CRISP, and regeneration principles.
 - Baseline calculators (revenue, asset_value, cash_flow, cost) query the `location` table directly.
 - `revenue_multiplier_config` table stores dimension constants (DB-backed, not hardcoded).
 - Forecast engine writes per-cycle outputs with `crop_cycle_id`.
@@ -137,6 +145,15 @@
 - Kokonut Moloch DAO contracts: Treasury SAFE, Token Manager, $vKKN, Loot.
 - `contracts/abis/MolochV2.json` contains 9 Moloch v2 event definitions.
 - `services/ingestion/gnosis_indexer.py` uses log filtering + event decoding (not subgraph).
+- `schemas/seeds/020_gnosis_chain.sql` must refresh stale `kokonut-treasury` protocol and DAO wallet metadata on conflict.
+- `schemas/seeds/024_adelphi_alignment.sql` realigns legacy pilot governance rows to Gnosis/Moloch metadata.
+
+## Guilds & Frameworks
+
+- Colony-backed Guild records live in `colony_instance`, `kokonut_guild`, `guild_contributor`, `guild_contribution`, and `guild_reputation_snapshot`.
+- Guild data in this repo stores metadata, pointers, summaries, and governed records; Colony contract execution remains external.
+- Adelphi syntropic/regenerative evidence lives in `farm_zone`, `farm_practice_event`, and `farm_impact_mapping`.
+- Use Knowledge Base facts as the starting source for Adelphi unless a newer governed source is explicitly provided.
 
 ## Modeled Outputs
 
