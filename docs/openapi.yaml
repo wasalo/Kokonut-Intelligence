@@ -7164,6 +7164,34 @@ components:
           type: string
         description:
           type: string
+        logo_url:
+          type: string
+          description: Farm logo image URL for Data Hub and farm pages
+        traditional_name:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        global_standard_certifications:
+          type: array
+          items:
+            type: string
+        economic_sectors:
+          type: array
+          items:
+            type: string
+        credits_registries:
+          type: array
+          items:
+            type: string
+        data_privacy_status:
+          type: string
+        data_privacy_standard:
+          type: string
+        data_privacy_criteria:
+          type: object
+          additionalProperties: true
         farm_type:
           type: string
           enum:
@@ -7208,6 +7236,33 @@ components:
           type: string
         description:
           type: string
+        logo_url:
+          type: string
+        traditional_name:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        global_standard_certifications:
+          type: array
+          items:
+            type: string
+        economic_sectors:
+          type: array
+          items:
+            type: string
+        credits_registries:
+          type: array
+          items:
+            type: string
+        data_privacy_status:
+          type: string
+        data_privacy_standard:
+          type: string
+        data_privacy_criteria:
+          type: object
+          additionalProperties: true
         farm_type:
           type: string
         total_area:
@@ -7236,6 +7291,33 @@ components:
           type: string
         description:
           type: string
+        logo_url:
+          type: string
+        traditional_name:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        global_standard_certifications:
+          type: array
+          items:
+            type: string
+        economic_sectors:
+          type: array
+          items:
+            type: string
+        credits_registries:
+          type: array
+          items:
+            type: string
+        data_privacy_status:
+          type: string
+        data_privacy_standard:
+          type: string
+        data_privacy_criteria:
+          type: object
+          additionalProperties: true
         farm_type:
           type: string
         total_area:

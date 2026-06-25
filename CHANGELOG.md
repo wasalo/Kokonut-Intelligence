@@ -5,6 +5,7 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Fixed
+- **Forecast bed-area lookup**: Fixed the per-square-meter forecast path to resolve plots through `plot -> farm -> location` instead of referencing nonexistent `plot.location_id`.
 - **Stale pilot governance drift**: Legacy `P001`/`P002`/`P003` Optimism governance rows are realigned to Gnosis/Moloch metadata during Adelphi alignment.
 - **MVP definition-of-done runtime gaps**: Closed pilot lifecycle gaps so the seeded Kokonut Adelphi pilot can pass the full MVP verifier end-to-end. Pilot expenses and harvests now receive deterministic source lineage, MRV claim statuses normalize to canonical lifecycle values, public attestation summaries join through `subject_type/subject_id`, and dashboard/metric version seeds are applied by `seed-pilot.sh`.
 - **Metric computation runtime failures**: Fixed `allocated_shared_cost` to join `crop_cost_allocation.expense_id`, escaped the force-majeure `LIKE` pattern in `loss_rate_pct`, normalized `source_record_ids` before `metric_value` insertion, and added `--verify` support so computed MVP metrics can populate partner-safe public metric views.
@@ -21,6 +22,12 @@ All notable changes to the Kokonut Intelligence Platform.
 - **remote_sensing bbox PostGIS geometry** (`remote_sensing.py`): Changed `build_bbox()` from `json.dumps([west, south, east, north])` to `SRID=4326;POLYGON(...)` WKT format for proper PostGIS geometry storage.
 
 ### Added
+- **EBF basic onboarding profile fields**: Added `027_farm_onboarding_profile.sql` with farm logo, traditional name, languages, global certifications, data privacy status/criteria, economic sectors, and credits registries on `farm`.
+- **Tenure and rights assessment**: Added `tenure_rights_assessment` for property/farm-linked tenure, nearby-area survey, community effects forecast, risk level, mitigation, and source lineage.
+- **DAOIP-5 project metadata**: Added DAOIP-5 project publication fields to `farm_registry_record` and `v_daoip5_project_json` for JSON-LD project export compatibility.
+- **Data Hub flora/fauna and crop forecast views**: Added `v_public_farm_places`, `v_public_flora_fauna_summary`, `v_crop_forecast_summary`, and `v_public_project_carbon_credit_index` for farm-specific places, species/crop forecast summaries, and project carbon-credit indexing.
+- **Forecast crop survival outputs**: Forecast engine now writes per-cycle `crop_projected_revenue_usd` and `crop_survival_rate_pct` outputs based on actual production versus forecasted production.
+- **Adelphi onboarding seed**: Added `026_pilot_farm_onboarding.sql` with Adelphi EBF onboarding fields, DAOIP-5 metadata, crop expected revenue values, tenure assessment, and carbon credit attestation plan.
 - **Milestone 1 — Ground Analytics normalized schema**: Added `026_ground_analytics.sql` with active canonical tables for `plant_analysis`, `water_analysis`, `disease_observation`, and `irrigation_program`, using governed lifecycle status plus source lineage fields.
 - **Adelphi ground analytics seed data**: Added `025_pilot_ground_analytics.sql` with published plant scouting, water quality, disease scouting, and irrigation program records linked to Kokonut Adelphi plots, crop cycles, and water access sources.
 - **Ground analytics MVP verifier coverage**: Extended `tests/test_mvp_done.py` to assert ground analytics table existence, Adelphi pilot records, source lineage completeness, and canonical lifecycle values.

@@ -67,6 +67,15 @@ class Farm:
     name: str
     slug: str
     description: Optional[str] = None
+    logo_url: Optional[str] = None
+    traditional_name: Optional[str] = None
+    languages: Optional[List[str]] = None
+    global_standard_certifications: Optional[List[str]] = None
+    economic_sectors: Optional[List[str]] = None
+    credits_registries: Optional[List[str]] = None
+    data_privacy_status: Optional[str] = None
+    data_privacy_standard: Optional[str] = None
+    data_privacy_criteria: Optional[Dict[str, Any]] = None
     farm_type: Optional[str] = None
     total_area: Optional[float] = None
     area_unit: Optional[str] = None

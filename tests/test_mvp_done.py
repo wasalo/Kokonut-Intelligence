@@ -127,6 +127,46 @@ WITH checks(name, ok) AS (
         AND NOT EXISTS (SELECT 1 FROM water_analysis WHERE status NOT IN ('draft', 'submitted', 'verified', 'published', 'rejected'))
         AND NOT EXISTS (SELECT 1 FROM disease_observation WHERE status NOT IN ('draft', 'submitted', 'verified', 'published', 'rejected'))
         AND NOT EXISTS (SELECT 1 FROM irrigation_program WHERE status NOT IN ('draft', 'submitted', 'verified', 'published', 'rejected'))
+    UNION ALL SELECT 'farm onboarding profile', EXISTS (
+        SELECT 1 FROM farm
+        WHERE location_id = '{PILOT_LOCATION_ID}'
+          AND logo_url IS NOT NULL
+          AND traditional_name IS NOT NULL
+          AND array_length(languages, 1) >= 1
+          AND array_length(global_standard_certifications, 1) >= 1
+          AND array_length(economic_sectors, 1) >= 1
+          AND array_length(credits_registries, 1) >= 1
+          AND data_privacy_status = 'public_summary_private_evidence'
+    )
+    UNION ALL SELECT 'daoip5 project metadata', EXISTS (
+        SELECT 1 FROM farm_registry_record
+        WHERE location_id = '{PILOT_LOCATION_ID}'
+          AND daoip5_project_id = 'daoip-5:Kokonut:project:kokonut-adelphi'
+          AND content_uri IS NOT NULL
+          AND jsonb_array_length(socials) >= 1
+          AND jsonb_array_length(relevant_to) >= 1
+    ) AND EXISTS (SELECT 1 FROM v_daoip5_project_json WHERE farm_registry_record_id = 'a0000000-0000-0000-0000-000000000500')
+    UNION ALL SELECT 'tenure rights assessment', EXISTS (
+        SELECT 1 FROM tenure_rights_assessment
+        WHERE location_id = '{PILOT_LOCATION_ID}'
+          AND status = 'published'
+          AND source_system IS NOT NULL
+          AND source_id IS NOT NULL
+          AND source_raw IS NOT NULL
+    )
+    UNION ALL SELECT 'data hub flora fauna views',
+        EXISTS (SELECT 1 FROM v_public_farm_places WHERE location_id = '{PILOT_LOCATION_ID}')
+        AND EXISTS (SELECT 1 FROM v_public_flora_fauna_summary WHERE location_id = '{PILOT_LOCATION_ID}')
+    UNION ALL SELECT 'crop forecast summary view', EXISTS (
+        SELECT 1 FROM v_crop_forecast_summary
+        WHERE location_id = '{PILOT_LOCATION_ID}'
+          AND annual_forecasted_revenue_per_harvest_per_plot_usd IS NOT NULL
+    )
+    UNION ALL SELECT 'carbon credits index view', EXISTS (
+        SELECT 1 FROM v_public_project_carbon_credit_index
+        WHERE location_id = '{PILOT_LOCATION_ID}'
+          AND carbon_credits_index_usd > 0
+    )
     UNION ALL SELECT 'web3 linked usage', (SELECT count(*) FROM digital_lego_usage WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
     UNION ALL SELECT 'forecast outputs',
         (SELECT count(*) FROM forecast_scenario WHERE location_id = '{PILOT_LOCATION_ID}') >= 1

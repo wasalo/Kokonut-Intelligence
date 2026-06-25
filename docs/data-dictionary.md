@@ -116,6 +116,7 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | Entity | Description | Key Fields |
 |--------|-------------|------------|
 | `farm_registry_record` | Kokonut Common Data Schema onboarding record | registry_slug, project_date, forecasted_budget, record_hash |
+| `tenure_rights_assessment` | Tenure, rights, and community-effects onboarding assessment | tenure_type, nearby_area_survey, community_effects_forecast, risk_level |
 | `inventory_event` | Inventory, input, and bioinput movement | item_name, item_type, event_type, quantity |
 | `maintenance_event` | Asset inspection, repair, and upkeep | maintenance_type, work_performed, cost, next_service_date |
 | `agent_identity` | Agent metadata and marketplace reference | agent_name, capability_manifest_cid, agent_state |
@@ -130,6 +131,10 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `metric_value` | Computed governed metric results | metric_id, location_id, value, period |
 | `revenue_multiplier_config` | DB-backed dimension constants | config_key, config_value |
 | `forecast_output` | Forecast engine outputs | metric_name, value, crop_cycle_id |
+| `v_crop_forecast_summary` | Species/crop forecast summary view | total_annual_forecasted_revenue_usd, forecasted_harvest_count, forecasted_plot_count, crop_survival_rate_pct |
+| `v_public_farm_places` | Public Data Hub places view | farm, plot, zone, logo_url, flora/fauna counts |
+| `v_public_flora_fauna_summary` | Public flora/fauna observations by farm place | species_category, species_name, plot, observation totals |
+| `v_public_project_carbon_credit_index` | Project-level carbon credit index view | forecasted, planned, realized, and total carbon credit value |
 
 ### Ingestion & Observability
 

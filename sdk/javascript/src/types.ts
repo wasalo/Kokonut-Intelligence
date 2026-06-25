@@ -22,6 +22,15 @@ export interface Farm {
   name: string;
   slug: string;
   description?: string;
+  logo_url?: string;
+  traditional_name?: string;
+  languages?: string[];
+  global_standard_certifications?: string[];
+  economic_sectors?: string[];
+  credits_registries?: string[];
+  data_privacy_status?: string;
+  data_privacy_standard?: string;
+  data_privacy_criteria?: Record<string, any>;
   farm_type: 'conventional' | 'organic' | 'syntropic' | 'agroforestry' | 'hybrid';
   total_area: number;
   area_unit: 'hectares' | 'acres' | 'm2';

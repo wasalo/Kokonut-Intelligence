@@ -142,8 +142,11 @@ CREATE TABLE IF NOT EXISTS dashboard_dataset (
     status VARCHAR(50) DEFAULT 'draft', -- draft, submitted, verified, published, rejected
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
     updated_by UUID
 );
+
+ALTER TABLE dashboard_dataset ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- AI summaries (agent-generated narratives)
 CREATE TABLE IF NOT EXISTS ai_summary (

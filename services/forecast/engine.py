@@ -345,11 +345,16 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
 
     # Per-cycle outputs
     cycle_id_map = {}
+    survival_rate_by_crop = {}
     for ca in crop_areas:
         name = ca["crop_name"]
         cycle_id = ca.get("cycle_id")
         if cycle_id and name not in cycle_id_map:
             cycle_id_map[name] = cycle_id
+        expected_yield = float(ca.get("yield") or 0)
+        actual_yield = float(ca.get("actual_yield") or 0)
+        if expected_yield > 0 and name not in survival_rate_by_crop:
+            survival_rate_by_crop[name] = (actual_yield / expected_yield) * 100
 
     for crop_name, cycle_id in cycle_id_map.items():
         crop_data = noi_by_crop.get(crop_name, {})
@@ -363,6 +368,26 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
             {"crop": crop_name, "revenue": crop_data["revenue"], "costs": crop_data["costs"]},
             crop_cycle_id=cycle_id,
         ))
+        outputs.append(_make_output(
+            scenario_id, location_id, "crop_projected_revenue_usd",
+            crop_data["revenue"], "usd",
+            round(crop_data["revenue"] * 0.8, 2), round(crop_data["revenue"] * 1.2, 2),
+            period_start, period_end,
+            {"crop": crop_name, "source": "forecast_engine"},
+            crop_cycle_id=cycle_id,
+        ))
+        if crop_name in survival_rate_by_crop:
+            survival_rate = round(survival_rate_by_crop[crop_name], 2)
+            outputs.append(_make_output(
+                scenario_id, location_id, "crop_survival_rate_pct",
+                survival_rate, "pct",
+                round(survival_rate * 0.9, 2), round(survival_rate * 1.1, 2),
+                period_start, period_end,
+                {"crop": crop_name, "actual_production": next((float(ca.get("actual_yield") or 0) for ca in crop_areas if ca["crop_name"] == crop_name), 0),
+                 "forecasted_production": next((float(ca.get("yield") or 0) for ca in crop_areas if ca["crop_name"] == crop_name), 0),
+                 "formula": "actual_production / forecasted_production * 100"},
+                crop_cycle_id=cycle_id,
+            ))
         outputs.append(_make_output(
             scenario_id, location_id, "crop_margin_pct",
             crop_data["margin_pct"], "pct",
@@ -507,15 +532,17 @@ def _write_dashboard_dataset(
         with db.cursor() as cur:
             cur.execute("""
                 INSERT INTO dashboard_dataset
-                    (id, location_id, dataset_type, query_sql, status,
-                     metadata, created_at)
-                VALUES (%s, %s, 'forecast', %s, 'published', %s::jsonb, NOW())
+                    (id, name, description, location_id, dataset_type, query_sql, status,
+                     metadata, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, 'forecast', %s, 'published', %s::jsonb, NOW(), NOW())
                 ON CONFLICT (id) DO UPDATE SET
                     metadata = EXCLUDED.metadata,
                     status = 'published',
                     updated_at = NOW()
             """, (
-                str(uuid.uuid4()),
+                str(uuid.uuid5(uuid.NAMESPACE_DNS, f"forecast-dashboard:{scenario_id}")),
+                f"Forecast Summary — {scenario_type}",
+                f"Forecast output summary for scenario {scenario_id}",
                 location_id,
                 f"SELECT * FROM forecast_output WHERE scenario_id = '{scenario_id}'",
                 json.dumps({

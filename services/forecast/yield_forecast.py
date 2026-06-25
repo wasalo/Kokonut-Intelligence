@@ -15,7 +15,7 @@ def get_crop_areas_for_location(location_id: str) -> List[Dict[str, Any]]:
     with db.cursor() as cur:
         cur.execute("""
             SELECT c.name, c.id, cc.id as cycle_id, cc.area_planted,
-                   cc.expected_yield, cc.expected_yield_unit
+                   cc.expected_yield, cc.expected_yield_unit, cc.actual_yield
             FROM crop_cycle cc
             JOIN crop c ON cc.crop_id = c.id
             WHERE cc.location_id = %s AND cc.status = 'completed'
@@ -24,7 +24,8 @@ def get_crop_areas_for_location(location_id: str) -> List[Dict[str, Any]]:
     db.close()
     return [
         {"crop_name": r[0], "crop_id": r[1], "cycle_id": str(r[2]),
-         "area": float(r[3] or 0), "yield": float(r[4] or 0), "unit": r[5]}
+         "area": float(r[3] or 0), "yield": float(r[4] or 0), "unit": r[5],
+         "actual_yield": float(r[6] or 0)}
         for r in rows
     ]
 
@@ -122,9 +123,10 @@ def get_bed_areas_for_location(location_id: str) -> Dict[str, Any]:
                 cc.id as cycle_id,
                 c.name as crop_name
             FROM plot p
+            JOIN farm f ON f.id = p.farm_id
             JOIN crop_cycle cc ON cc.plot_id = p.id
             JOIN crop c ON cc.crop_id = c.id
-            WHERE p.location_id = %s
+            WHERE f.location_id = %s
               AND p.bed_count IS NOT NULL
               AND p.bed_area_sqm IS NOT NULL
               AND cc.status = 'completed'
