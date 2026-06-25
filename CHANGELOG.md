@@ -21,6 +21,9 @@ All notable changes to the Kokonut Intelligence Platform.
 - **remote_sensing bbox PostGIS geometry** (`remote_sensing.py`): Changed `build_bbox()` from `json.dumps([west, south, east, north])` to `SRID=4326;POLYGON(...)` WKT format for proper PostGIS geometry storage.
 
 ### Added
+- **Milestone 1 — Ground Analytics normalized schema**: Added `026_ground_analytics.sql` with active canonical tables for `plant_analysis`, `water_analysis`, `disease_observation`, and `irrigation_program`, using governed lifecycle status plus source lineage fields.
+- **Adelphi ground analytics seed data**: Added `025_pilot_ground_analytics.sql` with published plant scouting, water quality, disease scouting, and irrigation program records linked to Kokonut Adelphi plots, crop cycles, and water access sources.
+- **Ground analytics MVP verifier coverage**: Extended `tests/test_mvp_done.py` to assert ground analytics table existence, Adelphi pilot records, source lineage completeness, and canonical lifecycle values.
 - **Kokonut Adelphi framework alignment**: Added `025_kokonut_framework_alignment.sql` with canonical framework, impact mapping, Colony/Guild, DAO proposal, farm zone, and regenerative practice evidence tables.
 - **Impact framework reference data**: Added SDGs, 8 Forms of Capital, Pillars of Value, EBF dimensions, CRISP dimensions, and 5 regeneration principles via `023_impact_frameworks.sql`.
 - **Adelphi alignment seed**: Added `024_adelphi_alignment.sql` to converge existing seeded databases on Kokonut Adelphi, Celo EAS metadata, Gnosis DAO metadata, syntropic farm zones, practice evidence, Colony-backed Guild records, and DAO proposal records.
@@ -178,6 +181,7 @@ All notable changes to the Kokonut Intelligence Platform.
   - `dashboards/directus/partner-operator.json` — 6 modules (operations overview, crop cycle status, sensor dashboard, open alerts, financial summary, recent expenses)
 
 ### Changed
+- `seed-pilot.sh` now applies `018_module_e_water_access.sql` before pilot files so ground analytics water quality and irrigation records can reference canonical water access rows.
 - **Pilot identity**: Replaced the canonical Kisumu demo identity with Kokonut Adelphi in pilot master, registry, Web3, DAO, price, value-flow, partner, and water-access seeds.
 - **Seed strictness**: Updated `seed.sh` and `seed-pilot.sh` to run PostgreSQL seeds with `ON_ERROR_STOP=1`, so SQL errors fail loudly instead of being hidden by `psql` defaults.
 - **Celo and Gnosis source-of-truth seeds**: Celo EAS seeds now refresh registered schema UIDs, names, chain, resolver, schema text, and active state on conflict. Gnosis DAO seeds now upsert Kokonut Treasury protocol and DAO wallet metadata instead of leaving stale Optimism rows untouched.

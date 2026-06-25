@@ -46,6 +46,17 @@ echo ""
 echo "Applying pilot farm seed data..."
 
 SEED_DIR="$PROJECT_DIR/schemas/seeds"
+
+# Support seeds required before pilot files with foreign-key dependencies.
+for seed_file in \
+    "$SEED_DIR/018_module_e_water_access.sql"; do
+    if [ -f "$seed_file" ]; then
+        filename=$(basename "$seed_file")
+        echo "  Applying: $filename"
+        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+    fi
+done
+
 for seed_file in "$SEED_DIR"/*_pilot_*.sql; do
     filename=$(basename "$seed_file")
     echo "  Applying: $filename"
@@ -87,6 +98,7 @@ echo "  - 12 field notes"
 echo "  - 6 soil samples"
 echo "  - 12 weather observations"
 echo "  - 6 remote sensing observations"
+echo "  - plant, water, disease, and irrigation analytics records"
 echo "  - 5 sensor devices + 15 readings"
 echo "  - 15 wallet activity events"
 echo "  - 5 digital lego interactions"

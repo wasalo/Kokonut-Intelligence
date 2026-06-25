@@ -107,6 +107,26 @@ WITH checks(name, ok) AS (
     UNION ALL SELECT 'noi snapshots', (SELECT count(*) FROM noi_snapshot WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
     UNION ALL SELECT 'metric values verified', (SELECT count(*) FROM metric_value WHERE location_id = '{PILOT_LOCATION_ID}' AND verified = TRUE) >= 1
     UNION ALL SELECT 'environmental baselines', (SELECT count(*) FROM environmental_baseline WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
+    UNION ALL SELECT 'ground analytics schema',
+        to_regclass('public.plant_analysis') IS NOT NULL
+        AND to_regclass('public.water_analysis') IS NOT NULL
+        AND to_regclass('public.disease_observation') IS NOT NULL
+        AND to_regclass('public.irrigation_program') IS NOT NULL
+    UNION ALL SELECT 'ground analytics pilot records',
+        (SELECT count(*) FROM plant_analysis WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
+        AND (SELECT count(*) FROM water_analysis WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
+        AND (SELECT count(*) FROM disease_observation WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
+        AND (SELECT count(*) FROM irrigation_program WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
+    UNION ALL SELECT 'ground analytics lineage',
+        NOT EXISTS (SELECT 1 FROM plant_analysis WHERE location_id = '{PILOT_LOCATION_ID}' AND (source_system IS NULL OR source_id IS NULL OR source_raw IS NULL))
+        AND NOT EXISTS (SELECT 1 FROM water_analysis WHERE location_id = '{PILOT_LOCATION_ID}' AND (source_system IS NULL OR source_id IS NULL OR source_raw IS NULL))
+        AND NOT EXISTS (SELECT 1 FROM disease_observation WHERE location_id = '{PILOT_LOCATION_ID}' AND (source_system IS NULL OR source_id IS NULL OR source_raw IS NULL))
+        AND NOT EXISTS (SELECT 1 FROM irrigation_program WHERE location_id = '{PILOT_LOCATION_ID}' AND (source_system IS NULL OR source_id IS NULL OR source_raw IS NULL))
+    UNION ALL SELECT 'ground analytics lifecycle canonical',
+        NOT EXISTS (SELECT 1 FROM plant_analysis WHERE status NOT IN ('draft', 'submitted', 'verified', 'published', 'rejected'))
+        AND NOT EXISTS (SELECT 1 FROM water_analysis WHERE status NOT IN ('draft', 'submitted', 'verified', 'published', 'rejected'))
+        AND NOT EXISTS (SELECT 1 FROM disease_observation WHERE status NOT IN ('draft', 'submitted', 'verified', 'published', 'rejected'))
+        AND NOT EXISTS (SELECT 1 FROM irrigation_program WHERE status NOT IN ('draft', 'submitted', 'verified', 'published', 'rejected'))
     UNION ALL SELECT 'web3 linked usage', (SELECT count(*) FROM digital_lego_usage WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
     UNION ALL SELECT 'forecast outputs',
         (SELECT count(*) FROM forecast_scenario WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
