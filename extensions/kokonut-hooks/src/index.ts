@@ -23,6 +23,25 @@ import {
   validateEvidenceUrls,
   validateFieldNoteImages,
 } from './evidence-helpers.js';
+import {
+  normalizeFeedbackPayload,
+  validateStakeholderFeedback,
+  recordFeedbackReview,
+} from './feedback.js';
+import {
+  handleMetricProposalUpdate,
+  logMetricProposalTransition,
+} from './metric-proposal.js';
+import {
+  normalizeImpactClaimPayload,
+  validateImpactClaim,
+  stampImpactClaimReview,
+} from './impact-claim.js';
+import {
+  enforceAgentTaskSafety,
+  enforceAiSummarySafety,
+  prepareAgentActionLog,
+} from './agent-safety.js';
 
 /** Collections with only workflow enforcement (no create-time validation). */
 const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
@@ -35,6 +54,9 @@ const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
       'loss_event',
       'labor_event',
       'field_note',
+      'ai_summary',
+      'stakeholder_feedback',
+      'impact_claim',
     ].includes(c)
 );
 
@@ -303,6 +325,48 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return await applyWorkflow('field_note', payload, meta);
   });
 
+  filter('stakeholder_feedback.create', (payload: Record<string, any>) => {
+    normalizeFeedbackPayload(payload);
+    validateStakeholderFeedback(payload);
+    return payload;
+  });
+
+  filter('stakeholder_feedback.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const recordId = meta.keys?.[0] ?? meta.keys?.id;
+    const current = recordId ? await database('stakeholder_feedback').where('id', recordId).first() : {};
+    validateStakeholderFeedback({ ...(current || {}), ...payload });
+    return await applyWorkflow('stakeholder_feedback', payload, meta);
+  });
+
+  filter('metric_proposal.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const accountability = meta?.accountability || meta?.payload?._accountability;
+    return await handleMetricProposalUpdate(payload, meta, database, accountability);
+  });
+
+  filter('impact_claim.create', (payload: Record<string, any>) => {
+    normalizeImpactClaimPayload(payload);
+    validateImpactClaim(payload);
+    return payload;
+  });
+
+  filter('impact_claim.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const recordId = meta.keys?.[0] ?? meta.keys?.id;
+    const current = recordId ? await database('impact_claim').where('id', recordId).first() : {};
+    validateImpactClaim({ ...(current || {}), ...payload });
+    const accountability = meta?.accountability || meta?.payload?._accountability;
+    await stampImpactClaimReview(payload, accountability);
+    return await applyWorkflow('impact_claim', payload, meta);
+  });
+
+  filter('agent_task.create', (payload: Record<string, any>) => enforceAgentTaskSafety(payload));
+  filter('agent_task.update', (payload: Record<string, any>) => enforceAgentTaskSafety(payload));
+  filter('ai_summary.create', (payload: Record<string, any>) => enforceAiSummarySafety(payload));
+  filter('ai_summary.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    enforceAiSummarySafety(payload);
+    return await applyWorkflow('ai_summary', payload, meta);
+  });
+  filter('agent_action_log.create', (payload: Record<string, any>) => prepareAgentActionLog(payload));
+
   // ============================================================
   // Action hooks (non-blocking - run after DB write)
   // ============================================================
@@ -317,6 +381,32 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
       }
     });
   }
+
+  action('stakeholder_feedback.update', async (meta: Record<string, any>) => {
+    const recordId = meta.keys?.[0] ?? meta.keys?.id;
+    const status = meta?.payload?.status;
+    if (!recordId || !status) return;
+
+    const userId = getUserId(meta);
+    if (status === 'published') {
+      await recordFeedbackReview(database, recordId, 'published_summary', userId, 'Public summary published.');
+    } else if (status === 'rejected') {
+      await recordFeedbackReview(database, recordId, 'dismissed', userId, meta?.payload?.rejection_reason);
+    }
+  });
+
+  action('metric_proposal.update', async (meta: Record<string, any>) => {
+    const recordId = meta.keys?.[0] ?? meta.keys?.id;
+    const status = meta?.payload?.status;
+    if (!recordId || !status) return;
+    await logMetricProposalTransition(
+      database,
+      recordId,
+      status,
+      getUserId(meta),
+      meta?.payload?.discussion_notes ? JSON.stringify(meta.payload.discussion_notes) : undefined
+    );
+  });
 
   action('harvest_event.create', async (meta: Record<string, any>) => {
     const payload = meta.payload || meta;

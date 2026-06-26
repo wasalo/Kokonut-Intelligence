@@ -8,6 +8,10 @@ import {
   LIFECYCLE_COLLECTIONS,
 } from './workflow.js';
 import { roleNameToSlug } from './roles.js';
+import { normalizeFeedbackPayload, validateStakeholderFeedback } from './feedback.js';
+import { isValidMetricProposalTransition } from './metric-proposal.js';
+import { validateImpactClaim } from './impact-claim.js';
+import { enforceAgentTaskSafety, prepareAgentActionLog } from './agent-safety.js';
 
 describe('roleNameToSlug', () => {
   it('normalizes Directus role display names', () => {
@@ -52,6 +56,12 @@ describe('isRoleAuthorized', () => {
     expect(isRoleAuthorized('mrv_claim', 'published', ['admin'])).toBe(true);
   });
 
+  it('routes Phase 2 review collections', () => {
+    expect(isRoleAuthorized('stakeholder_feedback', 'published', ['manager'])).toBe(true);
+    expect(isRoleAuthorized('impact_claim', 'verified', ['analyst'])).toBe(true);
+    expect(isRoleAuthorized('impact_claim', 'published', ['analyst'])).toBe(false);
+  });
+
   it('allows manager to verify MRV claims', () => {
     expect(isRoleAuthorized('mrv_claim', 'verified', ['manager'])).toBe(true);
   });
@@ -72,5 +82,62 @@ describe('pending transition stash', () => {
     stashPendingTransition('harvest_event', 'abc-123', 'draft');
     expect(consumePendingTransition('harvest_event', 'abc-123')).toBe('draft');
     expect(consumePendingTransition('harvest_event', 'abc-123')).toBeUndefined();
+  });
+});
+
+describe('stakeholder feedback workflow', () => {
+  it('defaults feedback to private draft', () => {
+    const payload: Record<string, any> = {};
+    normalizeFeedbackPayload(payload);
+    expect(payload.consent_given).toBe(false);
+    expect(payload.is_public).toBe(false);
+    expect(payload.status).toBe('draft');
+  });
+
+  it('blocks public feedback without consent', () => {
+    expect(() => validateStakeholderFeedback({ is_public: true, status: 'published' })).toThrow(/consent/);
+  });
+});
+
+describe('metric proposal workflow', () => {
+  it('allows proposed → approved and blocks implemented → approved', () => {
+    expect(isValidMetricProposalTransition('proposed', 'approved')).toBe(true);
+    expect(isValidMetricProposalTransition('implemented', 'approved')).toBe(false);
+  });
+});
+
+describe('impact claim workflow', () => {
+  it('blocks public carbon claims below level 6', () => {
+    expect(() => validateImpactClaim({
+      public_claim: true,
+      status: 'published',
+      claim_category: 'carbon',
+      claim_type: 'published_record',
+      evidence_maturity: 5,
+    })).toThrow(/level 6/);
+  });
+
+  it('allows level 6 externally verified public carbon claims', () => {
+    expect(() => validateImpactClaim({
+      public_claim: true,
+      status: 'published',
+      claim_category: 'carbon',
+      claim_type: 'third_party_verified_claim',
+      evidence_maturity: 6,
+      external_verifier: 'External MRV reviewer',
+      methodology_ref: 'IPCC 2006 GHG Guidelines',
+    })).not.toThrow();
+  });
+});
+
+describe('agent safety workflow', () => {
+  it('blocks agent tasks from direct publish', () => {
+    expect(() => enforceAgentTaskSafety({ initiator_type: 'agent', review_status: 'published' })).toThrow(/Agent tasks/);
+  });
+
+  it('marks high-risk action logs for approval', () => {
+    const payload = prepareAgentActionLog({ action: 'publish' });
+    expect(payload.high_risk).toBe(true);
+    expect(payload.requires_human_approval).toBe(true);
   });
 });

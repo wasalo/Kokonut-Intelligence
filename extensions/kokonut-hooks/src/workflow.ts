@@ -36,6 +36,9 @@ export const LIFECYCLE_COLLECTIONS = [
   'revenue_event',
   'mrv_event',
   'attestation_request',
+  'stakeholder_feedback',
+  'stakeholder_outcome',
+  'impact_claim',
 ] as const;
 
 export type LifecycleCollection = (typeof LIFECYCLE_COLLECTIONS)[number];
@@ -96,6 +99,15 @@ const ROLE_ROUTING: Record<string, string[]> = {
   'maintenance_event:published': ['manager', 'admin'],
   'dashboard_dataset:verified': ['analyst', 'manager', 'admin'],
   'dashboard_dataset:published': ['manager', 'admin'],
+  'stakeholder_feedback:verified': ['manager', 'supervisor', 'admin'],
+  'stakeholder_feedback:rejected': ['manager', 'supervisor', 'admin'],
+  'stakeholder_feedback:published': ['manager', 'admin'],
+  'stakeholder_outcome:verified': ['manager', 'analyst', 'admin'],
+  'stakeholder_outcome:rejected': ['manager', 'analyst', 'admin'],
+  'stakeholder_outcome:published': ['manager', 'admin'],
+  'impact_claim:verified': ['analyst', 'manager', 'admin'],
+  'impact_claim:rejected': ['analyst', 'manager', 'admin'],
+  'impact_claim:published': ['manager', 'admin'],
 };
 
 // Stash from_status between filter (pre-write) and action (post-write) hooks

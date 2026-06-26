@@ -42,6 +42,7 @@ check "Import services.metrics.calculators" "python3 -c 'import services.metrics
 check "Import services.common.logging" "python3 -c 'import services.common.logging'"
 check "Import services.migration.cli" "python3 -c 'import services.migration.cli'"
 check "Import services.registry.cids_export" "python3 -c 'import services.registry.cids_export'"
+check "Import services.agents.safety" "python3 -c 'import services.agents.safety'"
 echo ""
 
 # 2. CLI parsers
@@ -84,6 +85,7 @@ echo "[5/8] Directus metadata checks..."
 check "directus metadata" "python3 -m tests.test_directus_metadata"
 check "metric calculators" "python3 -m tests.test_metrics"
 check "cids export" "python3 -m tests.test_cids_export"
+check "agent safety" "python3 -m tests.test_agent_safety"
 echo ""
 
 # 6. Smoke test suite
