@@ -745,7 +745,7 @@ Adelphi is aligned to:
 - **SDGs** via `farm_impact_mapping`
 - **8 Forms of Capital** (natural, social, human, financial, manufactured, intellectual, cultural, spiritual)
 - **Pillars of Value** (ecological, social, economic, governance)
-- **EBF dimensions** (Earth, Billion, Futures)
+- **EBF dimensions** (Ecological Benefits Framework)
 - **CRISP risk dimensions** (climate, regulatory, market, operational, reputational)
 - **5 Principles of Regeneration** (care for soil, increase biodiversity, minimize external inputs, close loops, empower community)
 
