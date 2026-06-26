@@ -58,6 +58,7 @@
 - Regenerative score: `python3 -m services.analytics --regenerative-score --location-id UUID`
 - Emission factors: `python3 -m services.analytics --emission-factors`
 - Carbon benchmarks: `python3 -m services.analytics --carbon-benchmarks`
+- CIDS export: `python3 -m services.registry.cids_export --location-id UUID`
 - Ingestion status: `python3 -m services.ingestion.status log --source openweathermap`
 - Ingestion indexers: `python3 -m services.ingestion.status indexers`
 - Ingestion summary: `python3 -m services.ingestion.status summary`

@@ -51,6 +51,17 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `labor_event` | Labor hours and cost | hours_worked, hourly_rate, role |
 | `field_note` | Qualitative observations | note_type, content, images |
 
+### Impact Accountability
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `evidence_maturity_level` | 0-6 evidence maturity reference model | level, label, public_claim_allowed |
+| `stakeholder_feedback` | Private-by-default stakeholder feedback | feedback_type, stakeholder_group, consent_given, is_public, evidence_maturity |
+| `stakeholder_feedback_review` | Review and escalation trail for feedback | feedback_id, action, response_text, due_at |
+| `stakeholder_outcome` | CIDS StakeholderOutcome-compatible outcome record | stakeholder_group, outcome_name, importance, framework links |
+| `impact_claim` | Extended social/ecological/financial/governance claim lifecycle | claim_type, claim_category, public_claim, evidence_maturity |
+| `metric_proposal` | Participatory metric proposal and review workflow | proposed_by_role, metric_name, status, discussion_notes |
+
 ### Financial Facts
 
 | Entity | Description | Key Fields |

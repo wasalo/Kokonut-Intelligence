@@ -41,6 +41,7 @@ check "Import services.metrics.engine" "python3 -c 'import services.metrics.engi
 check "Import services.metrics.calculators" "python3 -c 'import services.metrics.calculators'"
 check "Import services.common.logging" "python3 -c 'import services.common.logging'"
 check "Import services.migration.cli" "python3 -c 'import services.migration.cli'"
+check "Import services.registry.cids_export" "python3 -c 'import services.registry.cids_export'"
 echo ""
 
 # 2. CLI parsers
@@ -52,6 +53,7 @@ check "fortune500 CLI --help" "python3 -m services.fortune500.cli --help"
 check "report_generator CLI --help" "python3 -m services.export.report_generator --help"
 check "attestation CLI --help" "python3 -m services.attestation.cli --help"
 check "metrics CLI --help" "python3 -m services.metrics --help"
+check "cids_export CLI --help" "python3 -m services.registry.cids_export --help"
 echo ""
 
 # 3. TypeScript extension build (if node_modules present)
@@ -81,6 +83,7 @@ echo ""
 echo "[5/8] Directus metadata checks..."
 check "directus metadata" "python3 -m tests.test_directus_metadata"
 check "metric calculators" "python3 -m tests.test_metrics"
+check "cids export" "python3 -m tests.test_cids_export"
 echo ""
 
 # 6. Smoke test suite

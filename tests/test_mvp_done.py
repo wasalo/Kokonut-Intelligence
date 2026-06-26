@@ -272,6 +272,44 @@ WITH checks(name, ok) AS (
           AND total_score > 0
           AND score_pct > 0
     )
+    UNION ALL SELECT 'impact accountability schema',
+        to_regclass('public.evidence_maturity_level') IS NOT NULL
+        AND to_regclass('public.stakeholder_feedback') IS NOT NULL
+        AND to_regclass('public.stakeholder_feedback_review') IS NOT NULL
+        AND to_regclass('public.stakeholder_outcome') IS NOT NULL
+        AND to_regclass('public.impact_claim') IS NOT NULL
+        AND to_regclass('public.metric_proposal') IS NOT NULL
+        AND to_regclass('public.v_public_stakeholder_feedback_summary') IS NOT NULL
+        AND to_regclass('public.v_public_impact_claim_summary') IS NOT NULL
+    UNION ALL SELECT 'evidence maturity reference data',
+        (SELECT count(*) FROM evidence_maturity_level) = 7
+        AND EXISTS (SELECT 1 FROM evidence_maturity_level WHERE level = 6 AND requires_external_verification = TRUE)
+    UNION ALL SELECT 'stakeholder feedback privacy',
+        EXISTS (SELECT 1 FROM stakeholder_feedback WHERE location_id = '{PILOT_LOCATION_ID}' AND is_public = TRUE AND consent_given = TRUE AND status = 'published')
+        AND EXISTS (SELECT 1 FROM stakeholder_feedback WHERE location_id = '{PILOT_LOCATION_ID}' AND is_public = FALSE AND consent_given = FALSE)
+        AND NOT EXISTS (SELECT 1 FROM v_public_stakeholder_feedback_summary WHERE public_summary IS NULL)
+    UNION ALL SELECT 'impact claim level6 carbon gate',
+        EXISTS (
+            SELECT 1 FROM impact_claim
+            WHERE location_id = '{PILOT_LOCATION_ID}'
+              AND claim_category = 'carbon'
+              AND public_claim = TRUE
+              AND evidence_maturity = 6
+              AND status = 'published'
+              AND external_verifier IS NOT NULL
+              AND methodology_ref IS NOT NULL
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM v_public_impact_claim_summary
+            WHERE claim_category = 'carbon'
+              AND evidence_maturity < 6
+        )
+    UNION ALL SELECT 'participatory metric proposal', EXISTS (
+        SELECT 1 FROM metric_proposal
+        WHERE location_id = '{PILOT_LOCATION_ID}'
+          AND proposed_by_role = 'farm_operator'
+          AND status IN ('approved', 'implemented')
+    )
 )
 SELECT name, ok FROM checks ORDER BY name;
 """

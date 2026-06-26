@@ -5,6 +5,7 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **CIDS Essential Tier and impact accountability foundation**: Added evidence maturity levels, private-by-default stakeholder feedback, stakeholder outcomes, extended impact claims, participatory metric proposals, DB-level agent safety constraints, public carbon claim Level 6 gating, and a CIDS v3.2.0 Essential Tier JSON-LD exporter.
 - **Carbon & Regenerative Framework Advancement**: Full implementation of 9 new tables, 4 views, 2 seed files, and analytics CLI for grant-reviewer-grade carbon evidence.
   - `ghg_emission_factor`: IPCC-based reference emission factors (fuel, fertilizer, pesticide, transport, machinery, electricity) with regional overrides.
   - `ghg_emissions_inventory`: Transport, machinery, and input emissions tracking with CO2e computed from emission factors.

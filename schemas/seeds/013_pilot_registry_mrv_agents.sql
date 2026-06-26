@@ -242,7 +242,7 @@ INSERT INTO agent_task (
     'local://sha256/7fbf9853af506723301d455b142a998102503ee7ffb5d4cffba319f20250b85e',
     '7fbf9853af506723301d455b142a998102503ee7ffb5d4cffba319f20250b85e',
     'completed',
-    'published',
+    'submitted',
     'a0000000-0000-0000-0000-000000000550',
     '2026-03-20 10:00:00+00'
 )

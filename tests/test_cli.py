@@ -32,6 +32,9 @@ CLI_COMMANDS = [
 
     # market_data CLI
     ("python3", "-m", "services.ingestion.market_data", "--help"),
+
+    # CIDS exporter CLI
+    ("python3", "-m", "services.registry.cids_export", "--help"),
 ]
 
 
