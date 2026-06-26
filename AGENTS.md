@@ -78,6 +78,10 @@
 - Dataset refresh: `python3 -m services.export.dataset_refresh --all`
 - Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`
 - Climate-impact report: `python3 -m services.export.report_generator --type climate_impact --location-id UUID`
+- CIDS export tests: `python3 -m tests.test_cids_export`
+- Agent safety tests: `python3 -m tests.test_agent_safety`
+- Directus hook tests: `cd extensions/kokonut-hooks && npm test`
+- Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
 - Migration apply: `python3 -m services.migration migrate`
 - Migration dry-run: `python3 -m services.migration dry-run`
@@ -114,6 +118,11 @@
 - Public aggregate views require a verified or published `farm_registry_record` before exposing a location.
 - Public attestation summaries join `attestation_record` to `location` through `subject_type = 'location'` and `subject_id`.
 - Public attestation summaries are scoped to Celo.
+- CIDS v3.2.0 Essential Tier export is implemented in `services/registry/cids_export.py`; keep PostgreSQL/Directus canonical and treat CIDS as compatibility/export mapping.
+- Stakeholder feedback is private by default. Public feedback requires `consent_given = TRUE`, public consent scope, `status = 'published'`, and a non-empty `public_summary`.
+- Public impact claims require evidence maturity >= 4; public carbon claims require evidence maturity 6, `claim_type = 'third_party_verified_claim'`, `external_verifier`, `methodology_ref`, and `published` status.
+- Participatory metric proposals use `proposed`, `discussed`, `approved`, `implemented`, `deprecated`, and `rejected`, not the governed record lifecycle.
+- Directus Phase 2 workflow hooks live in `extensions/kokonut-hooks/src/feedback.ts`, `metric-proposal.ts`, `impact-claim.ts`, and `agent-safety.ts`.
 - Framework reference data is canonicalized by `schemas/seeds/023_impact_frameworks.sql`; Adelphi mappings and Guild/DAO alignment are in `schemas/seeds/024_adelphi_alignment.sql`.
 - Impact framework rows should be nonblank and active for SDGs, 8 Forms of Capital, Pillars of Value, EBF, CRISP, and regeneration principles.
 - Baseline calculators (revenue, asset_value, cash_flow, cost) query the `location` table directly.
@@ -168,5 +177,7 @@
 - `metric_version` table tracks formula changes for each metric definition.
 - `ai_summary` generator writes structured text summaries to `ai_summary` table.
 - Agent-generated summaries must be drafts and must use approved governed data; Agent Write can create `ai_summary` but not publish it.
+- Agents can draft, submit, or reject their own outputs, but cannot verify or publish them. Enforce this in DB constraints, Directus hooks, and `services/agents/safety.py`.
+- Agent high-risk actions (`publish`, `attest`, `onchain_submit`, `delete`, `bulk_update`, `financial_write`, `status_change_to_published`) must be logged with human approval required.
 - `dashboard_dataset` refresh executes stored SQL queries from `dashboard_dataset.sql_query`.
 - `report_snapshot` `--auto` flag generates all 5 report types in one run.

@@ -15,6 +15,7 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 - [Data Lifecycle And Roles](#data-lifecycle-and-roles)
 - [Metrics And Intelligence](#metrics-and-intelligence)
 - [Web3 Verification](#web3-verification)
+- [Impact Accountability And CIDS](#impact-accountability-and-cids)
 - [Dashboards Reports And Export](#dashboards-reports-and-export)
 - [Agents Registry And MCP](#agents-registry-and-mcp)
 - [Developer Commands](#developer-commands)
@@ -115,6 +116,7 @@ Public aggregate views require a verified or published Farm Registry record befo
 - **Governed farm operations**: Activities, harvests, sales, expenses, losses, labor, field notes, inventory, maintenance, revenue events, and partner-scoped access through Directus.
 - **Multi-source ingestion**: Weather, market prices, remote sensing, sensors, EAS attestations, Gnosis DAO activity, wallet events, and GIS boundaries through `services/ingestion/`.
 - **Metrics and reporting**: Versioned metric definitions, calculator-backed `metric_value` records, public aggregate views, dashboard datasets, report snapshots, and CSV/JSON/Parquet exports.
+- **Impact accountability**: Evidence maturity levels, stakeholder feedback, stakeholder outcomes, impact claims, participatory metric proposals, public-safe views, and CIDS Essential Tier JSON-LD export.
 - **Forecasting and analytics**: Scenario forecasts, Fortune 500-style farm scoring, ecological analytics, water access, revenue multiplier opportunity maps, and AI-generated summaries.
 - **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, and public attestation summaries.
 - **Impact framework alignment**: SDGs, 8 Forms of Capital, Pillars of Value, EBF/CRISP mappings, regeneration principles, syntropic zones, and practice evidence.
@@ -139,6 +141,8 @@ draft -> submitted -> verified -> published
 | Manager | Approve/verify operational records | Reviews and verifies governed operations |
 | Finance | Finance approvals | Approves expenses, verifies sales, and approves revenue events |
 | Analyst | Read verified/published | Read-only analysis over governed data |
+
+Directus hooks enforce review workflows for stakeholder feedback, stakeholder outcomes, impact claims, metric proposals, agent tasks, AI summaries, and agent action logs. Stakeholder feedback is private by default and requires explicit public consent plus a non-empty `public_summary` before public exposure. Public carbon claims require Evidence Maturity Level 6, external verifier text, and methodology reference.
 
 See [User Guide](docs/user-guide.md) for role workflows and data-entry walkthroughs.
 
@@ -194,6 +198,19 @@ python3 -m services.attestation.cli schema list
 python3 -m services.attestation.cli query --uid 0xATTESTATION_UID --chain celo
 ```
 
+## Impact Accountability And CIDS
+
+Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier for Green Paper V1. PostgreSQL/Directus remains the canonical data layer; CIDS is an export compatibility layer.
+
+```bash
+# Export CIDS Essential Tier JSON-LD for a location
+python3 -m services.registry.cids_export --location-id UUID
+```
+
+Impact accountability records include `evidence_maturity_level`, `stakeholder_feedback`, `stakeholder_feedback_review`, `stakeholder_outcome`, `impact_claim`, and `metric_proposal`. Public-safe views expose only governed, consented, and eligible records.
+
+See [CIDS Mapping](docs/cids-mapping.md), [Evidence Maturity](docs/evidence-maturity.md), and [Data Dictionary](docs/data-dictionary.md).
+
 ## Dashboards Reports And Export
 
 The platform supports Directus partner dashboards, Metabase operational dashboards, refreshable dashboard datasets, deterministic report snapshots, and exports from PostgreSQL or ClickHouse.
@@ -226,6 +243,8 @@ python3 -m services.attestation --subject-type mrv_event --subject-id UUID --eve
 python3 -m services.agents --example kokonut-mrv-reporter
 ```
 
+Agent safety is enforced in both PostgreSQL constraints and Directus/Python helpers. Agents can draft, submit, or reject their own outputs, but cannot verify or publish them. High-risk actions such as publishing, attestation submission, financial writes, deletes, and bulk updates are flagged for human approval in `agent_action_log`.
+
 See [Agent Access](docs/agent-access.md) and [PRD Completion Scope](docs/prd-completion.md) for privacy and marketplace boundaries.
 
 ## Developer Commands
@@ -242,6 +261,10 @@ See [Agent Access](docs/agent-access.md) and [PRD Completion Scope](docs/prd-com
 | Run CLI tests | `python3 -m tests.test_cli` |
 | Run attestation tests | `python3 -m tests.test_attestation` |
 | Run Directus metadata tests | `python3 -m tests.test_directus_metadata` |
+| Run CIDS export tests | `python3 -m tests.test_cids_export` |
+| Run agent safety tests | `python3 -m tests.test_agent_safety` |
+| Build Directus hooks | `cd extensions/kokonut-hooks && npm run build` |
+| Test Directus hooks | `cd extensions/kokonut-hooks && npm test` |
 | Migration status | `python3 -m services.migration status` |
 | Apply migrations | `python3 -m services.migration migrate` |
 | Build Solidity contracts | `cd contracts && forge build` |
@@ -270,8 +293,10 @@ tests/              Smoke, CLI, attestation, Directus metadata, and MVP tests
 - `PUBLIC_RESTRICT=true` disables unauthenticated public Directus data access.
 - Directus rate limiting and login throttling are enabled.
 - Public EAS metadata stores hashes, CIDs, UIDs, chain labels, transaction hashes, and timestamps; private evidence remains offchain.
+- Public stakeholder feedback requires explicit consent and public-summary scoping; raw stakeholder feedback remains private by default.
+- Public carbon claims require Evidence Maturity Level 6 with external verification and methodology reference.
 - ClickHouse HTTP insert paths validate interpolated values before SQL construction.
-- Agent-generated summaries are drafts and must use approved governed data.
+- Agent-generated summaries are drafts and must use approved governed data; agents cannot verify or publish their own outputs.
 
 See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide.md), and [Agent Access](docs/agent-access.md) for operational security details.
 
@@ -284,6 +309,8 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 | [API Reference](docs/api-reference.md) | Directus REST/GraphQL and ClickHouse access notes |
 | [OpenAPI Spec](docs/openapi.yaml) | OpenAPI 3.0 API specification |
 | [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |
+| [CIDS Mapping](docs/cids-mapping.md) | CIDS v3.2.0 Essential Tier export mapping |
+| [Evidence Maturity](docs/evidence-maturity.md) | Evidence maturity levels and public carbon claim rules |
 | [Deployment](docs/deployment.md) | Docker setup, environment variables, backup, operations |
 | [Sandbox](docs/sandbox.md) | Developer sandbox quickstart |
 | [Subgraph Guide](docs/subgraph-guide.md) | Subgraph indexer configuration and usage |

@@ -5,6 +5,13 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Phase 2 workflows and review hooks**: Added Directus workflow modules for stakeholder feedback, participatory metric proposals, impact claim review, and agent safety/audit enforcement.
+  - `extensions/kokonut-hooks/src/feedback.ts`: private-by-default stakeholder feedback validation, explicit public-consent checks, public summary requirement, and review log helper.
+  - `extensions/kokonut-hooks/src/metric-proposal.ts`: participatory metric proposal state machine (`proposed`, `discussed`, `approved`, `implemented`, `deprecated`, `rejected`) with reviewer/date stamping and workflow history logging.
+  - `extensions/kokonut-hooks/src/impact-claim.ts`: public claim validation, review stamping, and Level 6 external-verification guardrails for public carbon claims.
+  - `extensions/kokonut-hooks/src/agent-safety.ts`: Directus-side safeguards for `agent_task`, `ai_summary`, and `agent_action_log`, including high-risk action flagging and human-approval requirements.
+  - `services/agents/safety.py`: Python helper for assessing, blocking, hashing, and auditing agent actions before writes.
+  - Extended lifecycle routing for `stakeholder_feedback`, `stakeholder_outcome`, and `impact_claim`; added hook/unit tests and CI coverage.
 - **CIDS Essential Tier and impact accountability foundation**: Added evidence maturity levels, private-by-default stakeholder feedback, stakeholder outcomes, extended impact claims, participatory metric proposals, DB-level agent safety constraints, public carbon claim Level 6 gating, and a CIDS v3.2.0 Essential Tier JSON-LD exporter.
 - **Carbon & Regenerative Framework Advancement**: Full implementation of 9 new tables, 4 views, 2 seed files, and analytics CLI for grant-reviewer-grade carbon evidence.
   - `ghg_emission_factor`: IPCC-based reference emission factors (fuel, fertilizer, pesticide, transport, machinery, electricity) with regional overrides.
