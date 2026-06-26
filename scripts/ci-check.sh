@@ -46,6 +46,8 @@ check "Import services.agents.safety" "python3 -c 'import services.agents.safety
 check "Import services.agents.tasks" "python3 -c 'import services.agents.tasks'"
 check "Import services.agents.cids_agent" "python3 -c 'import services.agents.cids_agent'"
 check "Import services.agents.feedback_agent" "python3 -c 'import services.agents.feedback_agent'"
+check "Import services.analytics.portfolio" "python3 -c 'import services.analytics.portfolio'"
+check "Import services.export.spreadsheet_bridge" "python3 -c 'import services.export.spreadsheet_bridge'"
 echo ""
 
 # 2. CLI parsers
@@ -61,6 +63,7 @@ check "cids_export CLI --help" "python3 -m services.registry.cids_export --help"
 check "agent tasks CLI --help" "python3 -m services.agents.tasks --help"
 check "cids agent CLI --help" "python3 -m services.agents.cids_agent --help"
 check "feedback agent CLI --help" "python3 -m services.agents.feedback_agent --help"
+check "spreadsheet bridge CLI --help" "python3 -m services.export.spreadsheet_bridge --help"
 echo ""
 
 # 3. TypeScript extension build (if node_modules present)
@@ -93,6 +96,9 @@ check "metric calculators" "python3 -m tests.test_metrics"
 check "cids export" "python3 -m tests.test_cids_export"
 check "agent safety" "python3 -m tests.test_agent_safety"
 check "agent tasks" "python3 -m tests.test_agent_tasks"
+check "portfolio analytics" "python3 -m tests.test_portfolio"
+check "spreadsheet bridge" "python3 -m tests.test_spreadsheet_bridge"
+check "common foundations" "python3 -m tests.test_common_foundations"
 echo ""
 
 # 6. Smoke test suite

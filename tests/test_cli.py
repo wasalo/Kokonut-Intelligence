@@ -40,6 +40,9 @@ CLI_COMMANDS = [
     ("python3", "-m", "services.agents.tasks", "--help"),
     ("python3", "-m", "services.agents.cids_agent", "--help"),
     ("python3", "-m", "services.agents.feedback_agent", "--help"),
+
+    # Spreadsheet bridge CLI
+    ("python3", "-m", "services.export.spreadsheet_bridge", "--help"),
 ]
 
 

@@ -173,6 +173,7 @@ Additional intelligence services include:
 | Forecast details | `python3 -m services.forecast.cli --scenario-id UUID --details` |
 | Revenue multiplier | `python3 -m services.revenue_multiplier.cli --location-id UUID` |
 | Environmental analytics | `python3 -m services.analytics --environmental-baseline --location-id UUID` |
+| Portfolio theme summary | `python3 -m services.analytics --portfolio-summary` |
 | AI summary | `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined` |
 
 See [Data Dictionary](docs/data-dictionary.md) for governed metric definitions and [User Guide](docs/user-guide.md) for analytics workflows.
@@ -225,6 +226,9 @@ python3 -m services.export.report_generator --auto --location-id UUID
 
 # Export a collection
 python3 -m services.export.exporter --collection expense_event --format csv --output exports/
+
+# Create or use farm activity CSV templates
+python3 -m services.export.spreadsheet_bridge --template exports/farm_activity_template.csv
 ```
 
 Green Paper review dashboards include Evidence Gap and Stakeholder Feedback dashboards under `dashboards/metabase/`. Report snapshots include public-interest context with limitations, evidence gaps, public stakeholder summaries, and public claim readiness signals.
@@ -282,6 +286,9 @@ See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-gui
 | Run CIDS export tests | `python3 -m tests.test_cids_export` |
 | Run agent safety tests | `python3 -m tests.test_agent_safety` |
 | Run agent task tests | `python3 -m tests.test_agent_tasks` |
+| Run portfolio tests | `python3 -m tests.test_portfolio` |
+| Run spreadsheet bridge tests | `python3 -m tests.test_spreadsheet_bridge` |
+| Run Common Foundations tests | `python3 -m tests.test_common_foundations` |
 | Build Directus hooks | `cd extensions/kokonut-hooks && npm run build` |
 | Test Directus hooks | `cd extensions/kokonut-hooks && npm test` |
 | Migration status | `python3 -m services.migration status` |
@@ -332,6 +339,11 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 | [Evidence Maturity](docs/evidence-maturity.md) | Evidence maturity levels and public carbon claim rules |
 | [Reporting Principles](docs/reporting-principles.md) | Public-interest reporting principles and report snapshot fields |
 | [Stakeholder Feedback](docs/stakeholder-feedback.md) | Feedback consent, privacy, review, and public-summary rules |
+| [Participatory Metrics](docs/participatory-metrics.md) | Community-driven metric proposal workflow |
+| [Spreadsheet Guide](docs/spreadsheet-guide.md) | CSV import/export templates and validation |
+| [Common Foundations Checklist](docs/common-foundations-checklist.md) | Claim quality checklist for useful questions through learning |
+| [Agent Safety](docs/agent-safety.md) | Agent approval gates and audit logging |
+| [Public Report Disclaimer](docs/public-report-disclaimer.md) | Standard public reporting caveats |
 | [Agent Workflows](docs/agent-workflows.md) | Agent task catalogue, output schemas, and safety rules |
 | [Operator Guide](docs/operator-guide.md) | Green Paper operator workflow and publishing readiness |
 | [Reviewer Guide](docs/reviewer-guide.md) | Human review checklist for claims, feedback, and agent outputs |

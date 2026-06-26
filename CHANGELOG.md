@@ -5,6 +5,11 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Backlog closure pass**: Added remaining Green Paper backlog assets for portfolio analytics, spreadsheet exchange, Common Foundations checks, workflow permissions, and missing review docs.
+  - `services/analytics/portfolio.py`: portfolio theme summary with conservative confidence labels and no farm ranking.
+  - `services/export/spreadsheet_bridge.py`: CSV template, dry-run validation, draft import, and verified/published export for `farm_activity`.
+  - `docs/common-foundations-checklist.md`, `docs/participatory-metrics.md`, `docs/spreadsheet-guide.md`, `docs/agent-safety.md`, and `docs/public-report-disclaimer.md`.
+  - Added Directus permissions for stakeholder feedback review and metric proposal workflows.
 - **Phase 4 and Phase 5 Green Paper agent/documentation layer**: Added agent task catalogue, CIDS export agent, stakeholder feedback synthesis agent, and Green Paper V1 documentation.
   - `services/agents/tasks.py`: task catalogue and lightweight output schema validation for Green Paper agent tasks.
   - `services/agents/cids_agent.py`: read-only CIDS export agent over the canonical CIDS exporter.

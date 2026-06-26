@@ -111,6 +111,80 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
 END IF;
 END $$;
 
+-- ============================================================
+-- Impact accountability workflow permissions
+-- ============================================================
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'stakeholder_feedback' AND action = 'create') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('stakeholder_feedback', 'create', '{}', '{}', 'location_id,farm_id,plot_id,feedback_type,stakeholder_group,stakeholder_name,feedback_date,feedback_text,language,sentiment,themes,suggested_improvements,harms_or_unintended_consequences,consent_given,consent_scope,consent_notes,public_summary,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('stakeholder_feedback', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'metric_proposal' AND action = 'create') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('metric_proposal', 'create', '{}', '{}', 'location_id,proposed_by,proposed_by_role,proposal_date,metric_name,metric_description,unit_of_measure,category,rationale,data_source,collection_method,frequency,stakeholder_groups,discussion_notes', 'b1000000-0000-0000-0000-000000000001');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'metric_proposal' AND action = 'read') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('metric_proposal', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000002' AND collection = 'stakeholder_feedback' AND action = 'update') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('stakeholder_feedback', 'update', '{"_and":[{"status":{"_in":["draft","submitted","verified"]}}]}', '{}', 'status,public_summary,consent_notes,metadata', 'b1000000-0000-0000-0000-000000000002');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000003' AND collection = 'stakeholder_feedback' AND action = 'update') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('stakeholder_feedback', 'update', '{}', '{}', 'status,public_summary,consent_notes,is_public,evidence_maturity,metadata', 'b1000000-0000-0000-0000-000000000003');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000003' AND collection = 'stakeholder_feedback_review' AND action = 'create') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('stakeholder_feedback_review', 'create', '{}', '{}', 'feedback_id,reviewer_id,action,response_text,escalation_level,due_at,resolved_at,metadata', 'b1000000-0000-0000-0000-000000000003');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000003' AND collection = 'metric_proposal' AND action = 'update') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('metric_proposal', 'update', '{}', '{}', 'status,reviewed_by,review_date,implementation_date,metric_definition_id,discussion_notes,metadata', 'b1000000-0000-0000-0000-000000000003');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('stakeholder_feedback', 'read', '{"_and":[{"status":{"_in":["verified","published"]}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000005');
+END IF;
+END $$;
+
+DO $$ BEGIN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
+    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
+        ('stakeholder_feedback', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009');
+END IF;
+END $$;
+
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'farm_activity' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
