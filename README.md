@@ -226,7 +226,9 @@ python3 -m services.export.report_generator --auto --location-id UUID
 python3 -m services.export.exporter --collection expense_event --format csv --output exports/
 ```
 
-See [Partner Dashboards](docs/partner-dashboards.md) and [Export Guide](docs/export-guide.md).
+Green Paper review dashboards include Evidence Gap and Stakeholder Feedback dashboards under `dashboards/metabase/`. Report snapshots include public-interest context with limitations, evidence gaps, public stakeholder summaries, and public claim readiness signals.
+
+See [Partner Dashboards](docs/partner-dashboards.md), [Export Guide](docs/export-guide.md), and [Reporting Principles](docs/reporting-principles.md).
 
 ## Agents Registry And MCP
 
@@ -311,6 +313,7 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 | [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |
 | [CIDS Mapping](docs/cids-mapping.md) | CIDS v3.2.0 Essential Tier export mapping |
 | [Evidence Maturity](docs/evidence-maturity.md) | Evidence maturity levels and public carbon claim rules |
+| [Reporting Principles](docs/reporting-principles.md) | Public-interest reporting principles and report snapshot fields |
 | [Deployment](docs/deployment.md) | Docker setup, environment variables, backup, operations |
 | [Sandbox](docs/sandbox.md) | Developer sandbox quickstart |
 | [Subgraph Guide](docs/subgraph-guide.md) | Subgraph indexer configuration and usage |

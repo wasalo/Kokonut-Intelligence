@@ -39,6 +39,16 @@ This directory contains SQL queries and JSON import templates for Metabase dashb
 - **SQL**: `sql/06_eagle_view_overview.sql` through `sql/12_eagle_view_monthly_trend.sql`
 - **Description**: Platform-wide overview: KPIs, financials, harvest, environment, attestations, sensors, and monthly trends
 
+### 20. Evidence Gap Dashboard
+- **File**: `20_evidence_gap_dashboard.json`
+- **SQL**: `sql/20_evidence_gap_dashboard.sql`
+- **Description**: Impact claims by evidence maturity, public-claim readiness, carbon claim gaps, and missing evidence links
+
+### 21. Stakeholder Feedback Dashboard
+- **File**: `21_stakeholder_feedback_dashboard.json`
+- **SQL**: `sql/21_stakeholder_feedback_dashboard.sql`
+- **Description**: Stakeholder feedback by group, consent, sentiment, review coverage, and public-summary status
+
 ## Usage
 
 ### Option 1: Manual SQL Queries

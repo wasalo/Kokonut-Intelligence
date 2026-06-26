@@ -17,6 +17,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import psycopg2
 import psycopg2.extras
@@ -34,6 +35,133 @@ def get_pg():
 # ---------------------------------------------------------------------------
 # Report Generators
 # ---------------------------------------------------------------------------
+
+def _serialize_value(obj):
+    if hasattr(obj, "isoformat"):
+        return obj.isoformat()
+    if isinstance(obj, (bytes, memoryview)):
+        return hashlib.sha256(bytes(obj)).hexdigest()[:16]
+    return obj
+
+
+def _serialize_rows(rows: list[dict]) -> list[dict]:
+    return [{k: _serialize_value(v) for k, v in row.items()} for row in rows]
+
+
+def fetch_public_interest_context(conn, location_id: str) -> dict:
+    """Fetch public-interest context attached to every Green Paper report."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    cur.execute(
+        """
+        SELECT stakeholder_group, feedback_type, sentiment, public_summary,
+               evidence_maturity, evidence_maturity_label
+        FROM v_public_stakeholder_feedback_summary
+        WHERE location_id = %s
+        ORDER BY feedback_date DESC, id
+        LIMIT 10
+        """,
+        (location_id,),
+    )
+    public_feedback = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT claim_category, claim_type, claim_text, claim_value, claim_unit,
+               evidence_maturity, evidence_maturity_label, confidence_level,
+               methodology_ref, external_verifier, attestation_uid
+        FROM v_public_impact_claim_summary
+        WHERE location_id = %s
+        ORDER BY claim_date DESC, id
+        LIMIT 10
+        """,
+        (location_id,),
+    )
+    public_claims = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT claim_category, claim_type, status, public_claim,
+               evidence_maturity, COUNT(*) AS claim_count,
+               COUNT(*) FILTER (
+                   WHERE public_claim = TRUE AND evidence_maturity < 4
+               ) AS public_claims_below_threshold,
+               COUNT(*) FILTER (
+                   WHERE public_claim = TRUE
+                     AND claim_category = 'carbon'
+                     AND (
+                       evidence_maturity < 6
+                       OR external_verifier IS NULL
+                       OR methodology_ref IS NULL
+                     )
+               ) AS carbon_publication_gaps,
+               COUNT(*) FILTER (
+                   WHERE evidence_cid IS NULL
+                     AND evidence_hash IS NULL
+                     AND attestation_uid IS NULL
+               ) AS missing_evidence_links
+        FROM impact_claim
+        WHERE location_id = %s AND status != 'rejected'
+        GROUP BY claim_category, claim_type, status, public_claim, evidence_maturity
+        ORDER BY carbon_publication_gaps DESC, public_claims_below_threshold DESC,
+                 missing_evidence_links DESC, claim_count DESC
+        """,
+        (location_id,),
+    )
+    evidence_gaps = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT stakeholder_group, feedback_type, sentiment, status,
+               consent_given, consent_scope, is_public, evidence_maturity,
+               COUNT(*) AS feedback_count,
+               COUNT(*) FILTER (WHERE consent_given = FALSE) AS private_or_no_consent_count,
+               COUNT(*) FILTER (WHERE harms_or_unintended_consequences IS NOT NULL) AS harm_or_unintended_consequence_count
+        FROM stakeholder_feedback
+        WHERE location_id = %s AND status != 'rejected'
+        GROUP BY stakeholder_group, feedback_type, sentiment, status,
+                 consent_given, consent_scope, is_public, evidence_maturity
+        ORDER BY feedback_count DESC, stakeholder_group
+        """,
+        (location_id,),
+    )
+    feedback_summary = [dict(r) for r in cur.fetchall()]
+    cur.close()
+
+    has_private_feedback = any(row.get("private_or_no_consent_count", 0) for row in feedback_summary)
+    has_carbon_gaps = any(row.get("carbon_publication_gaps", 0) for row in evidence_gaps)
+    has_missing_evidence = any(row.get("missing_evidence_links", 0) for row in evidence_gaps)
+
+    limitations = []
+    if has_private_feedback:
+        limitations.append("Some stakeholder feedback is private or lacks public consent and is summarized only in aggregate.")
+    if has_carbon_gaps:
+        limitations.append("Some public carbon claims are not publication-ready until Level 6 verifier and methodology requirements are satisfied.")
+    if has_missing_evidence:
+        limitations.append("Some claims are missing CIDs, hashes, or attestation UIDs and should be treated as lower-confidence evidence.")
+    if not limitations:
+        limitations.append("No public-interest evidence gaps were detected for the current governed dataset.")
+
+    return {
+        "principles": [
+            "Publish only governed records that are verified, published, consented, or explicitly public-safe.",
+            "Keep private stakeholder evidence off public reports unless consent scope allows publication.",
+            "Separate public carbon-balance claims from credit issuance claims unless external verification supports issuance.",
+            "Show limitations and evidence gaps beside positive impact claims.",
+        ],
+        "public_feedback": _serialize_rows(public_feedback),
+        "public_claims": _serialize_rows(public_claims),
+        "evidence_gaps": _serialize_rows(evidence_gaps),
+        "stakeholder_feedback_summary": _serialize_rows(feedback_summary),
+        "limitations": limitations,
+    }
+
+
+def attach_public_interest_context(conn, report_data: dict, location_id: Optional[str]) -> dict:
+    """Attach public-interest context without changing report-specific payloads."""
+    if location_id:
+        report_data["public_interest"] = fetch_public_interest_context(conn, location_id)
+    return report_data
 
 def generate_farm_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a farm summary report for a location."""
@@ -117,20 +245,12 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
 
     cur.close()
 
-    # Build report
-    def _serialize(obj):
-        if hasattr(obj, "isoformat"):
-            return obj.isoformat()
-        if isinstance(obj, (bytes, memoryview)):
-            return hashlib.sha256(bytes(obj)).hexdigest()[:16]
-        return obj
-
     report = {
         "report_type": "farm_summary",
-        "location": {k: _serialize(v) for k, v in dict(location).items() if k != "boundary" and k != "center"},
-        "farms": [{k: _serialize(v) for k, v in f.items()} for f in farms],
-        "plots": [{k: _serialize(v) for k, v in p.items()} for p in plots],
-        "crop_cycles": [{k: _serialize(v) for k, v in cc.items()} for cc in crop_cycles],
+        "location": {k: _serialize_value(v) for k, v in dict(location).items() if k != "boundary" and k != "center"},
+        "farms": _serialize_rows(farms),
+        "plots": _serialize_rows(plots),
+        "crop_cycles": _serialize_rows(crop_cycles),
         "harvest_summary": harvest_summary,
         "financial_summary": financial,
         "expense_breakdown": expense_breakdown,
@@ -462,17 +582,28 @@ def compute_hash(data: dict) -> str:
 
 def store_snapshot(conn, report_data: dict, location_id: str = None, period_start: str = None, period_end: str = None) -> str:
     """Store report snapshot in the database."""
+    report_data = attach_public_interest_context(conn, report_data, location_id)
     snapshot_hash = compute_hash(report_data)
     report_type = report_data.get("report_type", "unknown")
+    public_interest = report_data.get("public_interest", {})
+    public_summary = "; ".join(public_interest.get("limitations", [])) if public_interest else None
+    negative_findings = [
+        gap for gap in public_interest.get("evidence_gaps", [])
+        if gap.get("public_claims_below_threshold", 0)
+        or gap.get("carbon_publication_gaps", 0)
+        or gap.get("missing_evidence_links", 0)
+    ] if public_interest else []
+    affected_voice = json.dumps(public_interest.get("public_feedback", []), default=str) if public_interest else None
 
     cur = conn.cursor()
     cur.execute(
         """
         INSERT INTO report_snapshot (
             report_name, report_type, location_id, period_start, period_end,
-            report_data, snapshot_hash, status, frozen, frozen_at
+            report_data, snapshot_hash, status, frozen, frozen_at,
+            public_interest_summary, uncertainty_notes, negative_findings, affected_community_voice
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 'published', TRUE, NOW())
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'published', TRUE, NOW(), %s, %s, %s, %s)
         RETURNING id
         """,
         (
@@ -483,6 +614,10 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
             period_end,
             json.dumps(report_data, default=str),
             snapshot_hash,
+            public_summary,
+            public_summary,
+            json.dumps(negative_findings, default=str),
+            affected_voice,
         ),
     )
     snapshot_id = str(cur.fetchone()[0])

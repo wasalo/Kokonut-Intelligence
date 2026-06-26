@@ -5,6 +5,12 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Phase 3 analytics and dashboards**: Added Green Paper V1 portfolio evaluation, evidence review dashboards, and public-interest report context.
+  - `schemas/clickhouse/005_portfolio_views.sql`: ClickHouse views for portfolio location activity, monthly evaluation, and portfolio evaluation summary using existing analytical event mirrors.
+  - `dashboards/metabase/sql/20_evidence_gap_dashboard.sql` and `20_evidence_gap_dashboard.json`: claim maturity, public threshold, carbon publication, and missing evidence-link review dashboard.
+  - `dashboards/metabase/sql/21_stakeholder_feedback_dashboard.sql` and `21_stakeholder_feedback_dashboard.json`: stakeholder feedback consent, sentiment, review, and privacy dashboard.
+  - `services/export/report_generator.py`: report snapshots now attach public-interest context, limitations, evidence gaps, public stakeholder voice, and public claim summaries.
+  - `docs/reporting-principles.md`: public-interest reporting principles for Green Paper outputs.
 - **Phase 2 workflows and review hooks**: Added Directus workflow modules for stakeholder feedback, participatory metric proposals, impact claim review, and agent safety/audit enforcement.
   - `extensions/kokonut-hooks/src/feedback.ts`: private-by-default stakeholder feedback validation, explicit public-consent checks, public summary requirement, and review log helper.
   - `extensions/kokonut-hooks/src/metric-proposal.ts`: participatory metric proposal state machine (`proposed`, `discussed`, `approved`, `implemented`, `deprecated`, `rejected`) with reviewer/date stamping and workflow history logging.

@@ -1,0 +1,17 @@
+{
+  "name": "Evidence Gap Dashboard",
+  "description": "Review impact claims by evidence maturity, public-claim readiness, and carbon claim gaps.",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Evidence Gaps By Claim Type",
+      "description": "Claims grouped by maturity, public threshold gaps, carbon publication gaps, and missing evidence links.",
+      "native": {
+        "query": "SELECT\n  l.name AS location,\n  ic.claim_category,\n  ic.claim_type,\n  ic.status,\n  ic.public_claim,\n  ic.evidence_maturity,\n  em.label AS evidence_maturity_label,\n  COUNT(*) AS claim_count,\n  COUNT(*) FILTER (WHERE ic.public_claim = TRUE AND ic.evidence_maturity < 4) AS public_claims_below_public_threshold,\n  COUNT(*) FILTER (\n    WHERE ic.public_claim = TRUE\n      AND ic.claim_category = 'carbon'\n      AND (\n        ic.evidence_maturity < 6\n        OR ic.external_verifier IS NULL\n        OR ic.methodology_ref IS NULL\n      )\n  ) AS carbon_publication_gaps,\n  COUNT(*) FILTER (WHERE ic.evidence_cid IS NULL AND ic.evidence_hash IS NULL AND ic.attestation_uid IS NULL) AS missing_evidence_links\nFROM impact_claim ic\nJOIN location l ON l.id = ic.location_id\nLEFT JOIN evidence_maturity_level em ON em.level = ic.evidence_maturity\nWHERE ic.status != 'rejected'\nGROUP BY l.name, ic.claim_category, ic.claim_type, ic.status, ic.public_claim, ic.evidence_maturity, em.label\nORDER BY carbon_publication_gaps DESC, public_claims_below_public_threshold DESC, missing_evidence_links DESC, claim_count DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Stakeholder Feedback Dashboard",
+  "description": "Stakeholder feedback by consent, sentiment, review status, and public-summary readiness.",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Feedback Review And Consent",
+      "description": "Feedback grouped by stakeholder, consent scope, public status, maturity, and review coverage.",
+      "native": {
+        "query": "SELECT\n  l.name AS location,\n  sf.stakeholder_group,\n  sf.feedback_type,\n  sf.sentiment,\n  sf.status,\n  sf.consent_given,\n  sf.consent_scope,\n  sf.is_public,\n  sf.evidence_maturity,\n  COUNT(*) AS feedback_count,\n  COUNT(*) FILTER (WHERE sf.is_public = TRUE) AS public_feedback_count,\n  COUNT(*) FILTER (WHERE sf.consent_given = FALSE) AS private_or_no_consent_count,\n  COUNT(*) FILTER (WHERE sf.harms_or_unintended_consequences IS NOT NULL) AS harm_or_unintended_consequence_count,\n  COUNT(*) FILTER (WHERE sfr.id IS NOT NULL) AS reviewed_count,\n  MAX(sf.feedback_date) AS latest_feedback_date\nFROM stakeholder_feedback sf\nJOIN location l ON l.id = sf.location_id\nLEFT JOIN stakeholder_feedback_review sfr ON sfr.feedback_id = sf.id\nWHERE sf.status != 'rejected'\nGROUP BY l.name, sf.stakeholder_group, sf.feedback_type, sf.sentiment, sf.status,\n         sf.consent_given, sf.consent_scope, sf.is_public, sf.evidence_maturity\nORDER BY latest_feedback_date DESC, feedback_count DESC;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}
