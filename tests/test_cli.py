@@ -35,6 +35,11 @@ CLI_COMMANDS = [
 
     # CIDS exporter CLI
     ("python3", "-m", "services.registry.cids_export", "--help"),
+
+    # Agent workflow CLIs
+    ("python3", "-m", "services.agents.tasks", "--help"),
+    ("python3", "-m", "services.agents.cids_agent", "--help"),
+    ("python3", "-m", "services.agents.feedback_agent", "--help"),
 ]
 
 

@@ -43,6 +43,9 @@ check "Import services.common.logging" "python3 -c 'import services.common.loggi
 check "Import services.migration.cli" "python3 -c 'import services.migration.cli'"
 check "Import services.registry.cids_export" "python3 -c 'import services.registry.cids_export'"
 check "Import services.agents.safety" "python3 -c 'import services.agents.safety'"
+check "Import services.agents.tasks" "python3 -c 'import services.agents.tasks'"
+check "Import services.agents.cids_agent" "python3 -c 'import services.agents.cids_agent'"
+check "Import services.agents.feedback_agent" "python3 -c 'import services.agents.feedback_agent'"
 echo ""
 
 # 2. CLI parsers
@@ -55,6 +58,9 @@ check "report_generator CLI --help" "python3 -m services.export.report_generator
 check "attestation CLI --help" "python3 -m services.attestation.cli --help"
 check "metrics CLI --help" "python3 -m services.metrics --help"
 check "cids_export CLI --help" "python3 -m services.registry.cids_export --help"
+check "agent tasks CLI --help" "python3 -m services.agents.tasks --help"
+check "cids agent CLI --help" "python3 -m services.agents.cids_agent --help"
+check "feedback agent CLI --help" "python3 -m services.agents.feedback_agent --help"
 echo ""
 
 # 3. TypeScript extension build (if node_modules present)
@@ -86,6 +92,7 @@ check "directus metadata" "python3 -m tests.test_directus_metadata"
 check "metric calculators" "python3 -m tests.test_metrics"
 check "cids export" "python3 -m tests.test_cids_export"
 check "agent safety" "python3 -m tests.test_agent_safety"
+check "agent tasks" "python3 -m tests.test_agent_tasks"
 echo ""
 
 # 6. Smoke test suite

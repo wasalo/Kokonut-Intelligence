@@ -5,6 +5,11 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Phase 4 and Phase 5 Green Paper agent/documentation layer**: Added agent task catalogue, CIDS export agent, stakeholder feedback synthesis agent, and Green Paper V1 documentation.
+  - `services/agents/tasks.py`: task catalogue and lightweight output schema validation for Green Paper agent tasks.
+  - `services/agents/cids_agent.py`: read-only CIDS export agent over the canonical CIDS exporter.
+  - `services/agents/feedback_agent.py`: stakeholder feedback synthesis agent that uses public summaries and aggregate private/no-consent signals, with optional draft `ai_summary` storage.
+  - `docs/agent-workflows.md`, `docs/stakeholder-feedback.md`, `docs/operator-guide.md`, `docs/reviewer-guide.md`, and `docs/green-paper-v1.md`: Green Paper V1 operating, review, and publication guidance.
 - **Phase 3 analytics and dashboards**: Added Green Paper V1 portfolio evaluation, evidence review dashboards, and public-interest report context.
   - `schemas/clickhouse/005_portfolio_views.sql`: ClickHouse views for portfolio location activity, monthly evaluation, and portfolio evaluation summary using existing analytical event mirrors.
   - `dashboards/metabase/sql/20_evidence_gap_dashboard.sql` and `20_evidence_gap_dashboard.json`: claim maturity, public threshold, carbon publication, and missing evidence-link review dashboard.

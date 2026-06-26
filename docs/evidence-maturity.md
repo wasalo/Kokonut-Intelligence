@@ -15,3 +15,27 @@ Kokonut uses a 0-6 evidence maturity model across impact claims, MRV claims, sta
 ## Public Carbon Claims
 
 Public carbon claims require Level 6. Level 5 EAS attestation proves a claim was attested, but does not equal external verification.
+
+## Review Use
+
+- Levels 0-3 are internal or pre-publication evidence states.
+- Level 4 is the minimum maturity for ordinary public impact claims.
+- Level 5 records may include onchain/offchain attestations, but still need reviewer interpretation.
+- Level 6 is required when a public carbon claim could be read as externally verified.
+
+## Enforced Locations
+
+Evidence maturity is enforced or surfaced in:
+
+- `mrv_claim`
+- `impact_claim`
+- `stakeholder_feedback`
+- `stakeholder_outcome`
+- public-safe views
+- report snapshots
+- CIDS export
+- Directus workflow hooks
+
+## Agent Use
+
+Agents may summarize evidence maturity and identify gaps. They cannot raise maturity, verify records, or publish claims. Any agent-produced summary is a draft input for human review.

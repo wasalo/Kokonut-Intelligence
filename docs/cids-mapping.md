@@ -25,6 +25,33 @@ python3 -m services.registry.cids_export --location-id UUID
 
 The exporter emits JSON-LD with `kokonut:alignmentTier = essential` and `kokonut:cidsVersion = 3.2.0`.
 
+Agent-assisted export is available as a read-only task:
+
+```bash
+python3 -m services.agents.cids_agent --location-id UUID --summary
+```
+
+The agent wraps the same canonical exporter and validates required output fields from `services/agents/tasks.py`.
+
+## Essential Tier Classes
+
+The current exporter emits these CIDS-compatible classes when source data exists:
+
+- `cids:Organization`
+- `cids:Program`
+- `cids:ImpactPathway`
+- `cids:Stakeholder`
+- `cids:StakeholderOutcome`
+- `cids:Outcome`
+- `cids:Indicator`
+- `cids:IndicatorReport`
+- `cids:ImpactReport`
+- `cids:Theme`
+
+## Governance Boundary
+
+CIDS export does not create or publish canonical records. Directus/PostgreSQL lifecycle state, evidence maturity, consent fields, and public-safe views determine what may appear in partner-facing outputs.
+
 ## Compatibility Notes
 
 - Public carbon claims require Evidence Maturity Level 6 before export as public claims.

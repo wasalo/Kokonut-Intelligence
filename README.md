@@ -18,6 +18,7 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 - [Impact Accountability And CIDS](#impact-accountability-and-cids)
 - [Dashboards Reports And Export](#dashboards-reports-and-export)
 - [Agents Registry And MCP](#agents-registry-and-mcp)
+- [Green Paper V1](#green-paper-v1)
 - [Developer Commands](#developer-commands)
 - [Repository Layout](#repository-layout)
 - [Security And Privacy](#security-and-privacy)
@@ -243,11 +244,26 @@ python3 -m services.attestation --subject-type mrv_event --subject-id UUID --eve
 
 # Print an agent capability manifest example
 python3 -m services.agents --example kokonut-mrv-reporter
+
+# List Green Paper agent tasks
+python3 -m services.agents.tasks --list
+
+# Run read-only CIDS export agent
+python3 -m services.agents.cids_agent --location-id UUID --summary
+
+# Run stakeholder feedback synthesis agent
+python3 -m services.agents.feedback_agent --location-id UUID
 ```
 
 Agent safety is enforced in both PostgreSQL constraints and Directus/Python helpers. Agents can draft, submit, or reject their own outputs, but cannot verify or publish them. High-risk actions such as publishing, attestation submission, financial writes, deletes, and bulk updates are flagged for human approval in `agent_action_log`.
 
 See [Agent Access](docs/agent-access.md) and [PRD Completion Scope](docs/prd-completion.md) for privacy and marketplace boundaries.
+
+## Green Paper V1
+
+Green Paper V1 materials should use CIDS Essential Tier exports, public-safe stakeholder summaries, evidence maturity labels, evidence gap dashboards, and public-interest report snapshots. Agent outputs are draft aids for reviewers and operators, not publication authority.
+
+See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-guide.md), [Reviewer Guide](docs/reviewer-guide.md), and [Agent Workflows](docs/agent-workflows.md).
 
 ## Developer Commands
 
@@ -265,6 +281,7 @@ See [Agent Access](docs/agent-access.md) and [PRD Completion Scope](docs/prd-com
 | Run Directus metadata tests | `python3 -m tests.test_directus_metadata` |
 | Run CIDS export tests | `python3 -m tests.test_cids_export` |
 | Run agent safety tests | `python3 -m tests.test_agent_safety` |
+| Run agent task tests | `python3 -m tests.test_agent_tasks` |
 | Build Directus hooks | `cd extensions/kokonut-hooks && npm run build` |
 | Test Directus hooks | `cd extensions/kokonut-hooks && npm test` |
 | Migration status | `python3 -m services.migration status` |
@@ -314,6 +331,11 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 | [CIDS Mapping](docs/cids-mapping.md) | CIDS v3.2.0 Essential Tier export mapping |
 | [Evidence Maturity](docs/evidence-maturity.md) | Evidence maturity levels and public carbon claim rules |
 | [Reporting Principles](docs/reporting-principles.md) | Public-interest reporting principles and report snapshot fields |
+| [Stakeholder Feedback](docs/stakeholder-feedback.md) | Feedback consent, privacy, review, and public-summary rules |
+| [Agent Workflows](docs/agent-workflows.md) | Agent task catalogue, output schemas, and safety rules |
+| [Operator Guide](docs/operator-guide.md) | Green Paper operator workflow and publishing readiness |
+| [Reviewer Guide](docs/reviewer-guide.md) | Human review checklist for claims, feedback, and agent outputs |
+| [Green Paper V1](docs/green-paper-v1.md) | Green Paper integration notes and publication boundaries |
 | [Deployment](docs/deployment.md) | Docker setup, environment variables, backup, operations |
 | [Sandbox](docs/sandbox.md) | Developer sandbox quickstart |
 | [Subgraph Guide](docs/subgraph-guide.md) | Subgraph indexer configuration and usage |

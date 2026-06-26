@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 from services.agents.logging import log_agent_action
 
@@ -31,7 +31,7 @@ class SafetyDecision:
     reason: str
 
 
-def payload_hash(payload: dict[str, Any] | None) -> str | None:
+def payload_hash(payload: Optional[dict[str, Any]]) -> Optional[str]:
     """Return a stable SHA-256 hash for audit logging."""
     if payload is None:
         return None
@@ -39,7 +39,7 @@ def payload_hash(payload: dict[str, Any] | None) -> str | None:
     return hashlib.sha256(encoded).hexdigest()
 
 
-def assess_agent_action(action: str, collection: str, payload: dict[str, Any] | None = None) -> SafetyDecision:
+def assess_agent_action(action: str, collection: str, payload: Optional[dict[str, Any]] = None) -> SafetyDecision:
     """Assess whether an agent action is allowed before writing."""
     payload = payload or {}
     high_risk = action in HIGH_RISK_ACTIONS
@@ -60,7 +60,7 @@ def assess_agent_action(action: str, collection: str, payload: dict[str, Any] | 
     return SafetyDecision(True, high_risk, high_risk, "allowed")
 
 
-def assert_agent_action_allowed(action: str, collection: str, payload: dict[str, Any] | None = None) -> SafetyDecision:
+def assert_agent_action_allowed(action: str, collection: str, payload: Optional[dict[str, Any]] = None) -> SafetyDecision:
     """Raise ValueError when the action violates Kokonut agent safety rules."""
     decision = assess_agent_action(action, collection, payload)
     if not decision.allowed:
@@ -72,11 +72,11 @@ def audit_agent_action(
     agent_id: str,
     action: str,
     collection: str,
-    payload: dict[str, Any] | None = None,
-    task_id: str | None = None,
-    record_id: str | None = None,
+    payload: Optional[dict[str, Any]] = None,
+    task_id: Optional[str] = None,
+    record_id: Optional[str] = None,
     action_result: str = "success",
-    error_message: str | None = None,
+    error_message: Optional[str] = None,
 ) -> str:
     """Assess and write an agent_action_log entry."""
     decision = assess_agent_action(action, collection, payload)
