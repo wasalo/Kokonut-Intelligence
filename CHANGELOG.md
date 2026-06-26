@@ -4,6 +4,9 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+### Added
+- **Green Paper V1 comprehensive document**: Replaced 38-line outline with full 15-section publication-ready document (~1,000 lines) covering executive summary, problem statement, system architecture, data lifecycle, evidence maturity model, CIDS mapping, stakeholder feedback, impact claims, agent safety, Web3 verification, carbon and environmental impact, reporting principles, Common Foundations checklist, publication boundaries, pilot data (Kokonut Adelphi), and glossary with 28 footnote references.
+
 ### Fixed
 - **Acceptance criteria compliance pass**: Implemented missing workflow enforcement for Green Paper V1 acceptance criteria.
   - Added 7-day review period enforcement for stakeholder feedback verification in `extensions/kokonut-hooks/src/workflow.ts`.

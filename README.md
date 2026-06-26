@@ -269,6 +269,8 @@ See [Agent Access](docs/agent-access.md) and [PRD Completion Scope](docs/prd-com
 
 ## Green Paper V1
 
+Green Paper V1 is a comprehensive 15-section document covering Kokonut's evidence-governed impact intelligence layer for regenerative syntropic farms. It includes system architecture, evidence maturity model, CIDS mapping, stakeholder feedback, agent safety, Web3 verification, carbon and environmental impact, reporting principles, publication boundaries, and pilot data (Kokonut Adelphi).
+
 Green Paper V1 materials should use CIDS Essential Tier exports, public-safe stakeholder summaries, evidence maturity labels, evidence gap dashboards, and public-interest report snapshots. Agent outputs are draft aids for reviewers and operators, not publication authority.
 
 See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-guide.md), [Reviewer Guide](docs/reviewer-guide.md), and [Agent Workflows](docs/agent-workflows.md).
@@ -351,7 +353,7 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 | [Agent Workflows](docs/agent-workflows.md) | Agent task catalogue, output schemas, and safety rules |
 | [Operator Guide](docs/operator-guide.md) | Green Paper operator workflow and publishing readiness |
 | [Reviewer Guide](docs/reviewer-guide.md) | Human review checklist for claims, feedback, and agent outputs |
-| [Green Paper V1](docs/green-paper-v1.md) | Green Paper integration notes and publication boundaries |
+| [Green Paper V1](docs/green-paper-v1.md) | Comprehensive 15-section publication-ready document |
 | [Deployment](docs/deployment.md) | Docker setup, environment variables, backup, operations |
 | [Sandbox](docs/sandbox.md) | Developer sandbox quickstart |
 | [Subgraph Guide](docs/subgraph-guide.md) | Subgraph indexer configuration and usage |
