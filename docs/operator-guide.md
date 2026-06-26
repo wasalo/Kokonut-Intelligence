@@ -7,7 +7,15 @@ This guide describes the minimum Green Paper V1 operating flow for Kokonut Adelp
 - Create operational records in Directus as drafts.
 - Submit records when source fields, dates, units, and evidence references are complete.
 - Keep private evidence offchain; store only hashes, CIDs, UIDs, transaction hashes, and timestamps in public metadata.
-- Add stakeholder feedback only with clear consent scope. If unsure, keep it private.
+
+## Stakeholder Feedback Submission
+
+- Always ask for explicit consent before recording feedback.
+- Set `consent_given = TRUE` only when the stakeholder agrees to public exposure.
+- Set `consent_scope` to `public` for feedback that may appear in public views.
+- Keep `consent_scope = private` for feedback that should never leave the platform.
+- Feedback requires a minimum 7-day review period before verification.
+- Public feedback must have a non-empty `public_summary` and `status = 'published'`.
 
 ## Monthly Review
 

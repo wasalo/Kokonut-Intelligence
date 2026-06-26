@@ -137,8 +137,10 @@
 - CIDS export agent (`services/agents/cids_agent.py`) is read-only and wraps the canonical CIDS exporter.
 - Feedback synthesis agent (`services/agents/feedback_agent.py`) must use public summaries and aggregate private/no-consent signals; never expose raw private feedback.
 - Stakeholder feedback is private by default. Public feedback requires `consent_given = TRUE`, public consent scope, `status = 'published'`, and a non-empty `public_summary`.
+- Stakeholder feedback verification requires a minimum 7-day review period after submission.
 - Public impact claims require evidence maturity >= 4; public carbon claims require evidence maturity 6, `claim_type = 'third_party_verified_claim'`, `external_verifier`, `methodology_ref`, and `published` status.
 - Participatory metric proposals use `proposed`, `discussed`, `approved`, `implemented`, `deprecated`, and `rejected`, not the governed record lifecycle.
+- Metric proposal approval requires a minimum 30-day discussion period after proposal date.
 - Spreadsheet bridge is CSV-first in `services/export/spreadsheet_bridge.py`; imports create draft `farm_activity` rows only.
 - Directus Phase 2 workflow hooks live in `extensions/kokonut-hooks/src/feedback.ts`, `metric-proposal.ts`, `impact-claim.ts`, and `agent-safety.ts`.
 - Framework reference data is canonicalized by `schemas/seeds/023_impact_frameworks.sql`; Adelphi mappings and Guild/DAO alignment are in `schemas/seeds/024_adelphi_alignment.sql`.

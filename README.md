@@ -145,6 +145,10 @@ draft -> submitted -> verified -> published
 
 Directus hooks enforce review workflows for stakeholder feedback, stakeholder outcomes, impact claims, metric proposals, agent tasks, AI summaries, and agent action logs. Stakeholder feedback is private by default and requires explicit public consent plus a non-empty `public_summary` before public exposure. Public carbon claims require Evidence Maturity Level 6, external verifier text, and methodology reference.
 
+Workflow time-based enforcement:
+- Stakeholder feedback requires a minimum 7-day review period before verification.
+- Metric proposals require a minimum 30-day discussion period before approval.
+
 See [User Guide](docs/user-guide.md) for role workflows and data-entry walkthroughs.
 
 ## Metrics And Intelligence

@@ -4,6 +4,13 @@ All notable changes to the Kokonut Intelligence Platform.
 
 ## [Unreleased]
 
+### Fixed
+- **Acceptance criteria compliance pass**: Implemented missing workflow enforcement for Green Paper V1 acceptance criteria.
+  - Added 7-day review period enforcement for stakeholder feedback verification in `extensions/kokonut-hooks/src/workflow.ts`.
+  - Added 30-day discussion period enforcement for metric proposal approval in `extensions/kokonut-hooks/src/metric-proposal.ts`.
+  - Regenerated Directus schema snapshot to include Phase 1 collections (`stakeholder_feedback`, `stakeholder_feedback_review`, `stakeholder_outcome`, `impact_claim`, `metric_proposal`, `evidence_maturity_level`).
+  - Added dedicated "Stakeholder Feedback Submission" section to `docs/operator-guide.md`.
+
 ### Added
 - **Backlog closure pass**: Added remaining Green Paper backlog assets for portfolio analytics, spreadsheet exchange, Common Foundations checks, workflow permissions, and missing review docs.
   - `services/analytics/portfolio.py`: portfolio theme summary with conservative confidence labels and no farm ranking.

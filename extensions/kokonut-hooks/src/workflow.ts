@@ -263,6 +263,30 @@ export async function handleWorkflowTransition(
     );
   }
 
+  // Enforce 7-day review period for stakeholder feedback
+  if (collection === 'stakeholder_feedback' && newStatus === 'verified' && db && recordId) {
+    try {
+      const record = await db(collection).where('id', recordId).first('submitted_at');
+      if (record?.submitted_at) {
+        const submittedAt = new Date(record.submitted_at);
+        const nowDate = new Date();
+        const diffDays = Math.floor((nowDate.getTime() - submittedAt.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays < 7) {
+          pendingTransitions.delete(transitionKey(collection, recordId));
+          throw new Error(
+            `Stakeholder feedback must be in submitted status for at least 7 days before verification. ` +
+            `Submitted: ${record.submitted_at}, days elapsed: ${diffDays}`
+          );
+        }
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('7 days')) {
+        throw e;
+      }
+      // If we can't check, allow the transition (graceful degradation)
+    }
+  }
+
   const now = new Date().toISOString();
 
   const tsField = TIMESTAMP_FIELDS[newStatus];

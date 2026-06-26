@@ -24,7 +24,7 @@ export async function handleMetricProposalUpdate(
   const recordId = meta.keys?.[0] ?? meta.keys?.id;
   if (!recordId) return payload;
 
-  const current = await db('metric_proposal').where('id', recordId).first('status');
+  const current = await db('metric_proposal').where('id', recordId).first('status', 'proposal_date');
   const currentStatus = current?.status;
   if (!currentStatus || currentStatus === payload.status) return payload;
 
@@ -32,6 +32,19 @@ export async function handleMetricProposalUpdate(
     throw new Error(
       `Invalid metric_proposal status transition: ${currentStatus} → ${payload.status}`
     );
+  }
+
+  // Enforce 30-day discussion period before approval
+  if (payload.status === 'approved' && current?.proposal_date) {
+    const proposalDate = new Date(current.proposal_date);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - proposalDate.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 30) {
+      throw new Error(
+        `Metric proposal requires at least 30 days of discussion before approval. ` +
+        `Proposed: ${current.proposal_date}, days elapsed: ${diffDays}`
+      );
+    }
   }
 
   if (REVIEW_STATUSES.has(payload.status)) {
