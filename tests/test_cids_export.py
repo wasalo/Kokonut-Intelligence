@@ -50,6 +50,18 @@ def _source() -> dict:
                 "value": Decimal("35682.00"),
                 "value_unit": "USD",
                 "computation_method": "metric engine",
+            },
+            {
+                "metric_key": "ebf_soil_health_score",
+                "display_name": "EBF Soil Health Score",
+                "description": "Normalized 0-10 EBF score for soil health.",
+                "unit": "score_0_10",
+                "metric_value_id": "a0000000-0000-0000-0000-000000000941",
+                "period_start": date(2025, 10, 1),
+                "period_end": date(2026, 3, 31),
+                "value": Decimal("7.00"),
+                "value_unit": "score_0_10",
+                "computation_method": "EBF rubric score",
             }
         ],
         "feedback": [
@@ -88,6 +100,17 @@ def test_build_cids_graph_contains_essential_tier_classes() -> None:
     assert "cids:Indicator" in types
     assert "cids:IndicatorReport" in types
     assert "cids:ImpactReport" in types
+
+
+def test_ebf_metric_values_export_as_indicator_reports_with_metadata() -> None:
+    graph = build_cids_graph(_source())
+    ebf_reports = [
+        item for item in graph
+        if item["@type"] == "cids:IndicatorReport" and item.get("kokonut:framework") == "ebf"
+    ]
+    assert ebf_reports
+    assert ebf_reports[0]["kokonut:ebfPillar"] == "soil_health"
+    assert ebf_reports[0]["kokonut:cidsMapping"] == "metric_value -> cids:IndicatorReport"
 
 
 def test_export_location_wraps_graph_with_essential_tier(monkeypatch) -> None:

@@ -51,6 +51,7 @@ def main():
     parser.add_argument("--emission-factors", action="store_true", help="List available GHG emission factors")
     parser.add_argument("--carbon-benchmarks", action="store_true", help="List carbon benchmarks for tree systems")
     parser.add_argument("--portfolio-summary", action="store_true", help="Summarize portfolio impact by theme with confidence labels")
+    parser.add_argument("--ebf-portfolio-summary", action="store_true", help="Summarize EBF portfolio pillars as a messy roll-up without farm ranking")
     parser.add_argument("--location-id", help="Location UUID (required for most flags)")
     parser.add_argument("--scenario-id", help="Scenario UUID (required for sensitivity)")
     parser.add_argument("--variable", choices=["price", "yield", "cost"], default="price", help="Variable for sensitivity analysis")
@@ -224,6 +225,14 @@ def main():
         from .portfolio import portfolio_theme_summary
         conn = get_db()
         result = portfolio_theme_summary(conn)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.ebf_portfolio_summary:
+        from .portfolio import ebf_portfolio_summary
+        conn = get_db()
+        result = ebf_portfolio_summary(conn)
         conn.close()
         print(json.dumps(result, indent=2, default=str))
         return

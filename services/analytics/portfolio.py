@@ -83,3 +83,49 @@ def portfolio_theme_summary(conn) -> dict[str, Any]:
         "themes": themes,
         "portfolio_caveat": "Compare themes and evidence maturity, not farms as interchangeable units.",
     }
+
+
+def ebf_portfolio_summary(conn) -> dict[str, Any]:
+    """Summarize EBF scorecards as a messy roll-up, not a farm ranking."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
+        """
+        SELECT
+            pillar_key,
+            pillar_name,
+            COUNT(DISTINCT location_id) AS location_count,
+            COUNT(DISTINCT scorecard_id) AS scorecard_count,
+            ROUND(AVG(normalized_score)::numeric, 2) AS avg_score,
+            ROUND(AVG(score_evidence_maturity_level)::numeric, 2) AS avg_evidence_maturity,
+            COUNT(*) FILTER (WHERE confidence_level = 'high') AS high_confidence_count,
+            COUNT(*) FILTER (WHERE confidence_level = 'moderate') AS moderate_confidence_count,
+            COUNT(*) FILTER (WHERE confidence_level = 'low') AS low_confidence_count,
+            COUNT(*) FILTER (WHERE confidence_level = 'insufficient_evidence') AS insufficient_evidence_count,
+            COUNT(*) FILTER (WHERE score_evidence_maturity_level >= 4) AS public_safe_score_count,
+            COUNT(*) FILTER (WHERE pillar_key = 'carbon_sequestration' AND score_evidence_maturity_level = 6) AS level6_carbon_score_count
+        FROM v_public_ebf_scorecard
+        GROUP BY pillar_key, pillar_name
+        ORDER BY pillar_name
+        """
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+
+    pillars = []
+    for row in rows:
+        avg_maturity = float(row.get("avg_evidence_maturity") or 0)
+        row["portfolio_confidence_label"] = confidence_label(
+            avg_maturity,
+            int(row.get("scorecard_count") or 0),
+            int(row.get("location_count") or 0),
+        )
+        row["comparison_mode"] = "messy_rollup"
+        row["caveat"] = "Use pillar distributions, maturity, and confidence context; do not rank farms."
+        pillars.append(row)
+
+    return {
+        "summary_type": "ebf_portfolio_messy_rollup",
+        "pillar_count": len(pillars),
+        "pillars": pillars,
+        "portfolio_caveat": "EBF portfolio comparison is a messy roll-up by pillar, confidence, and maturity; farms are not interchangeable units.",
+    }

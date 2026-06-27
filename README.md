@@ -178,10 +178,12 @@ Additional intelligence services include:
 | Revenue multiplier | `python3 -m services.revenue_multiplier.cli --location-id UUID` |
 | Environmental analytics | `python3 -m services.analytics --environmental-baseline --location-id UUID` |
 | Portfolio theme summary | `python3 -m services.analytics --portfolio-summary` |
+| EBF portfolio messy roll-up | `python3 -m services.analytics --ebf-portfolio-summary` |
 | EBF scorecard export | `python3 -m services.scoring --scorecard-id UUID --export public` |
 | EBF trust graph export | `python3 -m services.scoring --trust-graph UUID --public-safe` |
 | Run EBF P0 tests | `python3 -m tests.test_ebf_p0` |
 | Run EBF P1 tests | `python3 -m tests.test_ebf_p1` |
+| Run EBF P2 tests | `python3 -m tests.test_ebf_p2` |
 | AI summary | `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined` |
 
 See [Data Dictionary](docs/data-dictionary.md) for governed metric definitions and [User Guide](docs/user-guide.md) for analytics workflows.
@@ -219,7 +221,7 @@ python3 -m services.registry.cids_export --location-id UUID
 
 Impact accountability records include `evidence_maturity_level`, `stakeholder_feedback`, `stakeholder_feedback_review`, `stakeholder_outcome`, `impact_claim`, and `metric_proposal`. Public-safe views expose only governed, consented, and eligible records.
 
-See [CIDS Mapping](docs/cids-mapping.md), [Evidence Maturity](docs/evidence-maturity.md), and [Data Dictionary](docs/data-dictionary.md).
+See [CIDS Mapping](docs/cids-mapping.md), [Evidence Maturity](docs/evidence-maturity.md), [EBF Scorecard Guide](docs/ebf-scorecard.md), [EBF Trust Graph Guide](docs/ebf-trust-graph.md), and [Data Dictionary](docs/data-dictionary.md).
 
 ## Dashboards Reports And Export
 
@@ -301,6 +303,8 @@ See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-gui
 | Run Common Foundations tests | `python3 -m tests.test_common_foundations` |
 | Run EBF P0 tests | `python3 -m tests.test_ebf_p0` |
 | Run EBF P1 tests | `python3 -m tests.test_ebf_p1` |
+| Run EBF P2 tests | `python3 -m tests.test_ebf_p2` |
+| Run EBF schema/scoring matrix | `python3 -m tests.test_ebf_schema && python3 -m tests.test_ebf_scoring && python3 -m tests.test_ebf_cids` |
 | Build Directus hooks | `cd extensions/kokonut-hooks && npm run build` |
 | Test Directus hooks | `cd extensions/kokonut-hooks && npm test` |
 | Migration status | `python3 -m services.migration status` |

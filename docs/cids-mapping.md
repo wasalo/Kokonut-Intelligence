@@ -12,6 +12,7 @@ Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier for Gre
 | `stakeholder_feedback` | `cids:Stakeholder` support data | Private by default; public export uses summaries only. |
 | `metric_definition` | `cids:Indicator` | Governed metric definition. |
 | `metric_value` | `cids:IndicatorReport` | Verified metric values only. |
+| EBF score metrics in `metric_value` | `cids:IndicatorReport` | EBF score outputs use Kokonut metadata (`kokonut:framework`, `kokonut:ebfPillar`); no new CIDS class. |
 | `impact_claim` | `cids:ImpactReport` | Includes maturity, methodology, verifier, and attestation metadata. |
 | `sdg` / `farm_impact_mapping` | `cids:Theme` | SDG theme URI uses `https://metadata.un.org/sdg/{number}`. |
 
@@ -55,5 +56,7 @@ CIDS export does not create or publish canonical records. Directus/PostgreSQL li
 ## Compatibility Notes
 
 - Public carbon claims require Evidence Maturity Level 6 before export as public claims.
+- Public EBF carbon pillar score outputs require Level 6 before public EBF reporting.
+- EBF scorecards map to `cids:IndicatorReport` through verified `metric_value` rows rather than a new CIDS class.
 - Private stakeholder feedback is not exported as public feedback.
 - CIDS export is a compatibility layer; PostgreSQL/Directus remains canonical.

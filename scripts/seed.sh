@@ -124,6 +124,12 @@ echo "Seeding EBF dashboard dataset definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/033_ebf_dashboard_datasets.sql"
 echo "EBF dashboard dataset definitions seeded."
 
+# Seed EBF P2 portfolio dashboard dataset definitions
+echo ""
+echo "Seeding EBF portfolio dashboard dataset definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/034_ebf_p2_dashboard_datasets.sql"
+echo "EBF portfolio dashboard dataset definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""

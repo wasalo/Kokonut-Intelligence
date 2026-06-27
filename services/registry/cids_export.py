@@ -84,6 +84,14 @@ def _unit_uri(unit: str | None) -> str:
     return unit_map.get(normalized, "https://ontology.commonapproach.org/cids#unspecifiedUnit")
 
 
+def _ebf_pillar_from_metric(metric_key: str | None) -> str | None:
+    if not metric_key or not metric_key.startswith("ebf_"):
+        return None
+    if metric_key == "ebf_overall_score":
+        return "overall"
+    return metric_key.removeprefix("ebf_").removesuffix("_score")
+
+
 def fetch_cids_source(conn, location_id: str) -> dict[str, Any]:
     """Fetch source rows needed to build the CIDS graph."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -139,7 +147,7 @@ def fetch_cids_source(conn, location_id: str) -> dict[str, Any]:
         """
         SELECT DISTINCT ON (md.metric_key)
                md.metric_key, md.display_name, md.description, md.unit, md.data_type,
-               md.for_stakeholder_group, md.participatory,
+               md.for_stakeholder_group, md.participatory, md.report_usage,
                mv.id AS metric_value_id, mv.period_start, mv.period_end, mv.value,
                mv.unit AS value_unit, mv.verified, mv.computation_method
         FROM metric_value mv
@@ -313,6 +321,7 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
         indicator_id = _uri("Indicator", f"{location_slug}-{_slug(row.get('metric_key'))}")
         report_id = _uri("IndicatorReport", str(row["metric_value_id"]))
         unit_uri = _unit_uri(row.get("value_unit") or row.get("unit"))
+        ebf_pillar = _ebf_pillar_from_metric(row.get("metric_key"))
         if indicator_id not in seen_indicators:
             graph.append(
                 _context(
@@ -325,6 +334,8 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                         "forOrganization": org_id,
                         "hasIndicatorReport": [report_id],
                         "hasComment": "Kokonut governed metric definition",
+                        "kokonut:framework": "ebf" if ebf_pillar else None,
+                        "kokonut:ebfPillar": ebf_pillar,
                     }
                 )
             )
@@ -341,6 +352,9 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
                     "forIndicator": indicator_id,
                     "forOrganization": org_id,
                     "hasComment": row.get("computation_method"),
+                    "kokonut:framework": "ebf" if ebf_pillar else None,
+                    "kokonut:ebfPillar": ebf_pillar,
+                    "kokonut:cidsMapping": "metric_value -> cids:IndicatorReport" if ebf_pillar else None,
                 }
             )
         )
