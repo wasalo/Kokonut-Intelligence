@@ -1,0 +1,16 @@
+{
+  "title": "Participatory Governance Dashboard",
+  "description": "Public-safe traceability from stakeholder feedback to metric proposals, report changes, and operator actions.",
+  "cards": [
+    {
+      "name": "Participatory Governance Traceability",
+      "dataset_query": "dashboards/metabase/sql/27_participatory_governance.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

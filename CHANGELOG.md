@@ -5,6 +5,7 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Holistic well-being and cultural context layer**: Added `034_holistic_wellbeing.sql` with cultural context records, well-being metric observations, participatory action traceability, and public-safe views; seeded well-being metric definitions and dashboards; added Adelphi pilot examples for Spanish-language summaries, operator capability, community trust, and feedback-to-metric traceability; added `services.agents.wellbeing_agent`, `holistic_wellbeing` report snapshots, docs, and tests.
 - **EBF acceptance-quality closure**: Linked public EBF carbon scores to published Level 6 third-party verified carbon `impact_claim` records and added DB-backed EBF integration checks for schema/view behavior.
 - **EBF backlog gap fixes**: Added service-level EBF publication gates, draft scorecard CSV import, aggregate stakeholder-feedback equity scoring, dashboard compatibility files, and per-pillar scoring wrapper modules without breaking existing paths.
 - **EBF PR-sequence gap closure**: Added implementation memo, advisor guide, EBF operator/reviewer guide sections, Metabase scorecard JSON dashboard, standalone EBF agent modules, trust graph Mermaid export, and dedicated trust graph/agent tests.

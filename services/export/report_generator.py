@@ -126,6 +126,47 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
         (location_id,),
     )
     feedback_summary = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT practice_name, practice_type, stakeholder_group, language,
+               public_summary, evidence_maturity, evidence_maturity_label
+        FROM v_public_cultural_context_summary
+        WHERE location_id = %s
+        ORDER BY practice_type, practice_name
+        LIMIT 10
+        """,
+        (location_id,),
+    )
+    cultural_context = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT metric_key, metric_name, stakeholder_group, language,
+               score_value, count_value, public_summary, evidence_maturity,
+               evidence_maturity_label
+        FROM v_public_wellbeing_metric_summary
+        WHERE location_id = %s
+        ORDER BY observation_date DESC, metric_key
+        LIMIT 10
+        """,
+        (location_id,),
+    )
+    wellbeing_metrics = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT action_type, action_date, stakeholder_group, metric_name,
+               decision_status, public_summary, evidence_maturity,
+               evidence_maturity_label
+        FROM v_public_participatory_governance_summary
+        WHERE location_id = %s
+        ORDER BY action_date DESC, action_type
+        LIMIT 10
+        """,
+        (location_id,),
+    )
+    participatory_actions = [dict(r) for r in cur.fetchall()]
     cur.close()
 
     has_private_feedback = any(row.get("private_or_no_consent_count", 0) for row in feedback_summary)
@@ -153,6 +194,9 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
         "public_claims": _serialize_rows(public_claims),
         "evidence_gaps": _serialize_rows(evidence_gaps),
         "stakeholder_feedback_summary": _serialize_rows(feedback_summary),
+        "cultural_context": _serialize_rows(cultural_context),
+        "wellbeing_metrics": _serialize_rows(wellbeing_metrics),
+        "participatory_actions": _serialize_rows(participatory_actions),
         "limitations": limitations,
     }
 
@@ -607,6 +651,75 @@ def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, per
     }
 
 
+def generate_holistic_wellbeing(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe holistic well-being report for a location."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    location_name = location["name"] if location else None
+
+    cur.execute(
+        """
+        SELECT practice_name, practice_type, stakeholder_group, language,
+               public_summary, evidence_maturity, evidence_maturity_label
+        FROM v_public_cultural_context_summary
+        WHERE location_id = %s
+        ORDER BY practice_type, practice_name
+        """,
+        (location_id,),
+    )
+    cultural_context = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT metric_key, metric_name, observation_date, stakeholder_group,
+               language, score_value, count_value, public_summary,
+               evidence_maturity, evidence_maturity_label
+        FROM v_public_wellbeing_metric_summary
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR observation_date >= %s::date)
+          AND (%s::date IS NULL OR observation_date <= %s::date)
+        ORDER BY observation_date DESC, metric_key
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    wellbeing_metrics = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT action_type, action_date, stakeholder_group, feedback_type,
+               sentiment, metric_name, metric_proposal_status, decision_status,
+               public_summary, evidence_maturity, evidence_maturity_label
+        FROM v_public_participatory_governance_summary
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR action_date >= %s::date)
+          AND (%s::date IS NULL OR action_date <= %s::date)
+        ORDER BY action_date DESC, action_type
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    participatory_actions = [dict(r) for r in cur.fetchall()]
+    cur.close()
+
+    languages = sorted({row["language"] for row in wellbeing_metrics + cultural_context if row.get("language")})
+
+    return {
+        "report_type": "holistic_wellbeing",
+        "location_id": location_id,
+        "location_name": location_name,
+        "languages": languages,
+        "cultural_context": _serialize_rows(cultural_context),
+        "wellbeing_metrics": _serialize_rows(wellbeing_metrics),
+        "participatory_actions": _serialize_rows(participatory_actions),
+        "limitations": [
+            "This report includes public-safe summaries and aggregate signals only.",
+            "Private stakeholder feedback, household-level observations, and non-consented cultural knowledge remain excluded.",
+            "Well-being metrics are learning signals unless externally verified by a named reviewer or methodology.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
@@ -619,6 +732,7 @@ REPORT_GENERATORS = {
     "forecast": generate_forecast_summary,
     "climate_impact": generate_climate_impact,
     "ebf_scorecard": generate_ebf_scorecard,
+    "holistic_wellbeing": generate_holistic_wellbeing,
 }
 
 

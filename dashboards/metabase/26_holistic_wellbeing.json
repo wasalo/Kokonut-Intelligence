@@ -1,0 +1,16 @@
+{
+  "title": "Holistic Well-being Dashboard",
+  "description": "Public-safe cultural context, local-language reporting, and well-being metric evidence.",
+  "cards": [
+    {
+      "name": "Holistic Well-being Summary",
+      "dataset_query": "dashboards/metabase/sql/26_holistic_wellbeing.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "impact_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

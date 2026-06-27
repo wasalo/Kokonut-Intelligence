@@ -130,6 +130,12 @@ echo "Seeding EBF portfolio dashboard dataset definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/034_ebf_p2_dashboard_datasets.sql"
 echo "EBF portfolio dashboard dataset definitions seeded."
 
+# Seed Holistic Well-being reference data
+echo ""
+echo "Seeding Holistic Well-being metric and dashboard definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/035_holistic_wellbeing.sql"
+echo "Holistic Well-being definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""

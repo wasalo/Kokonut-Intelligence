@@ -58,6 +58,7 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 - Report snapshots with public-interest context, limitations, uncertainty notes, and negative findings.
 - EBF pillar scoring across 7 dimensions with 70 rubric bands, public scorecards, trust graph provenance, and calibration workflow.^[29]^
 - Portfolio messy roll-up comparison by pillar, confidence, and maturity with explicit caveats, not farm ranking.^[30]^
+- Holistic well-being evidence for cultural context, local-language reporting, community trust, operator capability, and participatory feedback-to-action traceability.^[33]^
 
 ---
 
@@ -398,6 +399,18 @@ python3 -m services.agents.feedback_agent --location-id UUID
 python3 -m services.agents.feedback_agent --location-id UUID --store
 ```
 
+### Holistic Well-being And Cultural Context
+
+Grant-review feedback highlighted that Kokonut's cultural heritage, local-language accessibility, participatory governance, and holistic well-being evidence should be explicit rather than implied. Green Paper V1 now treats these as governed public-safe evidence objects.^[33]^
+
+| Record | Purpose |
+|---|---|
+| `cultural_context_record` | Local-language needs, traditional knowledge boundaries, heritage species, community stories, and land-memory context |
+| `wellbeing_metric_observation` | Operator capability, community trust, worker safety, training access, benefit transparency, and cultural-capital observations |
+| `participatory_action_record` | Traceability from stakeholder feedback to metric proposals, report changes, governance review, or operator actions |
+
+Public cultural context requires explicit consent, public scope, published status, and a non-empty public summary. Raw cultural knowledge, household-level observations, and non-consented feedback remain private.
+
 ---
 
 ## 8. Impact Claims and Metric Proposals
@@ -671,6 +684,7 @@ Kokonut Green Paper reports should be useful to partners without overstating evi
 
 - Public reports use governed records and public-safe summaries, not raw private evidence.
 - Stakeholder feedback is private by default. Public reports may include it only when consent is explicit and scoped for public use.
+- Cultural context and well-being reports use consented summaries, governed metric observations, and aggregate language coverage only.
 - Positive claims should be paired with limitations, evidence gaps, and uncertainty notes.
 - Public carbon claims require Evidence Maturity Level 6, external verifier text, methodology reference, and published status.
 - CIDS export is a compatibility layer; PostgreSQL and Directus remain the canonical record of governance, consent, and evidence maturity.
@@ -763,6 +777,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Level 6 external verification for public carbon claims.
 - Evidence gap and stakeholder feedback dashboards.
 - Report snapshots with public-interest context.
+- Holistic well-being evidence with cultural context, local-language reporting, and feedback-to-action traceability.
 - Agent-assisted CIDS export and feedback synthesis with draft-only outputs.
 - Carbon and environmental impact tracking with sequestration, emissions, biodiversity, and regenerative scoring.
 - EBF pillar scoring with 7 dimensions, 70 rubric bands, public scorecards, trust graph provenance, calibration workflow, and portfolio messy roll-up.^[29]^
@@ -776,6 +791,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Private stakeholder evidence remains private unless explicit consent allows publication.
 - Agent outputs are draft aids and must be human-reviewed.
 - EBF scores are governed assessments, not automatic certifications; calibration and rubric decisions require human review.
+- Holistic well-being signals are learning and accountability evidence, not a guarantee of community satisfaction or cultural representation.
 - Forecast and modeled outputs are projections, not guarantees.
 - The platform does not issue carbon credits or provide external verification services.
 - Agent capabilities described in this document are current; future capabilities are not commitments.
@@ -932,6 +948,8 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ^[32]^ `docs/ebf-scorecard.md` — EBF scorecard operator/reviewer guide; `services/agents/ebf_calibration_agent.py` — Calibration memo agent.
 
+^[33]^ `schemas/postgres/034_holistic_wellbeing.sql` — Cultural context, well-being observations, participatory action records, and public-safe views; `docs/holistic-wellbeing.md` — Holistic well-being operating guide.
+
 ---
 
 ## Green Paper Review Commands
@@ -950,8 +968,13 @@ python3 -m services.registry.cids_export --location-id UUID
 python3 -m services.agents.feedback_agent --location-id UUID
 python3 -m services.agents.feedback_agent --location-id UUID --store
 
+# Holistic well-being synthesis
+python3 -m services.agents.wellbeing_agent --location-id UUID
+python3 -m services.agents.wellbeing_agent --location-id UUID --store
+
 # Report generation
 python3 -m services.export.report_generator --auto --location-id UUID
+python3 -m services.export.report_generator --type holistic_wellbeing --location-id UUID
 
 # EBF scoring
 python3 -m services.scoring --location-id UUID

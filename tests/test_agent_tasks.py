@@ -10,10 +10,12 @@ def test_task_catalogue_contains_green_paper_agents() -> None:
     tasks = list_tasks()
     assert "cids_export" in tasks
     assert "feedback_synthesis" in tasks
+    assert "holistic_wellbeing_synthesis" in tasks
     assert "ebf_scorecard_draft" in tasks
     assert "ebf_evidence_gap" in tasks
     assert "ebf_calibration_memo" in tasks
     assert get_task("cids_export")["high_risk"] is False
+    assert get_task("holistic_wellbeing_synthesis")["writes"] == ["ai_summary:draft"]
     assert "verify" not in " ".join(get_task("ebf_scorecard_draft")["writes"])
 
 
