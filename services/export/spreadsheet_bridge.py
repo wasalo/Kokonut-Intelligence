@@ -194,6 +194,50 @@ def validate_ebf_csv(path: str, template_type: str) -> dict[str, Any]:
     return {"validated": 0 if errors else len(rows), "errors": errors, "template_type": template_type}
 
 
+def import_ebf_scorecard_csv(conn, path: str, dry_run: bool = False) -> dict[str, Any]:
+    """Import EBF scorecard period metadata as draft scorecards."""
+    rows = read_csv(path)
+    errors: list[str] = []
+    for index, row in enumerate(rows, start=2):
+        errors.extend(validate_ebf_scorecard_row(row, index))
+    if errors:
+        return {"inserted": 0, "errors": errors, "dry_run": dry_run, "template_type": "ebf_scorecard"}
+    if dry_run:
+        return {"inserted": 0, "validated": len(rows), "errors": [], "dry_run": True, "template_type": "ebf_scorecard"}
+
+    cur = conn.cursor()
+    inserted = 0
+    for row in rows:
+        cur.execute(
+            """
+            INSERT INTO ebf_scorecard (
+                location_id, farm_id, period_start, period_end, rubric_version,
+                calibration_method, calibration_report_url, status, evidence_maturity_level,
+                public_claim_allowed, metadata
+            )
+            VALUES (%s, NULLIF(%s, '')::uuid, %s::date, %s::date, %s,
+                    NULLIF(%s, ''), NULLIF(%s, ''), 'draft', 1, FALSE, %s::jsonb)
+            ON CONFLICT (location_id, period_start, period_end, rubric_version) DO UPDATE SET
+                farm_id = COALESCE(EXCLUDED.farm_id, ebf_scorecard.farm_id),
+                calibration_method = COALESCE(EXCLUDED.calibration_method, ebf_scorecard.calibration_method),
+                calibration_report_url = COALESCE(EXCLUDED.calibration_report_url, ebf_scorecard.calibration_report_url),
+                metadata = ebf_scorecard.metadata || EXCLUDED.metadata,
+                updated_at = NOW()
+            RETURNING id
+            """,
+            (
+                row["location_id"], row.get("farm_id", ""), row["period_start"], row["period_end"],
+                row["rubric_version"], row.get("calibration_method", ""), row.get("calibration_report_url", ""),
+                json.dumps({"source": "spreadsheet_bridge", "row": row}),
+            ),
+        )
+        cur.fetchone()
+        inserted += 1
+    conn.commit()
+    cur.close()
+    return {"inserted": inserted, "errors": [], "dry_run": False, "template_type": "ebf_scorecard"}
+
+
 def export_farm_activity_csv(conn, path: str, location_id: str) -> dict[str, Any]:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
@@ -234,7 +278,14 @@ def main() -> None:
         return
 
     if args.import_file:
-        if args.template_type in {"ebf_scorecard", "ebf_evidence"}:
+        if args.template_type == "ebf_scorecard":
+            conn = get_connection()
+            try:
+                print(json.dumps(import_ebf_scorecard_csv(conn, args.import_file, dry_run=args.dry_run), indent=2))
+            finally:
+                conn.close()
+            return
+        if args.template_type == "ebf_evidence":
             print(json.dumps(validate_ebf_csv(args.import_file, args.template_type), indent=2))
             return
         conn = get_connection()

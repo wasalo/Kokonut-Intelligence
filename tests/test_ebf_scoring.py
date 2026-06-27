@@ -9,6 +9,7 @@ from services.scoring.calculators import (
     compute_soil_health_score,
     compute_water_management_score,
 )
+from services.scoring.implementation_quality import compute_implementation_quality_score as compute_implementation_quality_score_wrapper
 
 
 def test_pillar_calculators_return_0_to_10_scores() -> None:
@@ -24,6 +25,7 @@ def test_pillar_calculators_return_0_to_10_scores() -> None:
     assert all(0 <= score <= 10 for score in scores)
     assert scores[0] == 5.0
     assert scores[-1] == 7.5
+    assert compute_implementation_quality_score_wrapper(80) == 8.0
 
 
 def test_carbon_calculator_requires_positive_area() -> None:

@@ -5,6 +5,8 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **EBF acceptance-quality closure**: Linked public EBF carbon scores to published Level 6 third-party verified carbon `impact_claim` records and added DB-backed EBF integration checks for schema/view behavior.
+- **EBF backlog gap fixes**: Added service-level EBF publication gates, draft scorecard CSV import, aggregate stakeholder-feedback equity scoring, dashboard compatibility files, and per-pillar scoring wrapper modules without breaking existing paths.
 - **EBF PR-sequence gap closure**: Added implementation memo, advisor guide, EBF operator/reviewer guide sections, Metabase scorecard JSON dashboard, standalone EBF agent modules, trust graph Mermaid export, and dedicated trust graph/agent tests.
 - **EBF P2 portfolio and CIDS integration**: Added EBF portfolio messy-rollup analytics, P2 portfolio dashboard dataset/SQL, explicit EBF-to-CIDS `IndicatorReport` metadata, EBF scorecard and trust graph guides, and P2 validation tests.
 - **EBF P1 operations layer**: Added farm-specific EBF metric profiles, calibration session/decision records, trust graph nodes/edges, improvement recommendations, evidence-gap/calibration views, EBF dashboard datasets, CSV templates, JSON exports, report snapshots, agent task catalogue entries, and agent safety guards for EBF draft-only workflows.

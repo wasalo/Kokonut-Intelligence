@@ -56,6 +56,8 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 - Carbon and environmental impact tracking with sequestration, emissions, biodiversity, and regenerative scoring.
 - Agent-assisted CIDS export, feedback synthesis, and report preparation with draft-only outputs.
 - Report snapshots with public-interest context, limitations, uncertainty notes, and negative findings.
+- EBF pillar scoring across 7 dimensions with 70 rubric bands, public scorecards, trust graph provenance, and calibration workflow.^[29]^
+- Portfolio messy roll-up comparison by pillar, confidence, and maturity with explicit caveats, not farm ranking.^[30]^
 
 ---
 
@@ -142,6 +144,14 @@ Kokonut Intelligence addresses these challenges through governed data models, ev
 │  sensor_reading   mrv_event           ai_summary         │
 │  attestation_req  governance_event    agent_task         │
 │  price_observation                    ingestion_log      │
+│                                                         │
+│  EBF Scoring (032-033)                                  │
+│  ─────────────────────                                  │
+│  ebf_pillar           ebf_scorecard                     │
+│  ebf_rubric_band      ebf_score                         │
+│  ebf_score_evidence   ebf_farm_metric_profile           │
+│  ebf_calibration_*    ebf_trust_graph_*                 │
+│  ebf_improvement_recommendation                         │
 └────────┬───────────────────────────────────────────────┘
          │
 ┌────────▼───────────────────────────────────────────────┐
@@ -273,7 +283,7 @@ Evidence maturity is enforced or surfaced in:
 - `impact_claim`
 - `stakeholder_feedback`
 - `stakeholder_outcome`
-- Public-safe views (`v_public_metric_summary`, `v_public_attestation_summary`)
+- Public-safe views (`v_public_metric_summary`, `v_public_attestation_summary`, `v_public_ebf_scorecard`, `v_public_ebf_scorecard_summary`, `v_public_ebf_pillar_summary`)
 - Report snapshots (`report_snapshot.public_interest_summary`)
 - CIDS export
 - Directus workflow hooks
@@ -281,6 +291,17 @@ Evidence maturity is enforced or surfaced in:
 ### Agent Use
 
 Agents may summarize evidence maturity and identify gaps. They cannot raise maturity, verify records, or publish claims. Any agent-produced summary is a draft input for human review.^[7]^
+
+### EBF Scorecards
+
+EBF public scorecards require evidence maturity >= 4 for ordinary pillar scores. Public carbon pillar scores require:
+
+- Evidence maturity = 6
+- A linked published `impact_claim` with `claim_category = 'carbon'` and `claim_type = 'third_party_verified_claim'`
+- Non-empty `external_verifier` and `methodology_ref`
+- `status = 'published'`
+
+EBF score publication is gated by `services/scoring/gates.py`, which checks evidence maturity, claim linkage, and registry backing before allowing public exposure.^[29]^
 
 ---
 
@@ -298,6 +319,7 @@ Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier for Gre
 | `stakeholder_feedback` | `cids:Stakeholder` support data | Private by default; public export uses summaries only. |
 | `metric_definition` | `cids:Indicator` | Governed metric definition. |
 | `metric_value` | `cids:IndicatorReport` | Verified metric values only. |
+| `ebf_score` | `cids:IndicatorReport` | EBF pillar scores with `kokonut:ebfPillar` and `kokonut:cidsMapping` metadata.^[29]^ |
 | `impact_claim` | `cids:ImpactReport` | Includes maturity, methodology, verifier, and attestation metadata. |
 | `sdg` / `farm_impact_mapping` | `cids:Theme` | SDG theme URI uses `https://metadata.un.org/sdg/{number}`. |
 
@@ -462,6 +484,9 @@ The following actions are flagged as high-risk and require human approval:
 | `cids_export` | Prepare CIDS v3.2.0 Essential Tier JSON-LD for a location | None | Low |
 | `feedback_synthesis` | Summarize public stakeholder feedback and aggregate private/no-consent signals | Optional `ai_summary:draft` | Medium |
 | `public_interest_report_context` | Prepare limitations, evidence gaps, and public stakeholder voice for reports | None | Low |
+| `ebf_scorecard_draft` | Draft EBF scorecard from farm metric profiles, rubric bands, and evidence links | Draft `ebf_scorecard` + `ebf_score` rows | Medium |
+| `ebf_evidence_gap` | Identify evidence gaps between current farm metrics and EBF rubric requirements | Read-only report | Low |
+| `ebf_calibration_memo` | Draft calibration memo from trust graph and rubric decisions | Draft calibration report | Low |
 
 ### Commands
 
@@ -471,6 +496,9 @@ python3 -m services.agents.tasks --describe cids_export
 python3 -m services.agents.cids_agent --location-id UUID --summary
 python3 -m services.agents.feedback_agent --location-id UUID
 python3 -m services.agents.feedback_agent --location-id UUID --store
+python3 -m services.agents.ebf_scorecard_agent --location-id UUID --draft
+python3 -m services.agents.ebf_evidence_gap_agent --location-id UUID
+python3 -m services.agents.ebf_calibration_agent --location-id UUID --draft
 ```
 
 ### Reviewer Responsibility
@@ -587,6 +615,48 @@ The regenerative practice checklist scores farms across 5 Principles of Regenera
 
 Each principle is scored 0-5, and the total regenerative score provides a single-number assessment of farm practices.
 
+### EBF Pillar Scoring
+
+The Ecological Benefits Framework (EBF) provides multi-dimensional farm evaluation across 7 pillars, each scored against a 10-band rubric (0-9).^[29]^
+
+| Pillar | Focus |
+|--------|-------|
+| Air Quality | Emissions, dust, air quality management |
+| Water Management | Water use efficiency, runoff, irrigation |
+| Soil Health | Organic matter, erosion, soil biology |
+| Biodiversity | Species diversity, habitat, ecological connectivity |
+| Carbon Sequestration | Tree carbon, soil carbon, net carbon balance |
+| Equity & Community | Labor practices, community engagement, fair access |
+| Implementation Quality | Practice adoption, monitoring, adaptive management |
+
+**Scoring Model:**
+
+- Each pillar is scored against rubric bands defined in `ebf_rubric_band`.
+- Scores are normalized to 0-100 using `services/scoring/normalization.py`.
+- Confidence is computed from source data completeness, review status, and evidence linkage via `services/scoring/confidence.py`.
+- Public scorecards require evidence maturity >= 4 and published status.
+- Public carbon pillar scores additionally require Level 6 with a linked published third-party verified `impact_claim`.
+
+**Trust Graph and Provenance:**
+
+EBF scores carry provenance through `ebf_trust_graph_node` and `ebf_trust_graph_edge` tables, recording which sources, calibration decisions, and rubric mappings contributed to each score. Trust graph exports are available in JSON and Mermaid formats.^[31]^
+
+**Calibration:**
+
+Rubric calibration ensures consistent scoring across farms and reviewers. Calibration sessions are recorded in `ebf_calibration_session` with decisions in `ebf_calibration_decision`. Third-party calibration is preferred; team calibration requires a report URL or hash before verification or publication. Calibration frequency is annual for network farms and semi-annual for pilot farms.^[32]^
+
+**Portfolio Comparison:**
+
+EBF portfolio evaluation uses a messy roll-up approach, aggregating pillar scores by confidence and maturity without ranking farms as interchangeable units. Portfolio summaries are available via `services/analytics/portfolio.py` and the `--ebf-portfolio-summary` CLI command.^[30]^
+
+```bash
+# EBF scorecard CLI
+python3 -m services.scoring --location-id UUID
+
+# EBF portfolio summary
+python3 -m services.analytics --ebf-portfolio-summary
+```
+
 ### Carbon Disclaimer
 
 Carbon-balance evidence is distinct from carbon credit issuance. Public carbon claims require Evidence Maturity Level 6, external verifier text, methodology reference, and published status. EAS attestations provide verification metadata but do not replace external verification.^[20]^
@@ -695,6 +765,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Report snapshots with public-interest context.
 - Agent-assisted CIDS export and feedback synthesis with draft-only outputs.
 - Carbon and environmental impact tracking with sequestration, emissions, biodiversity, and regenerative scoring.
+- EBF pillar scoring with 7 dimensions, 70 rubric bands, public scorecards, trust graph provenance, calibration workflow, and portfolio messy roll-up.^[29]^
 - Web3 verification metadata on Celo via EAS.
 
 ### What Green Paper V1 Does Not Claim
@@ -704,6 +775,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Carbon-balance evidence is distinct from carbon credit issuance.
 - Private stakeholder evidence remains private unless explicit consent allows publication.
 - Agent outputs are draft aids and must be human-reviewed.
+- EBF scores are governed assessments, not automatic certifications; calibration and rubric decisions require human review.
 - Forecast and modeled outputs are projections, not guarantees.
 - The platform does not issue carbon credits or provide external verification services.
 - Agent capabilities described in this document are current; future capabilities are not commitments.
@@ -832,7 +904,7 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ^[18]^ `schemas/seeds/014_pilot_celo_eas.sql` — Celo EAS schema metadata.
 
-^[19]^ `schemas/postgres/032_carbon_framework.sql` — Carbon framework tables.
+^[19]^ `schemas/postgres/028_carbon_framework.sql` — Carbon framework tables.
 
 ^[20]^ `docs/public-report-disclaimer.md` — Carbon disclaimer.
 
@@ -852,18 +924,45 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ^[28]^ `tests/test_mvp_done.py` — MVP definition of done verifier.
 
+^[29]^ `schemas/postgres/032_ebf_scorecard.sql` — EBF pillars, rubric bands, scorecards, scores, evidence links, and public views; `services/scoring/` — EBF scoring module.
+
+^[30]^ `services/analytics/portfolio.py` — EBF portfolio messy roll-up; `schemas/postgres/033_ebf_p1_operations.sql` — Trust graph, calibration, and recommendation tables.
+
+^[31]^ `services/scoring/trust_graph.py` — EBF trust graph export (JSON and Mermaid); `docs/ebf-trust-graph.md` — Trust graph model and usage guide.
+
+^[32]^ `docs/ebf-scorecard.md` — EBF scorecard operator/reviewer guide; `services/agents/ebf_calibration_agent.py` — Calibration memo agent.
+
 ---
 
 ## Green Paper Review Commands
 
 ```bash
+# Schema and seeds
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 ./scripts/compute-metrics.sh
 ./scripts/verify-mvp.sh
+
+# CIDS export
 python3 -m services.registry.cids_export --location-id UUID
+
+# Feedback synthesis
 python3 -m services.agents.feedback_agent --location-id UUID
+python3 -m services.agents.feedback_agent --location-id UUID --store
+
+# Report generation
 python3 -m services.export.report_generator --auto --location-id UUID
+
+# EBF scoring
+python3 -m services.scoring --location-id UUID
+
+# EBF portfolio
+python3 -m services.analytics --ebf-portfolio-summary
+
+# EBF agents
+python3 -m services.agents.ebf_scorecard_agent --location-id UUID --draft
+python3 -m services.agents.ebf_evidence_gap_agent --location-id UUID
+python3 -m services.agents.ebf_calibration_agent --location-id UUID --draft
 ```
 
 ---

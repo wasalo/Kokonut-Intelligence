@@ -17,5 +17,12 @@ def test_all_ebf_tables_are_declared() -> None:
         assert f"create table if not exists {table}" in text
 
 
+def test_ebf_score_links_to_impact_claim() -> None:
+    text = P0_SCHEMA.read_text().lower()
+    assert "impact_claim_id uuid references impact_claim" in text
+    assert "idx_ebf_score_impact_claim" in text
+
+
 if __name__ == "__main__":
     test_all_ebf_tables_are_declared()
+    test_ebf_score_links_to_impact_claim()

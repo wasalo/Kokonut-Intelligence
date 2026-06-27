@@ -49,7 +49,7 @@ check "Import services.agents.feedback_agent" "python3 -c 'import services.agent
 check "Import EBF agents" "python3 -c 'import services.agents.ebf_scorecard_agent; import services.agents.ebf_evidence_gap_agent; import services.agents.ebf_calibration_agent'"
 check "Import services.analytics.portfolio" "python3 -c 'import services.analytics.portfolio'"
 check "Import services.export.spreadsheet_bridge" "python3 -c 'import services.export.spreadsheet_bridge'"
-check "Import services.scoring" "python3 -c 'import services.scoring.export; import services.scoring.trust_graph; import services.scoring.confidence; import services.scoring.calculators; import services.scoring.rubric; import services.scoring.normalization'"
+check "Import services.scoring" "python3 -c 'import services.scoring.export; import services.scoring.trust_graph; import services.scoring.confidence; import services.scoring.calculators; import services.scoring.rubric; import services.scoring.normalization; import services.scoring.gates; import services.scoring.equity; import services.scoring.implementation_quality; import services.scoring.equity_community'"
 echo ""
 
 # 2. CLI parsers
@@ -124,6 +124,8 @@ check "EBF calibration" "python3 -m tests.test_ebf_calibration"
 check "EBF CIDS" "python3 -m tests.test_ebf_cids"
 check "EBF trust graph" "python3 -m tests.test_ebf_trust_graph"
 check "EBF agents" "python3 -m tests.test_ebf_agents"
+check "EBF equity scoring" "python3 -m tests.test_ebf_equity_scoring"
+check "EBF DB integration" "python3 -m tests.test_ebf_db_integration"
 echo ""
 
 # 6. Smoke test suite

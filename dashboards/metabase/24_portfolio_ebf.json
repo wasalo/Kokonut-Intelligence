@@ -1,0 +1,17 @@
+{
+  "name": "EBF Portfolio Comparison",
+  "description": "EBF portfolio messy roll-up by pillar, confidence, and evidence maturity. This dashboard is not a farm ranking.",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "EBF Portfolio Messy Rollup",
+      "description": "Cross-farm EBF pillar roll-up with caveats against farm ranking.",
+      "native": {
+        "query": "SELECT\n  pillar_name,\n  location_count,\n  scorecard_count,\n  avg_score,\n  high_confidence_count,\n  moderate_confidence_count,\n  low_confidence_count,\n  insufficient_evidence_count,\n  latest_evidence_linked_at,\n  caveat\nFROM v_public_ebf_pillar_summary\nORDER BY pillar_name;",
+        "template-tags": {}
+      },
+      "display": "bar",
+      "database_id": 2
+    }
+  ]
+}

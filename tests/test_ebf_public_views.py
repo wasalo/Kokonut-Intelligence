@@ -19,6 +19,15 @@ def test_public_summary_requires_complete_seven_pillars() -> None:
     assert "having count(es.id) = 7" in text
 
 
+def test_public_carbon_view_requires_linked_verified_impact_claim() -> None:
+    text = SCHEMA.read_text().lower()
+    assert "ic.id = es.impact_claim_id" in text
+    assert "third_party_verified_claim" in text
+    assert "external_verifier" in text
+    assert "methodology_ref" in text
+
+
 if __name__ == "__main__":
     test_public_views_filter_to_published_registry_backed_records()
     test_public_summary_requires_complete_seven_pillars()
+    test_public_carbon_view_requires_linked_verified_impact_claim()

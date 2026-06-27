@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS ebf_score (
     pillar_id UUID NOT NULL REFERENCES ebf_pillar(id) ON DELETE RESTRICT,
     pillar_key VARCHAR(50) NOT NULL REFERENCES ebf_pillar(pillar_key) ON DELETE RESTRICT,
     metric_value_id UUID REFERENCES metric_value(id) ON DELETE SET NULL,
+    impact_claim_id UUID REFERENCES impact_claim(id) ON DELETE SET NULL,
     raw_value NUMERIC(15,4),
     raw_unit VARCHAR(50),
     normalized_score NUMERIC(3,1) NOT NULL CHECK (normalized_score >= 0 AND normalized_score <= 10),
@@ -131,6 +132,8 @@ CREATE TABLE IF NOT EXISTS ebf_score (
 CREATE INDEX IF NOT EXISTS idx_ebf_score_scorecard ON ebf_score(scorecard_id);
 CREATE INDEX IF NOT EXISTS idx_ebf_score_pillar ON ebf_score(pillar_id);
 CREATE INDEX IF NOT EXISTS idx_ebf_score_metric_value ON ebf_score(metric_value_id);
+ALTER TABLE ebf_score ADD COLUMN IF NOT EXISTS impact_claim_id UUID REFERENCES impact_claim(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_ebf_score_impact_claim ON ebf_score(impact_claim_id);
 CREATE INDEX IF NOT EXISTS idx_ebf_score_maturity ON ebf_score(evidence_maturity_level);
 
 ALTER TABLE ebf_score DROP CONSTRAINT IF EXISTS chk_ebf_score_confidence;
@@ -212,7 +215,22 @@ WHERE esc.status = 'published'
   AND esc.evidence_maturity_level >= 4
   AND es.public_score_allowed = TRUE
   AND es.evidence_maturity_level >= 4
-  AND (ep.pillar_key != 'carbon_sequestration' OR es.evidence_maturity_level = 6)
+  AND (
+      ep.pillar_key != 'carbon_sequestration'
+      OR (
+          es.evidence_maturity_level = 6
+          AND EXISTS (
+              SELECT 1 FROM impact_claim ic
+              WHERE ic.id = es.impact_claim_id
+                AND ic.claim_category = 'carbon'
+                AND ic.claim_type = 'third_party_verified_claim'
+                AND ic.evidence_maturity = 6
+                AND ic.status = 'published'
+                AND NULLIF(TRIM(COALESCE(ic.external_verifier, '')), '') IS NOT NULL
+                AND NULLIF(TRIM(COALESCE(ic.methodology_ref, '')), '') IS NOT NULL
+          )
+      )
+  )
   AND EXISTS (
       SELECT 1 FROM ebf_score_evidence ese
       WHERE ese.score_id = es.id
@@ -262,7 +280,20 @@ HAVING COUNT(es.id) = 7
    AND COUNT(es.id) = COUNT(es.id) FILTER (
        WHERE EXISTS (SELECT 1 FROM ebf_score_evidence ese WHERE ese.score_id = es.id)
    )
-   AND COUNT(es.id) FILTER (WHERE es.pillar_key = 'carbon_sequestration' AND es.evidence_maturity_level < 6) = 0;
+   AND COUNT(es.id) FILTER (WHERE es.pillar_key = 'carbon_sequestration' AND es.evidence_maturity_level < 6) = 0
+   AND COUNT(es.id) FILTER (
+       WHERE es.pillar_key = 'carbon_sequestration'
+         AND NOT EXISTS (
+             SELECT 1 FROM impact_claim ic
+             WHERE ic.id = es.impact_claim_id
+               AND ic.claim_category = 'carbon'
+               AND ic.claim_type = 'third_party_verified_claim'
+               AND ic.evidence_maturity = 6
+               AND ic.status = 'published'
+               AND NULLIF(TRIM(COALESCE(ic.external_verifier, '')), '') IS NOT NULL
+               AND NULLIF(TRIM(COALESCE(ic.methodology_ref, '')), '') IS NOT NULL
+         )
+   ) = 0;
 
 CREATE OR REPLACE VIEW v_public_ebf_pillar_summary AS
 SELECT
@@ -286,7 +317,22 @@ WHERE esc.status = 'published'
   AND esc.evidence_maturity_level >= 4
   AND es.public_score_allowed = TRUE
   AND es.evidence_maturity_level >= 4
-  AND (ep.pillar_key != 'carbon_sequestration' OR es.evidence_maturity_level = 6)
+  AND (
+      ep.pillar_key != 'carbon_sequestration'
+      OR (
+          es.evidence_maturity_level = 6
+          AND EXISTS (
+              SELECT 1 FROM impact_claim ic
+              WHERE ic.id = es.impact_claim_id
+                AND ic.claim_category = 'carbon'
+                AND ic.claim_type = 'third_party_verified_claim'
+                AND ic.evidence_maturity = 6
+                AND ic.status = 'published'
+                AND NULLIF(TRIM(COALESCE(ic.external_verifier, '')), '') IS NOT NULL
+                AND NULLIF(TRIM(COALESCE(ic.methodology_ref, '')), '') IS NOT NULL
+          )
+      )
+  )
   AND EXISTS (
       SELECT 1 FROM farm_registry_record fr
       WHERE fr.location_id = esc.location_id

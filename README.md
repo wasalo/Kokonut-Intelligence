@@ -182,6 +182,7 @@ Additional intelligence services include:
 | EBF scorecard export | `python3 -m services.scoring --scorecard-id UUID --export public` |
 | EBF trust graph export | `python3 -m services.scoring --trust-graph UUID --public-safe` |
 | EBF trust graph Mermaid | `python3 -m services.scoring --trust-graph UUID --mermaid` |
+| EBF scorecard CSV import | `python3 -m services.export.spreadsheet_bridge --template-type ebf_scorecard --import-file exports/templates/ebf_scorecard_template.csv --dry-run` |
 | Run EBF P0 tests | `python3 -m tests.test_ebf_p0` |
 | Run EBF P1 tests | `python3 -m tests.test_ebf_p1` |
 | Run EBF P2 tests | `python3 -m tests.test_ebf_p2` |
@@ -311,6 +312,7 @@ See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-gui
 | Run EBF P1 tests | `python3 -m tests.test_ebf_p1` |
 | Run EBF P2 tests | `python3 -m tests.test_ebf_p2` |
 | Run EBF schema/scoring matrix | `python3 -m tests.test_ebf_schema && python3 -m tests.test_ebf_scoring && python3 -m tests.test_ebf_cids` |
+| Run EBF DB integration tests | `python3 -m tests.test_ebf_db_integration` |
 | Build Directus hooks | `cd extensions/kokonut-hooks && npm run build` |
 | Test Directus hooks | `cd extensions/kokonut-hooks && npm test` |
 | Migration status | `python3 -m services.migration status` |

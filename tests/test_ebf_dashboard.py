@@ -6,8 +6,9 @@ from pathlib import Path
 def test_dashboard_dataset_seeds_and_sql_exist() -> None:
     for seed in ["schemas/seeds/033_ebf_dashboard_datasets.sql", "schemas/seeds/034_ebf_p2_dashboard_datasets.sql"]:
         assert Path(seed).exists()
-    for sql in ["22_ebf_scorecard.sql", "23_ebf_evidence_gap.sql", "24_ebf_calibration_history.sql", "25_ebf_portfolio_messy_rollup.sql"]:
+    for sql in ["22_ebf_scorecard.sql", "23_ebf_evidence_gap.sql", "23_evidence_gap_ebf.sql", "24_ebf_calibration_history.sql", "24_portfolio_ebf.sql", "25_ebf_portfolio_messy_rollup.sql"]:
         assert Path("dashboards/metabase/sql") .joinpath(sql).exists()
+    assert Path("dashboards/metabase/24_portfolio_ebf.json").exists()
 
 
 def test_dashboard_datasets_have_refresh_metadata() -> None:
