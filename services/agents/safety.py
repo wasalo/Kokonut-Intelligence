@@ -21,6 +21,7 @@ HIGH_RISK_ACTIONS = {
 
 AGENT_ALLOWED_REVIEW_STATUSES = {"draft", "submitted", "rejected"}
 AGENT_ALLOWED_SUMMARY_STATUSES = {"draft", "submitted", "rejected"}
+AGENT_ALLOWED_EBF_STATUSES = {"draft", "submitted", "rejected"}
 
 
 @dataclass(frozen=True)
@@ -53,6 +54,21 @@ def assess_agent_action(action: str, collection: str, payload: Optional[dict[str
         status = payload.get("status")
         if status and status not in AGENT_ALLOWED_SUMMARY_STATUSES:
             return SafetyDecision(False, True, True, "agents cannot verify or publish ai_summary records")
+
+    if collection in {"ebf_scorecard", "ebf_calibration_decision"}:
+        status = payload.get("status") or payload.get("decision_status")
+        if status and status not in AGENT_ALLOWED_EBF_STATUSES:
+            return SafetyDecision(False, True, True, f"agents cannot verify or publish {collection} records")
+
+    if collection in {"ebf_scorecard", "ebf_score"}:
+        maturity = payload.get("evidence_maturity_level")
+        if maturity is not None:
+            try:
+                maturity_level = int(maturity)
+            except (TypeError, ValueError):
+                return SafetyDecision(False, True, True, "invalid EBF evidence maturity level")
+            if maturity_level > 3:
+                return SafetyDecision(False, True, True, "agents cannot raise EBF evidence maturity to public-claim levels")
 
     if action == "status_change_to_published":
         return SafetyDecision(False, True, True, "agents cannot publish records directly")

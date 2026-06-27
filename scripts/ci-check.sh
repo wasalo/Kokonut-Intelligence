@@ -48,6 +48,7 @@ check "Import services.agents.cids_agent" "python3 -c 'import services.agents.ci
 check "Import services.agents.feedback_agent" "python3 -c 'import services.agents.feedback_agent'"
 check "Import services.analytics.portfolio" "python3 -c 'import services.analytics.portfolio'"
 check "Import services.export.spreadsheet_bridge" "python3 -c 'import services.export.spreadsheet_bridge'"
+check "Import services.scoring" "python3 -c 'import services.scoring.export; import services.scoring.trust_graph; import services.scoring.confidence'"
 echo ""
 
 # 2. CLI parsers
@@ -64,6 +65,7 @@ check "agent tasks CLI --help" "python3 -m services.agents.tasks --help"
 check "cids agent CLI --help" "python3 -m services.agents.cids_agent --help"
 check "feedback agent CLI --help" "python3 -m services.agents.feedback_agent --help"
 check "spreadsheet bridge CLI --help" "python3 -m services.export.spreadsheet_bridge --help"
+check "EBF scoring CLI --help" "python3 -m services.scoring --help"
 echo ""
 
 # 3. TypeScript extension build (if node_modules present)
@@ -99,6 +101,8 @@ check "agent tasks" "python3 -m tests.test_agent_tasks"
 check "portfolio analytics" "python3 -m tests.test_portfolio"
 check "spreadsheet bridge" "python3 -m tests.test_spreadsheet_bridge"
 check "common foundations" "python3 -m tests.test_common_foundations"
+check "EBF P0 schema and rubric" "python3 -m tests.test_ebf_p0"
+check "EBF P1 operations" "python3 -m tests.test_ebf_p1"
 echo ""
 
 # 6. Smoke test suite

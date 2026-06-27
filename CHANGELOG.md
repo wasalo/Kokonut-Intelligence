@@ -5,6 +5,8 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **EBF P1 operations layer**: Added farm-specific EBF metric profiles, calibration session/decision records, trust graph nodes/edges, improvement recommendations, evidence-gap/calibration views, EBF dashboard datasets, CSV templates, JSON exports, report snapshots, agent task catalogue entries, and agent safety guards for EBF draft-only workflows.
+- **EBF P0 scorecard foundation**: Added first-class EBF pillars, 70 default rubric bands, scorecard and score evidence tables, public maturity gates, carbon Level 6 score gating, public-safe EBF views, CIDS-compatible metric definitions, and CI coverage for the P0 schema/rubric layer.
 - **Green Paper V1 comprehensive document**: Replaced 38-line outline with full 15-section publication-ready document (~1,000 lines) covering executive summary, problem statement, system architecture, data lifecycle, evidence maturity model, CIDS mapping, stakeholder feedback, impact claims, agent safety, Web3 verification, carbon and environmental impact, reporting principles, Common Foundations checklist, publication boundaries, pilot data (Kokonut Adelphi), and glossary with 28 footnote references.
 
 ### Fixed

@@ -28,6 +28,31 @@ FARM_ACTIVITY_FIELDS = [
 ]
 REQUIRED_FARM_ACTIVITY_FIELDS = {"location_id", "activity_type", "activity_date", "description"}
 
+EBF_SCORECARD_FIELDS = [
+    "location_id",
+    "farm_id",
+    "period_start",
+    "period_end",
+    "rubric_version",
+    "calibration_method",
+    "calibration_report_url",
+]
+REQUIRED_EBF_SCORECARD_FIELDS = {"location_id", "period_start", "period_end", "rubric_version"}
+
+EBF_EVIDENCE_FIELDS = [
+    "scorecard_id",
+    "pillar_key",
+    "evidence_type",
+    "evidence_id",
+    "evidence_maturity_level",
+    "evidence_summary",
+]
+REQUIRED_EBF_EVIDENCE_FIELDS = {"scorecard_id", "pillar_key", "evidence_type", "evidence_id"}
+EBF_EVIDENCE_TYPES = {
+    "metric_value", "soil_sample", "species_observation", "water_analysis", "remote_sensing_observation",
+    "stakeholder_feedback", "stakeholder_outcome", "impact_claim", "attestation_record", "report_snapshot", "file_upload",
+}
+
 
 def get_connection():
     return psycopg2.connect(
@@ -42,6 +67,16 @@ def get_connection():
 def template_rows() -> list[dict[str, str]]:
     """Return one example row suitable for CSV template generation."""
     return [{field: "" for field in FARM_ACTIVITY_FIELDS}]
+
+
+def ebf_scorecard_template_rows() -> list[dict[str, str]]:
+    """Return one example EBF scorecard row for CSV template generation."""
+    return [{field: "" for field in EBF_SCORECARD_FIELDS}]
+
+
+def ebf_evidence_template_rows() -> list[dict[str, str]]:
+    """Return one example EBF evidence-link row for CSV template generation."""
+    return [{field: "" for field in EBF_EVIDENCE_FIELDS}]
 
 
 def validate_farm_activity_row(row: dict[str, Any], row_number: int) -> list[str]:
@@ -62,6 +97,35 @@ def validate_farm_activity_row(row: dict[str, Any], row_number: int) -> list[str
                 errors.append(f"row {row_number}: labor_cost must be non-negative")
         except ValueError:
             errors.append(f"row {row_number}: labor_cost must be numeric")
+    return errors
+
+
+def validate_ebf_scorecard_row(row: dict[str, Any], row_number: int) -> list[str]:
+    """Validate one EBF scorecard import row."""
+    errors: list[str] = []
+    for field in REQUIRED_EBF_SCORECARD_FIELDS:
+        if not str(row.get(field) or "").strip():
+            errors.append(f"row {row_number}: missing required field {field}")
+    if row.get("calibration_method") not in (None, "", "third_party", "team_with_report", "mixed_panel"):
+        errors.append(f"row {row_number}: calibration_method must be third_party, team_with_report, or mixed_panel")
+    return errors
+
+
+def validate_ebf_evidence_row(row: dict[str, Any], row_number: int) -> list[str]:
+    """Validate one EBF evidence-link import row."""
+    errors: list[str] = []
+    for field in REQUIRED_EBF_EVIDENCE_FIELDS:
+        if not str(row.get(field) or "").strip():
+            errors.append(f"row {row_number}: missing required field {field}")
+    if row.get("evidence_type") and row["evidence_type"] not in EBF_EVIDENCE_TYPES:
+        errors.append(f"row {row_number}: evidence_type is not supported")
+    if row.get("evidence_maturity_level") not in (None, ""):
+        try:
+            level = int(row["evidence_maturity_level"])
+            if level < 0 or level > 6:
+                errors.append(f"row {row_number}: evidence_maturity_level must be between 0 and 6")
+        except ValueError:
+            errors.append(f"row {row_number}: evidence_maturity_level must be an integer")
     return errors
 
 
@@ -120,6 +184,16 @@ def import_farm_activity_csv(conn, path: str, dry_run: bool = False) -> dict[str
     return {"inserted": inserted, "errors": [], "dry_run": False}
 
 
+def validate_ebf_csv(path: str, template_type: str) -> dict[str, Any]:
+    """Validate EBF CSV files without writing canonical records."""
+    rows = read_csv(path)
+    validator = validate_ebf_scorecard_row if template_type == "ebf_scorecard" else validate_ebf_evidence_row
+    errors: list[str] = []
+    for index, row in enumerate(rows, start=2):
+        errors.extend(validator(row, index))
+    return {"validated": 0 if errors else len(rows), "errors": errors, "template_type": template_type}
+
+
 def export_farm_activity_csv(conn, path: str, location_id: str) -> dict[str, Any]:
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
@@ -142,6 +216,7 @@ def export_farm_activity_csv(conn, path: str, location_id: str) -> dict[str, Any
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kokonut CSV spreadsheet bridge")
     parser.add_argument("--template", help="Write farm_activity CSV template")
+    parser.add_argument("--template-type", choices=["farm_activity", "ebf_scorecard", "ebf_evidence"], default="farm_activity", help="Template kind")
     parser.add_argument("--import-file", help="Import farm_activity CSV")
     parser.add_argument("--export-file", help="Export farm_activity CSV")
     parser.add_argument("--location-id", help="Location UUID for export")
@@ -149,11 +224,19 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.template:
-        write_csv(args.template, template_rows())
+        if args.template_type == "ebf_scorecard":
+            write_csv(args.template, ebf_scorecard_template_rows(), EBF_SCORECARD_FIELDS)
+        elif args.template_type == "ebf_evidence":
+            write_csv(args.template, ebf_evidence_template_rows(), EBF_EVIDENCE_FIELDS)
+        else:
+            write_csv(args.template, template_rows())
         print(json.dumps({"template": args.template}, indent=2))
         return
 
     if args.import_file:
+        if args.template_type in {"ebf_scorecard", "ebf_evidence"}:
+            print(json.dumps(validate_ebf_csv(args.import_file, args.template_type), indent=2))
+            return
         conn = get_connection()
         try:
             print(json.dumps(import_farm_activity_csv(conn, args.import_file, dry_run=args.dry_run), indent=2))

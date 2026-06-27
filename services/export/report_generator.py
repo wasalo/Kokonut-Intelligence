@@ -560,6 +560,53 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
     }
 
 
+def generate_ebf_scorecard(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe EBF scorecard report for a location."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
+        """
+        SELECT *
+        FROM v_public_ebf_scorecard_summary
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR period_start >= %s::date)
+          AND (%s::date IS NULL OR period_end <= %s::date)
+        ORDER BY period_end DESC, scorecard_id
+        LIMIT 1
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    summary = cur.fetchone()
+
+    pillars = []
+    if summary:
+        cur.execute(
+            """
+            SELECT pillar_key, pillar_name, normalized_score, confidence_level,
+                   trend_direction, score_evidence_maturity_label,
+                   evidence_summary, uncertainty_notes
+            FROM v_public_ebf_scorecard
+            WHERE scorecard_id = %s
+            ORDER BY pillar_key
+            """,
+            (summary["scorecard_id"],),
+        )
+        pillars = [dict(r) for r in cur.fetchall()]
+    cur.close()
+
+    return {
+        "report_type": "ebf_scorecard",
+        "location_id": location_id,
+        "summary": _serialize_rows([dict(summary)])[0] if summary else None,
+        "pillars": _serialize_rows(pillars),
+        "limitations": [
+            "This report includes only published EBF scorecards that meet public evidence maturity gates.",
+            "The carbon pillar is public only when evidence maturity is Level 6.",
+            "Use EBF scorecards for evidence-backed learning, not farm ranking.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
@@ -571,6 +618,7 @@ REPORT_GENERATORS = {
     "revenue_multiplier": generate_revenue_multiplier,
     "forecast": generate_forecast_summary,
     "climate_impact": generate_climate_impact,
+    "ebf_scorecard": generate_ebf_scorecard,
 }
 
 
@@ -685,7 +733,7 @@ def main():
     parser.add_argument("--period-end", help="Report period end (YYYY-MM-DD)")
     parser.add_argument("--list", action="store_true", help="List existing snapshots")
     parser.add_argument("--verify", help="Verify a snapshot by hash")
-    parser.add_argument("--auto", action="store_true", help="Generate all 5 report types for the location")
+    parser.add_argument("--auto", action="store_true", help="Generate all report types for the location")
     args = parser.parse_args()
 
     if not args.list:
@@ -715,7 +763,6 @@ def main():
         return
 
     if args.auto:
-        # Generate all 5 report types
         report_types = list(REPORT_GENERATORS.keys())
         print(f"Generating all {len(report_types)} report types for location {args.location_id}...")
         print()

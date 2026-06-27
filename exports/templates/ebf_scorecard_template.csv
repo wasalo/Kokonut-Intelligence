@@ -1,0 +1,2 @@
+location_id,farm_id,period_start,period_end,rubric_version,calibration_method,calibration_report_url
+,,2026-01-01,2026-12-31,2026.1,third_party,

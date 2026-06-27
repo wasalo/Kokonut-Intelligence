@@ -178,6 +178,10 @@ Additional intelligence services include:
 | Revenue multiplier | `python3 -m services.revenue_multiplier.cli --location-id UUID` |
 | Environmental analytics | `python3 -m services.analytics --environmental-baseline --location-id UUID` |
 | Portfolio theme summary | `python3 -m services.analytics --portfolio-summary` |
+| EBF scorecard export | `python3 -m services.scoring --scorecard-id UUID --export public` |
+| EBF trust graph export | `python3 -m services.scoring --trust-graph UUID --public-safe` |
+| Run EBF P0 tests | `python3 -m tests.test_ebf_p0` |
+| Run EBF P1 tests | `python3 -m tests.test_ebf_p1` |
 | AI summary | `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined` |
 
 See [Data Dictionary](docs/data-dictionary.md) for governed metric definitions and [User Guide](docs/user-guide.md) for analytics workflows.
@@ -295,6 +299,8 @@ See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-gui
 | Run portfolio tests | `python3 -m tests.test_portfolio` |
 | Run spreadsheet bridge tests | `python3 -m tests.test_spreadsheet_bridge` |
 | Run Common Foundations tests | `python3 -m tests.test_common_foundations` |
+| Run EBF P0 tests | `python3 -m tests.test_ebf_p0` |
+| Run EBF P1 tests | `python3 -m tests.test_ebf_p1` |
 | Build Directus hooks | `cd extensions/kokonut-hooks && npm run build` |
 | Test Directus hooks | `cd extensions/kokonut-hooks && npm test` |
 | Migration status | `python3 -m services.migration status` |

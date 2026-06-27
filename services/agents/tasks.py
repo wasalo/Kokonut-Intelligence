@@ -48,6 +48,49 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "writes": [],
         "high_risk": False,
     },
+    "ebf_scorecard_draft": {
+        "description": "Draft an EBF scorecard workspace from governed source metrics and evidence links; human review required.",
+        "risk": "medium",
+        "inputs": {
+            "location_id": {"type": "string", "format": "uuid", "required": True},
+            "period_start": {"type": "string", "format": "date", "required": True},
+            "period_end": {"type": "string", "format": "date", "required": True},
+        },
+        "outputs": {
+            "scorecard": {"type": "object", "required": True},
+            "evidence_gaps": {"type": "array", "required": True},
+            "safety_note": {"type": "string", "required": True},
+        },
+        "writes": ["ebf_scorecard:draft", "ebf_score:draft"],
+        "high_risk": False,
+    },
+    "ebf_evidence_gap": {
+        "description": "Analyze EBF score evidence gaps by pillar, maturity level, and public readiness.",
+        "risk": "low",
+        "inputs": {
+            "scorecard_id": {"type": "string", "format": "uuid", "required": True},
+        },
+        "outputs": {
+            "evidence_gaps": {"type": "array", "required": True},
+            "recommendations": {"type": "array", "required": True},
+        },
+        "writes": [],
+        "high_risk": False,
+    },
+    "ebf_calibration_memo": {
+        "description": "Draft a calibration memo from reviewed scorecards and documented evidence; decisions require human approval.",
+        "risk": "medium",
+        "inputs": {
+            "session_id": {"type": "string", "format": "uuid", "required": True},
+        },
+        "outputs": {
+            "memo": {"type": "object", "required": True},
+            "proposed_decisions": {"type": "array", "required": True},
+            "safety_note": {"type": "string", "required": True},
+        },
+        "writes": ["ebf_calibration_decision:draft"],
+        "high_risk": False,
+    },
 }
 
 

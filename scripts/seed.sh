@@ -112,6 +112,18 @@ echo "Seeding Carbon Framework reference data (emission factors, benchmarks, pro
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/027_carbon_framework_seeds.sql"
 echo "Carbon Framework reference data seeded."
 
+# Seed EBF rubric reference data
+echo ""
+echo "Seeding EBF rubric reference data..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/032_ebf_rubric.sql"
+echo "EBF rubric reference data seeded."
+
+# Seed EBF dashboard dataset definitions
+echo ""
+echo "Seeding EBF dashboard dataset definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/033_ebf_dashboard_datasets.sql"
+echo "EBF dashboard dataset definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""
