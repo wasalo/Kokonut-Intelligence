@@ -1,0 +1,27 @@
+{
+  "name": "EBF Scorecard Dashboard",
+  "description": "Public-safe EBF scorecard views with seven pillars, evidence maturity, confidence labels, and evidence-gap review cards.",
+  "collection": "Kokonut Intelligence",
+  "cards": [
+    {
+      "name": "Public EBF Scorecard",
+      "description": "Published EBF scorecards that meet evidence maturity and registry gates.",
+      "native": {
+        "query": "SELECT\n  location_name,\n  farm_name,\n  period_start,\n  period_end,\n  pillar_name,\n  normalized_score,\n  confidence_level,\n  trend_direction,\n  score_evidence_maturity_label,\n  evidence_summary,\n  uncertainty_notes\nFROM v_public_ebf_scorecard\nORDER BY period_end DESC, location_name, pillar_key;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    },
+    {
+      "name": "EBF Evidence Gaps",
+      "description": "Internal review matrix for EBF score evidence gaps.",
+      "native": {
+        "query": "SELECT\n  location_name,\n  scorecard_id,\n  pillar_name,\n  normalized_score,\n  confidence_level,\n  evidence_maturity_label,\n  evidence_count,\n  public_safe_evidence_count,\n  gap_status\nFROM v_ebf_evidence_gap_summary\nORDER BY location_name, scorecard_id, pillar_key;",
+        "template-tags": {}
+      },
+      "display": "table",
+      "database_id": 2
+    }
+  ]
+}

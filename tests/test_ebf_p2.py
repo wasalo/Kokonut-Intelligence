@@ -7,6 +7,8 @@ P2_DASHBOARD_SEED = Path("schemas/seeds/034_ebf_p2_dashboard_datasets.sql")
 CIDS_DOC = Path("docs/cids-mapping.md")
 SCORECARD_DOC = Path("docs/ebf-scorecard.md")
 TRUST_GRAPH_DOC = Path("docs/ebf-trust-graph.md")
+IMPLEMENTATION_MEMO = Path("docs/ebf-implementation-memo.md")
+ADVISOR_GUIDE = Path("docs/advisor-review-guide.md")
 
 
 def test_ebf_p2_dashboard_seed_defines_messy_rollup_dataset() -> None:
@@ -15,6 +17,7 @@ def test_ebf_p2_dashboard_seed_defines_messy_rollup_dataset() -> None:
     assert "messy_rollup" in text
     assert "do not rank farms" in text
     assert Path("dashboards/metabase/sql/25_ebf_portfolio_messy_rollup.sql").exists()
+    assert Path("dashboards/metabase/22_ebf_scorecard.json").exists()
 
 
 def test_cids_mapping_documents_ebf_indicator_report_path() -> None:
@@ -49,8 +52,18 @@ def test_ebf_trust_graph_guide_covers_public_safe_exports() -> None:
         assert phrase in text
 
 
+def test_ebf_pr_sequence_docs_exist() -> None:
+    memo = IMPLEMENTATION_MEMO.read_text().lower()
+    advisor = ADVISOR_GUIDE.read_text().lower()
+    assert "reused foundations" in memo
+    assert "new ebf foundation" in memo
+    assert "third-party calibration" in advisor
+    assert "publication authority" in advisor
+
+
 if __name__ == "__main__":
     test_ebf_p2_dashboard_seed_defines_messy_rollup_dataset()
     test_cids_mapping_documents_ebf_indicator_report_path()
     test_ebf_scorecard_guide_covers_public_gates_and_agents()
     test_ebf_trust_graph_guide_covers_public_safe_exports()
+    test_ebf_pr_sequence_docs_exist()

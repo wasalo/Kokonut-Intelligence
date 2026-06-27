@@ -181,6 +181,7 @@ Additional intelligence services include:
 | EBF portfolio messy roll-up | `python3 -m services.analytics --ebf-portfolio-summary` |
 | EBF scorecard export | `python3 -m services.scoring --scorecard-id UUID --export public` |
 | EBF trust graph export | `python3 -m services.scoring --trust-graph UUID --public-safe` |
+| EBF trust graph Mermaid | `python3 -m services.scoring --trust-graph UUID --mermaid` |
 | Run EBF P0 tests | `python3 -m tests.test_ebf_p0` |
 | Run EBF P1 tests | `python3 -m tests.test_ebf_p1` |
 | Run EBF P2 tests | `python3 -m tests.test_ebf_p2` |
@@ -267,6 +268,11 @@ python3 -m services.agents.cids_agent --location-id UUID --summary
 
 # Run stakeholder feedback synthesis agent
 python3 -m services.agents.feedback_agent --location-id UUID
+
+# Run EBF draft/gap/calibration agents
+python3 -m services.agents.ebf_scorecard_agent --location-id UUID --period-start 2026-01-01 --period-end 2026-12-31
+python3 -m services.agents.ebf_evidence_gap_agent --scorecard-id UUID
+python3 -m services.agents.ebf_calibration_agent --session-id UUID
 ```
 
 Agent safety is enforced in both PostgreSQL constraints and Directus/Python helpers. Agents can draft, submit, or reject their own outputs, but cannot verify or publish them. High-risk actions such as publishing, attestation submission, financial writes, deletes, and bulk updates are flagged for human approval in `agent_action_log`.
@@ -279,7 +285,7 @@ Green Paper V1 is a comprehensive 15-section document covering Kokonut's evidenc
 
 Green Paper V1 materials should use CIDS Essential Tier exports, public-safe stakeholder summaries, evidence maturity labels, evidence gap dashboards, and public-interest report snapshots. Agent outputs are draft aids for reviewers and operators, not publication authority.
 
-See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-guide.md), [Reviewer Guide](docs/reviewer-guide.md), and [Agent Workflows](docs/agent-workflows.md).
+See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-guide.md), [Reviewer Guide](docs/reviewer-guide.md), [Advisor Review Guide](docs/advisor-review-guide.md), and [Agent Workflows](docs/agent-workflows.md).
 
 ## Developer Commands
 

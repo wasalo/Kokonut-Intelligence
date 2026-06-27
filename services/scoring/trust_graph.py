@@ -64,3 +64,29 @@ def export_trust_graph(conn, reference_id: str, public_safe: bool = False) -> di
         "nodes": nodes,
         "edges": edges,
     }
+
+
+def _node_mermaid_id(node_id: Any) -> str:
+    return "n" + "".join(ch for ch in str(node_id) if ch.isalnum())[:24]
+
+
+def trust_graph_to_mermaid(graph: dict[str, Any]) -> str:
+    """Render an exported EBF trust graph as Mermaid text."""
+    nodes = graph.get("nodes", [])
+    edges = graph.get("edges", [])
+    labels = {str(node["id"]): node.get("label") or node.get("node_type") or str(node["id"]) for node in nodes}
+    lines = ["graph TD"]
+    if not nodes:
+        lines.append('  empty["No trust graph nodes"]')
+        return "\n".join(lines)
+
+    for node in nodes:
+        node_id = str(node["id"])
+        label = str(labels[node_id]).replace('"', "'")
+        lines.append(f'  {_node_mermaid_id(node_id)}["{label}"]')
+    for edge in edges:
+        source = _node_mermaid_id(edge["source_node_id"])
+        target = _node_mermaid_id(edge["target_node_id"])
+        edge_type = str(edge.get("edge_type") or "related_to").replace('"', "'")
+        lines.append(f'  {source} -- "{edge_type}" --> {target}')
+    return "\n".join(lines)

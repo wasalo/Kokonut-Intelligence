@@ -6,7 +6,7 @@ import argparse
 import json
 
 from .export import dumps_export, export_internal_scorecard, export_public_scorecard, get_connection
-from .trust_graph import export_trust_graph
+from .trust_graph import export_trust_graph, trust_graph_to_mermaid
 
 
 def main() -> None:
@@ -15,6 +15,7 @@ def main() -> None:
     parser.add_argument("--export", choices=["public", "internal"], help="Export scorecard JSON")
     parser.add_argument("--trust-graph", help="Reference UUID for trust graph export")
     parser.add_argument("--public-safe", action="store_true", help="Restrict trust graph to public-safe nodes and edges")
+    parser.add_argument("--mermaid", action="store_true", help="Render trust graph as Mermaid text")
     args = parser.parse_args()
 
     if args.export:
@@ -31,7 +32,8 @@ def main() -> None:
     if args.trust_graph:
         conn = get_connection()
         try:
-            print(json.dumps(export_trust_graph(conn, args.trust_graph, public_safe=args.public_safe), indent=2, default=str))
+            graph = export_trust_graph(conn, args.trust_graph, public_safe=args.public_safe)
+            print(trust_graph_to_mermaid(graph) if args.mermaid else json.dumps(graph, indent=2, default=str))
         finally:
             conn.close()
         return

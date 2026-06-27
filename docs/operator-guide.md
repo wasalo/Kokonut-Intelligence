@@ -35,6 +35,16 @@ python3 -m services.agents.cids_agent --location-id UUID --summary
 
 Agent outputs remain drafts and require human review before publication.
 
+## EBF Scorecards
+
+- Use `exports/templates/ebf_scorecard_template.csv` to prepare scorecard period metadata.
+- Use `exports/templates/ebf_evidence_template.csv` to prepare evidence links for each pillar score.
+- Run `python3 -m services.scoring --scorecard-id UUID --export internal` to inspect internal scorecard JSON.
+- Run `python3 -m services.scoring --scorecard-id UUID --export public` only after the scorecard is published and evidence gates pass.
+- Run `python3 -m services.analytics --ebf-portfolio-summary` for a portfolio messy roll-up; do not use it as a farm ranking.
+- Keep raw private stakeholder feedback out of public equity narratives.
+- Treat agent-generated EBF drafts as working material for reviewers, not final scores.
+
 ## Publishing Readiness
 
 - Farm Registry record is verified or published.
@@ -42,3 +52,5 @@ Agent outputs remain drafts and require human review before publication.
 - Public impact claims have evidence maturity >= 4.
 - Public carbon claims have evidence maturity 6, external verifier, methodology reference, and published status.
 - Report snapshots include limitations, uncertainty notes, negative findings, and affected-community voice where available.
+- Public EBF scorecards have seven pillar scores, evidence links, and evidence maturity >= 4.
+- Public EBF carbon pillar scores have evidence maturity 6.
