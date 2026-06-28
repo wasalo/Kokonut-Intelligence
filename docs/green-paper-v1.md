@@ -60,6 +60,7 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 - Portfolio messy roll-up comparison by pillar, confidence, and maturity with explicit caveats, not farm ranking.^[30]^
 - Holistic well-being evidence for cultural context, local-language reporting, community trust, operator capability, and participatory feedback-to-action traceability.^[33]^
 - Financial resilience evidence for grant dependency, reinvestment, public-goods allocation, runway, risk mitigation, scaling milestones, and Green Paper publication status.^[34]^
+- Capital efficiency and utility evidence for scenario-based capital leverage, regenerative practice payback, DAO/community governance throughput, and capital-provider utility limitations.^[35]^
 
 ---
 
@@ -968,6 +969,8 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ^[34]^ `schemas/postgres/035_financial_resilience_and_scaling.sql` — Financial sustainability plans, risk mitigation register, scaling roadmap milestones, Green Paper publication review, and public-safe views; `docs/financial-sustainability.md`, `docs/risk-mitigation.md`, and `docs/scaling-roadmap.md` — Operating guides.
 
+^[35]^ `schemas/postgres/036_capital_efficiency_and_utility.sql` — Capital efficiency scenarios, regenerative efficiency observations, governance throughput observations, capital-provider utility scenarios, and public-safe views; `docs/capital-efficiency.md` — Scenario-evidence operating guide.
+
 ---
 
 ## Green Paper Review Commands
@@ -994,6 +997,10 @@ python3 -m services.agents.wellbeing_agent --location-id UUID --store
 python3 -m services.agents.resilience_agent --location-id UUID
 python3 -m services.agents.resilience_agent --location-id UUID --store
 
+# Capital efficiency and utility synthesis
+python3 -m services.agents.capital_efficiency_agent --location-id UUID
+python3 -m services.agents.capital_efficiency_agent --location-id UUID --store
+
 # Report generation
 python3 -m services.export.report_generator --auto --location-id UUID
 python3 -m services.export.report_generator --type holistic_wellbeing --location-id UUID
@@ -1001,6 +1008,9 @@ python3 -m services.export.report_generator --type financial_sustainability --lo
 python3 -m services.export.report_generator --type risk_mitigation --location-id UUID
 python3 -m services.export.report_generator --type scaling_roadmap --location-id UUID
 python3 -m services.export.report_generator --type green_paper_publication_status --location-id UUID
+python3 -m services.export.report_generator --type capital_efficiency --location-id UUID
+python3 -m services.export.report_generator --type governance_throughput --location-id UUID
+python3 -m services.export.report_generator --type capital_provider_utility --location-id UUID
 
 # EBF scoring
 python3 -m services.scoring --location-id UUID

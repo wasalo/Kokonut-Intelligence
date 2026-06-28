@@ -1,0 +1,16 @@
+{
+  "title": "Governance Throughput Dashboard",
+  "description": "Public-safe DAO and community governance decision latency, execution latency, and proposal result summaries.",
+  "cards": [
+    {
+      "name": "Governance Throughput Summary",
+      "dataset_query": "dashboards/metabase/sql/33_governance_throughput.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

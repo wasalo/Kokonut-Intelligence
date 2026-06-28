@@ -76,6 +76,20 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "writes": ["ai_summary:draft"],
         "high_risk": False,
     },
+    "capital_efficiency_synthesis": {
+        "description": "Summarize public-safe capital efficiency, regenerative payback, governance throughput, and capital-provider utility scenarios.",
+        "risk": "medium",
+        "inputs": {
+            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "store": {"type": "boolean", "required": False},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "ai_summary_id": {"type": "string", "format": "uuid", "required": False},
+        },
+        "writes": ["ai_summary:draft"],
+        "high_risk": False,
+    },
     "ebf_scorecard_draft": {
         "description": "Draft an EBF scorecard workspace from governed source metrics and evidence links; human review required.",
         "risk": "medium",

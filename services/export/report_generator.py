@@ -880,6 +880,124 @@ def generate_green_paper_publication_status(conn, location_id: str = None, perio
     }
 
 
+def generate_capital_efficiency(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe capital efficiency and regenerative ROI scenario report."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT *
+        FROM v_public_capital_efficiency_summary
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR period_start >= %s::date)
+          AND (%s::date IS NULL OR period_end IS NULL OR period_end <= %s::date)
+        ORDER BY period_start DESC, scenario_name
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    scenarios = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT *
+        FROM v_public_regenerative_efficiency_summary
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR observation_date >= %s::date)
+          AND (%s::date IS NULL OR observation_date <= %s::date)
+        ORDER BY observation_date DESC, practice_type
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    regenerative_observations = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    return {
+        "report_type": "capital_efficiency",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "scenarios": _serialize_rows(scenarios),
+        "regenerative_efficiency": _serialize_rows(regenerative_observations),
+        "limitations": [
+            "Capital efficiency and payback values are scenario evidence, not guaranteed returns.",
+            "Private capital terms and draft financial assumptions are excluded.",
+            "Regenerative savings should be recalculated as additional verified expense, output, and practice records mature.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_governance_throughput(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe governance throughput report."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    if location_id:
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_governance_throughput_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR proposal_created_at::date >= %s::date)
+              AND (%s::date IS NULL OR proposal_created_at::date <= %s::date)
+            ORDER BY proposal_created_at DESC, proposal_code
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_governance_throughput_summary
+            WHERE (%s::date IS NULL OR proposal_created_at::date >= %s::date)
+              AND (%s::date IS NULL OR proposal_created_at::date <= %s::date)
+            ORDER BY proposal_created_at DESC, proposal_code
+            """,
+            (period_start, period_start, period_end, period_end),
+        )
+    observations = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    latencies = [float(row["decision_latency_days"]) for row in observations if row.get("decision_latency_days") is not None]
+    return {
+        "report_type": "governance_throughput",
+        "location_id": location_id,
+        "observations": _serialize_rows(observations),
+        "average_decision_latency_days": round(sum(latencies) / len(latencies), 2) if latencies else None,
+        "limitations": [
+            "Governance throughput reflects published proposal timestamps only.",
+            "Off-platform discussion, informal consensus, and private negotiation time may be excluded.",
+            "Fast decisions are not automatically better decisions; risk gates and stakeholder review still apply.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_capital_provider_utility(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe capital-provider utility scenario report."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT *
+        FROM v_public_capital_provider_utility_summary
+        WHERE location_id = %s
+        ORDER BY utility_score DESC NULLS LAST, scenario_name
+        """,
+        (location_id,),
+    )
+    scenarios = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    return {
+        "report_type": "capital_provider_utility",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "scenarios": _serialize_rows(scenarios),
+        "limitations": [
+            "Capital-provider utility scenarios are planning evidence, not an offer of securities or guaranteed returns.",
+            "Private funder terms, side letters, and unpublished negotiations are excluded.",
+            "Public-goods, verification, and learning outputs should be evaluated alongside financial risk.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
@@ -897,6 +1015,9 @@ REPORT_GENERATORS = {
     "risk_mitigation": generate_risk_mitigation,
     "scaling_roadmap": generate_scaling_roadmap,
     "green_paper_publication_status": generate_green_paper_publication_status,
+    "capital_efficiency": generate_capital_efficiency,
+    "governance_throughput": generate_governance_throughput,
+    "capital_provider_utility": generate_capital_provider_utility,
 }
 
 

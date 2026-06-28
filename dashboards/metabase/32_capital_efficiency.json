@@ -1,0 +1,16 @@
+{
+  "title": "Capital Efficiency Dashboard",
+  "description": "Public-safe capital efficiency scenarios, leverage ratios, regenerative cost savings, and payback signals.",
+  "cards": [
+    {
+      "name": "Capital Efficiency Summary",
+      "dataset_query": "dashboards/metabase/sql/32_capital_efficiency.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "finance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

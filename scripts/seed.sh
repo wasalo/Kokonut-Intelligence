@@ -142,6 +142,12 @@ echo "Seeding Financial Resilience and Scaling definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/036_financial_resilience_and_scaling.sql"
 echo "Financial Resilience and Scaling definitions seeded."
 
+# Seed Capital Efficiency and Utility reference data
+echo ""
+echo "Seeding Capital Efficiency and Utility definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/037_capital_efficiency_and_utility.sql"
+echo "Capital Efficiency and Utility definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""

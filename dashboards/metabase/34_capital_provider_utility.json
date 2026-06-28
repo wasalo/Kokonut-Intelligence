@@ -1,0 +1,16 @@
+{
+  "title": "Capital Provider Utility Dashboard",
+  "description": "Public-safe capital-provider utility scenarios across financial, public-goods, verification, and learning outputs.",
+  "cards": [
+    {
+      "name": "Capital Provider Utility Summary",
+      "dataset_query": "dashboards/metabase/sql/34_capital_provider_utility.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "finance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}
