@@ -16,6 +16,15 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+def _get_db_if_available():
+    """Return a DB connection or None if PostgreSQL is unavailable."""
+    try:
+        from services.ingestion.base import get_db
+        return get_db()
+    except Exception:
+        return None
+
+
 def test_config_defaults():
     """Test that config module loads defaults without DB."""
     from services.revenue_multiplier.config import get_config, _DEFAULTS
@@ -51,11 +60,18 @@ def test_analyze_location_structure():
     from services.ingestion.base import get_db
     from services.revenue_multiplier.analyzer import analyze_location
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    try:
+        db = get_db()
+    except Exception:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
@@ -81,23 +97,34 @@ def test_analyze_location_structure():
 
 def test_crop_mix_dimension():
     """Test crop_mix analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import crop_mix
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = crop_mix.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = crop_mix.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "crop_mix_optimization"
     assert 0 <= dim.score <= 100
@@ -107,23 +134,34 @@ def test_crop_mix_dimension():
 
 def test_loss_reduction_dimension():
     """Test loss_reduction analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import loss_reduction
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = loss_reduction.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = loss_reduction.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "loss_rate_reduction"
     assert 0 <= dim.score <= 100
@@ -131,23 +169,34 @@ def test_loss_reduction_dimension():
 
 def test_buyer_channel_dimension():
     """Test buyer_channel analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import buyer_channel
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = buyer_channel.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = buyer_channel.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "buyer_channel_selection"
     assert 0 <= dim.score <= 100
@@ -155,23 +204,34 @@ def test_buyer_channel_dimension():
 
 def test_value_added_dimension():
     """Test value_added analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import value_added
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = value_added.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = value_added.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "value_added_processing"
     assert 0 <= dim.score <= 100
@@ -179,23 +239,34 @@ def test_value_added_dimension():
 
 def test_web3_replication_dimension():
     """Test web3_replication analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import web3_replication
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = web3_replication.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = web3_replication.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "web3_funded_replication"
     assert 0 <= dim.score <= 100
@@ -203,23 +274,34 @@ def test_web3_replication_dimension():
 
 def test_bioinput_dimension():
     """Test bioinput analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import bioinput
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = bioinput.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = bioinput.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "bioinput_production"
     assert 0 <= dim.score <= 100
@@ -227,23 +309,34 @@ def test_bioinput_dimension():
 
 def test_public_goods_dimension():
     """Test public_goods analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import public_goods
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = public_goods.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = public_goods.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "public_goods_funding"
     assert 0 <= dim.score <= 100
@@ -251,23 +344,34 @@ def test_public_goods_dimension():
 
 def test_ecological_verification_dimension():
     """Test ecological_verification analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import ecological_verification
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = ecological_verification.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = ecological_verification.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "ecological_verification"
     assert 0 <= dim.score <= 100
@@ -275,23 +379,34 @@ def test_ecological_verification_dimension():
 
 def test_partner_sponsorship_dimension():
     """Test partner_sponsorship analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import partner_sponsorship
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = partner_sponsorship.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = partner_sponsorship.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "partner_sponsorship"
     assert 0 <= dim.score <= 100
@@ -299,23 +414,34 @@ def test_partner_sponsorship_dimension():
 
 def test_regional_clusters_dimension():
     """Test regional_clusters analysis (requires DB)."""
-    from services.ingestion.base import get_db
     from services.revenue_multiplier.dimensions import regional_clusters
 
-    db = get_db()
-    with db.cursor() as cur:
-        cur.execute("SELECT id FROM location LIMIT 1")
-        row = cur.fetchone()
-    db.close()
+    db = _get_db_if_available()
+    if db is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        with db.cursor() as cur:
+            cur.execute("SELECT id FROM location LIMIT 1")
+            row = cur.fetchone()
+    finally:
+        db.close()
 
     if not row:
         print("  SKIP: No locations in database")
         return
 
     location_id = str(row[0])
-    conn = get_db()
-    dim = regional_clusters.analyze(conn, location_id)
-    conn.close()
+    conn = _get_db_if_available()
+    if conn is None:
+        print("  SKIP: Database not available")
+        return
+
+    try:
+        dim = regional_clusters.analyze(conn, location_id)
+    finally:
+        conn.close()
 
     assert dim.dimension_id == "regional_farm_clusters"
     assert 0 <= dim.score <= 100

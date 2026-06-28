@@ -16,11 +16,15 @@ FAIL=0
 check() {
     local name="$1"
     local cmd="$2"
-    if eval "$cmd" > /dev/null 2>&1; then
+    local output
+    if output=$(eval "$cmd" 2>&1); then
         echo "  ✓ $name"
         PASS=$((PASS + 1))
     else
         echo "  ✗ $name"
+        if [ -n "$output" ]; then
+            echo "    $output" | head -5
+        fi
         FAIL=$((FAIL + 1))
     fi
 }
@@ -99,15 +103,17 @@ else
 fi
 echo ""
 
-# 4. Seed idempotency (if DB is available)
+# 4. Seed idempotency and DB integration tests (if DB is available)
 echo "[4/8] Seed idempotency check..."
 if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --status running --services 2>/dev/null | grep -qx 'database'; then
     check "seed.sh idempotent" "bash $SCRIPT_DIR/seed.sh"
     check "seed-pilot.sh idempotent" "bash $SCRIPT_DIR/seed-pilot.sh"
     check "compute metrics" "bash $SCRIPT_DIR/compute-metrics.sh"
     check "MVP definition of done" "bash $SCRIPT_DIR/verify-mvp.sh"
+    check "MVP done checks" "python3 -m tests.test_mvp_done"
+    check "seed idempotency" "python3 -m tests.test_seed_idempotency"
 else
-    echo "  ⚠ Database not running — skipping seed checks"
+    echo "  ⚠ Database not running — skipping seed and DB integration checks"
 fi
 echo ""
 
@@ -132,8 +138,6 @@ check "kokonut commons governance" "python3 -m tests.test_kokonut_commons_govern
 check "GIS import" "python3 -m tests.test_gis_import"
 check "market data" "python3 -m tests.test_market_data"
 check "revenue multiplier" "python3 -m tests.test_revenue_multiplier"
-check "MVP done checks" "python3 -m tests.test_mvp_done"
-check "seed idempotency" "python3 -m tests.test_seed_idempotency"
 check "EBF P0 schema and rubric" "python3 -m tests.test_ebf_p0"
 check "EBF P1 operations" "python3 -m tests.test_ebf_p1"
 check "EBF P2 portfolio and docs" "python3 -m tests.test_ebf_p2"

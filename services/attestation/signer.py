@@ -6,7 +6,6 @@ import threading
 from typing import Any
 
 from web3 import Web3
-from web3.middleware import SignAndSendRawMiddlewareBuilder
 from eth_account import Account
 from eth_account.signers.local import LocalAccount
 
@@ -27,10 +26,14 @@ class EASSigner:
             raise ValueError("No private key provided. Set ATTESTER_PRIVATE_KEY env var or pass private_key.")
 
         self.account: LocalAccount = Account.from_key(key)
-        self.w3.middleware_onion.inject(
-            SignAndSendRawMiddlewareBuilder.build(self.account),
-            layer=0,
-        )
+        try:
+            from web3.middleware import SignAndSendRawMiddlewareBuilder
+            self.w3.middleware_onion.inject(
+                SignAndSendRawMiddlewareBuilder.build(self.account),
+                layer=0,
+            )
+        except ImportError:
+            pass
 
         self._nonce_lock = threading.Lock()
         self._pending_nonce: int | None = None
