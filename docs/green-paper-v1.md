@@ -65,6 +65,7 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 - GNH alignment evidence for domain-level well-being, cultural preservation, renewable energy planning, vulnerable-group access, and foundational well-being signals.^[37]^
 - Regenerative outcomes and stewardship evidence for concise impact summaries, community decision mechanisms, replication readiness, and adaptive management loops.^[38]^
 - Open Source Capitalist scaling evidence for cost-per-farm economics, explicit planned targets, adoption barriers, downside stress testing, and reusable open-source artifacts.^[39]^
+- Kokonut Commons governance evidence for anti-capture policies, flexible redistribution scenarios, federation/mutual-aid protocols, algorithmic redistribution mechanisms, and advisory participatory signals.^[40]^
 
 ---
 
@@ -983,6 +984,8 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ^[39]^ `schemas/postgres/040_open_source_capitalist_scaling.sql` — Farm launch unit economics, network scaling targets, adoption barrier assessments, perpetual value stress tests, open-source impact artifacts, and public-safe views; `docs/open-source-capitalist-scaling.md` — scaling economics operating guide.
 
+^[40]^ `schemas/postgres/041_kokonut_commons_governance.sql` — Anti-capture governance policies, flexible redistribution policies, federation protocols, algorithmic redistribution mechanisms, participatory signal experiments, and public-safe views; `docs/kokonut-commons-governance.md` — Kokonut Commons governance operating guide.
+
 ---
 
 ## Green Paper Review Commands
@@ -1029,6 +1032,10 @@ python3 -m services.agents.regenerator_agent --location-id UUID --store
 python3 -m services.agents.open_source_capitalist_agent --location-id UUID
 python3 -m services.agents.open_source_capitalist_agent --location-id UUID --store
 
+# Kokonut Commons governance synthesis
+python3 -m services.agents.kokonut_commons_agent --location-id UUID
+python3 -m services.agents.kokonut_commons_agent --location-id UUID --store
+
 # Report generation
 python3 -m services.export.report_generator --auto --location-id UUID
 python3 -m services.export.report_generator --type holistic_wellbeing --location-id UUID
@@ -1056,6 +1063,11 @@ python3 -m services.export.report_generator --type scaling_economics --location-
 python3 -m services.export.report_generator --type adoption_barriers --location-id UUID
 python3 -m services.export.report_generator --type perpetual_value_stress --location-id UUID
 python3 -m services.export.report_generator --type open_source_impact --location-id UUID
+python3 -m services.export.report_generator --type anti_capture_governance --location-id UUID
+python3 -m services.export.report_generator --type redistribution_policy --location-id UUID
+python3 -m services.export.report_generator --type federation_mutual_aid --location-id UUID
+python3 -m services.export.report_generator --type algorithmic_redistribution --location-id UUID
+python3 -m services.export.report_generator --type participatory_signal --location-id UUID
 
 # EBF scoring
 python3 -m services.scoring --location-id UUID

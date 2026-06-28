@@ -1,0 +1,1 @@
+{"title":"Anti-Capture Governance Dashboard","description":"Public-safe anti-plutocratic governance policy evidence.","cards":[{"name":"Anti-Capture Policies","dataset_query":"dashboards/metabase/sql/52_anti_capture_governance.sql","visualization":"table"}],"metadata":{"owner":"governance_guild","privacy":"public_safe","refresh_cron":"0 6 * * *"}}

@@ -1,0 +1,1 @@
+{"title":"Algorithmic Redistribution Dashboard","description":"Public-safe proposed, pilot, and active redistribution mechanisms.","cards":[{"name":"Algorithmic Redistribution Mechanisms","dataset_query":"dashboards/metabase/sql/55_algorithmic_redistribution.sql","visualization":"table"}],"metadata":{"owner":"finance_guild","privacy":"public_safe","refresh_cron":"0 6 * * *"}}

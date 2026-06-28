@@ -172,6 +172,12 @@ echo "Seeding Open Source Capitalist scaling definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/041_open_source_capitalist_scaling.sql"
 echo "Open Source Capitalist scaling definitions seeded."
 
+# Seed Kokonut Commons governance reference data
+echo ""
+echo "Seeding Kokonut Commons governance definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/042_kokonut_commons_governance.sql"
+echo "Kokonut Commons governance definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""

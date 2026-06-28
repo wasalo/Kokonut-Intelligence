@@ -1,0 +1,1 @@
+{"title":"Commons Redistribution Policy Dashboard","description":"Flexible redistribution policies and scenarios by context.","cards":[{"name":"Redistribution Policies","dataset_query":"dashboards/metabase/sql/53_redistribution_policy.sql","visualization":"table"}],"metadata":{"owner":"finance_guild","privacy":"public_safe","refresh_cron":"0 6 * * *"}}

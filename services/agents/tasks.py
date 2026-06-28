@@ -146,6 +146,20 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "writes": ["ai_summary:draft"],
         "high_risk": False,
     },
+    "kokonut_commons_synthesis": {
+        "description": "Summarize public-safe anti-capture governance, flexible redistribution policies, federation protocols, algorithmic redistribution mechanisms, and participatory signals.",
+        "risk": "medium",
+        "inputs": {
+            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "store": {"type": "boolean", "required": False},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "ai_summary_id": {"type": "string", "format": "uuid", "required": False},
+        },
+        "writes": ["ai_summary:draft"],
+        "high_risk": False,
+    },
     "ebf_scorecard_draft": {
         "description": "Draft an EBF scorecard workspace from governed source metrics and evidence links; human review required.",
         "risk": "medium",

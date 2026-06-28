@@ -125,6 +125,7 @@ Public aggregate views require a verified or published Farm Registry record befo
 - **GNH alignment and inclusion**: GNH-domain alignment, cultural preservation, renewable energy planning, vulnerable-group access, and foundational well-being evidence.
 - **Regenerative outcomes and stewardship**: Grant-facing outcome summaries, farm/network governance mechanisms, replication readiness, and adaptive stewardship review loops.
 - **Open Source Capitalist scaling**: Cost-per-farm economics, explicit scaling targets, adoption barriers, downside stress tests, and reusable open-source artifact evidence.
+- **Kokonut Commons governance**: Anti-capture governance, flexible redistribution policies, federation/mutual-aid protocols, algorithmic redistribution mechanisms, and advisory participatory signals.
 - **Forecasting and analytics**: Scenario forecasts, Fortune 500-style farm scoring, ecological analytics, water access, revenue multiplier opportunity maps, and AI-generated summaries.
 - **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, and public attestation summaries.
 - **Impact framework alignment**: SDGs, 8 Forms of Capital, Pillars of Value, EBF/CRISP mappings, regeneration principles, syntropic zones, and practice evidence.
@@ -189,6 +190,7 @@ Additional intelligence services include:
 | GNH synthesis | `python3 -m services.agents.gnh_agent --location-id UUID` |
 | Regenerator synthesis | `python3 -m services.agents.regenerator_agent --location-id UUID` |
 | Open Source Capitalist synthesis | `python3 -m services.agents.open_source_capitalist_agent --location-id UUID` |
+| Kokonut Commons synthesis | `python3 -m services.agents.kokonut_commons_agent --location-id UUID` |
 | Environmental analytics | `python3 -m services.analytics --environmental-baseline --location-id UUID` |
 | Portfolio theme summary | `python3 -m services.analytics --portfolio-summary` |
 | EBF portfolio messy roll-up | `python3 -m services.analytics --ebf-portfolio-summary` |
