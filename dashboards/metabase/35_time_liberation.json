@@ -1,0 +1,16 @@
+{
+  "title": "Time Liberation Dashboard",
+  "description": "Public-safe time reclaimed, reporting-burden reduction, and automation or agent support observations.",
+  "cards": [
+    {
+      "name": "Time Liberation Summary",
+      "dataset_query": "dashboards/metabase/sql/35_time_liberation.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "impact_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

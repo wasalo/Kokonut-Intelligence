@@ -121,6 +121,7 @@ Public aggregate views require a verified or published Farm Registry record befo
 - **Holistic well-being**: Cultural context, local-language accessibility, well-being metric observations, and public-safe feedback-to-action traceability.
 - **Financial resilience and scaling**: Farm sustainability plans, risk mitigation registers, scaling roadmap milestones, and Green Paper publication review status.
 - **Capital efficiency and utility**: Scenario-based capital leverage, regenerative practice payback, governance throughput, and capital-provider utility evidence with public limitations.
+- **Commons liberation and stewardship**: Time reclaimed, anti-extractive capital alignment, inclusive governance, and land stewardship evidence with privacy and claim boundaries.
 - **Forecasting and analytics**: Scenario forecasts, Fortune 500-style farm scoring, ecological analytics, water access, revenue multiplier opportunity maps, and AI-generated summaries.
 - **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, and public attestation summaries.
 - **Impact framework alignment**: SDGs, 8 Forms of Capital, Pillars of Value, EBF/CRISP mappings, regeneration principles, syntropic zones, and practice evidence.
@@ -181,6 +182,7 @@ Additional intelligence services include:
 | Revenue multiplier | `python3 -m services.revenue_multiplier.cli --location-id UUID` |
 | Capital efficiency report | `python3 -m services.export.report_generator --type capital_efficiency --location-id UUID` |
 | Governance throughput report | `python3 -m services.export.report_generator --type governance_throughput --location-id UUID` |
+| Commons synthesis | `python3 -m services.agents.commons_agent --location-id UUID` |
 | Environmental analytics | `python3 -m services.analytics --environmental-baseline --location-id UUID` |
 | Portfolio theme summary | `python3 -m services.analytics --portfolio-summary` |
 | EBF portfolio messy roll-up | `python3 -m services.analytics --ebf-portfolio-summary` |

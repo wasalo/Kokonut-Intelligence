@@ -1,0 +1,16 @@
+{
+  "title": "Governance Inclusion Dashboard",
+  "description": "Public-safe governance representation, pseudonymous participation, marginalized voice, and missing-group evidence.",
+  "cards": [
+    {
+      "name": "Governance Inclusion Summary",
+      "dataset_query": "dashboards/metabase/sql/37_governance_inclusion.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Capital Alignment Dashboard",
+  "description": "Public-safe assessment of capital-source alignment, extractive-risk level, community-control terms, and commons reinvestment.",
+  "cards": [
+    {
+      "name": "Capital Alignment Summary",
+      "dataset_query": "dashboards/metabase/sql/36_capital_alignment.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "finance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

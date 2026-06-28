@@ -148,6 +148,12 @@ echo "Seeding Capital Efficiency and Utility definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/037_capital_efficiency_and_utility.sql"
 echo "Capital Efficiency and Utility definitions seeded."
 
+# Seed Commons Liberation and Stewardship reference data
+echo ""
+echo "Seeding Commons Liberation and Stewardship definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/038_commons_liberation_and_stewardship.sql"
+echo "Commons Liberation and Stewardship definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""
