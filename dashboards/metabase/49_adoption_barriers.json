@@ -1,0 +1,16 @@
+{
+  "title": "Adoption Barriers Dashboard",
+  "description": "Public-safe onboarding, DAO, regulatory, cultural, market, capital, technical, and evidence-quality barriers with mitigation status.",
+  "cards": [
+    {
+      "name": "Adoption Barriers Summary",
+      "dataset_query": "dashboards/metabase/sql/49_adoption_barriers.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

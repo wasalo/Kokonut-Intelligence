@@ -5,6 +5,7 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Open Source Capitalist scaling layer**: Added `040_open_source_capitalist_scaling.sql` with farm launch unit economics, network scaling targets, adoption barrier assessments, perpetual value stress tests, open-source artifact reuse records, public-safe views, dashboards, Adelphi examples, `services.agents.open_source_capitalist_agent`, report types, docs, and tests.
 - **Regenerative outcomes and stewardship layer**: Added `039_regenerative_outcomes_and_stewardship.sql` with grant-facing regenerative outcome summaries, community governance mechanisms, replication readiness assessments, adaptive stewardship reviews, public-safe views, dashboards, Adelphi examples, `services.agents.regenerator_agent`, report types, docs, and tests.
 - **GNH alignment and inclusion layer**: Added `038_gnh_alignment_and_inclusion.sql` with GNH domain assessments, cultural preservation plans, renewable energy plans, vulnerable group access plans, foundational well-being observations, public-safe views, dashboards, Adelphi examples, `services.agents.gnh_agent`, report types, docs, and tests.
 - **Commons liberation and stewardship layer**: Added `037_commons_liberation_and_stewardship.sql` with time liberation observations, capital alignment assessments, governance inclusion observations, land stewardship commitments, public-safe views, dashboards, Adelphi examples, `services.agents.commons_agent`, report types, docs, and tests.

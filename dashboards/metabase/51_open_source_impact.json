@@ -1,0 +1,16 @@
+{
+  "title": "Open Source Impact Dashboard",
+  "description": "Public-safe reusable schemas, dashboards, reports, agents, contracts, playbooks, and export mappings with reuse signals.",
+  "cards": [
+    {
+      "name": "Open Source Impact Artifacts",
+      "dataset_query": "dashboards/metabase/sql/51_open_source_impact.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "technology_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

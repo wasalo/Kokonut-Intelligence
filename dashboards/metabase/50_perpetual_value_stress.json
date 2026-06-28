@@ -1,0 +1,16 @@
+{
+  "title": "Perpetual Value Stress Dashboard",
+  "description": "Public-safe downside runway, NOI, solvency status, and mitigation actions for perpetual-value stress scenarios.",
+  "cards": [
+    {
+      "name": "Perpetual Value Stress Tests",
+      "dataset_query": "dashboards/metabase/sql/50_perpetual_value_stress.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "finance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}
