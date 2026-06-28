@@ -1,0 +1,16 @@
+{
+  "title": "Regenerative Outcomes Dashboard",
+  "description": "Grant-facing ecological and social outcomes with baseline/latest values, confidence, and evidence maturity.",
+  "cards": [
+    {
+      "name": "Regenerative Outcomes Summary",
+      "dataset_query": "dashboards/metabase/sql/44_regenerative_outcomes.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "impact_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

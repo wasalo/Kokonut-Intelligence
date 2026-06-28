@@ -1,0 +1,16 @@
+{
+  "title": "Replication Readiness Dashboard",
+  "description": "Public-safe replication prerequisites, barriers, enablers, support structures, and evidence-maturity gates.",
+  "cards": [
+    {
+      "name": "Replication Readiness Summary",
+      "dataset_query": "dashboards/metabase/sql/46_replication_readiness.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

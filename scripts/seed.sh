@@ -160,6 +160,12 @@ echo "Seeding GNH Alignment and Inclusion definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/039_gnh_alignment_and_inclusion.sql"
 echo "GNH Alignment and Inclusion definitions seeded."
 
+# Seed Regenerative Outcomes and Stewardship reference data
+echo ""
+echo "Seeding Regenerative Outcomes and Stewardship definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/040_regenerative_outcomes_and_stewardship.sql"
+echo "Regenerative Outcomes and Stewardship definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""
