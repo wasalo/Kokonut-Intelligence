@@ -19,6 +19,6 @@
   "devDependencies": {
     "@directus/extensions-sdk": "^11.0.0",
     "typescript": "^5.5.0",
-    "vitest": "^2.1.9"
+    "vitest": "^4.1.9"
   }
 }
