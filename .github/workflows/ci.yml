@@ -17,7 +17,7 @@ jobs:
       POSTGRES_PASSWORD: ci-placeholder
       CLICKHOUSE_PASSWORD: ci-placeholder
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -64,7 +64,7 @@ jobs:
       run:
         working-directory: extensions/kokonut-hooks
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -92,7 +92,7 @@ jobs:
       run:
         working-directory: contracts
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           submodules: recursive
