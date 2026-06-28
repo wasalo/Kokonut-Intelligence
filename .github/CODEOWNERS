@@ -1,0 +1,17 @@
+# CODEOWNERS — Kokonut Intelligence
+# Each entry triggers review requests on PRs that touch matching paths.
+
+# Default — all changes require review from all co-owners
+* @wasalo @wasabinetwork @gerkery
+
+# Security-sensitive files — require admin review
+.env.example @wasalo
+docker-compose*.yml @wasalo
+AGENTS.md @wasalo
+.github/ @wasalo
+Makefile @wasalo
+
+# Solidity contracts (excluding vendored libs)
+contracts/src/ @wasalo
+contracts/script/ @wasalo
+contracts/test/ @wasalo

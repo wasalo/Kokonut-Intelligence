@@ -3,6 +3,14 @@
 .env.local
 .env.*.local
 
+# Private keys and secrets
+*.pem
+*.key
+private_key
+*_private_key
+secrets.json
+*.keystore
+
 # Data directories (persistent state)
 data/
 
