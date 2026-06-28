@@ -154,6 +154,12 @@ echo "Seeding Commons Liberation and Stewardship definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/038_commons_liberation_and_stewardship.sql"
 echo "Commons Liberation and Stewardship definitions seeded."
 
+# Seed GNH Alignment and Inclusion reference data
+echo ""
+echo "Seeding GNH Alignment and Inclusion definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/039_gnh_alignment_and_inclusion.sql"
+echo "GNH Alignment and Inclusion definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""

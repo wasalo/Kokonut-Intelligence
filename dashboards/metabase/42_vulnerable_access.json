@@ -1,0 +1,16 @@
+{
+  "title": "Vulnerable Access Dashboard",
+  "description": "Public-safe vulnerable group access, accommodation, and participation pathway planning evidence.",
+  "cards": [
+    {
+      "name": "Vulnerable Access Summary",
+      "dataset_query": "dashboards/metabase/sql/42_vulnerable_access.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "impact_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

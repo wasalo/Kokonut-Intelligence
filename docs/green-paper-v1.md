@@ -62,6 +62,7 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 - Financial resilience evidence for grant dependency, reinvestment, public-goods allocation, runway, risk mitigation, scaling milestones, and Green Paper publication status.^[34]^
 - Capital efficiency and utility evidence for scenario-based capital leverage, regenerative practice payback, DAO/community governance throughput, and capital-provider utility limitations.^[35]^
 - Commons liberation and stewardship evidence for time reclaimed, capital alignment, governance inclusion, pseudonymous participation boundaries, and land stewardship commitments.^[36]^
+- GNH alignment evidence for domain-level well-being, cultural preservation, renewable energy planning, vulnerable-group access, and foundational well-being signals.^[37]^
 
 ---
 
@@ -974,6 +975,8 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ^[36]^ `schemas/postgres/037_commons_liberation_and_stewardship.sql` — Time liberation observations, capital alignment assessments, governance inclusion observations, land stewardship commitments, and public-safe views; `docs/commons-liberation.md` — Commons evidence operating guide.
 
+^[37]^ `schemas/postgres/038_gnh_alignment_and_inclusion.sql` — GNH alignment assessments, cultural preservation plans, renewable energy plans, vulnerable group access plans, foundational well-being observations, and public-safe views; `docs/gnh-alignment.md` — GNH evidence operating guide.
+
 ---
 
 ## Green Paper Review Commands
@@ -1008,6 +1011,10 @@ python3 -m services.agents.capital_efficiency_agent --location-id UUID --store
 python3 -m services.agents.commons_agent --location-id UUID
 python3 -m services.agents.commons_agent --location-id UUID --store
 
+# GNH alignment synthesis
+python3 -m services.agents.gnh_agent --location-id UUID
+python3 -m services.agents.gnh_agent --location-id UUID --store
+
 # Report generation
 python3 -m services.export.report_generator --auto --location-id UUID
 python3 -m services.export.report_generator --type holistic_wellbeing --location-id UUID
@@ -1022,6 +1029,11 @@ python3 -m services.export.report_generator --type time_liberation --location-id
 python3 -m services.export.report_generator --type capital_alignment --location-id UUID
 python3 -m services.export.report_generator --type governance_inclusion --location-id UUID
 python3 -m services.export.report_generator --type land_stewardship --location-id UUID
+python3 -m services.export.report_generator --type gnh_alignment --location-id UUID
+python3 -m services.export.report_generator --type cultural_preservation --location-id UUID
+python3 -m services.export.report_generator --type renewable_energy --location-id UUID
+python3 -m services.export.report_generator --type vulnerable_access --location-id UUID
+python3 -m services.export.report_generator --type foundational_wellbeing --location-id UUID
 
 # EBF scoring
 python3 -m services.scoring --location-id UUID

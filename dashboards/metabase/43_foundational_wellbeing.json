@@ -1,0 +1,16 @@
+{
+  "title": "Foundational Well-being Dashboard",
+  "description": "Public-safe happiness, peace, safety, basic-needs, dignity, and belonging signals.",
+  "cards": [
+    {
+      "name": "Foundational Well-being Summary",
+      "dataset_query": "dashboards/metabase/sql/43_foundational_wellbeing.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "impact_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}
