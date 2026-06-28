@@ -5,6 +5,7 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Financial resilience and scaling layer**: Added `035_financial_resilience_and_scaling.sql` with financial sustainability plans, risk mitigation registers, scaling roadmap milestones, Green Paper publication review, public-safe views, dashboard datasets, Adelphi pilot examples, `services.agents.resilience_agent`, new report types, docs, and tests.
 - **Holistic well-being and cultural context layer**: Added `034_holistic_wellbeing.sql` with cultural context records, well-being metric observations, participatory action traceability, and public-safe views; seeded well-being metric definitions and dashboards; added Adelphi pilot examples for Spanish-language summaries, operator capability, community trust, and feedback-to-metric traceability; added `services.agents.wellbeing_agent`, `holistic_wellbeing` report snapshots, docs, and tests.
 - **EBF acceptance-quality closure**: Linked public EBF carbon scores to published Level 6 third-party verified carbon `impact_claim` records and added DB-backed EBF integration checks for schema/view behavior.
 - **EBF backlog gap fixes**: Added service-level EBF publication gates, draft scorecard CSV import, aggregate stakeholder-feedback equity scoring, dashboard compatibility files, and per-pillar scoring wrapper modules without breaking existing paths.

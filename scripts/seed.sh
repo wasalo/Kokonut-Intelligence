@@ -136,6 +136,12 @@ echo "Seeding Holistic Well-being metric and dashboard definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/035_holistic_wellbeing.sql"
 echo "Holistic Well-being definitions seeded."
 
+# Seed Financial Resilience and Scaling reference data
+echo ""
+echo "Seeding Financial Resilience and Scaling definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/036_financial_resilience_and_scaling.sql"
+echo "Financial Resilience and Scaling definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""

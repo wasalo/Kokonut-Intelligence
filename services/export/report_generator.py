@@ -167,6 +167,35 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
         (location_id,),
     )
     participatory_actions = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT plan_name, farm_model, sustainability_status, grant_dependency_pct,
+               reinvestment_pct, public_goods_allocation_pct, runway_months,
+               projected_annual_revenue_usd, projected_annual_noi_usd,
+               public_summary, evidence_maturity, evidence_maturity_label
+        FROM v_public_financial_sustainability_summary
+        WHERE location_id = %s
+        ORDER BY plan_period_start DESC, plan_name
+        LIMIT 5
+        """,
+        (location_id,),
+    )
+    financial_sustainability = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT risk_category, likelihood, impact_level, residual_risk_level,
+               owner_role, review_cadence, next_review_date, public_summary,
+               evidence_maturity, evidence_maturity_label
+        FROM v_public_risk_mitigation_summary
+        WHERE location_id = %s
+        ORDER BY next_review_date NULLS LAST, risk_category
+        LIMIT 10
+        """,
+        (location_id,),
+    )
+    risk_mitigation = [dict(r) for r in cur.fetchall()]
     cur.close()
 
     has_private_feedback = any(row.get("private_or_no_consent_count", 0) for row in feedback_summary)
@@ -197,6 +226,8 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
         "cultural_context": _serialize_rows(cultural_context),
         "wellbeing_metrics": _serialize_rows(wellbeing_metrics),
         "participatory_actions": _serialize_rows(participatory_actions),
+        "financial_sustainability": _serialize_rows(financial_sustainability),
+        "risk_mitigation": _serialize_rows(risk_mitigation),
         "limitations": limitations,
     }
 
@@ -720,6 +751,135 @@ def generate_holistic_wellbeing(conn, location_id: str, period_start: str = None
     }
 
 
+def generate_financial_sustainability(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe financial sustainability report for a location."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT *
+        FROM v_public_financial_sustainability_summary
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR plan_period_start >= %s::date)
+          AND (%s::date IS NULL OR plan_period_end IS NULL OR plan_period_end <= %s::date)
+        ORDER BY plan_period_start DESC, plan_name
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    plans = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    return {
+        "report_type": "financial_sustainability",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "plans": _serialize_rows(plans),
+        "limitations": [
+            "This report summarizes published financial sustainability plans only.",
+            "Projected revenue, NOI, runway, and grant dependency are planning signals, not guarantees.",
+            "Private financial terms and draft capital discussions are excluded.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_risk_mitigation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe risk mitigation report for a location."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT *
+        FROM v_public_risk_mitigation_summary
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR review_date IS NULL OR review_date >= %s::date)
+          AND (%s::date IS NULL OR review_date IS NULL OR review_date <= %s::date)
+        ORDER BY next_review_date NULLS LAST, risk_category
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    risks = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    return {
+        "report_type": "risk_mitigation",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "risks": _serialize_rows(risks),
+        "limitations": [
+            "This report summarizes published risk register entries only.",
+            "Insurance scope may be summarized when full policy documents are private or unavailable for publication.",
+            "Residual risk remains a reviewer-assessed signal and should be revisited on the listed cadence.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_scaling_roadmap(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe scaling roadmap report."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    if location_id:
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_scaling_roadmap_summary
+            WHERE (location_id = %s OR location_id IS NULL)
+              AND (%s::date IS NULL OR target_date >= %s::date)
+              AND (%s::date IS NULL OR target_date <= %s::date)
+            ORDER BY target_date, roadmap_name
+            """,
+            (location_id, period_start, period_start, period_end, period_end),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT *
+            FROM v_public_scaling_roadmap_summary
+            WHERE (%s::date IS NULL OR target_date >= %s::date)
+              AND (%s::date IS NULL OR target_date <= %s::date)
+            ORDER BY target_date, roadmap_name
+            """,
+            (period_start, period_start, period_end, period_end),
+        )
+    milestones = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    return {
+        "report_type": "scaling_roadmap",
+        "location_id": location_id,
+        "milestones": _serialize_rows(milestones),
+        "total_capital_required_usd": round(sum(float(row.get("capital_required_usd") or 0) for row in milestones), 2),
+        "limitations": [
+            "Scaling roadmap entries are milestone plans, not guaranteed expansion commitments.",
+            "Capital requirements, partner dependencies, and risk gates should be reviewed before each expansion decision.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_green_paper_publication_status(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe Green Paper publication status report."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
+        """
+        SELECT *
+        FROM v_public_green_paper_publication_status
+        ORDER BY target_publication_date DESC, version DESC
+        """
+    )
+    reviews = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    return {
+        "report_type": "green_paper_publication_status",
+        "location_id": location_id,
+        "reviews": _serialize_rows(reviews),
+        "limitations": [
+            "Draft or private reviewer notes are not exposed in public publication status reports.",
+            "Final publication requires stakeholder approval plus publication hash or CID metadata.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
@@ -733,6 +893,10 @@ REPORT_GENERATORS = {
     "climate_impact": generate_climate_impact,
     "ebf_scorecard": generate_ebf_scorecard,
     "holistic_wellbeing": generate_holistic_wellbeing,
+    "financial_sustainability": generate_financial_sustainability,
+    "risk_mitigation": generate_risk_mitigation,
+    "scaling_roadmap": generate_scaling_roadmap,
+    "green_paper_publication_status": generate_green_paper_publication_status,
 }
 
 

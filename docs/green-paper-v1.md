@@ -59,6 +59,7 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 - EBF pillar scoring across 7 dimensions with 70 rubric bands, public scorecards, trust graph provenance, and calibration workflow.^[29]^
 - Portfolio messy roll-up comparison by pillar, confidence, and maturity with explicit caveats, not farm ranking.^[30]^
 - Holistic well-being evidence for cultural context, local-language reporting, community trust, operator capability, and participatory feedback-to-action traceability.^[33]^
+- Financial resilience evidence for grant dependency, reinvestment, public-goods allocation, runway, risk mitigation, scaling milestones, and Green Paper publication status.^[34]^
 
 ---
 
@@ -698,6 +699,19 @@ Kokonut Green Paper reports should be useful to partners without overstating evi
 - `negative_findings`
 - `affected_community_voice`
 
+### Financial Resilience And Scaling
+
+Regenerator review feedback identified that Kokonut's long-term financial self-sustainability, risk mitigation implementation, scaling roadmap, and Green Paper finalization should be explicit rather than implied. Green Paper V1 now treats these as governed evidence objects.^[34]^
+
+| Record | Purpose |
+|---|---|
+| `financial_sustainability_plan` | Farm model, revenue streams, grant dependency, reinvestment, public-goods allocation, runway, projected revenue, and projected NOI |
+| `risk_mitigation_register` | Material risks with mitigation strategy, insurance scope, oversight, technical support, owner, cadence, and residual risk |
+| `scaling_roadmap_milestone` | Target region, farm model, planned farm count, capital needed, dependencies, partner requirements, and risk gates |
+| `green_paper_publication_review` | Review status, open questions, approvals, target publication date, publication hash, and CID metadata |
+
+Financial sustainability reports are planning evidence, not guarantees. Scaling milestones are readiness checkpoints, not commitments to launch farms unless capital, partner, operational, risk, and governance gates are satisfied.
+
 ### Dashboard Review
 
 Use the Evidence Gap and Stakeholder Feedback dashboards before publishing Green Paper materials. Claims with missing evidence links, public claims below maturity thresholds, or carbon claims below Level 6 should be treated as review items rather than public proof.^[22]^
@@ -778,6 +792,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Evidence gap and stakeholder feedback dashboards.
 - Report snapshots with public-interest context.
 - Holistic well-being evidence with cultural context, local-language reporting, and feedback-to-action traceability.
+- Financial sustainability, risk mitigation, scaling roadmap, and Green Paper publication review evidence.
 - Agent-assisted CIDS export and feedback synthesis with draft-only outputs.
 - Carbon and environmental impact tracking with sequestration, emissions, biodiversity, and regenerative scoring.
 - EBF pillar scoring with 7 dimensions, 70 rubric bands, public scorecards, trust graph provenance, calibration workflow, and portfolio messy roll-up.^[29]^
@@ -792,6 +807,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Agent outputs are draft aids and must be human-reviewed.
 - EBF scores are governed assessments, not automatic certifications; calibration and rubric decisions require human review.
 - Holistic well-being signals are learning and accountability evidence, not a guarantee of community satisfaction or cultural representation.
+- Financial sustainability plans and scaling milestones are planning evidence, not guarantees of revenue, funding, expansion, or risk elimination.
 - Forecast and modeled outputs are projections, not guarantees.
 - The platform does not issue carbon credits or provide external verification services.
 - Agent capabilities described in this document are current; future capabilities are not commitments.
@@ -950,6 +966,8 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ^[33]^ `schemas/postgres/034_holistic_wellbeing.sql` — Cultural context, well-being observations, participatory action records, and public-safe views; `docs/holistic-wellbeing.md` — Holistic well-being operating guide.
 
+^[34]^ `schemas/postgres/035_financial_resilience_and_scaling.sql` — Financial sustainability plans, risk mitigation register, scaling roadmap milestones, Green Paper publication review, and public-safe views; `docs/financial-sustainability.md`, `docs/risk-mitigation.md`, and `docs/scaling-roadmap.md` — Operating guides.
+
 ---
 
 ## Green Paper Review Commands
@@ -972,9 +990,17 @@ python3 -m services.agents.feedback_agent --location-id UUID --store
 python3 -m services.agents.wellbeing_agent --location-id UUID
 python3 -m services.agents.wellbeing_agent --location-id UUID --store
 
+# Financial resilience and scaling synthesis
+python3 -m services.agents.resilience_agent --location-id UUID
+python3 -m services.agents.resilience_agent --location-id UUID --store
+
 # Report generation
 python3 -m services.export.report_generator --auto --location-id UUID
 python3 -m services.export.report_generator --type holistic_wellbeing --location-id UUID
+python3 -m services.export.report_generator --type financial_sustainability --location-id UUID
+python3 -m services.export.report_generator --type risk_mitigation --location-id UUID
+python3 -m services.export.report_generator --type scaling_roadmap --location-id UUID
+python3 -m services.export.report_generator --type green_paper_publication_status --location-id UUID
 
 # EBF scoring
 python3 -m services.scoring --location-id UUID

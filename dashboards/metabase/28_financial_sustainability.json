@@ -1,0 +1,16 @@
+{
+  "title": "Financial Sustainability Dashboard",
+  "description": "Public-safe financial resilience summary with grant dependency, reinvestment, public-goods allocation, runway, and projected NOI.",
+  "cards": [
+    {
+      "name": "Financial Sustainability Summary",
+      "dataset_query": "dashboards/metabase/sql/28_financial_sustainability.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "finance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

@@ -119,6 +119,7 @@ Public aggregate views require a verified or published Farm Registry record befo
 - **Metrics and reporting**: Versioned metric definitions, calculator-backed `metric_value` records, public aggregate views, dashboard datasets, report snapshots, and CSV/JSON/Parquet exports.
 - **Impact accountability**: Evidence maturity levels, stakeholder feedback, stakeholder outcomes, impact claims, participatory metric proposals, public-safe views, and CIDS Essential Tier JSON-LD export.
 - **Holistic well-being**: Cultural context, local-language accessibility, well-being metric observations, and public-safe feedback-to-action traceability.
+- **Financial resilience and scaling**: Farm sustainability plans, risk mitigation registers, scaling roadmap milestones, and Green Paper publication review status.
 - **Forecasting and analytics**: Scenario forecasts, Fortune 500-style farm scoring, ecological analytics, water access, revenue multiplier opportunity maps, and AI-generated summaries.
 - **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, and public attestation summaries.
 - **Impact framework alignment**: SDGs, 8 Forms of Capital, Pillars of Value, EBF/CRISP mappings, regeneration principles, syntropic zones, and practice evidence.
@@ -274,6 +275,9 @@ python3 -m services.agents.feedback_agent --location-id UUID
 # Run holistic well-being synthesis agent
 python3 -m services.agents.wellbeing_agent --location-id UUID
 
+# Run financial resilience synthesis agent
+python3 -m services.agents.resilience_agent --location-id UUID
+
 # Run EBF draft/gap/calibration agents
 python3 -m services.agents.ebf_scorecard_agent --location-id UUID --period-start 2026-01-01 --period-end 2026-12-31
 python3 -m services.agents.ebf_evidence_gap_agent --scorecard-id UUID
@@ -313,6 +317,7 @@ See [Green Paper V1](docs/green-paper-v1.md), [Operator Guide](docs/operator-gui
 | Run spreadsheet bridge tests | `python3 -m tests.test_spreadsheet_bridge` |
 | Run Common Foundations tests | `python3 -m tests.test_common_foundations` |
 | Run holistic well-being tests | `python3 -m tests.test_holistic_wellbeing` |
+| Run financial resilience tests | `python3 -m tests.test_financial_resilience` |
 | Run EBF P0 tests | `python3 -m tests.test_ebf_p0` |
 | Run EBF P1 tests | `python3 -m tests.test_ebf_p1` |
 | Run EBF P2 tests | `python3 -m tests.test_ebf_p2` |
@@ -370,6 +375,9 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 | [Stakeholder Feedback](docs/stakeholder-feedback.md) | Feedback consent, privacy, review, and public-summary rules |
 | [Participatory Metrics](docs/participatory-metrics.md) | Community-driven metric proposal workflow |
 | [Holistic Well-being](docs/holistic-wellbeing.md) | Cultural context, local-language reporting, well-being metrics, and participation traceability |
+| [Financial Sustainability](docs/financial-sustainability.md) | Grant dependency, reinvestment, public-goods allocation, runway, and farm model strategy |
+| [Risk Mitigation](docs/risk-mitigation.md) | Risk register, mitigation strategy, insurance scope, oversight, support, and residual risk |
+| [Scaling Roadmap](docs/scaling-roadmap.md) | Scaling milestones, resource needs, dependencies, risk gates, and Green Paper publication status |
 | [Spreadsheet Guide](docs/spreadsheet-guide.md) | CSV import/export templates and validation |
 | [Common Foundations Checklist](docs/common-foundations-checklist.md) | Claim quality checklist for useful questions through learning |
 | [Agent Safety](docs/agent-safety.md) | Agent approval gates and audit logging |
