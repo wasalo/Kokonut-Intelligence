@@ -4,7 +4,7 @@ target-version = "py39"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
-ignore = ["E501", "W503"]
+ignore = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["services", "tests"]
