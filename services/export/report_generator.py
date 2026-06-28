@@ -1844,6 +1844,23 @@ def _verify_snapshot(conn, snapshot_id_or_hash: str) -> None:
         print("Result:     FAIL -- hash mismatch, report may have been tampered with")
 
 
+def _check_report_empty(report_data: dict, report_type: str) -> None:
+    """Warn if a report has no primary content rows."""
+    content_keys = [k for k in report_data if k in {
+        "plans", "risks", "milestones", "scenarios", "observations", "reviews",
+        "policies", "protocols", "mechanisms", "experiments", "barriers",
+        "stress_tests", "artifacts", "economics", "targets", "assessments",
+        "outcomes", "mechanisms", "rows", "items", "farms", "crops",
+        "pillars", "scores", "evidence_gaps", "recommendations",
+        "cultural_context", "wellbeing_metrics", "participatory_actions",
+        "financial_sustainability", "risk_mitigation",
+    }]
+    for key in content_keys:
+        value = report_data.get(key)
+        if isinstance(value, list) and len(value) == 0:
+            print(f"  ⚠ {report_type}: no rows in '{key}' — report may be empty")
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -1890,19 +1907,28 @@ def main():
         print(f"Generating all {len(report_types)} report types for location {args.location_id}...")
         print()
 
+        success = 0
+        failed = 0
+        empty = 0
+
         for report_type in report_types:
             print(f"Generating {report_type}...")
             try:
                 generator = REPORT_GENERATORS[report_type]
                 report_data = generator(conn, args.location_id, args.period_start, args.period_end)
+                _check_report_empty(report_data, report_type)
                 snapshot_id = store_snapshot(conn, report_data, args.location_id, args.period_start, args.period_end)
                 snapshot_hash = compute_hash(report_data)
                 print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
+                success += 1
             except Exception as e:
                 print(f"  ✗ {report_type}: {e}")
+                failed += 1
 
-        print(f"\nDone: {len(report_types)} reports generated")
+        print(f"\nDone: {success} succeeded, {failed} failed, {empty} empty")
         conn.close()
+        if failed > 0:
+            exit(1)
         return
 
     print(f"Generating {args.type} report for location {args.location_id}...")

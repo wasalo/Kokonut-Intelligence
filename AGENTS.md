@@ -75,7 +75,8 @@
 - Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --sensor UUID`
 - Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check`
 - Alert rules list: `python3 -m services.ingestion.anomaly_detector --list-rules`
-- AI summary: `python3 -m services.agents.ai_summary --location-id UUID --type combined`
+- AI summary: `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined`
+- AI summary (store draft): `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined --store`
 - Dataset refresh: `python3 -m services.export.dataset_refresh --all`
 - Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`
 - Climate-impact report: `python3 -m services.export.report_generator --type climate_impact --location-id UUID`
@@ -87,9 +88,41 @@
 - Portfolio tests: `python3 -m tests.test_portfolio`
 - Spreadsheet bridge tests: `python3 -m tests.test_spreadsheet_bridge`
 - Common Foundations tests: `python3 -m tests.test_common_foundations`
+- Holistic wellbeing tests: `python3 -m tests.test_holistic_wellbeing`
+- Financial resilience tests: `python3 -m tests.test_financial_resilience`
+- Capital efficiency tests: `python3 -m tests.test_capital_efficiency`
+- Commons liberation tests: `python3 -m tests.test_commons_liberation`
+- GNH alignment tests: `python3 -m tests.test_gnh_alignment`
+- Regenerative outcomes tests: `python3 -m tests.test_regenerative_outcomes`
+- Open source capitalist scaling tests: `python3 -m tests.test_open_source_capitalist_scaling`
+- Kokonut commons governance tests: `python3 -m tests.test_kokonut_commons_governance`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
+- Wellbeing synthesis agent: `python3 -m services.agents.wellbeing_agent --location-id UUID`
+- Resilience synthesis agent: `python3 -m services.agents.resilience_agent --location-id UUID`
+- Capital efficiency agent: `python3 -m services.agents.capital_efficiency_agent --location-id UUID`
+- Commons liberation agent: `python3 -m services.agents.commons_agent --location-id UUID`
+- GNH alignment agent: `python3 -m services.agents.gnh_agent --location-id UUID`
+- Regenerator agent: `python3 -m services.agents.regenerator_agent --location-id UUID`
+- Open Source Capitalist agent: `python3 -m services.agents.open_source_capitalist_agent --location-id UUID`
+- Kokonut Commons agent: `python3 -m services.agents.kokonut_commons_agent --location-id UUID`
+- EBF scorecard agent: `python3 -m services.agents.ebf_scorecard_agent --help`
+- EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
+- EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`
+- Forecast CLI: `python3 -m services.forecast.cli --help`
+- Fortune 500 CLI: `python3 -m services.fortune500.cli --help`
+- Revenue multiplier CLI: `python3 -m services.revenue_multiplier.cli --help`
+- EBF scoring CLI: `python3 -m services.scoring --help`
+- Report types (scaling economics): `python3 -m services.export.report_generator --type scaling_economics --location-id UUID`
+- Report types (adoption barriers): `python3 -m services.export.report_generator --type adoption_barriers --location-id UUID`
+- Report types (perpetual value stress): `python3 -m services.export.report_generator --type perpetual_value_stress --location-id UUID`
+- Report types (open source impact): `python3 -m services.export.report_generator --type open_source_impact --location-id UUID`
+- Report types (anti-capture governance): `python3 -m services.export.report_generator --type anti_capture_governance --location-id UUID`
+- Report types (redistribution policy): `python3 -m services.export.report_generator --type redistribution_policy --location-id UUID`
+- Report types (federation mutual aid): `python3 -m services.export.report_generator --type federation_mutual_aid --location-id UUID`
+- Report types (algorithmic redistribution): `python3 -m services.export.report_generator --type algorithmic_redistribution --location-id UUID`
+- Report types (participatory signal): `python3 -m services.export.report_generator --type participatory_signal --location-id UUID`
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
@@ -153,13 +186,18 @@
 - Forecast engine projects retained value from historical reinvestment rates.
 - `CALCULATION_VERSION` is date-based (`vYYYY.MM`), auto-bumps monthly.
 - Per-square-meter revenue: `Total Production = Planting Density/m² × Bed Area m² × Beds/Plot × Plots × (1 − Loss Rate)`. Activates when `crop_cycle.planting_density` AND `plot.bed_area_sqm` AND `plot.bed_count` are set; falls back to ha-based model otherwise.
+- Anti-capture governance, redistribution, federation, algorithmic redistribution, and participatory signal records live in `schemas/postgres/041_kokonut_commons_governance.sql`.
+- Redistribution policies are flexible per scenario; do not hardcode a single allocation percentage across all contexts.
+- Participatory signal experiments are advisory only unless `decision_binding` states otherwise and human review approves use.
+- `ai_summary.py` requires a verified/published `farm_registry_record` before generating summaries and uses `--store` to opt into draft writes.
+- `safety.py` guards all governed collections via `GOVERNED_COLLECTIONS`; agents cannot set status to `verified` or `published` on any governed table.
 
 ## Logging & Retry
 
 - Operational modules use `services.common.logging.get_logger(name)` (Python `logging`), not `print()`.
 - CLI modules (`cli.py`) continue to use `print()` for user-facing output.
 - `KOKONUT_LOG_LEVEL` env var controls log level (default: `INFO`).
-- Retry config: `RETRY_MAX_RETRIES`, `RETRY_BACKOFF`, `RETRY_JITTER` in `services/ingestion/config.py`.
+- Retry config: `INGESTION_MAX_RETRIES`, `INGESTION_BACKOFF`, `INGESTION_JITTER` in `services/ingestion/config.py`.
 - Retry decorator catches only transient exceptions (network, timeout, connection errors), not `ValueError`/`KeyboardInterrupt`.
 - Migration runner: `python3 -m services.migration {status|migrate|dry-run}` tracks applied SQL files in `schema_migration`.
 

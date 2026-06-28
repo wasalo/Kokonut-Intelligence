@@ -26,7 +26,10 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt && pip install ruff
+
+      - name: Run ruff linter
+        run: ruff check services/ tests/ || true
 
       - name: Run CI check script
         run: ./scripts/ci-check.sh
@@ -38,10 +41,19 @@ jobs:
         run: python3 -m tests.test_attestation
 
       - name: Run integration tests
-        run: python3 -m tests.test_forecast && python3 -m tests.test_fortune500 && python3 -m tests.test_ingestion_retry
+        run: |
+          python3 -m tests.test_forecast && \
+          python3 -m tests.test_fortune500 && \
+          python3 -m tests.test_ingestion_retry && \
+          python3 -m tests.test_gis_import && \
+          python3 -m tests.test_market_data && \
+          python3 -m tests.test_sdk
 
-      - name: Run SDK smoke tests
-        run: python3 -m tests.test_sdk
+      - name: Run DB integration tests
+        run: |
+          python3 -m tests.test_mvp_done && \
+          python3 -m tests.test_revenue_multiplier && \
+          python3 -m tests.test_seed_idempotency
 
   hooks:
     name: Directus hooks

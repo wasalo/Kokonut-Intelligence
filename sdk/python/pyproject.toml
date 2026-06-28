@@ -23,9 +23,6 @@ all = [
     "web3>=6.0.0",
 ]
 
-[project.scripts]
-kokonut = "services.cli:main"
-
 [tool.setuptools.packages.find]
 where = [".."]
 include = ["services*", "sdk*"]

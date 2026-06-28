@@ -3,11 +3,13 @@
 AI Summary Generator — Agent-generated narratives for locations
 
 Queries recent operational, financial, and environmental data for a location
-and generates a structured text summary. Stores results in the ai_summary table.
+and generates a structured text summary. Stores results in the ai_summary table
+only when --store is passed.
 
 Usage:
     python3 -m services.agents.ai_summary --location-id UUID
     python3 -m services.agents.ai_summary --location-id UUID --summary-type financial
+    python3 -m services.agents.ai_summary --location-id UUID --store
     python3 -m services.agents.ai_summary --list
     python3 -m services.agents.ai_summary --verify <id>
 """
@@ -17,23 +19,43 @@ import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 import psycopg2
 import psycopg2.extras
 
+from services.agents.safety import assert_agent_action_allowed
+from services.agents.tasks import validate_output
+from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+
 
 def get_pg():
-    from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
     return psycopg2.connect(
         host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD
     )
+
+
+def _check_registry_backed(conn, location_id: str) -> bool:
+    """Verify the location has a verified/published farm registry record."""
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1 FROM farm_registry_record fr
+            WHERE fr.location_id = %s AND fr.status IN ('verified', 'published')
+        )
+        """,
+        (location_id,),
+    )
+    result = cur.fetchone()[0]
+    cur.close()
+    return result
 
 
 def generate_operations_summary(conn, location_id: str) -> dict:
     """Generate an operations summary from recent activity data."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Recent harvests
     cur.execute("""
         SELECT COUNT(*) as count, COALESCE(SUM(quantity), 0) as total_kg
         FROM harvest_event WHERE location_id = %s
@@ -42,7 +64,6 @@ def generate_operations_summary(conn, location_id: str) -> dict:
     """, (location_id,))
     harvests = dict(cur.fetchone())
 
-    # Recent sales
     cur.execute("""
         SELECT COUNT(*) as count, COALESCE(SUM(total_amount), 0) as total_usd
         FROM sales_event WHERE location_id = %s
@@ -51,14 +72,12 @@ def generate_operations_summary(conn, location_id: str) -> dict:
     """, (location_id,))
     sales = dict(cur.fetchone())
 
-    # Active crop cycles
     cur.execute("""
         SELECT COUNT(*) as count
         FROM crop_cycle WHERE location_id = %s AND status = 'active'
     """, (location_id,))
     cycles = dict(cur.fetchone())
 
-    # Sensor readings
     cur.execute("""
         SELECT COUNT(*) as count, sensor_type
         FROM sensor_reading WHERE location_id = %s
@@ -92,7 +111,6 @@ def generate_financial_summary(conn, location_id: str) -> dict:
     """Generate a financial summary from revenue and expense data."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Revenue by crop
     cur.execute("""
         SELECT c.name as crop_name, COALESCE(SUM(se.total_amount), 0) as revenue
         FROM sales_event se
@@ -103,7 +121,6 @@ def generate_financial_summary(conn, location_id: str) -> dict:
     """, (location_id,))
     revenue_by_crop = [dict(r) for r in cur.fetchall()]
 
-    # Expenses by category
     cur.execute("""
         SELECT ec.name as category, COALESCE(SUM(ee.amount), 0) as total
         FROM expense_event ee
@@ -113,7 +130,6 @@ def generate_financial_summary(conn, location_id: str) -> dict:
     """, (location_id,))
     expenses = [dict(r) for r in cur.fetchall()]
 
-    # NOI snapshot
     cur.execute("""
         SELECT COALESCE(SUM(noi), 0) as total_noi,
                COALESCE(AVG(operating_margin_pct), 0) as avg_margin
@@ -160,7 +176,6 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
     """Generate an environmental summary from ecological data."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Soil carbon
     cur.execute("""
         SELECT carbon_tonnes_per_ha, measurement_date
         FROM soil_carbon_measurement
@@ -168,7 +183,6 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
     """, (location_id,))
     carbon = cur.fetchone()
 
-    # Species count
     cur.execute("""
         SELECT COUNT(DISTINCT species_name) as species_count,
                COUNT(*) as total_observations
@@ -176,7 +190,6 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
     """, (location_id,))
     biodiversity = dict(cur.fetchone())
 
-    # Latest NDVI
     cur.execute("""
         SELECT ndvi, observation_date
         FROM remote_sensing_observation
@@ -185,7 +198,6 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
     """, (location_id,))
     ndvi = cur.fetchone()
 
-    # Weather summary
     cur.execute("""
         SELECT COALESCE(SUM(rainfall_mm), 0) as total_rainfall,
                COALESCE(AVG(temperature_c), 0) as avg_temp
@@ -240,7 +252,7 @@ def generate_combined(conn, location_id: str) -> dict:
 
     return {
         "content": "\n\n".join(sections),
-        "source_tables": list(dict.fromkeys(all_sources)),  # deduplicate, preserve order
+        "source_tables": list(dict.fromkeys(all_sources)),
         "summary_type": "combined",
     }
 
@@ -250,7 +262,8 @@ GENERATORS["combined"] = generate_combined
 
 def store_summary(conn, location_id: str, summary_type: str, content: str,
                   source_tables: list, model_version: str = "rules-v1") -> str:
-    """Store AI summary in the database."""
+    """Store AI summary in the database as a draft."""
+    assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
     cur = conn.cursor()
     summary_id = str(uuid.uuid4())
     cur.execute(
@@ -284,11 +297,43 @@ def list_summaries(conn, location_id: str = None):
     return rows
 
 
+def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool = False) -> dict[str, Any]:
+    """Generate and optionally store an AI summary with safety checks."""
+    assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
+    conn = get_pg()
+    try:
+        if not _check_registry_backed(conn, location_id):
+            raise ValueError(f"Location {location_id} does not have a verified/published farm registry record")
+        generator = GENERATORS[summary_type]
+        result = generator(conn, location_id)
+        output: dict[str, Any] = {
+            "summary": {
+                "content": result["content"],
+                "source_tables": result["source_tables"],
+                "summary_type": result["summary_type"],
+                "location_id": location_id,
+            },
+        }
+        if store:
+            output["ai_summary_id"] = store_summary(
+                conn, location_id, result["summary_type"],
+                result["content"], result["source_tables"]
+            )
+    finally:
+        conn.close()
+
+    errors = validate_output("ai_summary_synthesis", output)
+    if errors:
+        raise ValueError("; ".join(errors))
+    return output
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI Summary Generator")
     parser.add_argument("--location-id", help="Location UUID")
     parser.add_argument("--summary-type", choices=list(GENERATORS.keys()), default="combined",
                         help="Type of summary to generate (default: combined)")
+    parser.add_argument("--store", action="store_true", help="Store draft ai_summary output for human review")
     parser.add_argument("--list", action="store_true", help="List existing summaries")
     parser.add_argument("--verify", help="Verify a summary by ID (check content hash)")
     args = parser.parse_args()
@@ -312,6 +357,7 @@ def main():
         cur.execute("SELECT * FROM ai_summary WHERE id = %s", (args.verify,))
         row = cur.fetchone()
         cur.close()
+        conn.close()
         if not row:
             print(f"Summary not found: {args.verify}")
         else:
@@ -322,28 +368,23 @@ def main():
             print(f"Model: {row['model_version']}")
             print(f"Content hash: {content_hash}")
             print(f"Content length: {len(row['content'])} chars")
-        conn.close()
         return
 
     if not args.location_id:
         parser.error("--location-id is required (or use --list)")
 
-    print(f"Generating {args.summary_type} summary for location {args.location_id}...")
-
-    generator = GENERATORS[args.summary_type]
-    result = generator(conn, args.location_id)
-
-    summary_id = store_summary(
-        conn, args.location_id, result["summary_type"],
-        result["content"], result["source_tables"]
-    )
-
-    print(f"Summary stored: {summary_id}")
-    print(f"Type: {result['summary_type']}")
-    print(f"Sources: {', '.join(result['source_tables'])}")
-    print(f"\n--- Preview ---\n{result['content'][:500]}")
-
     conn.close()
+
+    print(f"Generating {args.summary_type} summary for location {args.location_id}...")
+    result = run_ai_summary(args.location_id, args.summary_type, store=args.store)
+
+    print(f"Type: {result['summary']['summary_type']}")
+    print(f"Sources: {', '.join(result['summary']['source_tables'])}")
+    if "ai_summary_id" in result:
+        print(f"Summary stored: {result['ai_summary_id']}")
+    else:
+        print("Summary not stored (use --store to save as draft)")
+    print(f"\n--- Preview ---\n{result['summary']['content'][:500]}")
 
 
 if __name__ == "__main__":

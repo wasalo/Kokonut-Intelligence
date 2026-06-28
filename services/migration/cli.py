@@ -48,7 +48,11 @@ def _compute_checksum(filepath: Path) -> str:
 
 
 def _discover_files() -> list[dict]:
-    """Discover numbered SQL files from schema and seed directories."""
+    """Discover numbered SQL files from schema and seed directories.
+
+    Schemas are sorted before seeds to ensure tables exist before seed data
+    is applied on fresh installs.
+    """
     files = []
 
     for pattern, kind in [
@@ -67,8 +71,24 @@ def _discover_files() -> list[dict]:
                     "checksum": _compute_checksum(p),
                 })
 
-    files.sort(key=lambda f: f["version"])
+    files.sort(key=lambda f: (f["version"], 0 if f["kind"] == "schema" else 1))
     return files
+
+
+def _ensure_tracking_table() -> None:
+    """Create schema_migration table if it doesn't exist yet."""
+    _psql("""
+        CREATE TABLE IF NOT EXISTS schema_migration (
+            version VARCHAR(50) PRIMARY KEY,
+            name VARCHAR(255),
+            sql_up TEXT,
+            checksum VARCHAR(64),
+            status VARCHAR(50) DEFAULT 'pending',
+            execution_time_ms INTEGER,
+            applied_at TIMESTAMPTZ DEFAULT NOW(),
+            applied_by VARCHAR(100)
+        )
+    """)
 
 
 def _get_applied() -> dict[str, dict]:
@@ -177,6 +197,7 @@ def cmd_status():
 
 def cmd_migrate(dry_run: bool = False):
     """Apply pending migrations."""
+    _ensure_tracking_table()
     files = _discover_files()
     applied = _get_applied()
 

@@ -1,0 +1,17 @@
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501", "W503"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["services", "tests"]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = false
+exclude = "contracts/|extensions/|sdk/"

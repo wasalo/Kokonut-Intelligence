@@ -104,10 +104,41 @@ Report snapshots are frozen, reproducible outputs stored in `report_snapshot`. E
 |------|-------------|
 | `farm_summary` | Location-level operational and financial summary |
 | `crop_noi` | Crop cycle net operating income |
-| `environmental` | Soil carbon, biodiversity, water usage |
-| `impact` | Partner impact metrics and outcomes |
-| `partner` | Custom partner-facing reports |
-| `public` | Public-facing transparency reports |
+| `environmental` | Soil carbon, biodiversity, NDVI, weather |
+| `revenue_multiplier` | Revenue multiplier opportunity analysis |
+| `forecast` | Forecast scenario summary |
+| `climate_impact` | Carbon balance, GHG, tree carbon, regenerative score |
+| `ebf_scorecard` | EBF scorecard with pillar scores and evidence |
+| `holistic_wellbeing` | Cultural context, well-being metrics, participatory actions |
+| `financial_sustainability` | Grant dependency, reinvestment, runway, projected NOI |
+| `risk_mitigation` | Risk register with likelihood, impact, residual risk |
+| `scaling_roadmap` | Scaling milestones with capital, partners, dependencies, risk gates |
+| `green_paper_publication_status` | Green Paper review and publication status |
+| `capital_efficiency` | Capital deployed, output value, leverage, regenerative payback |
+| `governance_throughput` | DAO proposal creation, decision, execution latency |
+| `capital_provider_utility` | Capital-provider utility scenarios with limitations |
+| `time_liberation` | Hours reclaimed, burden reduction, automation signals |
+| `capital_alignment` | Capital alignment, extractive risk, commons reinvestment |
+| `governance_inclusion` | Representation, pseudonymous participation, missing groups |
+| `land_stewardship` | Stewardship model, landlord dependency, anti-speculation terms |
+| `gnh_alignment` | GNH domain alignment scores and safeguards |
+| `cultural_preservation` | Cultural preservation plans, local-language, consent |
+| `renewable_energy` | Renewable energy plans (planned vs implemented) |
+| `vulnerable_access` | Vulnerable group access plans and accommodations |
+| `foundational_wellbeing` | Peace, safety, health, education well-being observations |
+| `regenerative_outcomes` | Hectares, species, soil carbon, trees, jobs, beneficiaries |
+| `community_governance` | Decision methods, power distribution, veto rights, escalation |
+| `replication_readiness` | Readiness score, prerequisites, barriers, enablers |
+| `adaptive_stewardship` | Review cadence, triggers, corrective actions, completion |
+| `scaling_economics` | Cost-per-farm, cost-per-beneficiary, ROI, payback scenarios |
+| `adoption_barriers` | Onboarding, regulatory, cultural, DAO, market barriers |
+| `perpetual_value_stress` | Downside runway, NOI, solvency, mitigation scenarios |
+| `open_source_impact` | Reusable schemas, dashboards, agents, contracts, exports |
+| `anti_capture_governance` | Voting caps, veto rights, Sybil resistance, enforcement |
+| `redistribution_policy` | Flexible commons/local/operator/digital commons allocation |
+| `federation_mutual_aid` | Permissionless forking, mutual aid, anti-extractive safeguards |
+| `algorithmic_redistribution` | Targeted grants, fee rebates, operator support mechanisms |
+| `participatory_signal` | Advisory meme, vibes, sentiment, story experiments |
 
 ### Using the Report Generator
 
@@ -125,6 +156,11 @@ python3 -m services.export.report_generator \
 # Generate an environmental impact report
 python3 -m services.export.report_generator \
   --type environmental \
+  --location-id a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+
+# Generate all report types for a location
+python3 -m services.export.report_generator \
+  --auto \
   --location-id a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 
 # List existing snapshots
