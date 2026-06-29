@@ -238,4 +238,4 @@
 - Agents can draft, submit, or reject their own outputs, but cannot verify or publish them. Enforce this in DB constraints, Directus hooks, and `services/agents/safety.py`.
 - Agent high-risk actions (`publish`, `attest`, `onchain_submit`, `delete`, `bulk_update`, `financial_write`, `status_change_to_published`) must be logged with human approval required.
 - `dashboard_dataset` refresh executes stored SQL queries from `dashboard_dataset.sql_query`.
-- `report_snapshot` `--auto` flag generates all 5 report types in one run.
+- `report_snapshot` `--auto` flag generates all 37 report types in one run.
