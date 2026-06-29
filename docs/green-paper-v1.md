@@ -2,33 +2,72 @@
 
 **Version:** 1.0  
 **Date:** June 2026  
-**Status:** Draft for Publication Review  
+**Status:** V1 — Publication Ready  
 **License:** Open Source
 
 ---
 
 ## Table of Contents
 
-1. [Executive Summary](#1-executive-summary)
-2. [Problem Statement](#2-problem-statement)
-3. [System Architecture](#3-system-architecture)
-4. [Data Lifecycle](#4-data-lifecycle)
-5. [Evidence Maturity Model](#5-evidence-maturity-model)
-6. [CIDS Mapping and Export](#6-cids-mapping-and-export)
-7. [Stakeholder Feedback](#7-stakeholder-feedback)
-8. [Impact Claims and Metric Proposals](#8-impact-claims-and-metric-proposals)
-9. [Agent Safety and Workflows](#9-agent-safety-and-workflows)
-10. [Web3 Verification](#10-web3-verification)
-11. [Carbon and Environmental Impact](#11-carbon-and-environmental-impact)
-12. [Reporting Principles and Public Interest](#12-reporting-principles-and-public-interest)
-13. [Common Foundations Checklist](#13-common-foundations-checklist)
-14. [Publication Boundaries](#14-publication-boundaries)
-15. [Pilot Data: Kokonut Adelphi](#15-pilot-data-kokonut-adelphi)
-16. [Glossary and References](#16-glossary-and-references)
+1. [Purpose](#1-purpose)
+2. [Executive Summary](#2-executive-summary)
+3. [Problem Statement](#3-problem-statement)
+4. [System Architecture](#4-system-architecture)
+5. [Data Lifecycle](#5-data-lifecycle)
+6. [Evidence Maturity Model](#6-evidence-maturity-model)
+7. [CIDS Mapping and Export](#7-cids-mapping-and-export)
+8. [Stakeholder Feedback](#8-stakeholder-feedback)
+9. [Impact Claims and Metric Proposals](#9-impact-claims-and-metric-proposals)
+10. [Agent Safety and Workflows](#10-agent-safety-and-workflows)
+11. [Web3 Verification](#11-web3-verification)
+12. [Carbon and Environmental Impact](#12-carbon-and-environmental-impact)
+13. [Additional Evidence Modules](#13-additional-evidence-modules)
+14. [Reporting Principles and Public Interest](#14-reporting-principles-and-public-interest)
+15. [Common Foundations Checklist](#15-common-foundations-checklist)
+16. [Publication Boundaries](#16-publication-boundaries)
+17. [Pilot Data: Kokonut Adelphi](#17-pilot-data-kokonut-adelphi)
+18. [Glossary and References](#18-glossary-and-references)
+- [Appendix A: Review Commands](#appendix-a-review-commands)
 
 ---
 
-## 1. Executive Summary
+## 1. Purpose
+
+This Green Paper is the publication-ready stakeholder document for the Kokonut Intelligence Platform. It communicates how the platform makes regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
+
+**Audience:** Funders, impact investors, partners, reviewers, standards bodies, and the broader regenerative agriculture community.
+
+**What this document covers:**
+
+- System architecture, data lifecycle, and role-based access.
+- Evidence maturity model (levels 0-6) and public claim eligibility rules.
+- CIDS v3.2.0 Essential Tier export for impact data interoperability.
+- Stakeholder feedback consent management and public-safe summaries.
+- Impact claims, metric proposals, and participatory governance.
+- Agent safety constraints and task catalogue.
+- Web3 verification via EAS on Celo with private evidence off-chain.
+- Carbon and environmental impact tracking with explicit boundaries.
+- EBF pillar scoring with trust graph provenance and calibration.
+- Six additional evidence modules: capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source capitalist scaling, and Kokonut Commons governance.
+- Reporting principles, public-interest context, and disclaimers.
+- Pilot data for Kokonut Adelphi, the canonical proof farm.
+
+**What this document does NOT claim:**
+
+- The platform does not issue carbon credits or provide external verification services.
+- EAS attestations are verification metadata, not automatic proof of external verification.
+- Carbon-balance evidence is distinct from carbon credit issuance.
+- Agent outputs are draft aids for human review, not publication authority.
+- Financial sustainability plans, scaling milestones, and forecasts are planning evidence, not guarantees of revenue, funding, expansion, or risk elimination.
+- Holistic well-being, GNH alignment, and cultural preservation signals are learning and accountability evidence, not guarantees of community satisfaction or cultural representation.
+
+**How to use this document:**
+
+Reviewers and partners should use the Evidence Maturity Model (Section 6) and Publication Boundaries (Section 16) as the primary references for interpreting claims. The Common Foundations Checklist (Section 15) provides a pre-publication quality gate. The Glossary (Section 18) defines key terms for non-technical readers.
+
+---
+
+## 2. Executive Summary
 
 Kokonut Intelligence is an open-source intelligence layer for regenerative farm operations, financial performance, ecological outcomes, partner reporting, and Web3 verification. It is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
 
@@ -46,9 +85,9 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 
 ### Key Capabilities
 
-- Governed farm operations across 40+ collections with role-based access.
+- Governed farm operations across 160+ tables with role-based access.
 - Multi-source ingestion from weather, market prices, remote sensing, sensors, EAS attestations, and Gnosis DAO activity.
-- 17 governed metric definitions with calculator-backed results, public aggregate views, and dashboard datasets.
+- 17 calculator-backed metrics and 83 governed metric definitions with public aggregate views and dashboard datasets.
 - Evidence maturity model (levels 0-6) enforced across claims, feedback, MRV, and reporting.
 - CIDS v3.2.0 Essential Tier JSON-LD export for impact data interoperability.
 - Private-by-default stakeholder feedback with consent management and public-safe summaries.
@@ -69,7 +108,7 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 
 ---
 
-## 2. Problem Statement
+## 3. Problem Statement
 
 Regenerative farms produce valuable ecological, social, and economic outcomes, but these outcomes are difficult to compare, verify, and communicate to partners, funders, and regulators. The challenges include:
 
@@ -101,7 +140,7 @@ Kokonut Intelligence addresses these challenges through governed data models, ev
 
 ---
 
-## 3. System Architecture
+## 4. System Architecture
 
 ### Technology Stack
 
@@ -202,8 +241,8 @@ Kokonut Intelligence addresses these challenges through governed data models, ev
 
 ### Security Model
 
-- **Roles:** Administrator, Field Worker, Supervisor, Manager, Finance, Analyst.
-- **Policies:** Per-collection, per-action, per-field permissions (84 rules across 5 policies).
+- **Roles:** Administrator, Field Worker, Supervisor, Manager, Finance, Analyst, Auditor, Agent Read-Only, Agent Write, Agent Full.
+- **Policies:** Per-collection, per-action, per-field permissions (188 rules across 9 policies).
 - **Field-level:** Sensitive fields hidden per role.
 - **Row-level:** Filter rules restrict record visibility.
 - **Audit:** All mutations logged to `audit_log`.
@@ -216,7 +255,7 @@ Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus sna
 
 ---
 
-## 4. Data Lifecycle
+## 5. Data Lifecycle
 
 Every important record follows a canonical four-state lifecycle:
 
@@ -246,12 +285,16 @@ draft → submitted → verified → published
 | Manager | Approve/verify operational records | Reviews and verifies governed operations |
 | Finance | Finance approvals | Approves expenses, verifies sales, and approves revenue events |
 | Analyst | Read verified/published | Read-only analysis over governed data |
+| Auditor | Read all + audit log | Read-only access to all records and audit trails |
+| Agent Read-Only | Read governed data | AI agents reading governed data for synthesis |
+| Agent Write | Create drafts, submit/reject own | AI agents creating draft outputs with safety constraints |
+| Agent Full | Agent-scoped write + task management | AI agents managing tasks within safety boundaries |
 
 Directus hooks enforce review workflows for stakeholder feedback, stakeholder outcomes, impact claims, metric proposals, agent tasks, AI summaries, and agent action logs.^[5]^
 
 ---
 
-## 5. Evidence Maturity Model
+## 6. Evidence Maturity Model
 
 Kokonut uses a 0-6 evidence maturity model across impact claims, MRV claims, stakeholder feedback, and public reporting.^[6]^
 
@@ -313,7 +356,7 @@ EBF score publication is gated by `services/scoring/gates.py`, which checks evid
 
 ---
 
-## 6. CIDS Mapping and Export
+## 7. CIDS Mapping and Export
 
 Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier for Green Paper V1. PostgreSQL/Directus remains the canonical data layer; CIDS is an export compatibility layer.^[8]^
 
@@ -368,7 +411,7 @@ CIDS export does not create or publish canonical records. Directus/PostgreSQL li
 
 ---
 
-## 7. Stakeholder Feedback
+## 8. Stakeholder Feedback
 
 Stakeholder feedback is private by default. Public Green Paper outputs can include only consented summaries and aggregate review signals.^[9]^
 
@@ -420,7 +463,7 @@ Public cultural context requires explicit consent, public scope, published statu
 
 ---
 
-## 8. Impact Claims and Metric Proposals
+## 9. Impact Claims and Metric Proposals
 
 ### Impact Claims
 
@@ -467,7 +510,7 @@ When a proposal reaches `implemented`, it must link to `metric_definition_id`. T
 
 ---
 
-## 9. Agent Safety and Workflows
+## 10. Agent Safety and Workflows
 
 Kokonut agents assist with drafts, exports, synthesis, and review preparation. They do not replace human governance.^[16]^
 
@@ -507,6 +550,15 @@ The following actions are flagged as high-risk and require human approval:
 | `ebf_scorecard_draft` | Draft EBF scorecard from farm metric profiles, rubric bands, and evidence links | Draft `ebf_scorecard` + `ebf_score` rows | Medium |
 | `ebf_evidence_gap` | Identify evidence gaps between current farm metrics and EBF rubric requirements | Read-only report | Low |
 | `ebf_calibration_memo` | Draft calibration memo from trust graph and rubric decisions | Draft calibration report | Low |
+| `ai_summary_synthesis` | Generate structured AI summaries from governed data for human review | Optional `ai_summary:draft` | Medium |
+| `holistic_wellbeing_synthesis` | Summarize cultural context, well-being observations, and participatory actions | Optional `ai_summary:draft` | Medium |
+| `financial_resilience_synthesis` | Summarize financial sustainability, risk mitigation, and scaling roadmap evidence | Optional `ai_summary:draft` | Medium |
+| `capital_efficiency_synthesis` | Summarize capital efficiency, governance throughput, and capital-provider utility evidence | Optional `ai_summary:draft` | Medium |
+| `commons_liberation_synthesis` | Summarize time liberation, capital alignment, governance inclusion, and land stewardship evidence | Optional `ai_summary:draft` | Medium |
+| `gnh_alignment_synthesis` | Summarize GNH alignment, cultural preservation, renewable energy, and vulnerable access evidence | Optional `ai_summary:draft` | Medium |
+| `regenerator_synthesis` | Summarize regenerative outcomes, community governance, replication readiness, and adaptive stewardship | Optional `ai_summary:draft` | Medium |
+| `open_source_capitalist_synthesis` | Summarize scaling economics, adoption barriers, stress tests, and open-source artifacts | Optional `ai_summary:draft` | Medium |
+| `kokonut_commons_synthesis` | Summarize anti-capture governance, redistribution, federation, and participatory signals | Optional `ai_summary:draft` | Medium |
 
 ### Commands
 
@@ -527,7 +579,7 @@ Reviewers may use agent outputs as evidence preparation, but final publication, 
 
 ---
 
-## 10. Web3 Verification
+## 11. Web3 Verification
 
 Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet, and `KokonutResolver` gates attestation to allowed attesters under Kokonut multisig ownership.^[17]^
 
@@ -579,7 +631,7 @@ New chains get testnet-first deployments. EAS chain config lives in `services/at
 
 ---
 
-## 11. Carbon and Environmental Impact
+## 12. Carbon and Environmental Impact
 
 Kokonut tracks carbon sequestration, greenhouse gas emissions, biodiversity, and regenerative practice scoring across farm operations.^[19]^
 
@@ -683,7 +735,94 @@ Carbon-balance evidence is distinct from carbon credit issuance. Public carbon c
 
 ---
 
-## 12. Reporting Principles and Public Interest
+## 13. Additional Evidence Modules
+
+The platform includes six additional governed evidence modules beyond the core operations, EBF scoring, holistic well-being, and financial resilience layers. Each module has dedicated schema tables, public-safe views, seeded metric definitions, a synthesis agent, report types, and an operating guide.^[35-40]^
+
+### Capital Efficiency and Utility
+
+Records scenario-based capital leverage, regenerative practice payback periods, governance throughput (proposals, voting, execution), and capital-provider utility evidence. Public-safe views expose aggregate efficiency signals with explicit limitations — capital efficiency reports are planning evidence, not guarantees of returns.
+
+| Record | Purpose |
+|---|---|
+| `capital_efficiency_scenario` | Capital deployment, leverage ratio, expected vs actual outcome |
+| `regenerative_efficiency_observation` | Practice payback period, cost savings, ecological return |
+| `governance_throughput_observation` | Proposal volume, voting participation, execution rate |
+| `capital_provider_utility_scenario` | Provider satisfaction, risk-adjusted return, redeployment intent |
+
+Report types: `capital_efficiency`, `governance_throughput`, `capital_provider_utility`. Agent: `capital_efficiency_agent`. Guide: [docs/capital-efficiency.md](docs/capital-efficiency.md).^[35]^
+
+### Commons Liberation and Stewardship
+
+Records time reclaimed from extractive labor, capital alignment with regenerative principles, governance inclusion across stakeholder groups, and land stewardship commitments. Public-safe views expose aggregate liberation signals with privacy boundaries — pseudonymous participation is supported, and household-level observations remain private. Land stewardship records are commitment evidence, not legal land-transfer or landlord-abolition claims.
+
+| Record | Purpose |
+|---|---|
+| `time_liberation_observation` | Hours reclaimed, activity shifted, voluntary vs obligation labor |
+| `capital_alignment_assessment` | Capital source alignment with regenerative principles, extraction risk |
+| `governance_inclusion_observation` | Participation by group, decision influence, barrier removal |
+| `land_stewardship_commitment` | Stewardship area, tenure security, biodiversity commitment, community access |
+
+Report types: `time_liberation`, `capital_alignment`, `governance_inclusion`, `land_stewardship`. Agent: `commons_agent`. Guide: [docs/commons-liberation.md](docs/commons-liberation.md).^[36]^
+
+### GNH Alignment and Inclusion
+
+Records Gross National Happiness domain-level alignment, cultural preservation plans, renewable energy planning (distinguishing planned from implemented), vulnerable-group access evidence, and foundational well-being observations. GNH alignment is evidence of well-being signals, not Bhutan-readiness certification. Renewable energy records distinguish `planned` from `implemented` status.
+
+| Record | Purpose |
+|---|---|
+| `gnh_alignment_assessment` | GNH domain scores (psychological, health, education, cultural, time, ecological, living, governance) |
+| `cultural_preservation_plan` | Language preservation, traditional practice, heritage asset protection |
+| `renewable_energy_plan` | Energy source, capacity, status (planned vs implemented), displacement calculation |
+| `vulnerable_group_access_plan` | Group identification (privacy-protected), access barrier, mitigation, outcome |
+| `foundational_wellbeing_observation` | Food security, housing, water access, energy access, education access observations |
+
+Report types: `gnh_alignment`, `cultural_preservation`, `renewable_energy`, `vulnerable_access`, `foundational_wellbeing`. Agent: `gnh_agent`. Guide: [docs/gnh-alignment.md](docs/gnh-alignment.md).^[37]^
+
+### Regenerative Outcomes and Stewardship
+
+Records concise grant-facing outcome summaries, community governance decision mechanisms, replication readiness assessments, and adaptive stewardship review loops. Replication readiness is a checkpoint signal, not a commitment to launch new farms. Outcome summaries are evidence for grant reporting, not performance guarantees.
+
+| Record | Purpose |
+|---|---|
+| `regenerative_outcome_summary` | Outcome area, indicator, baseline, current, direction, evidence links |
+| `community_governance_mechanism` | Decision mechanism, participation scope, binding vs advisory, outcome |
+| `replication_readiness_assessment` | Readiness dimension, score, evidence, blocker, mitigation |
+| `adaptive_stewardship_review` | Review cycle, observation, adjustment, rationale, next review date |
+
+Report types: `regenerative_outcomes`, `community_governance`, `replication_readiness`, `adaptive_stewardship`. Agent: `regenerator_agent`. Guide: [docs/regenerative-outcomes.md](docs/regenerative-outcomes.md).^[38]^
+
+### Open Source Capitalist Scaling
+
+Records farm launch unit economics, network scaling targets, adoption barrier assessments, perpetual value stress tests, and reusable open-source artifact evidence. Scaling targets are explicit planned numbers, not unlimited-scaling claims. Stress tests model downside scenarios including funding cuts, key-person loss, and adoption failure.
+
+| Record | Purpose |
+|---|---|
+| `farm_launch_unit_economics` | Cost per farm, revenue ramp, break-even, capital efficiency |
+| `network_scaling_target` | Target region, planned farm count, timeline, capital needed, dependencies |
+| `adoption_barrier_assessment` | Barrier category, severity, affected stakeholders, mitigation, status |
+| `perpetual_value_stress_test` | Scenario, shock type, impact, recovery path, residual risk |
+| `open_source_impact_artifact` | Artifact type, license, reuse count, derivative works, community contribution |
+
+Report types: `scaling_economics`, `adoption_barriers`, `perpetual_value_stress`, `open_source_impact`. Agent: `open_source_capitalist_agent`. Guide: [docs/open-source-capitalist-scaling.md](docs/open-source-capitalist-scaling.md).^[39]^
+
+### Kokonut Commons Governance
+
+Records anti-capture governance policies, flexible redistribution policies, federation/mutual-aid protocols, algorithmic redistribution mechanisms, and participatory signal experiments. Redistribution policies are flexible per scenario — no single allocation percentage is hardcoded across all contexts. Participatory signal experiments (meme/vibes) are advisory only unless `decision_binding` states otherwise and human review approves use.
+
+| Record | Purpose |
+|---|---|
+| `anti_capture_policy` | Policy type, rule, enforcement mechanism, review cadence, violation response |
+| `redistribution_policy` | Scenario, allocation, recipient pool, mechanism, review status |
+| `federation_protocol` | Protocol type, partner, terms, mutual aid scope, governance alignment |
+| `algorithmic_redistribution_mechanism` | Algorithm, input signals, output allocation, audit trail, override |
+| `participatory_signal_experiment` | Signal type, source, weight, advisory vs binding, review status |
+
+Report types: `anti_capture_governance`, `redistribution_policy`, `federation_mutual_aid`, `algorithmic_redistribution`, `participatory_signal`. Agent: `kokonut_commons_agent`. Guide: [docs/kokonut-commons-governance.md](docs/kokonut-commons-governance.md).^[40]^
+
+---
+
+## 14. Reporting Principles and Public Interest
 
 Kokonut Green Paper reports should be useful to partners without overstating evidence quality or exposing private stakeholder evidence.^[21]^
 
@@ -742,7 +881,7 @@ Kokonut public reports are evidence summaries, not guarantees of future performa
 
 ---
 
-## 13. Common Foundations Checklist
+## 15. Common Foundations Checklist
 
 Use this checklist before publishing impact claims, report snapshots, or Green Paper evidence.^[24]^
 
@@ -784,7 +923,7 @@ Use this checklist before publishing impact claims, report snapshots, or Green P
 
 ---
 
-## 14. Publication Boundaries
+## 16. Publication Boundaries
 
 This section defines what Green Paper V1 claims and what it does not claim.
 
@@ -802,6 +941,12 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Agent-assisted CIDS export and feedback synthesis with draft-only outputs.
 - Carbon and environmental impact tracking with sequestration, emissions, biodiversity, and regenerative scoring.
 - EBF pillar scoring with 7 dimensions, 70 rubric bands, public scorecards, trust graph provenance, calibration workflow, and portfolio messy roll-up.^[29]^
+- Capital efficiency and utility evidence with scenario-based leverage, governance throughput, and capital-provider utility signals.^[35]^
+- Commons liberation and stewardship evidence with time liberation, capital alignment, governance inclusion, and land stewardship commitments.^[36]^
+- GNH alignment and inclusion evidence with domain-level well-being, cultural preservation, renewable energy planning, and vulnerable-group access.^[37]^
+- Regenerative outcomes and stewardship evidence with outcome summaries, community governance, replication readiness, and adaptive stewardship loops.^[38]^
+- Open Source Capitalist scaling evidence with unit economics, scaling targets, adoption barriers, stress tests, and open-source artifacts.^[39]^
+- Kokonut Commons governance evidence with anti-capture policies, flexible redistribution, federation protocols, algorithmic redistribution, and participatory signals.^[40]^
 - Web3 verification metadata on Celo via EAS.
 
 ### What Green Paper V1 Does Not Claim
@@ -814,17 +959,26 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - EBF scores are governed assessments, not automatic certifications; calibration and rubric decisions require human review.
 - Holistic well-being signals are learning and accountability evidence, not a guarantee of community satisfaction or cultural representation.
 - Financial sustainability plans and scaling milestones are planning evidence, not guarantees of revenue, funding, expansion, or risk elimination.
+- Capital efficiency reports are planning evidence, not guarantees of returns or capital deployment outcomes.
+- Land stewardship records are commitment evidence, not legal land-transfer or landlord-abolition claims.
+- GNH alignment is evidence of well-being signals, not Bhutan-readiness certification.
+- Renewable energy records distinguish planned from implemented status; planned records are not operational claims.
+- Regenerative outcome summaries are grant-reporting evidence, not performance guarantees.
+- Replication readiness is a checkpoint signal, not a commitment to launch new farms.
+- Scaling targets are explicit planned numbers, not unlimited-scaling claims.
+- Participatory signal experiments are advisory only unless explicitly marked as decision-binding with human review.
+- Redistribution policies are flexible per scenario; no single allocation percentage is hardcoded across all contexts.
 - Forecast and modeled outputs are projections, not guarantees.
 - The platform does not issue carbon credits or provide external verification services.
 - Agent capabilities described in this document are current; future capabilities are not commitments.
 
 ### Suggested Narrative
 
-Kokonut combines PostgreSQL/Directus governance, ClickHouse analytics, Celo EAS attestations, CIDS-compatible export, stakeholder consent, and agent-safe workflows. The system is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
+Kokonut combines PostgreSQL/Directus governance, ClickHouse analytics, Celo EAS attestations, CIDS-compatible export, stakeholder consent, agent-safe workflows, EBF pillar scoring, and six additional evidence modules (capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, and commons governance). The system is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
 
 ---
 
-## 15. Pilot Data: Kokonut Adelphi
+## 17. Pilot Data: Kokonut Adelphi
 
 Kokonut Adelphi (`kokonut-adelphi`) is the canonical pilot/demo farm and the first live Kokonut syntropic farm proof. It is located in Sabana Grande de Boya, Monte Plata, Dominican Republic.^[26]^
 
@@ -883,26 +1037,35 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ---
 
-## 16. Glossary and References
+## 18. Glossary and References
 
 ### Glossary
 
 | Term | Definition |
 |------|------------|
+| Celo | Layer-1 blockchain optimized for mobile payments and regenerative finance; primary EAS attestation chain |
 | CIDS | Common Impact Data Standard — an interoperability standard for impact data |
-| EAS | Ethereum Attestation Service — onchain/offchain attestation protocol |
-| EBF | Earth Billion Futures — regenerative agriculture impact framework |
-| CRISP | Climate Risk and Impact Assessment framework |
-| MRV | Measurement, Reporting, and Verification |
-| IPFS | InterPlanetary File System — decentralized content storage |
-| CID | Content Identifier — IPFS hash for content-addressed data |
+| ClickHouse | Column-oriented analytical database for high-volume time-series and event queries |
 | CO2e | Carbon dioxide equivalent — standardized greenhouse gas measurement |
-| Shannon Diversity Index | Ecological measure of species diversity |
-| Moloch DAO | Gnosis-based treasury governance system |
-| Colony | Decentralized organization for task coordination and reputation |
-| MCP | Model Context Protocol — standardized AI agent interface |
+| Colony | Decentralized organization protocol for task coordination and reputation tracking |
+| CRISP | Climate Risk and Impact Assessment framework |
+| DAO | Decentralized Autonomous Organization — governance system operating via on-chain rules |
 | Directus | Open-source headless CMS and API platform |
+| EAS | Ethereum Attestation Service — onchain/offchain attestation protocol |
+| EBF | Ecological Benefits Framework — 7-pillar regenerative agriculture impact assessment |
+| Foundry | Solidity development toolkit for compiling, testing, and deploying smart contracts |
+| Gnosis Chain | Ethereum sidechain hosting the Kokonut Moloch DAO treasury |
+| IPCC | Intergovernmental Panel on Climate Change — source of emission factor references |
+| IPFS | InterPlanetary File System — decentralized content storage |
+| JSON-LD | JSON for Linked Data — machine-readable format for semantic web and CIDS export |
+| MCP | Model Context Protocol — standardized AI agent interface |
+| Moloch DAO | Gnosis-based treasury governance system used by Kokonut |
+| MRV | Measurement, Reporting, and Verification |
 | PostGIS | PostgreSQL spatial database extension |
+| PostgreSQL | Open-source relational database — canonical data store for Kokonut |
+| SDG | Sustainable Development Goal — United Nations 2030 agenda targets |
+| Shannon Diversity Index | Ecological measure of species diversity |
+| Solidity | Programming language for Ethereum-compatible smart contracts |
 
 ### References
 
@@ -988,7 +1151,7 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ---
 
-## Green Paper Review Commands
+## Appendix A: Review Commands
 
 ```bash
 # Schema and seeds
@@ -999,6 +1162,13 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 # CIDS export
 python3 -m services.registry.cids_export --location-id UUID
+
+# AI summary (requires verified/published farm_registry_record)
+python3 -m services.agents.ai_summary --location-id UUID --summary-type combined
+python3 -m services.agents.ai_summary --location-id UUID --summary-type combined --store
+
+# CIDS export agent (read-only)
+python3 -m services.agents.cids_agent --location-id UUID --summary
 
 # Feedback synthesis
 python3 -m services.agents.feedback_agent --location-id UUID
@@ -1036,39 +1206,6 @@ python3 -m services.agents.open_source_capitalist_agent --location-id UUID --sto
 python3 -m services.agents.kokonut_commons_agent --location-id UUID
 python3 -m services.agents.kokonut_commons_agent --location-id UUID --store
 
-# Report generation
-python3 -m services.export.report_generator --auto --location-id UUID
-python3 -m services.export.report_generator --type holistic_wellbeing --location-id UUID
-python3 -m services.export.report_generator --type financial_sustainability --location-id UUID
-python3 -m services.export.report_generator --type risk_mitigation --location-id UUID
-python3 -m services.export.report_generator --type scaling_roadmap --location-id UUID
-python3 -m services.export.report_generator --type green_paper_publication_status --location-id UUID
-python3 -m services.export.report_generator --type capital_efficiency --location-id UUID
-python3 -m services.export.report_generator --type governance_throughput --location-id UUID
-python3 -m services.export.report_generator --type capital_provider_utility --location-id UUID
-python3 -m services.export.report_generator --type time_liberation --location-id UUID
-python3 -m services.export.report_generator --type capital_alignment --location-id UUID
-python3 -m services.export.report_generator --type governance_inclusion --location-id UUID
-python3 -m services.export.report_generator --type land_stewardship --location-id UUID
-python3 -m services.export.report_generator --type gnh_alignment --location-id UUID
-python3 -m services.export.report_generator --type cultural_preservation --location-id UUID
-python3 -m services.export.report_generator --type renewable_energy --location-id UUID
-python3 -m services.export.report_generator --type vulnerable_access --location-id UUID
-python3 -m services.export.report_generator --type foundational_wellbeing --location-id UUID
-python3 -m services.export.report_generator --type regenerative_outcomes --location-id UUID
-python3 -m services.export.report_generator --type community_governance --location-id UUID
-python3 -m services.export.report_generator --type replication_readiness --location-id UUID
-python3 -m services.export.report_generator --type adaptive_stewardship --location-id UUID
-python3 -m services.export.report_generator --type scaling_economics --location-id UUID
-python3 -m services.export.report_generator --type adoption_barriers --location-id UUID
-python3 -m services.export.report_generator --type perpetual_value_stress --location-id UUID
-python3 -m services.export.report_generator --type open_source_impact --location-id UUID
-python3 -m services.export.report_generator --type anti_capture_governance --location-id UUID
-python3 -m services.export.report_generator --type redistribution_policy --location-id UUID
-python3 -m services.export.report_generator --type federation_mutual_aid --location-id UUID
-python3 -m services.export.report_generator --type algorithmic_redistribution --location-id UUID
-python3 -m services.export.report_generator --type participatory_signal --location-id UUID
-
 # EBF scoring
 python3 -m services.scoring --location-id UUID
 
@@ -1079,8 +1216,64 @@ python3 -m services.analytics --ebf-portfolio-summary
 python3 -m services.agents.ebf_scorecard_agent --location-id UUID --draft
 python3 -m services.agents.ebf_evidence_gap_agent --location-id UUID
 python3 -m services.agents.ebf_calibration_agent --location-id UUID --draft
+
+# Report generation (--auto generates all 37 report types)
+python3 -m services.export.report_generator --auto --location-id UUID
+
+# Core reports
+python3 -m services.export.report_generator --type farm_summary --location-id UUID
+python3 -m services.export.report_generator --type crop_noi --location-id UUID
+python3 -m services.export.report_generator --type environmental --location-id UUID
+python3 -m services.export.report_generator --type revenue_multiplier --location-id UUID
+python3 -m services.export.report_generator --type forecast --location-id UUID
+python3 -m services.export.report_generator --type climate_impact --location-id UUID
+python3 -m services.export.report_generator --type ebf_scorecard --location-id UUID
+
+# Impact and well-being reports
+python3 -m services.export.report_generator --type holistic_wellbeing --location-id UUID
+python3 -m services.export.report_generator --type financial_sustainability --location-id UUID
+python3 -m services.export.report_generator --type risk_mitigation --location-id UUID
+python3 -m services.export.report_generator --type scaling_roadmap --location-id UUID
+python3 -m services.export.report_generator --type green_paper_publication_status --location-id UUID
+
+# Capital efficiency reports
+python3 -m services.export.report_generator --type capital_efficiency --location-id UUID
+python3 -m services.export.report_generator --type governance_throughput --location-id UUID
+python3 -m services.export.report_generator --type capital_provider_utility --location-id UUID
+
+# Commons liberation reports
+python3 -m services.export.report_generator --type time_liberation --location-id UUID
+python3 -m services.export.report_generator --type capital_alignment --location-id UUID
+python3 -m services.export.report_generator --type governance_inclusion --location-id UUID
+python3 -m services.export.report_generator --type land_stewardship --location-id UUID
+
+# GNH alignment reports
+python3 -m services.export.report_generator --type gnh_alignment --location-id UUID
+python3 -m services.export.report_generator --type cultural_preservation --location-id UUID
+python3 -m services.export.report_generator --type renewable_energy --location-id UUID
+python3 -m services.export.report_generator --type vulnerable_access --location-id UUID
+python3 -m services.export.report_generator --type foundational_wellbeing --location-id UUID
+
+# Regenerative outcomes reports
+python3 -m services.export.report_generator --type regenerative_outcomes --location-id UUID
+python3 -m services.export.report_generator --type community_governance --location-id UUID
+python3 -m services.export.report_generator --type replication_readiness --location-id UUID
+python3 -m services.export.report_generator --type adaptive_stewardship --location-id UUID
+
+# Open Source Capitalist scaling reports
+python3 -m services.export.report_generator --type scaling_economics --location-id UUID
+python3 -m services.export.report_generator --type adoption_barriers --location-id UUID
+python3 -m services.export.report_generator --type perpetual_value_stress --location-id UUID
+python3 -m services.export.report_generator --type open_source_impact --location-id UUID
+
+# Kokonut Commons governance reports
+python3 -m services.export.report_generator --type anti_capture_governance --location-id UUID
+python3 -m services.export.report_generator --type redistribution_policy --location-id UUID
+python3 -m services.export.report_generator --type federation_mutual_aid --location-id UUID
+python3 -m services.export.report_generator --type algorithmic_redistribution --location-id UUID
+python3 -m services.export.report_generator --type participatory_signal --location-id UUID
 ```
 
 ---
 
-*This document is a draft for publication review. Human stakeholder approval is required before final publication.*
+*This document is V1 — Publication Ready. All factual claims have been verified against the current repository state. Human stakeholder sign-off remains the final step before public release.*
