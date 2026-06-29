@@ -169,7 +169,7 @@ All notable changes to the Kokonut Intelligence Platform.
   - Created `schemas/seeds/021_metric_versions.sql` — seeded v1 for governed metric definitions
   - Created `services/agents/ai_summary.py` — 3 generators (operations, financial, environmental) + combined + CLI with `--list`, `--verify`
   - Created `services/export/dataset_refresh.py` — executes stored SQL queries from `dashboard_dataset` + CLI with `--list`, `--all`
-  - Added `--auto` flag to `services/export/report_generator.py` — generates all 5 report types in one run
+  - Added `--auto` flag to `services/export/report_generator.py` — generates all report types in one run (currently 37)
 - **Module E: Environmental Metrics — 3 SQL bug fixes**:
   - `ecology.py`: `reading_value` → `value` in `ndvi_trends()` and `intervention_impact()`
   - `ecology.py`: `condition_rating` → `condition_status` in `soil_health()`
