@@ -1,0 +1,69 @@
+# Worker container overlay — runs Python ingestion services on cron
+# Usage: docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d kokonut-worker
+#
+# The worker container connects to the databases network to reach PostgreSQL and ClickHouse.
+# It does not expose any ports — all communication is internal.
+#
+# To run ad-hoc commands:
+#   docker compose exec kokonut-worker python3 -m services.metrics --list
+#   docker compose exec kokonut-worker python3 -m services.analytics --portfolio-summary
+#   docker compose exec kokonut-worker bash scripts/health-check.sh
+
+services:
+  kokonut-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      PG_USER: ${PG_USER:-kokonut}
+      PG_PASSWORD: ${POSTGRES_PASSWORD}
+      CH_HOST: clickhouse
+      CH_PORT: "8123"
+      CH_USER: ${CH_USER:-kokonut}
+      CH_DB: ${CH_DB:-kokonut_analytics}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      # Ingestion
+      INGESTION_MAX_RETRIES: ${INGESTION_MAX_RETRIES:-3}
+      INGESTION_BACKOFF: ${INGESTION_BACKOFF:-2}
+      INGESTION_JITTER: ${INGESTION_JITTER:-0.5}
+      OpenWeatherMap_API_KEY: ${OpenWeatherMap_API_KEY:-}
+      # Web3 RPC
+      ETH_RPC_URL: ${ETH_RPC_URL:-}
+      OPTIMISM_RPC_URL: ${OPTIMISM_RPC_URL:-}
+      BASE_RPC_URL: ${BASE_RPC_URL:-}
+      ARBITRUM_RPC_URL: ${ARBITRUM_RPC_URL:-}
+      GNOSIS_RPC_URL: ${GNOSIS_RPC_URL:-https://rpc.gnosischain.com}
+      CELO_RPC_URL: ${CELO_RPC_URL:-https://forno.celo.org}
+      EAS_GRAPHQL_URL: ${EAS_GRAPHQL_URL:-https://attest.sh}
+      # Attestation
+      ATTESTER_PRIVATE_KEY: ${ATTESTER_PRIVATE_KEY:-}
+      EAS_RESOLVER_ADDRESS: ${EAS_RESOLVER_ADDRESS:-}
+      # Alerts
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      # CIDS
+      KOKONUT_CIDS_BASE_URL: ${KOKONUT_CIDS_BASE_URL:-}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - worker

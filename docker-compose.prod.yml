@@ -1,5 +1,9 @@
 # Production overrides for Kokonut Intelligence
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This overlay keeps all services internal to Docker networks.
+# Use with Caddy (default) or Traefik (docker-compose.traefik.yml) for TLS termination.
+# Combine both: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
 
 services:
   database:
@@ -17,20 +21,28 @@ services:
           memory: 4G
 
   directus:
-    ports:
-      - "8055:8055"  # Expose only the API; put nginx/caddy in front for TLS
+    # No ports exposed to host in production — accessible only through reverse proxy
+    # For temporary direct access, create a local override:
+    #   echo 'services: { directus: { ports: ["8055:8055"] } }' > docker-compose.debug.yml
+    ports: []
     environment:
       LOG_LEVEL: "warn"
 
   metabase:
-    ports:
-      - "3001:3000"
+    # No ports exposed to host in production — accessible only through reverse proxy
+    ports: []
     deploy:
       resources:
         limits:
           memory: 2G
 
   cache:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  caddy:
     deploy:
       resources:
         limits:

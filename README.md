@@ -175,20 +175,53 @@ Contributing guidelines:
 - `.github/dependabot.yml` enables weekly dependency updates for pip, npm, and github-actions.
 - Seed files must be idempotent with `ON CONFLICT` guards and `psql -v ON_ERROR_STOP=1`.
 
+## Production Deployment
+
+```bash
+# With built-in Caddy (default)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# With external Traefik (VPS already running Traefik)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
+
+# With worker container for cron-based ingestion
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d
+```
+
+Health monitoring with alerting:
+
+```bash
+# Manual health check
+./scripts/health-check.sh
+
+# JSON output for external monitoring
+./scripts/health-check.sh --json
+
+# Cron wrapper (quiet on success, alerts on failure)
+*/5 * * * * /opt/Kokonut-Intelligence/scripts/health-alert.sh
+```
+
+See [Deployment](docs/deployment.md) for full production setup, reverse proxy options, worker container, monitoring, and a production checklist.
+
 ## Repository Layout
 
 ```text
-config/             Docker, PostgreSQL, ClickHouse, Caddy, and Directus config
+config/             Docker, PostgreSQL, ClickHouse, Caddy, Directus, and worker crontab config
 contracts/          Foundry project for KokonutResolver and EAS-related contracts
 dashboards/         42 Metabase dashboard templates with backing SQL
 docs/               39 docs — see Documentation section below
 extensions/         Directus lifecycle hooks, workflow rules, metric hooks, AI helpers
 migrations/         Migration tooling and legacy migration helpers
 schemas/            PostgreSQL schemas, ClickHouse schemas, Directus snapshots, 49 seed files
-scripts/            Setup, seed, schema, metrics, backup, verification, and CI scripts
+scripts/            Setup, seed, schema, metrics, backup, health-check, and CI scripts
 sdk/                JavaScript/TypeScript and Python SDKs
 services/           Python services for ingestion, metrics, analytics, export, agents, attestation
 tests/              49 test files — smoke, CLI, attestation, metrics, EBF, agents, modules
+Dockerfile.worker   Optional worker container for cron-based ingestion
+docker-compose.yml  Base services (PostgreSQL, ClickHouse, Directus, Metabase, Caddy)
+docker-compose.prod.yml     Production overlay (resource limits, no direct port exposure)
+docker-compose.traefik.yml  Traefik overlay (disables Caddy, adds Traefik labels)
+docker-compose.worker.yml   Worker overlay (cron-based Python ingestion container)
 ```
 
 ## Security And Privacy

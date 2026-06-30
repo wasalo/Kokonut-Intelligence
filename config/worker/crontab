@@ -1,0 +1,45 @@
+# Kokonut Intelligence — Worker crontab
+# All jobs run in /app with the Kokonut Python environment
+# Logs go to /var/log/cron.log
+# Adjust timing via environment variables in docker-compose.worker.yml if needed
+
+# ┌───────────── minute (0-59)
+# │ ┌───────────── hour (0-23)
+# │ │ ┌───────────── day of month (1-31)
+# │ │ │ ┌───────────── month (1-12)
+# │ │ │ │ ┌───────────── day of week (0-7, Sunday=0 or 7)
+# │ │ │ │ │
+# │ │ │ │ │ ┌───────────── command
+
+# Weather ingestion — every 6 hours
+0 */6 * * * cd /app && python3 -m services.ingestion.weather >> /var/log/cron.log 2>&1
+
+# Market data — daily at 06:00 UTC
+0 6 * * * cd /app && python3 -m services.ingestion.market_data --source world_bank >> /var/log/cron.log 2>&1
+
+# EAS indexer — every 15 minutes
+*/15 * * * * cd /app && python3 -m services.ingestion.eas_indexer >> /var/log/cron.log 2>&1
+
+# RPC wallet indexer — every 30 minutes
+*/30 * * * * cd /app && python3 -m services.ingestion.rpc_indexer >> /var/log/cron.log 2>&1
+
+# Sensor ingester — every 5 minutes
+*/5 * * * * cd /app && python3 -m services.ingestion.sensor_ingester >> /var/log/cron.log 2>&1
+
+# Gnosis Chain indexer — every 2 hours
+0 */2 * * * cd /app && python3 -m services.ingestion.gnosis_indexer >> /var/log/cron.log 2>&1
+
+# Anomaly detection — every hour
+0 * * * * cd /app && python3 -m services.ingestion.anomaly_detector >> /var/log/cron.log 2>&1
+
+# Metrics computation — every 4 hours (all locations, verified)
+0 */4 * * * cd /app && python3 -m services.metrics --compute --all-locations --verify >> /var/log/cron.log 2>&1
+
+# Health check with alerting — every 5 minutes
+*/5 * * * * cd /app && bash scripts/health-alert.sh >> /var/log/cron.log 2>&1
+
+# Daily backup — at 02:00 UTC
+0 2 * * * cd /app && bash scripts/backup.sh >> /var/log/cron.log 2>&1
+
+# Dashboard dataset refresh — every 6 hours
+0 */6 * * * cd /app && python3 -m services.export.dataset_refresh --all >> /var/log/cron.log 2>&1

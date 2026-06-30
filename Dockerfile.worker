@@ -1,0 +1,35 @@
+# Kokonut Intelligence — Worker Container
+# Runs Python ingestion services, metrics computation, and health checks on cron
+#
+# Build: docker build -f Dockerfile.worker -t kokonut-worker .
+# Run:   docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d kokonut-worker
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    cron \
+    curl \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY services/ ./services/
+COPY schemas/ ./schemas/
+COPY scripts/ ./scripts/
+COPY config/ ./config/
+COPY Makefile ./Makefile
+COPY pyproject.toml ./pyproject.toml
+
+COPY config/worker/crontab /etc/cron.d/kokonut-crontab
+RUN chmod 0644 /etc/cron.d/kokonut-crontab \
+    && crontab /etc/cron.d/kokonut-crontab \
+    && touch /var/log/cron.log
+
+HEALTHCHECK --interval=60s --timeout=10s --retries=3 --start-period=30s \
+    CMD python3 -c "import services.metrics; import services.ingestion.base" || exit 1
+
+CMD ["cron", "-f"]
