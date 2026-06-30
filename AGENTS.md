@@ -207,11 +207,20 @@
 - Docker networks: `databases` (database, cache, clickhouse) and `apps` (directus, metabase, caddy) isolate service tiers.
 - Caddy reverse proxy: TLS termination (self-signed in dev, real certs in prod), request logging, security headers.
 - `CADDY_DOMAIN` env var: set to your domain for TLS; defaults to `localhost` with internal self-signed CA.
+- `CADDY_HTTP_PORT` and `CADDY_HTTPS_PORT` env vars control Caddy port bindings (default: 80, 443).
+- For VPS environments with an existing Traefik, use `docker-compose.traefik.yml` overlay to disable Caddy and route via Traefik labels.
+- `KOKONUT_DOMAIN`, `KOKONUT_METABASE_DOMAIN`, `KOKONUT_TRAEFIK_NETWORK`, `KOKONUT_TLS_RESOLVER` env vars configure Traefik routing.
+- Production overlay (`docker-compose.prod.yml`) does not expose Directus or Metabase directly to the host. Use `DIRECTUS_DEBUG_PORT` / `METABASE_DEBUG_PORT` for temporary troubleshooting access.
 - Directus and Metabase are accessed through Caddy (`/directus/*`, `/metabase/*`) or directly via internal ports.
 - Directus rate limiting: 100 req/s general, 5 login attempts per 15-min lockout.
 - `PUBLIC_RESTRICT=true` disables unauthenticated data access.
 - `CORS_ORIGIN` defaults to `http://localhost:8055,http://localhost:3001,https://localhost`.
 - `.env.example` uses placeholder warnings (`replace-with-strong-password-min-24-chars`), not real defaults.
+- Python ingestion services are CLI tools, not Docker services. Use the worker container (`docker-compose.worker.yml` + `Dockerfile.worker`) or host-based cron for scheduling.
+- Health monitoring: `scripts/health-check.sh` supports `--json` and `--alert` flags. `scripts/health-alert.sh` is the cron wrapper.
+- Alert channels: `ALERT_WEBHOOK_URL` (Slack/Discord/Teams), `ALERT_SMTP_*` + `ALERT_EMAIL_TO` (email).
+- `DISK_THRESHOLD` and `MEM_THRESHOLD` control health-check alert thresholds (default: 90%).
+- Worker crontab lives in `config/worker/crontab` and covers weather, market data, EAS/RPC indexers, sensor ingester, anomaly detection, metrics, health checks, backups, and dataset refresh.
 
 ## Blockchain Indexing
 

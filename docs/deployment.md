@@ -65,13 +65,125 @@ cd Kokonut-Intelligence
 # Configure for production
 cp .env.example .env
 # Edit .env with production secrets
-# Set PUBLIC_URL to your domain
+# Set PUBLIC_URL and CADDY_DOMAIN to your domain
 
 # Start with production overrides
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# Set up reverse proxy (nginx/caddy) for HTTPS
 ```
+
+### Reverse Proxy Options
+
+The platform includes a built-in Caddy reverse proxy for TLS termination. For VPS environments that already run Traefik (or another reverse proxy), use the Traefik overlay instead.
+
+**Option A: Built-in Caddy (default)**
+
+Caddy binds to ports 80 and 443 by default. Change them via env vars if needed:
+
+```bash
+# .env
+CADDY_DOMAIN=kokonut.example.com
+CADDY_HTTP_PORT=80
+CADDY_HTTPS_PORT=443
+
+# Start with production overlay
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+**Option B: External Traefik**
+
+If your VPS already runs Traefik on ports 80/443, use the Traefik overlay to disable Caddy and let Traefik route to the internal services:
+
+```bash
+# .env
+KOKONUT_DOMAIN=kokonut.example.com
+KOKONUT_METABASE_DOMAIN=metabase.example.com
+KOKONUT_TRAEFIK_NETWORK=traefik
+KOKONUT_TLS_RESOLVER=letsencrypt
+
+# Start with production + Traefik overlays
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
+```
+
+Prerequisites for Traefik:
+1. An external Traefik container running on the host
+2. A shared Docker network named `traefik` (or set `KOKONUT_TRAEFIK_NETWORK`)
+3. Traefik `websecure` entrypoint (443) with TLS resolver configured
+4. `KOKONUT_DOMAIN` must be set in `.env`
+
+The Traefik overlay creates routes:
+- `Host(kokonut.example.com)` → Directus on port 8055
+- `Host(metabase.kokonut.example.com)` → Metabase on port 3000
+
+### Worker Container (Optional)
+
+Python ingestion services (weather, market data, EAS indexer, RPC indexer, sensor ingester, anomaly detection, metrics computation) are CLI tools. By default, they run on the host via cron. For production isolation, use the worker container:
+
+```bash
+# Build and start the worker container
+docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile worker up -d kokonut-worker
+```
+
+The worker container runs a cron daemon with all ingestion jobs pre-configured in `config/worker/crontab`. To customize the schedule, edit the crontab file and rebuild.
+
+To run ad-hoc commands inside the worker:
+
+```bash
+docker compose exec kokonut-worker python3 -m services.metrics --list
+docker compose exec kokonut-worker python3 -m services.analytics --portfolio-summary
+docker compose exec kokonut-worker bash scripts/health-check.sh
+```
+
+Alternatively, keep the host-based CLI approach (see Ingestion Scheduler below) — both paths are fully supported.
+
+### Monitoring and Alerting
+
+The platform includes `scripts/health-check.sh` for continuous health monitoring. In production, run it as a cron job with alerting:
+
+```bash
+# Cron entry — every 5 minutes
+*/5 * * * * /opt/Kokonut-Intelligence/scripts/health-alert.sh
+```
+
+**What is checked:**
+- PostgreSQL connection and key tables
+- Directus server ping and health endpoint
+- ClickHouse HTTP ping and query
+- Metabase health endpoint
+- Docker container status (running + no crashed containers)
+- Disk usage (alert at 90% by default, configurable via `DISK_THRESHOLD`)
+- Memory usage (alert at 90% by default, configurable via `MEM_THRESHOLD`)
+
+**Alert channels (configure in `.env`):**
+
+| Channel | Env vars | Notes |
+|---------|----------|-------|
+| Webhook | `ALERT_WEBHOOK_URL` | Slack/Discord/Teams incoming webhook |
+| Email | `ALERT_SMTP_HOST`, `ALERT_SMTP_USER`, `ALERT_SMTP_PASSWORD`, `ALERT_EMAIL_TO` | SMTP with TLS |
+
+Both channels can be active simultaneously. Alerts are only sent on failure — healthy checks produce no output (quiet cron).
+
+**JSON output mode** for external monitoring integration:
+
+```bash
+./scripts/health-check.sh --json
+# {"hostname":"vps-01","timestamp":"2026-06-29T12:00:00Z","pass":12,"fail":0,"failures":"","disk_pct":45,"mem_pct":62}
+```
+
+### Production Checklist
+
+Before deploying to production:
+
+- [ ] All secrets in `.env` set with strong values (24+ chars for passwords, 32+ chars for tokens)
+- [ ] `KOKONUT_ENV=production` set
+- [ ] `CADDY_DOMAIN` or `KOKONUT_DOMAIN` set to your domain
+- [ ] TLS configured (Caddy auto-provisions or Traefik with cert resolver)
+- [ ] `docker-compose.prod.yml` applied (no direct port exposure to host)
+- [ ] Worker container or cron scheduler set up for ingestion jobs
+- [ ] Health-check cron with alerting configured
+- [ ] Backup cron job configured (`scripts/backup.sh`)
+- [ ] Resource limits reviewed for your VM size
+- [ ] Directus `ADMIN_PASSWORD` changed from default
+- [ ] `METABASE_EMBEDDING_SECRET_KEY` set to a strong value
 
 ### Recommended VM Specs
 
@@ -84,9 +196,13 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 ### Ingestion Scheduler
 
-Ingestion services are CLI tools and are not started by Docker Compose. Schedule them with cron, systemd timers, or a job runner on the host or VM.
+Ingestion services are CLI tools. Two options are available:
 
-Example cron entries (adjust paths and timezone as needed):
+1. **Worker container** (recommended for production) — see [Worker Container](#worker-container-optional) section above. All cron jobs are pre-configured in `config/worker/crontab`.
+
+2. **Host-based cron** — schedule directly on the host or VM. Use the entries below as a starting point.
+
+Example cron entries for host-based scheduling (adjust paths and timezone as needed):
 
 ```cron
 # Weather — every 6 hours
@@ -109,13 +225,30 @@ Ensure `KOKONUT_ENV=production` and all required secrets are set in the environm
 
 ### Production Compose
 
-For production deployments, use the production overlay to apply memory limits and keep database services internal:
+For production deployments, use the production overlay to apply memory limits and keep all services internal to Docker networks:
 
 ```bash
+# With built-in Caddy
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# With external Traefik
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
+
+# With worker container for ingestion
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d
 ```
 
-Place Directus and Metabase behind Caddy or another reverse proxy with TLS termination.
+The production overlay does not expose Directus or Metabase directly to the host. All traffic goes through the reverse proxy (Caddy or Traefik). For temporary direct access during troubleshooting, create a local override:
+
+```bash
+echo 'services:
+  directus:
+    ports: ["8055:8055"]
+  metabase:
+    ports: ["3001:3000"]' > docker-compose.debug.yml
+
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.debug.yml up -d
+```
 
 ### Environment Variables
 

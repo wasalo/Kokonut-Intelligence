@@ -1,0 +1,50 @@
+# Traefik overlay for VPS deployments that already run Traefik
+# Usage: docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+#
+# This overlay:
+# - Disables the built-in Caddy reverse proxy (freeing ports 80/443 for external Traefik)
+# - Adds Traefik labels to Directus and Metabase for automatic route discovery
+# - Requires an external Traefik container on the same Docker network
+#
+# Prerequisites:
+# 1. Set KOKONUT_DOMAIN in .env (e.g., KOKONUT_DOMAIN=kokonut.example.com)
+# 2. External Traefik must be on a shared Docker network (KOKONUT_TRAEFIK_NETWORK, default: traefik)
+# 3. Traefik entrypoints: websecure (443) with TLS resolver configured
+
+services:
+  caddy:
+    profiles:
+      - disabled
+
+  directus:
+    networks:
+      databases:
+      apps:
+      traefik:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${KOKONUT_TRAEFIK_NETWORK:-traefik}"
+      - "traefik.http.routers.kokonut-directus.rule=Host(`${KOKONUT_DOMAIN:?KOKONUT_DOMAIN must be set}`)"
+      - "traefik.http.routers.kokonut-directus.entrypoints=websecure"
+      - "traefik.http.routers.kokonut-directus.tls=true"
+      - "traefik.http.routers.kokonut-directus.tls.certresolver=${KOKONUT_TLS_RESOLVER:-letsencrypt}"
+      - "traefik.http.services.kokonut-directus.loadbalancer.server.port=8055"
+
+  metabase:
+    networks:
+      databases:
+      apps:
+      traefik:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${KOKONUT_TRAEFIK_NETWORK:-traefik}"
+      - "traefik.http.routers.kokonut-metabase.rule=Host(`${KOKONUT_METABASE_DOMAIN:-metabase.${KOKONUT_DOMAIN}}`)"
+      - "traefik.http.routers.kokonut-metabase.entrypoints=websecure"
+      - "traefik.http.routers.kokonut-metabase.tls=true"
+      - "traefik.http.routers.kokonut-metabase.tls.certresolver=${KOKONUT_TLS_RESOLVER:-letsencrypt}"
+      - "traefik.http.services.kokonut-metabase.loadbalancer.server.port=3000"
+
+networks:
+  traefik:
+    external: true
+    name: ${KOKONUT_TRAEFIK_NETWORK:-traefik}
