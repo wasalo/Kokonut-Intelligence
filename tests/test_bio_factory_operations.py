@@ -372,12 +372,22 @@ def test_eas_bio_batch_placeholder_is_inactive() -> None:
     assert "Kokonut Bio-Batch" in text
     bio_batch_line = [
         line for line in text.splitlines()
-        if "Kokonut Bio-Batch" in line and "0x0000000000000000000000000000000000000000000000000000000000000000" in line
+        if "Kokonut Bio-Batch" in line
+        and "0x9306a4cf6cc5a9c8aa6598a43bc62cfaa729f7490fe6b2e4cc0df10ec738ff29" in line
     ]
-    assert len(bio_batch_line) == 1
-    assert bio_batch_line[0].rstrip(")").rstrip().endswith("FALSE"), (
-        "Kokonut Bio-Batch EAS placeholder row must be inactive (FALSE) until mainnet registration; "
-        f"otherwise attestations would be submitted against the zero UID. Got: {bio_batch_line[0]}"
+    assert len(bio_batch_line) == 1, (
+        f"Expected exactly one Kokonut Bio-Batch EAS seed row with the Celo mainnet UID. "
+        f"Found {len(bio_batch_line)} matching lines."
+    )
+    line = bio_batch_line[0]
+    # Must use the real Celo mainnet UID, not the zero placeholder
+    assert "0x0000000000000000000000000000000000000000000000000000000000000000" not in line, (
+        f"Kokonut Bio-Batch EAS schema_uid must not be the 0x00 placeholder. Got: {line}"
+    )
+    # Must be active so attestations can be submitted
+    assert line.rstrip(")").rstrip().endswith("TRUE"), (
+        "Kokonut Bio-Batch EAS schema must be active (TRUE) after mainnet registration; "
+        f"otherwise attestations cannot be submitted. Got: {line}"
     )
 
 

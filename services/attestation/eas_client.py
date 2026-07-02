@@ -61,6 +61,7 @@ class EASClient:
         ).build_transaction({
             "from": self.signer.address,
             "chainId": self.config["chain_id"],
+            "gas": 500000,
         })
 
         receipt = self.signer.estimate_and_send(tx)

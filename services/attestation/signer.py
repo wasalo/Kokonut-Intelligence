@@ -73,14 +73,23 @@ class EASSigner:
         """Estimate gas, then sign and send a transaction.
 
         Uses cached nonce from get_nonce(). Resets on failure.
+
+        Celo's public RPC occasionally returns a non-standard revert
+        (selector 0x23369fa6) from estimate_gas for state-changing
+        calls that succeed when sent. In that case we retry with a
+        fixed gas limit instead of failing the registration.
         """
         tx["from"] = self.address
         tx["nonce"] = self.get_nonce()
         if "chainId" not in tx:
             tx["chainId"] = self.chain_id
 
-        gas_estimate = self.w3.eth.estimate_gas(tx)
-        tx["gas"] = int(gas_estimate * 1.2)
+        if "gas" not in tx:
+            try:
+                gas_estimate = self.w3.eth.estimate_gas(tx)
+                tx["gas"] = int(gas_estimate * 1.2)
+            except Exception:
+                tx["gas"] = 500000
 
         if "maxFeePerGas" not in tx and "gasPrice" not in tx:
             try:

@@ -113,7 +113,15 @@ python3 -m services.attestation.cli schema register --name kokonut-bio-batch --c
 
 ## EAS Attestation
 
-`kokonut-bio-batch` schema registered on Celo mainnet. Schema fields:
+`kokonut-bio-batch` schema registered on Celo mainnet.
+
+- **Schema UID:** `0x9306a4cf6cc5a9c8aa6598a43bc62cfaa729f7490fe6b2e4cc0df10ec738ff29`
+- **Tx hash:** `0x3ea19ac015736d886b0827075a473ef9f3fe47b1878468902e6a7878f1e36694`
+- **Block:** 71069923
+- **Resolver:** `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` (KokonutResolver)
+- **Attester:** `0x3394C45b5938127EB56603A6051dF26CFAF08C26`
+
+Schema fields:
 
 - `locationId` (string) — Kokonut location UUID
 - `farmId` (string) — Kokonut farm UUID
