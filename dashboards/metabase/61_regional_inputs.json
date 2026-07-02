@@ -1,0 +1,16 @@
+{
+  "title": "LAC Regional Inputs Dashboard",
+  "description": "Public-safe LAC regional input availability for bio-organic fertilizer production.",
+  "cards": [
+    {
+      "name": "LAC Regional Inputs",
+      "dataset_query": "dashboards/metabase/sql/61_regional_inputs.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

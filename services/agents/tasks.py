@@ -160,6 +160,20 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "writes": ["ai_summary:draft"],
         "high_risk": False,
     },
+    "bio_factory_synthesis": {
+        "description": "Summarize public-safe bio-organic fertilizer batches, input provenance, recipe library, distribution, quality tests, and LAC regional input availability.",
+        "risk": "medium",
+        "inputs": {
+            "location_id": {"type": "string", "format": "uuid", "required": False},
+            "store": {"type": "boolean", "required": False},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "ai_summary_id": {"type": "string", "format": "uuid", "required": False},
+        },
+        "writes": ["ai_summary:draft"],
+        "high_risk": False,
+    },
     "ai_summary_synthesis": {
         "description": "Generate operations, financial, or environmental summary from governed data with registry-backed location check.",
         "risk": "medium",

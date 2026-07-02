@@ -68,6 +68,13 @@ GOVERNED_COLLECTIONS = {
     "federation_protocol",
     "algorithmic_redistribution_mechanism",
     "participatory_signal_experiment",
+    "bio_factory_batch",
+    "bio_input_provenance",
+    "bio_recipe_library",
+    "bio_factory_distribution",
+    "bio_factory_quality_test",
+    "bio_ingredient_composition_reference",
+    "bio_regional_input_availability",
 }
 
 

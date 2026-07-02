@@ -1,0 +1,16 @@
+{
+  "title": "Bio Quality & Distribution Dashboard",
+  "description": "Public-safe quality test results and distribution tracking for bio-organic fertilizers.",
+  "cards": [
+    {
+      "name": "Bio Quality Tests",
+      "dataset_query": "dashboards/metabase/sql/60_quality_distribution.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

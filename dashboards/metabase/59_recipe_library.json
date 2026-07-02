@@ -1,0 +1,16 @@
+{
+  "title": "Bio Recipe Library Dashboard",
+  "description": "Public-safe bio-organic fertilizer recipes with ingredients, ratios, and process steps.",
+  "cards": [
+    {
+      "name": "Bio Recipe Library",
+      "dataset_query": "dashboards/metabase/sql/59_recipe_library.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}
