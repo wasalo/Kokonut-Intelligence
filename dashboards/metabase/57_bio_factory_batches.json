@@ -1,0 +1,16 @@
+{
+  "title": "Bio Factory Batches Dashboard",
+  "description": "Public-safe bio-organic fertilizer production batches for Latin America and the Caribbean.",
+  "cards": [
+    {
+      "name": "Bio Factory Batches",
+      "dataset_query": "dashboards/metabase/sql/57_bio_factory_batches.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

@@ -33,6 +33,12 @@ KOKONUT_SCHEMAS: dict[str, dict[str, Any]] = {
         "description": "Partner compliance and audit trail attestation",
         "claim_type": "compliance",
     },
+    "kokonut-bio-batch": {
+        "schema": "string locationId, string farmId, string batchType, string batchId, uint256 quantityKg, string unit, uint256 productionDate, string qualityGrade, string evidenceHash, string payloadCid",
+        "revocable": True,
+        "description": "Bio-organic fertilizer batch production attestation for Latin America and the Caribbean",
+        "claim_type": "bio_batch",
+    },
 }
 
 
@@ -43,6 +49,7 @@ SCHEMA_DB_NAMES: dict[str, str] = {
     "kokonut-financial": "Kokonut Financial",
     "kokonut-harvest": "Kokonut Harvest",
     "kokonut-compliance": "Kokonut Compliance",
+    "kokonut-bio-batch": "Kokonut Bio-Batch",
 }
 
 
@@ -168,4 +175,31 @@ def prepare_compliance_attestation_data(
         {"name": "compliant", "type": "bool", "value": compliant},
         {"name": "evidenceHash", "type": "string", "value": evidence_hash},
         {"name": "notes", "type": "string", "value": notes},
+    ]
+
+
+def prepare_bio_batch_attestation_data(
+    location_id: str,
+    farm_id: str,
+    batch_type: str,
+    batch_id: str,
+    quantity_kg: float,
+    unit: str,
+    production_date: int,
+    quality_grade: str,
+    evidence_hash: str,
+    payload_cid: str,
+) -> list[dict[str, Any]]:
+    """Prepare data fields for a kokonut-bio-batch attestation."""
+    return [
+        {"name": "locationId", "type": "string", "value": location_id},
+        {"name": "farmId", "type": "string", "value": farm_id},
+        {"name": "batchType", "type": "string", "value": batch_type},
+        {"name": "batchId", "type": "string", "value": batch_id},
+        {"name": "quantityKg", "type": "uint256", "value": int(quantity_kg)},
+        {"name": "unit", "type": "string", "value": unit},
+        {"name": "productionDate", "type": "uint256", "value": production_date},
+        {"name": "qualityGrade", "type": "string", "value": quality_grade},
+        {"name": "evidenceHash", "type": "string", "value": evidence_hash},
+        {"name": "payloadCid", "type": "string", "value": payload_cid},
     ]

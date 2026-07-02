@@ -1,0 +1,16 @@
+{
+  "title": "Bio Input Provenance Dashboard",
+  "description": "Public-safe ingredient sourcing with LAC regional focus and quality warnings.",
+  "cards": [
+    {
+      "name": "Bio Input Provenance",
+      "dataset_query": "dashboards/metabase/sql/58_input_provenance.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

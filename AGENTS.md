@@ -96,6 +96,7 @@
 - Regenerative outcomes tests: `python3 -m tests.test_regenerative_outcomes`
 - Open source capitalist scaling tests: `python3 -m tests.test_open_source_capitalist_scaling`
 - Kokonut commons governance tests: `python3 -m tests.test_kokonut_commons_governance`
+- Bio factory operations tests: `python3 -m tests.test_bio_factory_operations`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
@@ -107,6 +108,7 @@
 - Regenerator agent: `python3 -m services.agents.regenerator_agent --location-id UUID`
 - Open Source Capitalist agent: `python3 -m services.agents.open_source_capitalist_agent --location-id UUID`
 - Kokonut Commons agent: `python3 -m services.agents.kokonut_commons_agent --location-id UUID`
+- Bio Factory agent: `python3 -m services.agents.bio_factory_agent --location-id UUID`
 - EBF scorecard agent: `python3 -m services.agents.ebf_scorecard_agent --help`
 - EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
 - EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`

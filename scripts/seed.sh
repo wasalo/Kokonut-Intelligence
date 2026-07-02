@@ -178,6 +178,12 @@ echo "Seeding Kokonut Commons governance definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/042_kokonut_commons_governance.sql"
 echo "Kokonut Commons governance definitions seeded."
 
+# Seed Bio Factory Operations reference data
+echo ""
+echo "Seeding Bio Factory Operations definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/044_bio_factory_operations.sql"
+echo "Bio Factory Operations definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""
