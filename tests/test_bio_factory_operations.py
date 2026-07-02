@@ -17,6 +17,7 @@ from services.export.report_generator import (
 SCHEMA = Path("schemas/postgres/043_bio_factory_operations.sql")
 SEED = Path("schemas/seeds/044_bio_factory_operations.sql")
 PILOT_SEED = Path("schemas/seeds/043_pilot_bio_factory_operations.sql")
+EAS_SEED = Path("schemas/seeds/014_pilot_celo_eas.sql")
 
 
 def test_bio_factory_schema_defines_records_and_public_views() -> None:
@@ -366,6 +367,45 @@ def test_bio_factory_report_generators_public_safe() -> None:
     assert "salts and arsenic" in regional["limitations"][0].lower() or "sourcing notes" in regional["limitations"][0].lower()
 
 
+def test_eas_bio_batch_placeholder_is_inactive() -> None:
+    text = EAS_SEED.read_text()
+    assert "Kokonut Bio-Batch" in text
+    bio_batch_line = [
+        line for line in text.splitlines()
+        if "Kokonut Bio-Batch" in line and "0x0000000000000000000000000000000000000000000000000000000000000000" in line
+    ]
+    assert len(bio_batch_line) == 1
+    assert bio_batch_line[0].rstrip(")").rstrip().endswith("FALSE"), (
+        "Kokonut Bio-Batch EAS placeholder row must be inactive (FALSE) until mainnet registration; "
+        f"otherwise attestations would be submitted against the zero UID. Got: {bio_batch_line[0]}"
+    )
+
+
+def test_regional_input_seed_evidence_maturity_and_idempotency() -> None:
+    text = SEED.read_text()
+    assert "INSERT INTO bio_regional_input_availability (" in text
+    # Each VALUES tuple must end with `, 3, 'published')` so evidence_maturity=3 and status='published'.
+    # v_public_bio_regional_input_summary filters on evidence_maturity >= 3, so without explicit
+    # evidence_maturity every regional row would be invisible to dashboards, reports, and the agent.
+    regional_block = text.split("INSERT INTO bio_regional_input_availability (", 1)[1]
+    for line in regional_block.splitlines():
+        if line.startswith("('") and "', 'published')" in line:
+            assert ", 3, 'published')" in line, (
+                "Each regional input VALUES tuple must set evidence_maturity=3 and status='published' "
+                f"so the public view exposes it. Got: {line}"
+            )
+    # Idempotency: must use ON CONFLICT with a conflict target, not bare ON CONFLICT DO NOTHING.
+    # Without a target, the bare clause has no effect (no natural key) and re-seeding duplicates rows.
+    assert "ON CONFLICT (region_scope, input_name) DO UPDATE" in text, (
+        "bio_regional_input_availability seed must use ON CONFLICT (region_scope, input_name) "
+        "DO UPDATE so re-running seed.sh does not duplicate regional inputs."
+    )
+    assert "ON CONFLICT DO NOTHING" not in regional_block, (
+        "Bare ON CONFLICT DO NOTHING without a target has no effect; replace with "
+        "ON CONFLICT (region_scope, input_name) DO UPDATE SET ..."
+    )
+
+
 if __name__ == "__main__":
     test_bio_factory_schema_defines_records_and_public_views()
     test_bio_factory_seed_and_dashboards_exist()
@@ -376,3 +416,5 @@ if __name__ == "__main__":
     test_bio_factory_agent_summarizes_public_safe_records()
     test_bio_factory_report_generators_registered()
     test_bio_factory_report_generators_public_safe()
+    test_eas_bio_batch_placeholder_is_inactive()
+    test_regional_input_seed_evidence_maturity_and_idempotency()

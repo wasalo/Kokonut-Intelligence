@@ -363,6 +363,9 @@ CREATE INDEX IF NOT EXISTS idx_bio_regional_scope ON bio_regional_input_availabi
 CREATE INDEX IF NOT EXISTS idx_bio_regional_category ON bio_regional_input_availability(input_category);
 CREATE INDEX IF NOT EXISTS idx_bio_regional_status ON bio_regional_input_availability(status);
 
+ALTER TABLE bio_regional_input_availability DROP CONSTRAINT IF EXISTS uq_bio_regional_scope_input;
+ALTER TABLE bio_regional_input_availability ADD CONSTRAINT uq_bio_regional_scope_input UNIQUE (region_scope, input_name);
+
 ALTER TABLE bio_regional_input_availability DROP CONSTRAINT IF EXISTS chk_bio_regional_status;
 ALTER TABLE bio_regional_input_availability ADD CONSTRAINT chk_bio_regional_status CHECK (status IN ('draft', 'submitted', 'verified', 'published', 'rejected'));
 
