@@ -2,3 +2,6 @@ services:
   directus:
     environment:
       LOG_LEVEL: "debug"
+  metabase:
+    ports:
+      - "3001:3000"

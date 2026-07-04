@@ -34,8 +34,8 @@ services:
   directus:
     image: directus/directus:11.17.4
     restart: unless-stopped
-    expose:
-      - "8055"
+    ports:
+      - "8055:8055"
     volumes:
       - directus-uploads:/directus/uploads
       - ./extensions:/directus/extensions
@@ -82,7 +82,7 @@ services:
       PUBLIC_RESTRICT: "true"
 
   metabase:
-    image: metabase/metabase:v0.53.2
+    image: metabase/metabase:latest
     restart: unless-stopped
     expose:
       - "3000"
