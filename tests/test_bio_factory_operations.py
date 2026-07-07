@@ -88,6 +88,8 @@ def test_composition_reference_seeded_with_pdf_data() -> None:
         "Compost tea (aerated)", "Fish emulsion (fermented)",
         "Seaweed extract (kelp tea)", "Manure tea",
         "Green manure (legume cover crop)", "Humic acid (leonardite)",
+        "Rhizobium inoculant", "Trichoderma harzianum", "Bacillus subtilis",
+        "Mycorrhizal fungi (AMF)", "Azospirillum brasilense",
     ]
     for ingredient in ingredients:
         assert ingredient in text, f"Missing ingredient: {ingredient}"
@@ -96,6 +98,11 @@ def test_composition_reference_seeded_with_pdf_data() -> None:
     assert "k_pct_typical" in text
     assert "Sargassum" in text and "Caribbean" in text
     assert "arsenic" in text.lower()
+    # Verify microbial inoculant entries exist with correct category
+    assert "microbial_inoculant" in text
+    assert "fixes_nitrogen" in text
+    assert "solubilizes_phosphorus" in text
+    assert "biocontrol" in text
 
 
 def test_regional_input_availability_seeded_with_lac_data() -> None:
@@ -143,12 +150,18 @@ def test_pilot_seed_has_lac_aware_bio_factory_examples() -> None:
     assert "adelphi-recipe-manure-tea-v1" in recipes_text
     assert "adelphi-recipe-aerobic-compost-v1" in recipes_text
     assert "adelphi-recipe-seaweed-kelp-v1" in recipes_text
-    # 4 original + 4 additional = 8 recipes total
+    # 4 original + 2 additional + 2 microbial = 8 recipes total
     assert PILOT_SEED.read_text().count("INSERT INTO bio_recipe_library") >= 4
-    assert recipes_text.count("INSERT INTO bio_recipe_library") >= 4
+    assert recipes_text.count("INSERT INTO bio_recipe_library") >= 6
     # 4 original + 2 additional = 6 input provenance rows total
     assert PILOT_SEED.read_text().count("INSERT INTO bio_input_provenance") >= 4
     assert recipes_text.count("INSERT INTO bio_input_provenance") >= 2
+    # Microbial biofertilizer recipes
+    assert "Rhizobium inoculant (carrier-based seed treatment)" in recipes_text
+    assert "Trichoderma biofertilizer (rice bran carrier)" in recipes_text
+    assert "adelphi-recipe-rhizobium-inoculant-v1" in recipes_text
+    assert "adelphi-recipe-trichoderma-biofertilizer-v1" in recipes_text
+    assert "microbial_biofertilizer" in recipes_text
 
 
 def test_bio_factory_agent_task_catalogue_and_validation() -> None:

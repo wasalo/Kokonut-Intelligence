@@ -13,7 +13,7 @@ Open-source the components, knowledge, and recipes produced across Kokonut Biofa
 - **Solid fertilizers**: compost, vermicompost, bokashi, biochar, bone meal, blood meal, feather meal, neem cake.
 - **Liquid fertilizers**: compost tea, manure tea, fish emulsion, seaweed extract, sargassum extract.
 - **Microbial biofertilizers**: Rhizobium, Azospirillum, Azolla, Pseudomonas, Trichoderma, Bacillus subtilis, lactic acid bacteria, mycorrhizal fungi.
-- **Composition matrix**: typical N-P-K ranges, micronutrients, and production notes for 20 common ingredients.
+- **Composition matrix**: typical N-P-K ranges, micronutrients, and production notes for 24 common ingredients (including 5 microbial inoculants).
 - **Regional adaptation**: LAC-specific inputs (sargassum, coffee pulp, cocoa pod husks, banana residues, sesbania, Ascophyllum nodosum, coconut coir) with sourcing notes, seasonality, and cautions.
 
 ## Records
@@ -25,12 +25,12 @@ Open-source the components, knowledge, and recipes produced across Kokonut Biofa
 | `bio_recipe_library` | Recipe knowledge base: ingredients, ratios, process steps, fermentation conditions, quality warnings |
 | `bio_factory_distribution` | Distribution tracking: recipient type, quantity, region, application purpose |
 | `bio_factory_quality_test` | Quality test results: NPK, pH, microbial count, pass/fail, lab accreditation |
-| `bio_ingredient_composition_reference` | Composition matrix: typical NPK ranges, micronutrients, source, state for 20 ingredients |
+| `bio_ingredient_composition_reference` | Composition matrix: typical NPK ranges, micronutrients, source, state for 24 ingredients (19 nutrient-based + 5 microbial inoculants) |
 | `bio_regional_input_availability` | LAC regional inputs: region scope, country, subregion, seasonality, cautions, quality considerations |
 
 ## Composition Reference
 
-`bio_ingredient_composition_reference` contains 20 ingredients with typical NPK ranges drawn from agronomy literature and the Kokonut Biofactory research base:
+`bio_ingredient_composition_reference` contains 24 ingredients with typical NPK ranges drawn from agronomy literature and the Kokonut Biofactory research base:
 
 | Ingredient | N-P-K (typical %) | State | Source |
 |------------|-------------------|-------|--------|
@@ -53,10 +53,15 @@ Open-source the components, knowledge, and recipes produced across Kokonut Biofa
 | Manure tea | Dilute NPK | Liquid | Aged manure steeped |
 | Green manure (legume) | 3-0.25-2 | Solid | Cover crops tilled in |
 | Humic acid (leonardite) | Low NPK, high humic | Solid | Processed leonardite |
+| Rhizobium inoculant | N-fixation (biological) | Solid | Carrier-based bacterial culture |
+| Trichoderma harzianum | Biocontrol (biological) | Solid | Rice bran carrier fungus |
+| Bacillus subtilis | P-solubilization (biological) | Liquid | PGPR bacterial culture |
+| Mycorrhizal fungi (AMF) | Nutrient uptake extension | Solid | Granular/seed-coat spores |
+| Azospirillum brasilense | N-fixation (biological) | Liquid | Associative N-fixer for grasses |
 
 ## Recipe Library
 
-Eight seeded recipes in `bio_recipe_library` with full `ingredients`, `ratios`, and `process_steps` JSONB data:
+Ten seeded recipes in `bio_recipe_library` with full `ingredients`, `ratios`, and `process_steps` JSONB data:
 
 | Recipe | Type | Duration | Key Ingredients |
 |--------|------|----------|-----------------|
@@ -68,6 +73,8 @@ Eight seeded recipes in `bio_recipe_library` with full `ingredients`, `ratios`, 
 | Manure tea (steeped) | liquid_fertilizer | 10 days | Aged chicken manure, water, molasses |
 | Tropical aerobic compost | solid_fertilizer | 60 days | Coffee pulp, sugarcane bagasse, rice husks, chicken manure |
 | Seaweed extract (kelp steep) | liquid_fertilizer | 2 days | Kelp meal, water |
+| Rhizobium inoculant (carrier-based seed treatment) | microbial_biofertilizer | 2 days | Rhizobium culture, peat/rice bran carrier, skim milk powder |
+| Trichoderma biofertilizer (rice bran carrier) | microbial_biofertilizer | 14 days | Trichoderma culture, rice bran, corn starch |
 
 Each recipe includes `ingredients` (kg/batch), `ratios` (C:N, moisture, dilution), `process_steps` (day-by-day with temperature targets), `quality_warnings`, and `application_method`. Recipes are public knowledge for adaptation, not commercial endorsements.
 

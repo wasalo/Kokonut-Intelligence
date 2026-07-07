@@ -294,3 +294,112 @@ ON CONFLICT (id) DO UPDATE SET
     recipe_name = EXCLUDED.recipe_name,
     public_summary = EXCLUDED.public_summary,
     updated_at = NOW();
+
+-- Recipe 9: Rhizobium inoculant (carrier-based seed treatment)
+INSERT INTO bio_recipe_library (
+    id, location_id, recipe_name, recipe_type, recipe_category, description,
+    ingredients, ratios, process_steps, fermentation_days, target_moisture_pct,
+    target_ph, dilution_ratio, application_method, quality_warnings,
+    source_reference, recipe_summary, public_summary, limitations,
+    evidence_maturity, status, metadata, source_system, source_id, source_raw
+) VALUES (
+    'a0000000-0000-0000-0000-000000001808',
+    'a0000000-0000-0000-0000-000000000001',
+    'Rhizobium inoculant (carrier-based seed treatment)',
+    'microbial_biofertilizer',
+    'seed_treatment',
+    'Carrier-based Rhizobium inoculant for legume seed coating. Uses peat or rice bran as carrier with skim milk powder adhesive. Fixes atmospheric N in legume root nodules. 2-3 day production and drying.',
+    '[
+        {"name": "rhizobium_culture", "category": "microbial_inoculant", "ml_per_batch": 500, "notes": "Fresh liquid Rhizobium culture (10^8 CFU/ml minimum)"},
+        {"name": "carrier_material", "category": "other", "kg_per_batch": 5, "notes": "Sterilized peat, lignite, or rice bran"},
+        {"name": "skim_milk_powder", "category": "other", "kg_per_batch": 0.5, "notes": "Adhesive to help carrier stick to seeds"},
+        {"name": "water", "category": "water", "liters_per_batch": 2, "notes": "Chlorine-free water for mixing"}
+    ]'::jsonb,
+    '{"carrier_ratio_kg_per_L": 10, "drying_days": 2, "target_CFU_per_g": "10^7"}'::jsonb,
+    '[
+        {"step": 1, "day": 0, "action": "Sterilize carrier material (autoclave or solar heat to 60 C for 2 hours)", "temperature_c": 60, "notes": "Kills competing microbes; essential for pure culture"},
+        {"step": 2, "day": 0, "action": "Mix carrier with skim milk powder in clean container", "temperature_c": null, "notes": "Skim milk acts as adhesive and nutrient source"},
+        {"step": 3, "day": 0, "action": "Add Rhizobium culture to carrier mixture, mix thoroughly", "temperature_c": null, "notes": "Wear gloves; avoid contamination"},
+        {"step": 4, "day": 0, "action": "Add water gradually to achieve damp (not wet) consistency", "temperature_c": null, "notes": "Squeeze test: carrier should hold shape but not drip"},
+        {"step": 5, "day": 0, "action": "Spread mixture thinly on clean trays in shaded area", "temperature_c": null, "notes": "Direct sunlight kills Rhizobium; UV-sensitive"},
+        {"step": 6, "day": 1, "action": "Turn mixture once during drying", "temperature_c": null, "notes": "Ensures even drying"},
+        {"step": 7, "day": 2, "action": "Check moisture: carrier should be crumbly-dry, not powdery", "temperature_c": null, "notes": "Target ~20-30% moisture for storage stability"},
+        {"step": 8, "day": 2, "action": "Store in sealed dark container at room temperature", "temperature_c": null, "notes": "Use within 6 months; viability declines over time"}
+    ]'::jsonb,
+    2,
+    30.00,
+    7.00,
+    null,
+    'Coat legume seeds immediately before planting: mix 10-20 g inoculant per kg seed with small amount of water to form slurry, coat seeds evenly, shade-dry 15-30 minutes, then plant',
+    ARRAY['Use within 6 months of production — viability declines', 'Store in cool dark place; UV and heat kill Rhizobium', 'Do not mix with chemical seed treatments (fungicides/insecticides)', 'Inoculant must match target legume species (host specificity)', 'Sterilize carrier before use to prevent contamination'],
+    'Bio-Organic Fertilizer Categories and Composition (Kokonut Biofactory research)',
+    'A carrier-based Rhizobium inoculant recipe. Ingredients: 500 ml liquid Rhizobium culture (10^8 CFU/ml), 5 kg sterilized peat/rice bran carrier, 500 g skim milk powder adhesive, 2 L water. Mix, shade-dry 2 days, store sealed. Coat legume seeds at 10-20 g/kg before planting.',
+    'Rhizobium inoculant (carrier-based seed treatment): 2-day production. Ingredients: Rhizobium culture (500 ml), carrier material (5 kg), skim milk powder (500 g), water (2 L). Shade-dry 2 days. Coat legume seeds at 10-20 g/kg. Use within 6 months; UV-sensitive.',
+    ARRAY['Not a fertilizer — provides living organisms for N-fixation, not nutrients', 'Requires legume host plants (bean, cowpea, groundnut, etc.)', 'Carrier must be sterilized to prevent contamination', 'Not a commercial guarantee; smallholder pilot evidence'],
+    3,
+    'published',
+    '{"scale":"smallholder_pilot","region":"tropical","duration_days":2,"microbial_type":"rhizobium"}'::jsonb,
+    'pilot_seed',
+    'adelphi-recipe-rhizobium-inoculant-v1',
+    '{"record_type":"bio_recipe_library","privacy":"public_summary"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+    recipe_name = EXCLUDED.recipe_name,
+    public_summary = EXCLUDED.public_summary,
+    updated_at = NOW();
+
+-- Recipe 10: Trichoderma biofertilizer (rice bran carrier)
+INSERT INTO bio_recipe_library (
+    id, location_id, recipe_name, recipe_type, recipe_category, description,
+    ingredients, ratios, process_steps, fermentation_days, target_c_n_ratio,
+    target_moisture_pct, target_temperature_c, target_ph, dilution_ratio,
+    application_method, quality_warnings, source_reference,
+    recipe_summary, public_summary, limitations, evidence_maturity, status,
+    metadata, source_system, source_id, source_raw
+) VALUES (
+    'a0000000-0000-0000-0000-000000001809',
+    'a0000000-0000-0000-0000-000000000001',
+    'Trichoderma biofertilizer (rice bran carrier)',
+    'microbial_biofertilizer',
+    'soil_amendment',
+    'Carrier-based Trichoderma harzianum biofertilizer using rice bran and corn starch binder. 7-14 day incubation at 28-30 C. Biocontrol fungus that suppresses soil-borne pathogens and promotes root growth.',
+    '[
+        {"name": "trichoderma_culture", "category": "microbial_inoculant", "ml_per_batch": 500, "notes": "Fresh liquid Trichoderma harzianum culture (10^6 spores/ml minimum)"},
+        {"name": "rice_bran", "category": "plant_residue", "kg_per_batch": 10, "notes": "Fresh rice bran, not rancid"},
+        {"name": "corn_starch", "category": "other", "kg_per_batch": 0.5, "notes": "Binder to improve carrier structure"},
+        {"name": "water", "category": "water", "liters_per_batch": 3, "notes": "Chlorine-free water for mixing"}
+    ]'::jsonb,
+    '{"carrier_ratio_kg_per_L": 20, "incubation_days": 14, "target_CFU_per_g": "10^6"}'::jsonb,
+    '[
+        {"step": 1, "day": 0, "action": "Mix rice bran and corn starch in clean container", "temperature_c": null, "notes": "Dry mix first for even distribution"},
+        {"step": 2, "day": 0, "action": "Add water gradually to achieve moist (not wet) consistency", "temperature_c": null, "notes": "Squeeze test: should hold shape without dripping"},
+        {"step": 3, "day": 0, "action": "Add Trichoderma culture, mix thoroughly with clean hands (gloves)", "temperature_c": null, "notes": "Even distribution of spores throughout carrier"},
+        {"step": 4, "day": 0, "action": "Pack mixture into sealed plastic bags (2-3 kg per bag)", "temperature_c": null, "notes": "Seal tightly to maintain humidity during incubation"},
+        {"step": 5, "day": 0, "action": "Incubate at 28-30 C in dark area for 7-14 days", "temperature_c": 29, "notes": "Trichoderma grows best at 28-30 C; do not exceed 35 C"},
+        {"step": 6, "day": 7, "action": "Check bags for white-green sporulation (indicates Trichoderma growth)", "temperature_c": null, "notes": "White-green mold on surface is normal and desired"},
+        {"step": 7, "day": 14, "action": "Open bags and spread mixture thinly to dry in shade", "temperature_c": null, "notes": "Direct sunlight kills spores; shade-dry only"},
+        {"step": 8, "day": 14, "action": "Store dried carrier in sealed dark container at room temperature", "temperature_c": null, "notes": "Use within 6 months; store in cool dark place"}
+    ]'::jsonb,
+    14,
+    40.00,
+    50.00,
+    29.00,
+    6.50,
+    null,
+    'Mix 50-100 g carrier per m2 into top 5 cm of soil before planting; or apply 5-10 g per seedling hole at transplanting',
+    ARRAY['Do not expose to direct sunlight — UV kills Trichoderma spores', 'Store in cool dark place; heat above 35 C kills spores', 'Do not mix with chemical fungicides (Trichoderma is a living fungus)', 'White-green sporulation during incubation is normal and desired', 'Use within 6 months of production for maximum viability'],
+    'Bio-Organic Fertilizer Categories and Composition (Kokonut Biofactory research)',
+    'A 14-day carrier-based Trichoderma biofertilizer recipe. Ingredients: 500 ml liquid Trichoderma culture (10^6 spores/ml), 10 kg rice bran, 500 g corn starch, 3 L water. Incubate sealed at 28-30 C for 14 days, shade-dry, store. Apply 50-100 g/m2 to soil or 5-10 g per seedling hole.',
+    'Trichoderma biofertilizer (rice bran carrier): 14-day incubation recipe. Ingredients: Trichoderma culture (500 ml), rice bran (10 kg), corn starch (500 g), water (3 L). Incubate 28-30 C for 14 days, shade-dry. Apply 50-100 g/m2 to soil. Biocontrol fungus suppresses Pythium, Fusarium, Rhizoctonia.',
+    ARRAY['Not a fertilizer — provides living biocontrol fungus, not nutrients', 'UV-sensitive; store and apply in shaded conditions', 'Do not mix with chemical fungicides', 'Not a commercial guarantee; smallholder pilot evidence'],
+    3,
+    'published',
+    '{"scale":"smallholder_pilot","region":"tropical","duration_days":14,"microbial_type":"trichoderma"}'::jsonb,
+    'pilot_seed',
+    'adelphi-recipe-trichoderma-biofertilizer-v1',
+    '{"record_type":"bio_recipe_library","privacy":"public_summary"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+    recipe_name = EXCLUDED.recipe_name,
+    public_summary = EXCLUDED.public_summary,
+    updated_at = NOW();
