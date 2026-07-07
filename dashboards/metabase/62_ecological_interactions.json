@@ -1,0 +1,10 @@
+{
+  "name": "Ecological Interactions",
+  "description": "Public-safe ecological interaction network for syntropic farm analysis.",
+  "dataset_id": "a0000000-0000-0000-0000-000000004601",
+  "card_id": "a0000000-0000-0000-0000-000000004601",
+  "sql_file": "62_ecological_interactions.sql",
+  "refresh_interval_minutes": 1440,
+  "status": "published",
+  "metadata": {"owner": "ecology_guild", "privacy": "public_safe"}
+}

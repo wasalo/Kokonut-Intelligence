@@ -109,6 +109,7 @@
 - Open Source Capitalist agent: `python3 -m services.agents.open_source_capitalist_agent --location-id UUID`
 - Kokonut Commons agent: `python3 -m services.agents.kokonut_commons_agent --location-id UUID`
 - Bio Factory agent: `python3 -m services.agents.bio_factory_agent --location-id UUID`
+- Ecological modeling agent: `python3 -m services.agents.ecological_modeling_agent --location-id UUID`
 - EBF scorecard agent: `python3 -m services.agents.ebf_scorecard_agent --help`
 - EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
 - EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`
@@ -130,6 +131,8 @@
 - Report types (bio recipe library): `python3 -m services.export.report_generator --type bio_recipe_library --location-id UUID`
 - Report types (bio quality test): `python3 -m services.export.report_generator --type bio_quality_test --location-id UUID`
 - Report types (bio regional input): `python3 -m services.export.report_generator --type bio_regional_input --location-id UUID`
+- Report types (ecological modeling): `python3 -m services.export.report_generator --type ecological_modeling --location-id UUID`
+- Report types (trophic pyramid): `python3 -m services.export.report_generator --type trophic_pyramid --location-id UUID`
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
