@@ -1,0 +1,15 @@
+{
+  "name": "Resource Efficiency",
+  "description": "Labor, energy, and water efficiency per kilogram of yield by crop.",
+  "dataset_id": "a0000000-0000-0000-0000-000000004702",
+  "type": "question",
+  "query": {
+    "source_table": "65_resource_efficiency",
+    "columns": ["crop_name", "resource_type", "total_quantity", "unit", "quantity_per_kg_yield", "record_count", "estimated_count"],
+    "order_by": [["resource_type", "ascending"], ["quantity_per_kg_yield", "descending"]]
+  },
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe"
+  }
+}
