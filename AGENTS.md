@@ -125,6 +125,11 @@
 - Report types (federation mutual aid): `python3 -m services.export.report_generator --type federation_mutual_aid --location-id UUID`
 - Report types (algorithmic redistribution): `python3 -m services.export.report_generator --type algorithmic_redistribution --location-id UUID`
 - Report types (participatory signal): `python3 -m services.export.report_generator --type participatory_signal --location-id UUID`
+- Report types (bio factory batch): `python3 -m services.export.report_generator --type bio_factory_batch --location-id UUID`
+- Report types (bio input provenance): `python3 -m services.export.report_generator --type bio_input_provenance --location-id UUID`
+- Report types (bio recipe library): `python3 -m services.export.report_generator --type bio_recipe_library --location-id UUID`
+- Report types (bio quality test): `python3 -m services.export.report_generator --type bio_quality_test --location-id UUID`
+- Report types (bio regional input): `python3 -m services.export.report_generator --type bio_regional_input --location-id UUID`
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
@@ -249,4 +254,4 @@
 - Agents can draft, submit, or reject their own outputs, but cannot verify or publish them. Enforce this in DB constraints, Directus hooks, and `services/agents/safety.py`.
 - Agent high-risk actions (`publish`, `attest`, `onchain_submit`, `delete`, `bulk_update`, `financial_write`, `status_change_to_published`) must be logged with human approval required.
 - `dashboard_dataset` refresh executes stored SQL queries from `dashboard_dataset.sql_query`.
-- `report_snapshot` `--auto` flag generates all 37 report types in one run.
+- `report_snapshot` `--auto` flag generates all 42 report types in one run.

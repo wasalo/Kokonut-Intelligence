@@ -4,7 +4,7 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 
 PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores analytical events. Python services compute metrics, forecasts, exports, registry payloads, AI summaries, and ingestion jobs. EAS on Celo anchors public verification metadata while private evidence stays offchain.
 
-**Repo stats**: 49 tests · 14 agents · 37 report types · 42 dashboards · 49 seed files · 39 docs
+**Repo stats**: 49 tests · 15 agents · 42 report types · 47 dashboards · 51 seed files · 40 docs
 
 ## Table Of Contents
 
@@ -89,10 +89,10 @@ Optional local overrides may expose Directus at `http://localhost:8055` and Meta
 
 - **Governed farm operations**: Activities, harvests, sales, expenses, losses, labor, field notes, inventory, maintenance, revenue events, and partner-scoped access through Directus.
 - **Intelligence and analytics**: Versioned metric definitions, scenario forecasts, Fortune 500-style farm scoring, ecological analytics, revenue multiplier opportunity maps, EBF scorecards with trust graphs, portfolio messy roll-ups, and AI-generated summaries.
-- **Impact accountability and evidence**: Evidence maturity levels, stakeholder feedback, impact claims, participatory metric proposals, holistic well-being, financial resilience, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, commons governance, and CIDS Essential Tier JSON-LD export.
+- **Impact accountability and evidence**: Evidence maturity levels, stakeholder feedback, impact claims, participatory metric proposals, holistic well-being, financial resilience, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, commons governance, bio-factory operations, and CIDS Essential Tier JSON-LD export.
 - **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, Gnosis DAO metadata, and public attestation summaries.
 - **Governance and guilds**: Colony-backed Guild metadata, contribution records, reputation snapshots, anti-capture governance, flexible redistribution, federation protocols, and DAO proposal links while Gnosis Moloch remains the treasury governance layer.
-- **Agent ecosystem**: 14 agent identities with capability manifests, tasks, action logs, AI summaries, and scoped MCP/Directus access. Agents can draft and submit but cannot verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repo.
+- **Agent ecosystem**: 15 agent identities with capability manifests, tasks, action logs, AI summaries, and scoped MCP/Directus access. Agents can draft and submit but cannot verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repo.
 
 ## Data Lifecycle And Roles
 
@@ -130,7 +130,7 @@ See [User Guide](docs/user-guide.md) for role workflows and data-entry walkthrou
 python3 -m services.metrics --list
 python3 -m services.metrics --compute --all-locations --verify
 
-# Reports (37 types; use --auto for all)
+# Reports (42 types; use --auto for all)
 python3 -m services.export.report_generator --auto --location-id UUID
 python3 -m services.export.report_generator --type climate_impact --location-id UUID
 
@@ -251,7 +251,7 @@ All 39 docs live under `docs/`. Key entry points:
 | [AGENTS.md](AGENTS.md) | Canonical command reference (CLI, analytics, ingestion, agents, tests) |
 | [CHANGELOG.md](CHANGELOG.md) | Release history and unreleased changes |
 | [Green Paper V1](docs/green-paper-v1.md) | Comprehensive 15-section publication-ready document |
-| [Export Guide](docs/export-guide.md) | 37 report types, data exports, report snapshots |
+| [Export Guide](docs/export-guide.md) | 42 report types, data exports, report snapshots |
 | [EBF Scorecard Guide](docs/ebf-scorecard.md) | EBF pillars, rubric, scorecards, trust graphs |
 | [Attestation Guide](docs/attestation-guide.md) | EAS on Celo, schemas, onchain/offchain attestations |
 | [Deployment](docs/deployment.md) | Docker setup, environment variables, backup, operations |

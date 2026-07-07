@@ -54,6 +54,23 @@ Open-source the components, knowledge, and recipes produced across Kokonut Biofa
 | Green manure (legume) | 3-0.25-2 | Solid | Cover crops tilled in |
 | Humic acid (leonardite) | Low NPK, high humic | Solid | Processed leonardite |
 
+## Recipe Library
+
+Eight seeded recipes in `bio_recipe_library` with full `ingredients`, `ratios`, and `process_steps` JSONB data:
+
+| Recipe | Type | Duration | Key Ingredients |
+|--------|------|----------|-----------------|
+| Adelphi vermicompost recipe v1 | solid_fertilizer | 45 days | Banana stems, coconut coir, kitchen waste, chicken manure, red wigglers |
+| Tropical bokashi recipe | solid_fertilizer | 14 days | Wheat bran, rice bran, molasses, EM inoculant |
+| Compost tea aerated brew | liquid_fertilizer | 3 days | Mature vermicompost, water, molasses |
+| Sargassum extract (Caribbean) | liquid_fertilizer | 21 days | Washed sargassum, water, optional molasses |
+| Fish emulsion (anaerobic fermented) | liquid_fertilizer | 28 days | Fish scraps, sawdust, molasses, water |
+| Manure tea (steeped) | liquid_fertilizer | 10 days | Aged chicken manure, water, molasses |
+| Tropical aerobic compost | solid_fertilizer | 60 days | Coffee pulp, sugarcane bagasse, rice husks, chicken manure |
+| Seaweed extract (kelp steep) | liquid_fertilizer | 2 days | Kelp meal, water |
+
+Each recipe includes `ingredients` (kg/batch), `ratios` (C:N, moisture, dilution), `process_steps` (day-by-day with temperature targets), `quality_warnings`, and `application_method`. Recipes are public knowledge for adaptation, not commercial endorsements.
+
 ## LAC Regional Inputs
 
 `bio_regional_input_availability` contains 8 LAC-specific entries:

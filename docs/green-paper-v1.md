@@ -737,7 +737,7 @@ Carbon-balance evidence is distinct from carbon credit issuance. Public carbon c
 
 ## 13. Additional Evidence Modules
 
-The platform includes six additional governed evidence modules beyond the core operations, EBF scoring, holistic well-being, and financial resilience layers. Each module has dedicated schema tables, public-safe views, seeded metric definitions, a synthesis agent, report types, and an operating guide.^[35-40]^
+The platform includes seven additional governed evidence modules beyond the core operations, EBF scoring, holistic well-being, and financial resilience layers. Each module has dedicated schema tables, public-safe views, seeded metric definitions, a synthesis agent, report types, and an operating guide.^[35-41]^
 
 ### Capital Efficiency and Utility
 
@@ -819,6 +819,22 @@ Records anti-capture governance policies, flexible redistribution policies, fede
 | `participatory_signal_experiment` | Signal type, source, weight, advisory vs binding, review status |
 
 Report types: `anti_capture_governance`, `redistribution_policy`, `federation_mutual_aid`, `algorithmic_redistribution`, `participatory_signal`. Agent: `kokonut_commons_agent`. Guide: [docs/kokonut-commons-governance.md](docs/kokonut-commons-governance.md).^[40]^
+
+### Bio Factory Operations
+
+Records bio-organic fertilizer production batches, ingredient provenance, recipe knowledge, distribution, quality testing, ingredient composition reference (20 seeded ingredients with typical NPK ranges), and LAC regional input availability (8 Caribbean/Central/South America entries). Recipes are public knowledge for adaptation, not commercial endorsements. Quality test results are advisory, not certification. Sargassum and other marine materials require washing (3-5 rinses) to reduce salts and arsenic before use.
+
+| Record | Purpose |
+|---|---|
+| `bio_factory_batch` | Production batch: type, method, inputs, outputs, conditions, microbial strain |
+| `bio_input_provenance` | Ingredient sourcing: supplier, origin, organic certification, NPK, quality warnings |
+| `bio_recipe_library` | Recipe knowledge base: ingredients, ratios, process steps, fermentation conditions |
+| `bio_factory_distribution` | Distribution tracking: recipient type, quantity, region, application purpose |
+| `bio_factory_quality_test` | Quality test results: NPK, pH, microbial count, pass/fail, lab accreditation |
+| `bio_ingredient_composition_reference` | Composition matrix: typical NPK ranges for 20 ingredients |
+| `bio_regional_input_availability` | LAC regional inputs: region, seasonality, cautions, quality considerations |
+
+Report types: `bio_factory_batch`, `bio_input_provenance`, `bio_recipe_library`, `bio_quality_test`, `bio_regional_input`. Agent: `bio_factory_agent`. Guide: [docs/bio-factory-operations.md](docs/bio-factory-operations.md).^[41]^
 
 ---
 
@@ -947,6 +963,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Regenerative outcomes and stewardship evidence with outcome summaries, community governance, replication readiness, and adaptive stewardship loops.^[38]^
 - Open Source Capitalist scaling evidence with unit economics, scaling targets, adoption barriers, stress tests, and open-source artifacts.^[39]^
 - Kokonut Commons governance evidence with anti-capture policies, flexible redistribution, federation protocols, algorithmic redistribution, and participatory signals.^[40]^
+- Bio Factory operations evidence with production batches, ingredient provenance, recipe library, quality testing, ingredient composition reference, and LAC regional input availability.^[41]^
 - Web3 verification metadata on Celo via EAS.
 
 ### What Green Paper V1 Does Not Claim
@@ -967,6 +984,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Replication readiness is a checkpoint signal, not a commitment to launch new farms.
 - Scaling targets are explicit planned numbers, not unlimited-scaling claims.
 - Participatory signal experiments are advisory only unless explicitly marked as decision-binding with human review.
+- Bio-factory batch yields, input provenance records, and quality test results are smallholder pilot evidence, not commercial production guarantees. Recipes are public knowledge for adaptation, not commercial endorsements. Quality test results are advisory, not certification.
 - Redistribution policies are flexible per scenario; no single allocation percentage is hardcoded across all contexts.
 - Forecast and modeled outputs are projections, not guarantees.
 - The platform does not issue carbon credits or provide external verification services.
@@ -974,7 +992,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 
 ### Suggested Narrative
 
-Kokonut combines PostgreSQL/Directus governance, ClickHouse analytics, Celo EAS attestations, CIDS-compatible export, stakeholder consent, agent-safe workflows, EBF pillar scoring, and six additional evidence modules (capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, and commons governance). The system is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
+Kokonut combines PostgreSQL/Directus governance, ClickHouse analytics, Celo EAS attestations, CIDS-compatible export, stakeholder consent, agent-safe workflows, EBF pillar scoring, and seven additional evidence modules (capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, commons governance, and bio-factory operations). The system is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
 
 ---
 
@@ -1217,7 +1235,7 @@ python3 -m services.agents.ebf_scorecard_agent --location-id UUID --draft
 python3 -m services.agents.ebf_evidence_gap_agent --location-id UUID
 python3 -m services.agents.ebf_calibration_agent --location-id UUID --draft
 
-# Report generation (--auto generates all 37 report types)
+# Report generation (--auto generates all 42 report types)
 python3 -m services.export.report_generator --auto --location-id UUID
 
 # Core reports

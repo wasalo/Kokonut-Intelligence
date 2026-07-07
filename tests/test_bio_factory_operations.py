@@ -17,6 +17,7 @@ from services.export.report_generator import (
 SCHEMA = Path("schemas/postgres/043_bio_factory_operations.sql")
 SEED = Path("schemas/seeds/044_bio_factory_operations.sql")
 PILOT_SEED = Path("schemas/seeds/043_pilot_bio_factory_operations.sql")
+PILOT_RECIPES = Path("schemas/seeds/045_pilot_bio_factory_recipes.sql")
 EAS_SEED = Path("schemas/seeds/014_pilot_celo_eas.sql")
 
 
@@ -129,6 +130,25 @@ def test_pilot_seed_has_lac_aware_bio_factory_examples() -> None:
     assert "Monte Plata" in text
     assert "smallholder_pilot_evidence" in text or "not a commercial guarantee" in text.lower()
     assert "salts and arsenic" in text.lower()
+
+    # Additional recipes from 045_pilot_bio_factory_recipes.sql
+    recipes_text = PILOT_RECIPES.read_text()
+    assert "Fish emulsion (anaerobic fermented)" in recipes_text
+    assert "Manure tea (steeped)" in recipes_text
+    assert "Tropical aerobic compost" in recipes_text
+    assert "Seaweed extract (kelp steep)" in recipes_text
+    assert "Coffee pulp (composted)" in recipes_text
+    assert "Fish waste (fresh scraps)" in recipes_text
+    assert "adelphi-recipe-fish-emulsion-v1" in recipes_text
+    assert "adelphi-recipe-manure-tea-v1" in recipes_text
+    assert "adelphi-recipe-aerobic-compost-v1" in recipes_text
+    assert "adelphi-recipe-seaweed-kelp-v1" in recipes_text
+    # 4 original + 4 additional = 8 recipes total
+    assert PILOT_SEED.read_text().count("INSERT INTO bio_recipe_library") >= 4
+    assert recipes_text.count("INSERT INTO bio_recipe_library") >= 4
+    # 4 original + 2 additional = 6 input provenance rows total
+    assert PILOT_SEED.read_text().count("INSERT INTO bio_input_provenance") >= 4
+    assert recipes_text.count("INSERT INTO bio_input_provenance") >= 2
 
 
 def test_bio_factory_agent_task_catalogue_and_validation() -> None:
