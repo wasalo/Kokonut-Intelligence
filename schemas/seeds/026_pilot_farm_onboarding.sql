@@ -42,6 +42,14 @@ SET daoip5_project_id = 'daoip-5:Kokonut:project:kokonut-adelphi',
         "kokonut:farmSlug":"kokonut-adelphi",
         "kokonut:ebfBasicOnboarding":true
     }'::jsonb,
+    founders = '[
+        {
+            "name": "Kokonut Collective",
+            "role": "founding_team",
+            "public_figure": true,
+            "socials": [{"platform":"Website","url":"https://kokonut.network"}]
+        }
+    ]'::jsonb,
     updated_at = NOW()
 WHERE id = 'a0000000-0000-0000-0000-000000000500';
 

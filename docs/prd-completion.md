@@ -4,7 +4,7 @@ This note tracks the PRD completion layer added on top of the existing Directus/
 
 ## Implemented
 
-- Common Data Schema support via `farm_registry_record`, including the 13 required farm onboarding fields from Kokonut documentation.
+- Common Data Schema support via `farm_registry_record`, including the 13 required farm onboarding fields from Kokonut documentation, plus `founders` JSONB for project founder identity and public figures.
 - Operational support tables for inventory, maintenance, and canonical revenue events: `inventory_event`, `maintenance_event`, `revenue_event`.
 - Kokonut MRV event support via `mrv_event`, with ground, remote, and community payload slots.
 - Privacy-preserving attestation request metadata via `attestation_request`, `private_payload_hash`, `payload_cid`, and `payload_hash`.

@@ -34,8 +34,10 @@ ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS relevant_to JSONB DEFA
 ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS members_uri TEXT;
 ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS attestation_issuers_uri TEXT;
 ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS daoip5_extensions JSONB DEFAULT '{}';
+ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS founders JSONB DEFAULT '[]';
 
 CREATE INDEX IF NOT EXISTS idx_farm_registry_daoip5_project ON farm_registry_record(daoip5_project_id);
+CREATE INDEX IF NOT EXISTS idx_farm_registry_founders ON farm_registry_record USING GIN(founders);
 
 CREATE TABLE IF NOT EXISTS tenure_rights_assessment (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -226,6 +228,7 @@ SELECT
             'coverImage', fr.cover_image_url,
             'licenseURI', fr.license_uri,
             'socials', fr.socials,
+            'founders', COALESCE(fr.founders, '[]'::jsonb),
             'extensions', COALESCE(fr.daoip5_extensions, '{}'::jsonb) || jsonb_build_object(
                 'kokonut:farmRegistryRecordId', fr.id,
                 'kokonut:locationId', fr.location_id,
