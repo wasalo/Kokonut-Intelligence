@@ -1891,6 +1891,125 @@ def generate_participatory_signal(conn, location_id: str = None, period_start: s
 
 
 # ---------------------------------------------------------------------------
+# Ecological Modeling Reports
+# ---------------------------------------------------------------------------
+
+def generate_ecological_modeling(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe ecological modeling report with interactions, model runs, and population dynamics."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_ecological_interaction_summary
+        WHERE location_id = %s ORDER BY interaction_strength DESC
+        """,
+        (location_id,),
+    )
+    interactions = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_ecological_model_summary
+        WHERE location_id = %s ORDER BY run_date DESC
+        """,
+        (location_id,),
+    )
+    models = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_population_dynamics_summary
+        WHERE location_id = %s ORDER BY species_name, record_date
+        """,
+        (location_id,),
+    )
+    populations = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_energy_flow_summary
+        WHERE location_id = %s ORDER BY measurement_date DESC
+        """,
+        (location_id,),
+    )
+    energy_flows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    mutualism_count = sum(1 for i in interactions if i.get("interaction_type") == "mutualism")
+    predation_count = sum(1 for i in interactions if i.get("interaction_type") == "predation")
+    trophic_balance = mutualism_count / max(mutualism_count + predation_count, 1)
+    return {
+        "report_type": "ecological_modeling",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "interactions": _serialize_rows(interactions),
+        "model_runs": _serialize_rows(models),
+        "population_records": _serialize_rows(populations),
+        "energy_flows": _serialize_rows(energy_flows),
+        "interaction_count": len(interactions),
+        "mutualism_count": mutualism_count,
+        "predation_count": predation_count,
+        "trophic_balance_index": round(trophic_balance, 3),
+        "limitations": [
+            "Ecological model outputs are simulation estimates, not guaranteed outcomes.",
+            "Interaction strength values are observational estimates requiring ground-truth verification.",
+            "Population dynamics records depend on survey method accuracy and observer skill.",
+            "Energy flow measurements use estimation methods; direct measurement preferred.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_trophic_pyramid(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe trophic pyramid report showing energy flow across trophic levels."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_energy_flow_efficiency
+        WHERE location_id = %s ORDER BY from_trophic_level, to_trophic_level
+        """,
+        (location_id,),
+    )
+    energy_flows = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT species_a_trophic AS trophic_level, COUNT(*) AS interaction_count,
+               AVG(interaction_strength) AS avg_strength
+        FROM ecological_interaction
+        WHERE location_id = %s AND status IN ('verified', 'published')
+        GROUP BY species_a_trophic
+        """,
+        (location_id,),
+    )
+    trophic_counts = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT trophic_level, COUNT(DISTINCT species_name) AS species_count
+        FROM population_dynamics_record
+        WHERE location_id = %s AND status IN ('verified', 'published')
+        GROUP BY trophic_level
+        """,
+        (location_id,),
+    )
+    species_by_trophic = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    return {
+        "report_type": "trophic_pyramid",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "energy_flows": _serialize_rows(energy_flows),
+        "trophic_interaction_counts": _serialize_rows(trophic_counts),
+        "species_by_trophic_level": _serialize_rows(species_by_trophic),
+        "total_energy_transfers": len(energy_flows),
+        "limitations": [
+            "Trophic pyramid metrics are aggregated from observational data with inherent measurement uncertainty.",
+            "Energy flow efficiency percentages use estimation methods; direct biomass measurement preferred.",
+            "Species classifications by trophic level may vary with life stage and diet.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
 
@@ -1937,6 +2056,8 @@ REPORT_GENERATORS = {
     "bio_recipe_library": generate_bio_recipe_library,
     "bio_quality_test": generate_bio_quality_test,
     "bio_regional_input": generate_bio_regional_input,
+    "ecological_modeling": generate_ecological_modeling,
+    "trophic_pyramid": generate_trophic_pyramid,
 }
 
 

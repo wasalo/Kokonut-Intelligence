@@ -1,0 +1,10 @@
+{
+  "name": "Trophic Pyramid",
+  "description": "Public-safe trophic level balance and energy flow visualization.",
+  "dataset_id": "a0000000-0000-0000-0000-000000004602",
+  "card_id": "a0000000-0000-0000-0000-000000004602",
+  "sql_file": "63_trophic_pyramid.sql",
+  "refresh_interval_minutes": 1440,
+  "status": "published",
+  "metadata": {"owner": "ecology_guild", "privacy": "public_safe"}
+}
