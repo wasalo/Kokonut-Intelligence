@@ -126,7 +126,7 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 
 | Entity | Description | Key Fields |
 |--------|-------------|------------|
-| `farm_registry_record` | Kokonut Common Data Schema onboarding record | registry_slug, project_date, forecasted_budget, record_hash |
+| `farm_registry_record` | Kokonut Common Data Schema onboarding record | registry_slug, project_date, forecasted_budget, founders, record_hash |
 | `tenure_rights_assessment` | Tenure, rights, and community-effects onboarding assessment | tenure_type, nearby_area_survey, community_effects_forecast, risk_level |
 | `inventory_event` | Inventory, input, and bioinput movement | item_name, item_type, event_type, quantity |
 | `maintenance_event` | Asset inspection, repair, and upkeep | maintenance_type, work_performed, cost, next_service_date |
