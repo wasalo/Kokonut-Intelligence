@@ -273,3 +273,10 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | Entity | Description | Key Fields |
 |--------|-------------|------------|
 | `emergency_incident` | Tracks emergency incidents with response, recovery, and lessons learned | incident_type (drought/flood/pest_outbreak/extreme_heat/frost/fire/disease_epidemic/soil_degradation/water_crisis), severity (low/medium/high/critical), detection_date, detection_method, response_actions (JSONB), recovery_date, financial_impact_usd, lessons_learned, status (detected/responding/recovering/resolved/escalated) |
+
+### Individual Tree Tracking
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `tree_record` | Individual tree records with GPS coordinates for spatial mapping and Silvi integration | species_name, tree_tag, latitude, longitude, point_geometry (PostGIS), planting_date, height_m, dbh_cm, canopy_diameter_m, health_score, maturity_stage (seedling/juvenile/mature/mature-elder), status (alive/dead/removal/surviving) |
+| `tree_measurement` | Time-series measurements for growth rate tracking | tree_record_id, measurement_date, height_m, dbh_cm, canopy_diameter_m, health_score |
