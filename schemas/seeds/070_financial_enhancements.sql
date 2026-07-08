@@ -1,0 +1,62 @@
+-- ============================================================
+-- 070_financial_enhancements.sql — Seeds: metrics, pilot data
+-- ============================================================
+
+-- New metric definitions
+INSERT INTO metric_definition (
+    metric_key, display_name, description, formula, source_tables,
+    inclusion_rules, exclusion_rules, unit, data_type, owner, version,
+    update_frequency, active, validation_tests, report_usage, deprecation_policy
+) VALUES
+('irr_pct', 'Internal Rate of Return',
+ 'Internal Rate of Return computed from periodic cash flow series using Newton-Raphson method.',
+ 'irr(cash_flow_series)',
+ ARRAY['farm_launch_unit_economics', 'capital_efficiency_scenario'],
+ 'Only verified/published records with valid cash flow series',
+ 'Exclude records with fewer than 2 non-zero cash flows',
+ 'percentage', 'numeric', 'Finance Guild', 1, 'quarterly', TRUE,
+ '[]'::jsonb, ARRAY['investment_analysis', 'financial_sustainability'],
+ 'Supersede through metric_version before changing public interpretation.'),
+('npv_usd', 'Net Present Value',
+ 'Net Present Value at configured discount rate.',
+ 'npv(discount_rate, cash_flow_series)',
+ ARRAY['farm_launch_unit_economics', 'capital_efficiency_scenario'],
+ 'Only verified/published records with valid cash flow series',
+ 'Exclude records without discount rate',
+ 'currency', 'numeric', 'Finance Guild', 1, 'quarterly', TRUE,
+ '[]'::jsonb, ARRAY['investment_analysis', 'financial_sustainability'],
+ 'Supersede through metric_version before changing public interpretation.'),
+('modified_irr_pct', 'Modified Internal Rate of Return',
+ 'Modified IRR separating reinvestment and finance rates.',
+ 'mirr(cash_flow_series, finance_rate, reinvestment_rate)',
+ ARRAY['farm_launch_unit_economics', 'capital_efficiency_scenario'],
+ 'Only verified/published records with valid cash flow series',
+ 'Exclude records without discount rate',
+ 'percentage', 'numeric', 'Finance Guild', 1, 'quarterly', TRUE,
+ '[]'::jsonb, ARRAY['investment_analysis', 'financial_sustainability'],
+ 'Supersede through metric_version before changing public interpretation.'),
+('discount_rate_pct', 'Discount Rate',
+ 'Configurable discount rate for NPV calculations.',
+ 'user_configured',
+ ARRAY['farm_launch_unit_economics', 'capital_efficiency_scenario'],
+ 'Active configurations only',
+ 'None',
+ 'percentage', 'numeric', 'Finance Guild', 1, 'quarterly', TRUE,
+ '["0 < value <= 50"]'::jsonb, ARRAY['investment_analysis'],
+ 'Supersede through metric_version before changing public interpretation.')
+ON CONFLICT (metric_key) DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    description = EXCLUDED.description,
+    formula = EXCLUDED.formula,
+    source_tables = EXCLUDED.source_tables,
+    inclusion_rules = EXCLUDED.inclusion_rules,
+    exclusion_rules = EXCLUDED.exclusion_rules,
+    unit = EXCLUDED.unit,
+    data_type = EXCLUDED.data_type,
+    owner = EXCLUDED.owner,
+    update_frequency = EXCLUDED.update_frequency,
+    active = EXCLUDED.active,
+    validation_tests = EXCLUDED.validation_tests,
+    report_usage = EXCLUDED.report_usage,
+    deprecation_policy = EXCLUDED.deprecation_policy,
+    updated_at = NOW();
