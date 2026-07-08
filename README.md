@@ -4,7 +4,7 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 
 PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores analytical events. Python services compute metrics, forecasts, exports, registry payloads, AI summaries, and ingestion jobs. EAS on Celo anchors public verification metadata while private evidence stays offchain.
 
-**Repo stats**: 394 tests · 16 agents · 55 report types · 53 dashboards · 65 seed files · 41 docs
+**Repo stats**: 409 tests · 16 agents · 55 report types · 53 dashboards · 66 seed files · 41 docs
 
 ## Table Of Contents
 
