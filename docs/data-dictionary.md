@@ -326,3 +326,21 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `sow_deliverable` | Deliverables with acceptance criteria | deliverable_name, acceptance_criteria, due_date, delivered_at, status (pending/delivered/accepted/rejected) |
 | `sow_payment_schedule` | Payment milestones | milestone_name, amount, due_date, payment_status, invoice_number, paid_at |
 | `sow_change_request` | Scope changes with impact assessment | change_name, impact_on_timeline, impact_on_budget, status (proposed/approved/rejected/implemented) |
+
+### Impact Network
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `organization` | Multi-org grouping | org_key, name, org_type (cooperative/nonprofit/dao/enterprise/collective), governance_model |
+| `organization_member` | Links organizations to locations/farms | membership_type (owned/affiliated/sponsored/partner), role (primary/satellite/partner/incubated) |
+| `organization_wallet` | Links organizations to wallets | wallet_purpose (treasury/operations/rewards/donor_escrow) |
+| `donor` | Donor identity | donor_type, wallet_address, is_anonymous |
+| `funding_campaign` | Crowdfunding campaigns | campaign_type, goal_amount, raised_amount, status |
+| `donation` | Individual contributions | amount, payment_method, is_recurring, linked_attestation_uid |
+| `impact_payout_rule` | Automatic payout rules | payout_type, trigger_condition, payout_amount, attestation_required |
+| `impact_payout_execution` | Executed payouts | metric_value, payout_amount, tx_hash, status |
+| `impact_bounty` | Data collection incentives | bounty_type, reward_amount, data_requirement, max_submissions |
+| `impact_bounty_submission` | Bounty claims | submission_data, evidence_cids, quality_score, reward_paid |
+| `impact_office_run` | Orchestration runs | run_type, status, started_at, completed_at |
+| `impact_office_step` | Orchestration steps | step_type, step_order, depends_on, step_status |
+| `impact_office_alert` | Orchestration alerts | alert_type, severity, message, resolution_status |
