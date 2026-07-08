@@ -267,3 +267,9 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `harvest_handling_record` | Post-harvest organic compliance | harvest_event_id, handling_type, organic_segregated, equipment_cleaned, contamination_risk, organic_lot_number |
 | `organic_compliance_checklist` | Inspector audit trail per standard requirement | certification_record_id, inspection_type, checklist_items (JSONB), non_conformances, corrective_actions_required, overall_result |
 | `organic_readiness_assessment` | Composite 0-100 readiness scoring across 8 dimensions | overall_score, transition_progress_pct, soil_health_score, input_compliance_pct, pest_management_score, biodiversity_score, buffer_zone_score, record_completeness_pct, training_completion_pct, harvest_segregation_score |
+
+### Emergency Response
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `emergency_incident` | Tracks emergency incidents with response, recovery, and lessons learned | incident_type (drought/flood/pest_outbreak/extreme_heat/frost/fire/disease_epidemic/soil_degradation/water_crisis), severity (low/medium/high/critical), detection_date, detection_method, response_actions (JSONB), recovery_date, financial_impact_usd, lessons_learned, status (detected/responding/recovering/resolved/escalated) |
