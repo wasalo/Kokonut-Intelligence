@@ -280,3 +280,13 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 |--------|-------------|------------|
 | `tree_record` | Individual tree records with GPS coordinates for spatial mapping and Silvi integration | species_name, tree_tag, latitude, longitude, point_geometry (PostGIS), planting_date, height_m, dbh_cm, canopy_diameter_m, health_score, maturity_stage (seedling/juvenile/mature/mature-elder), status (alive/dead/removal/surviving) |
 | `tree_measurement` | Time-series measurements for growth rate tracking | tree_record_id, measurement_date, height_m, dbh_cm, canopy_diameter_m, health_score |
+
+### Spatial Export
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `farm_zone` (extended) | Geometry column added for spatial mapping | geometry (GEOMETRY(POLYGON, 4326)) |
+| `v_spatial_zone_geojson` | Zones with GeoJSON text for export | zone_key, zone_type, geometry_geojson |
+| `v_spatial_tree_geojson` | Trees with GeoJSON text for export | tree_tag, species_name, geometry_geojson |
+| `v_spatial_location_geojson` | Location boundary with GeoJSON text | boundary_geojson, center_geojson |
+| `v_spatial_project_summary` | Comprehensive project summary | tree_count, species_count, zone_count, zone_types |
