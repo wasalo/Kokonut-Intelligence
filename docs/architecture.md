@@ -375,3 +375,89 @@ The platform supports organic certification tracking across USDA NOP, EU 2018/84
 6. **Assess readiness**: `organic_readiness_assessment` with composite score and sub-dimensions
 7. **Inspect checklist**: `organic_compliance_checklist` with structured pass/fail items
 8. **Verify on-chain**: `attestation_record` with `attestation_type = 'organic'`
+
+## True Cost Accounting & Triple Bottom Line
+
+The platform implements True Cost Accounting (TCA) and Triple Bottom Line (TBL) reporting across 5 phases:
+
+### Phase 1: Hidden Cost Accounting
+- `hidden_cost_observation` tracks externalities (pollution, health, social, environmental) with monetary estimates
+- `compute_true_cost_statement()` combines market costs + hidden costs + capital values
+
+### Phase 2: Natural & Social Capital Valuation
+- `natural_capital_valuation` assigns monetary values to carbon, biodiversity, water, soil, pollination
+- `social_impact_valuation` monetizes training, governance, cultural preservation, health, community
+- `worker_safety_observation` tracks workplace incidents
+- `living_wage_benchmark` enables wage comparison
+
+### Phase 3: Life Cycle Assessment
+- `lca_assessment` tracks cradle-to-grave environmental impacts per product
+- `compute_product_carbon_footprint()` and `compute_water_footprint()` compute per-unit impacts
+
+### Phase 4: GRI Reporting
+- `gri_indicator` maps platform metrics to GRI standards
+- `materiality_assessment` maps stakeholder priorities vs business importance
+
+### Phase 5: Systems Thinking
+- `capital_flow_observation` tracks transfers between natural, human, social, produced, and financial capitals
+- `compute_system_resilience()` scores cross-capital resilience
+
+### Key Analytics
+
+| Function | What It Computes |
+|----------|-----------------|
+| `compute_true_cost_statement()` | Market profit - hidden costs + natural + social capital = true profit |
+| `compute_hidden_cost_summary()` | Hidden costs by category and subcategory |
+| `compute_natural_capital_valuation()` | Natural capital value by type |
+| `compute_social_impact_valuation()` | Social impact value by category |
+| `compute_human_capital_score()` | Unified 0-100 human capital score |
+| `compute_product_carbon_footprint()` | Emissions per kg of product |
+| `compute_water_footprint()` | Blue/green/grey water per crop |
+| `compute_lca_summary()` | Full lifecycle impact by stage |
+| `compute_gri_compliance_score()` | % of GRI indicators with data |
+| `compute_materiality_matrix()` | Stakeholder importance vs business importance |
+| `compute_capital_flow_summary()` | Transfers between capitals |
+| `compute_cross_capital_dependencies()` | How investment in one capital affects others |
+| `compute_system_resilience()` | Cross-capital resilience score |
+
+See [Metrics by Development Phase](metrics-by-phase.md) for the complete phase-to-metric mapping.
+
+## Impact Value Chain
+
+The platform implements the Impact Value Chain framework with organizational structure and operational planning:
+
+### Organizational Structure
+- `department` — Organizational units (Operations, Ecology, Finance, Community, Governance)
+- `job_role` — Role definitions with department linkage
+- `staff` — Extended with `job_role_id`, `department_id`, `hire_date`, `employment_status`
+
+### Operational Planning
+- `farm_task` — Planned tasks with scheduling, priorities, and assignees
+- `weekly_plan` — Weekly action planning with budget tracking
+- `development_phase` — Farm lifecycle phases with sequencing
+- `framework_step` — Sequenced methodology steps with prerequisites
+
+### Key Analytics
+
+| Function | What It Computes |
+|----------|-----------------|
+| `compute_task_completion_rate()` | Task completion rate, on-time delivery, cost adherence |
+| `compute_weekly_plan_adherence()` | Budget actual vs forecast, task completion |
+| `compute_development_phase_progress()` | Current phase, % complete, time elapsed |
+| `compute_framework_step_progress()` | Steps completed, prerequisites met, blocked steps |
+
+## Scenario Parameters
+
+The platform supports worst/base/best case scenario modeling with Monte Carlo simulation:
+
+### Parameters
+- 18 default parameters across 6 categories: yield, price, cost, weather, ecological, governance
+- Each parameter has worst/base/best values with distribution types (normal, uniform, triangular)
+
+### Key Analytics
+
+| Function | What It Computes |
+|----------|-----------------|
+| `run_monte_carlo()` | 1000-sample simulation with P10-P90 percentile bands |
+| `run_sensitivity_analysis()` | Per-parameter sensitivity with elasticity |
+| `run_sensitivity_tornado()` | Ranked impact across all parameters |
