@@ -5,7 +5,7 @@
 -- Wallet profiles
 CREATE TABLE IF NOT EXISTS wallet_profile (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    address VARCHAR(42) NOT NULL,
+    address VARCHAR(42) NOT NULL CHECK (address ~ '^0x[0-9a-fA-F]{40}$'),
     chain VARCHAR(50) NOT NULL, -- ethereum, optimism, base, arbitrum
     chain_id INTEGER,
     role VARCHAR(100), -- treasury, operations, rewards, deployer, user, team, community

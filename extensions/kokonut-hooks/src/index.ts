@@ -92,7 +92,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     meta: Record<string, any>
   ) {
     const userRoles = await resolveUserRoles(database, meta);
-    const accountability = meta?.accountability || meta?.payload?._accountability;
+    const accountability = meta?.accountability;
     return await handleWorkflowTransition(
       collection, payload, meta.keys || {}, userRoles, database, accountability
     );
@@ -483,17 +483,26 @@ async function writeFinancialEvent(type: string, payload: Record<string, any>) {
     const chUser = process.env.CH_USER || 'kokonut';
     const chPass = process.env.CH_PASSWORD || '';
 
-    const txId = payload.id || crypto.randomUUID();
+    // Validate all values before ClickHouse interpolation
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const STR_RE = /^[a-zA-Z0-9_\- ]+$/;
+    const CAT_RE = /^[a-zA-Z0-9_\-]+$/;
+    const CUR_RE = /^[A-Z]{3}$/;
+
+    const txId = (payload.id && UUID_RE.test(payload.id)) ? payload.id : crypto.randomUUID();
+    const locId = (payload.location_id && UUID_RE.test(payload.location_id)) ? payload.location_id : '00000000-0000-0000-0000-000000000000';
+    const cat = payload.category && CAT_RE.test(payload.category) ? payload.category.substring(0, 50) : (type || 'other');
+    const cur = currency && CUR_RE.test(currency) ? currency : 'USD';
+    const amt = typeof amount === 'number' && isFinite(amount) ? amount : 0;
     const ts = new Date().toISOString().replace('T', ' ').replace('Z', '');
-    const cat = payload.category || type;
-    const currency = payload.currency || 'USD';
+    const safeType = STR_RE.test(type) ? type : 'other';
 
     const query = `INSERT INTO financial_events
       (timestamp, transaction_id, location_id, transaction_type, category,
        amount, currency, amount_usd, chain, token, metadata)
       VALUES (
-        '${ts}', '${txId}', '${payload.location_id}', '${type}', '${cat}',
-        ${amount}, '${currency}', ${amount}, '', '', map()
+        '${ts}', '${txId}', '${locId}', '${safeType}', '${cat}',
+        ${amt}, '${cur}', ${amt}, '', '', map()
       )`;
 
     const auth = Buffer.from(`${chUser}:${chPass}`).toString('base64');

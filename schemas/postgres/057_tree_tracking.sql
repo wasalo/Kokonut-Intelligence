@@ -99,24 +99,18 @@ COMMENT ON TABLE tree_measurement IS 'Time-series measurements for individual tr
 -- VIEWS
 -- ============================================================================
 
--- 1. Public tree records
+-- 1. Public tree records (gated: registry + GPS stripped for poaching prevention)
 CREATE OR REPLACE VIEW v_public_tree_records AS
 SELECT
     t.id,
     t.location_id,
     l.name AS location_name,
-    l.latitude AS location_latitude,
-    l.longitude AS location_longitude,
     t.plot_id,
     p.name AS plot_name,
     t.zone_id,
     fz.zone_type,
-    t.tree_inventory_id,
     t.species_name,
     t.species_common_name,
-    t.tree_tag,
-    t.latitude,
-    t.longitude,
     t.planting_date,
     t.height_m,
     t.dbh_cm,
@@ -125,8 +119,15 @@ SELECT
     t.maturity_stage,
     t.status,
     t.last_survey_date,
-    t.notes,
     t.created_at
+FROM tree_record t
+JOIN location l ON t.location_id = l.id
+JOIN plot p ON t.plot_id = p.id
+LEFT JOIN farm_zone fz ON t.zone_id = fz.id
+LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
+WHERE l.status IN ('active', 'verified', 'published')
+  AND t.status = 'alive'
+  AND (fr.id IS NULL OR fr.status IN ('verified', 'published'));
 FROM tree_record t
 JOIN location l ON t.location_id = l.id
 JOIN plot p ON t.plot_id = p.id

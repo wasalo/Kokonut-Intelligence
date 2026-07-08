@@ -32,6 +32,7 @@ contract KokonutResolver is SchemaResolver, Ownable {
     }
 
     function removeAttester(address attester) external onlyOwner {
+        require(attester != address(0), "Zero address");
         allowedAttesters[attester] = false;
         emit AttesterRemoved(attester);
     }

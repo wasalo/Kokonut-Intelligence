@@ -139,7 +139,7 @@ COMMENT ON TABLE sow_change_request IS 'SOW change requests with impact assessme
 -- VIEWS
 -- ============================================================================
 
--- 1. Public SOW summary
+-- 1. Public SOW summary (gated: registry + status filter + PII stripped)
 CREATE OR REPLACE VIEW v_public_statement_of_work AS
 SELECT
     s.id,
@@ -149,11 +149,8 @@ SELECT
     s.sow_version,
     s.effective_date,
     s.expiration_date,
-    s.client_name,
-    s.contractor_name,
     s.total_contract_value,
     s.currency,
-    s.payment_terms,
     s.status,
     (SELECT COUNT(*)::int FROM sow_deliverable sd WHERE sd.sow_id = s.id) AS total_deliverables,
     (SELECT COUNT(*)::int FROM sow_deliverable sd WHERE sd.sow_id = s.id AND sd.status = 'accepted') AS accepted_deliverables,
@@ -163,9 +160,12 @@ SELECT
     s.created_at
 FROM statement_of_work s
 JOIN location l ON s.location_id = l.id
-WHERE l.status IN ('active', 'verified', 'published');
+LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
+WHERE l.status IN ('active', 'verified', 'published')
+  AND s.status IN ('active', 'completed')
+  AND (fr.id IS NULL OR fr.status IN ('verified', 'published'));
 
--- 2. Public SOW deliverables
+-- 2. Public SOW deliverables (gated: registry + SOW status filter)
 CREATE OR REPLACE VIEW v_public_sow_deliverables AS
 SELECT
     sd.id,
@@ -184,14 +184,16 @@ SELECT
         THEN sd.delivered_at <= sd.due_date
         ELSE NULL
     END AS on_time,
-    sd.notes,
     sd.created_at
 FROM sow_deliverable sd
 JOIN statement_of_work s ON sd.sow_id = s.id
 JOIN location l ON s.location_id = l.id
-WHERE l.status IN ('active', 'verified', 'published');
+LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
+WHERE l.status IN ('active', 'verified', 'published')
+  AND s.status IN ('active', 'completed')
+  AND (fr.id IS NULL OR fr.status IN ('verified', 'published'));
 
--- 3. Public SOW payment schedule
+-- 3. Public SOW payment schedule (gated: registry + SOW status filter + invoice stripped)
 CREATE OR REPLACE VIEW v_public_sow_payment_schedule AS
 SELECT
     sp.id,
@@ -204,8 +206,6 @@ SELECT
     s.currency,
     sp.due_date,
     sp.payment_status,
-    sp.invoice_number,
-    sp.paid_at,
     CASE
         WHEN sp.payment_status = 'paid' AND sp.paid_at IS NOT NULL AND sp.due_date IS NOT NULL
         THEN sp.paid_at::date <= sp.due_date
@@ -215,6 +215,9 @@ SELECT
 FROM sow_payment_schedule sp
 JOIN statement_of_work s ON sp.sow_id = s.id
 JOIN location l ON s.location_id = l.id
-WHERE l.status IN ('active', 'verified', 'published');
+LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
+WHERE l.status IN ('active', 'verified', 'published')
+  AND s.status IN ('active', 'completed')
+  AND (fr.id IS NULL OR fr.status IN ('verified', 'published'));
 
 COMMIT;

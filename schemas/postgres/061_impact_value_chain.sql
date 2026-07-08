@@ -235,7 +235,7 @@ CREATE INDEX IF NOT EXISTS idx_staff_department ON staff(department_id);
 -- VIEWS
 -- ============================================================================
 
--- 1. Public farm tasks
+-- 1. Public farm tasks (gated: registry + status filter + PII stripped)
 CREATE OR REPLACE VIEW v_public_farm_tasks AS
 SELECT
     ft.id,
@@ -245,10 +245,7 @@ SELECT
     f.name AS farm_name,
     ft.plot_id,
     p.name AS plot_name,
-    ft.assignee_id,
-    s.name AS assignee_name,
     ft.task_name,
-    ft.description,
     ft.category,
     ft.start_date,
     ft.end_date,
@@ -264,14 +261,15 @@ SELECT
         WHEN ft.start_date IS NOT NULL AND CURRENT_DATE > ft.end_date THEN 0
         ELSE 0
     END AS progress_pct,
-    ft.notes,
     ft.created_at
 FROM farm_task ft
 JOIN location l ON ft.location_id = l.id
 LEFT JOIN farm f ON ft.farm_id = f.id
 LEFT JOIN plot p ON ft.plot_id = p.id
-LEFT JOIN staff s ON ft.assignee_id = s.id
-WHERE l.status IN ('active', 'verified', 'published');
+LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
+WHERE l.status IN ('active', 'verified', 'published')
+  AND ft.status IN ('completed', 'in_progress')
+  AND (fr.id IS NULL OR fr.status IN ('verified', 'published'));
 
 -- 2. Public weekly plans
 CREATE OR REPLACE VIEW v_public_weekly_plans AS

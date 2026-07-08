@@ -29,8 +29,15 @@ export function enforceAgentTaskSafety(payload: Record<string, any>): Record<str
   return payload;
 }
 
-export function enforceAiSummarySafety(payload: Record<string, any>): Record<string, any> {
-  if (payload.created_by && payload.status && !AGENT_AI_STATUSES.has(payload.status)) {
+export function enforceAiSummarySafety(payload: Record<string, any>, meta?: Record<string, any>): Record<string, any> {
+  // Gate on actor identity from accountability, not payload.created_by
+  const accountability = meta?.accountability;
+  const isAgent = accountability?.role === 'agent_read_only' ||
+                  accountability?.role === 'agent_write' ||
+                  accountability?.role === 'agent_full' ||
+                  accountability?.role?.startsWith?.('agent');
+
+  if (isAgent && payload.status && !AGENT_AI_STATUSES.has(payload.status)) {
     throw new Error('Agent-created AI summaries can only be draft, submitted, or rejected');
   }
   return payload;
