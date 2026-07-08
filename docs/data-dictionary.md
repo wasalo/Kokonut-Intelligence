@@ -120,7 +120,7 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 |----------|---------|-------|
 | EAS | `0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92` | Celo |
 | SchemaRegistry | `0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34` | Celo |
-| KokonutResolver | `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` | Celo |
+| KokonutResolver | `0x7A7390Ceb3E8145EffB81914271DA0ebDaF932Ef` | Celo |
 
 ### Registry, Inventory, Maintenance, And Agents
 

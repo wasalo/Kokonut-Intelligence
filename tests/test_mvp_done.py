@@ -187,7 +187,7 @@ WITH checks(name, ok) AS (
         (SELECT count(*) FROM attestation_schema
          WHERE chain = 'celo'
            AND active = TRUE
-           AND resolver_address = '0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad'
+           AND resolver_address = '0x7A7390Ceb3E8145EffB81914271DA0ebDaF932Ef'
            AND schema_uid IN (
              '0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54',
              '0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe',

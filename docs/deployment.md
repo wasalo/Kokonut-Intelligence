@@ -268,7 +268,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compos
 | `ARBITRUM_RPC_URL` | Arbitrum RPC endpoint | For RPC indexer |
 | `CELO_RPC_URL` | Celo RPC endpoint (default: `https://forno.celo.org`) | For EAS attestation |
 | `ATTESTER_PRIVATE_KEY` | Private key for EAS attestation wallet | For EAS attestation |
-| `EAS_RESOLVER_ADDRESS` | EAS resolver contract address (`0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`) | For EAS attestation |
+| `EAS_RESOLVER_ADDRESS` | EAS resolver contract address (`0x7A7390Ceb3E8145EffB81914271DA0ebDaF932Ef`) | For EAS attestation |
 | `BASEROW_API_URL` | Baserow API URL | For migration |
 | `BASEROW_TOKEN` | Baserow API token | For migration |
 
