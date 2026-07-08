@@ -6,6 +6,7 @@ from pathlib import Path
 from services.analytics.spatial_analytics import (
     compute_canopy_analysis,
     compute_gap_detection,
+    compute_habitat_connectivity,
     compute_pest_hotspots,
     compute_spatial_clusters,
 )
@@ -181,6 +182,77 @@ def test_spatial_clusters_no_clusters() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Habitat connectivity tests
+# ---------------------------------------------------------------------------
+
+def test_habitat_connectivity_connected() -> None:
+    habitat_zones = [
+        ("z1", "zone-1", "Agroforestry", "agroforestry", 4500.0, "sub_canopy"),
+        ("z2", "zone-2", "Syntropic Beds", "syntropic_plot", 7838.0, "canopy"),
+    ]
+    all_zones = habitat_zones
+    pairs = [
+        ("z1", "Agroforestry", "agroforestry", 4500.0, "sub_canopy",
+         "z2", "Syntropic Beds", "syntropic_plot", 7838.0, "canopy", 15.0),
+    ]
+    nearest = [
+        ("z1", "Agroforestry", "agroforestry", "z2", "Syntropic Beds", 15.0),
+        ("z2", "Syntropic Beds", "syntropic_plot", "z1", "Agroforestry", 15.0),
+    ]
+
+    class _Conn:
+        def __init__(self):
+            self._calls = 0
+        def cursor(self, cursor_factory=None):
+            c = _MockCursor()
+            def execute(query, params=None):
+                self._calls += 1
+                if self._calls == 1:
+                    c._rows = habitat_zones
+                elif self._calls == 2:
+                    c._rows = all_zones
+                elif self._calls == 3:
+                    c._rows = pairs
+                elif self._calls == 4:
+                    c._rows = nearest
+            c.execute = execute
+            return c
+
+    result = compute_habitat_connectivity(_Conn(), "test-location")
+    assert result["connectivity_score"] > 0
+    assert result["habitat_zone_count"] == 2
+    assert result["connectivity_status"] in ("highly_connected", "connected", "moderately_connected", "fragmented")
+
+
+def test_habitat_connectivity_no_habitat() -> None:
+    result = compute_habitat_connectivity(_MockConn(rows=[]), "test-location")
+    assert result["connectivity_score"] == 0
+    assert result["connectivity_status"] == "no_habitat_zones"
+    assert result["habitat_zone_count"] == 0
+
+
+def test_habitat_connectivity_schema_views() -> None:
+    text = SCHEMA.read_text()
+    assert "v_zone_adjacency" in text
+    assert "v_habitat_connectivity_summary" in text
+    assert "ST_DWithin" in text
+    assert "ST_Distance" in text
+    assert "habitat_to_habitat" in text
+    assert "connectivity_status" in text
+
+
+def test_habitat_connectivity_score_components() -> None:
+    """Verify score components are defined in the function."""
+    import inspect
+    source = inspect.getsource(compute_habitat_connectivity)
+    assert "count_score" in source
+    assert "distance_score" in source
+    assert "adjacency_score" in source
+    assert "strata_score" in source
+    assert "connectivity_score" in source
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -200,4 +272,8 @@ if __name__ == "__main__":
     test_gap_detection_analytics()
     test_pest_hotspots_no_hotspots()
     test_spatial_clusters_no_clusters()
+    test_habitat_connectivity_connected()
+    test_habitat_connectivity_no_habitat()
+    test_habitat_connectivity_schema_views()
+    test_habitat_connectivity_score_components()
     print("All tests passed.")

@@ -230,3 +230,180 @@ def compute_gap_detection(conn, location_id: str) -> dict[str, Any]:
 
     logger.info("Gap detection for %s: %d gaps found in %d zones", location_id, len(gaps), len(rows))
     return result
+
+
+def compute_habitat_connectivity(conn, location_id: str) -> dict[str, Any]:
+    """Compute habitat connectivity score for a location.
+
+    Evaluates spatial relationships between habitat zones (agroforestry, syntropic_plot)
+    to determine how well new plantings connect to existing forest patches.
+
+    Connectivity score (0-100) is based on:
+    - Number of habitat zones (more zones = more potential connections)
+    - Average nearest-neighbor distance (shorter = better connected)
+    - Canopy continuity (adjacent zones with overlapping crown projections)
+    - Strata diversity across connected zones
+    """
+    cur = conn.cursor()
+
+    # Get habitat zones with geometry
+    cur.execute(
+        """
+        SELECT id, zone_key, name, zone_type, area_m2, strata_layer
+        FROM farm_zone
+        WHERE location_id = %s AND geometry IS NOT NULL
+          AND zone_type IN ('agroforestry', 'syntropic_plot')
+        """,
+        (location_id,),
+    )
+    habitat_zones = cur.fetchall()
+
+    # Get all zones
+    cur.execute(
+        """
+        SELECT id, zone_key, name, zone_type, area_m2, strata_layer
+        FROM farm_zone
+        WHERE location_id = %s AND geometry IS NOT NULL
+        """,
+        (location_id,),
+    )
+    all_zones = cur.fetchall()
+
+    if len(habitat_zones) < 1:
+        cur.close()
+        return {
+            "location_id": location_id,
+            "connectivity_score": 0,
+            "connectivity_status": "no_habitat_zones",
+            "habitat_zone_count": 0,
+            "nearest_neighbor_m": None,
+            "message": "No habitat zones (agroforestry or syntropic_plot) found",
+        }
+
+    # Compute pairwise distances between habitat zones
+    cur.execute(
+        """
+        SELECT
+            a.id AS zone_a_id, a.name AS zone_a_name, a.zone_type AS zone_a_type,
+            a.area_m2 AS zone_a_area_m2, a.strata_layer AS zone_a_strata,
+            b.id AS zone_b_id, b.name AS zone_b_name, b.zone_type AS zone_b_type,
+            b.area_m2 AS zone_b_area_m2, b.strata_layer AS zone_b_strata,
+            ROUND(ST_Distance(a.geometry::geography, b.geometry::geography)::numeric, 2) AS distance_m
+        FROM farm_zone a
+        JOIN farm_zone b ON a.id < b.id
+        WHERE a.location_id = %s
+          AND a.geometry IS NOT NULL AND b.geometry IS NOT NULL
+          AND a.zone_type IN ('agroforestry', 'syntropic_plot')
+          AND b.zone_type IN ('agroforestry', 'syntropic_plot')
+        ORDER BY distance_m
+        """,
+        (location_id,),
+    )
+    pairs = cur.fetchall()
+    cur.close()
+
+    # Compute nearest neighbor for each habitat zone
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT DISTINCT ON (a.id)
+            a.id AS zone_id, a.name AS zone_name, a.zone_type,
+            b.name AS nearest_name, b.zone_type AS nearest_type,
+            ROUND(ST_Distance(a.geometry::geography, b.geometry::geography)::numeric, 2) AS distance_m
+        FROM farm_zone a
+        JOIN farm_zone b ON a.id != b.id
+        WHERE a.location_id = %s
+          AND a.geometry IS NOT NULL AND b.geometry IS NOT NULL
+          AND a.zone_type IN ('agroforestry', 'syntropic_plot')
+          AND b.zone_type IN ('agroforestry', 'syntropic_plot')
+        ORDER BY a.id, ST_Distance(a.geometry::geography, b.geometry::geography)
+        """,
+        (location_id,),
+    )
+    nearest_neighbors = cur.fetchall()
+    cur.close()
+
+    # Compute connectivity score components
+    habitat_count = len(habitat_zones)
+    total_habitat_area_ha = sum(float(z[4]) / 10000 for z in habitat_zones if z[4])
+    strata_in_habitat = set(z[5] for z in habitat_zones if z[5])
+
+    # Nearest neighbor distances
+    nn_distances = [float(nn[5]) for nn in nearest_neighbors if nn[5] is not None]
+    avg_nn_distance = sum(nn_distances) / len(nn_distances) if nn_distances else 999
+    min_nn_distance = min(nn_distances) if nn_distances else 999
+
+    # Pair distances
+    pair_distances = [float(p[10]) for p in pairs if p[10] is not None]
+    adjacent_pairs = sum(1 for d in pair_distances if d <= 10)
+    nearby_pairs = sum(1 for d in pair_distances if d <= 50)
+
+    # Score components (each 0-25, total 0-100)
+    # 1. Habitat zone count (more zones = better, max at 5)
+    count_score = min(25, habitat_count * 5)
+
+    # 2. Nearest neighbor distance (shorter = better, 0m=25, 100m+=0)
+    if avg_nn_distance <= 10:
+        distance_score = 25
+    elif avg_nn_distance <= 50:
+        distance_score = 25 - ((avg_nn_distance - 10) / 40) * 15
+    elif avg_nn_distance <= 200:
+        distance_score = 10 - ((avg_nn_distance - 50) / 150) * 10
+    else:
+        distance_score = 0
+
+    # 3. Adjacency (more adjacent pairs = better)
+    adjacency_score = min(25, adjacent_pairs * 10 + nearby_pairs * 3)
+
+    # 4. Strata diversity (more vertical layers = better connectivity)
+    strata_score = min(25, len(strata_in_habitat) * 6)
+
+    connectivity_score = round(count_score + distance_score + adjacency_score + strata_score, 1)
+    connectivity_score = min(100, max(0, connectivity_score))
+
+    # Determine status
+    if connectivity_score >= 75:
+        status = "highly_connected"
+    elif connectivity_score >= 50:
+        status = "connected"
+    elif connectivity_score >= 25:
+        status = "moderately_connected"
+    else:
+        status = "fragmented"
+
+    # Build pair details
+    pair_details = []
+    for p in pairs:
+        pair_details.append({
+            "zone_a": p[1],
+            "zone_a_type": p[2],
+            "zone_b": p[7],
+            "zone_b_type": p[8],
+            "distance_m": float(p[10]) if p[10] else None,
+            "proximity": "adjacent" if float(p[10]) <= 10 else "nearby" if float(p[10]) <= 50 else "separated",
+        })
+
+    result = {
+        "location_id": location_id,
+        "connectivity_score": connectivity_score,
+        "connectivity_status": status,
+        "habitat_zone_count": habitat_count,
+        "total_habitat_area_ha": round(total_habitat_area_ha, 4),
+        "strata_represented": sorted(strata_in_habitat),
+        "avg_nearest_neighbor_m": round(avg_nn_distance, 2),
+        "min_nearest_neighbor_m": round(min_nn_distance, 2),
+        "adjacent_pairs": adjacent_pairs,
+        "nearby_pairs": nearby_pairs,
+        "total_pairs": len(pairs),
+        "score_breakdown": {
+            "zone_count": round(count_score, 1),
+            "nearest_neighbor": round(distance_score, 1),
+            "adjacency": round(adjacency_score, 1),
+            "strata_diversity": round(strata_score, 1),
+        },
+        "pairs": pair_details,
+    }
+
+    logger.info("Habitat connectivity for %s: score=%.1f, status=%s, %d habitat zones",
+                location_id, connectivity_score, status, habitat_count)
+    return result
