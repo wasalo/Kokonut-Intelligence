@@ -1,0 +1,15 @@
+{
+  "name": "Pest Management",
+  "description": "Monthly pest incidence trends, outbreak probability, and biocontrol effectiveness per plot.",
+  "dataset_id": "a0000000-0000-0000-0000-000000004701",
+  "type": "question",
+  "query": {
+    "source_table": "64_pest_management",
+    "columns": ["observation_month", "plot_name", "pest_common_name", "pest_category", "avg_outbreak_probability_pct", "severe_count", "total_predators", "avg_affected_area_pct"],
+    "order_by": [["observation_month", "descending"]]
+  },
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe"
+  }
+}

@@ -133,6 +133,14 @@
 - Report types (bio regional input): `python3 -m services.export.report_generator --type bio_regional_input --location-id UUID`
 - Report types (ecological modeling): `python3 -m services.export.report_generator --type ecological_modeling --location-id UUID`
 - Report types (trophic pyramid): `python3 -m services.export.report_generator --type trophic_pyramid --location-id UUID`
+- Report types (pest management): `python3 -m services.export.report_generator --type pest_management --location-id UUID`
+- Report types (resource efficiency): `python3 -m services.export.report_generator --type resource_efficiency --location-id UUID`
+- Report types (training impact): `python3 -m services.export.report_generator --type training_impact --location-id UUID`
+- Report types (revenue streams): `python3 -m services.export.report_generator --type revenue_streams --location-id UUID`
+- Report types (model validation): `python3 -m services.export.report_generator --type model_validation --location-id UUID`
+- Report types (livestock feed): `python3 -m services.export.report_generator --type livestock_feed --location-id UUID`
+- Report types (token rewards): `python3 -m services.export.report_generator --type token_rewards --location-id UUID`
+- Report types (reward calibration): `python3 -m services.export.report_generator --type reward_calibration --location-id UUID`
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`

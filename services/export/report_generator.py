@@ -1931,10 +1931,21 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         (location_id,),
     )
     energy_flows = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_soil_input_retention
+        WHERE location_id = %s ORDER BY application_date DESC
+        """,
+        (location_id,),
+    )
+    soil_inputs = [dict(r) for r in cur.fetchall()]
     cur.close()
     mutualism_count = sum(1 for i in interactions if i.get("interaction_type") == "mutualism")
     predation_count = sum(1 for i in interactions if i.get("interaction_type") == "predation")
     trophic_balance = mutualism_count / max(mutualism_count + predation_count, 1)
+    avg_residual = (
+        sum(s.get("residual_pct", 0) or 0 for s in soil_inputs) / max(len(soil_inputs), 1)
+    )
     return {
         "report_type": "ecological_modeling",
         "location_id": location_id,
@@ -1943,15 +1954,19 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         "model_runs": _serialize_rows(models),
         "population_records": _serialize_rows(populations),
         "energy_flows": _serialize_rows(energy_flows),
+        "soil_inputs": _serialize_rows(soil_inputs),
         "interaction_count": len(interactions),
         "mutualism_count": mutualism_count,
         "predation_count": predation_count,
         "trophic_balance_index": round(trophic_balance, 3),
+        "soil_input_count": len(soil_inputs),
+        "avg_residual_pct": round(avg_residual, 2),
         "limitations": [
             "Ecological model outputs are simulation estimates, not guaranteed outcomes.",
             "Interaction strength values are observational estimates requiring ground-truth verification.",
             "Population dynamics records depend on survey method accuracy and observer skill.",
             "Energy flow measurements use estimation methods; direct measurement preferred.",
+            "Soil input retention rates vary with soil type, climate, and microbial activity.",
         ],
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -2010,6 +2025,391 @@ def generate_trophic_pyramid(conn, location_id: str, period_start: str = None, p
 
 
 # ---------------------------------------------------------------------------
+# Pest Management Report
+# ---------------------------------------------------------------------------
+
+def generate_pest_management(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe pest management report with incidence trends and biocontrol effectiveness."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_pest_trends
+        WHERE location_id = %s ORDER BY observation_date DESC
+        """,
+        (location_id,),
+    )
+    pest_trends = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_biocontrol_effectiveness
+        WHERE location_id = %s ORDER BY release_date DESC
+        """,
+        (location_id,),
+    )
+    biocontrol = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    severe_count = sum(1 for p in pest_trends if p.get("severity") in ("high", "critical"))
+    avg_outbreak_prob = (
+        sum(p.get("outbreak_probability_pct", 0) or 0 for p in pest_trends) / max(len(pest_trends), 1)
+    )
+    return {
+        "report_type": "pest_management",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "pest_trends": _serialize_rows(pest_trends),
+        "biocontrol_releases": _serialize_rows(biocontrol),
+        "total_observations": len(pest_trends),
+        "severe_observations": severe_count,
+        "avg_outbreak_probability_pct": round(avg_outbreak_prob, 2),
+        "biocontrol_release_count": len(biocontrol),
+        "limitations": [
+            "Pest outbreak probability is a model estimate based on historical incidence and weather.",
+            "Biocontrol effectiveness depends on environmental conditions and timing.",
+            "Pest identification may require expert verification.",
+            "Natural enemy counts are observational estimates.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Resource Efficiency Report
+# ---------------------------------------------------------------------------
+
+def generate_resource_efficiency(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe resource efficiency report with labor, energy, and water intensity."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_resource_efficiency
+        WHERE location_id = %s ORDER BY resource_type, period_start DESC
+        """,
+        (location_id,),
+    )
+    resources = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT SUM(he.quantity) AS total_harvest_kg
+        FROM harvest_event he
+        WHERE he.location_id = %s AND he.status IN ('verified', 'published')
+        """,
+        (location_id,),
+    )
+    harvest = cur.fetchone()
+    cur.close()
+    total_harvest = float(harvest["total_harvest_kg"] or 0) if harvest else 0
+    by_type = {}
+    for r in resources:
+        rt = r.get("resource_type", "unknown")
+        if rt not in by_type:
+            by_type[rt] = {"total": 0, "unit": r.get("unit"), "count": 0}
+        by_type[rt]["total"] += float(r.get("quantity", 0) or 0)
+        by_type[rt]["count"] += 1
+    efficiency = {}
+    for rt, data in by_type.items():
+        efficiency[rt] = {
+            "total_quantity": round(data["total"], 2),
+            "unit": data["unit"],
+            "record_count": data["count"],
+            "per_kg_yield": round(data["total"] / total_harvest, 4) if total_harvest > 0 else None,
+        }
+    return {
+        "report_type": "resource_efficiency",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "resources": _serialize_rows(resources),
+        "total_harvest_kg": round(total_harvest, 2),
+        "efficiency_by_type": efficiency,
+        "limitations": [
+            "Resource consumption may include estimated values where metering is unavailable.",
+            "Labor hours depend on activity tracking completeness.",
+            "Water and energy estimates are based on planned targets, not metered consumption.",
+            "Yield-linked efficiency metrics require matched harvest and resource periods.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Training Impact Report
+# ---------------------------------------------------------------------------
+
+def generate_training_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe training impact report with participation and improvement metrics."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_training_impact
+        WHERE location_id = %s ORDER BY session_date DESC
+        """,
+        (location_id,),
+    )
+    sessions = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    unique_participants = len(set(s.get("participant_name") for s in sessions if s.get("participant_name")))
+    avg_improvement = (
+        sum(s.get("improvement_pct", 0) or 0 for s in sessions) / max(len(sessions), 1)
+    )
+    total_hours = sum(float(s.get("duration_hours", 0) or 0) for s in sessions)
+    return {
+        "report_type": "training_impact",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "sessions": _serialize_rows(sessions),
+        "total_sessions": len(sessions),
+        "unique_participants": unique_participants,
+        "total_training_hours": round(total_hours, 2),
+        "avg_improvement_pct": round(avg_improvement, 2),
+        "limitations": [
+            "Training scores are self-assessed or trainer-assessed, not independently verified.",
+            "Improvement percentages depend on baseline assessment quality.",
+            "Participant counts may undercount repeat attendees.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Revenue Streams Report
+# ---------------------------------------------------------------------------
+
+def generate_revenue_streams(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe revenue streams report showing contribution to profitability."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_revenue_streams
+        WHERE location_id = %s ORDER BY period_start DESC, net_contribution DESC
+        """,
+        (location_id,),
+    )
+    streams = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    total_gross = sum(float(s.get("gross_revenue", 0) or 0) for s in streams)
+    total_net = sum(float(s.get("net_contribution", 0) or 0) for s in streams)
+    return {
+        "report_type": "revenue_streams",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "streams": _serialize_rows(streams),
+        "total_gross_revenue": round(total_gross, 2),
+        "total_net_contribution": round(total_net, 2),
+        "stream_count": len(streams),
+        "limitations": [
+            "Revenue stream classification depends on accurate categorization at data entry.",
+            "Cost allocation methods may affect net contribution calculations.",
+            "Period boundaries may not align perfectly across revenue streams.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Model Validation Report
+# ---------------------------------------------------------------------------
+
+def generate_model_validation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe model validation report with prediction accuracy and feature importance."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_prediction_accuracy
+        WHERE location_id = %s ORDER BY prediction_date DESC
+        """,
+        (location_id,),
+    )
+    predictions = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_feature_importance
+        WHERE location_id = %s ORDER BY importance_score DESC
+        """,
+        (location_id,),
+    )
+    features = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    avg_mape = (
+        sum(p.get("mape", 0) or 0 for p in predictions) / max(len(predictions), 1)
+    )
+    overall_accuracy = 100 - avg_mape
+    return {
+        "report_type": "model_validation",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "predictions": _serialize_rows(predictions),
+        "feature_importance": _serialize_rows(features),
+        "total_predictions": len(predictions),
+        "avg_mape_pct": round(avg_mape, 2),
+        "overall_accuracy_pct": round(overall_accuracy, 2),
+        "top_predictors": [f.get("feature_name") for f in features[:5]],
+        "limitations": [
+            "Model validation metrics are computed from limited pilot data.",
+            "Feature importance scores may change with additional observations.",
+            "Prediction accuracy depends on input data quality and completeness.",
+            "Backtesting results do not guarantee future model performance.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Livestock Feed Report
+# ---------------------------------------------------------------------------
+
+def generate_livestock_feed(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe livestock feed report with intake, conversion ratio, and per-animal metrics."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_livestock_feed_intake
+        WHERE location_id = %s ORDER BY record_date DESC
+        """,
+        (location_id,),
+    )
+    feed_records = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT group_name, species, breed, animal_count, feed_type, status
+        FROM livestock_group
+        WHERE location_id = %s AND status = 'active'
+        """,
+        (location_id,),
+    )
+    groups = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    total_feed = sum(float(r.get("quantity_kg", 0) or 0) for r in feed_records)
+    total_animals = sum(g.get("animal_count", 0) or 0 for g in groups)
+    return {
+        "report_type": "livestock_feed",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "livestock_groups": _serialize_rows(groups),
+        "feed_records": _serialize_rows(feed_records),
+        "total_groups": len(groups),
+        "total_animals": total_animals,
+        "total_feed_kg": round(total_feed, 3),
+        "limitations": [
+            "Feed intake measurements depend on accurate weighing practices.",
+            "Feed conversion ratio is estimated from available weight data.",
+            "Per-animal consumption assumes uniform distribution within groups.",
+            "Supplemental foraging intake is not captured in feed records.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Token Rewards Report
+# ---------------------------------------------------------------------------
+
+def generate_token_rewards(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe token rewards report with distribution, epoch totals, and metric correlation."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_token_reward_distribution
+        WHERE location_id = %s ORDER BY distribution_date DESC
+        """,
+        (location_id,),
+    )
+    distributions = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_reward_calibration
+        WHERE location_id = %s ORDER BY run_date DESC LIMIT 1
+        """,
+        (location_id,),
+    )
+    calibration = cur.fetchone()
+    cur.close()
+    total_tokens = sum(float(d.get("token_amount", 0) or 0) for d in distributions)
+    total_usd = sum(float(d.get("usd_value", 0) or 0) for d in distributions)
+    onchain_count = sum(1 for d in distributions if d.get("is_onchain"))
+    return {
+        "report_type": "token_rewards",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "distributions": _serialize_rows(distributions),
+        "latest_calibration": dict(calibration) if calibration else None,
+        "total_distributions": len(distributions),
+        "total_tokens": round(total_tokens, 8),
+        "total_usd": round(total_usd, 2),
+        "onchain_count": onchain_count,
+        "offchain_count": len(distributions) - onchain_count,
+        "limitations": [
+            "Token reward amounts depend on DAO governance decisions.",
+            "USD values are approximate and may not reflect current market price.",
+            "Metric-linked rewards use the value at time of distribution.",
+            "On-chain rewards require transaction confirmation; off-chain rewards are pending.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Reward Calibration Report
+# ---------------------------------------------------------------------------
+
+def generate_reward_calibration(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe reward calibration report with calibration model outputs and sensitivity."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_reward_calibration
+        WHERE location_id = %s ORDER BY run_date DESC
+        """,
+        (location_id,),
+    )
+    models = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT reward_type, linked_metric_key, AVG(linked_metric_value) AS avg_metric,
+               AVG(token_amount) AS avg_tokens, COUNT(*) AS count
+        FROM token_reward_distribution
+        WHERE location_id = %s AND status IN ('verified', 'published')
+          AND linked_metric_value IS NOT NULL
+        GROUP BY reward_type, linked_metric_key
+        """,
+        (location_id,),
+    )
+    metric_links = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    latest = models[0] if models else None
+    return {
+        "report_type": "reward_calibration",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "calibration_models": _serialize_rows(models),
+        "metric_links": _serialize_rows(metric_links),
+        "latest_calibration_score": latest.get("calibration_score") if latest else None,
+        "latest_model_name": latest.get("model_name") if latest else None,
+        "limitations": [
+            "Calibration scores are computed from limited pilot data.",
+            "Weight assignments are governance-decided and may change.",
+            "Metric-reward correlations require sufficient sample size.",
+            "Token per unit output ratios depend on total epoch budget.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
 
@@ -2058,6 +2458,14 @@ REPORT_GENERATORS = {
     "bio_regional_input": generate_bio_regional_input,
     "ecological_modeling": generate_ecological_modeling,
     "trophic_pyramid": generate_trophic_pyramid,
+    "pest_management": generate_pest_management,
+    "resource_efficiency": generate_resource_efficiency,
+    "training_impact": generate_training_impact,
+    "revenue_streams": generate_revenue_streams,
+    "model_validation": generate_model_validation,
+    "livestock_feed": generate_livestock_feed,
+    "token_rewards": generate_token_rewards,
+    "reward_calibration": generate_reward_calibration,
 }
 
 
