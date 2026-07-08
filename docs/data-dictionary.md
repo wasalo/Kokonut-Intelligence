@@ -184,3 +184,64 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `metric_definition` | Governed semantic metric | metric_key, formula, version |
 | `report_snapshot` | Frozen report output | report_data, snapshot_hash |
 | `ai_summary` | Agent-generated narrative | content, source_record_ids |
+
+### Ecological Modeling (v2)
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `soil_input_application` | Organic input tracking (biochar, litter, compost) | input_type, quantity_kg, residual_pct, decomposition_status |
+| `pest_observation` | Monthly pest incidence tracking | pest_species, incidence_count, severity, outbreak_probability_pct, predator_count |
+| `biocontrol_release` | Predator/biocontrol introductions | predator_species, release_count, effectiveness_pct, pest_reduction_pct |
+| `resource_consumption` | Metered resource use (energy, water, labor) | resource_type, quantity, unit, period_start, period_end |
+| `leaf_litter_measurement` | Daily litter trap collection data | litter_trap_id, fresh_weight_g, dry_weight_g, litter_rate_kg_per_day |
+| `livestock_group` | Animal group registry | species, breed, animal_count, feed_type, enclosure_type |
+| `feed_intake_record` | Daily feed consumption per livestock group | feed_type, quantity_kg, per_animal_kg, record_date |
+| `decomposition_measurement` | Litter bag mass loss studies | initial_dry_weight_g, final_dry_weight_g, decomposition_rate_kg_per_day (auto-computed) |
+| `ecological_interaction` | Species-species relationships | interaction_type, interaction_strength, species_a_trophic, species_b_trophic |
+| `ecological_model_run` | Simulation model I/O | model_type, input_parameters (JSONB), output_predictions (JSONB) |
+| `energy_flow_measurement` | Biomass transfer between trophic levels | from_trophic_level, to_trophic_level, biomass_transferred_kg, conversion_efficiency_pct |
+| `population_dynamics_record` | Species population tracking | population_count, population_density_per_m2, growth_rate_estimate |
+
+### Economic & Social Enhancement
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `training_session` | Individual training participation | participant_name, pre_score, post_score, improvement_pct, session_type |
+| `revenue_stream_contribution` | Revenue stream breakdown | stream_name, gross_revenue, net_contribution, contribution_pct |
+
+### Model Validation
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `prediction_accuracy_record` | Predicted vs actual comparisons | predicted_value, actual_value, absolute_error, mae, mape, r_squared |
+| `feature_importance_record` | Sensitivity analysis results | feature_name, importance_score, direction, correlation_coefficient, p_value |
+
+### Token Rewards & Calibration
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `token_reward_distribution` | On-chain and off-chain reward tracking | reward_type, token_amount, recipient_address, is_onchain, linked_metric_key |
+| `reward_calibration_model` | Maps outputs to token emission rates | calibration_score, token_per_unit_output, input_metrics (JSONB), output_weights (JSONB) |
+
+### Configurable Container Architecture
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `farm_template` | Reusable configuration bundle (Docker image) | template_type, default_zones (JSONB), default_governance_mechanism, default_impact_frameworks |
+| `farm_specification` | Declarative farm config (docker-compose.yml) | zones (JSONB), governance (JSONB), token_economics (JSONB), impact_config (JSONB), template_id |
+| `needs_assessment` | Structured community needs tracking | need_category, severity, urgency, mitigation_status, affected_stakeholder_groups |
+| `stakeholder_aspiration` | Formal wants and aspirations | aspiration_category, priority, desired_outcome, success_criteria, timeline_months |
+| `objective` | Hierarchical goal tracking | parent_id, target_value, current_value, progress_pct (auto-computed), target_date |
+
+### Extensions to Existing Tables
+
+| Table | New Column | Purpose | Added In |
+|-------|-----------|---------|----------|
+| `species_observation` | `trophic_level` | Trophic classification (producer/primary_consumer/secondary_consumer/decomposer/omnivore) | 046 |
+| `species_observation` | `population_density_per_m2` | Population density for insects and soil organisms | 046 |
+| `species_observation` | `conservation_status` | IUCN conservation status (critically_endangered through least_concern) | 047 |
+| `farm_zone` | `strata_layer` | Syntropic vertical layer (emergent/canopy/sub_canopy/shrub/herbaceous/ground_cover/root/decomposer) | 046 |
+| `pest_observation` | `predation_count` | Predation events observed per observation | 050 |
+| `pest_observation` | `predation_rate_per_day` | Daily predation rate | 050 |
+| `resource_consumption` | `irrigation_mm_used` | Actual irrigation applied in mm | 051 |
+| `resource_consumption` | `rainfall_mm_during_period` | Rainfall during the consumption period | 051 |

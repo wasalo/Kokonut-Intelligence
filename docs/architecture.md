@@ -167,3 +167,89 @@ Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Ce
 **Smart contracts:** `contracts/` (Foundry project) with `KokonutResolver.sol` gating attestation to allowed attesters. Build/test with `forge build` and `forge test`.
 
 **Chain expansion:** New chains get testnet-first deployments. EAS chain config in `services/attestation/config.py` and `services/ingestion/config.py`. Add new chain config to expand.
+
+## Configurable Container Architecture
+
+The platform implements a Docker-inspired configurable container architecture for farms and projects. Each farm is a composable container that can be configured, instantiated from templates, and scaled.
+
+### Architecture Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    STAKEHOLDERS LAYER                        │
+│  Needs │ PoV │ Wants │ Goals │ WHW (What/How/Why)          │
+│  needs_assessment │ stakeholder_aspiration │ objective      │
+└─────────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│                 KOKONUT FRAMEWORK LAYER                      │
+│                                                             │
+│  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │  Farm Templates  │  │  Framework Specification        │  │
+│  │  (Docker Image)  │  │  impact_framework               │  │
+│  │  farm_template   │  │  regeneration_principle         │  │
+│  │  default_zones   │  │  operations_protocol            │  │
+│  │  default_gov     │  │  pillar_of_value                │  │
+│  │  default_TE      │  │  form_of_capital                │  │
+│  │  default_IF      │  │  impact_dimension               │  │
+│  └─────────────────┘  └─────────────────────────────────┘  │
+│                                                             │
+│  ┌─────────────────┐  ┌─────────────────────────────────┐  │
+│  │  Farm Compose    │  │  Implementation                 │  │
+│  │  (docker-compose)│  │  farm_practice_event            │  │
+│  │  farm_specification│ │  framework_phase               │  │
+│  │  zones (JSONB)   │  │  regenerative_practice_checklist│  │
+│  │  governance      │  │  ecological_interaction         │  │
+│  │  token_economics │  │  energy_flow_measurement        │  │
+│  │  impact_config   │  │  population_dynamics_record     │  │
+│  └─────────────────┘  └─────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│               OUTCOMES CONFIGURATION LAYER                   │
+│                                                             │
+│  Gov (Governance)    TE (Token Economics)                   │
+│  community_governance_mechanism   commons_redistribution    │
+│  anti_capture_governance_policy   algorithmic_redistribution│
+│  farm_registry_record.governance  farm_registry_record.token│
+│                                                             │
+│  ID (Impact Dimensions)    IF (Impact Framework)            │
+│  impact_dimension           impact_framework                │
+│  form_of_capital            farm_impact_mapping             │
+│  pillar_of_value            ebf_scorecard                   │
+│  sdg                        regenerative_outcome_summary    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Tables
+
+| Table | Docker Analog | Purpose |
+|-------|--------------|---------|
+| `farm_template` | Docker Image | Reusable configuration bundle with default zones, governance, token economics, impact frameworks |
+| `farm_specification` | docker-compose.yml | Declarative per-farm configuration (zones, governance, TE, ID, IF as JSONB) |
+| `farm_zone` | Container Component | Configurable zone types per farm (syntropic_plot, agroforestry, biofactory, poultry, etc.) |
+| `needs_assessment` | N/A | Structured community needs with severity, urgency, mitigation tracking |
+| `stakeholder_aspiration` | N/A | Formal wants/aspirations with priority, timeline, success criteria |
+| `objective` | N/A | Hierarchical goals with auto-computed progress_pct |
+
+### How to Design a New Project from Scratch
+
+1. **Choose a template**: `farm_template` defines the "Docker image" — default zones, governance, token economics, impact frameworks
+2. **Instantiate**: `farm_specification` is the "docker-compose.yml" — declarative JSONB config per farm
+3. **Assess needs**: `needs_assessment` tracks what the community needs before/after launch
+4. **Capture aspirations**: `stakeholder_aspiration` formalizes what stakeholders want
+5. **Set objectives**: `objective` table tracks hierarchical goals with auto-computed progress
+
+### Per-Farm Configurability
+
+Each farm/container can independently configure:
+
+| Component | Per-Farm Table | Global Reference |
+|-----------|---------------|-----------------|
+| Zones | `farm_zone.zone_type`, `farm_zone.strata_layer` | — |
+| Governance | `farm_registry_record.governance_mechanism` | `impact_framework` |
+| Token Economics | `farm_registry_record.token_allocation` | `revenue_multiplier_config` |
+| Impact Dimensions | `farm_impact_mapping.dimension_key` | `impact_dimension` |
+| Impact Frameworks | `farm_impact_mapping.framework_key` | `impact_framework` |
+| Redistribution | `commons_redistribution_policy` | — |
+| Anti-Capture | `anti_capture_governance_policy` | — |
