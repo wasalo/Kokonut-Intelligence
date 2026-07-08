@@ -245,3 +245,12 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `pest_observation` | `predation_rate_per_day` | Daily predation rate | 050 |
 | `resource_consumption` | `irrigation_mm_used` | Actual irrigation applied in mm | 051 |
 | `resource_consumption` | `rainfall_mm_during_period` | Rainfall during the consumption period | 051 |
+
+### Grant Management & Network Diversity
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `grant_application_history` | Grant application tracking with cycle and renewal support | grant_name, grantor, application_status, grant_cycle_number, is_returning_applicant, amount_requested, amount_awarded, ecological_metrics_submitted |
+| `regional_chapter` | Regional network/chapter registry | chapter_name, geographic_region, country, chapter_type, founding_date |
+| `network_membership` | Farm-to-chapter membership links | location_id, chapter_id, membership_type, role, join_date |
+| `farm_registry_record` (extended) | Grant tracking fields added | returning_applicant, grant_count, total_grants_received |

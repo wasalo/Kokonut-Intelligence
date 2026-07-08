@@ -253,3 +253,42 @@ Each farm/container can independently configure:
 | Impact Frameworks | `farm_impact_mapping.framework_key` | `impact_framework` |
 | Redistribution | `commons_redistribution_policy` | — |
 | Anti-Capture | `anti_capture_governance_policy` | — |
+
+## Grant Application & Network Diversity
+
+The platform supports grant application tracking, returning applicant detection, and regional network diversity analysis.
+
+### Key Tables
+
+| Table | Purpose |
+|-------|---------|
+| `grant_application_history` | Tracks each grant application with cycle number, returning applicant flag, ecological metrics submitted, and on-chain/off-chain flow description |
+| `regional_chapter` | Registry of regional chapters/networks with geographic region, country, chapter type |
+| `network_membership` | Links farms to regional chapters with membership type and role |
+| `farm_registry_record` (extended) | `returning_applicant`, `grant_count`, `total_grants_received` fields |
+
+### Grant Application Template
+
+A pre-configured `farm_template` called "Grant Application Template" is available for new farms applying to grants. It includes:
+- Default zones (production, nursery, biofactory)
+- Governance configuration
+- Impact framework alignment
+- Tags: `grant`, `application`, `template`, `regenerative`, `funder-ready`
+
+### Network Diversity
+
+The `v_network_diversity` view shows geographic and ecological diversity across the network:
+- Farm count per chapter
+- Countries represented
+- Unique species observed
+- Average regenerative score
+
+### How Funders Use This
+
+1. **Check land security**: `tenure_rights_assessment` + `property.deed_or_title_url`
+2. **Verify pilot status**: `farm_registry_record.status` + `framework_phase` + `farm_practice_event`
+3. **Review ecological metrics**: `objective` (target/current values) + `carbon_benchmark` + `soil_sample`
+4. **Assess community engagement**: `training_session` + `partner` + `guild_contributor`
+5. **Verify on-chain/off-chain flow**: `token_reward_distribution.linked_metric_key` + `reward_calibration_model`
+6. **Check returning applicant**: `farm_registry_record.returning_applicant` + `grant_application_history`
+7. **Review network diversity**: `v_network_diversity` + `v_public_regional_chapters`
