@@ -1931,10 +1931,21 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         (location_id,),
     )
     energy_flows = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_soil_input_retention
+        WHERE location_id = %s ORDER BY application_date DESC
+        """,
+        (location_id,),
+    )
+    soil_inputs = [dict(r) for r in cur.fetchall()]
     cur.close()
     mutualism_count = sum(1 for i in interactions if i.get("interaction_type") == "mutualism")
     predation_count = sum(1 for i in interactions if i.get("interaction_type") == "predation")
     trophic_balance = mutualism_count / max(mutualism_count + predation_count, 1)
+    avg_residual = (
+        sum(s.get("residual_pct", 0) or 0 for s in soil_inputs) / max(len(soil_inputs), 1)
+    )
     return {
         "report_type": "ecological_modeling",
         "location_id": location_id,
@@ -1943,15 +1954,19 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
         "model_runs": _serialize_rows(models),
         "population_records": _serialize_rows(populations),
         "energy_flows": _serialize_rows(energy_flows),
+        "soil_inputs": _serialize_rows(soil_inputs),
         "interaction_count": len(interactions),
         "mutualism_count": mutualism_count,
         "predation_count": predation_count,
         "trophic_balance_index": round(trophic_balance, 3),
+        "soil_input_count": len(soil_inputs),
+        "avg_residual_pct": round(avg_residual, 2),
         "limitations": [
             "Ecological model outputs are simulation estimates, not guaranteed outcomes.",
             "Interaction strength values are observational estimates requiring ground-truth verification.",
             "Population dynamics records depend on survey method accuracy and observer skill.",
             "Energy flow measurements use estimation methods; direct measurement preferred.",
+            "Soil input retention rates vary with soil type, climate, and microbial activity.",
         ],
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
