@@ -92,7 +92,26 @@ Optional local overrides may expose Directus at `http://localhost:8055` and Meta
 - **Impact accountability and evidence**: Evidence maturity levels, stakeholder feedback, impact claims, participatory metric proposals, holistic well-being, financial resilience, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, commons governance, bio-factory operations, and CIDS Essential Tier JSON-LD export.
 - **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, Gnosis DAO metadata, and public attestation summaries.
 - **Governance and guilds**: Colony-backed Guild metadata, contribution records, reputation snapshots, anti-capture governance, flexible redistribution, federation protocols, and DAO proposal links while Gnosis Moloch remains the treasury governance layer.
-- **Agent ecosystem**: 15 agent identities with capability manifests, tasks, action logs, AI summaries, and scoped MCP/Directus access. Agents can draft and submit but cannot verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repo.
+- **Agent ecosystem**: 16 agent identities with capability manifests, tasks, action logs, AI summaries, and scoped MCP/Directus access. Agents can draft and submit but cannot verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repo.
+- **Organic certification readiness**: 8-table organic compliance system with transition tracking, input audit, buffer zones, harvest segregation, and composite readiness scoring (0-100).
+- **True Cost Accounting**: Hidden cost tracking, natural/social capital valuation, life cycle assessment, GRI indicator mapping, and cross-capital flow analysis for triple bottom line reporting.
+- **Silvi tree-tracking integration**: Individual tree GPS tracking, growth rate analytics, GeoJSON/KML/XML export, spatial clustering, pest hotspots, canopy analysis, and habitat connectivity scoring.
+- **Emergency response**: Incident tracking with response actions, recovery timelines, and lessons learned for crisis resilience.
+
+## How Metrics Enable Answers
+
+The platform is built across 62 development phases, each adding governed tables, analytics, and metrics. **17 governed metrics**, **50+ analytics functions**, **16 agents**, and **55 report types** collectively answer questions across 6 tiers:
+
+| Tier | Collective Question | Example Answer |
+|------|-------------------|----------------|
+| **Foundation** | "What is the financial and operational baseline?" | "$12K baseline → $24.5K current (2x). Soil carbon +14%. Species +75%." |
+| **Governance** | "Can we trust the data?" | "All metrics versioned, evidence-gated, and exposed through governed views." |
+| **Frameworks** | "Are we actually making a difference?" | "EBF 7.2/10. 57.5 tCO2e sequestered. 37 species. Blockchain-verifiable claims." |
+| **Wellbeing** | "Are people and communities thriving?" | "GNH 78/100. 91.6% tree survival. 36 training hours. Anti-capture governance." |
+| **Operations** | "Can we scale regeneratively?" | "72.5/100 organic readiness. 64% training improvement. $25K grants awarded." |
+| **True Cost** | "What is the full triple-bottom-line picture?" | "Market profit $9,200. True profit $20,533 (after hidden costs + capital values)." |
+
+See [Metrics by Development Phase](docs/metrics-by-phase.md) for the complete mapping of phases, metrics, and collective insights.
 
 ## Data Lifecycle And Roles
 
@@ -240,7 +259,7 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 
 ## Documentation
 
-All 39 docs live under `docs/`. Key entry points:
+All 41 docs live under `docs/`. Key entry points:
 
 | Document | Description |
 |----------|-------------|
@@ -248,6 +267,7 @@ All 39 docs live under `docs/`. Key entry points:
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
 | [API Reference](docs/api-reference.md) | Directus REST/GraphQL and ClickHouse access notes |
 | [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |
+| [Metrics by Development Phase](docs/metrics-by-phase.md) | Which metrics each phase enables, how they're measured, and collective insights |
 | [AGENTS.md](AGENTS.md) | Canonical command reference (CLI, analytics, ingestion, agents, tests) |
 | [CHANGELOG.md](CHANGELOG.md) | Release history and unreleased changes |
 | [Green Paper V1](docs/green-paper-v1.md) | Comprehensive 15-section publication-ready document |

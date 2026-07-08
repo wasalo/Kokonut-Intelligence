@@ -97,6 +97,14 @@
 - Open source capitalist scaling tests: `python3 -m tests.test_open_source_capitalist_scaling`
 - Kokonut commons governance tests: `python3 -m tests.test_kokonut_commons_governance`
 - Bio factory operations tests: `python3 -m tests.test_bio_factory_operations`
+- True cost accounting tests: `python3 -m tests.test_true_cost_accounting`
+- Impact value chain tests: `python3 -m tests.test_impact_value_chain`
+- Scenario parameters tests: `python3 -m tests.test_scenario_parameters`
+- Emergency response tests: `python3 -m tests.test_emergency_response`
+- Tree tracking tests: `python3 -m tests.test_tree_tracking`
+- Spatial export tests: `python3 -m tests.test_spatial_export`
+- Drone raster integration tests: `python3 -m tests.test_drone_raster_integration`
+- Organic certification tests: `python3 -m tests.test_organic_certification`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
@@ -111,6 +119,7 @@
 - Bio Factory agent: `python3 -m services.agents.bio_factory_agent --location-id UUID`
 - Ecological modeling agent: `python3 -m services.agents.ecological_modeling_agent --location-id UUID`
 - Organic readiness agent: `python3 -m services.agents.organic_readiness_agent --location-id UUID`
+- Stewardship agent: `python3 -m services.agents.stewardship_agent --location-id UUID`
 - EBF scorecard agent: `python3 -m services.agents.ebf_scorecard_agent --help`
 - EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
 - EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`
@@ -136,6 +145,8 @@
 - Report types (organic certification): `python3 -m services.export.report_generator --type organic_certification_readiness --location-id UUID`
 - Report types (organic transition): `python3 -m services.export.report_generator --type organic_transition_progress --location-id UUID`
 - Report types (organic input audit): `python3 -m services.export.report_generator --type organic_input_audit --location-id UUID`
+- Report types (stewardship agreement): `python3 -m services.export.report_generator --type stewardship_agreement --location-id UUID`
+- Report types (dispute resolution): `python3 -m services.export.report_generator --type dispute_resolution --location-id UUID`
 - Report types (trophic pyramid): `python3 -m services.export.report_generator --type trophic_pyramid --location-id UUID`
 - Report types (pest management): `python3 -m services.export.report_generator --type pest_management --location-id UUID`
 - Report types (resource efficiency): `python3 -m services.export.report_generator --type resource_efficiency --location-id UUID`

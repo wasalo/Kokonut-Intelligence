@@ -302,3 +302,18 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `v_public_spatial_clusters` | Active clusters with GeoJSON geometry | cluster_name, tree_count, avg_health_score, dominant_species |
 | `v_public_pest_hotspots` | Active pest hotspots with GeoJSON | pest_or_disease, tree_count_affected, confidence_score, recommended_action |
 | `v_public_canopy_analysis` | Canopy coverage per zone | alive_trees, avg_canopy_diameter_m, estimated_canopy_cover_pct |
+
+### True Cost Accounting & Triple Bottom Line
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `hidden_cost_observation` | Tracks hidden costs (externalities) with monetary estimates | cost_category (pollution/health/social/environmental/knowledge/intergenerational), cost_subcategory, monetary_estimate_usd, valuation_method, uncertainty_level |
+| `natural_capital_valuation` | Unified monetary valuation of natural capital services | capital_type (carbon/biodiversity/water/soil/pollination/watershed/air_quality), quantity, price_per_unit_usd, total_value_usd (auto-computed) |
+| `social_impact_valuation` | Monetary valuation of social capital improvements | impact_category (training/governance/cultural_preservation/health/community/gender_equity/education), beneficiaries_count, monetary_value_usd |
+| `worker_safety_observation` | Workplace health and safety incidents | incident_type, severity, days_lost, medical_cost_usd |
+| `living_wage_benchmark` | Living wage comparison standards | country, living_wage_hourly_usd, minimum_wage_hourly_usd |
+| `lca_assessment` | Cradle-to-grave lifecycle tracking | lifecycle_stage, carbon_footprint_kg_co2e, water_footprint_liters, energy_footprint_kwh, waste_generated_kg |
+| `gri_indicator` | Maps platform metrics to GRI standards | gri_code, gri_standard, platform_metric_key, platform_table |
+| `materiality_assessment` | Stakeholder priority mapping | stakeholder_group, material_topic, importance_to_stakeholder, importance_to_business, priority_level (auto-computed) |
+| `capital_flow_observation` | Cross-capital transfers | from_capital, to_capital, flow_value_usd, flow_type |
+| `v_true_cost_statement` | Market costs + hidden costs + capital values | market_costs_usd, hidden_costs_usd, natural_capital_value_usd, social_capital_value_usd, true_profit_usd |
