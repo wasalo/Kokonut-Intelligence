@@ -292,3 +292,86 @@ The `v_network_diversity` view shows geographic and ecological diversity across 
 5. **Verify on-chain/off-chain flow**: `token_reward_distribution.linked_metric_key` + `reward_calibration_model`
 6. **Check returning applicant**: `farm_registry_record.returning_applicant` + `grant_application_history`
 7. **Review network diversity**: `v_network_diversity` + `v_public_regional_chapters`
+
+## Organic Certification Readiness & Compliance
+
+The platform supports organic certification tracking across USDA NOP, EU 2018/848, and IFOAM standards. The system covers the full lifecycle: transition planning, input compliance, buffer zone management, harvest segregation, inspection checklists, and readiness scoring.
+
+### Certification Lifecycle
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ORGANIC CERTIFICATION LIFECYCLE                │
+│                                                                 │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
+│  │  Transition   │───▶│  Preparation │───▶│  Application │      │
+│  │  Plan (2-3yr) │    │  & Readiness │    │  & Inspection│      │
+│  └──────────────┘    └──────────────┘    └──────────────┘      │
+│         │                   │                   │               │
+│         ▼                   ▼                   ▼               │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
+│  │  Prohibited   │    │  Buffer Zone │    │  Compliance  │      │
+│  │  Substance    │    │  Management  │    │  Checklist   │      │
+│  │  Tracking     │    │              │    │              │      │
+│  └──────────────┘    └──────────────┘    └──────────────┘      │
+│         │                   │                   │               │
+│         ▼                   ▼                   ▼               │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
+│  │  Input Audit  │    │  Harvest     │    │  Readiness   │      │
+│  │  Trail        │    │  Segregation │    │  Assessment  │      │
+│  │               │    │              │    │  (0-100)     │      │
+│  └──────────────┘    └──────────────┘    └──────────────┘      │
+│         │                   │                   │               │
+│         ▼                   ▼                   ▼               │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              CERTIFICATION ACHIEVED                       │   │
+│  │  organic_certification_record.status = 'certified'       │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Tables
+
+| Table | Purpose |
+|-------|---------|
+| `organic_certification_record` | Certification lifecycle per standard (USDA NOP, EU 2018/848, IFOAM) |
+| `organic_transition_plan` | 2-3 year transition tracking with readiness scoring and milestone dates |
+| `prohibited_substance_record` | Prohibited substance usage with withdrawal period tracking |
+| `buffer_zone` | Physical separation zones with PostGIS geometry and adequacy assessment |
+| `organic_input_audit` | Full input audit trail with organic/prohibited flags and supplier certification |
+| `harvest_handling_record` | Post-harvest organic compliance with segregation and traceability |
+| `organic_compliance_checklist` | Inspector audit trail with structured JSONB checklist per standard |
+| `organic_readiness_assessment` | Composite 0-100 readiness scoring across 8 dimensions |
+
+### Readiness Score Dimensions
+
+| Dimension | Weight | Source |
+|-----------|--------|--------|
+| Transition Progress | 15% | `organic_transition_plan.current_year / total_years_required` |
+| Soil Health | 15% | `soil_sample` pH, organic matter, NPK, CEC analysis |
+| Input Compliance | 15% | `organic_input_audit` organic_certified / total inputs |
+| Pest Management | 10% | `pest_observation` + `biocontrol_release` effectiveness |
+| Biodiversity | 10% | `species_observation` species count per hectare |
+| Buffer Zones | 10% | `buffer_zone` width >= 3m and condition = adequate |
+| Record Completeness | 10% | Presence of required records across all organic tables |
+| Training | 10% | `training_session` organic practice topics completed |
+| Harvest Segregation | 5% | `harvest_handling_record` organic_segregated / total harvests |
+
+### Standards Supported
+
+| Standard | Transition Period | Buffer Width | Key Requirements |
+|----------|------------------|--------------|------------------|
+| USDA NOP | 36 months | Site-specific | National List allowed substances, NOP Fertilizer List |
+| EU 2018/848 | 24 months | >= 3m | EU low-risk and basic substances list |
+| IFOAM | 24+ months | Site-specific | IFOAM-approved natural biocontrols, recycled nutrient cycles |
+
+### How Certifiers Use This
+
+1. **Review transition timeline**: `organic_transition_plan` with current_year and milestones
+2. **Verify input compliance**: `organic_input_audit` with organic_certified and is_prohibited flags
+3. **Check buffer zones**: `buffer_zone` with width_m, condition_status, and PostGIS geometry
+4. **Audit harvest handling**: `harvest_handling_record` with organic_segregated and lot tracking
+5. **Review prohibited substances**: `prohibited_substance_record` with clearance status
+6. **Assess readiness**: `organic_readiness_assessment` with composite score and sub-dimensions
+7. **Inspect checklist**: `organic_compliance_checklist` with structured pass/fail items
+8. **Verify on-chain**: `attestation_record` with `attestation_type = 'organic'`

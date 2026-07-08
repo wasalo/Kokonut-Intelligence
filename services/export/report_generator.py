@@ -2410,6 +2410,168 @@ def generate_reward_calibration(conn, location_id: str, period_start: str = None
 
 
 # ---------------------------------------------------------------------------
+# Organic Certification Readiness Report
+# ---------------------------------------------------------------------------
+
+def generate_organic_certification_readiness(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe organic certification readiness report with composite score and sub-dimensions."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_organic_readiness
+        WHERE location_id = %s ORDER BY assessment_date DESC LIMIT 1
+        """,
+        (location_id,),
+    )
+    readiness = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_organic_transition
+        WHERE location_id = %s AND status = 'active'
+        """,
+        (location_id,),
+    )
+    transitions = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_organic_certifications
+        WHERE location_id = %s ORDER BY created_at DESC
+        """,
+        (location_id,),
+    )
+    certifications = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_organic_compliance_dashboard
+        WHERE location_id = %s
+        """,
+        (location_id,),
+    )
+    dashboard = cur.fetchone()
+    cur.close()
+    return {
+        "report_type": "organic_certification_readiness",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "readiness_assessment": dict(readiness) if readiness else None,
+        "active_transitions": _serialize_rows(transitions),
+        "certifications": _serialize_rows(certifications),
+        "compliance_dashboard": dict(dashboard) if dashboard else None,
+        "overall_score": float(readiness.get("overall_score", 0)) if readiness else 0,
+        "top_barriers": (readiness.get("barriers", []) if readiness else []),
+        "limitations": [
+            "Organic readiness scores are advisory assessments, not certification guarantees.",
+            "Actual certification requires inspection by an accredited certification body.",
+            "Transition progress depends on consistent adherence to organic practices.",
+            "Readiness scores are computed from self-reported farm data.",
+            "Agent synthesis is a draft; not verified or published without human review.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Organic Transition Progress Report
+# ---------------------------------------------------------------------------
+
+def generate_organic_transition_progress(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe organic transition progress report with timeline, milestones, and barriers."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_organic_transition
+        WHERE location_id = %s
+        """,
+        (location_id,),
+    )
+    transitions = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_prohibited_substance_audit
+        WHERE location_id = %s
+        """,
+        (location_id,),
+    )
+    substances = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    active = [t for t in transitions if t.get("status") == "active"]
+    return {
+        "report_type": "organic_transition_progress",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "transitions": _serialize_rows(transitions),
+        "active_transition": active[0] if active else None,
+        "prohibited_substances": _serialize_rows(substances),
+        "total_transitions": len(transitions),
+        "active_count": len(active),
+        "limitations": [
+            "Transition progress is based on self-reported milestone dates.",
+            "Prohibited substance records depend on complete farm reporting.",
+            "Withdrawal period clearance requires laboratory verification.",
+            "Transition timelines may change based on inspection outcomes.",
+            "Agent synthesis is a draft; not verified or published without human review.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Organic Input Audit Report
+# ---------------------------------------------------------------------------
+
+def generate_organic_input_audit(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe organic input audit report with full input trail, organic/prohibited flags, and compliance."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_organic_input_audit
+        WHERE location_id = %s
+        ORDER BY application_date DESC
+        """,
+        (location_id,),
+    )
+    inputs = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_harvest_segregation
+        WHERE location_id = %s
+        """,
+        (location_id,),
+    )
+    harvests = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    total = len(inputs)
+    organic = sum(1 for i in inputs if i.get("organic_certified"))
+    prohibited = sum(1 for i in inputs if i.get("is_prohibited"))
+    compliance_pct = ((total - prohibited) / total * 100) if total > 0 else 100
+    return {
+        "report_type": "organic_input_audit",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "inputs": _serialize_rows(inputs),
+        "harvest_handling": _serialize_rows(harvests),
+        "total_inputs": total,
+        "organic_certified_inputs": organic,
+        "prohibited_inputs": prohibited,
+        "compliance_pct": round(compliance_pct, 1),
+        "limitations": [
+            "Input audit reflects logged data; unreported inputs are not captured.",
+            "Organic certification status depends on supplier documentation.",
+            "Prohibited substance status is based on self-assessment against standard lists.",
+            "Harvest segregation compliance depends on operational discipline.",
+            "Agent synthesis is a draft; not verified or published without human review.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
 
@@ -2466,6 +2628,9 @@ REPORT_GENERATORS = {
     "livestock_feed": generate_livestock_feed,
     "token_rewards": generate_token_rewards,
     "reward_calibration": generate_reward_calibration,
+    "organic_certification_readiness": generate_organic_certification_readiness,
+    "organic_transition_progress": generate_organic_transition_progress,
+    "organic_input_audit": generate_organic_input_audit,
 }
 
 

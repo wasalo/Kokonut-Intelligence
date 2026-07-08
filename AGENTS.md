@@ -110,6 +110,7 @@
 - Kokonut Commons agent: `python3 -m services.agents.kokonut_commons_agent --location-id UUID`
 - Bio Factory agent: `python3 -m services.agents.bio_factory_agent --location-id UUID`
 - Ecological modeling agent: `python3 -m services.agents.ecological_modeling_agent --location-id UUID`
+- Organic readiness agent: `python3 -m services.agents.organic_readiness_agent --location-id UUID`
 - EBF scorecard agent: `python3 -m services.agents.ebf_scorecard_agent --help`
 - EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
 - EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`
@@ -132,6 +133,9 @@
 - Report types (bio quality test): `python3 -m services.export.report_generator --type bio_quality_test --location-id UUID`
 - Report types (bio regional input): `python3 -m services.export.report_generator --type bio_regional_input --location-id UUID`
 - Report types (ecological modeling): `python3 -m services.export.report_generator --type ecological_modeling --location-id UUID`
+- Report types (organic certification): `python3 -m services.export.report_generator --type organic_certification_readiness --location-id UUID`
+- Report types (organic transition): `python3 -m services.export.report_generator --type organic_transition_progress --location-id UUID`
+- Report types (organic input audit): `python3 -m services.export.report_generator --type organic_input_audit --location-id UUID`
 - Report types (trophic pyramid): `python3 -m services.export.report_generator --type trophic_pyramid --location-id UUID`
 - Report types (pest management): `python3 -m services.export.report_generator --type pest_management --location-id UUID`
 - Report types (resource efficiency): `python3 -m services.export.report_generator --type resource_efficiency --location-id UUID`

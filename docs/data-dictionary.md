@@ -254,3 +254,16 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `regional_chapter` | Regional network/chapter registry | chapter_name, geographic_region, country, chapter_type, founding_date |
 | `network_membership` | Farm-to-chapter membership links | location_id, chapter_id, membership_type, role, join_date |
 | `farm_registry_record` (extended) | Grant tracking fields added | returning_applicant, grant_count, total_grants_received |
+
+### Organic Certification & Compliance
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `organic_certification_record` | Certification lifecycle (USDA NOP, EU 2018/848, IFOAM) | standard, certification_type, certification_body, application_date, inspection_date, certification_date, expiration_date, certificate_number, status, scope, annual_fee_usd |
+| `organic_transition_plan` | 2-3 year transition tracking with readiness scoring | standard, transition_start_date, expected_certification_date, current_year, total_years_required, status, readiness_score, barriers |
+| `prohibited_substance_record` | Prohibited substance usage & withdrawal tracking | substance_name, substance_category, cas_number, date_used, remediation_action, withdrawal_period_days, withdrawal_end_date, compliance_status |
+| `buffer_zone` | Physical separation zones (PostGIS geometry) | buffer_type, width_m, length_m, area_m2, adjacent_use, boundary_geometry, condition_status |
+| `organic_input_audit` | Full input audit trail with organic/prohibited flags | input_category, input_name, input_source, organic_certified, supplier_name, is_prohibited, pre_harvest_interval_days, reentry_interval_hours |
+| `harvest_handling_record` | Post-harvest organic compliance | harvest_event_id, handling_type, organic_segregated, equipment_cleaned, contamination_risk, organic_lot_number |
+| `organic_compliance_checklist` | Inspector audit trail per standard requirement | certification_record_id, inspection_type, checklist_items (JSONB), non_conformances, corrective_actions_required, overall_result |
+| `organic_readiness_assessment` | Composite 0-100 readiness scoring across 8 dimensions | overall_score, transition_progress_pct, soil_health_score, input_compliance_pct, pest_management_score, biodiversity_score, buffer_zone_score, record_completeness_pct, training_completion_pct, harvest_segregation_score |
