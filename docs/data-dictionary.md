@@ -317,3 +317,12 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `materiality_assessment` | Stakeholder priority mapping | stakeholder_group, material_topic, importance_to_stakeholder, importance_to_business, priority_level (auto-computed) |
 | `capital_flow_observation` | Cross-capital transfers | from_capital, to_capital, flow_value_usd, flow_type |
 | `v_true_cost_statement` | Market costs + hidden costs + capital values | market_costs_usd, hidden_costs_usd, natural_capital_value_usd, social_capital_value_usd, true_profit_usd |
+
+### Statement of Work
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `statement_of_work` | SOW document metadata | sow_name, sow_version, effective_date, client_name, contractor_name, total_contract_value, payment_terms, status |
+| `sow_deliverable` | Deliverables with acceptance criteria | deliverable_name, acceptance_criteria, due_date, delivered_at, status (pending/delivered/accepted/rejected) |
+| `sow_payment_schedule` | Payment milestones | milestone_name, amount, due_date, payment_status, invoice_number, paid_at |
+| `sow_change_request` | Scope changes with impact assessment | change_name, impact_on_timeline, impact_on_budget, status (proposed/approved/rejected/implemented) |

@@ -2572,6 +2572,181 @@ def generate_organic_input_audit(conn, location_id: str, period_start: str = Non
 
 
 # ---------------------------------------------------------------------------
+# Statement of Work Report
+# ---------------------------------------------------------------------------
+
+def generate_statement_of_work(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a Statement of Work by assembling data from existing tables.
+
+    Pulls objectives, tasks, phases, steps, financials, staff, partners, and
+    SOW-specific tables to produce a comprehensive project document.
+    """
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # Location info
+    cur.execute("SELECT name, country, region, latitude, longitude FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+
+    # SOW records
+    cur.execute(
+        """
+        SELECT * FROM statement_of_work
+        WHERE location_id = %s ORDER BY created_at DESC LIMIT 1
+        """,
+        (location_id,),
+    )
+    sow = cur.fetchone()
+
+    # Objectives (Purpose & Objectives)
+    cur.execute(
+        """
+        SELECT objective_name, description, objective_type, target_value, current_value,
+               unit, target_date, priority, success_criteria, status
+        FROM objective
+        WHERE location_id = %s AND status IN ('approved', 'in_progress', 'achieved')
+        ORDER BY priority DESC, target_date
+        """,
+        (location_id,),
+    )
+    objectives = [dict(r) for r in cur.fetchall()]
+
+    # Tasks (Scope of Work)
+    cur.execute(
+        """
+        SELECT task_name, description, category, start_date, end_date,
+               priority, status, estimated_cost_usd, actual_cost_usd
+        FROM farm_task
+        WHERE location_id = %s AND status != 'cancelled'
+        ORDER BY start_date
+        """,
+        (location_id,),
+    )
+    tasks = [dict(r) for r in cur.fetchall()]
+
+    # Development Phases (Timeline)
+    cur.execute(
+        """
+        SELECT phase_name, description, phase_order, start_date, end_date, status
+        FROM development_phase
+        WHERE location_id = %s
+        ORDER BY phase_order
+        """,
+        (location_id,),
+    )
+    phases = [dict(r) for r in cur.fetchall()]
+
+    # Framework Steps (Methodology)
+    cur.execute(
+        """
+        SELECT step_name, description, step_order, step_type, duration_days, prerequisites, status
+        FROM framework_step
+        WHERE location_id = %s
+        ORDER BY step_order
+        """,
+        (location_id,),
+    )
+    steps = [dict(r) for r in cur.fetchall()]
+
+    # Staff (Team)
+    cur.execute(
+        """
+        SELECT s.name, s.role, s.email, d.name AS department_name, jr.name AS job_role_name
+        FROM staff s
+        LEFT JOIN department d ON s.department_id = d.id
+        LEFT JOIN job_role jr ON s.job_role_id = jr.id
+        WHERE s.location_id = %s AND s.is_active = TRUE
+        """,
+        (location_id,),
+    )
+    staff = [dict(r) for r in cur.fetchall()]
+
+    # Partners (Stakeholders)
+    cur.execute(
+        """
+        SELECT name, partner_type, description, contact_email
+        FROM partner
+        WHERE location_id = %s AND status = 'active'
+        """,
+        (location_id,),
+    )
+    partners = [dict(r) for r in cur.fetchall()]
+
+    # Financial Projections
+    cur.execute(
+        """
+        SELECT metric_name, value, unit, confidence_low, confidence_high, period_start, period_end
+        FROM forecast_output
+        WHERE location_id = %s
+        ORDER BY period_start DESC
+        LIMIT 10
+        """,
+        (location_id,),
+    )
+    forecasts = [dict(r) for r in cur.fetchall()]
+
+    # Financial Sustainability
+    cur.execute(
+        """
+        SELECT projected_annual_revenue_usd, projected_annual_operating_cost_usd,
+               projected_annual_noi_usd, runway_months, grant_dependency_pct
+        FROM financial_sustainability_plan
+        WHERE location_id = %s AND status = 'published'
+        LIMIT 1
+        """,
+        (location_id,),
+    )
+    sustainability = cur.fetchone()
+
+    # SOW Deliverables
+    deliverables = []
+    payment_schedule = []
+    change_requests = []
+    if sow:
+        cur.execute("SELECT * FROM sow_deliverable WHERE sow_id = %s ORDER BY due_date", (sow["id"],))
+        deliverables = [dict(r) for r in cur.fetchall()]
+
+        cur.execute("SELECT * FROM sow_payment_schedule WHERE sow_id = %s ORDER BY due_date", (sow["id"],))
+        payment_schedule = [dict(r) for r in cur.fetchall()]
+
+        cur.execute("SELECT * FROM sow_change_request WHERE sow_id = %s ORDER BY created_at", (sow["id"],))
+        change_requests = [dict(r) for r in cur.fetchall()]
+
+    cur.close()
+
+    return {
+        "report_type": "statement_of_work",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "sow": dict(sow) if sow else None,
+        "objectives": _serialize_rows(objectives),
+        "scope_of_work": {
+            "tasks": _serialize_rows(tasks),
+            "development_phases": _serialize_rows(phases),
+            "framework_steps": _serialize_rows(steps),
+        },
+        "deliverables": _serialize_rows(deliverables),
+        "timeline": {
+            "phases": _serialize_rows(phases),
+            "tasks": _serialize_rows(tasks),
+        },
+        "location_info": dict(location) if location else None,
+        "payment_schedule": _serialize_rows(payment_schedule),
+        "team": _serialize_rows(staff),
+        "stakeholders": _serialize_rows(partners),
+        "financial_projections": _serialize_rows(forecasts),
+        "financial_sustainability": dict(sustainability) if sustainability else None,
+        "change_requests": _serialize_rows(change_requests),
+        "limitations": [
+            "SOW is assembled from governed data and should be reviewed by authorized personnel.",
+            "Financial projections are estimates based on forecast scenarios.",
+            "Deliverable acceptance requires human verification and sign-off.",
+            "Change requests require mutual agreement per the change management process.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
 
@@ -2631,6 +2806,7 @@ REPORT_GENERATORS = {
     "organic_certification_readiness": generate_organic_certification_readiness,
     "organic_transition_progress": generate_organic_transition_progress,
     "organic_input_audit": generate_organic_input_audit,
+    "statement_of_work": generate_statement_of_work,
 }
 
 
