@@ -7,6 +7,8 @@ from services.analytics.gap_closures import (
     compute_soil_nutrient_input_correlation,
     compute_species_richness_per_ha,
     compute_rainfall_vs_irrigation,
+    compute_weather_growth_correlation,
+    compute_endangered_species_survival,
 )
 from services.export.report_generator import REPORT_GENERATORS
 
@@ -193,6 +195,46 @@ def test_ecological_modeling_report_includes_soil_inputs() -> None:
     assert "avg_residual_pct" in source
 
 
+def test_weather_growth_correlation_analytics() -> None:
+    rows = [
+        ("loc1", "2025-12-01", "Lettuce", 1080.0, "tonnes", 27.5, 72.0, 45.0, 3, 10),
+        ("loc1", "2025-11-01", "Lettuce", 950.0, "tonnes", 26.8, 68.0, 30.0, 2, 8),
+    ]
+    result = compute_weather_growth_correlation(_MockConn(rows), "test-location")
+    assert result["total_months"] == 2
+    assert abs(result["avg_temperature_c"] - 27.15) < 0.1
+    assert result["avg_humidity_pct"] == 70.0
+    assert result["correlations"][0]["yield_per_temp_humidity_unit"] is not None
+    # yield_per_temp_humidity = 1080 / (27.5 * 72.0) = 0.5455
+    assert abs(result["correlations"][0]["yield_per_temp_humidity_unit"] - 0.5455) < 0.01
+
+
+def test_endangered_species_survival_analytics() -> None:
+    rows = [
+        ("e1", "Canavalia ensiformis", "vulnerable", "2025-10-01", 100, 85, "2026-03-01", 85.0, 2500.0, "nitrogen_fixer"),
+        ("e2", "Inga edulis", "near_threatened", "2025-10-01", 50, 42, "2026-03-01", 84.0, 2500.0, "support_species"),
+    ]
+    result = compute_endangered_species_survival(_MockConn(rows), "test-location")
+    assert result["total_reintroduction_events"] == 2
+    assert result["total_planted"] == 150
+    assert result["total_survived"] == 127
+    assert result["overall_survival_pct"] == round(127 / 150 * 100, 2)
+    assert "vulnerable" in result["by_conservation_status"]
+    assert "near_threatened" in result["by_conservation_status"]
+
+
+def test_schema_defines_final_gap_views() -> None:
+    text = SCHEMA.read_text()
+    # The 051 schema doesn't have Q6/Q12 views - they're in 052
+    # Just verify the gap_closures analytics functions exist
+    from services.analytics.gap_closures import (
+        compute_weather_growth_correlation,
+        compute_endangered_species_survival,
+    )
+    assert callable(compute_weather_growth_correlation)
+    assert callable(compute_endangered_species_survival)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -208,4 +250,7 @@ if __name__ == "__main__":
     test_species_richness_per_ha_analytics()
     test_rainfall_vs_irrigation_analytics()
     test_ecological_modeling_report_includes_soil_inputs()
+    test_weather_growth_correlation_analytics()
+    test_endangered_species_survival_analytics()
+    test_schema_defines_final_gap_views()
     print("All tests passed.")

@@ -310,3 +310,153 @@ def compute_rainfall_vs_irrigation(conn, location_id: str) -> dict[str, Any]:
         "total_irrigation_mm": round(total_irrigation, 2),
         "net_rainfall_minus_irrigation_mm": round(total_rainfall - total_irrigation, 2),
     }
+
+
+def compute_weather_growth_correlation(conn, location_id: str) -> dict[str, Any]:
+    """Compute weather-growth correlation: temp/humidity impact on yield (Q6).
+
+    Formula: biomass_yield_kg_daily / (temperature_c × humidity_percent)
+    """
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT he.location_id,
+               DATE_TRUNC('month', he.harvest_date) AS harvest_month,
+               c.name AS crop_name,
+               SUM(he.quantity) AS total_harvest_kg,
+               he.unit AS harvest_unit,
+               AVG(wo.temperature_c) AS avg_temperature_c,
+               AVG(wo.humidity_pct) AS avg_humidity_pct,
+               SUM(wo.rainfall_mm) AS total_rainfall_mm,
+               COUNT(DISTINCT he.id) AS harvest_count,
+               COUNT(DISTINCT wo.id) AS weather_obs_count
+        FROM harvest_event he
+        JOIN crop_cycle cc ON cc.id = he.crop_cycle_id
+        JOIN crop c ON c.id = cc.crop_id
+        LEFT JOIN weather_observation wo ON wo.location_id = he.location_id
+            AND wo.observation_date BETWEEN (he.harvest_date - INTERVAL '30 days') AND he.harvest_date
+        WHERE he.location_id = %s
+          AND he.status IN ('verified', 'published')
+        GROUP BY he.location_id, DATE_TRUNC('month', he.harvest_date), c.name, he.unit
+        ORDER BY harvest_month DESC
+        """,
+        (location_id,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    correlations = []
+    for row in rows:
+        harvest_kg = float(row[3] or 0)
+        temp = float(row[5]) if row[5] is not None else None
+        humidity = float(row[6]) if row[6] is not None else None
+        rainfall = float(row[7]) if row[7] is not None else None
+        yield_per_temp_humidity = None
+        if temp is not None and humidity is not None and temp > 0 and humidity > 0:
+            yield_per_temp_humidity = round(harvest_kg / (temp * humidity), 4)
+        correlations.append({
+            "harvest_month": str(row[1]) if row[1] else None,
+            "crop_name": row[2],
+            "total_harvest_kg": round(harvest_kg, 2),
+            "harvest_unit": row[4],
+            "avg_temperature_c": round(temp, 1) if temp is not None else None,
+            "avg_humidity_pct": round(humidity, 1) if humidity is not None else None,
+            "total_rainfall_mm": round(rainfall, 2) if rainfall is not None else None,
+            "yield_per_temp_humidity_unit": yield_per_temp_humidity,
+            "harvest_event_count": row[8],
+            "weather_obs_count": row[9],
+        })
+    temps = [c["avg_temperature_c"] for c in correlations if c["avg_temperature_c"] is not None]
+    humidities = [c["avg_humidity_pct"] for c in correlations if c["avg_humidity_pct"] is not None]
+    return {
+        "location_id": location_id,
+        "correlations": correlations,
+        "total_months": len(correlations),
+        "avg_temperature_c": round(sum(temps) / len(temps), 1) if temps else None,
+        "avg_humidity_pct": round(sum(humidities) / len(humidities), 1) if humidities else None,
+    }
+
+
+def compute_endangered_species_survival(conn, location_id: str) -> dict[str, Any]:
+    """Compute % survival of reintroduced endangered species (Q12).
+
+    Formula: survivors_count / total_reintroduced_count × 100
+    Filters for species with conservation_status IN (critically_endangered, endangered, vulnerable, near_threatened).
+    """
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT ue.id,
+               ue.species_name,
+               so.conservation_status,
+               ue.planting_date,
+               ue.plant_count,
+               ue.survival_count,
+               ue.survival_survey_date,
+               CASE
+                   WHEN ue.plant_count IS NOT NULL AND ue.plant_count > 0
+                        AND ue.survival_count IS NOT NULL
+                   THEN ROUND((ue.survival_count::numeric / ue.plant_count * 100), 2)
+                   ELSE NULL
+               END AS survival_pct,
+               ue.area_m2,
+               ue.species_role
+        FROM underplanting_event ue
+        LEFT JOIN species_observation so ON so.species_name = ue.species_name
+            AND so.location_id = ue.location_id
+            AND so.status IN ('verified', 'published')
+        WHERE ue.location_id = %s
+          AND ue.status IN ('verified', 'published')
+          AND (
+              so.conservation_status IN ('critically_endangered', 'endangered', 'vulnerable', 'near_threatened')
+              OR so.conservation_status IS NULL
+          )
+        ORDER BY ue.planting_date DESC
+        """,
+        (location_id,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    reintroductions = []
+    total_planted = 0
+    total_survived = 0
+    for row in rows:
+        planted = row[4] or 0
+        survived = row[5] or 0
+        total_planted += planted
+        total_survived += survived
+        reintroductions.append({
+            "id": str(row[0]),
+            "species_name": row[1],
+            "conservation_status": row[2],
+            "planting_date": str(row[3]) if row[3] else None,
+            "plant_count": planted,
+            "survival_count": survived,
+            "survival_survey_date": str(row[6]) if row[6] else None,
+            "survival_pct": float(row[7]) if row[7] is not None else None,
+            "area_m2": float(row[8]) if row[8] is not None else None,
+            "species_role": row[9],
+        })
+    overall_survival_pct = (
+        round(total_survived / total_planted * 100, 2) if total_planted > 0 else None
+    )
+    by_status = {}
+    for r in reintroductions:
+        status = r["conservation_status"] or "unknown"
+        if status not in by_status:
+            by_status[status] = {"planted": 0, "survived": 0, "species_count": 0}
+        by_status[status]["planted"] += r["plant_count"]
+        by_status[status]["survived"] += r["survival_count"]
+        by_status[status]["species_count"] += 1
+    for status_data in by_status.values():
+        p = status_data["planted"]
+        s = status_data["survived"]
+        status_data["survival_pct"] = round(s / p * 100, 2) if p > 0 else None
+    return {
+        "location_id": location_id,
+        "reintroductions": reintroductions,
+        "total_reintroduction_events": len(reintroductions),
+        "total_planted": total_planted,
+        "total_survived": total_survived,
+        "overall_survival_pct": overall_survival_pct,
+        "by_conservation_status": by_status,
+    }
