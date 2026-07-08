@@ -116,6 +116,16 @@ ALTER TABLE impact_claim ADD CONSTRAINT chk_impact_public_carbon_level6 CHECK (
     )
 );
 
+-- Public non-carbon claims require maturity >= 4 and published status
+ALTER TABLE impact_claim DROP CONSTRAINT IF EXISTS chk_impact_public_noncarbon_maturity;
+ALTER TABLE impact_claim ADD CONSTRAINT chk_impact_public_noncarbon_maturity CHECK (
+    NOT (public_claim = TRUE AND claim_category != 'carbon')
+    OR (
+        evidence_maturity >= 4
+        AND status = 'published'
+    )
+);
+
 CREATE TABLE IF NOT EXISTS metric_proposal (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     location_id UUID REFERENCES location(id) ON DELETE RESTRICT,

@@ -32,6 +32,7 @@ export function validateEvidenceUrls(urls: any): string[] {
   if (!urls) return errors;
 
   const arr = Array.isArray(urls) ? urls : [urls];
+  const ALLOWED_SCHEMES = ['http://', 'https://', 'ipfs://', 'arweave://', '/'];
 
   if (arr.length > MAX_EVIDENCE_URLS) {
     errors.push(`Maximum ${MAX_EVIDENCE_URLS} evidence files allowed`);
@@ -44,6 +45,10 @@ export function validateEvidenceUrls(urls: any): string[] {
     }
     if (url.length > 2048) {
       errors.push('Evidence URL too long (max 2048 chars)');
+    }
+    const hasAllowedScheme = ALLOWED_SCHEMES.some(s => url.startsWith(s));
+    if (!hasAllowedScheme) {
+      errors.push(`Evidence URL must start with one of: ${ALLOWED_SCHEMES.join(', ')}`);
     }
   }
 

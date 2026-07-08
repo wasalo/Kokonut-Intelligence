@@ -146,7 +146,11 @@ SELECT
     sp.created_at
 FROM scenario_parameter sp
 JOIN forecast_scenario fs ON sp.scenario_id = fs.id
-WHERE sp.is_active = TRUE;
+LEFT JOIN location l ON fs.location_id = l.id
+LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
+WHERE sp.is_active = TRUE
+  AND (fs.location_id IS NULL OR l.status IN ('active', 'verified', 'published'))
+  AND (fr.id IS NULL OR fr.status IN ('verified', 'published'));
 
 -- 2. Public simulation results
 CREATE OR REPLACE VIEW v_public_simulation_results AS

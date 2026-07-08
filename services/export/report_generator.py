@@ -1795,6 +1795,14 @@ def generate_open_source_impact(conn, location_id: str = None, period_start: str
 
 
 def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: str = "id") -> list[dict]:
+    # Validate identifiers to prevent SQL injection
+    import re
+    _IDENT_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+    if not _IDENT_RE.match(view_name):
+        raise ValueError(f"Invalid view name: {view_name}")
+    if not _IDENT_RE.match(order_by):
+        raise ValueError(f"Invalid order_by: {order_by}")
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     if location_id:
         cur.execute(
