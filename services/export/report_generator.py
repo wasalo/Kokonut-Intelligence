@@ -1798,9 +1798,10 @@ def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: 
     # Validate identifiers to prevent SQL injection
     import re
     _IDENT_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
+    _ORDER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*$')
     if not _IDENT_RE.match(view_name):
         raise ValueError(f"Invalid view name: {view_name}")
-    if not _IDENT_RE.match(order_by):
+    if not _ORDER_RE.match(order_by):
         raise ValueError(f"Invalid order_by: {order_by}")
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)

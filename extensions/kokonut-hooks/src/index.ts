@@ -492,7 +492,8 @@ async function writeFinancialEvent(type: string, payload: Record<string, any>) {
     const txId = (payload.id && UUID_RE.test(payload.id)) ? payload.id : crypto.randomUUID();
     const locId = (payload.location_id && UUID_RE.test(payload.location_id)) ? payload.location_id : '00000000-0000-0000-0000-000000000000';
     const cat = payload.category && CAT_RE.test(payload.category) ? payload.category.substring(0, 50) : (type || 'other');
-    const cur = currency && CUR_RE.test(currency) ? currency : 'USD';
+    const rawCurrency = payload.currency || 'USD';
+    const cur = CUR_RE.test(rawCurrency) ? rawCurrency : 'USD';
     const amt = typeof amount === 'number' && isFinite(amount) ? amount : 0;
     const ts = new Date().toISOString().replace('T', ' ').replace('Z', '');
     const safeType = STR_RE.test(type) ? type : 'other';
