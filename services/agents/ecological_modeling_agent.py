@@ -19,6 +19,14 @@ from services.analytics.ecological_modeling_v2 import (
     compute_resource_efficiency,
     compute_soil_input_retention,
 )
+from services.analytics.livestock_feed import (
+    compute_feed_conversion_ratio,
+    compute_feed_intake_summary,
+)
+from services.analytics.reward_calibration import (
+    compute_reward_calibration,
+    compute_reward_calibration_model,
+)
 from services.common.logging import get_logger
 
 logger = get_logger(__name__)
@@ -41,6 +49,10 @@ def synthesize_ecological_modeling(conn, location_id: str) -> dict[str, Any]:
     biocontrol = compute_biocontrol_effectiveness(conn, location_id)
     resources = compute_resource_efficiency(conn, location_id)
     conservation = compute_conservation_status_summary(conn, location_id)
+    feed_intake = compute_feed_intake_summary(conn, location_id)
+    feed_conversion = compute_feed_conversion_ratio(conn, location_id)
+    reward_cal = compute_reward_calibration(conn, location_id)
+    reward_model = compute_reward_calibration_model(conn, location_id)
 
     return {
         "location_id": location_id,
@@ -54,6 +66,10 @@ def synthesize_ecological_modeling(conn, location_id: str) -> dict[str, Any]:
         "biocontrol": biocontrol,
         "resource_efficiency": resources,
         "conservation_status": conservation,
+        "livestock_feed": feed_intake,
+        "feed_conversion": feed_conversion,
+        "reward_calibration": reward_cal,
+        "reward_model": reward_model,
         "safety_note": SAFETY_NOTE,
         "limitations": [
             "Ecological modeling outputs are advisory, not deterministic predictions.",

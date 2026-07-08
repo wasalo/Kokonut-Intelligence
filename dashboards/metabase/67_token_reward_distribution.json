@@ -1,0 +1,15 @@
+{
+  "name": "Token Reward Distribution",
+  "description": "Token reward distribution by type, epoch, and metric correlation.",
+  "dataset_id": "a0000000-0000-0000-0000-000000005002",
+  "type": "question",
+  "query": {
+    "source_table": "67_token_reward_distribution",
+    "columns": ["distribution_date", "epoch", "reward_type", "recipient_name", "token_amount", "token_type", "linked_metric_key", "is_onchain"],
+    "order_by": [["distribution_date", "descending"]]
+  },
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "public_safe"
+  }
+}

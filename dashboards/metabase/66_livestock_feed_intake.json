@@ -1,0 +1,15 @@
+{
+  "name": "Livestock Feed Intake",
+  "description": "Daily feed intake trends, conversion ratio, and per-animal consumption by livestock group.",
+  "dataset_id": "a0000000-0000-0000-0000-000000005001",
+  "type": "question",
+  "query": {
+    "source_table": "66_livestock_feed_intake",
+    "columns": ["record_date", "group_name", "livestock_species", "feed_type", "quantity_kg", "per_animal_kg", "animal_count"],
+    "order_by": [["record_date", "descending"]]
+  },
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe"
+  }
+}

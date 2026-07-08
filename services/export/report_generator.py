@@ -2248,6 +2248,153 @@ def generate_model_validation(conn, location_id: str, period_start: str = None, 
 
 
 # ---------------------------------------------------------------------------
+# Livestock Feed Report
+# ---------------------------------------------------------------------------
+
+def generate_livestock_feed(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe livestock feed report with intake, conversion ratio, and per-animal metrics."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_livestock_feed_intake
+        WHERE location_id = %s ORDER BY record_date DESC
+        """,
+        (location_id,),
+    )
+    feed_records = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT group_name, species, breed, animal_count, feed_type, status
+        FROM livestock_group
+        WHERE location_id = %s AND status = 'active'
+        """,
+        (location_id,),
+    )
+    groups = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    total_feed = sum(float(r.get("quantity_kg", 0) or 0) for r in feed_records)
+    total_animals = sum(g.get("animal_count", 0) or 0 for g in groups)
+    return {
+        "report_type": "livestock_feed",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "livestock_groups": _serialize_rows(groups),
+        "feed_records": _serialize_rows(feed_records),
+        "total_groups": len(groups),
+        "total_animals": total_animals,
+        "total_feed_kg": round(total_feed, 3),
+        "limitations": [
+            "Feed intake measurements depend on accurate weighing practices.",
+            "Feed conversion ratio is estimated from available weight data.",
+            "Per-animal consumption assumes uniform distribution within groups.",
+            "Supplemental foraging intake is not captured in feed records.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Token Rewards Report
+# ---------------------------------------------------------------------------
+
+def generate_token_rewards(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe token rewards report with distribution, epoch totals, and metric correlation."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_token_reward_distribution
+        WHERE location_id = %s ORDER BY distribution_date DESC
+        """,
+        (location_id,),
+    )
+    distributions = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_reward_calibration
+        WHERE location_id = %s ORDER BY run_date DESC LIMIT 1
+        """,
+        (location_id,),
+    )
+    calibration = cur.fetchone()
+    cur.close()
+    total_tokens = sum(float(d.get("token_amount", 0) or 0) for d in distributions)
+    total_usd = sum(float(d.get("usd_value", 0) or 0) for d in distributions)
+    onchain_count = sum(1 for d in distributions if d.get("is_onchain"))
+    return {
+        "report_type": "token_rewards",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "distributions": _serialize_rows(distributions),
+        "latest_calibration": dict(calibration) if calibration else None,
+        "total_distributions": len(distributions),
+        "total_tokens": round(total_tokens, 8),
+        "total_usd": round(total_usd, 2),
+        "onchain_count": onchain_count,
+        "offchain_count": len(distributions) - onchain_count,
+        "limitations": [
+            "Token reward amounts depend on DAO governance decisions.",
+            "USD values are approximate and may not reflect current market price.",
+            "Metric-linked rewards use the value at time of distribution.",
+            "On-chain rewards require transaction confirmation; off-chain rewards are pending.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Reward Calibration Report
+# ---------------------------------------------------------------------------
+
+def generate_reward_calibration(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a public-safe reward calibration report with calibration model outputs and sensitivity."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_reward_calibration
+        WHERE location_id = %s ORDER BY run_date DESC
+        """,
+        (location_id,),
+    )
+    models = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT reward_type, linked_metric_key, AVG(linked_metric_value) AS avg_metric,
+               AVG(token_amount) AS avg_tokens, COUNT(*) AS count
+        FROM token_reward_distribution
+        WHERE location_id = %s AND status IN ('verified', 'published')
+          AND linked_metric_value IS NOT NULL
+        GROUP BY reward_type, linked_metric_key
+        """,
+        (location_id,),
+    )
+    metric_links = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    latest = models[0] if models else None
+    return {
+        "report_type": "reward_calibration",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "calibration_models": _serialize_rows(models),
+        "metric_links": _serialize_rows(metric_links),
+        "latest_calibration_score": latest.get("calibration_score") if latest else None,
+        "latest_model_name": latest.get("model_name") if latest else None,
+        "limitations": [
+            "Calibration scores are computed from limited pilot data.",
+            "Weight assignments are governance-decided and may change.",
+            "Metric-reward correlations require sufficient sample size.",
+            "Token per unit output ratios depend on total epoch budget.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
 
@@ -2301,6 +2448,9 @@ REPORT_GENERATORS = {
     "training_impact": generate_training_impact,
     "revenue_streams": generate_revenue_streams,
     "model_validation": generate_model_validation,
+    "livestock_feed": generate_livestock_feed,
+    "token_rewards": generate_token_rewards,
+    "reward_calibration": generate_reward_calibration,
 }
 
 
