@@ -290,3 +290,15 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `v_spatial_tree_geojson` | Trees with GeoJSON text for export | tree_tag, species_name, geometry_geojson |
 | `v_spatial_location_geojson` | Location boundary with GeoJSON text | boundary_geojson, center_geojson |
 | `v_spatial_project_summary` | Comprehensive project summary | tree_count, species_count, zone_count, zone_types |
+
+### Drone & Raster Integration
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `remote_sensing_observation` (extended) | MSAVI column added | msavi (Modified Soil-Adjusted Vegetation Index) |
+| `raster_metadata` | Metadata for GeoTIFF/orthomosaic files | raster_name, raster_type, file_url, file_format, resolution_m, bbox, capture_date, sensor, processing_pipeline |
+| `spatial_cluster` | DBSCAN clustering results | cluster_method, cluster_type, tree_count, centroid_geometry, hull_geometry, compactness, eps_m, min_samples |
+| `pest_hotspot` | Spatial pest/disease hotspot clusters | pest_or_disease, tree_count_affected, avg_severity, centroid_geometry, radius_m, confidence_score, recommended_action |
+| `v_public_spatial_clusters` | Active clusters with GeoJSON geometry | cluster_name, tree_count, avg_health_score, dominant_species |
+| `v_public_pest_hotspots` | Active pest hotspots with GeoJSON | pest_or_disease, tree_count_affected, confidence_score, recommended_action |
+| `v_public_canopy_analysis` | Canopy coverage per zone | alive_trees, avg_canopy_diameter_m, estimated_canopy_cover_pct |
