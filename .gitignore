@@ -10,6 +10,7 @@ private_key
 *_private_key
 secrets.json
 *.keystore
+config/keys/
 
 # Data directories (persistent state)
 data/

@@ -31,28 +31,56 @@ CATALOG_URL = "https://catalogue.dataspace.copernicus.eu/odata/v1/Products"
 
 
 def _get_token() -> Optional[str]:
-    """Get OAuth2 token from Copernicus Data Space."""
+    """Get OAuth2 token from Copernicus Data Space.
+
+    Supports two auth methods:
+    1. Resource Owner Password Credentials (email + password) — default
+    2. Client Credentials (client_id + client_secret) — for registered apps
+    """
+    email = os.environ.get("COPERNICUS_EMAIL")
+    password = os.environ.get("COPERNICUS_PASSWORD")
     client_id = os.environ.get("COPERNICUS_CLIENT_ID")
     client_secret = os.environ.get("COPERNICUS_CLIENT_SECRET")
-    if not client_id or not client_secret:
-        logger.warning("COPERNICUS_CLIENT_ID/SECRET not set")
-        return None
 
-    try:
-        resp = requests.post(
-            TOKEN_URL,
-            data={
-                "grant_type": "client_credentials",
-                "client_id": client_id,
-                "client_secret": client_secret,
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        return resp.json().get("access_token")
-    except Exception as e:
-        logger.error("Copernicus token request failed: %s", e)
-        return None
+    # Method 1: Email/password (Resource Owner Password Credentials)
+    if email and password:
+        try:
+            resp = requests.post(
+                TOKEN_URL,
+                data={
+                    "grant_type": "password",
+                    "username": email,
+                    "password": password,
+                    "client_id": "cdse-public",
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            token = resp.json().get("access_token")
+            if token:
+                return token
+        except Exception as e:
+            logger.warning("Copernicus password auth failed: %s", e)
+
+    # Method 2: Client Credentials
+    if client_id and client_secret:
+        try:
+            resp = requests.post(
+                TOKEN_URL,
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            return resp.json().get("access_token")
+        except Exception as e:
+            logger.error("Copernicus client_credentials auth failed: %s", e)
+
+    logger.error("No Copernicus credentials configured. Set COPERNICUS_EMAIL/PASSWORD or COPERNICUS_CLIENT_ID/SECRET")
+    return None
 
 
 def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
