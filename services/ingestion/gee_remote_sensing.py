@@ -266,11 +266,11 @@ def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _resolve_bbox(job: Dict[str, Any]) -> Optional[Dict[str, float]]:
-    """Resolve bbox from job or derive from location plots."""
-    # Job bbox is a PostGIS geometry; for GEE we just need the coordinates
-    # The fetcher.py already resolved bbox from job/plot geometries
-    # Here we accept the raw dict
-    return job.get("_resolved_bbox")
+    """Resolve bbox from job dict or derive from location plots."""
+    # Check if fetcher already resolved bbox
+    if job.get("_resolved_bbox"):
+        return job["_resolved_bbox"]
+    return None
 
 
 def _insert_pg(conn, record: dict) -> str:

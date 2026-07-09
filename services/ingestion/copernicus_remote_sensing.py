@@ -188,7 +188,10 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _resolve_bbox(job: Dict[str, Any]) -> Optional[Dict[str, float]]:
-    return job.get("_resolved_bbox")
+    """Resolve bbox from job dict."""
+    if job.get("_resolved_bbox"):
+        return job["_resolved_bbox"]
+    return None
 
 
 def _insert_pg(conn, record: dict) -> str:

@@ -137,9 +137,15 @@ def fetch_job(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     """Execute a remote sensing fetch job.
 
     Dispatches to the appropriate provider (gee or copernicus).
+    Resolves bbox from job or plot geometries before dispatching.
     """
     provider = job.get("provider", "gee")
     job_id = str(job["id"])
+
+    # Resolve bbox before dispatching to provider
+    bbox = _resolve_bbox_from_job(conn, job)
+    if bbox:
+        job["_resolved_bbox"] = bbox
 
     now = datetime.now(timezone.utc)
     _update_job_status(conn, job_id, last_run_at=now)
