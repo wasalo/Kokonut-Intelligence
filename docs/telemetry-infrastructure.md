@@ -141,3 +141,55 @@ Tracks: last_seen_at, battery_pct, signal_strength_dbm, firmware_version, readin
 | `v_sensor_device_health_summary` | Device health overview |
 | `v_remote_sensing_freshness` | ClickHouse RS freshness |
 | `mv_daily_remote_sensing_summary` | ClickHouse daily RS aggregates |
+
+## ML Anomaly Detection
+
+Prophet (univariate seasonal) + Isolation Forest (multivariate) anomaly detection.
+
+```bash
+# Run ML detection
+python3 -m services.ingestion.anomaly_detector --ml-check --location-id UUID
+
+# Train and save models
+python3 -m services.ingestion.anomaly_detector --ml-train --location-id UUID
+```
+
+Models stored in `models/ml_anomaly/`. Graceful fallback to rule-based detection when ML deps unavailable.
+
+## Carbon Credits
+
+Tokenized carbon credits with auto-adjustment.
+
+```bash
+# Issue credit
+python3 -m services.analytics.carbon_credits --issue --location-id UUID --vintage-year 2026
+
+# Auto-adjust credits
+python3 -m services.analytics.carbon_credits --adjust --location-id UUID
+
+# Retire credits
+python3 -m services.analytics.carbon_credits --retire --credit-id UUID --tonnes 5.0 --reason voluntary_retirement
+
+# List/balance
+python3 -m services.analytics.carbon_credits --list --location-id UUID
+python3 -m services.analytics.carbon_credits --balance --location-id UUID
+```
+
+## Workflow Orchestration (Prefect)
+
+Replaces cron-based scheduling with Prefect workflows.
+
+```bash
+# Run full pipeline
+python3 -m services.flows.pipelines full_pipeline
+
+# Deploy scheduled workflows
+prefect deploy --name scheduled-hourly
+prefect deploy --name scheduled-every-6h
+prefect deploy --name scheduled-daily
+prefect deploy --name scheduled-weekly
+```
+
+Pipeline dependency chain: ingestion -> monitoring -> analytics
+
+Full architecture: `docs/dmrv-architecture.md`
