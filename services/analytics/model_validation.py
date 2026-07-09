@@ -1,7 +1,8 @@
-"""Model validation analytics: prediction accuracy, feature importance, backtesting."""
+"""Validation framework: geographic cross-validation, field-level metrics, MEC computation."""
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from services.common.logging import get_logger
@@ -9,153 +10,188 @@ from services.common.logging import get_logger
 logger = get_logger(__name__)
 
 
-def compute_prediction_accuracy(conn, location_id: str) -> dict[str, Any]:
-    """Compute prediction accuracy metrics across model types."""
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT model_type, metric_name, unit,
-               COUNT(*) AS prediction_count,
-               AVG(absolute_error) AS avg_absolute_error,
-               AVG(percentage_error) AS avg_percentage_error,
-               AVG(mae) AS avg_mae,
-               AVG(rmse) AS avg_rmse,
-               AVG(mape) AS avg_mape,
-               AVG(r_squared) AS avg_r_squared,
-               MIN(prediction_date) AS first_prediction,
-               MAX(actual_date) AS last_actual
-        FROM prediction_accuracy_record
-        WHERE location_id = %s AND status IN ('verified', 'published')
-          AND actual_value IS NOT NULL
-        GROUP BY model_type, metric_name, unit
-        ORDER BY avg_mape ASC
-        """,
-        (location_id,),
-    )
-    rows = cur.fetchall()
-    cur.close()
-    models = []
-    for row in rows:
-        models.append({
-            "model_type": row[0],
-            "metric_name": row[1],
-            "unit": row[2],
-            "prediction_count": row[3],
-            "avg_absolute_error": round(float(row[4] or 0), 4),
-            "avg_percentage_error": round(float(row[5] or 0), 2),
-            "avg_mae": round(float(row[6] or 0), 4),
-            "avg_rmse": round(float(row[7] or 0), 4),
-            "avg_mape": round(float(row[8] or 0), 2),
-            "avg_r_squared": round(float(row[9] or 0), 4),
-            "first_prediction": str(row[10]) if row[10] else None,
-            "last_actual": str(row[11]) if row[11] else None,
-        })
-    overall_mape = (
-        sum(m["avg_mape"] * m["prediction_count"] for m in models)
-        / max(sum(m["prediction_count"] for m in models), 1)
-    )
-    overall_accuracy = 100 - overall_mape
+def compute_rmse(predicted: list[float], actual: list[float]) -> float:
+    """Compute Root Mean Squared Error."""
+    if len(predicted) != len(actual) or len(predicted) == 0:
+        return 0.0
+    n = len(predicted)
+    sse = sum((p - a) ** 2 for p, a in zip(predicted, actual))
+    return math.sqrt(sse / n)
+
+
+def compute_mae(predicted: list[float], actual: list[float]) -> float:
+    """Compute Mean Absolute Error."""
+    if len(predicted) != len(actual) or len(predicted) == 0:
+        return 0.0
+    return sum(abs(p - a) for p, a in zip(predicted, actual)) / len(predicted)
+
+
+def compute_me(predicted: list[float], actual: list[float]) -> float:
+    """Compute Mean Error (bias)."""
+    if len(predicted) != len(actual) or len(predicted) == 0:
+        return 0.0
+    return sum(p - a for p, a in zip(predicted, actual)) / len(predicted)
+
+
+def compute_r_squared(predicted: list[float], actual: list[float]) -> float:
+    """Compute coefficient of determination (R²)."""
+    if len(predicted) != len(actual) or len(predicted) == 0:
+        return 0.0
+    mean_actual = sum(actual) / len(actual)
+    ss_res = sum((a - p) ** 2 for a, p in zip(actual, predicted))
+    ss_tot = sum((a - mean_actual) ** 2 for a in actual)
+    if ss_tot == 0:
+        return 0.0
+    return 1.0 - (ss_res / ss_tot)
+
+
+def compute_mec(predicted: list[float], actual: list[float]) -> float:
+    """Compute Modeling Efficiency Coefficient (MEC / Nash-Sutcliffe).
+
+    MEC = 1 - SS_residual / SS_total
+    MEC = 1.0 is perfect, MEC <= 0 means model is worse than using the mean.
+    """
+    if len(predicted) != len(actual) or len(predicted) == 0:
+        return 0.0
+    mean_actual = sum(actual) / len(actual)
+    ss_res = sum((a - p) ** 2 for a, p in zip(actual, predicted))
+    ss_tot = sum((a - mean_actual) ** 2 for a in actual)
+    if ss_tot == 0:
+        return 0.0
+    return 1.0 - (ss_res / ss_tot)
+
+
+def compute_regression_metrics(
+    predicted: list[float], actual: list[float]
+) -> dict[str, Any]:
+    """Compute all regression metrics for SOC prediction evaluation."""
+    if not predicted or not actual:
+        return {
+            "r_squared": 0.0,
+            "rmse": 0.0,
+            "mae": 0.0,
+            "me": 0.0,
+            "mec": 0.0,
+            "intercept": 0.0,
+            "slope": 1.0,
+            "n": 0,
+        }
+
+    r2 = compute_r_squared(predicted, actual)
+    rmse = compute_rmse(predicted, actual)
+    mae = compute_mae(predicted, actual)
+    me = compute_me(predicted, actual)
+    mec = compute_mec(predicted, actual)
+
+    # Linear regression: actual = intercept + slope * predicted
+    n = len(predicted)
+    mean_pred = sum(predicted) / n
+    mean_act = sum(actual) / n
+    ss_xy = sum((p - mean_pred) * (a - mean_act) for p, a in zip(predicted, actual))
+    ss_xx = sum((p - mean_pred) ** 2 for p in predicted)
+
+    slope = ss_xy / ss_xx if ss_xx != 0 else 1.0
+    intercept = mean_act - slope * mean_pred
+
     return {
-        "location_id": location_id,
-        "models": models,
-        "total_model_types": len(models),
-        "overall_mape_pct": round(overall_mape, 2),
-        "overall_accuracy_pct": round(overall_accuracy, 2),
-        "best_performing_model": models[0]["model_type"] if models else None,
+        "r_squared": round(r2, 4),
+        "rmse": round(rmse, 4),
+        "mae": round(mae, 4),
+        "me": round(me, 4),
+        "mec": round(mec, 4),
+        "intercept": round(intercept, 4),
+        "slope": round(slope, 4),
+        "n": n,
     }
 
 
-def compute_feature_importance(conn, location_id: str) -> dict[str, Any]:
-    """Compute feature importance analysis across model types."""
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT model_type, feature_name,
-               AVG(importance_score) AS avg_importance,
-               AVG(correlation_coefficient) AS avg_correlation,
-               AVG(p_value) AS avg_p_value,
-               COUNT(*) AS analysis_count,
-               MODE() WITHIN GROUP (ORDER BY direction) AS most_common_direction
-        FROM feature_importance_record
-        WHERE location_id = %s AND status IN ('verified', 'published')
-        GROUP BY model_type, feature_name
-        ORDER BY avg_importance DESC
-        """,
-        (location_id,),
-    )
-    rows = cur.fetchall()
-    cur.close()
-    features = []
-    for row in rows:
-        features.append({
-            "model_type": row[0],
-            "feature_name": row[1],
-            "avg_importance_score": round(float(row[2] or 0), 4),
-            "avg_correlation": round(float(row[3] or 0), 4),
-            "avg_p_value": round(float(row[4] or 0), 6),
-            "analysis_count": row[5],
-            "direction": row[6],
+def geographic_cross_validation(
+    training_data: list[dict[str, Any]],
+    field_id_key: str = "plot_id",
+    n_folds: int = 5,
+) -> list[dict[str, Any]]:
+    """Perform geographic cross-validation (leave-one-field-out or grouped).
+
+    Splits data by field (plot) to ensure no spatial autocorrelation
+    between training and validation sets.
+    """
+    # Group by field
+    fields: dict[str, list[dict]] = {}
+    for record in training_data:
+        field_id = str(record.get(field_id_key, "unknown"))
+        fields.setdefault(field_id, []).append(record)
+
+    field_ids = list(fields.keys())
+    if len(field_ids) < n_folds:
+        n_folds = len(field_ids)
+
+    if n_folds <= 0:
+        return []
+
+    # Assign fields to folds (roughly equal sizes)
+    import random
+    random.shuffle(field_ids)
+    folds = [[] for _ in range(n_folds)]
+    for i, field_id in enumerate(field_ids):
+        folds[i % n_folds].append(field_id)
+
+    cv_results = []
+    for fold_idx in range(n_folds):
+        test_field_ids = folds[fold_idx]
+        train_field_ids = [fid for fid in field_ids if fid not in test_field_ids]
+
+        train_data = [r for fid in train_field_ids for r in fields[fid]]
+        test_data = [r for fid in test_field_ids for r in fields[fid]]
+
+        if not test_data:
+            continue
+
+        cv_results.append({
+            "fold": fold_idx + 1,
+            "train_samples": len(train_data),
+            "test_samples": len(test_data),
+            "excluded_fields": test_field_ids,
+            "train_fields": len(train_field_ids),
+            "test_fields": len(test_field_ids),
         })
-    by_model = {}
-    for f in features:
-        mt = f["model_type"]
-        if mt not in by_model:
-            by_model[mt] = []
-        by_model[mt].append(f)
-    top_predictors = {}
-    for mt, feats in by_model.items():
-        if feats:
-            top_predictors[mt] = feats[0]["feature_name"]
-    return {
-        "location_id": location_id,
-        "features": features,
-        "total_features_analyzed": len(features),
-        "top_predictors_by_model": top_predictors,
-        "models_analyzed": list(by_model.keys()),
-    }
+
+    return cv_results
 
 
-def compute_backtest_summary(conn, location_id: str) -> dict[str, Any]:
-    """Summarize backtest results by comparing predicted vs actual across all records."""
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT model_type,
-               COUNT(*) AS total_predictions,
-               SUM(CASE WHEN ABS(percentage_error) <= 10 THEN 1 ELSE 0 END) AS within_10pct,
-               SUM(CASE WHEN ABS(percentage_error) <= 20 THEN 1 ELSE 0 END) AS within_20pct,
-               SUM(CASE WHEN actual_value > predicted_value THEN 1 ELSE 0 END) AS underpredicted,
-               SUM(CASE WHEN actual_value < predicted_value THEN 1 ELSE 0 END) AS overpredicted,
-               AVG(absolute_error) AS mean_absolute_error,
-               SQRT(AVG(squared_error)) AS root_mean_squared_error,
-               AVG(percentage_error) AS mean_percentage_error
-        FROM prediction_accuracy_record
-        WHERE location_id = %s AND status IN ('verified', 'published')
-          AND actual_value IS NOT NULL
-        GROUP BY model_type
-        """,
-        (location_id,),
-    )
-    rows = cur.fetchall()
-    cur.close()
-    backtests = []
-    for row in rows:
-        total = row[1]
-        backtests.append({
-            "model_type": row[0],
-            "total_predictions": total,
-            "within_10pct_count": row[2],
-            "within_20pct_count": row[3],
-            "underpredicted_count": row[4],
-            "overpredicted_count": row[5],
-            "within_10pct_pct": round((row[2] or 0) / max(total, 1) * 100, 2),
-            "within_20pct_pct": round((row[3] or 0) / max(total, 1) * 100, 2),
-            "mean_absolute_error": round(float(row[6] or 0), 4),
-            "rmse": round(float(row[7] or 0), 4),
-            "mean_percentage_error": round(float(row[8] or 0), 2),
-        })
-    return {
-        "location_id": location_id,
-        "backtests": backtests,
-        "total_model_types": len(backtests),
-    }
+def aggregate_to_field_level(
+    predictions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Aggregate pixel-level predictions to field-level means.
+
+    Groups predictions by plot_id and computes mean predicted and measured SOC.
+    """
+    fields: dict[str, dict] = {}
+
+    for pred in predictions:
+        field_id = str(pred.get("plot_id", "unknown"))
+        if field_id not in fields:
+            fields[field_id] = {
+                "plot_id": field_id,
+                "predicted_values": [],
+                "measured_values": [],
+                "location_id": pred.get("location_id"),
+            }
+        if pred.get("predicted_soc_pct") is not None:
+            fields[field_id]["predicted_values"].append(float(pred["predicted_soc_pct"]))
+        if pred.get("measured_soc_pct") is not None:
+            fields[field_id]["measured_values"].append(float(pred["measured_soc_pct"]))
+
+    field_results = []
+    for field_id, data in fields.items():
+        if data["predicted_values"] and data["measured_values"]:
+            mean_pred = sum(data["predicted_values"]) / len(data["predicted_values"])
+            mean_meas = sum(data["measured_values"]) / len(data["measured_values"])
+            field_results.append({
+                "plot_id": field_id,
+                "location_id": data["location_id"],
+                "mean_predicted_soc": round(mean_pred, 3),
+                "mean_measured_soc": round(mean_meas, 3),
+                "sample_count": len(data["predicted_values"]),
+            })
+
+    return field_results
