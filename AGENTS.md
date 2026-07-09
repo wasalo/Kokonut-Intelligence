@@ -114,6 +114,11 @@
 - CRISP composite rating: `python3 -m services.crisp --composite --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD`
 - CRISP rate and persist: `python3 -m services.crisp --rate --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD`
 - CRISP show weights: `python3 -m services.crisp --weights --location-id UUID`
+- Data freshness check: `python3 -m services.ingestion.data_freshness --check`
+- Data freshness summary: `python3 -m services.ingestion.data_freshness --summary`
+- Climate data ingestion: `python3 -m services.ingestion.climate_data --all --location-id UUID`
+- Remote sensing tests: `python3 -m tests.test_telemetry_freshness`
+- Climate data tests: `python3 -m tests.test_climate_data`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
