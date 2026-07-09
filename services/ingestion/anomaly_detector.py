@@ -820,11 +820,30 @@ if __name__ == "__main__":
     parser.add_argument("--since", help="Check readings since datetime (YYYY-MM-DD HH:MM:SS)")
     parser.add_argument("--baseline-check", action="store_true", help="Check against baselines")
     parser.add_argument("--list-rules", action="store_true", help="List configured alert rules")
+    parser.add_argument("--ml-check", action="store_true", help="Run ML anomaly detection")
+    parser.add_argument("--ml-train", action="store_true", help="Train and save ML models")
+    parser.add_argument("--location-id", help="Location UUID for ML operations")
     args = parser.parse_args()
 
     if args.list_rules:
         list_rules()
     elif args.baseline_check:
         run_baseline_check()
+    elif args.ml_check or args.ml_train:
+        from .ml_anomaly_detector import run_ml_check, save_models
+        from .base import get_db
+
+        conn = get_db()
+        try:
+            if args.ml_check:
+                result = run_ml_check(conn, location_id=args.location_id, sensor_id=args.sensor)
+                print(json.dumps(result, indent=2, default=str))
+            elif args.ml_train:
+                if not args.location_id:
+                    parser.error("--ml-train requires --location-id")
+                result = save_models(conn, args.location_id)
+                print(json.dumps(result, indent=2, default=str))
+        finally:
+            conn.close()
     else:
         run_check(sensor_id=args.sensor, since=args.since)

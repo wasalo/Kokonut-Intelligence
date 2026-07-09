@@ -136,6 +136,9 @@
 - Carbon credit list: `python3 -m services.analytics.carbon_credits --list --location-id UUID`
 - Carbon credit balance: `python3 -m services.analytics.carbon_credits --balance --location-id UUID`
 - Carbon credit check adjustments: `python3 -m services.analytics.carbon_credits --check-adjustments --location-id UUID`
+- Anomaly detection tests: `python3 -m tests.test_ml_anomaly`
+- ML anomaly check: `python3 -m services.ingestion.anomaly_detector --ml-check --location-id UUID`
+- ML anomaly train: `python3 -m services.ingestion.anomaly_detector --ml-train --location-id UUID`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
