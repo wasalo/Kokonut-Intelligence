@@ -105,6 +105,15 @@
 - Spatial export tests: `python3 -m tests.test_spatial_export`
 - Drone raster integration tests: `python3 -m tests.test_drone_raster_integration`
 - Organic certification tests: `python3 -m tests.test_organic_certification`
+- CRISP risk scoring tests: `python3 -m tests.test_crisp_scoring`
+- CRISP carbon yield risk: `python3 -m services.crisp --carbon-yield --location-id UUID`
+- CRISP climate risk: `python3 -m services.crisp --climate --location-id UUID`
+- CRISP policy risk: `python3 -m services.crisp --policy --location-id UUID`
+- CRISP financial risk: `python3 -m services.crisp --financial --location-id UUID`
+- CRISP implementation risk: `python3 -m services.crisp --implementation --location-id UUID`
+- CRISP composite rating: `python3 -m services.crisp --composite --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD`
+- CRISP rate and persist: `python3 -m services.crisp --rate --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD`
+- CRISP show weights: `python3 -m services.crisp --weights --location-id UUID`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
@@ -211,6 +220,10 @@
 - Directus Phase 2 workflow hooks live in `extensions/kokonut-hooks/src/feedback.ts`, `metric-proposal.ts`, `impact-claim.ts`, and `agent-safety.ts`.
 - Framework reference data is canonicalized by `schemas/seeds/023_impact_frameworks.sql`; Adelphi mappings and Guild/DAO alignment are in `schemas/seeds/024_adelphi_alignment.sql`.
 - Impact framework rows should be nonblank and active for SDGs, 8 Forms of Capital, Pillars of Value, EBF, CRISP, and regeneration principles.
+- CRISP risk scoring uses `crisp_risk_dimension` for operational dimension config (separate from `impact_dimension` framework metadata). Weights are configurable per-location via `crisp_location_weight`. Default weights: carbon_yield 0.40, climate 0.25, policy 0.15, financial 0.10, implementation 0.10.
+- CRISP composite rating bands: AAA (91-100), AA (80-91), A (69-80), B (44-69), C (20-44), D (0-20). Scores are 0-100 where higher = more risk.
+- CRISP scoring queries tree_inventory, soil_carbon_measurement, harvest_event, weather_observation, emergency_incident, organic_certification_record, adoption_barrier_assessment, land_stewardship_commitment, governance_inclusion_observation, stakeholder_feedback, financial_sustainability_plan, farm_launch_unit_economics, revenue_event, expense_event, farm_onboarding_profile, regenerative_practice_checklist, training_event, and risk_mitigation_register.
+- CRISP version is date-based (`vYYYY.MM`), auto-bumps monthly, stored in `services/crisp/config.py`.
 - Baseline calculators (revenue, asset_value, cash_flow, cost) query the `location` table directly.
 - `revenue_multiplier_config` table stores dimension constants (DB-backed, not hardcoded).
 - Forecast engine writes per-cycle outputs with `crop_cycle_id`.

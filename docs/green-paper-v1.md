@@ -1028,7 +1028,7 @@ Adelphi is aligned to:
 - **8 Forms of Capital** (natural, social, human, financial, manufactured, intellectual, cultural, spiritual)
 - **Pillars of Value** (ecological, social, economic, governance)
 - **EBF dimensions** (Ecological Benefits Framework)
-- **CRISP risk dimensions** (climate, regulatory, market, operational, reputational)
+- **CRISP risk dimensions** (carbon yield, climate catastrophe, policy & legal, financial viability, implementation) — five-factor internal risk intelligence engine with configurable per-location weights and composite AAA-D rating
 - **5 Principles of Regeneration** (care for soil, increase biodiversity, minimize external inputs, close loops, empower community)
 
 Framework reference data is seeded by `schemas/seeds/023_impact_frameworks.sql` and Adelphi-specific mappings by `schemas/seeds/024_adelphi_alignment.sql`.^[27]^
@@ -1066,7 +1066,7 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 | ClickHouse | Column-oriented analytical database for high-volume time-series and event queries |
 | CO2e | Carbon dioxide equivalent — standardized greenhouse gas measurement |
 | Colony | Decentralized organization protocol for task coordination and reputation tracking |
-| CRISP | Climate Risk and Impact Assessment framework |
+| CRISP | Carbon Risk Identification and Scoring Principles — internal farm risk intelligence engine adapted from Solid World's SW-CRISP framework |
 | DAO | Decentralized Autonomous Organization — governance system operating via on-chain rules |
 | Directus | Open-source headless CMS and API platform |
 | EAS | Ethereum Attestation Service — onchain/offchain attestation protocol |
