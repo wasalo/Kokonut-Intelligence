@@ -153,6 +153,22 @@ services:
     networks:
       - apps
 
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    networks:
+      - databases
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -t '$$SYS/#' -C 1 -i healthcheck -W 3 | grep -q . || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   postgres-data:
   directus-uploads:
@@ -161,6 +177,7 @@ volumes:
   clickhouse-logs:
   caddy-data:
   caddy-config:
+  mosquitto-data:
 
 networks:
   databases:

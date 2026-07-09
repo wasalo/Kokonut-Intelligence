@@ -123,6 +123,12 @@
 - Remote sensing fetch jobs: `python3 -m services.ingestion.remote_sensing_fetcher --list-jobs`
 - Remote sensing run jobs: `python3 -m services.ingestion.remote_sensing_fetcher --run-jobs`
 - Remote sensing create job: `python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID --provider gee`
+- MQTT subscriber: `python3 -m services.ingestion.mqtt_subscriber --broker localhost --port 1883`
+- HTTP sensor receiver: `python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056`
+- Device manager list: `python3 -m services.ingestion.device_manager --list`
+- Device manager register: `python3 -m services.ingestion.device_manager --register --device-id sensor001 --sensor-type air_temperature --location-id UUID`
+- Device manager health: `python3 -m services.ingestion.device_manager --health --device-id sensor001`
+- IoT sensor push tests: `python3 -m tests.test_iot_sensor_push`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
