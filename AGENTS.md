@@ -139,6 +139,7 @@
 - Anomaly detection tests: `python3 -m tests.test_ml_anomaly`
 - ML anomaly check: `python3 -m services.ingestion.anomaly_detector --ml-check --location-id UUID`
 - ML anomaly train: `python3 -m services.ingestion.anomaly_detector --ml-train --location-id UUID`
+- Prefect workflow tests: `python3 -m tests.test_prefect_workflow`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`

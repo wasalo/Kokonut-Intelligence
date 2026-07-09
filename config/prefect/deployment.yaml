@@ -1,0 +1,51 @@
+# Prefect deployment configuration for Kokonut Intelligence pipelines.
+# Usage: prefect deploy --name <deployment-name> --param '<json>'
+# Or: prefect deployment apply deployment.yaml
+
+deployments:
+  - name: scheduled-hourly
+    flow: services.flows.pipelines:scheduled_hourly
+    schedule:
+      cron: "0 * * * *"
+      timezone: UTC
+    parameters: {}
+    tags:
+      - scheduled
+      - hourly
+
+  - name: scheduled-every-6h
+    flow: services.flows.pipelines:scheduled_every_6h
+    schedule:
+      cron: "0 */6 * * *"
+      timezone: UTC
+    parameters: {}
+    tags:
+      - scheduled
+      - every-6h
+
+  - name: scheduled-daily
+    flow: services.flows.pipelines:scheduled_daily
+    schedule:
+      cron: "0 6 * * *"
+      timezone: UTC
+    parameters: {}
+    tags:
+      - scheduled
+      - daily
+
+  - name: scheduled-weekly
+    flow: services.flows.pipelines:scheduled_weekly
+    schedule:
+      cron: "0 3 * * 0"
+      timezone: UTC
+    parameters: {}
+    tags:
+      - scheduled
+      - weekly
+
+  - name: full-pipeline
+    flow: services.flows.pipelines:full_pipeline
+    parameters: {}
+    tags:
+      - manual
+      - full
