@@ -149,10 +149,15 @@ def insert_clickhouse(record: dict) -> None:
         location_uuid = _validate_uuid(record.get("location_id"), "location_id")
         plot_uuid = _validate_uuid(record.get("plot_id"), "plot_id", nullable=True)
         source = _validate_source(record.get("source"))
+        source_system = record.get("source_system", "csv_upload")
 
         query = f"""INSERT INTO remote_sensing_events
             (timestamp, observation_id, location_id, plot_id, source,
-             ndvi, ndre, evi, savi, canopy_cover_pct, ndwi, cloud_cover_pct, metadata)
+             ndvi, ndre, evi, savi, canopy_cover_pct, ndwi, cloud_cover_pct,
+             msavi, satvi, bsi, nbr2, ndti, lswi,
+             brightness_index, tc_brightness, tc_greenness, tc_wetness,
+             band_blue, band_green, band_red, band_nir, band_swir1, band_swir2,
+             source_system, metadata)
             VALUES (
                 {timestamp},
                 {observation_id},
@@ -166,6 +171,23 @@ def insert_clickhouse(record: dict) -> None:
                 {_validate_number(record.get('canopy_cover_pct'))},
                 {_validate_number(record.get('ndwi'))},
                 {_validate_number(record.get('cloud_cover_pct'))},
+                {_validate_number(record.get('msavi'))},
+                {_validate_number(record.get('satvi'))},
+                {_validate_number(record.get('bsi'))},
+                {_validate_number(record.get('nbr2'))},
+                {_validate_number(record.get('ndti'))},
+                {_validate_number(record.get('lswi'))},
+                {_validate_number(record.get('brightness_index'))},
+                {_validate_number(record.get('tc_brightness'))},
+                {_validate_number(record.get('tc_greenness'))},
+                {_validate_number(record.get('tc_wetness'))},
+                {_validate_number(record.get('band_blue'))},
+                {_validate_number(record.get('band_green'))},
+                {_validate_number(record.get('band_red'))},
+                {_validate_number(record.get('band_nir'))},
+                {_validate_number(record.get('band_swir1'))},
+                {_validate_number(record.get('band_swir2'))},
+                '{source_system}',
                 map()
             )"""
 

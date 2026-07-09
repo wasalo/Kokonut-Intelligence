@@ -43,3 +43,9 @@
 
 # Dashboard dataset refresh — every 6 hours
 0 */6 * * * cd /app && python3 -m services.export.dataset_refresh --all >> /var/log/cron.log 2>&1
+
+# Data freshness check — every hour
+0 * * * * cd /app && python3 -m services.ingestion.data_freshness --check >> /var/log/cron.log 2>&1
+
+# Climate data refresh — weekly (Sundays at 03:00 UTC)
+0 3 * * 0 cd /app && python3 -m services.ingestion.climate_data --all --location-id a0000000-0000-0000-0000-000000000001 >> /var/log/cron.log 2>&1
