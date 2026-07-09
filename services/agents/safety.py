@@ -75,6 +75,10 @@ GOVERNED_COLLECTIONS = {
     "bio_factory_quality_test",
     "bio_ingredient_composition_reference",
     "bio_regional_input_availability",
+    "carbon_credit",
+    "credit_adjustment",
+    "credit_retirement",
+    "credit_transfer",
 }
 
 

@@ -129,6 +129,13 @@
 - Device manager register: `python3 -m services.ingestion.device_manager --register --device-id sensor001 --sensor-type air_temperature --location-id UUID`
 - Device manager health: `python3 -m services.ingestion.device_manager --health --device-id sensor001`
 - IoT sensor push tests: `python3 -m tests.test_iot_sensor_push`
+- Carbon credit tests: `python3 -m tests.test_carbon_credits`
+- Carbon credit issue: `python3 -m services.analytics.carbon_credits --issue --location-id UUID --vintage-year 2026 --methodology "IPCC 2006 Tier 2"`
+- Carbon credit adjust: `python3 -m services.analytics.carbon_credits --adjust --location-id UUID`
+- Carbon credit retire: `python3 -m services.analytics.carbon_credits --retire --credit-id UUID --tonnes 5.0 --reason voluntary_retirement`
+- Carbon credit list: `python3 -m services.analytics.carbon_credits --list --location-id UUID`
+- Carbon credit balance: `python3 -m services.analytics.carbon_credits --balance --location-id UUID`
+- Carbon credit check adjustments: `python3 -m services.analytics.carbon_credits --check-adjustments --location-id UUID`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
