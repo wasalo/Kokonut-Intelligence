@@ -128,11 +128,6 @@ LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
 WHERE l.status IN ('active', 'verified', 'published')
   AND t.status = 'alive'
   AND (fr.id IS NULL OR fr.status IN ('verified', 'published'));
-FROM tree_record t
-JOIN location l ON t.location_id = l.id
-JOIN plot p ON t.plot_id = p.id
-LEFT JOIN farm_zone fz ON t.zone_id = fz.id
-WHERE l.status IN ('active', 'verified', 'published');
 
 -- 2. Public tree density map
 CREATE OR REPLACE VIEW v_public_tree_density_map AS
