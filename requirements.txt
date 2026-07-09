@@ -5,3 +5,4 @@ web3>=7.16.0,<8.0.0
 eth-abi>=5.2.0,<6.0.0
 pytest>=9.1.1,<10.0
 openpyxl>=3.1.5,<4.0
+earthengine-api>=1.2.0,<2.0.0

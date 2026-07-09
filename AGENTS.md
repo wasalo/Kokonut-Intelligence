@@ -119,6 +119,10 @@
 - Climate data ingestion: `python3 -m services.ingestion.climate_data --all --location-id UUID`
 - Remote sensing tests: `python3 -m tests.test_telemetry_freshness`
 - Climate data tests: `python3 -m tests.test_climate_data`
+- Remote sensing automation tests: `python3 -m tests.test_remote_sensing_automation`
+- Remote sensing fetch jobs: `python3 -m services.ingestion.remote_sensing_fetcher --list-jobs`
+- Remote sensing run jobs: `python3 -m services.ingestion.remote_sensing_fetcher --run-jobs`
+- Remote sensing create job: `python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID --provider gee`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
