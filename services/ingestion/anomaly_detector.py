@@ -503,6 +503,65 @@ def send_notifications(alert_data: dict) -> None:
     """Send all configured notifications for a sensor alert."""
     send_email_notification(alert_data)
     send_directus_notification(alert_data)
+    send_actuation_commands(alert_data)
+
+
+def send_actuation_commands(alert_data: dict) -> None:
+    """Dispatch actuation commands if configured on the alert rule.
+
+    Safety: Only dispatches for info/warning severity without approval.
+    Critical severity requires human approval (logged as 'requires_approval').
+    """
+    try:
+        from .mqtt_actuator import send_actuation_command
+
+        db = get_db()
+        try:
+            alert_rule_id = alert_data.get("alert_rule_id")
+            if not alert_rule_id:
+                return
+
+            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute("""
+                SELECT actuator_enabled, actuator_type, actuator_command, actuator_topic,
+                       human_approval_required
+                FROM alert_rule WHERE id = %s
+            """, (alert_rule_id,))
+            rule = cur.fetchone()
+            cur.close()
+
+            if not rule or not rule.get("actuator_enabled"):
+                return
+
+            severity = alert_data.get("severity", "info")
+            approval_required = rule.get("human_approval_required", True)
+
+            # Critical always requires approval
+            if severity == "critical":
+                approval_required = True
+
+            command = {
+                "device_id": alert_data.get("sensor_device_id"),
+                "actuator_type": rule["actuator_type"],
+                "command": rule["actuator_command"],
+                "parameters": {"alert_id": alert_data.get("alert_id")},
+                "trigger_source": "anomaly_detector",
+                "alert_id": alert_data.get("alert_id"),
+                "alert_severity": severity,
+            }
+
+            location_id = alert_data.get("location_id", "")
+            result = send_actuation_command(
+                db, location_id, command,
+                human_approval_required=approval_required,
+                alert_id=alert_data.get("alert_id"),
+            )
+
+            logger.info("Actuation dispatched: %s (status=%s)", rule["actuator_type"], result.get("status"))
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning("Actuation dispatch failed: %s", e)
 
 
 def get_sensor_device_info(db, sensor_device_id: str) -> dict:

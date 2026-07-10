@@ -204,54 +204,35 @@ def _estimate_bioclim(lat: float, lon: float, bio: int) -> Optional[float]:
 
 
 def fetch_ncep(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch NCEP CFS climate summaries for a location."""
-    centroid = _query_location_centroid(conn, location_id)
-    if not centroid:
-        return {"status": "skipped", "reason": "no_centroid"}
+    """Fetch climate summaries via GEE ERA5 Land (replaces NCEP CFS).
 
-    # NCEP Climate Forecast System data
-    # Use a simplified approach: fetch from NOAA NOMADS or compute from available data
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        INSERT INTO ncep_weather_summary
-            (location_id, summary_type, avg_soil_moisture_kg_m2,
-             avg_surface_temp_k, avg_precipitation_kg_m2,
-             avg_evapotranspiration_kg_m2, avg_solar_radiation_w_m2,
-             period_start, period_end, source)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-    """, (
-        location_id, "6month",
-        None,  # avg_soil_moisture_kg_m2 - requires NCEP download
-        None,  # avg_surface_temp_k
-        None,  # avg_precipitation_kg_m2
-        None,  # avg_evapotranspiration_kg_m2
-        None,  # avg_solar_radiation_w_m2
-        datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        "ncep_cfs",
-    ))
-    record_id = str(cur.fetchone()[0])
-    cur.close()
-    conn.commit()
+    ERA5 Land provides higher resolution (9km vs 50km) than NCEP CFS
+    and is accessible through the existing GEE infrastructure.
+    """
+    bbox = _query_location_bbox(conn, location_id)
+    if not bbox:
+        centroid = _query_location_centroid(conn, location_id)
+        if not centroid:
+            return {"status": "skipped", "reason": "no_geometry"}
+        bbox = {"west": centroid["lon"] - 0.05, "south": centroid["lat"] - 0.05,
+                "east": centroid["lon"] + 0.05, "north": centroid["lat"] + 0.05}
 
-    return {"status": "success", "record_id": record_id, "note": "placeholder - requires NCEP download pipeline"}
+    from .gee_climate import fetch_era5_land
+    return fetch_era5_land(conn, location_id, bbox)
 
 
 def fetch_modis(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch MODIS MOD11A2 land surface temperature summaries."""
-    centroid = _query_location_centroid(conn, location_id)
-    if not centroid:
-        return {"status": "skipped", "reason": "no_centroid"}
+    """Fetch MODIS MOD11A2 land surface temperature via GEE."""
+    bbox = _query_location_bbox(conn, location_id)
+    if not bbox:
+        centroid = _query_location_centroid(conn, location_id)
+        if not centroid:
+            return {"status": "skipped", "reason": "no_geometry"}
+        bbox = {"west": centroid["lon"] - 0.05, "south": centroid["lat"] - 0.05,
+                "east": centroid["lon"] + 0.05, "north": centroid["lat"] + 0.05}
 
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        INSERT INTO modis_lst_summary
-            (location_id, period_type, period_start, period_end,
-             mean_lst_day_c, mean_lst_night_c, mean_lst_c,
-             std_lst_c, source)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
+    from .gee_climate import fetch_modis_lst
+    return fetch_modis_lst(conn, location_id, bbox)
     """, (
         location_id, "6month",
         datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -266,57 +247,31 @@ def fetch_modis(conn, location_id: str) -> Dict[str, Any]:
 
 
 def fetch_smap(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch SMAP L3 soil moisture summaries."""
-    centroid = _query_location_centroid(conn, location_id)
-    if not centroid:
-        return {"status": "skipped", "reason": "no_centroid"}
+    """Fetch SMAP L3 soil moisture via GEE."""
+    bbox = _query_location_bbox(conn, location_id)
+    if not bbox:
+        centroid = _query_location_centroid(conn, location_id)
+        if not centroid:
+            return {"status": "skipped", "reason": "no_geometry"}
+        bbox = {"west": centroid["lon"] - 0.05, "south": centroid["lat"] - 0.05,
+                "east": centroid["lon"] + 0.05, "north": centroid["lat"] + 0.05}
 
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        INSERT INTO smap_soil_moisture
-            (location_id, period_type, period_start, period_end,
-             mean_soil_moisture_m3_m3, std_soil_moisture_m3_m3,
-             mean_soil_temp_k, source)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-    """, (
-        location_id, "6month",
-        datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        None, None, None, "smap_l3",
-    ))
-    record_id = str(cur.fetchone()[0])
-    cur.close()
-    conn.commit()
-
-    return {"status": "success", "record_id": record_id, "note": "placeholder - requires SMAP download pipeline"}
+    from .gee_climate import fetch_smap_moisture
+    return fetch_smap_moisture(conn, location_id, bbox)
 
 
 def fetch_sentinel1(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch Sentinel-1 SAR backscatter summaries."""
-    centroid = _query_location_centroid(conn, location_id)
-    if not centroid:
-        return {"status": "skipped", "reason": "no_centroid"}
+    """Fetch Sentinel-1 SAR backscatter via GEE."""
+    bbox = _query_location_bbox(conn, location_id)
+    if not bbox:
+        centroid = _query_location_centroid(conn, location_id)
+        if not centroid:
+            return {"status": "skipped", "reason": "no_geometry"}
+        bbox = {"west": centroid["lon"] - 0.05, "south": centroid["lat"] - 0.05,
+                "east": centroid["lon"] + 0.05, "north": centroid["lat"] + 0.05}
 
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
-        INSERT INTO sentinel1_sar_summary
-            (location_id, period_type, period_start, period_end,
-             mean_vh_db, mean_vv_db, vh_vv_ratio,
-             mean_incidence_angle_deg, source)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id
-    """, (
-        location_id, "6month",
-        datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        None, None, None, None, "sentinel1_grd",
-    ))
-    record_id = str(cur.fetchone()[0])
-    cur.close()
-    conn.commit()
-
-    return {"status": "success", "record_id": record_id, "note": "placeholder - requires Sentinel-1 download pipeline"}
+    from .gee_climate import fetch_sentinel1_sar
+    return fetch_sentinel1_sar(conn, location_id, bbox)
 
 
 def run_all(conn, location_id: str) -> Dict[str, Any]:
