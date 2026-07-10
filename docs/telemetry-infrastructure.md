@@ -194,6 +194,28 @@ Pipeline dependency chain: ingestion -> monitoring -> analytics
 
 Full architecture: `docs/dmrv-architecture.md`
 
+## Oracle Infrastructure
+
+Multi-source data aggregation, real-time price feeds, and automated actuation.
+
+```bash
+# Fetch commodity prices from Yahoo Finance
+python3 -m services.ingestion.yahoo_finance
+
+# Attest prices on-chain
+python3 -m services.ingestion.price_attestation --run-daily
+
+# Multi-source consensus (in Python)
+from services.ingestion.oracle_aggregator import median_consensus, PriceReading
+```
+
+**Oracle architecture:**
+- Multi-source median consensus with outlier detection
+- Yahoo Finance for 6 agricultural commodity futures (free, no auth)
+- On-chain price attestation via EAS for audit trail
+- GEE-based climate data (MODIS LST, SMAP, Sentinel-1, ERA5 Land)
+- MQTT actuator commands with human approval safety guardrails
+
 ## Field Data Collection
 
 For detailed protocols on on-ground data collection, see `docs/field-data-collection-guide.md`.

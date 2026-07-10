@@ -142,6 +142,11 @@
 - Prefect workflow tests: `python3 -m tests.test_prefect_workflow`
 - Prefect pipeline: `python3 -m services.flows.pipelines full_pipeline`
 - Field data collection guide: `docs/field-data-collection-guide.md`
+- Oracle infrastructure tests: `python3 -m tests.test_oracle_infrastructure`
+- Yahoo Finance price fetch: `python3 -m services.ingestion.yahoo_finance`
+- Price attestation: `python3 -m services.ingestion.price_attestation --run-daily`
+- Oracle consensus: `from services.ingestion.oracle_aggregator import median_consensus`
+- MQTT actuator: `from services.ingestion.mqtt_actuator import send_actuation_command`
 - Agent task catalogue: `python3 -m services.agents.tasks --list`
 - CIDS export agent: `python3 -m services.agents.cids_agent --location-id UUID --summary`
 - Feedback synthesis agent: `python3 -m services.agents.feedback_agent --location-id UUID`
