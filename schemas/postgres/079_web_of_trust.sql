@@ -218,3 +218,42 @@ AND EXISTS (
     AND fr.status IN ('verified', 'published')
 )
 ORDER BY rr.ranking_period DESC, ra.algorithm_key, rr.rank;
+
+-- ============================================================
+-- 079_web_of_trust.sql — PR-3: Network Value + Trust Graph
+-- ============================================================
+
+-- 9. Network value view (Metcalfe's law)
+CREATE OR REPLACE VIEW v_network_value AS
+SELECT
+    (SELECT COUNT(*) FROM location WHERE status = 'active') AS active_farms,
+    (SELECT COUNT(*) FROM evaluator WHERE status = 'active') AS active_evaluators,
+    (SELECT COUNT(*) FROM attestation_record WHERE status = 'published') AS published_attestations,
+    (SELECT COUNT(*) FROM stakeholder_feedback WHERE consent_given = TRUE) AS consented_feedbacks,
+    (SELECT COUNT(*) FROM carbon_credit WHERE status = 'published') AS published_credits,
+    (SELECT COUNT(*) FROM evaluator WHERE status = 'active') *
+    (GREATEST((SELECT COUNT(*) FROM evaluator WHERE status = 'active'), 1) - 1) / 2 AS evaluator_network_value,
+    (SELECT COUNT(*) FROM attestation_record WHERE status = 'published') *
+    (GREATEST((SELECT COUNT(*) FROM attestation_record WHERE status = 'published'), 1) - 1) / 2 AS attestation_network_value,
+    (SELECT COUNT(*) FROM attestation_reference) AS total_cross_references,
+    (SELECT COUNT(*) FROM preference_signal ps JOIN evaluator e ON e.id = ps.evaluator_id WHERE e.status = 'active') AS total_preferences;
+
+-- 10. Evaluator trust graph view
+CREATE OR REPLACE VIEW v_evaluator_trust_graph AS
+SELECT
+    ar.id AS reference_id,
+    e1.id AS source_evaluator_id,
+    e1.display_name AS source_name,
+    e1.evaluator_type AS source_type,
+    e1.trust_score AS source_trust,
+    ar.reference_type AS edge_type,
+    a1.attestation_uid AS source_attestation_uid,
+    a2.attestation_uid AS target_attestation_uid,
+    ar.strength AS edge_weight,
+    ar.created_at
+FROM attestation_reference ar
+JOIN attestation_record a1 ON a1.id = ar.source_attestation_id
+JOIN attestation_record a2 ON a2.id = ar.target_attestation_id
+JOIN evaluator e1 ON e1.id = ar.evaluator_id
+WHERE ar.evaluator_id IS NOT NULL
+ORDER BY ar.created_at DESC;
