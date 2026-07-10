@@ -193,3 +193,22 @@ prefect deploy --name scheduled-weekly
 Pipeline dependency chain: ingestion -> monitoring -> analytics
 
 Full architecture: `docs/dmrv-architecture.md`
+
+## Field Data Collection
+
+For detailed protocols on on-ground data collection, see `docs/field-data-collection-guide.md`.
+
+The field guide covers:
+- **Equipment catalog** with specifications for all 7 collection types
+- **Soil sampling** protocol (depth, composite method, lab submission, chain of custody)
+- **Tree measurement** protocol (DBH at 1.3m, height estimation, canopy, health scoring)
+- **Biodiversity surveys** (quadrat, transect, point count, camera trap, pitfall trap)
+- **Water sampling** protocol (collection, field measurements, preservation, lab submission)
+- **Weather observation** (on-site station placement, manual readings, API reconciliation)
+- **Harvest measurement** (weighing, grading, loss measurement, post-harvest handling)
+- **Pest monitoring** (visual scouting, sticky traps, pheromone traps, soil coring)
+- **Measurement cadence matrix** (what/when/who/how for all data types)
+- **Data quality & QA/QC** (range validation, duplicate detection, observer calibration)
+- **Sample plot design** (plot dimensions, layout, GPS tagging, re-measurement)
+- **MRV ground-truthing** (field-to-digital pipeline, reconciliation with remote sensing)
+- **Equipment maintenance** (calibration schedules, battery management, cleaning)
