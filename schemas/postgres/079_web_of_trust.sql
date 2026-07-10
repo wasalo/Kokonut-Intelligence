@@ -126,3 +126,95 @@ FROM evaluator
 WHERE status = 'active'
 AND trust_score >= 0.3
 ORDER BY trust_score DESC;
+
+-- ============================================================
+-- 079_web_of_trust.sql — PR-2: Preferences, Rankings, Cascade
+-- ============================================================
+
+-- 5. Continuous preference signals
+CREATE TABLE IF NOT EXISTS preference_signal (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    evaluator_id UUID NOT NULL REFERENCES evaluator(id) ON DELETE CASCADE,
+    signal_type VARCHAR(50) NOT NULL,
+    subject_type VARCHAR(100) NOT NULL,
+    subject_id UUID NOT NULL,
+    preference_value NUMERIC(5,4),
+    preference_rank INTEGER,
+    decay_rate NUMERIC(5,4) DEFAULT 0.0100,
+    weight NUMERIC(5,4) DEFAULT 1.0000,
+    expires_at TIMESTAMPTZ,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pref_evaluator ON preference_signal(evaluator_id);
+CREATE INDEX IF NOT EXISTS idx_pref_type ON preference_signal(signal_type);
+CREATE INDEX IF NOT EXISTS idx_pref_subject ON preference_signal(subject_type, subject_id);
+CREATE INDEX IF NOT EXISTS idx_pref_created ON preference_signal(created_at);
+
+ALTER TABLE preference_signal DROP CONSTRAINT IF EXISTS chk_pref_type;
+ALTER TABLE preference_signal ADD CONSTRAINT chk_pref_type CHECK (
+    signal_type IN ('metric_preference', 'evaluator_trust', 'capital_allocation', 'methodology_preference')
+);
+
+-- 6. Ranking algorithms
+CREATE TABLE IF NOT EXISTS ranking_algorithm (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    algorithm_key VARCHAR(100) NOT NULL UNIQUE,
+    algorithm_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    weighting_config JSONB NOT NULL,
+    author_evaluator_id UUID REFERENCES evaluator(id) ON DELETE SET NULL,
+    is_default BOOLEAN DEFAULT FALSE,
+    status VARCHAR(50) DEFAULT 'active',
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_rank_algo_key ON ranking_algorithm(algorithm_key);
+CREATE INDEX IF NOT EXISTS idx_rank_algo_status ON ranking_algorithm(status);
+
+ALTER TABLE ranking_algorithm DROP CONSTRAINT IF EXISTS chk_rank_algo_status;
+ALTER TABLE ranking_algorithm ADD CONSTRAINT chk_rank_algo_status CHECK (
+    status IN ('active', 'inactive', 'deprecated')
+);
+
+-- 7. Ranking results
+CREATE TABLE IF NOT EXISTS ranking_result (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    algorithm_id UUID NOT NULL REFERENCES ranking_algorithm(id) ON DELETE CASCADE,
+    location_id UUID NOT NULL REFERENCES location(id) ON DELETE CASCADE,
+    ranking_period VARCHAR(20) NOT NULL,
+    rank INTEGER NOT NULL,
+    score NUMERIC(8,4) NOT NULL,
+    dimension_scores JSONB,
+    computed_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(algorithm_id, location_id, ranking_period)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rank_result_algo ON ranking_result(algorithm_id);
+CREATE INDEX IF NOT EXISTS idx_rank_result_location ON ranking_result(location_id);
+CREATE INDEX IF NOT EXISTS idx_rank_result_period ON ranking_result(ranking_period);
+CREATE INDEX IF NOT EXISTS idx_rank_result_rank ON ranking_result(ranking_period, rank);
+
+-- 8. Public ranking view
+CREATE OR REPLACE VIEW v_public_ranking_comparison AS
+SELECT
+    ra.algorithm_key,
+    ra.algorithm_name,
+    rr.ranking_period,
+    rr.rank,
+    rr.score,
+    rr.dimension_scores,
+    l.name AS location_name,
+    rr.location_id
+FROM ranking_result rr
+JOIN ranking_algorithm ra ON ra.id = rr.algorithm_id
+JOIN location l ON l.id = rr.location_id
+WHERE ra.status = 'active'
+AND EXISTS (
+    SELECT 1 FROM farm_registry_record fr
+    WHERE fr.location_id = rr.location_id
+    AND fr.status IN ('verified', 'published')
+)
+ORDER BY rr.ranking_period DESC, ra.algorithm_key, rr.rank;
