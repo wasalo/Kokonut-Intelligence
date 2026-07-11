@@ -51,10 +51,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_tree_record_compute_geometry ON tree_record;
 CREATE TRIGGER trg_tree_record_compute_geometry
     BEFORE INSERT OR UPDATE ON tree_record
     FOR EACH ROW EXECUTE FUNCTION fn_tree_record_compute_geometry();
 
+DROP TRIGGER IF EXISTS trg_tree_record_updated_at ON tree_record;
 CREATE TRIGGER trg_tree_record_updated_at
     BEFORE UPDATE ON tree_record
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

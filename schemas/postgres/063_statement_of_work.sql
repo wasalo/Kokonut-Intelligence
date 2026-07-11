@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS statement_of_work (
 CREATE INDEX IF NOT EXISTS idx_sow_location ON statement_of_work(location_id);
 CREATE INDEX IF NOT EXISTS idx_sow_status ON statement_of_work(status);
 
+DROP TRIGGER IF EXISTS trg_sow_updated_at ON statement_of_work;
 CREATE TRIGGER trg_sow_updated_at
     BEFORE UPDATE ON statement_of_work
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -66,6 +67,7 @@ CREATE TABLE IF NOT EXISTS sow_deliverable (
 CREATE INDEX IF NOT EXISTS idx_sow_deliverable_sow ON sow_deliverable(sow_id);
 CREATE INDEX IF NOT EXISTS idx_sow_deliverable_status ON sow_deliverable(status);
 
+DROP TRIGGER IF EXISTS trg_sow_deliverable_updated_at ON sow_deliverable;
 CREATE TRIGGER trg_sow_deliverable_updated_at
     BEFORE UPDATE ON sow_deliverable
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -97,6 +99,7 @@ CREATE TABLE IF NOT EXISTS sow_payment_schedule (
 CREATE INDEX IF NOT EXISTS idx_sow_payment_sow ON sow_payment_schedule(sow_id);
 CREATE INDEX IF NOT EXISTS idx_sow_payment_status ON sow_payment_schedule(payment_status);
 
+DROP TRIGGER IF EXISTS trg_sow_payment_updated_at ON sow_payment_schedule;
 CREATE TRIGGER trg_sow_payment_updated_at
     BEFORE UPDATE ON sow_payment_schedule
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -129,6 +132,7 @@ CREATE TABLE IF NOT EXISTS sow_change_request (
 CREATE INDEX IF NOT EXISTS idx_sow_change_sow ON sow_change_request(sow_id);
 CREATE INDEX IF NOT EXISTS idx_sow_change_status ON sow_change_request(status);
 
+DROP TRIGGER IF EXISTS trg_sow_change_updated_at ON sow_change_request;
 CREATE TRIGGER trg_sow_change_updated_at
     BEFORE UPDATE ON sow_change_request
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

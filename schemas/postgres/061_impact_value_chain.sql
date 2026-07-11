@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS department (
     updated_by UUID
 );
 
+DROP TRIGGER IF EXISTS trg_department_updated_at ON department;
 CREATE TRIGGER trg_department_updated_at
     BEFORE UPDATE ON department
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS job_role (
 
 CREATE INDEX IF NOT EXISTS idx_job_role_department ON job_role(department_id);
 
+DROP TRIGGER IF EXISTS trg_job_role_updated_at ON job_role;
 CREATE TRIGGER trg_job_role_updated_at
     BEFORE UPDATE ON job_role
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -99,6 +101,7 @@ CREATE INDEX IF NOT EXISTS idx_farm_task_status ON farm_task(status);
 CREATE INDEX IF NOT EXISTS idx_farm_task_assignee ON farm_task(assignee_id);
 CREATE INDEX IF NOT EXISTS idx_farm_task_dates ON farm_task(start_date, end_date);
 
+DROP TRIGGER IF EXISTS trg_farm_task_updated_at ON farm_task;
 CREATE TRIGGER trg_farm_task_updated_at
     BEFORE UPDATE ON farm_task
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -136,6 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_weekly_plan_location ON weekly_plan(location_id);
 CREATE INDEX IF NOT EXISTS idx_weekly_plan_week ON weekly_plan(week_start, week_end);
 CREATE INDEX IF NOT EXISTS idx_weekly_plan_status ON weekly_plan(status);
 
+DROP TRIGGER IF EXISTS trg_weekly_plan_updated_at ON weekly_plan;
 CREATE TRIGGER trg_weekly_plan_updated_at
     BEFORE UPDATE ON weekly_plan
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -173,6 +177,7 @@ CREATE INDEX IF NOT EXISTS idx_dev_phase_location ON development_phase(location_
 CREATE INDEX IF NOT EXISTS idx_dev_phase_order ON development_phase(phase_order);
 CREATE INDEX IF NOT EXISTS idx_dev_phase_status ON development_phase(status);
 
+DROP TRIGGER IF EXISTS trg_dev_phase_updated_at ON development_phase;
 CREATE TRIGGER trg_dev_phase_updated_at
     BEFORE UPDATE ON development_phase
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -212,6 +217,7 @@ CREATE INDEX IF NOT EXISTS idx_framework_step_location ON framework_step(locatio
 CREATE INDEX IF NOT EXISTS idx_framework_step_order ON framework_step(step_order);
 CREATE INDEX IF NOT EXISTS idx_framework_step_status ON framework_step(status);
 
+DROP TRIGGER IF EXISTS trg_framework_step_updated_at ON framework_step;
 CREATE TRIGGER trg_framework_step_updated_at
     BEFORE UPDATE ON framework_step
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

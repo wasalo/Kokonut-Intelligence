@@ -43,6 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_organic_cert_location ON organic_certification_re
 CREATE INDEX IF NOT EXISTS idx_organic_cert_status ON organic_certification_record(status);
 CREATE INDEX IF NOT EXISTS idx_organic_cert_standard ON organic_certification_record(standard);
 
+DROP TRIGGER IF EXISTS trg_organic_cert_updated_at ON organic_certification_record;
 CREATE TRIGGER trg_organic_cert_updated_at
     BEFORE UPDATE ON organic_certification_record
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -89,6 +90,7 @@ CREATE INDEX IF NOT EXISTS idx_transition_location ON organic_transition_plan(lo
 CREATE INDEX IF NOT EXISTS idx_transition_status ON organic_transition_plan(status);
 CREATE INDEX IF NOT EXISTS idx_transition_standard ON organic_transition_plan(standard);
 
+DROP TRIGGER IF EXISTS trg_transition_updated_at ON organic_transition_plan;
 CREATE TRIGGER trg_transition_updated_at
     BEFORE UPDATE ON organic_transition_plan
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -137,6 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_prohibited_location ON prohibited_substance_recor
 CREATE INDEX IF NOT EXISTS idx_prohibited_status ON prohibited_substance_record(compliance_status);
 CREATE INDEX IF NOT EXISTS idx_prohibited_category ON prohibited_substance_record(substance_category);
 
+DROP TRIGGER IF EXISTS trg_prohibited_updated_at ON prohibited_substance_record;
 CREATE TRIGGER trg_prohibited_updated_at
     BEFORE UPDATE ON prohibited_substance_record
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -185,6 +188,7 @@ CREATE TABLE IF NOT EXISTS buffer_zone (
 CREATE INDEX IF NOT EXISTS idx_buffer_location ON buffer_zone(location_id);
 CREATE INDEX IF NOT EXISTS idx_buffer_condition ON buffer_zone(condition_status);
 
+DROP TRIGGER IF EXISTS trg_buffer_updated_at ON buffer_zone;
 CREATE TRIGGER trg_buffer_updated_at
     BEFORE UPDATE ON buffer_zone
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -237,6 +241,7 @@ CREATE INDEX IF NOT EXISTS idx_input_audit_category ON organic_input_audit(input
 CREATE INDEX IF NOT EXISTS idx_input_audit_prohibited ON organic_input_audit(is_prohibited);
 CREATE INDEX IF NOT EXISTS idx_input_audit_organic ON organic_input_audit(organic_certified);
 
+DROP TRIGGER IF EXISTS trg_input_audit_updated_at ON organic_input_audit;
 CREATE TRIGGER trg_input_audit_updated_at
     BEFORE UPDATE ON organic_input_audit
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -282,6 +287,7 @@ CREATE INDEX IF NOT EXISTS idx_harvest_handling_location ON harvest_handling_rec
 CREATE INDEX IF NOT EXISTS idx_harvest_handling_harvest ON harvest_handling_record(harvest_event_id);
 CREATE INDEX IF NOT EXISTS idx_harvest_handling_segregated ON harvest_handling_record(organic_segregated);
 
+DROP TRIGGER IF EXISTS trg_harvest_handling_updated_at ON harvest_handling_record;
 CREATE TRIGGER trg_harvest_handling_updated_at
     BEFORE UPDATE ON harvest_handling_record
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -324,6 +330,7 @@ CREATE INDEX IF NOT EXISTS idx_checklist_location ON organic_compliance_checklis
 CREATE INDEX IF NOT EXISTS idx_checklist_cert ON organic_compliance_checklist(certification_record_id);
 CREATE INDEX IF NOT EXISTS idx_checklist_result ON organic_compliance_checklist(overall_result);
 
+DROP TRIGGER IF EXISTS trg_checklist_updated_at ON organic_compliance_checklist;
 CREATE TRIGGER trg_checklist_updated_at
     BEFORE UPDATE ON organic_compliance_checklist
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -376,6 +383,7 @@ CREATE TABLE IF NOT EXISTS organic_readiness_assessment (
 CREATE INDEX IF NOT EXISTS idx_readiness_location ON organic_readiness_assessment(location_id);
 CREATE INDEX IF NOT EXISTS idx_readiness_standard ON organic_readiness_assessment(standard);
 
+DROP TRIGGER IF EXISTS trg_readiness_updated_at ON organic_readiness_assessment;
 CREATE TRIGGER trg_readiness_updated_at
     BEFORE UPDATE ON organic_readiness_assessment
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

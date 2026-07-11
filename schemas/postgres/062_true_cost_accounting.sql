@@ -50,6 +50,7 @@ CREATE INDEX IF NOT EXISTS idx_hidden_cost_location ON hidden_cost_observation(l
 CREATE INDEX IF NOT EXISTS idx_hidden_cost_category ON hidden_cost_observation(cost_category);
 CREATE INDEX IF NOT EXISTS idx_hidden_cost_status ON hidden_cost_observation(status);
 
+DROP TRIGGER IF EXISTS trg_hidden_cost_updated_at ON hidden_cost_observation;
 CREATE TRIGGER trg_hidden_cost_updated_at
     BEFORE UPDATE ON hidden_cost_observation
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -94,6 +95,7 @@ CREATE INDEX IF NOT EXISTS idx_ncv_location ON natural_capital_valuation(locatio
 CREATE INDEX IF NOT EXISTS idx_ncv_type ON natural_capital_valuation(capital_type);
 CREATE INDEX IF NOT EXISTS idx_ncv_status ON natural_capital_valuation(status);
 
+DROP TRIGGER IF EXISTS trg_ncv_updated_at ON natural_capital_valuation;
 CREATE TRIGGER trg_ncv_updated_at
     BEFORE UPDATE ON natural_capital_valuation
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -138,6 +140,7 @@ CREATE INDEX IF NOT EXISTS idx_siv_location ON social_impact_valuation(location_
 CREATE INDEX IF NOT EXISTS idx_siv_category ON social_impact_valuation(impact_category);
 CREATE INDEX IF NOT EXISTS idx_siv_status ON social_impact_valuation(status);
 
+DROP TRIGGER IF EXISTS trg_siv_updated_at ON social_impact_valuation;
 CREATE TRIGGER trg_siv_updated_at
     BEFORE UPDATE ON social_impact_valuation
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -178,6 +181,7 @@ CREATE INDEX IF NOT EXISTS idx_safety_location ON worker_safety_observation(loca
 CREATE INDEX IF NOT EXISTS idx_safety_type ON worker_safety_observation(incident_type);
 CREATE INDEX IF NOT EXISTS idx_safety_status ON worker_safety_observation(status);
 
+DROP TRIGGER IF EXISTS trg_safety_updated_at ON worker_safety_observation;
 CREATE TRIGGER trg_safety_updated_at
     BEFORE UPDATE ON worker_safety_observation
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -210,6 +214,7 @@ CREATE TABLE IF NOT EXISTS living_wage_benchmark (
 
 CREATE INDEX IF NOT EXISTS idx_living_wage_location ON living_wage_benchmark(location_id);
 
+DROP TRIGGER IF EXISTS trg_living_wage_updated_at ON living_wage_benchmark;
 CREATE TRIGGER trg_living_wage_updated_at
     BEFORE UPDATE ON living_wage_benchmark
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -254,6 +259,7 @@ CREATE INDEX IF NOT EXISTS idx_lca_location ON lca_assessment(location_id);
 CREATE INDEX IF NOT EXISTS idx_lca_stage ON lca_assessment(lifecycle_stage);
 CREATE INDEX IF NOT EXISTS idx_lca_crop ON lca_assessment(crop_cycle_id);
 
+DROP TRIGGER IF EXISTS trg_lca_updated_at ON lca_assessment;
 CREATE TRIGGER trg_lca_updated_at
     BEFORE UPDATE ON lca_assessment
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -282,6 +288,7 @@ CREATE TABLE IF NOT EXISTS gri_indicator (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+DROP TRIGGER IF EXISTS trg_gri_updated_at ON gri_indicator;
 CREATE TRIGGER trg_gri_updated_at
     BEFORE UPDATE ON gri_indicator
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -331,6 +338,7 @@ CREATE TABLE IF NOT EXISTS materiality_assessment (
 CREATE INDEX IF NOT EXISTS idx_materiality_location ON materiality_assessment(location_id);
 CREATE INDEX IF NOT EXISTS idx_materiality_priority ON materiality_assessment(priority_level);
 
+DROP TRIGGER IF EXISTS trg_materiality_updated_at ON materiality_assessment;
 CREATE TRIGGER trg_materiality_updated_at
     BEFORE UPDATE ON materiality_assessment
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -370,6 +378,7 @@ CREATE INDEX IF NOT EXISTS idx_capital_flow_location ON capital_flow_observation
 CREATE INDEX IF NOT EXISTS idx_capital_flow_from ON capital_flow_observation(from_capital);
 CREATE INDEX IF NOT EXISTS idx_capital_flow_to ON capital_flow_observation(to_capital);
 
+DROP TRIGGER IF EXISTS trg_capital_flow_updated_at ON capital_flow_observation;
 CREATE TRIGGER trg_capital_flow_updated_at
     BEFORE UPDATE ON capital_flow_observation
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

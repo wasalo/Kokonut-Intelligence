@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS donor (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+DROP TRIGGER IF EXISTS trg_donor_updated_at ON donor;
 CREATE TRIGGER trg_donor_updated_at
     BEFORE UPDATE ON donor
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -66,6 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_campaign_location ON funding_campaign(location_id
 CREATE INDEX IF NOT EXISTS idx_campaign_status ON funding_campaign(status);
 CREATE INDEX IF NOT EXISTS idx_campaign_type ON funding_campaign(campaign_type);
 
+DROP TRIGGER IF EXISTS trg_campaign_updated_at ON funding_campaign;
 CREATE TRIGGER trg_campaign_updated_at
     BEFORE UPDATE ON funding_campaign
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -107,6 +109,7 @@ CREATE INDEX IF NOT EXISTS idx_donation_donor ON donation(donor_id);
 CREATE INDEX IF NOT EXISTS idx_donation_location ON donation(location_id);
 CREATE INDEX IF NOT EXISTS idx_donation_status ON donation(status);
 
+DROP TRIGGER IF EXISTS trg_donation_updated_at ON donation;
 CREATE TRIGGER trg_donation_updated_at
     BEFORE UPDATE ON donation
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -144,6 +147,7 @@ CREATE INDEX IF NOT EXISTS idx_payout_rule_location ON impact_payout_rule(locati
 CREATE INDEX IF NOT EXISTS idx_payout_rule_campaign ON impact_payout_rule(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_payout_rule_status ON impact_payout_rule(status);
 
+DROP TRIGGER IF EXISTS trg_payout_rule_updated_at ON impact_payout_rule;
 CREATE TRIGGER trg_payout_rule_updated_at
     BEFORE UPDATE ON impact_payout_rule
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -173,6 +177,7 @@ CREATE TABLE IF NOT EXISTS impact_payout_execution (
 CREATE INDEX IF NOT EXISTS idx_payout_exec_rule ON impact_payout_execution(rule_id);
 CREATE INDEX IF NOT EXISTS idx_payout_exec_status ON impact_payout_execution(status);
 
+DROP TRIGGER IF EXISTS trg_payout_exec_updated_at ON impact_payout_execution;
 CREATE TRIGGER trg_payout_exec_updated_at
     BEFORE UPDATE ON impact_payout_execution
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

@@ -54,6 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_demand_signal_type ON buyer_demand_signal(signal_
 CREATE INDEX IF NOT EXISTS idx_demand_signal_status ON buyer_demand_signal(status);
 CREATE INDEX IF NOT EXISTS idx_demand_signal_delivery ON buyer_demand_signal(expected_delivery_start, expected_delivery_end);
 
+DROP TRIGGER IF EXISTS trg_demand_signal_updated_at ON buyer_demand_signal;
 CREATE TRIGGER trg_demand_signal_updated_at
     BEFORE UPDATE ON buyer_demand_signal
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -105,6 +106,7 @@ CREATE INDEX IF NOT EXISTS idx_demand_forecast_period ON demand_forecast(forecas
 CREATE INDEX IF NOT EXISTS idx_demand_forecast_type ON demand_forecast(forecast_type);
 CREATE INDEX IF NOT EXISTS idx_demand_forecast_status ON demand_forecast(status);
 
+DROP TRIGGER IF EXISTS trg_demand_forecast_updated_at ON demand_forecast;
 CREATE TRIGGER trg_demand_forecast_updated_at
     BEFORE UPDATE ON demand_forecast
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -162,6 +164,7 @@ CREATE INDEX IF NOT EXISTS idx_market_size_scope ON market_size_estimate(market_
 CREATE INDEX IF NOT EXISTS idx_market_size_status ON market_size_estimate(status);
 CREATE INDEX IF NOT EXISTS idx_market_size_period ON market_size_estimate(period_start, period_end);
 
+DROP TRIGGER IF EXISTS trg_market_size_updated_at ON market_size_estimate;
 CREATE TRIGGER trg_market_size_updated_at
     BEFORE UPDATE ON market_size_estimate
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -214,6 +217,7 @@ CREATE INDEX IF NOT EXISTS idx_demand_trend_crop ON demand_trend(crop_id);
 CREATE INDEX IF NOT EXISTS idx_demand_trend_type ON demand_trend(analysis_type);
 CREATE INDEX IF NOT EXISTS idx_demand_trend_period ON demand_trend(period_start, period_end);
 
+DROP TRIGGER IF EXISTS trg_demand_trend_updated_at ON demand_trend;
 CREATE TRIGGER trg_demand_trend_updated_at
     BEFORE UPDATE ON demand_trend
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -259,6 +263,7 @@ CREATE INDEX IF NOT EXISTS idx_pmm_location ON production_market_match(location_
 CREATE INDEX IF NOT EXISTS idx_pmm_crop ON production_market_match(crop_id);
 CREATE INDEX IF NOT EXISTS idx_pmm_period ON production_market_match(period_start, period_end);
 
+DROP TRIGGER IF EXISTS trg_pmm_updated_at ON production_market_match;
 CREATE TRIGGER trg_pmm_updated_at
     BEFORE UPDATE ON production_market_match
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -303,6 +308,7 @@ CREATE INDEX IF NOT EXISTS idx_buyer_segment_location ON buyer_segment(location_
 CREATE INDEX IF NOT EXISTS idx_buyer_segment_type ON buyer_segment(segment_type);
 CREATE INDEX IF NOT EXISTS idx_buyer_segment_value ON buyer_segment(segment_value);
 
+DROP TRIGGER IF EXISTS trg_buyer_segment_updated_at ON buyer_segment;
 CREATE TRIGGER trg_buyer_segment_updated_at
     BEFORE UPDATE ON buyer_segment
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

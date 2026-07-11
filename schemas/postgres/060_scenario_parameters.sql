@@ -43,6 +43,7 @@ CREATE INDEX IF NOT EXISTS idx_scenario_param_category ON scenario_parameter(par
 CREATE INDEX IF NOT EXISTS idx_scenario_param_key ON scenario_parameter(parameter_key);
 CREATE INDEX IF NOT EXISTS idx_scenario_param_active ON scenario_parameter(is_active);
 
+DROP TRIGGER IF EXISTS trg_scenario_parameter_updated_at ON scenario_parameter;
 CREATE TRIGGER trg_scenario_parameter_updated_at
     BEFORE UPDATE ON scenario_parameter
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -107,6 +108,7 @@ CREATE INDEX IF NOT EXISTS idx_simulation_scenario ON scenario_simulation(scenar
 CREATE INDEX IF NOT EXISTS idx_simulation_type ON scenario_simulation(simulation_type);
 CREATE INDEX IF NOT EXISTS idx_simulation_date ON scenario_simulation(run_date);
 
+DROP TRIGGER IF EXISTS trg_scenario_simulation_updated_at ON scenario_simulation;
 CREATE TRIGGER trg_scenario_simulation_updated_at
     BEFORE UPDATE ON scenario_simulation
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
