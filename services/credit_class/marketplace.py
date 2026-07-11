@@ -1,8 +1,9 @@
-"""Credit Marketplace: sell orders, buy orders, escrow."""
+"""Credit Marketplace: sell orders, buy orders, escrow, fees."""
 
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from typing import Any
 
 from services.common.logging import get_logger
@@ -21,7 +22,9 @@ def create_sell_order(
     ask_price: float,
     ask_denom: str,
     auto_retire: bool = False,
+    disable_auto_retire: bool = False,
     allow_partial_fills: bool = True,
+    expiration: str = None,
 ) -> dict:
     batch = conn.execute(
         conn.text("SELECT available_quantity FROM credit_batch WHERE id = :bid"),
@@ -51,20 +54,83 @@ def create_sell_order(
         conn.text(
             "INSERT INTO credit_sell_order "
             "(credit_batch_id, seller_address, quantity, ask_price, ask_denom, "
-            "auto_retire, allow_partial_fills, escrow_quantity) "
+            "auto_retire, disable_auto_retire, allow_partial_fills, escrow_quantity, expiration) "
             "VALUES (:cbid, :seller, :qty, :price, :denom, "
-            ":ar, :apf, :eq) "
+            ":ar, :dar, :apf, :eq, :exp) "
             "RETURNING id"
         ),
         {
             "cbid": credit_batch_id, "seller": seller_address, "qty": quantity,
             "price": ask_price, "denom": ask_denom,
-            "ar": auto_retire, "apf": allow_partial_fills, "eq": quantity,
+            "ar": auto_retire, "dar": disable_auto_retire,
+            "apf": allow_partial_fills, "eq": quantity, "exp": expiration,
         },
     ).mappings().first()
 
     logger.info("Created sell order %s for %s credits at %s %s", result["id"], quantity, ask_price, ask_denom)
     return {"id": str(result["id"]), "quantity": quantity, "ask_price": ask_price}
+
+
+def update_sell_order(
+    conn,
+    order_id: str,
+    seller_address: str,
+    new_quantity: float = None,
+    new_ask_price: float = None,
+    disable_auto_retire: bool = None,
+    new_expiration: str = None,
+) -> dict:
+    order = get_sell_order(conn, order_id)
+    if not order:
+        raise ValueError(f"Order not found: {order_id}")
+    if order["seller_address"] != seller_address:
+        raise ValueError("Only the seller can update an order")
+    if order["status"] != "active":
+        raise ValueError(f"Order is not active: {order['status']}")
+
+    updates = {}
+    if new_quantity is not None:
+        current_escrow = float(order["escrow_quantity"])
+        if new_quantity > current_escrow:
+            batch = conn.execute(
+                conn.text("SELECT available_quantity FROM credit_batch WHERE id = :bid"),
+                {"bid": order["credit_batch_id"]},
+            ).mappings().first()
+            additional = new_quantity - current_escrow
+            if float(batch["available_quantity"]) < additional:
+                raise ValueError(f"Insufficient available quantity for increase: {batch['available_quantity']} < {additional}")
+            conn.execute(
+                conn.text("UPDATE credit_batch SET retired_quantity = retired_quantity + :qty, updated_at = NOW() WHERE id = :bid"),
+                {"qty": additional, "bid": order["credit_batch_id"]},
+            )
+        elif new_quantity < current_escrow:
+            returned = current_escrow - new_quantity
+            conn.execute(
+                conn.text("UPDATE credit_batch SET retired_quantity = retired_quantity - :qty, updated_at = NOW() WHERE id = :bid"),
+                {"qty": returned, "bid": order["credit_batch_id"]},
+            )
+        updates["quantity"] = new_quantity
+        updates["escrow_quantity"] = new_quantity
+
+    if new_ask_price is not None:
+        updates["ask_price"] = new_ask_price
+
+    if disable_auto_retire is not None:
+        updates["disable_auto_retire"] = disable_auto_retire
+
+    if new_expiration is not None:
+        updates["expiration"] = new_expiration
+
+    if not updates:
+        raise ValueError("No fields to update")
+
+    set_clause = ", ".join(f"{k} = :{k}" for k in updates)
+    updates["oid"] = order_id
+    conn.execute(
+        conn.text(f"UPDATE credit_sell_order SET {set_clause}, updated_at = NOW() WHERE id = :oid"),
+        updates,
+    )
+    return {"id": order_id, "updated_fields": list(updates.keys())}
 
 
 def get_sell_order(conn, order_id: str) -> dict | None:
@@ -75,16 +141,22 @@ def get_sell_order(conn, order_id: str) -> dict | None:
     return dict(result) if result else None
 
 
-def list_sell_orders(conn, credit_batch_id: str = None, status: str = None) -> list[dict]:
-    conditions = ["status = 'active'"]
+def list_sell_orders(conn, credit_batch_id: str = None, seller_address: str = None,
+                     status: str = None, active_only: bool = True) -> list[dict]:
+    conditions = []
     params: dict[str, Any] = {}
+    if active_only:
+        conditions.append("status = 'active'")
+    elif status:
+        conditions.append("status = :s")
+        params["s"] = status
     if credit_batch_id:
         conditions.append("credit_batch_id = :cbid")
         params["cbid"] = credit_batch_id
-    if status:
-        conditions[0] = "status = :s"
-        params["s"] = status
-    where = "WHERE " + " AND ".join(conditions)
+    if seller_address:
+        conditions.append("seller_address = :seller")
+        params["seller"] = seller_address
+    where = "WHERE " + " AND ".join(conditions) if conditions else ""
     result = conn.execute(
         conn.text(f"SELECT * FROM credit_sell_order {where} ORDER BY created_at DESC"),
         params,
@@ -118,12 +190,28 @@ def cancel_sell_order(conn, order_id: str, seller_address: str) -> dict:
     return {"id": order_id, "status": "cancelled"}
 
 
+def expire_sell_orders(conn) -> int:
+    result = conn.execute(
+        conn.text(
+            "UPDATE credit_sell_order SET status = 'expired', escrow_quantity = 0, updated_at = NOW() "
+            "WHERE status = 'active' AND expiration IS NOT NULL AND expiration < NOW()"
+        ),
+    )
+    if result.rowcount > 0:
+        logger.info("Expired %d sell orders", result.rowcount)
+    return result.rowcount
+
+
 def create_buy_order(
     conn,
     sell_order_id: str,
     buyer_address: str,
     quantity: float,
     auto_retire: bool = False,
+    disable_auto_retire: bool = False,
+    retirement_jurisdiction: str = None,
+    retirement_reason: str = None,
+    max_fee_amount: float = None,
 ) -> dict:
     sell_order = get_sell_order(conn, sell_order_id)
     if not sell_order:
@@ -135,23 +223,43 @@ def create_buy_order(
     if quantity > sell_order["escrow_quantity"]:
         raise ValueError(f"Insufficient escrow: {sell_order['escrow_quantity']} < {quantity}")
 
+    if sell_order.get("disable_auto_retire") and disable_auto_retire:
+        pass
+    elif not sell_order.get("disable_auto_retire") and not disable_auto_retire:
+        auto_retire = True
+    elif sell_order.get("disable_auto_retire") and not disable_auto_retire:
+        pass
+    elif not sell_order.get("disable_auto_retire") and disable_auto_retire:
+        raise ValueError("Cannot disable auto-retire when sell order has auto-retire enabled")
+
     total_price = (quantity / sell_order["quantity"]) * float(sell_order["ask_price"])
+
+    fee_params = _get_fee_params(conn)
+    buyer_fee = total_price * float(fee_params.get("buyer_fee", 0))
+    if max_fee_amount is not None and buyer_fee > max_fee_amount:
+        raise ValueError(f"Buyer fee {buyer_fee} exceeds max_fee_amount {max_fee_amount}")
 
     result = conn.execute(
         conn.text(
             "INSERT INTO credit_buy_order "
-            "(sell_order_id, buyer_address, quantity, total_price, price_denom, auto_retire) "
-            "VALUES (:soid, :buyer, :qty, :tp, :denom, :ar) "
+            "(sell_order_id, buyer_address, quantity, total_price, price_denom, "
+            "auto_retire, disable_auto_retire, retirement_jurisdiction, retirement_reason, max_fee_amount) "
+            "VALUES (:soid, :buyer, :qty, :tp, :denom, "
+            ":ar, :dar, :rj, :rr, :mfa) "
             "RETURNING id"
         ),
         {
             "soid": sell_order_id, "buyer": buyer_address, "qty": quantity,
-            "tp": total_price, "denom": sell_order["ask_denom"], "ar": auto_retire,
+            "tp": total_price, "denom": sell_order["ask_denom"],
+            "ar": auto_retire, "dar": disable_auto_retire,
+            "rj": retirement_jurisdiction, "rr": retirement_reason,
+            "mfa": max_fee_amount,
         },
     ).mappings().first()
 
     logger.info("Created buy order %s for %s credits", result["id"], quantity)
-    return {"id": str(result["id"]), "quantity": quantity, "total_price": total_price}
+    return {"id": str(result["id"]), "quantity": quantity, "total_price": total_price,
+            "buyer_fee": buyer_fee}
 
 
 def get_buy_order(conn, order_id: str) -> dict | None:
@@ -195,6 +303,45 @@ def execute_buy_order(conn, buy_order_id: str) -> dict:
     return {"buy_order_id": buy_order_id, "status": "completed"}
 
 
+def _get_fee_params(conn) -> dict:
+    buyer_result = conn.execute(
+        conn.text("SELECT param_value FROM ecocredit_params WHERE param_key = 'marketplace_buyer_fee'")
+    ).mappings().first()
+    seller_result = conn.execute(
+        conn.text("SELECT param_value FROM ecocredit_params WHERE param_key = 'marketplace_seller_fee'")
+    ).mappings().first()
+    return {
+        "buyer_fee": float(buyer_result["param_value"]) if buyer_result else 0.03,
+        "seller_fee": float(seller_result["param_value"]) if seller_result else 0.03,
+    }
+
+
+def get_fee_params(conn) -> dict:
+    return _get_fee_params(conn)
+
+
+def set_fee_params(conn, buyer_fee: float = None, seller_fee: float = None) -> dict:
+    if buyer_fee is not None:
+        conn.execute(
+            conn.text(
+                "INSERT INTO ecocredit_params (param_key, param_value, description) "
+                "VALUES ('marketplace_buyer_fee', :val, 'Buyer percentage fee') "
+                "ON CONFLICT (param_key) DO UPDATE SET param_value = :val, updated_at = NOW()"
+            ),
+            {"val": str(buyer_fee)},
+        )
+    if seller_fee is not None:
+        conn.execute(
+            conn.text(
+                "INSERT INTO ecocredit_params (param_key, param_value, description) "
+                "VALUES ('marketplace_seller_fee', :val, 'Seller percentage fee') "
+                "ON CONFLICT (param_key) DO UPDATE SET param_value = :val, updated_at = NOW()"
+            ),
+            {"val": str(seller_fee)},
+        )
+    return _get_fee_params(conn)
+
+
 def list_allowed_denoms(conn) -> list[dict]:
     result = conn.execute(
         conn.text("SELECT * FROM credit_allowed_denom WHERE is_active = TRUE ORDER BY denom")
@@ -214,3 +361,11 @@ def add_allowed_denom(conn, denom: str, chain: str = "celo",
         {"denom": denom, "chain": chain, "ca": contract_address, "ab": added_by},
     ).mappings().first()
     return {"id": str(result["id"]), "denom": denom}
+
+
+def remove_allowed_denom(conn, denom: str) -> bool:
+    result = conn.execute(
+        conn.text("UPDATE credit_allowed_denom SET is_active = FALSE WHERE denom = :denom"),
+        {"denom": denom},
+    )
+    return result.rowcount > 0

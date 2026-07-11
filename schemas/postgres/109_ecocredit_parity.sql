@@ -136,8 +136,11 @@ CREATE TABLE IF NOT EXISTS credit_sell_order (
     ask_price NUMERIC(18,8) NOT NULL CHECK (ask_price > 0),
     ask_denom VARCHAR(50) NOT NULL,
     auto_retire BOOLEAN DEFAULT FALSE,
+    disable_auto_retire BOOLEAN DEFAULT FALSE,
     allow_partial_fills BOOLEAN DEFAULT TRUE,
     escrow_quantity NUMERIC(14,4) NOT NULL CHECK (escrow_quantity >= 0),
+    expiration TIMESTAMPTZ,
+    is_maker BOOLEAN DEFAULT TRUE,
     status VARCHAR(50) DEFAULT 'active',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -148,6 +151,7 @@ CREATE INDEX idx_cso_batch ON credit_sell_order(credit_batch_id);
 CREATE INDEX idx_cso_seller ON credit_sell_order(seller_address);
 CREATE INDEX idx_cso_status ON credit_sell_order(status);
 CREATE INDEX idx_cso_denom ON credit_sell_order(ask_denom);
+CREATE INDEX idx_cso_expiration ON credit_sell_order(expiration) WHERE expiration IS NOT NULL;
 
 -- ============================================================
 -- credit_buy_order (Marketplace submodule)
@@ -160,6 +164,10 @@ CREATE TABLE IF NOT EXISTS credit_buy_order (
     total_price NUMERIC(18,8) NOT NULL CHECK (total_price > 0),
     price_denom VARCHAR(50) NOT NULL,
     auto_retire BOOLEAN DEFAULT FALSE,
+    disable_auto_retire BOOLEAN DEFAULT FALSE,
+    max_fee_amount NUMERIC(18,8),
+    retirement_jurisdiction VARCHAR(50),
+    retirement_reason TEXT,
     status VARCHAR(50) DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     completed_at TIMESTAMPTZ,
@@ -224,5 +232,8 @@ CREATE TABLE IF NOT EXISTS ecocredit_params (
 INSERT INTO ecocredit_params (param_key, param_value, description) VALUES
 ('class_fee', '{"denom": "cusd", "amount": 0}', 'Credit class creation fee'),
 ('basket_fee', '{"denom": "cusd", "amount": 0}', 'Basket creation fee'),
-('allowed_bridge_chains', '["celo", "gnosis"]', 'Chains allowed for bridge operations')
+('allowed_bridge_chains', '["celo", "gnosis"]', 'Chains allowed for bridge operations'),
+('marketplace_buyer_fee', '0.03', 'Buyer percentage fee (3%)'),
+('marketplace_seller_fee', '0.03', 'Seller percentage fee (3%)'),
+('marketplace_fee_pool_address', 'null', 'Address for marketplace fee pool')
 ON CONFLICT (param_key) DO NOTHING;

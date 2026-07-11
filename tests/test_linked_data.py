@@ -591,6 +591,37 @@ class TestMarketplace:
         result = add_allowed_denom(conn, "cusd", "celo")
         assert result["denom"] == "cusd"
 
+    def test_remove_allowed_denom(self):
+        from services.credit_class.marketplace import remove_allowed_denom
+        conn = _fake_conn(rowcount=1)
+        removed = remove_allowed_denom(conn, "cusd")
+        assert removed is True
+
+    def test_get_fee_params(self):
+        from services.credit_class.marketplace import get_fee_params
+        conn = _fake_conn_sequential([
+            {"param_value": "0.03"},  # buyer fee
+            {"param_value": "0.03"},  # seller fee
+        ])
+        params = get_fee_params(conn)
+        assert params["buyer_fee"] == 0.03
+
+    def test_set_fee_params(self):
+        from services.credit_class.marketplace import set_fee_params
+        conn = _fake_conn_sequential([
+            {"rowcount": 1},  # insert/update buyer fee
+            {"param_value": "0.05"},  # get buyer fee
+            {"param_value": "0.03"},  # get seller fee
+        ])
+        result = set_fee_params(conn, buyer_fee=0.05)
+        assert result["buyer_fee"] == 0.05
+
+    def test_expire_sell_orders(self):
+        from services.credit_class.marketplace import expire_sell_orders
+        conn = _fake_conn(rowcount=3)
+        expired = expire_sell_orders(conn)
+        assert expired == 3
+
 
 class TestIRIContentHashType:
     def test_generate_iri_with_hash_type(self):
