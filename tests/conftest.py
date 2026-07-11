@@ -1,9 +1,11 @@
 """Shared test fixtures for Kokonut Intelligence tests."""
 
+from __future__ import annotations
+
 import os
 import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Optional
 
 import psycopg2
 import psycopg2.extras

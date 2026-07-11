@@ -39,6 +39,7 @@ export const LIFECYCLE_COLLECTIONS = [
   'stakeholder_feedback',
   'stakeholder_outcome',
   'impact_claim',
+  'data_stream_post',
 ] as const;
 
 export type LifecycleCollection = (typeof LIFECYCLE_COLLECTIONS)[number];
@@ -108,6 +109,9 @@ const ROLE_ROUTING: Record<string, string[]> = {
   'impact_claim:verified': ['analyst', 'manager', 'admin'],
   'impact_claim:rejected': ['analyst', 'manager', 'admin'],
   'impact_claim:published': ['manager', 'admin'],
+  'data_stream_post:verified': ['manager', 'supervisor', 'admin'],
+  'data_stream_post:rejected': ['manager', 'supervisor', 'admin'],
+  'data_stream_post:published': ['manager', 'admin'],
 };
 
 // Stash from_status between filter (pre-write) and action (post-write) hooks

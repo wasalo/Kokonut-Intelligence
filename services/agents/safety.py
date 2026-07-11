@@ -79,6 +79,8 @@ GOVERNED_COLLECTIONS = {
     "credit_adjustment",
     "credit_retirement",
     "credit_transfer",
+    "data_stream_post",
+    "data_stream_post_comment",
 }
 
 

@@ -2756,6 +2756,60 @@ def generate_statement_of_work(conn, location_id: str, period_start: str = None,
 
 
 # ---------------------------------------------------------------------------
+# Data Stream Summary
+# ---------------------------------------------------------------------------
+
+def generate_data_stream_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a summary of data stream activity for a location."""
+    conditions = ["dsp.location_id = :location_id"]
+    params: dict[str, Any] = {"location_id": location_id}
+
+    if period_start:
+        conditions.append("dsp.created_at >= :period_start")
+        params["period_start"] = period_start
+    if period_end:
+        conditions.append("dsp.created_at <= :period_end")
+        params["period_end"] = period_end
+
+    where = " AND ".join(conditions)
+
+    posts = conn.execute(
+        conn.text(
+            f"SELECT dsp.post_type, dsp.status, dsp.visibility, dsp.is_anchored, dsp.created_at "
+            f"FROM data_stream_post dsp WHERE {where} ORDER BY dsp.created_at DESC"
+        ),
+        params,
+    ).mappings().all()
+
+    total_posts = len(posts)
+    by_type: dict[str, int] = {}
+    by_status: dict[str, int] = {}
+    by_visibility: dict[str, int] = {}
+    anchored_count = 0
+
+    for p in posts:
+        by_type[p["post_type"]] = by_type.get(p["post_type"], 0) + 1
+        by_status[p["status"]] = by_status.get(p["status"], 0) + 1
+        by_visibility[p["visibility"]] = by_visibility.get(p["visibility"], 0) + 1
+        if p["is_anchored"]:
+            anchored_count += 1
+
+    return {
+        "report_type": "data_stream_summary",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "total_posts": total_posts,
+        "anchored_posts": anchored_count,
+        "unanchored_posts": total_posts - anchored_count,
+        "by_type": by_type,
+        "by_status": by_status,
+        "by_visibility": by_visibility,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Snapshot storage
 # ---------------------------------------------------------------------------
 
@@ -2816,6 +2870,7 @@ REPORT_GENERATORS = {
     "organic_transition_progress": generate_organic_transition_progress,
     "organic_input_audit": generate_organic_input_audit,
     "statement_of_work": generate_statement_of_work,
+    "data_stream_summary": generate_data_stream_summary,
 }
 
 

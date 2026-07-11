@@ -114,6 +114,13 @@
 - CRISP composite rating: `python3 -m services.crisp --composite --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD`
 - CRISP rate and persist: `python3 -m services.crisp --rate --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD`
 - CRISP show weights: `python3 -m services.crisp --weights --location-id UUID`
+- Data stream post: `python3 -m services.data_stream.cli post --location-id UUID --type photo --title "Title" --content "Content"`
+- Data stream view: `python3 -m services.data_stream.cli stream --location-id UUID`
+- Data stream search: `python3 -m services.data_stream.cli search --query "soil moisture" --location-id UUID`
+- Data stream anchor: `python3 -m services.data_stream.cli anchor --post-id UUID --chain celo`
+- Data stream verify: `python3 -m services.data_stream.cli verify --post-id UUID`
+- Data stream list: `python3 -m services.data_stream.cli list --location-id UUID --type monitoring_report`
+- Data stream tests: `python3 -m tests.test_data_stream`
 - Data freshness check: `python3 -m services.ingestion.data_freshness --check`
 - Data freshness summary: `python3 -m services.ingestion.data_freshness --summary`
 - Climate data ingestion: `python3 -m services.ingestion.climate_data --all --location-id UUID`
@@ -198,6 +205,7 @@
 - Report types (livestock feed): `python3 -m services.export.report_generator --type livestock_feed --location-id UUID`
 - Report types (token rewards): `python3 -m services.export.report_generator --type token_rewards --location-id UUID`
 - Report types (reward calibration): `python3 -m services.export.report_generator --type reward_calibration --location-id UUID`
+- Report types (data stream summary): `python3 -m services.export.report_generator --type data_stream_summary --location-id UUID`
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
@@ -206,6 +214,10 @@
 
 ## Development Notes
 
+- Data stream posts use governed lifecycle (`draft`, `submitted`, `verified`, `published`, `rejected`).
+- Data stream posts require verified/published `farm_registry_record` for public visibility.
+- Data stream blockchain anchoring uses the `kokonut-data-post` EAS schema on Celo.
+- `data_stream_post` and `data_stream_post_comment` are governed collections — agents cannot publish.
 - Prefer the smallest schema/code change that fixes the issue.
 - Keep seed files idempotent with `ON CONFLICT` or equivalent guards.
 - Seed files must correct stale source-of-truth rows on conflict when the record is canonical metadata, not only `DO NOTHING`.

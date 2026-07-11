@@ -39,6 +39,12 @@ KOKONUT_SCHEMAS: dict[str, dict[str, Any]] = {
         "description": "Bio-organic fertilizer batch production attestation for Latin America and the Caribbean",
         "claim_type": "bio_batch",
     },
+    "kokonut-data-post": {
+        "schema": "string locationId, string postType, string title, string contentHash, string mediaType, uint256 timestamp, string visibility, string evidenceHash, string payloadCid",
+        "revocable": True,
+        "description": "Data stream post for environmental project tracking",
+        "claim_type": "operational",
+    },
 }
 
 
@@ -50,6 +56,7 @@ SCHEMA_DB_NAMES: dict[str, str] = {
     "kokonut-harvest": "Kokonut Harvest",
     "kokonut-compliance": "Kokonut Compliance",
     "kokonut-bio-batch": "Kokonut Bio-Batch",
+    "kokonut-data-post": "Kokonut Data Post",
 }
 
 
@@ -200,6 +207,31 @@ def prepare_bio_batch_attestation_data(
         {"name": "unit", "type": "string", "value": unit},
         {"name": "productionDate", "type": "uint256", "value": production_date},
         {"name": "qualityGrade", "type": "string", "value": quality_grade},
+        {"name": "evidenceHash", "type": "string", "value": evidence_hash},
+        {"name": "payloadCid", "type": "string", "value": payload_cid},
+    ]
+
+
+def prepare_data_post_attestation_data(
+    location_id: str,
+    post_type: str,
+    title: str,
+    content_hash: str,
+    media_type: str,
+    timestamp: int,
+    visibility: str,
+    evidence_hash: str,
+    payload_cid: str,
+) -> list[dict[str, Any]]:
+    """Prepare data fields for a kokonut-data-post attestation."""
+    return [
+        {"name": "locationId", "type": "string", "value": location_id},
+        {"name": "postType", "type": "string", "value": post_type},
+        {"name": "title", "type": "string", "value": title},
+        {"name": "contentHash", "type": "string", "value": content_hash},
+        {"name": "mediaType", "type": "string", "value": media_type or ""},
+        {"name": "timestamp", "type": "uint256", "value": timestamp},
+        {"name": "visibility", "type": "string", "value": visibility},
         {"name": "evidenceHash", "type": "string", "value": evidence_hash},
         {"name": "payloadCid", "type": "string", "value": payload_cid},
     ]
