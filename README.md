@@ -4,7 +4,7 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 
 PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores analytical events. Python services compute metrics, forecasts, exports, registry payloads, AI summaries, and ingestion jobs. EAS on Celo anchors public verification metadata while private evidence stays offchain.
 
-**Repo stats**: 497 tests · 16 agents · 56 report types · 53 dashboards · 71 seed files · 42 docs
+**Repo stats**: 497 tests · 16 agents · 56 report types · 53 dashboards · 71 seed files · 48 docs
 
 ## Table Of Contents
 
@@ -24,13 +24,14 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 
 | Layer | Technology | Role |
 |-------|------------|------|
-| Canonical core | PostgreSQL 14 + PostGIS 3.4 + Directus 11.17 | Schema, API, permissions, workflows, data entry UI |
-| Analytics | ClickHouse 25.3 | Time-series events and high-volume analytical queries |
-| BI | Metabase | Internal dashboards and aggregate reporting |
-| Intelligence | Python services | Metrics, forecasts, scoring, exports, ingestion, AI summaries |
+| Canonical core | PostgreSQL 16 + PostGIS 3.4 + Directus 12.1.1 | Schema, API, permissions, workflows, data entry UI |
+| Analytics | ClickHouse 25.8 | Time-series events, high-volume analytical queries, PromQL support |
+| BI | Metabase 0.62.4 | Internal dashboards, aggregate reporting, custom visualizations, MCP server |
+| Intelligence | Python services | Metrics, forecasts, scoring, exports, ingestion, AI summaries, ML anomaly detection |
 | Verification | EAS on Celo + offchain evidence storage | Onchain attestations, offchain signed claims, MRV proof metadata |
 | Governance and Guilds | Gnosis Moloch DAO + Colony metadata | Treasury governance, Guild contribution records, reputation snapshots |
 | Contracts | Foundry + Solidity | KokonutResolver attester gating for EAS schemas |
+| Workflow | Prefect 3.x | Pipeline orchestration with event-driven automations |
 
 See [Architecture](docs/architecture.md) for system design, data flow, and security model details.
 
@@ -97,6 +98,12 @@ Optional local overrides may expose Directus at `http://localhost:8055` and Meta
 - **True Cost Accounting**: Hidden cost tracking, natural/social capital valuation, life cycle assessment, GRI indicator mapping, and cross-capital flow analysis for triple bottom line reporting.
 - **Silvi tree-tracking integration**: Individual tree GPS tracking, growth rate analytics, GeoJSON/KML/XML export, spatial clustering, pest hotspots, canopy analysis, and habitat connectivity scoring.
 - **Emergency response**: Incident tracking with response actions, recovery timelines, and lessons learned for crisis resilience.
+- **CRISP risk scoring**: Five-dimension risk scoring (carbon yield, climate, policy, financial, implementation) with configurable per-location weights and AAA-D composite rating.
+- **Abundance Protocol integration**: Impact estimate posts, 3-tier validation with quadratic voting, tokenized carbon credits with auto-adjustment, and incentive alignment tracking.
+- **Digital Soil Mapping**: XGBoost-based SOC prediction with spectral indices, time-series features, and geographic cross-validation.
+- **dMRV architecture**: Automated satellite data collection (GEE/Copernicus), real-time IoT ingestion (MQTT/HTTP), ML anomaly detection (Prophet + Isolation Forest), and EAS on-chain verification.
+- **Field data collection**: Detailed SOPs for soil sampling, tree measurement, biodiversity surveys, water sampling, harvest recording, and pest monitoring with measurement cadence matrix.
+- **Oracle infrastructure**: Multi-source price feeds with median consensus, real-time commodity futures, and actuator command dispatch.
 
 ## How Metrics Enable Answers
 
@@ -225,19 +232,19 @@ See [Deployment](docs/deployment.md) for full production setup, reverse proxy op
 ## Repository Layout
 
 ```text
-config/             Docker, PostgreSQL, ClickHouse, Caddy, Directus, and worker crontab config
+config/             Docker, PostgreSQL, ClickHouse, Caddy, Directus, Mosquitto, and worker crontab config
 contracts/          Foundry project for KokonutResolver and EAS-related contracts
 dashboards/         42 Metabase dashboard templates with backing SQL
-docs/               39 docs — see Documentation section below
+docs/               48 docs — see Documentation section below
 extensions/         Directus lifecycle hooks, workflow rules, metric hooks, AI helpers
 migrations/         Migration tooling and legacy migration helpers
-schemas/            PostgreSQL schemas, ClickHouse schemas, Directus snapshots, 49 seed files
+schemas/            PostgreSQL schemas (100+), ClickHouse schemas, Directus snapshots, seed files
 scripts/            Setup, seed, schema, metrics, backup, health-check, and CI scripts
 sdk/                JavaScript/TypeScript and Python SDKs
-services/           Python services for ingestion, metrics, analytics, export, agents, attestation
-tests/              49 test files — smoke, CLI, attestation, metrics, EBF, agents, modules
+services/           Python services for ingestion, metrics, analytics, export, agents, attestation, scoring, abundance, flows
+tests/              55+ test files — smoke, CLI, attestation, metrics, EBF, agents, CRISP, telemetry
 Dockerfile.worker   Optional worker container for cron-based ingestion
-docker-compose.yml  Base services (PostgreSQL, ClickHouse, Directus, Metabase, Caddy)
+docker-compose.yml  Base services (PostgreSQL 16, ClickHouse 25.8, Directus 12.1.1, Metabase 0.62.4, Caddy, Mosquitto)
 docker-compose.prod.yml     Production overlay (resource limits, no direct port exposure)
 docker-compose.traefik.yml  Traefik overlay (disables Caddy, adds Traefik labels)
 docker-compose.worker.yml   Worker overlay (cron-based Python ingestion container)
@@ -259,7 +266,7 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 
 ## Documentation
 
-All 41 docs live under `docs/`. Key entry points:
+All 48 docs live under `docs/`. Key entry points:
 
 | Document | Description |
 |----------|-------------|

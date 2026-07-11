@@ -16,68 +16,24 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 
 ## Technology Stack
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    INTERFACES                           │
-│  Directus Studio │ Metabase │ API │ Agents             │
-└────────┬────────┴─────┬─────┴──┬──┴────┬───────────────┘
-         │              │        │       │
-┌────────▼──────────────▼────────▼───────▼───────────────┐
-│                    DIRECTUS                             │
-│          REST API │ GraphQL │ SDK │ Flows              │
-│          Permissions │ Automations │ Webhooks           │
-└────────┬───────────────────────────────────────────────┘
-         │
-┌────────▼───────────────────────────────────────────────┐
-│                 POSTGRESQL + POSTGIS                     │
-│                                                         │
-│  Master Data    Operational Facts    Financial Facts    │
-│  ──────────     ────────────────     ──────────────    │
-│  locations      farm_activity        financial_txn      │
-│  farms          harvest_event        expense_event      │
-│  plots          sales_event          crop_cost_alloc    │
-│  crops          loss_event           noi_snapshot       │
-│  crop_cycle     labor_event          cash_flow_snap     │
-│  partners       field_note           value_flow_event   │
-│  farm_registry  inventory_event      revenue_event      │
-│                 maintenance_event                       │
-│                                                         │
-│  Environmental    Web3/Attestation    Modeled Outputs   │
-│  ─────────────    ────────────────    ──────────────    │
-│  soil_sample      wallet_profile      forecast_scenario  │
-│  species_obs      attestation_record  forecast_output    │
-│  remote_sensing   digital_lego_usage  metric_definition  │
-│  weather_obs      attestation_schema  report_snapshot    │
-│  sensor_reading   mrv_event           ai_summary         │
-│  attestation_req  governance_event    agent_task         │
-│  price_observation                    ingestion_log      │
-└────────┬───────────────────────────────────────────────┘
-         │
-┌────────▼───────────────────────────────────────────────┐
-│              PYTHON INGESTION LAYER                     │
-│                                                         │
-│  weather.py       → OpenWeatherMap API                  │
-│  rpc_indexer.py   → Ethereum/L2 public RPC              │
-│  market_data.py   → World Bank Pink Sheet               │
-│  remote_sensing.py → CSV upload (NDVI/NDRE)            │
-│  eas_indexer.py   → EAS GraphQL API (Celo/Optimism/Base)   │
-│                                                         │
-│  All scripts: services/ingestion/                       │
-│  Common framework: base.py (DB, logging, retry)         │
-└────────┬───────────────────────────────────────────────┘
-         │
-┌────────▼───────────────────────────────────────────────┐
-│                   CLICKHOUSE                            │
-│                                                         │
-│  events_raw │ wallet_events │ sensor_readings           │
-│  weather_events │ financial_events │ dlego_events       │
-│                                                         │
-│  Materialized Views:                                     │
-│  daily_event_counts │ hourly_sensor_stats               │
-│  daily_wallet_activity │ monthly_financial_summary      │
-│  daily_weather_summary │ daily_sensor_summary           │
-│  sensor_reading_rate                                    │
-└─────────────────────────────────────────────────────────┘
+| Component | Version | Key Capabilities |
+|-----------|---------|------------------|
+| PostgreSQL | 16 + PostGIS 3.4 | SQL/JSON constructors, pg_stat_io monitoring, parallel joins, expression indexes |
+| Directus | 12.1.1 | API, permissions, workflows, versioned collections, extension SDK |
+| ClickHouse | 25.8 LTS | PromQL support, Iceberg/DeltaLake write, Parquet v3, ArrowFlight, correlated subqueries |
+| Metabase | 0.62.4 | Custom visualizations, MCP server, Schema Viewer, programmatic filters |
+| FastAPI | 0.139+ | 2x JSON via Pydantic/Rust, native SSE, streaming JSON Lines |
+| Prefect | 3.x | Pipeline orchestration, event-driven automations, 90% overhead reduction |
+| Python | 3.11 | services/, analytics, ML (Prophet + Isolation Forest) |
+| numpy | 2.x | SIMD-accelerated sorting, StringDType, array API standard |
+| pandas | 3.0 | Copy-on-Write default, Arrow interface, string dtype |
+| scikit-learn | 1.9 | Callback API, Array API, anomaly detection improvements |
+| Prophet | 1.3 | minmax scaling, custom CV metrics, NaN handling |
+| yfinance | 1.x | Authenticated access, consolidated dataframes |
+| EAS | Celo mainnet | Attestation gating, 8 schemas (MRV, impact, financial, harvest, compliance, bio-batch, carbon-credit, carbon-adjustment) |
+| Gnosis | Chain 100 | Moloch DAO treasury governance |
+| Foundry | Latest | KokonutResolver, OpenZeppelin |
+| Mosquitto | 2 | MQTT broker for IoT sensor ingestion |
 ```
 
 ## Data Lifecycle
