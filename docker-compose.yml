@@ -153,6 +153,35 @@ services:
     networks:
       - apps
 
+  grpc:
+    build:
+      context: .
+      dockerfile: Dockerfile.grpc
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      - PG_HOST=database
+      - PG_PORT=5432
+      - PG_DB=kokonut_intelligence
+      - PG_USER=kokonut
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - GRPC_PORT=50051
+      - GRPC_MAX_WORKERS=10
+      - KOKONUT_ENV=${KOKONUT_ENV:-dev}
+    networks:
+      - databases
+      - apps
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import grpc; print('ok')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   mosquitto:
     image: eclipse-mosquitto:2
     restart: unless-stopped

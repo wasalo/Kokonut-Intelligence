@@ -1,0 +1,10 @@
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/python
+    out: sdk/python/generated
+  - remote: buf.build/grpc/python
+    out: sdk/python/generated
+  - remote: buf.build/protocolbuffers/typescript
+    out: sdk/typescript/generated
+  - remote: buf.build/grpc/typescript
+    out: sdk/typescript/generated

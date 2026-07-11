@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package data.v1;
+
+message IRI {
+  string iri = 1;
+  string entity_type = 2;
+  string entity_id = 3;
+  int32 version = 4;
+  string content_hash = 5;
+  string content_hash_type = 6;
+  string raw_media_type = 7;
+  string previous_iri = 8;
+  bool is_current = 9;
+  string chain = 10;
+  string attestation_uid = 11;
+  string metadata_json = 12;
+  int64 created_at = 13;
+  int64 updated_at = 14;
+}
+
+message IRIInfo {
+  string iri = 1;
+  string entity_type = 2;
+  string entity_id = 3;
+  int32 version = 4;
+  string content_hash = 5;
+  string content_hash_type = 6;
+}
+
+message ContentHashEntry {
+  string id = 1;
+  string iri_id = 2;
+  string hash_value = 3;
+  string hash_algorithm = 4;
+  string content_type = 5;
+  string media_type = 6;
+  string canonicalization_algorithm = 7;
+  string merkle_tree = 8;
+  int64 created_at = 9;
+}
+
+message Resolver {
+  string id = 1;
+  string resolver_url = 2;
+  string manager_address = 3;
+  string description = 4;
+  bool is_active = 5;
+  int64 created_at = 6;
+}
+
+message ResolverRegistration {
+  string id = 1;
+  string resolver_id = 2;
+  string iri_id = 3;
+  string registered_by = 4;
+  int64 registered_at = 5;
+}
+
+message AttestorEntry {
+  string id = 1;
+  string iri_id = 2;
+  string attestor_address = 3;
+  int64 attested_at = 4;
+}

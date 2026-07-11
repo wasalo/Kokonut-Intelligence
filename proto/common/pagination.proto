@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package common;
+
+option go_package = "github.com/kokonut-intelligence/proto/common";
+
+message PageRequest {
+  uint64 limit = 1;
+  bytes offset = 2;
+}
+
+message PageResponse {
+  bytes next_key = 1;
+  uint64 total = 2;
+}

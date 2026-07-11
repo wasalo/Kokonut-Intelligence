@@ -1,0 +1,329 @@
+syntax = "proto3";
+
+package ecocredit.v1;
+
+import "common/pagination.proto";
+
+message CreditType {
+  string abbreviation = 1;
+  string name = 2;
+  string unit = 3;
+  uint32 precision = 4;
+  string description = 5;
+  string status = 6;
+}
+
+message CreditClass {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string url = 4;
+  string methodology = 5;
+  string methodology_version = 6;
+  string methodology_ref = 7;
+  string credit_type = 8;
+  string admin_address = 9;
+  repeated string ecosystem_types = 10;
+  repeated string eligible_activities = 11;
+  uint32 crediting_period_years = 12;
+  string registry_slug = 13;
+  string governance_mechanism = 14;
+  bool allowlist_required = 15;
+  string status = 16;
+  string attestation_uid = 17;
+  string chain = 18;
+  string metadata = 19;
+  int64 created_at = 20;
+  int64 updated_at = 21;
+}
+
+message ClassInfo {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string credit_type = 4;
+  string admin_address = 5;
+  string status = 6;
+}
+
+message ClassIssuer {
+  string id = 1;
+  string credit_class_id = 2;
+  string issuer_address = 3;
+  string issuer_name = 4;
+  int64 added_at = 5;
+  int64 revoked_at = 6;
+}
+
+message ClassCreatorAllowlist {
+  string id = 1;
+  string address = 2;
+  string entity_name = 3;
+  bool is_active = 4;
+  int64 added_at = 5;
+}
+
+message Project {
+  string id = 1;
+  string location_id = 2;
+  string name = 3;
+  string description = 4;
+  string url = 5;
+  string region = 6;
+  string sub_region = 7;
+  repeated string bioregion = 8;
+  repeated string biome_type = 9;
+  string watershed = 10;
+  string sub_watershed = 11;
+  string project_start_date = 12;
+  string project_end_date = 13;
+  string status = 14;
+}
+
+message ProjectInfo {
+  string iri = 1;
+  string name = 2;
+  string description = 3;
+  string url = 4;
+  string project_start_date = 5;
+  string project_end_date = 6;
+  string region = 7;
+  string sub_region = 8;
+  repeated string bioregion = 9;
+  repeated string biome_type = 10;
+  string watershed = 11;
+  string sub_watershed = 12;
+  repeated Link links = 13;
+  repeated ReferenceId reference_ids = 14;
+  repeated Impact cobenefits = 15;
+  Impact primary_impact = 16;
+}
+
+message Link {
+  string link_name = 1;
+  string link_url = 2;
+  string link_description = 3;
+  string link_type = 4;
+}
+
+message ReferenceId {
+  string identifier = 1;
+  string reference_type = 2;
+  string registry_name = 3;
+  string url = 4;
+}
+
+message Impact {
+  string impact_name = 1;
+  string impact_type = 2;
+  repeated int32 sdg_numbers = 3;
+  string description = 4;
+}
+
+message Batch {
+  string id = 1;
+  string credit_class_id = 2;
+  string location_id = 3;
+  string batch_code = 4;
+  int32 vintage_year = 5;
+  double total_quantity = 6;
+  double issued_quantity = 7;
+  double retired_quantity = 8;
+  double cancelled_quantity = 9;
+  double available_quantity = 10;
+  string unit = 11;
+  string monitoring_report_cid = 12;
+  string verification_report_cid = 13;
+  int32 evidence_maturity = 14;
+  bool is_open = 15;
+  string jurisdiction = 16;
+  string origin_tx_id = 17;
+  string origin_tx_source = 18;
+  string attestation_uid = 19;
+  string chain = 20;
+  string status = 21;
+  int64 minted_at = 22;
+  int64 created_at = 23;
+}
+
+message BatchInfo {
+  string id = 1;
+  string batch_code = 2;
+  string credit_class_id = 3;
+  string location_id = 4;
+  int32 vintage_year = 5;
+  double total_quantity = 6;
+  double issued_quantity = 7;
+  double retired_quantity = 8;
+  double available_quantity = 9;
+  string unit = 10;
+  string status = 11;
+  bool is_open = 12;
+  string jurisdiction = 13;
+}
+
+message BatchBalance {
+  string id = 1;
+  string credit_batch_id = 2;
+  string account_address = 3;
+  double tradable_amount = 4;
+  double retired_amount = 5;
+  double escrowed_amount = 6;
+  int64 updated_at = 7;
+}
+
+message BatchSupply {
+  string credit_batch_id = 1;
+  double tradable_supply = 2;
+  double retired_supply = 3;
+  double escrowed_supply = 4;
+}
+
+message Balance {
+  string credit_batch_id = 1;
+  string account_address = 2;
+  double tradable_amount = 3;
+  double retired_amount = 4;
+  double escrowed_amount = 5;
+}
+
+message BalanceInfo {
+  string credit_batch_id = 1;
+  string batch_code = 2;
+  string account_address = 3;
+  double tradable_amount = 4;
+  double retired_amount = 5;
+  double escrowed_amount = 6;
+  string unit = 7;
+}
+
+message Enrollment {
+  string id = 1;
+  string location_id = 2;
+  string credit_class_id = 3;
+  string status = 4;
+  string application_metadata = 5;
+  string enrollment_metadata = 6;
+  string applied_by = 7;
+  string evaluated_by = 8;
+  int64 applied_at = 9;
+  int64 evaluated_at = 10;
+}
+
+message Basket {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string credit_type_id = 4;
+  repeated string credit_class_ids = 5;
+  string min_start_date = 6;
+  string max_start_date = 7;
+  int32 min_start_year = 8;
+  string token_denom = 9;
+  string chain = 10;
+  string status = 11;
+  bool disable_auto_retire = 12;
+  string curator_address = 13;
+  string basket_denom = 14;
+  int32 exponent = 15;
+  int64 created_at = 16;
+}
+
+message BasketInfo {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string basket_denom = 4;
+  bool disable_auto_retire = 5;
+  string curator_address = 6;
+  int32 exponent = 7;
+  repeated ClassInfo classes = 8;
+  string status = 9;
+}
+
+message BasketBalance {
+  string basket_id = 1;
+  string credit_batch_id = 2;
+  string depositor_address = 3;
+  double quantity = 4;
+  double token_amount = 5;
+  string batch_start_date = 6;
+  string status = 7;
+  int64 deposited_at = 8;
+}
+
+message SellOrder {
+  string id = 1;
+  string credit_batch_id = 2;
+  string seller_address = 3;
+  double quantity = 4;
+  double ask_price = 5;
+  string ask_denom = 6;
+  bool auto_retire = 7;
+  bool disable_auto_retire = 8;
+  bool allow_partial_fills = 9;
+  double escrow_quantity = 10;
+  string expiration = 11;
+  bool is_maker = 12;
+  string status = 13;
+  int64 created_at = 14;
+}
+
+message SellOrderInfo {
+  string id = 1;
+  string batch_code = 2;
+  string seller_address = 3;
+  double quantity = 4;
+  double ask_price = 5;
+  string ask_denom = 6;
+  bool disable_auto_retire = 7;
+  string expiration = 8;
+  string status = 9;
+}
+
+message BuyOrder {
+  string id = 1;
+  string sell_order_id = 2;
+  string buyer_address = 3;
+  double quantity = 4;
+  double total_price = 5;
+  string price_denom = 6;
+  bool auto_retire = 7;
+  bool disable_auto_retire = 8;
+  double max_fee_amount = 9;
+  string retirement_jurisdiction = 10;
+  string retirement_reason = 11;
+  string status = 12;
+  int64 created_at = 13;
+  int64 completed_at = 14;
+}
+
+message AllowedDenom {
+  string id = 1;
+  string denom = 2;
+  string chain = 3;
+  string contract_address = 4;
+  bool is_active = 5;
+  int64 added_at = 6;
+}
+
+message FeeParams {
+  double buyer_fee = 1;
+  double seller_fee = 2;
+}
+
+message BridgeTransaction {
+  string id = 1;
+  string direction = 2;
+  string source_chain = 3;
+  string target_chain = 4;
+  string sender_address = 5;
+  string recipient_address = 6;
+  string credit_batch_id = 7;
+  double quantity = 8;
+  string origin_tx_id = 9;
+  string bridge_tx_hash = 10;
+  string status = 11;
+  int64 created_at = 12;
+  int64 completed_at = 13;
+}

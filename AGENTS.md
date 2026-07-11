@@ -190,6 +190,9 @@
 - Metadata API serve: `python3 -m services.metadata_api.cli serve --port 8099`
 - Project info view: `python3 -m services.metadata_api.cli resolve --iri "kokonut:location:UUID:v1"` (returns full ProjectInfo)
 - Linked data tests: `python3 -m tests.test_linked_data`
+- gRPC server: `python3 -m services.grpc.cli serve`
+- gRPC health check: `python3 -m services.grpc.cli health --target localhost:50051`
+- gRPC tests: `python3 -m tests.test_grpc`
 - Data freshness check: `python3 -m services.ingestion.data_freshness --check`
 - Data freshness summary: `python3 -m services.ingestion.data_freshness --summary`
 - Climate data ingestion: `python3 -m services.ingestion.climate_data --all --location-id UUID`

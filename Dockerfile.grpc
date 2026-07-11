@@ -1,0 +1,40 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY services/ services/
+COPY schemas/ schemas/
+COPY config/ config/
+COPY proto/ proto/
+COPY sdk/ sdk/
+COPY pyproject.toml .
+
+# Generate protobuf Python code
+RUN python -m grpc_tools.protoc \
+    -I proto \
+    --python_out=sdk/python/generated \
+    --grpc_python_out=sdk/python/generated \
+    proto/common/pagination.proto \
+    proto/ecocredit/v1/types.proto \
+    proto/ecocredit/v1/service.proto \
+    proto/data/v1/types.proto \
+    proto/data/v1/service.proto
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+    CMD python3 -c "import grpc; from services.grpc.server import serve" || exit 1
+
+EXPOSE 50051
+
+CMD ["python3", "-m", "services.grpc.cli", "serve"]
