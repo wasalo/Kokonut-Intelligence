@@ -1,0 +1,61 @@
+id: https://kokonut.network/linkml/credit_class
+name: CreditClass
+title: Kokonut Credit Class
+version: "1.0.0"
+description: >-
+  Standardized metadata schema for credit class definitions in the
+  Kokonut Intelligence platform.
+
+imports:
+  - linkml:types
+
+prefixes:
+  kokonut: https://kokonut.network/ontology#
+  schema: http://schema.org/
+  cids: https://ontology.commonapproach.org/cids#
+
+classes:
+  CreditClass:
+    description: A credit class defining methodology and protocol for ecological crediting
+    attributes:
+      name:
+        range: string
+        required: true
+        description: Human-readable name of the credit class
+      description:
+        range: string
+        description: Detailed description of the credit class
+      methodology:
+        range: string
+        required: true
+        description: Name of the crediting methodology
+      methodology_version:
+        range: string
+        description: Version of the methodology
+      methodology_ref:
+        range: uri
+        description: URL to methodology documentation
+      credit_type:
+        range: string
+        required: true
+        description: Type of credit (carbon, biodiversity, water, soil, mixed)
+        permissible_values:
+          carbon:
+          biodiversity:
+          water:
+          soil:
+          mixed:
+      ecosystem_types:
+        range: string
+        multivalued: true
+        description: Applicable ecosystem types
+      eligible_activities:
+        range: string
+        multivalued: true
+        description: Activities eligible for this credit class
+      crediting_period_years:
+        range: integer
+        description: Maximum crediting period in years
+      registry_slug:
+        range: string
+        description: Unique slug for registry identification

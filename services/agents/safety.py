@@ -81,6 +81,11 @@ GOVERNED_COLLECTIONS = {
     "credit_transfer",
     "data_stream_post",
     "data_stream_post_comment",
+    "credit_class",
+    "credit_batch",
+    "retirement_certificate",
+    "iri_registry",
+    "app_project_metadata",
 }
 
 

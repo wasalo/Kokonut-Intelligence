@@ -121,6 +121,28 @@
 - Data stream verify: `python3 -m services.data_stream.cli verify --post-id UUID`
 - Data stream list: `python3 -m services.data_stream.cli list --location-id UUID --type monitoring_report`
 - Data stream tests: `python3 -m tests.test_data_stream`
+- IRI generate: `python3 -m services.iri.cli generate --entity-type location --entity-id UUID`
+- IRI resolve: `python3 -m services.iri.cli resolve --iri "kokonut:location:UUID:v1"`
+- IRI history: `python3 -m services.iri.cli history --entity-type location --entity-id UUID`
+- IRI anchor: `python3 -m services.iri.cli anchor --iri "kokonut:location:UUID:v1" --chain celo`
+- Credit class create: `python3 -m services.credit_class.cli class create --name "Kokonut Carbon" --methodology "IPCC 2006" --type carbon`
+- Credit class list: `python3 -m services.credit_class.cli class list --type carbon`
+- Credit batch create: `python3 -m services.credit_class.cli batch create --class-id UUID --location-id UUID --vintage 2026 --quantity 100`
+- Credit batch issue: `python3 -m services.credit_class.cli batch issue --batch-id UUID`
+- Credit batch balance: `python3 -m services.credit_class.cli batch balance --batch-id UUID`
+- Credit batch list: `python3 -m services.credit_class.cli batch list --location-id UUID`
+- RDF build: `python3 -m services.rdf.cli build --location-id UUID`
+- RDF query: `python3 -m services.rdf.cli query --subject "kokonut:location:UUID"`
+- RDF serialize: `python3 -m services.rdf.cli serialize --format turtle --graph "location:adelphi"`
+- RDF count: `python3 -m services.rdf.cli count --graph "location:adelphi"`
+- RDF list-graphs: `python3 -m services.rdf.cli list-graphs`
+- Certificate generate: `python3 -m services.certificates.cli generate --retirement-id UUID`
+- Certificate verify: `python3 -m services.certificates.cli verify --certificate-number RET-2026-ADEL-0001`
+- Certificate list: `python3 -m services.certificates.cli list --location-id UUID`
+- Metadata API resolve: `python3 -m services.metadata_api.cli resolve --iri "kokonut:location:UUID:v1"`
+- Metadata API generate: `python3 -m services.metadata_api.cli generate --metadata '{"@type":"location","name":"Test"}'`
+- Metadata API serve: `python3 -m services.metadata_api.cli serve --port 8099`
+- Linked data tests: `python3 -m tests.test_linked_data`
 - Data freshness check: `python3 -m services.ingestion.data_freshness --check`
 - Data freshness summary: `python3 -m services.ingestion.data_freshness --summary`
 - Climate data ingestion: `python3 -m services.ingestion.climate_data --all --location-id UUID`
@@ -218,6 +240,14 @@
 - Data stream posts require verified/published `farm_registry_record` for public visibility.
 - Data stream blockchain anchoring uses the `kokonut-data-post` EAS schema on Celo.
 - `data_stream_post` and `data_stream_post_comment` are governed collections — agents cannot publish.
+- IRI system generates deterministic `kokonut:{entity_type}:{entity_id}:v{version}` identifiers for all governed entities.
+- RDF triples are built from governed records via `services/rdf/graph_builder.py` and persisted to `rdf_triple` table.
+- Credit class/batch hierarchy links methodology definitions to issuance events to individual credits.
+- Retirement certificates are generated from `credit_retirement` records with SHA-256 hash integrity.
+- Metadata Graph API serves JSON-LD at `/data/v2/metadata-graph/{iri}` and accepts IRI generation at `/data/v2/iri-gen`.
+- SPARQL queries are translated to SQL against the `rdf_triple` table for basic graph pattern matching.
+- LinkML schemas validate metadata documents against standardized structures.
+- App-level metadata provides additional off-chain project info for UI rendering.
 - Prefer the smallest schema/code change that fixes the issue.
 - Keep seed files idempotent with `ON CONFLICT` or equivalent guards.
 - Seed files must correct stale source-of-truth rows on conflict when the record is canonical metadata, not only `DO NOTHING`.

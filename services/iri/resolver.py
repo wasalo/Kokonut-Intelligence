@@ -1,0 +1,149 @@
+"""IRI generation, resolution, and management."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from typing import Any, Optional
+
+from services.common.logging import get_logger
+
+logger = get_logger("iri.resolver")
+
+KOKONUT_IRI_BASE = "kokonut"
+
+
+def _compute_content_hash(data: dict) -> str:
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def generate_iri(conn, entity_type: str, entity_id: str, content: dict = None) -> str:
+    existing = conn.execute(
+        conn.text(
+            "SELECT MAX(version) as max_version FROM iri_registry "
+            "WHERE entity_type = :et AND entity_id = :eid"
+        ),
+        {"et": entity_type, "eid": entity_id},
+    ).mappings().first()
+
+    version = (existing["max_version"] or 0) + 1 if existing else 1
+    iri = f"{KOKONUT_IRI_BASE}:{entity_type}:{entity_id}:v{version}"
+    content_hash = _compute_content_hash(content) if content else None
+
+    previous_iri = None
+    if version > 1:
+        prev = conn.execute(
+            conn.text(
+                "SELECT iri FROM iri_registry "
+                "WHERE entity_type = :et AND entity_id = :eid AND version = :v"
+            ),
+            {"et": entity_type, "eid": entity_id, "v": version - 1},
+        ).mappings().first()
+        if prev:
+            previous_iri = prev["iri"]
+            conn.execute(
+                conn.text("UPDATE iri_registry SET is_current = FALSE WHERE iri = :iri"),
+                {"iri": previous_iri},
+            )
+
+    conn.execute(
+        conn.text(
+            "INSERT INTO iri_registry (iri, entity_type, entity_id, content_hash, version, "
+            "previous_iri, is_current, metadata_json) "
+            "VALUES (:iri, :et, :eid, :ch, :v, :pi, TRUE, :mj) "
+            "ON CONFLICT (iri) DO UPDATE SET "
+            "content_hash = EXCLUDED.content_hash, metadata_json = EXCLUDED.metadata_json, "
+            "updated_at = NOW()"
+        ),
+        {
+            "iri": iri, "et": entity_type, "eid": entity_id,
+            "ch": content_hash, "v": version, "pi": previous_iri,
+            "mj": json.dumps(content) if content else None,
+        },
+    )
+    logger.info("Generated IRI %s for %s:%s", iri, entity_type, entity_id)
+    return iri
+
+
+def resolve_iri(conn, iri: str) -> dict | None:
+    result = conn.execute(
+        conn.text("SELECT * FROM iri_registry WHERE iri = :iri"),
+        {"iri": iri},
+    ).mappings().first()
+    return dict(result) if result else None
+
+
+def resolve_metadata(conn, iri: str) -> dict | None:
+    row = resolve_iri(conn, iri)
+    if not row:
+        return None
+    return {
+        "iri": row["iri"],
+        "entity_type": row["entity_type"],
+        "entity_id": str(row["entity_id"]),
+        "version": row["version"],
+        "content_hash": row["content_hash"],
+        "metadata_json": row["metadata_json"],
+        "previous_iri": row["previous_iri"],
+    }
+
+
+def get_current_iri(conn, entity_type: str, entity_id: str) -> str | None:
+    result = conn.execute(
+        conn.text(
+            "SELECT iri FROM iri_registry "
+            "WHERE entity_type = :et AND entity_id = :eid AND is_current = TRUE"
+        ),
+        {"et": entity_type, "eid": entity_id},
+    ).mappings().first()
+    return result["iri"] if result else None
+
+
+def get_version_history(conn, entity_type: str, entity_id: str) -> list[dict]:
+    results = conn.execute(
+        conn.text(
+            "SELECT iri, version, content_hash, previous_iri, is_current, created_at "
+            "FROM iri_registry "
+            "WHERE entity_type = :et AND entity_id = :eid "
+            "ORDER BY version ASC"
+        ),
+        {"et": entity_type, "eid": entity_id},
+    ).mappings()
+    return [dict(r) for r in results]
+
+
+def anchor_iri(conn, iri: str, chain: str = "celo") -> dict:
+    row = resolve_iri(conn, iri)
+    if not row:
+        raise ValueError(f"IRI not found: {iri}")
+
+    schema_result = conn.execute(
+        conn.text(
+            "SELECT schema_uid FROM attestation_schema "
+            "WHERE name = :name AND chain = :chain AND active = TRUE LIMIT 1"
+        ),
+        {"name": "kokonut-data-post", "chain": chain},
+    ).mappings().first()
+
+    attestation_result = conn.execute(
+        conn.text(
+            "INSERT INTO attestation_request "
+            "(subject_type, subject_id, schema_name, chain, execution_status, metadata) "
+            "VALUES ('iri_registry', :subject_id, :schema_name, :chain, 'pending', :metadata) "
+            "RETURNING id"
+        ),
+        {
+            "subject_id": str(row["id"]),
+            "schema_name": "kokonut-data-post",
+            "chain": chain,
+            "metadata": json.dumps({"iri": iri, "content_hash": row["content_hash"]}),
+        },
+    ).mappings().first()
+
+    conn.execute(
+        conn.text("UPDATE iri_registry SET chain = :chain, attestation_uid = :uid WHERE iri = :iri"),
+        {"chain": chain, "uid": str(attestation_result["id"]), "iri": iri},
+    )
+
+    return {"iri": iri, "chain": chain, "attestation_request_id": str(attestation_result["id"])}

@@ -1,0 +1,64 @@
+id: https://kokonut.network/linkml/impact_claim
+name: ImpactClaim
+title: Kokonut Impact Claim
+version: "1.0.0"
+description: Standardized metadata schema for impact claims with evidence chaining.
+
+imports:
+  - linkml:types
+
+prefixes:
+  kokonut: https://kokonut.network/ontology#
+  schema: http://schema.org/
+  cids: https://ontology.commonapproach.org/cids#
+
+classes:
+  ImpactClaim:
+    description: An impact claim linking ecological observations to verified outcomes
+    attributes:
+      claim_type:
+        range: string
+        required: true
+        description: Type of claim
+        permissible_values:
+          raw_observed:
+          submitted_record:
+          verified_record:
+          published_record:
+          public_claim:
+          third_party_verified_claim:
+      claim_category:
+        range: string
+        required: true
+        description: Category of impact
+        permissible_values:
+          social:
+          ecological:
+          financial:
+          governance:
+          carbon:
+          biodiversity:
+          operational:
+          other:
+      claim_text:
+        range: string
+        required: true
+        description: Human-readable claim statement
+      claim_value:
+        range: decimal
+        description: Numerical claim value
+      claim_unit:
+        range: string
+        description: Unit of claim value
+      evidence_cid:
+        range: uri
+        description: CID of supporting evidence
+      evidence_maturity:
+        range: integer
+        description: Evidence maturity level (0-6)
+      external_verifier:
+        range: string
+        description: Name of external verifier
+      methodology_ref:
+        range: uri
+        description: Reference to methodology used

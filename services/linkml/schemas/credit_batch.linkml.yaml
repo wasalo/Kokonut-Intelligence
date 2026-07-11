@@ -1,0 +1,42 @@
+id: https://kokonut.network/linkml/credit_batch
+name: CreditBatch
+title: Kokonut Credit Batch
+version: "1.0.0"
+description: Standardized metadata schema for credit batch issuance.
+
+imports:
+  - linkml:types
+
+prefixes:
+  kokonut: https://kokonut.network/ontology#
+  schema: http://schema.org/
+  cids: https://ontology.commonapproach.org/cids#
+
+classes:
+  CreditBatch:
+    description: A credit batch representing a specific issuance event
+    attributes:
+      batch_code:
+        range: string
+        required: true
+        description: Unique batch identifier
+      vintage_year:
+        range: integer
+        required: true
+        description: Vintage year of the credit batch
+      total_quantity:
+        range: decimal
+        required: true
+        description: Total quantity of credits in the batch
+      unit:
+        range: string
+        description: Unit of measurement
+      monitoring_report_cid:
+        range: uri
+        description: CID of monitoring report
+      verification_report_cid:
+        range: uri
+        description: CID of verification report
+      evidence_maturity:
+        range: integer
+        description: Evidence maturity level (0-6)

@@ -1,0 +1,65 @@
+id: https://kokonut.network/linkml/project
+name: Project
+title: Kokonut Project
+version: "1.0.0"
+description: Standardized metadata schema for farm/project metadata.
+
+imports:
+  - linkml:types
+
+prefixes:
+  kokonut: https://kokonut.network/ontology#
+  schema: http://schema.org/
+  geojson: https://purl.org/geojson/vocab#
+
+classes:
+  Project:
+    description: A Kokonut farm project
+    attributes:
+      name:
+        range: string
+        required: true
+        description: Project name
+      description:
+        range: string
+        description: Project description
+      location:
+        range: GeoLocation
+        description: Geographic location
+      ecosystem_type:
+        range: string
+        multivalued: true
+        description: Ecosystem types present
+      project_size:
+        range: ProjectSize
+        description: Size of the project area
+      start_date:
+        range: date
+        description: Project start date
+      end_date:
+        range: date
+        description: Project end date
+
+  GeoLocation:
+    description: Geographic location as GeoJSON
+    attributes:
+      type:
+        range: string
+        description: GeoJSON geometry type
+      coordinates:
+        range: decimal
+        multivalued: true
+        description: GeoJSON coordinates
+      place_name:
+        range: string
+        description: Human-readable place name
+
+  ProjectSize:
+    description: Project size with unit
+    attributes:
+      numeric_value:
+        range: decimal
+        description: Numeric size value
+      unit:
+        range: string
+        description: Unit of measurement
