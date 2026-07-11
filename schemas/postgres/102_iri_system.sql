@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS iri_registry (
     entity_id UUID NOT NULL,
     content_hash VARCHAR(128),
     content_hash_type VARCHAR(20) DEFAULT 'raw',
+    raw_media_type VARCHAR(50),
     metadata_cid TEXT,
     metadata_json JSONB,
     schema_name VARCHAR(100),

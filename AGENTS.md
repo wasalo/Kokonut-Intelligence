@@ -161,6 +161,14 @@
 - Balance supply: `python3 -m services.credit_class.cli balance supply --batch-id UUID`
 - Params list: `python3 -m services.credit_class.cli params list`
 - Params get: `python3 -m services.credit_class.cli params get --key class_fee`
+- Data hash: `python3 -m services.data_module.cli hash --data "test" --algorithm sha256`
+- Data content-hash create: `python3 -m services.data_module.cli content-hash create --iri-id UUID --hash abc123`
+- Data content-hash find: `python3 -m services.data_module.cli content-hash find --hash abc123`
+- Data resolver define: `python3 -m services.data_module.cli resolver define --url "https://api.kokonut.network/data" --manager 0x1234`
+- Data resolver register: `python3 -m services.data_module.cli resolver register --resolver-id UUID --iri-id UUID`
+- Data resolver by-iri: `python3 -m services.data_module.cli resolver by-iri --iri-id UUID`
+- Data attest do: `python3 -m services.data_module.cli attest do --iri-id UUID --attestor 0x1234`
+- Data attest list: `python3 -m services.data_module.cli attest list --iri-id UUID`
 - RDF build: `python3 -m services.rdf.cli build --location-id UUID`
 - RDF query: `python3 -m services.rdf.cli query --subject "kokonut:location:UUID"`
 - RDF serialize: `python3 -m services.rdf.cli serialize --format turtle --graph "location:adelphi"`

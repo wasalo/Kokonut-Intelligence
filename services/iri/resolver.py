@@ -13,13 +13,16 @@ logger = get_logger("iri.resolver")
 KOKONUT_IRI_BASE = "kokonut"
 
 
-def _compute_content_hash(data: dict, hash_type: str = "raw") -> str:
+def _compute_content_hash(data: dict, hash_type: str = "raw", algorithm: str = "sha256") -> str:
     canonical = json.dumps(data, sort_keys=True, separators=(",", ":"), default=str)
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    encoded = canonical.encode("utf-8")
+    if algorithm == "blake2b256":
+        return hashlib.blake2b(encoded, digest_size=32).hexdigest()
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def generate_iri(conn, entity_type: str, entity_id: str, content: dict = None,
-                 content_hash_type: str = "raw") -> str:
+                 content_hash_type: str = "raw", algorithm: str = "sha256") -> str:
     existing = conn.execute(
         conn.text(
             "SELECT MAX(version) as max_version FROM iri_registry "
@@ -30,7 +33,7 @@ def generate_iri(conn, entity_type: str, entity_id: str, content: dict = None,
 
     version = (existing["max_version"] or 0) + 1 if existing else 1
     iri = f"{KOKONUT_IRI_BASE}:{entity_type}:{entity_id}:v{version}"
-    content_hash = _compute_content_hash(content, content_hash_type) if content else None
+    content_hash = _compute_content_hash(content, content_hash_type, algorithm) if content else None
 
     previous_iri = None
     if version > 1:

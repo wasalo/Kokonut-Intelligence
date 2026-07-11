@@ -632,3 +632,88 @@ class TestBasketWithdrawal:
         conn = _fake_conn(rows=[{"batch_code": "CC-001", "quantity": 100, "unit": "tonneCO2e"}])
         balances = get_basket_balances(conn, str(uuid.uuid4()))
         assert len(balances) == 1
+
+
+# ---------------------------------------------------------------------------
+# Data Module v2 tests
+# ---------------------------------------------------------------------------
+
+class TestContentHash:
+    def test_compute_hash_sha256(self):
+        from services.data_module.content_hash import compute_hash
+        h = compute_hash(b"hello world", "sha256")
+        assert len(h) == 64
+
+    def test_compute_hash_blake2b(self):
+        from services.data_module.content_hash import compute_hash
+        h = compute_hash(b"hello world", "blake2b256")
+        assert len(h) == 64
+
+    def test_compute_content_hash(self):
+        from services.data_module.content_hash import compute_content_hash
+        result = compute_content_hash({"key": "value"}, algorithm="sha256", content_type="graph")
+        assert result["hash_algorithm"] == "sha256"
+        assert result["content_type"] == "graph"
+
+    def test_create_content_hash(self):
+        from services.data_module.content_hash import create_content_hash
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = create_content_hash(conn, str(uuid.uuid4()), "abc123", content_type="raw", media_type="json")
+        assert "id" in result
+
+    def test_find_iri_by_hash(self):
+        from services.data_module.content_hash import find_iri_by_content_hash
+        conn = _fake_conn(rows=[{"iri": "kokonut:location:UUID:v1", "entity_type": "location", "hash_algorithm": "sha256"}])
+        results = find_iri_by_content_hash(conn, "abc123")
+        assert len(results) == 1
+
+
+class TestDataResolver:
+    def test_define_resolver(self):
+        from services.data_module.resolver import define_resolver
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = define_resolver(conn, "https://api.kokonut.network/data", "0x1234")
+        assert "id" in result
+
+    def test_list_resolvers(self):
+        from services.data_module.resolver import list_resolvers
+        conn = _fake_conn(rows=[{"resolver_url": "https://api.kokonut.network/data", "is_active": True}])
+        resolvers = list_resolvers(conn)
+        assert len(resolvers) == 1
+
+    def test_register_data(self):
+        from services.data_module.resolver import register_data_to_resolver
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = register_data_to_resolver(conn, str(uuid.uuid4()), str(uuid.uuid4()))
+        assert "resolver_id" in result
+
+    def test_get_resolvers_for_iri(self):
+        from services.data_module.resolver import get_resolvers_for_iri
+        conn = _fake_conn(rows=[{"resolver_url": "https://api.kokonut.network/data", "manager_address": "0x1234"}])
+        resolvers = get_resolvers_for_iri(conn, str(uuid.uuid4()))
+        assert len(resolvers) == 1
+
+
+class TestDataAttestor:
+    def test_attest_to_iri(self):
+        from services.data_module.attestor import attest_to_iri
+        conn = _fake_conn_sequential([
+            None,  # existing check returns None
+            {"id": str(uuid.uuid4())},  # insert
+        ])
+        result = attest_to_iri(conn, str(uuid.uuid4()), "0x1234")
+        assert "id" in result
+
+    def test_attest_already_attested(self):
+        from services.data_module.attestor import attest_to_iri
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4())},  # existing check returns existing
+        ])
+        result = attest_to_iri(conn, str(uuid.uuid4()), "0x1234")
+        assert result["already_attested"] is True
+
+    def test_get_attestors(self):
+        from services.data_module.attestor import get_attestors_for_iri
+        conn = _fake_conn(rows=[{"attestor_address": "0x1234", "attested_at": "2026-07-11"}])
+        attestors = get_attestors_for_iri(conn, str(uuid.uuid4()))
+        assert len(attestors) == 1
