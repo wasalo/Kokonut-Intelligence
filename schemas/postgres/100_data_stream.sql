@@ -105,6 +105,35 @@ CREATE INDEX idx_dspc_post ON data_stream_post_comment(post_id);
 CREATE INDEX idx_dspc_status ON data_stream_post_comment(status);
 
 -- ============================================================
+-- data_stream_file (Regen ProjectPost.files — structured file metadata)
+-- ============================================================
+CREATE TABLE data_stream_file (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    post_id UUID NOT NULL REFERENCES data_stream_post(id) ON DELETE CASCADE,
+    file_iri TEXT,
+    file_name VARCHAR(255),
+    file_description TEXT,
+    file_credit TEXT,
+    file_url TEXT,
+    directus_file_id UUID,
+    media_type VARCHAR(50),
+    file_size_bytes BIGINT,
+    mime_type VARCHAR(100),
+    latitude NUMERIC(10,7),
+    longitude NUMERIC(10,7),
+    geometry GEOMETRY(POINT, 4326),
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_dsf_post ON data_stream_file(post_id);
+CREATE INDEX idx_dsf_media ON data_stream_file(media_type);
+CREATE INDEX idx_dsf_geometry ON data_stream_file USING GIST(geometry);
+
+-- Add file count for quick access
+ALTER TABLE data_stream_post ADD COLUMN IF NOT EXISTS file_count INTEGER DEFAULT 0;
+
+-- ============================================================
 -- v_project_data_stream (chronological feed for each project)
 -- ============================================================
 CREATE OR REPLACE VIEW v_project_data_stream AS

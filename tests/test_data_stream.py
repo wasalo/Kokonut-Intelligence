@@ -359,3 +359,50 @@ class TestConstraints:
     def test_valid_statuses(self):
         from services.data_stream.post import VALID_STATUSES
         assert VALID_STATUSES == {"draft", "submitted", "verified", "published", "rejected"}
+
+
+# ---------------------------------------------------------------------------
+# File tests
+# ---------------------------------------------------------------------------
+
+class TestFiles:
+    def test_add_file(self):
+        from services.data_stream.files import add_file_to_post
+        conn = _fake_conn(rows={"id": POST_ID, "file_count": 0})
+        result = add_file_to_post(
+            conn, post_id=POST_ID, file_name="photo.jpg",
+            media_type="image", latitude=18.5, longitude=-69.9,
+        )
+        assert "id" in result
+
+    def test_list_post_files(self):
+        from services.data_stream.files import list_post_files
+        conn = _fake_conn(rows=[
+            {"file_name": "photo.jpg", "media_type": "image", "latitude": 18.5, "longitude": -69.9},
+        ])
+        files = list_post_files(conn, POST_ID)
+        assert len(files) == 1
+
+    def test_get_file(self):
+        from services.data_stream.files import get_file
+        conn = _fake_conn(rows={"id": str(uuid.uuid4()), "file_name": "test.pdf"})
+        file = get_file(conn, str(uuid.uuid4()))
+        assert file["file_name"] == "test.pdf"
+
+    def test_get_file_not_found(self):
+        from services.data_stream.files import get_file
+        conn = _fake_conn(rows=[])
+        file = get_file(conn, str(uuid.uuid4()))
+        assert file is None
+
+    def test_update_file_metadata(self):
+        from services.data_stream.files import update_file_metadata
+        conn = _fake_conn(rowcount=1)
+        result = update_file_metadata(conn, str(uuid.uuid4()), file_name="updated.jpg", file_credit="Photographer")
+        assert "file_name" in result["updated_fields"]
+
+    def test_remove_file(self):
+        from services.data_stream.files import remove_file_from_post
+        conn = _fake_conn(rows={"id": str(uuid.uuid4()), "post_id": POST_ID}, rowcount=1)
+        removed = remove_file_from_post(conn, str(uuid.uuid4()))
+        assert removed is True

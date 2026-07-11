@@ -120,6 +120,9 @@
 - Data stream anchor: `python3 -m services.data_stream.cli anchor --post-id UUID --chain celo`
 - Data stream verify: `python3 -m services.data_stream.cli verify --post-id UUID`
 - Data stream list: `python3 -m services.data_stream.cli list --location-id UUID --type monitoring_report`
+- Data stream add file: `python3 -m services.data_stream.cli file add --post-id UUID --name "photo.jpg" --media-type image --latitude 18.5 --longitude -69.9`
+- Data stream list files: `python3 -m services.data_stream.cli file list --post-id UUID`
+- Data stream remove file: `python3 -m services.data_stream.cli file remove --file-id UUID`
 - Data stream tests: `python3 -m tests.test_data_stream`
 - IRI generate: `python3 -m services.iri.cli generate --entity-type location --entity-id UUID`
 - IRI resolve: `python3 -m services.iri.cli resolve --iri "kokonut:location:UUID:v1"`

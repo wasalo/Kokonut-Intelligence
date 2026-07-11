@@ -79,6 +79,41 @@ def cmd_list(args):
         print(f"\n{len(posts)} posts")
 
 
+def cmd_file_add(args):
+    with get_connection() as conn:
+        from services.data_stream.files import add_file_to_post
+        result = add_file_to_post(
+            conn,
+            post_id=args.post_id,
+            file_name=args.name,
+            file_description=args.description,
+            file_credit=args.credit,
+            file_url=args.url,
+            file_iri=args.iri,
+            media_type=args.media_type,
+            latitude=args.latitude,
+            longitude=args.longitude,
+        )
+        print(json.dumps(result, indent=2, default=str))
+
+
+def cmd_file_list(args):
+    with get_connection() as conn:
+        from services.data_stream.files import list_post_files
+        files = list_post_files(conn, args.post_id)
+        for f in files:
+            loc = f" @ ({f['latitude']}, {f['longitude']})" if f.get("latitude") else ""
+            print(f"  [{f['media_type'] or 'file'}] {f['file_name'] or 'unnamed'}{loc}")
+        print(f"\n{len(files)} files")
+
+
+def cmd_file_remove(args):
+    with get_connection() as conn:
+        from services.data_stream.files import remove_file_from_post
+        removed = remove_file_from_post(conn, args.file_id)
+        print(f"Removed: {removed}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Data Stream CLI")
     sub = parser.add_subparsers(dest="command")
@@ -120,6 +155,30 @@ def main():
     p_list.add_argument("--type", default=None)
     p_list.add_argument("--limit", type=int, default=50)
     p_list.set_defaults(func=cmd_list)
+
+    # --- file commands ---
+    p_file = sub.add_parser("file", help="File operations on posts")
+    file_sub = p_file.add_subparsers(dest="subcommand")
+
+    p_file_add = file_sub.add_parser("add", help="Add a file to a post")
+    p_file_add.add_argument("--post-id", required=True)
+    p_file_add.add_argument("--name", default=None)
+    p_file_add.add_argument("--description", default=None)
+    p_file_add.add_argument("--credit", default=None)
+    p_file_add.add_argument("--url", default=None)
+    p_file_add.add_argument("--iri", default=None)
+    p_file_add.add_argument("--media-type", default=None)
+    p_file_add.add_argument("--latitude", type=float, default=None)
+    p_file_add.add_argument("--longitude", type=float, default=None)
+    p_file_add.set_defaults(func=cmd_file_add)
+
+    p_file_list = file_sub.add_parser("list", help="List files on a post")
+    p_file_list.add_argument("--post-id", required=True)
+    p_file_list.set_defaults(func=cmd_file_list)
+
+    p_file_remove = file_sub.add_parser("remove", help="Remove a file")
+    p_file_remove.add_argument("--file-id", required=True)
+    p_file_remove.set_defaults(func=cmd_file_remove)
 
     args = parser.parse_args()
     if not args.command:
