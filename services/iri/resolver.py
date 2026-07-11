@@ -13,12 +13,13 @@ logger = get_logger("iri.resolver")
 KOKONUT_IRI_BASE = "kokonut"
 
 
-def _compute_content_hash(data: dict) -> str:
+def _compute_content_hash(data: dict, hash_type: str = "raw") -> str:
     canonical = json.dumps(data, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def generate_iri(conn, entity_type: str, entity_id: str, content: dict = None) -> str:
+def generate_iri(conn, entity_type: str, entity_id: str, content: dict = None,
+                 content_hash_type: str = "raw") -> str:
     existing = conn.execute(
         conn.text(
             "SELECT MAX(version) as max_version FROM iri_registry "
@@ -29,7 +30,7 @@ def generate_iri(conn, entity_type: str, entity_id: str, content: dict = None) -
 
     version = (existing["max_version"] or 0) + 1 if existing else 1
     iri = f"{KOKONUT_IRI_BASE}:{entity_type}:{entity_id}:v{version}"
-    content_hash = _compute_content_hash(content) if content else None
+    content_hash = _compute_content_hash(content, content_hash_type) if content else None
 
     previous_iri = None
     if version > 1:
@@ -49,20 +50,21 @@ def generate_iri(conn, entity_type: str, entity_id: str, content: dict = None) -
 
     conn.execute(
         conn.text(
-            "INSERT INTO iri_registry (iri, entity_type, entity_id, content_hash, version, "
+            "INSERT INTO iri_registry (iri, entity_type, entity_id, content_hash, content_hash_type, version, "
             "previous_iri, is_current, metadata_json) "
-            "VALUES (:iri, :et, :eid, :ch, :v, :pi, TRUE, :mj) "
+            "VALUES (:iri, :et, :eid, :ch, :cht, :v, :pi, TRUE, :mj) "
             "ON CONFLICT (iri) DO UPDATE SET "
-            "content_hash = EXCLUDED.content_hash, metadata_json = EXCLUDED.metadata_json, "
-            "updated_at = NOW()"
+            "content_hash = EXCLUDED.content_hash, content_hash_type = EXCLUDED.content_hash_type, "
+            "metadata_json = EXCLUDED.metadata_json, updated_at = NOW()"
         ),
         {
             "iri": iri, "et": entity_type, "eid": entity_id,
-            "ch": content_hash, "v": version, "pi": previous_iri,
+            "ch": content_hash, "cht": content_hash_type,
+            "v": version, "pi": previous_iri,
             "mj": json.dumps(content) if content else None,
         },
     )
-    logger.info("Generated IRI %s for %s:%s", iri, entity_type, entity_id)
+    logger.info("Generated IRI %s for %s:%s (hash_type=%s)", iri, entity_type, entity_id, content_hash_type)
     return iri
 
 

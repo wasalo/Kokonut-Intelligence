@@ -476,3 +476,95 @@ class TestLinkedDataSafety:
     def test_app_project_metadata_in_governed(self):
         from services.agents.safety import GOVERNED_COLLECTIONS
         assert "app_project_metadata" in GOVERNED_COLLECTIONS
+
+
+# ---------------------------------------------------------------------------
+# Ecocredit Parity tests
+# ---------------------------------------------------------------------------
+
+class TestCreditType:
+    def test_create_credit_type(self):
+        from services.credit_class.entities import create_credit_type
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = create_credit_type(conn, "carbon", "C", "tonneCO2e", 2)
+        assert result["name"] == "carbon"
+
+    def test_list_credit_types(self):
+        from services.credit_class.entities import list_credit_types
+        conn = _fake_conn(rows=[{"name": "carbon", "abbreviation": "C", "unit": "tonneCO2e"}])
+        types = list_credit_types(conn)
+        assert len(types) == 1
+
+
+class TestIssuer:
+    def test_add_issuer(self):
+        from services.credit_class.entities import add_issuer
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_issuer(conn, CLASS_ID, "0x1234", "Kokonut DAO")
+        assert "id" in result
+
+    def test_list_issuers(self):
+        from services.credit_class.entities import list_issuers
+        conn = _fake_conn(rows=[{"issuer_address": "0x1234", "issuer_name": "Kokonut DAO"}])
+        issuers = list_issuers(conn, CLASS_ID)
+        assert len(issuers) == 1
+
+
+class TestAllowlist:
+    def test_add_to_allowlist(self):
+        from services.credit_class.entities import add_to_allowlist
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_to_allowlist(conn, "0x1234", "Kokonut")
+        assert "id" in result
+
+    def test_is_allowed_creator(self):
+        from services.credit_class.entities import is_allowed_creator
+        conn = _fake_conn(rows={"1": 1})
+        assert is_allowed_creator(conn, "0x1234") is True
+
+    def test_is_not_allowed_creator(self):
+        from services.credit_class.entities import is_allowed_creator
+        conn = _fake_conn(rows=[])
+        assert is_allowed_creator(conn, "0x5678") is False
+
+
+class TestBasket:
+    def test_create_basket(self):
+        from services.credit_class.basket import create_basket
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = create_basket(conn, "Carbon Basket", "cusd")
+        assert result["name"] == "Carbon Basket"
+
+    def test_list_baskets(self):
+        from services.credit_class.basket import list_baskets
+        conn = _fake_conn(rows=[{"name": "Carbon Basket", "token_denom": "cusd"}])
+        baskets = list_baskets(conn)
+        assert len(baskets) == 1
+
+
+class TestMarketplace:
+    def test_list_allowed_denoms(self):
+        from services.credit_class.marketplace import list_allowed_denoms
+        conn = _fake_conn(rows=[{"denom": "cusd", "is_active": True}])
+        denoms = list_allowed_denoms(conn)
+        assert len(denoms) == 1
+
+    def test_add_allowed_denom(self):
+        from services.credit_class.marketplace import add_allowed_denom
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_allowed_denom(conn, "cusd", "celo")
+        assert result["denom"] == "cusd"
+
+
+class TestIRIContentHashType:
+    def test_generate_iri_with_hash_type(self):
+        from services.iri.resolver import generate_iri
+        conn = _fake_conn(rows=[{"max_version": None}], rowcount=1)
+        iri = generate_iri(conn, "location", LOCATION_ID, content={"name": "Test"}, content_hash_type="graph")
+        assert iri.startswith("kokonut:location:")
+
+    def test_generate_iri_default_raw(self):
+        from services.iri.resolver import generate_iri
+        conn = _fake_conn(rows=[{"max_version": None}], rowcount=1)
+        iri = generate_iri(conn, "location", LOCATION_ID, content={"name": "Test"})
+        assert iri.startswith("kokonut:location:")

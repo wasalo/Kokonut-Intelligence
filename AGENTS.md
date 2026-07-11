@@ -141,6 +141,19 @@
 - Credit class add protocol: `python3 -m services.credit_class.cli protocol add --credit-class-id UUID --name "IPCC 2006 Tier 2" --is-primary`
 - Credit class add methodology: `python3 -m services.credit_class.cli methodology add --credit-class-id UUID --name "VM0042"`
 - Credit class add buffer-pool: `python3 -m services.credit_class.cli buffer-pool add --credit-class-id UUID --name "Kokonut Pool" --wallet-address 0x1234`
+- Credit type list: `python3 -m services.credit_class.cli credit-type list`
+- Credit class add issuer: `python3 -m services.credit_class.cli issuer add --class-id UUID --address 0x1234 --name "Kokonut DAO"`
+- Credit class list issuers: `python3 -m services.credit_class.cli issuer list --class-id UUID`
+- Allowlist add: `python3 -m services.credit_class.cli allowlist add --address 0x1234 --name "Kokonut"`
+- Allowlist list: `python3 -m services.credit_class.cli allowlist list`
+- Basket create: `python3 -m services.credit_class.cli basket create --name "Carbon Basket" --denom cusd`
+- Basket list: `python3 -m services.credit_class.cli basket list`
+- Basket deposit: `python3 -m services.credit_class.cli basket deposit --basket-id UUID --batch-id UUID --address 0x1234 --quantity 100 --token-amount 100`
+- Basket balance: `python3 -m services.credit_class.cli basket balance --basket-id UUID --address 0x1234`
+- Marketplace sell: `python3 -m services.credit_class.cli marketplace sell --batch-id UUID --seller 0x1234 --quantity 100 --price 2500 --denom cusd`
+- Marketplace buy: `python3 -m services.credit_class.cli marketplace buy --sell-order-id UUID --buyer 0x5678 --quantity 50`
+- Marketplace execute: `python3 -m services.credit_class.cli marketplace execute --buy-order-id UUID`
+- Marketplace denoms: `python3 -m services.credit_class.cli marketplace denoms`
 - RDF build: `python3 -m services.rdf.cli build --location-id UUID`
 - RDF query: `python3 -m services.rdf.cli query --subject "kokonut:location:UUID"`
 - RDF serialize: `python3 -m services.rdf.cli serialize --format turtle --graph "location:adelphi"`

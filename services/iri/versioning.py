@@ -10,8 +10,10 @@ from services.iri.resolver import generate_iri, resolve_iri, get_current_iri, _c
 logger = get_logger("iri.versioning")
 
 
-def create_version(conn, entity_type: str, entity_id: str, metadata: dict) -> str:
-    iri = generate_iri(conn, entity_type, entity_id, content=metadata)
+def create_version(conn, entity_type: str, entity_id: str, metadata: dict,
+                   content_hash_type: str = "raw") -> str:
+    iri = generate_iri(conn, entity_type, entity_id, content=metadata,
+                       content_hash_type=content_hash_type)
     logger.info("Created new version %s for %s:%s", iri, entity_type, entity_id)
     return iri
 

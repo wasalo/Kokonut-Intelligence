@@ -100,6 +100,21 @@ def _entity_delete(entity_name, delete_fn):
     return handler
 
 
+def _print_json(fn):
+    with get_connection() as conn:
+        result = fn(conn)
+        print(json.dumps(result, indent=2, default=str))
+
+
+def _print_list(label, fn):
+    with get_connection() as conn:
+        items = fn(conn)
+        for item in items:
+            name = item.get("name") or item.get("denom") or item.get("address") or item.get("abbreviation", "")
+            print(f"  {name}")
+        print(f"\n{len(items)} {label}s")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Credit Class / Batch CLI")
     sub = parser.add_subparsers(dest="command")
@@ -184,6 +199,92 @@ def main():
         p_del.add_argument("--entity-id", required=True)
         del_fn_name = f"delete_{entity_name.replace('-', '_')}"
         p_del.set_defaults(func=_entity_delete(entity_name, lambda conn, eid: getattr(__import__("services.credit_class.entities", fromlist=[del_fn_name]), del_fn_name)(conn, eid)))
+
+    # --- credit-type ---
+    p_ct = sub.add_parser("credit-type", help="Credit type operations")
+    ct_sub = p_ct.add_subparsers(dest="subcommand")
+
+    p_ct_list = ct_sub.add_parser("list", help="List credit types")
+    p_ct_list.set_defaults(func=lambda args: _print_list("credit_type", lambda conn: __import__("services.credit_class.entities", fromlist=["list_credit_types"]).list_credit_types(conn)))
+
+    # --- issuer ---
+    p_iss = sub.add_parser("issuer", help="Credit class issuer operations")
+    iss_sub = p_iss.add_subparsers(dest="subcommand")
+
+    p_iss_add = iss_sub.add_parser("add", help="Add an issuer")
+    p_iss_add.add_argument("--class-id", required=True)
+    p_iss_add.add_argument("--address", required=True)
+    p_iss_add.add_argument("--name", default=None)
+    p_iss_add.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.entities", fromlist=["add_issuer"]).add_issuer(conn, args.class_id, args.address, args.name)))
+
+    p_iss_list = iss_sub.add_parser("list", help="List issuers")
+    p_iss_list.add_argument("--class-id", required=True)
+    p_iss_list.set_defaults(func=lambda args: _print_list("issuer", lambda conn: __import__("services.credit_class.entities", fromlist=["list_issuers"]).list_issuers(conn, args.class_id)))
+
+    # --- allowlist ---
+    p_al = sub.add_parser("allowlist", help="Creator allowlist operations")
+    al_sub = p_al.add_subparsers(dest="subcommand")
+
+    p_al_add = al_sub.add_parser("add", help="Add to allowlist")
+    p_al_add.add_argument("--address", required=True)
+    p_al_add.add_argument("--name", default=None)
+    p_al_add.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.entities", fromlist=["add_to_allowlist"]).add_to_allowlist(conn, args.address, args.name)))
+
+    p_al_list = al_sub.add_parser("list", help="List allowlist")
+    p_al_list.set_defaults(func=lambda args: _print_list("allowlist", lambda conn: __import__("services.credit_class.entities", fromlist=["list_allowlist"]).list_allowlist(conn)))
+
+    # --- basket ---
+    p_bsk = sub.add_parser("basket", help="Basket operations")
+    bsk_sub = p_bsk.add_subparsers(dest="subcommand")
+
+    p_bsk_create = bsk_sub.add_parser("create", help="Create a basket")
+    p_bsk_create.add_argument("--name", required=True)
+    p_bsk_create.add_argument("--denom", required=True)
+    p_bsk_create.add_argument("--description", default=None)
+    p_bsk_create.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.basket", fromlist=["create_basket"]).create_basket(conn, args.name, args.denom, args.description)))
+
+    p_bsk_list = bsk_sub.add_parser("list", help="List baskets")
+    p_bsk_list.set_defaults(func=lambda args: _print_list("basket", lambda conn: __import__("services.credit_class.basket", fromlist=["list_baskets"]).list_baskets(conn)))
+
+    p_bsk_deposit = bsk_sub.add_parser("deposit", help="Deposit credits into basket")
+    p_bsk_deposit.add_argument("--basket-id", required=True)
+    p_bsk_deposit.add_argument("--batch-id", required=True)
+    p_bsk_deposit.add_argument("--address", required=True)
+    p_bsk_deposit.add_argument("--quantity", type=float, required=True)
+    p_bsk_deposit.add_argument("--token-amount", type=float, required=True)
+    p_bsk_deposit.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.basket", fromlist=["deposit_credits"]).deposit_credits(conn, args.basket_id, args.batch_id, args.address, args.quantity, args.token_amount)))
+
+    p_bsk_balance = bsk_sub.add_parser("balance", help="Check basket token balance")
+    p_bsk_balance.add_argument("--basket-id", required=True)
+    p_bsk_balance.add_argument("--address", required=True)
+    p_bsk_balance.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.basket", fromlist=["get_token_balance"]).get_token_balance(conn, args.basket_id, args.address)))
+
+    # --- marketplace ---
+    p_mkt = sub.add_parser("marketplace", help="Marketplace operations")
+    mkt_sub = p_mkt.add_subparsers(dest="subcommand")
+
+    p_mkt_sell = mkt_sub.add_parser("sell", help="Create sell order")
+    p_mkt_sell.add_argument("--batch-id", required=True)
+    p_mkt_sell.add_argument("--seller", required=True)
+    p_mkt_sell.add_argument("--quantity", type=float, required=True)
+    p_mkt_sell.add_argument("--price", type=float, required=True)
+    p_mkt_sell.add_argument("--denom", required=True)
+    p_mkt_sell.add_argument("--auto-retire", action="store_true")
+    p_mkt_sell.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.marketplace", fromlist=["create_sell_order"]).create_sell_order(conn, args.batch_id, args.seller, args.quantity, args.price, args.denom, args.auto_retire)))
+
+    p_mkt_buy = mkt_sub.add_parser("buy", help="Create buy order")
+    p_mkt_buy.add_argument("--sell-order-id", required=True)
+    p_mkt_buy.add_argument("--buyer", required=True)
+    p_mkt_buy.add_argument("--quantity", type=float, required=True)
+    p_mkt_buy.add_argument("--auto-retire", action="store_true")
+    p_mkt_buy.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.marketplace", fromlist=["create_buy_order"]).create_buy_order(conn, args.sell_order_id, args.buyer, args.quantity, args.auto_retire)))
+
+    p_mkt_execute = mkt_sub.add_parser("execute", help="Execute buy order")
+    p_mkt_execute.add_argument("--buy-order-id", required=True)
+    p_mkt_execute.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.marketplace", fromlist=["execute_buy_order"]).execute_buy_order(conn, args.buy_order_id)))
+
+    p_mkt_denoms = mkt_sub.add_parser("denoms", help="List allowed denominations")
+    p_mkt_denoms.set_defaults(func=lambda args: _print_list("denom", lambda conn: __import__("services.credit_class.marketplace", fromlist=["list_allowed_denoms"]).list_allowed_denoms(conn)))
 
     args = parser.parse_args()
     if not args.command:

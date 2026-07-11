@@ -217,3 +217,118 @@ def delete_buffer_pool(conn, pool_id: str) -> bool:
         {"id": pool_id},
     )
     return result.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Credit Types (Credit Type entity)
+# ---------------------------------------------------------------------------
+
+def create_credit_type(conn, name: str, abbreviation: str, unit: str,
+                       precision: int = 2, description: str = None) -> dict:
+    result = conn.execute(
+        conn.text(
+            "INSERT INTO credit_type (name, abbreviation, unit, precision, description) "
+            "VALUES (:name, :abbr, :unit, :prec, :desc) RETURNING id"
+        ),
+        {"name": name, "abbr": abbreviation, "unit": unit, "prec": precision, "desc": description},
+    )
+    record = result.mappings().first()
+    return {"id": str(record["id"]), "name": name}
+
+
+def list_credit_types(conn) -> list[dict]:
+    result = conn.execute(
+        conn.text("SELECT * FROM credit_type ORDER BY name")
+    )
+    return [dict(r) for r in result.mappings()]
+
+
+def get_credit_type(conn, type_id: str) -> dict | None:
+    result = conn.execute(
+        conn.text("SELECT * FROM credit_type WHERE id = :tid"),
+        {"tid": type_id},
+    ).mappings().first()
+    return dict(result) if result else None
+
+
+# ---------------------------------------------------------------------------
+# Issuers (Credit Class Issuers)
+# ---------------------------------------------------------------------------
+
+def add_issuer(conn, credit_class_id: str, issuer_address: str,
+               issuer_name: str = None, added_by: str = None) -> dict:
+    result = conn.execute(
+        conn.text(
+            "INSERT INTO credit_class_issuer (credit_class_id, issuer_address, issuer_name, added_by) "
+            "VALUES (:ccid, :addr, :name, :ab) RETURNING id"
+        ),
+        {"ccid": credit_class_id, "addr": issuer_address, "name": issuer_name, "ab": added_by},
+    )
+    record = result.mappings().first()
+    return {"id": str(record["id"]), "issuer_address": issuer_address}
+
+
+def list_issuers(conn, credit_class_id: str) -> list[dict]:
+    result = conn.execute(
+        conn.text(
+            "SELECT * FROM credit_class_issuer "
+            "WHERE credit_class_id = :ccid AND revoked_at IS NULL ORDER BY added_at"
+        ),
+        {"ccid": credit_class_id},
+    )
+    return [dict(r) for r in result.mappings()]
+
+
+def revoke_issuer(conn, issuer_id: str) -> bool:
+    result = conn.execute(
+        conn.text(
+            "UPDATE credit_class_issuer SET revoked_at = NOW() WHERE id = :id AND revoked_at IS NULL"
+        ),
+        {"id": issuer_id},
+    )
+    return result.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Creator Allowlist
+# ---------------------------------------------------------------------------
+
+def add_to_allowlist(conn, address: str, entity_name: str = None, added_by: str = None) -> dict:
+    result = conn.execute(
+        conn.text(
+            "INSERT INTO credit_class_creator_allowlist (address, entity_name, added_by) "
+            "VALUES (:addr, :name, :ab) "
+            "ON CONFLICT (address) DO UPDATE SET is_active = TRUE "
+            "RETURNING id"
+        ),
+        {"addr": address, "name": entity_name, "ab": added_by},
+    )
+    record = result.mappings().first()
+    return {"id": str(record["id"]), "address": address}
+
+
+def list_allowlist(conn) -> list[dict]:
+    result = conn.execute(
+        conn.text("SELECT * FROM credit_class_creator_allowlist WHERE is_active = TRUE ORDER BY added_at")
+    )
+    return [dict(r) for r in result.mappings()]
+
+
+def remove_from_allowlist(conn, address: str) -> bool:
+    result = conn.execute(
+        conn.text(
+            "UPDATE credit_class_creator_allowlist SET is_active = FALSE WHERE address = :addr"
+        ),
+        {"addr": address},
+    )
+    return result.rowcount > 0
+
+
+def is_allowed_creator(conn, address: str) -> bool:
+    result = conn.execute(
+        conn.text(
+            "SELECT 1 FROM credit_class_creator_allowlist WHERE address = :addr AND is_active = TRUE"
+        ),
+        {"addr": address},
+    ).mappings().first()
+    return result is not None

@@ -31,6 +31,9 @@ def create_class(
     primary_impact_type: str = None,
     primary_impact_name: str = None,
     primary_impact_sdgs: list[int] = None,
+    admin_address: str = None,
+    credit_type_id: str = None,
+    allowlist_required: bool = False,
     metadata: dict = None,
     created_by: str = None,
 ) -> dict:
@@ -48,12 +51,14 @@ def create_class(
             "credit_type, ecosystem_types, eligible_activities, crediting_period_years, "
             "registry_slug, issuer_wallet, governance_mechanism, "
             "primary_impact_type, primary_impact_name, primary_impact_sdgs, "
+            "admin_address, credit_type_id, allowlist_required, "
             "metadata, created_by, updated_by) "
             "VALUES "
             "(:name, :description, :url, :methodology, :mv, :mr, "
             ":ct, :et, :ea, :cpy, "
             ":rs, :iw, :gm, "
             ":pit, :pin, :pisdgs, "
+            ":admin, :ctid, :ar, "
             ":metadata, :cb, :cb) "
             "RETURNING id"
         ),
@@ -64,6 +69,7 @@ def create_class(
             "cpy": crediting_period_years,
             "rs": registry_slug, "iw": issuer_wallet, "gm": governance_mechanism,
             "pit": primary_impact_type, "pin": primary_impact_name, "pisdgs": primary_impact_sdgs,
+            "admin": admin_address, "ctid": credit_type_id, "ar": allowlist_required,
             "metadata": json.dumps(metadata) if metadata else "{}",
             "cb": created_by,
         },
@@ -79,6 +85,7 @@ def update_class(conn, class_id: str, **kwargs) -> dict:
         "credit_type", "ecosystem_types", "eligible_activities", "crediting_period_years",
         "registry_slug", "issuer_wallet", "governance_mechanism",
         "primary_impact_type", "primary_impact_name", "primary_impact_sdgs",
+        "admin_address", "credit_type_id", "allowlist_required",
         "status", "metadata", "updated_by",
     }
     updates = {k: v for k, v in kwargs.items() if k in allowed}
