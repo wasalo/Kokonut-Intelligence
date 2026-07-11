@@ -154,6 +154,13 @@
 - Marketplace buy: `python3 -m services.credit_class.cli marketplace buy --sell-order-id UUID --buyer 0x5678 --quantity 50`
 - Marketplace execute: `python3 -m services.credit_class.cli marketplace execute --buy-order-id UUID`
 - Marketplace denoms: `python3 -m services.credit_class.cli marketplace denoms`
+- Balance get: `python3 -m services.credit_class.cli balance get --batch-id UUID --account 0x1234`
+- Balance account: `python3 -m services.credit_class.cli balance account --account 0x1234`
+- Balance batch: `python3 -m services.credit_class.cli balance batch --batch-id UUID`
+- Balance all: `python3 -m services.credit_class.cli balance all`
+- Balance supply: `python3 -m services.credit_class.cli balance supply --batch-id UUID`
+- Params list: `python3 -m services.credit_class.cli params list`
+- Params get: `python3 -m services.credit_class.cli params get --key class_fee`
 - RDF build: `python3 -m services.rdf.cli build --location-id UUID`
 - RDF query: `python3 -m services.rdf.cli query --subject "kokonut:location:UUID"`
 - RDF serialize: `python3 -m services.rdf.cli serialize --format turtle --graph "location:adelphi"`

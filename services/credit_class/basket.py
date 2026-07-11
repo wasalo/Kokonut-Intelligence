@@ -162,3 +162,62 @@ def list_deposits(conn, basket_id: str = None, depositor_address: str = None) ->
         params,
     )
     return [dict(r) for r in result.mappings()]
+
+
+def withdraw_from_basket(
+    conn,
+    basket_id: str,
+    holder_address: str,
+    quantity: float,
+) -> dict:
+    basket = get_basket(conn, basket_id)
+    if not basket:
+        raise ValueError(f"Basket not found: {basket_id}")
+    if basket["status"] != "active":
+        raise ValueError(f"Basket is not active: {basket['status']}")
+
+    token_balance = get_token_balance(conn, basket_id, holder_address)
+    if float(token_balance.get("token_amount", 0)) < quantity:
+        raise ValueError(f"Insufficient basket tokens: {token_balance.get('token_amount', 0)} < {quantity}")
+
+    conn.execute(
+        conn.text(
+            "UPDATE credit_basket_token SET "
+            "token_amount = token_amount - :qty, last_updated_at = NOW() "
+            "WHERE basket_id = :bid AND holder_address = :addr"
+        ),
+        {"qty": quantity, "bid": basket_id, "addr": holder_address},
+    )
+
+    logger.info("Withdrew %s basket tokens from %s", quantity, holder_address)
+    return {"basket_id": basket_id, "holder_address": holder_address, "quantity_withdrawn": quantity}
+
+
+def get_basket_balances(conn, basket_id: str) -> list[dict]:
+    result = conn.execute(
+        conn.text(
+            "SELECT cbd.*, b.batch_code, b.unit "
+            "FROM credit_basket_deposit cbd "
+            "JOIN credit_batch b ON b.id = cbd.credit_batch_id "
+            "WHERE cbd.basket_id = :bid AND cbd.status = 'deposited' "
+            "ORDER BY cbd.deposited_at DESC"
+        ),
+        {"bid": basket_id},
+    )
+    return [dict(r) for r in result.mappings()]
+
+
+def get_basket_balance_for_batch(conn, basket_id: str, batch_id: str) -> dict:
+    result = conn.execute(
+        conn.text(
+            "SELECT COALESCE(SUM(quantity), 0) AS balance "
+            "FROM credit_basket_deposit "
+            "WHERE basket_id = :bid AND credit_batch_id = :bhid AND status = 'deposited'"
+        ),
+        {"bid": basket_id, "bhid": batch_id},
+    ).mappings().first()
+    return {
+        "basket_id": basket_id,
+        "batch_id": batch_id,
+        "balance": float(result["balance"]),
+    }

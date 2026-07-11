@@ -568,3 +568,67 @@ class TestIRIContentHashType:
         conn = _fake_conn(rows=[{"max_version": None}], rowcount=1)
         iri = generate_iri(conn, "location", LOCATION_ID, content={"name": "Test"})
         assert iri.startswith("kokonut:location:")
+
+
+# ---------------------------------------------------------------------------
+# Balance tests
+# ---------------------------------------------------------------------------
+
+class TestBalance:
+    def test_get_balance(self):
+        from services.credit_class.balance import get_balance
+        conn = _fake_conn(rows=[])
+        balance = get_balance(conn, str(uuid.uuid4()), "0x1234")
+        assert balance["tradable_amount"] == 0
+
+    def test_get_supply(self):
+        from services.credit_class.balance import get_supply
+        conn = _fake_conn(rows={"tradable_supply": 100, "retired_supply": 20, "escrowed_supply": 10})
+        supply = get_supply(conn, str(uuid.uuid4()))
+        assert supply["tradable_supply"] == 100
+
+    def test_upsert_balance(self):
+        from services.credit_class.balance import upsert_balance
+        conn = _fake_conn(rows={"id": str(uuid.uuid4()), "tradable_amount": 50, "retired_amount": 0, "escrowed_amount": 0})
+        result = upsert_balance(conn, str(uuid.uuid4()), "0x1234", tradable_delta=50)
+        assert "tradable" in result
+
+
+# ---------------------------------------------------------------------------
+# Params tests
+# ---------------------------------------------------------------------------
+
+class TestParams:
+    def test_get_params(self):
+        from services.credit_class.params import get_params
+        conn = _fake_conn(rows=[{"param_key": "class_fee", "param_value": {"denom": "cusd", "amount": 0}}])
+        params = get_params(conn)
+        assert "class_fee" in params
+
+    def test_get_class_fee(self):
+        from services.credit_class.params import get_class_fee
+        conn = _fake_conn(rows={"param_key": "class_fee", "param_value": {"denom": "cusd", "amount": 0}})
+        fee = get_class_fee(conn)
+        assert fee["denom"] == "cusd"
+
+
+# ---------------------------------------------------------------------------
+# Basket withdrawal tests
+# ---------------------------------------------------------------------------
+
+class TestBasketWithdrawal:
+    def test_withdraw_from_basket(self):
+        from services.credit_class.basket import withdraw_from_basket
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4()), "status": "active"},  # get_basket
+            {"token_amount": 100},  # get_token_balance
+            {"token_amount": 100},  # update
+        ])
+        result = withdraw_from_basket(conn, str(uuid.uuid4()), "0x1234", 50)
+        assert result["quantity_withdrawn"] == 50
+
+    def test_get_basket_balances(self):
+        from services.credit_class.basket import get_basket_balances
+        conn = _fake_conn(rows=[{"batch_code": "CC-001", "quantity": 100, "unit": "tonneCO2e"}])
+        balances = get_basket_balances(conn, str(uuid.uuid4()))
+        assert len(balances) == 1

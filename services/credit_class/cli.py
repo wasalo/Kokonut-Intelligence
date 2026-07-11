@@ -286,6 +286,41 @@ def main():
     p_mkt_denoms = mkt_sub.add_parser("denoms", help="List allowed denominations")
     p_mkt_denoms.set_defaults(func=lambda args: _print_list("denom", lambda conn: __import__("services.credit_class.marketplace", fromlist=["list_allowed_denoms"]).list_allowed_denoms(conn)))
 
+    # --- balance ---
+    p_bal = sub.add_parser("balance", help="Credit balance operations")
+    bal_sub = p_bal.add_subparsers(dest="subcommand")
+
+    p_bal_get = bal_sub.add_parser("get", help="Get balance for batch+account")
+    p_bal_get.add_argument("--batch-id", required=True)
+    p_bal_get.add_argument("--account", required=True)
+    p_bal_get.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.balance", fromlist=["get_balance"]).get_balance(conn, args.batch_id, args.account)))
+
+    p_bal_account = bal_sub.add_parser("account", help="Get all balances for account")
+    p_bal_account.add_argument("--account", required=True)
+    p_bal_account.set_defaults(func=lambda args: _print_list("balance", lambda conn: __import__("services.credit_class.balance", fromlist=["get_balances_for_account"]).get_balances_for_account(conn, args.account)))
+
+    p_bal_batch = bal_sub.add_parser("batch", help="Get all balances for batch")
+    p_bal_batch.add_argument("--batch-id", required=True)
+    p_bal_batch.set_defaults(func=lambda args: _print_list("balance", lambda conn: __import__("services.credit_class.balance", fromlist=["get_balances_for_batch"]).get_balances_for_batch(conn, args.batch_id)))
+
+    p_bal_all = bal_sub.add_parser("all", help="Get all balances")
+    p_bal_all.set_defaults(func=lambda args: _print_list("balance", lambda conn: __import__("services.credit_class.balance", fromlist=["get_all_balances"]).get_all_balances(conn)))
+
+    p_bal_supply = bal_sub.add_parser("supply", help="Get supply for batch")
+    p_bal_supply.add_argument("--batch-id", required=True)
+    p_bal_supply.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.balance", fromlist=["get_supply"]).get_supply(conn, args.batch_id)))
+
+    # --- params ---
+    p_params = sub.add_parser("params", help="Module parameters")
+    params_sub = p_params.add_subparsers(dest="subcommand")
+
+    p_params_list = params_sub.add_parser("list", help="List all parameters")
+    p_params_list.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.params", fromlist=["get_params"]).get_params(conn)))
+
+    p_params_get = params_sub.add_parser("get", help="Get a parameter")
+    p_params_get.add_argument("--key", required=True)
+    p_params_get.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.params", fromlist=["get_param"]).get_param(conn, args.key)))
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()

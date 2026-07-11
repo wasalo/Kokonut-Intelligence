@@ -186,3 +186,37 @@ INSERT INTO credit_allowed_denom (denom, chain, is_active) VALUES
 ('cusd', 'celo', TRUE),
 ('ceur', 'celo', TRUE)
 ON CONFLICT (denom) DO NOTHING;
+
+-- ============================================================
+-- credit_balance (per-account balance tracking)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS credit_balance (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    credit_batch_id UUID NOT NULL REFERENCES credit_batch(id) ON DELETE RESTRICT,
+    account_address VARCHAR(42) NOT NULL,
+    tradable_amount NUMERIC(14,4) DEFAULT 0 CHECK (tradable_amount >= 0),
+    retired_amount NUMERIC(14,4) DEFAULT 0 CHECK (retired_amount >= 0),
+    escrowed_amount NUMERIC(14,4) DEFAULT 0 CHECK (escrowed_amount >= 0),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(credit_batch_id, account_address)
+);
+
+CREATE INDEX idx_cb_batch ON credit_balance(credit_batch_id);
+CREATE INDEX idx_cb_account ON credit_balance(account_address);
+
+-- ============================================================
+-- ecocredit_params (module parameters)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS ecocredit_params (
+    param_key VARCHAR(100) PRIMARY KEY,
+    param_value JSONB NOT NULL,
+    description TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed default parameters
+INSERT INTO ecocredit_params (param_key, param_value, description) VALUES
+('class_fee', '{"denom": "cusd", "amount": 0}', 'Credit class creation fee'),
+('basket_fee', '{"denom": "cusd", "amount": 0}', 'Basket creation fee'),
+('allowed_bridge_chains', '["celo", "gnosis"]', 'Chains allowed for bridge operations')
+ON CONFLICT (param_key) DO NOTHING;
