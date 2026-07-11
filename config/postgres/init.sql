@@ -6,10 +6,7 @@
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS postgis_topology;
 
--- UUID generation
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Cryptographic functions
+-- Cryptographic functions (includes gen_random_uuid())
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Trigram similarity (useful for search)

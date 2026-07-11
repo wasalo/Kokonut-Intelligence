@@ -1,6 +1,6 @@
 services:
   database:
-    image: postgis/postgis:14-3.4
+    image: postgis/postgis:17-3.5
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -33,7 +33,7 @@ services:
       retries: 5
 
   directus:
-    image: directus/directus:11.17.4
+    image: directus/directus:12.1.1
     restart: unless-stopped
     ports:
       - "127.0.0.1:8055:8055"
@@ -83,7 +83,7 @@ services:
       PUBLIC_RESTRICT: "true"
 
   metabase:
-    image: metabase/metabase:v0.52.6
+    image: metabase/metabase:v0.63.0
     restart: unless-stopped
     expose:
       - "3000"
@@ -113,7 +113,7 @@ services:
       start_period: 45s
 
   clickhouse:
-    image: clickhouse/clickhouse-server:25.3
+    image: clickhouse/clickhouse-server:25.8
     restart: unless-stopped
     volumes:
       - clickhouse-data:/var/lib/clickhouse

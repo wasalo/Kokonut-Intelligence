@@ -1,6 +1,6 @@
 [tool.ruff]
 line-length = 120
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
@@ -10,7 +10,7 @@ ignore = ["E501"]
 known-first-party = ["services", "tests"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 ignore_missing_imports = true
 check_untyped_defs = false
 warn_unused_ignores = false
