@@ -74,6 +74,10 @@ CREATE TABLE IF NOT EXISTS credit_basket (
     token_denom VARCHAR(50) NOT NULL,
     chain VARCHAR(50) DEFAULT 'celo',
     status VARCHAR(50) DEFAULT 'active',
+    disable_auto_retire BOOLEAN DEFAULT FALSE,
+    curator_address VARCHAR(42),
+    basket_denom VARCHAR(100),
+    exponent INTEGER DEFAULT 6,
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -82,6 +86,7 @@ CREATE TABLE IF NOT EXISTS credit_basket (
 
 CREATE INDEX idx_cb_type ON credit_basket(credit_type_id);
 CREATE INDEX idx_cb_denom ON credit_basket(token_denom);
+CREATE INDEX idx_cb_curator ON credit_basket(curator_address);
 
 -- ============================================================
 -- credit_basket_deposit (deposits into basket)
@@ -93,6 +98,7 @@ CREATE TABLE IF NOT EXISTS credit_basket_deposit (
     depositor_address VARCHAR(42) NOT NULL,
     quantity NUMERIC(14,4) NOT NULL CHECK (quantity > 0),
     token_amount NUMERIC(18,8) NOT NULL CHECK (token_amount > 0),
+    batch_start_date DATE,
     deposit_tx_hash VARCHAR(66),
     chain VARCHAR(50) DEFAULT 'celo',
     deposited_at TIMESTAMPTZ DEFAULT NOW(),

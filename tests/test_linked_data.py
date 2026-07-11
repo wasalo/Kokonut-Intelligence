@@ -535,11 +535,47 @@ class TestBasket:
         result = create_basket(conn, "Carbon Basket", "cusd")
         assert result["name"] == "Carbon Basket"
 
+    def test_create_basket_with_denom(self):
+        from services.credit_class.basket import create_basket, _compute_basket_denom
+        denom = _compute_basket_denom("rNCT", "C", 6)
+        assert denom == "eco.uC.rNCT"
+
     def test_list_baskets(self):
         from services.credit_class.basket import list_baskets
         conn = _fake_conn(rows=[{"name": "Carbon Basket", "token_denom": "cusd"}])
         baskets = list_baskets(conn)
         assert len(baskets) == 1
+
+    def test_update_curator(self):
+        from services.credit_class.basket import update_curator
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4()), "curator_address": "0x1234"},  # get_basket
+            {"rowcount": 1},  # update
+        ])
+        result = update_curator(conn, str(uuid.uuid4()), "0x1234", "0x5678")
+        assert result["new_curator"] == "0x5678"
+
+    def test_update_date_criteria(self):
+        from services.credit_class.basket import update_date_criteria
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4())},  # get_basket
+            {"rowcount": 1},  # update
+        ])
+        result = update_date_criteria(conn, str(uuid.uuid4()), min_start_year=5)
+        assert result["basket_id"] is not None
+
+    def test_withdraw_with_auto_retire(self):
+        from services.credit_class.basket import withdraw_from_basket
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4()), "status": "active", "disable_auto_retire": False, "exponent": 6},  # get_basket
+            {"token_amount": 1000000},  # get_token_balance
+            [{"credit_batch_id": str(uuid.uuid4()), "token_amount": 1000000, "batch_start_date": "2026-01-01", "id": str(uuid.uuid4())}],  # deposits
+            {"rowcount": 1},  # update deposit
+            {"rowcount": 1},  # update token
+        ])
+        result = withdraw_from_basket(conn, str(uuid.uuid4()), "0x1234", 1000000)
+        assert result["retire_on_take"] is True
+        assert result["credit_amount"] == 1.0
 
 
 class TestMarketplace:
@@ -620,12 +656,14 @@ class TestBasketWithdrawal:
     def test_withdraw_from_basket(self):
         from services.credit_class.basket import withdraw_from_basket
         conn = _fake_conn_sequential([
-            {"id": str(uuid.uuid4()), "status": "active"},  # get_basket
+            {"id": str(uuid.uuid4()), "status": "active", "disable_auto_retire": False, "exponent": 6},  # get_basket
             {"token_amount": 100},  # get_token_balance
-            {"token_amount": 100},  # update
+            [{"credit_batch_id": str(uuid.uuid4()), "token_amount": 100, "batch_start_date": "2026-01-01", "id": str(uuid.uuid4())}],  # deposits
+            {"rowcount": 1},  # update deposit
+            {"rowcount": 1},  # update token
         ])
         result = withdraw_from_basket(conn, str(uuid.uuid4()), "0x1234", 50)
-        assert result["quantity_withdrawn"] == 50
+        assert result["token_amount_withdrawn"] == 50
 
     def test_get_basket_balances(self):
         from services.credit_class.basket import get_basket_balances
