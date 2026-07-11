@@ -52,25 +52,5 @@ def upsert_app_metadata(conn, location_id: str, **kwargs) -> dict:
 
 
 def get_complete_project_view(conn, location_id: str) -> dict:
-    location = conn.execute(
-        conn.text("SELECT * FROM location WHERE id = :lid"),
-        {"lid": location_id},
-    ).mappings().first()
-
-    registry = conn.execute(
-        conn.text("SELECT * FROM farm_registry_record WHERE location_id = :lid AND status IN ('verified', 'published') LIMIT 1"),
-        {"lid": location_id},
-    ).mappings().first()
-
-    app_meta = get_app_metadata(conn, location_id)
-
-    from services.iri.resolver import get_current_iri
-    iri = get_current_iri(conn, "location", location_id)
-
-    return {
-        "location_id": location_id,
-        "iri": iri,
-        "location": dict(location) if location else None,
-        "registry": dict(registry) if registry else None,
-        "app_metadata": app_meta,
-    }
+    from services.metadata_api.project_info import get_project_info
+    return get_project_info(conn, location_id)

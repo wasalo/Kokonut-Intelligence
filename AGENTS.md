@@ -149,6 +149,7 @@
 - Metadata API resolve: `python3 -m services.metadata_api.cli resolve --iri "kokonut:location:UUID:v1"`
 - Metadata API generate: `python3 -m services.metadata_api.cli generate --metadata '{"@type":"location","name":"Test"}'`
 - Metadata API serve: `python3 -m services.metadata_api.cli serve --port 8099`
+- Project info view: `python3 -m services.metadata_api.cli resolve --iri "kokonut:location:UUID:v1"` (returns full ProjectInfo)
 - Linked data tests: `python3 -m tests.test_linked_data`
 - Data freshness check: `python3 -m services.ingestion.data_freshness --check`
 - Data freshness summary: `python3 -m services.ingestion.data_freshness --summary`

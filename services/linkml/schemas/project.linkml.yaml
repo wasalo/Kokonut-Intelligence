@@ -1,8 +1,10 @@
 id: https://kokonut.network/linkml/project
 name: Project
 title: Kokonut Project
-version: "1.0.0"
-description: Standardized metadata schema for farm/project metadata.
+version: "2.0.0"
+description: >-
+  Standardized metadata schema for farm/project definitions, aligned with
+  Regen Network Framework Working Group ProjectInfo schema.
 
 imports:
   - linkml:types
@@ -11,55 +13,273 @@ prefixes:
   kokonut: https://kokonut.network/ontology#
   schema: http://schema.org/
   geojson: https://purl.org/geojson/vocab#
+  rfs: https://framework.regen.network/schema/
 
 classes:
   Project:
     description: A Kokonut farm project
+    slots:
+      - name
+      - description
+      - url
+      - projectStartDate
+      - projectEndDate
+      - hasLinks
+      - hasReferenceId
+      - hasFeature
+      - projectSize
+      - environmentType
+      - region
+      - bioregion
+      - biomeType
+      - watershed
+      - subWatershed
+      - activity
+      - hasPrimaryImpact
+      - hasCoBenefits
+      - hasProjectDeveloper
+      - hasProjectMonitor
+      - hasProjectOperator
+      - hasProjectOwner
+      - hasProjectPartner
+      - usesMethodology
     attributes:
       name:
         range: string
         required: true
         description: Project name
+        slot_uri: schema:name
       description:
         range: string
         description: Project description
-      location:
-        range: GeoLocation
-        description: Geographic location
-      ecosystem_type:
-        range: string
+        slot_uri: schema:description
+      url:
+        range: uri
+        description: Link to project information
+        slot_uri: schema:url
+      projectStartDate:
+        range: date
+        description: The start date of the project
+        slot_uri: schema:startDate
+      projectEndDate:
+        range: date
+        description: The end date of the project
+        slot_uri: schema:endDate
+      hasLinks:
+        range: Link
         multivalued: true
-        description: Ecosystem types present
-      project_size:
-        range: ProjectSize
+        description: Links associated with the project
+      hasReferenceId:
+        range: ReferenceId
+        multivalued: true
+        description: External reference IDs
+      hasFeature:
+        range: Feature
+        required: true
+        description: Geographic location of the project
+      projectSize:
+        range: QuantityValue
         description: Size of the project area
-      start_date:
-        range: date
-        description: Project start date
-      end_date:
-        range: date
-        description: Project end date
-
-  GeoLocation:
-    description: Geographic location as GeoJSON
-    attributes:
-      type:
+      environmentType:
         range: string
-        description: GeoJSON geometry type
-      coordinates:
-        range: decimal
         multivalued: true
-        description: GeoJSON coordinates
-      place_name:
+        description: Environment types of the project
+      region:
         range: string
-        description: Human-readable place name
+        description: Geographic region
+      bioregion:
+        range: string
+        multivalued: true
+        description: Bioregion classifications
+      biomeType:
+        range: string
+        multivalued: true
+        description: Biome type classifications
+      watershed:
+        range: string
+        description: Watershed name
+      subWatershed:
+        range: string
+        description: Sub-watershed name
+      activity:
+        range: string
+        multivalued: true
+        description: Activities being implemented
+      hasPrimaryImpact:
+        range: Impact
+        required: true
+        description: Primary impact of the project
+      hasCoBenefits:
+        range: Impact
+        multivalued: true
+        description: Secondary/co-benefit impacts
+      hasProjectDeveloper:
+        range: Entity
+        description: Organization responsible for developing the project
+      hasProjectMonitor:
+        range: Entity
+        description: Organization responsible for monitoring
+      hasProjectOperator:
+        range: Entity
+        description: Organization responsible for operating
+      hasProjectOwner:
+        range: Entity
+        description: Organization that owns the project
+      hasProjectPartner:
+        range: Entity
+        description: Partner organization
+      usesMethodology:
+        range: Methodology
+        multivalued: true
+        description: Methodologies used by the project
 
-  ProjectSize:
-    description: Project size with unit
+  Link:
+    description: An external link
     attributes:
-      numeric_value:
-        range: decimal
-        description: Numeric size value
+      link_name:
+        range: string
+        required: true
+      link_url:
+        range: uri
+        required: true
+      link_description:
+        range: string
+      link_type:
+        range: string
+
+  ReferenceId:
+    description: An external reference identifier
+    attributes:
+      identifier:
+        range: string
+        required: true
+      reference_type:
+        range: string
+        required: true
+      registry_name:
+        range: string
+      url:
+        range: uri
+
+  Feature:
+    description: A geographic feature
+    attributes:
+      name:
+        range: string
+      geometry:
+        range: string
+      boundingBox:
+        range: string
+      centroid:
+        range: string
+
+  QuantityValue:
+    description: A numeric value with unit
+    attributes:
+      numericValue:
+        range: float
       unit:
         range: string
-        description: Unit of measurement
+
+  Impact:
+    description: An impact with SDG mappings
+    attributes:
+      impact_name:
+        range: string
+        required: true
+      impact_type:
+        range: string
+      sdg_numbers:
+        range: integer
+        multivalued: true
+      description:
+        range: string
+
+  Entity:
+    description: An organization or person
+    attributes:
+      name:
+        range: string
+        required: true
+      description:
+        range: string
+      url:
+        range: uri
+      image:
+        range: uri
+      type:
+        range: string
+      walletAddress:
+        range: string
+
+  Methodology:
+    description: A methodology for quantifying benefits
+    attributes:
+      name:
+        range: string
+        required: true
+      url:
+        range: uri
+      version:
+        range: string
+      identifier:
+        range: string
+
+slots:
+  name:
+    range: string
+    required: true
+  description:
+    range: string
+  url:
+    range: uri
+  projectStartDate:
+    range: date
+  projectEndDate:
+    range: date
+  hasLinks:
+    range: Link
+    multivalued: true
+  hasReferenceId:
+    range: ReferenceId
+    multivalued: true
+  hasFeature:
+    range: Feature
+  projectSize:
+    range: QuantityValue
+  environmentType:
+    range: string
+    multivalued: true
+  region:
+    range: string
+  bioregion:
+    range: string
+    multivalued: true
+  biomeType:
+    range: string
+    multivalued: true
+  watershed:
+    range: string
+  subWatershed:
+    range: string
+  activity:
+    range: string
+    multivalued: true
+  hasPrimaryImpact:
+    range: Impact
+  hasCoBenefits:
+    range: Impact
+    multivalued: true
+  hasProjectDeveloper:
+    range: Entity
+  hasProjectMonitor:
+    range: Entity
+  hasProjectOperator:
+    range: Entity
+  hasProjectOwner:
+    range: Entity
+  hasProjectPartner:
+    range: Entity
+  usesMethodology:
+    range: Methodology
+    multivalued: true

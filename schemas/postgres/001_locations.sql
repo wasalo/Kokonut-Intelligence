@@ -157,3 +157,12 @@ CREATE TABLE IF NOT EXISTS staff (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ProjectInfo parity: environmental and geographic classification on location
+ALTER TABLE location ADD COLUMN IF NOT EXISTS project_url TEXT;
+ALTER TABLE location ADD COLUMN IF NOT EXISTS project_start_date DATE;
+ALTER TABLE location ADD COLUMN IF NOT EXISTS project_end_date DATE;
+ALTER TABLE location ADD COLUMN IF NOT EXISTS bioregion TEXT[];
+ALTER TABLE location ADD COLUMN IF NOT EXISTS biome_type TEXT[];
+ALTER TABLE location ADD COLUMN IF NOT EXISTS watershed TEXT;
+ALTER TABLE location ADD COLUMN IF NOT EXISTS sub_watershed TEXT;

@@ -387,13 +387,69 @@ class TestAppMetadata:
     def test_get_complete_project_view(self):
         from services.metadata_api.app_metadata import get_complete_project_view
         conn = _fake_conn_sequential([
-            {"id": LOCATION_ID, "name": "Adelphi"},  # location query
-            {"id": str(uuid.uuid4()), "farm_name": "Kokonut Adelphi"},  # registry query
-            None,  # app_metadata query
+            {"id": LOCATION_ID, "name": "Adelphi", "latitude": 18.5, "longitude": -69.9},  # location
+            None,  # registry
+            [],  # links
+            [],  # reference_ids
+            None,  # app_metadata
             {"iri": "kokonut:location:UUID:v1"},  # get_current_iri
         ])
         view = get_complete_project_view(conn, LOCATION_ID)
-        assert "location" in view
+        assert view["name"] == "Adelphi"
+        assert view["latitude"] == 18.5
+
+
+# ---------------------------------------------------------------------------
+# Project Info tests
+# ---------------------------------------------------------------------------
+
+class TestProjectInfo:
+    def test_add_project_link(self):
+        from services.metadata_api.project_info import add_project_link
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_project_link(conn, LOCATION_ID, "Website", "https://example.com")
+        assert "id" in result
+
+    def test_list_project_links(self):
+        from services.metadata_api.project_info import list_project_links
+        conn = _fake_conn(rows=[{"link_name": "Website", "link_url": "https://example.com"}])
+        links = list_project_links(conn, LOCATION_ID)
+        assert len(links) == 1
+
+    def test_delete_project_link(self):
+        from services.metadata_api.project_info import delete_project_link
+        conn = _fake_conn(rowcount=1)
+        assert delete_project_link(conn, str(uuid.uuid4())) is True
+
+    def test_add_project_reference_id(self):
+        from services.metadata_api.project_info import add_project_reference_id
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_project_reference_id(conn, LOCATION_ID, "VCS-1234", "verra", registry_name="Verra")
+        assert "id" in result
+
+    def test_list_project_reference_ids(self):
+        from services.metadata_api.project_info import list_project_reference_ids
+        conn = _fake_conn(rows=[{"identifier": "VCS-1234", "reference_type": "verra"}])
+        refs = list_project_reference_ids(conn, LOCATION_ID)
+        assert len(refs) == 1
+
+    def test_get_project_info(self):
+        from services.metadata_api.project_info import get_project_info
+        conn = _fake_conn_sequential([
+            {"id": LOCATION_ID, "name": "Adelphi", "project_url": "https://example.com",
+             "project_start_date": "2026-01-01", "bioregion": ["Caribbean"],
+             "biome_type": ["tropical"], "watershed": "Rio Yuna"},  # location
+            None,  # registry
+            [],  # links
+            [],  # reference_ids
+            None,  # app_metadata
+            {"iri": "kokonut:location:UUID:v1"},  # get_current_iri
+        ])
+        info = get_project_info(conn, LOCATION_ID)
+        assert info["name"] == "Adelphi"
+        assert info["url"] == "https://example.com"
+        assert info["bioregion"] == ["Caribbean"]
+        assert info["watershed"] == "Rio Yuna"
 
 
 # ---------------------------------------------------------------------------
