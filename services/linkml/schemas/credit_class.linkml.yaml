@@ -1,10 +1,10 @@
 id: https://kokonut.network/linkml/credit_class
 name: CreditClass
 title: Kokonut Credit Class
-version: "1.0.0"
+version: "2.0.0"
 description: >-
-  Standardized metadata schema for credit class definitions in the
-  Kokonut Intelligence platform.
+  Standardized metadata schema for credit class definitions, aligned with
+  Regen Network Framework Working Group CreditClassInfo schema.
 
 imports:
   - linkml:types
@@ -13,22 +13,48 @@ prefixes:
   kokonut: https://kokonut.network/ontology#
   schema: http://schema.org/
   cids: https://ontology.commonapproach.org/cids#
+  rfs: https://framework.regen.network/schema/
 
 classes:
   CreditClass:
     description: A credit class defining methodology and protocol for ecological crediting
+    slots:
+      - name
+      - description
+      - url
+      - methodology
+      - methodology_version
+      - methodology_ref
+      - credit_type
+      - ecosystem_types
+      - eligible_activities
+      - crediting_period_years
+      - primary_impact
+      - cobenefits
+      - source_registry
+      - crediting_program
+      - credit_protocols
+      - approved_methodologies
+      - buffer_pool_accounts
     attributes:
       name:
         range: string
         required: true
         description: Human-readable name of the credit class
+        slot_uri: schema:name
       description:
         range: string
         description: Detailed description of the credit class
+        slot_uri: schema:description
+      url:
+        range: uri
+        required: true
+        description: Link to more information about the credit class
+        slot_uri: schema:url
       methodology:
         range: string
         required: true
-        description: Name of the crediting methodology
+        description: Name of the primary crediting methodology
       methodology_version:
         range: string
         description: Version of the methodology
@@ -48,14 +74,172 @@ classes:
       ecosystem_types:
         range: string
         multivalued: true
-        description: Applicable ecosystem types
+        required: true
+        description: Types of environments eligible for this credit class
       eligible_activities:
         range: string
         multivalued: true
+        required: true
         description: Activities eligible for this credit class
       crediting_period_years:
         range: integer
-        description: Maximum crediting period in years
-      registry_slug:
+        description: Total duration of the crediting term in years
+      primary_impact:
+        range: Impact
+        required: true
+        description: Primary impact expected from this credit class
+      cobenefits:
+        range: Impact
+        multivalued: true
+        description: Secondary/co-benefit impacts
+      source_registry:
+        range: Registry
+        description: External registry where credits are issued
+      crediting_program:
+        range: CreditingProgram
+        description: Higher-level program/standard under which this class operates
+      credit_protocols:
+        range: CreditProtocol
+        multivalued: true
+        description: Root protocol documents defining requirements
+      approved_methodologies:
+        range: Methodology
+        multivalued: true
+        description: Standalone methodologies approved for use
+      buffer_pool_accounts:
+        range: BufferPoolAccount
+        multivalued: true
+        description: Buffer pool accounts for permanence risk
+
+  Impact:
+    description: An impact type with SDG mappings
+    attributes:
+      impact_name:
         range: string
-        description: Unique slug for registry identification
+        required: true
+      impact_type:
+        range: string
+        permissible_values:
+          primary:
+          co_benefit:
+      sdg_numbers:
+        range: integer
+        multivalued: true
+      description:
+        range: string
+
+  Registry:
+    description: An external registry
+    attributes:
+      registry_name:
+        range: string
+        required: true
+      registry_url:
+        range: uri
+      is_source:
+        range: boolean
+
+  CreditingProgram:
+    description: Higher-level crediting program or standard
+    attributes:
+      name:
+        range: string
+        required: true
+      url:
+        range: uri
+      version:
+        range: string
+      identifier:
+        range: string
+      description:
+        range: string
+
+  CreditProtocol:
+    description: Root credit protocol document
+    attributes:
+      name:
+        range: string
+        required: true
+      url:
+        range: uri
+      version:
+        range: string
+      identifier:
+        range: string
+      description:
+        range: string
+      is_primary:
+        range: boolean
+
+  Methodology:
+    description: Standalone methodology for quantifying benefits
+    attributes:
+      name:
+        range: string
+        required: true
+      url:
+        range: uri
+      version:
+        range: string
+      identifier:
+        range: string
+      description:
+        range: string
+      is_approved:
+        range: boolean
+
+  BufferPoolAccount:
+    description: Buffer pool account for permanence risk
+    attributes:
+      name:
+        range: string
+        required: true
+      wallet_address:
+        range: string
+      pool_allocation:
+        range: string
+      description:
+        range: string
+
+slots:
+  name:
+    range: string
+    required: true
+  description:
+    range: string
+  url:
+    range: uri
+  methodology:
+    range: string
+  methodology_version:
+    range: string
+  methodology_ref:
+    range: uri
+  credit_type:
+    range: string
+  ecosystem_types:
+    range: string
+    multivalued: true
+  eligible_activities:
+    range: string
+    multivalued: true
+  crediting_period_years:
+    range: integer
+  primary_impact:
+    range: Impact
+  cobenefits:
+    range: Impact
+    multivalued: true
+  source_registry:
+    range: Registry
+  crediting_program:
+    range: CreditingProgram
+  credit_protocols:
+    range: CreditProtocol
+    multivalued: true
+  approved_methodologies:
+    range: Methodology
+    multivalued: true
+  buffer_pool_accounts:
+    range: BufferPoolAccount
+    multivalued: true

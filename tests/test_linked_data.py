@@ -129,7 +129,9 @@ class TestCreditClass:
     def test_create_class(self):
         from services.credit_class.class_manager import create_class
         conn = _fake_conn(rows={"id": CLASS_ID})
-        result = create_class(conn, name="Kokonut Carbon", methodology="IPCC 2006", credit_type="carbon")
+        result = create_class(conn, name="Kokonut Carbon", methodology="IPCC 2006", credit_type="carbon",
+                              url="https://example.com/class", primary_impact_type="carbon",
+                              primary_impact_name="Carbon Sequestration", primary_impact_sdgs=[13, 15])
         assert result["id"] == CLASS_ID
 
     def test_create_class_invalid_type(self):
@@ -143,6 +145,23 @@ class TestCreditClass:
         conn = _fake_conn(rows=[{"name": "Test", "credit_type": "carbon", "status": "published"}])
         classes = list_classes(conn)
         assert len(classes) == 1
+
+    def test_get_class_full(self):
+        from services.credit_class.class_manager import get_class_full
+        conn = _fake_conn_sequential([
+            {"id": CLASS_ID, "name": "Test", "url": "https://example.com"},  # get_class
+            [{"impact_name": "Biodiversity"}],  # cobenefits
+            [{"registry_name": "Verra"}],  # registries
+            [{"name": "CDM"}],  # programs
+            [{"name": "Protocol v1"}],  # protocols
+            [{"name": "Methodology A"}],  # methodologies
+            [{"name": "Pool 1"}],  # buffer_pools
+        ])
+        result = get_class_full(conn, CLASS_ID)
+        assert result is not None
+        assert result["url"] == "https://example.com"
+        assert len(result["cobenefits"]) == 1
+        assert len(result["registries"]) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -172,6 +191,59 @@ class TestCreditBatch:
         })
         balance = get_batch_balance(conn, BATCH_ID)
         assert balance["available_quantity"] == 80
+
+
+# ---------------------------------------------------------------------------
+# Credit Class Entity tests
+# ---------------------------------------------------------------------------
+
+class TestCreditClassEntities:
+    def test_add_cobenefit(self):
+        from services.credit_class.entities import add_cobenefit
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_cobenefit(conn, CLASS_ID, "Biodiversity", impact_type="co_benefit", sdg_numbers=[15])
+        assert "id" in result
+
+    def test_list_cobenefits(self):
+        from services.credit_class.entities import list_cobenefits
+        conn = _fake_conn(rows=[{"impact_name": "Biodiversity", "impact_type": "co_benefit"}])
+        items = list_cobenefits(conn, CLASS_ID)
+        assert len(items) == 1
+
+    def test_add_registry(self):
+        from services.credit_class.entities import add_registry
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_registry(conn, CLASS_ID, "Verra", registry_url="https://verra.org")
+        assert "id" in result
+
+    def test_add_program(self):
+        from services.credit_class.entities import add_program
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_program(conn, CLASS_ID, "VCS", url="https://verra.org/vcs")
+        assert "id" in result
+
+    def test_add_protocol(self):
+        from services.credit_class.entities import add_protocol
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_protocol(conn, CLASS_ID, "IPCC 2006 Tier 2", is_primary=True)
+        assert "id" in result
+
+    def test_add_methodology(self):
+        from services.credit_class.entities import add_methodology
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_methodology(conn, CLASS_ID, "VM0042", url="https://verra.org/vm0042")
+        assert "id" in result
+
+    def test_add_buffer_pool(self):
+        from services.credit_class.entities import add_buffer_pool
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_buffer_pool(conn, CLASS_ID, "Kokonut Pool", wallet_address="0x1234")
+        assert "id" in result
+
+    def test_delete_cobenefit(self):
+        from services.credit_class.entities import delete_cobenefit
+        conn = _fake_conn(rowcount=1)
+        assert delete_cobenefit(conn, str(uuid.uuid4())) is True
 
 
 # ---------------------------------------------------------------------------

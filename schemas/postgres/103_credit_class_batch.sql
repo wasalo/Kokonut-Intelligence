@@ -1,5 +1,6 @@
 -- Credit Class / Batch Hierarchy
 -- Three-tier model: credit_class (methodology) -> credit_batch (issuance) -> carbon_credit (identity)
+-- Aligned with Regen Network Framework Working Group CreditClassInfo schema
 
 -- ============================================================
 -- credit_class
@@ -8,6 +9,7 @@ CREATE TABLE IF NOT EXISTS credit_class (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
     description TEXT,
+    url TEXT,
     methodology VARCHAR(255) NOT NULL,
     methodology_version VARCHAR(50),
     methodology_ref TEXT,
@@ -19,6 +21,9 @@ CREATE TABLE IF NOT EXISTS credit_class (
     issuer_wallet VARCHAR(42),
     governance_mechanism VARCHAR(100),
     approval_required BOOLEAN DEFAULT TRUE,
+    primary_impact_type VARCHAR(50),
+    primary_impact_name VARCHAR(255),
+    primary_impact_sdgs INTEGER[],
     attestation_uid VARCHAR(66),
     chain VARCHAR(50) DEFAULT 'celo',
     status VARCHAR(50) DEFAULT 'draft',
@@ -34,6 +39,100 @@ CREATE TABLE IF NOT EXISTS credit_class (
 CREATE INDEX idx_cc_type ON credit_class(credit_type);
 CREATE INDEX idx_cc_status ON credit_class(status);
 CREATE INDEX idx_cc_methodology ON credit_class(methodology);
+
+-- ============================================================
+-- credit_class_cobenefit (hasCoBenefits)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS credit_class_cobenefit (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    credit_class_id UUID NOT NULL REFERENCES credit_class(id) ON DELETE CASCADE,
+    impact_name VARCHAR(255) NOT NULL,
+    impact_type VARCHAR(50),
+    sdg_numbers INTEGER[],
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_ccc_class ON credit_class_cobenefit(credit_class_id);
+
+-- ============================================================
+-- credit_class_registry (hasSourceRegistry)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS credit_class_registry (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    credit_class_id UUID NOT NULL REFERENCES credit_class(id) ON DELETE CASCADE,
+    registry_name VARCHAR(255) NOT NULL,
+    registry_url TEXT,
+    is_source BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_ccr_class ON credit_class_registry(credit_class_id);
+
+-- ============================================================
+-- crediting_program (managedUnderProgram)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS crediting_program (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    credit_class_id UUID NOT NULL REFERENCES credit_class(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    url TEXT,
+    version VARCHAR(50),
+    identifier VARCHAR(100),
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_cp_class ON crediting_program(credit_class_id);
+
+-- ============================================================
+-- credit_protocol (hasCreditProtocol)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS credit_protocol (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    credit_class_id UUID NOT NULL REFERENCES credit_class(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    url TEXT,
+    version VARCHAR(50),
+    identifier VARCHAR(100),
+    description TEXT,
+    is_primary BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_cpr_class ON credit_protocol(credit_class_id);
+
+-- ============================================================
+-- credit_class_methodology (hasApprovedMethodologies)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS credit_class_methodology (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    credit_class_id UUID NOT NULL REFERENCES credit_class(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    url TEXT,
+    version VARCHAR(50),
+    identifier VARCHAR(100),
+    description TEXT,
+    is_approved BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_ccm_class ON credit_class_methodology(credit_class_id);
+
+-- ============================================================
+-- buffer_pool_account (hasBufferPoolAccounts)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS buffer_pool_account (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    credit_class_id UUID NOT NULL REFERENCES credit_class(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    wallet_address VARCHAR(42),
+    pool_allocation VARCHAR(100),
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_bpa_class ON buffer_pool_account(credit_class_id);
 
 -- ============================================================
 -- credit_batch

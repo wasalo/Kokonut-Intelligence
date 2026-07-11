@@ -19,6 +19,7 @@ def create_class(
     methodology: str,
     credit_type: str,
     description: str = None,
+    url: str = None,
     methodology_version: str = None,
     methodology_ref: str = None,
     ecosystem_types: list[str] = None,
@@ -27,6 +28,9 @@ def create_class(
     registry_slug: str = None,
     issuer_wallet: str = None,
     governance_mechanism: str = None,
+    primary_impact_type: str = None,
+    primary_impact_name: str = None,
+    primary_impact_sdgs: list[int] = None,
     metadata: dict = None,
     created_by: str = None,
 ) -> dict:
@@ -40,20 +44,26 @@ def create_class(
     result = conn.execute(
         conn.text(
             "INSERT INTO credit_class "
-            "(name, description, methodology, methodology_version, methodology_ref, "
+            "(name, description, url, methodology, methodology_version, methodology_ref, "
             "credit_type, ecosystem_types, eligible_activities, crediting_period_years, "
-            "registry_slug, issuer_wallet, governance_mechanism, metadata, created_by, updated_by) "
+            "registry_slug, issuer_wallet, governance_mechanism, "
+            "primary_impact_type, primary_impact_name, primary_impact_sdgs, "
+            "metadata, created_by, updated_by) "
             "VALUES "
-            "(:name, :description, :methodology, :mv, :mr, "
+            "(:name, :description, :url, :methodology, :mv, :mr, "
             ":ct, :et, :ea, :cpy, "
-            ":rs, :iw, :gm, :metadata, :cb, :cb) "
+            ":rs, :iw, :gm, "
+            ":pit, :pin, :pisdgs, "
+            ":metadata, :cb, :cb) "
             "RETURNING id"
         ),
         {
-            "name": name, "description": description, "methodology": methodology,
-            "mv": methodology_version, "mr": methodology_ref, "ct": credit_type,
-            "et": ecosystem_types, "ea": eligible_activities, "cpy": crediting_period_years,
+            "name": name, "description": description, "url": url,
+            "methodology": methodology, "mv": methodology_version, "mr": methodology_ref,
+            "ct": credit_type, "et": ecosystem_types, "ea": eligible_activities,
+            "cpy": crediting_period_years,
             "rs": registry_slug, "iw": issuer_wallet, "gm": governance_mechanism,
+            "pit": primary_impact_type, "pin": primary_impact_name, "pisdgs": primary_impact_sdgs,
             "metadata": json.dumps(metadata) if metadata else "{}",
             "cb": created_by,
         },
@@ -65,10 +75,11 @@ def create_class(
 
 def update_class(conn, class_id: str, **kwargs) -> dict:
     allowed = {
-        "name", "description", "methodology", "methodology_version", "methodology_ref",
+        "name", "description", "url", "methodology", "methodology_version", "methodology_ref",
         "credit_type", "ecosystem_types", "eligible_activities", "crediting_period_years",
-        "registry_slug", "issuer_wallet", "governance_mechanism", "status", "metadata",
-        "updated_by",
+        "registry_slug", "issuer_wallet", "governance_mechanism",
+        "primary_impact_type", "primary_impact_name", "primary_impact_sdgs",
+        "status", "metadata", "updated_by",
     }
     updates = {k: v for k, v in kwargs.items() if k in allowed}
     if not updates:
@@ -117,3 +128,48 @@ def list_classes(conn, credit_type: str = None, status: str = None) -> list[dict
 
 def deprecate_class(conn, class_id: str) -> dict:
     return update_class(conn, class_id, status="deprecated")
+
+
+def get_class_full(conn, class_id: str) -> dict | None:
+    cc = get_class(conn, class_id)
+    if not cc:
+        return None
+
+    cobenefits = conn.execute(
+        conn.text("SELECT * FROM credit_class_cobenefit WHERE credit_class_id = :cid ORDER BY created_at"),
+        {"cid": class_id},
+    ).mappings().all()
+
+    registries = conn.execute(
+        conn.text("SELECT * FROM credit_class_registry WHERE credit_class_id = :cid ORDER BY created_at"),
+        {"cid": class_id},
+    ).mappings().all()
+
+    programs = conn.execute(
+        conn.text("SELECT * FROM crediting_program WHERE credit_class_id = :cid ORDER BY created_at"),
+        {"cid": class_id},
+    ).mappings().all()
+
+    protocols = conn.execute(
+        conn.text("SELECT * FROM credit_protocol WHERE credit_class_id = :cid ORDER BY is_primary DESC, created_at"),
+        {"cid": class_id},
+    ).mappings().all()
+
+    methodologies = conn.execute(
+        conn.text("SELECT * FROM credit_class_methodology WHERE credit_class_id = :cid ORDER BY is_approved DESC, created_at"),
+        {"cid": class_id},
+    ).mappings().all()
+
+    buffer_pools = conn.execute(
+        conn.text("SELECT * FROM buffer_pool_account WHERE credit_class_id = :cid ORDER BY created_at"),
+        {"cid": class_id},
+    ).mappings().all()
+
+    cc["cobenefits"] = [dict(r) for r in cobenefits]
+    cc["registries"] = [dict(r) for r in registries]
+    cc["programs"] = [dict(r) for r in programs]
+    cc["protocols"] = [dict(r) for r in protocols]
+    cc["methodologies"] = [dict(r) for r in methodologies]
+    cc["buffer_pools"] = [dict(r) for r in buffer_pools]
+
+    return cc

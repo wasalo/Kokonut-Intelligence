@@ -125,12 +125,19 @@
 - IRI resolve: `python3 -m services.iri.cli resolve --iri "kokonut:location:UUID:v1"`
 - IRI history: `python3 -m services.iri.cli history --entity-type location --entity-id UUID`
 - IRI anchor: `python3 -m services.iri.cli anchor --iri "kokonut:location:UUID:v1" --chain celo`
-- Credit class create: `python3 -m services.credit_class.cli class create --name "Kokonut Carbon" --methodology "IPCC 2006" --type carbon`
+- Credit class create: `python3 -m services.credit_class.cli class create --name "Kokonut Carbon" --methodology "IPCC 2006" --type carbon --url "https://example.com"`
+- Credit class get: `python3 -m services.credit_class.cli class get --class-id UUID`
 - Credit class list: `python3 -m services.credit_class.cli class list --type carbon`
 - Credit batch create: `python3 -m services.credit_class.cli batch create --class-id UUID --location-id UUID --vintage 2026 --quantity 100`
 - Credit batch issue: `python3 -m services.credit_class.cli batch issue --batch-id UUID`
 - Credit batch balance: `python3 -m services.credit_class.cli batch balance --batch-id UUID`
 - Credit batch list: `python3 -m services.credit_class.cli batch list --location-id UUID`
+- Credit class add cobenefit: `python3 -m services.credit_class.cli cobenefit add --credit-class-id UUID --impact-name "Biodiversity"`
+- Credit class add registry: `python3 -m services.credit_class.cli registry add --credit-class-id UUID --registry-name "Verra"`
+- Credit class add program: `python3 -m services.credit_class.cli program add --credit-class-id UUID --name "VCS"`
+- Credit class add protocol: `python3 -m services.credit_class.cli protocol add --credit-class-id UUID --name "IPCC 2006 Tier 2" --is-primary`
+- Credit class add methodology: `python3 -m services.credit_class.cli methodology add --credit-class-id UUID --name "VM0042"`
+- Credit class add buffer-pool: `python3 -m services.credit_class.cli buffer-pool add --credit-class-id UUID --name "Kokonut Pool" --wallet-address 0x1234`
 - RDF build: `python3 -m services.rdf.cli build --location-id UUID`
 - RDF query: `python3 -m services.rdf.cli query --subject "kokonut:location:UUID"`
 - RDF serialize: `python3 -m services.rdf.cli serialize --format turtle --graph "location:adelphi"`
