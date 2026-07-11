@@ -146,3 +146,39 @@ def get_class_with_validation(conn, class_id: str) -> dict:
     if not cc:
         raise ValueError(f"Credit class not found: {class_id}")
     return dict(cc)
+
+
+def update_batch_metadata(conn, batch_id: str, metadata: dict) -> dict:
+    import json
+    batch = get_batch(conn, batch_id)
+    if not batch:
+        raise ValueError(f"Batch not found: {batch_id}")
+
+    conn.execute(
+        conn.text(
+            "UPDATE credit_batch SET metadata = :meta, updated_at = NOW() WHERE id = :bid"
+        ),
+        {"meta": json.dumps(metadata), "bid": batch_id},
+    )
+    return {"id": batch_id, "updated_fields": ["metadata"]}
+
+
+def list_batches_by_issuer(conn, issuer_address: str) -> list[dict]:
+    result = conn.execute(
+        conn.text(
+            "SELECT b.* FROM credit_batch b "
+            "JOIN credit_class_issuer ci ON ci.credit_class_id = b.credit_class_id "
+            "WHERE ci.issuer_address = :addr AND ci.revoked_at IS NULL "
+            "ORDER BY b.created_at DESC"
+        ),
+        {"addr": issuer_address},
+    )
+    return [dict(r) for r in result.mappings()]
+
+
+def get_batch_by_code(conn, batch_code: str) -> dict | None:
+    result = conn.execute(
+        conn.text("SELECT * FROM credit_batch WHERE batch_code = :code"),
+        {"code": batch_code},
+    ).mappings().first()
+    return dict(result) if result else None

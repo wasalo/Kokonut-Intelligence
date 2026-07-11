@@ -717,3 +717,85 @@ class TestDataAttestor:
         conn = _fake_conn(rows=[{"attestor_address": "0x1234", "attested_at": "2026-07-11"}])
         attestors = get_attestors_for_iri(conn, str(uuid.uuid4()))
         assert len(attestors) == 1
+
+
+# ---------------------------------------------------------------------------
+# Enrollment tests
+# ---------------------------------------------------------------------------
+
+class TestEnrollment:
+    def test_apply_to_class(self):
+        from services.credit_class.enrollment import apply_to_class
+        conn = _fake_conn_sequential([
+            None,  # no existing
+            {"id": str(uuid.uuid4())},  # insert
+        ])
+        result = apply_to_class(conn, LOCATION_ID, CLASS_ID)
+        assert result["status"] == "applied"
+
+    def test_evaluate_application(self):
+        from services.credit_class.enrollment import evaluate_application
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4()), "status": "applied"},  # get enrollment
+            {"rowcount": 1},  # update
+        ])
+        result = evaluate_application(conn, str(uuid.uuid4()), "0x1234", "accepted")
+        assert result["new_status"] == "accepted"
+
+    def test_list_enrollments(self):
+        from services.credit_class.enrollment import list_enrollments_by_project
+        conn = _fake_conn(rows=[{"status": "accepted", "class_name": "Carbon"}])
+        enrollments = list_enrollments_by_project(conn, LOCATION_ID)
+        assert len(enrollments) == 1
+
+    def test_terminate_enrollment(self):
+        from services.credit_class.enrollment import terminate_enrollment
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4()), "status": "accepted"},  # get
+            {"rowcount": 1},  # update
+        ])
+        result = terminate_enrollment(conn, str(uuid.uuid4()))
+        assert result["status"] == "terminated"
+
+
+# ---------------------------------------------------------------------------
+# Bridge tests
+# ---------------------------------------------------------------------------
+
+class TestBridge:
+    def test_create_bridge_outbound(self):
+        from services.credit_class.bridge import create_bridge_outbound
+        conn = _fake_conn_sequential([
+            {"available_quantity": 100},  # batch check
+            {"param_value": ["celo", "gnosis"]},  # allowed chains
+            {"id": str(uuid.uuid4())},  # insert
+        ])
+        result = create_bridge_outbound(conn, str(uuid.uuid4()), "0x1234", "celo", "0x5678", 50)
+        assert result["direction"] == "outbound"
+
+    def test_list_bridge_transactions(self):
+        from services.credit_class.bridge import list_bridge_transactions
+        conn = _fake_conn(rows=[{"direction": "outbound", "target_chain": "celo", "status": "pending"}])
+        txs = list_bridge_transactions(conn)
+        assert len(txs) == 1
+
+
+# ---------------------------------------------------------------------------
+# Batch update tests
+# ---------------------------------------------------------------------------
+
+class TestBatchUpdate:
+    def test_update_batch_metadata(self):
+        from services.credit_class.batch_manager import update_batch_metadata
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4()), "batch_code": "CC-001"},  # get_batch
+            {"rowcount": 1},  # update
+        ])
+        result = update_batch_metadata(conn, str(uuid.uuid4()), {"notes": "test"})
+        assert "metadata" in result["updated_fields"]
+
+    def test_list_batches_by_issuer(self):
+        from services.credit_class.batch_manager import list_batches_by_issuer
+        conn = _fake_conn(rows=[{"batch_code": "CC-001", "total_quantity": 100}])
+        batches = list_batches_by_issuer(conn, "0x1234")
+        assert len(batches) == 1

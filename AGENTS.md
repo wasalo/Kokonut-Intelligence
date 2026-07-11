@@ -169,6 +169,14 @@
 - Data resolver by-iri: `python3 -m services.data_module.cli resolver by-iri --iri-id UUID`
 - Data attest do: `python3 -m services.data_module.cli attest do --iri-id UUID --attestor 0x1234`
 - Data attest list: `python3 -m services.data_module.cli attest list --iri-id UUID`
+- Enrollment apply: `python3 -m services.credit_class.cli enrollment apply --location-id UUID --class-id UUID`
+- Enrollment evaluate: `python3 -m services.credit_class.cli enrollment evaluate --enrollment-id UUID --issuer 0x1234 --status accepted`
+- Enrollment list by class: `python3 -m services.credit_class.cli enrollment list-by-class --class-id UUID`
+- Enrollment list by project: `python3 -m services.credit_class.cli enrollment list-by-project --location-id UUID`
+- Bridge out: `python3 -m services.credit_class.cli bridge out --batch-id UUID --sender 0x1234 --target celo --recipient 0x5678 --quantity 50`
+- Bridge in: `python3 -m services.credit_class.cli bridge in --class-id UUID --source polygon --issuer 0x1234 --recipient 0x5678 --quantity 100`
+- Bridge complete: `python3 -m services.credit_class.cli bridge complete --bridge-tx-id UUID`
+- Bridge list: `python3 -m services.credit_class.cli bridge list --direction outbound`
 - RDF build: `python3 -m services.rdf.cli build --location-id UUID`
 - RDF query: `python3 -m services.rdf.cli query --subject "kokonut:location:UUID"`
 - RDF serialize: `python3 -m services.rdf.cli serialize --format turtle --graph "location:adelphi"`

@@ -321,6 +321,62 @@ def main():
     p_params_get.add_argument("--key", required=True)
     p_params_get.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.params", fromlist=["get_param"]).get_param(conn, args.key)))
 
+    # --- enrollment ---
+    p_enr = sub.add_parser("enrollment", help="Project enrollment operations")
+    enr_sub = p_enr.add_subparsers(dest="subcommand")
+
+    p_enr_apply = enr_sub.add_parser("apply", help="Apply to credit class")
+    p_enr_apply.add_argument("--location-id", required=True)
+    p_enr_apply.add_argument("--class-id", required=True)
+    p_enr_apply.add_argument("--metadata", default=None)
+    p_enr_apply.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.enrollment", fromlist=["apply_to_class"]).apply_to_class(conn, args.location_id, args.class_id, args.metadata)))
+
+    p_enr_evaluate = enr_sub.add_parser("evaluate", help="Evaluate application")
+    p_enr_evaluate.add_argument("--enrollment-id", required=True)
+    p_enr_evaluate.add_argument("--issuer", required=True)
+    p_enr_evaluate.add_argument("--status", required=True, choices=["accepted", "rejected", "changes_requested", "terminated"])
+    p_enr_evaluate.add_argument("--metadata", default=None)
+    p_enr_evaluate.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.enrollment", fromlist=["evaluate_application"]).evaluate_application(conn, args.enrollment_id, args.issuer, args.status, args.metadata)))
+
+    p_enr_list_class = enr_sub.add_parser("list-by-class", help="List enrollments by class")
+    p_enr_list_class.add_argument("--class-id", required=True)
+    p_enr_list_class.set_defaults(func=lambda args: _print_list("enrollment", lambda conn: __import__("services.credit_class.enrollment", fromlist=["list_enrollments_by_class"]).list_enrollments_by_class(conn, args.class_id)))
+
+    p_enr_list_project = enr_sub.add_parser("list-by-project", help="List enrollments by project")
+    p_enr_list_project.add_argument("--location-id", required=True)
+    p_enr_list_project.set_defaults(func=lambda args: _print_list("enrollment", lambda conn: __import__("services.credit_class.enrollment", fromlist=["list_enrollments_by_project"]).list_enrollments_by_project(conn, args.location_id)))
+
+    # --- bridge ---
+    p_br = sub.add_parser("bridge", help="Bridge operations")
+    br_sub = p_br.add_subparsers(dest="subcommand")
+
+    p_br_out = br_sub.add_parser("out", help="Bridge credits to another chain")
+    p_br_out.add_argument("--batch-id", required=True)
+    p_br_out.add_argument("--sender", required=True)
+    p_br_out.add_argument("--target", required=True)
+    p_br_out.add_argument("--recipient", required=True)
+    p_br_out.add_argument("--quantity", type=float, required=True)
+    p_br_out.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.bridge", fromlist=["create_bridge_outbound"]).create_bridge_outbound(conn, args.batch_id, args.sender, args.target, args.recipient, args.quantity)))
+
+    p_br_in = br_sub.add_parser("in", help="Bridge credits from another chain")
+    p_br_in.add_argument("--class-id", required=True)
+    p_br_in.add_argument("--source", required=True)
+    p_br_in.add_argument("--issuer", required=True)
+    p_br_in.add_argument("--recipient", required=True)
+    p_br_in.add_argument("--quantity", type=float, required=True)
+    p_br_in.add_argument("--origin-tx-id", default=None)
+    p_br_in.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.bridge", fromlist=["create_bridge_inbound"]).create_bridge_inbound(conn, args.class_id, args.source, args.issuer, args.recipient, args.quantity, args.origin_tx_id)))
+
+    p_br_complete = br_sub.add_parser("complete", help="Complete bridge transaction")
+    p_br_complete.add_argument("--bridge-tx-id", required=True)
+    p_br_complete.add_argument("--bridge-tx-hash", default=None)
+    p_br_complete.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.bridge", fromlist=["complete_bridge"]).complete_bridge(conn, args.bridge_tx_id, args.bridge_tx_hash)))
+
+    p_br_list = br_sub.add_parser("list", help="List bridge transactions")
+    p_br_list.add_argument("--direction", default=None)
+    p_br_list.add_argument("--status", default=None)
+    p_br_list.set_defaults(func=lambda args: _print_list("bridge", lambda conn: __import__("services.credit_class.bridge", fromlist=["list_bridge_transactions"]).list_bridge_transactions(conn, args.direction, args.status)))
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
