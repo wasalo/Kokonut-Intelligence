@@ -209,7 +209,7 @@ SELECT
      WHERE nm2.chapter_id = rc.id
        AND so.status IN ('verified', 'published')
     ) AS unique_species_count,
-    (SELECT AVG/ros.regenerative_score
+    (SELECT AVG(ros.regenerative_score)
      FROM regenerative_outcome_summary ros
      JOIN network_membership nm3 ON nm3.location_id = ros.location_id
      WHERE nm3.chapter_id = rc.id

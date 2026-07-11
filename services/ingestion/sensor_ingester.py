@@ -22,18 +22,16 @@ import csv
 import json
 import re
 import sys
-import time
 from datetime import datetime, timezone
 
 import requests
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, retry
-from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .base import get_db, get_clickhouse, log_ingestion, hash_payload, retry
 
 logger = get_logger("ingestion.sensor")
 
-# Validation patterns for ClickHouse SQL interpolation
+# Validation patterns
 _UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
 _TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')
 _QUALITY_RE = re.compile(r'^(good|suspect|missing|estimated)$')
@@ -59,7 +57,7 @@ CSV_COLUMNS = {
 }
 
 
-def _validate_ch_value(value: str, pattern: re.Pattern, name: str) -> str:
+def _validate_ch_value(value: str, pattern, name: str) -> str:
     """Validate a value against a regex pattern for ClickHouse SQL safety."""
     if not pattern.match(value):
         raise ValueError(f"Invalid {name} for ClickHouse insert: {value!r}")
@@ -157,51 +155,38 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
     sensor_id, name, slug, sensor_type_id, sensor_type, location_id, plot_id, status, protocol = sensor_info
 
     # Build timestamp
-    if reading_time:
-        ts = f"{reading_date} {reading_time}"
-    else:
-        ts = f"{reading_date} 00:00:00"
+    ts_str = f"{reading_date} {reading_time}" if reading_time else f"{reading_date} 00:00:00"
+    try:
+        ts = datetime.fromisoformat(ts_str.replace(" ", "T") + "+00:00")
+    except Exception:
+        ts = datetime.now(timezone.utc)
 
-    # Validate all interpolated values for SQL safety
-    _validate_ch_value(ts, _TS_RE, "timestamp")
-    _validate_ch_value(str(sensor_id), _UUID_RE, "sensor_id")
-    _validate_ch_value(sensor_type, _SENSOR_TYPE_RE, "sensor_type")
-    _validate_ch_value(str(location_id), _UUID_RE, "location_id")
-    if plot_id:
-        _validate_ch_value(str(plot_id), _UUID_RE, "plot_id")
-    _validate_ch_value(quality, _QUALITY_RE, "quality")
+    unit = sensor_type if _UNIT_RE.match(sensor_type) else "unknown"
 
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
-    # Use the sensor_type name as a readable unit label for ClickHouse
-    unit = sensor_type
-    if not _UNIT_RE.match(unit):
-        unit = "unknown"
-
-    query = f"""INSERT INTO sensor_readings
-        (timestamp, sensor_id, sensor_type, location_id, plot_id,
-         value, unit, quality, metadata)
-        VALUES (
-            '{ts}',
-            '{sensor_id}',
-            '{sensor_type}',
-            '{location_id}',
-            '{str(plot_id) if plot_id else ''}',
-            {value},
-            '{unit}',
-            '{quality}',
-            map()
-        )"""
+    client = get_clickhouse()
+    if client is None:
+        logger.warning("ClickHouse client unavailable — skipping sensor_readings insert")
+        return
 
     try:
-        resp = requests.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        client.insert(
+            "sensor_readings",
+            [[
+                ts,
+                str(sensor_id),
+                sensor_type,
+                str(location_id),
+                str(plot_id) if plot_id else "",
+                float(value),
+                unit,
+                quality,
+                {},
+            ]],
+            column_names=[
+                "timestamp", "sensor_id", "sensor_type", "location_id",
+                "plot_id", "value", "unit", "quality", "metadata",
+            ],
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 

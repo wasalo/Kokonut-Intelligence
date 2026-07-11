@@ -56,6 +56,7 @@ query GetAttestations($lastBlock: Int!, $first: Int!) {
         revocable
     }
 }
+"""
 
 SCHEMAS_QUERY = """
 query GetSchemas($lastBlock: Int!, $first: Int!) {

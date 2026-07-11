@@ -185,7 +185,7 @@ INSERT INTO impact_claim (
     ARRAY['a0000000-0000-0000-0000-000000000900']::uuid[],
     NULL,
     NULL,
-    3,
+    4,
     NULL,
     TRUE,
     'medium',

@@ -26,10 +26,13 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt && pip install ruff
+        run: pip install -r requirements.txt && pip install ruff mypy
 
       - name: Run ruff linter
-        run: ruff check services/ tests/ || true
+        run: ruff check services/ tests/
+
+      - name: Run mypy type checks
+        run: mypy services/ --ignore-missing-imports --no-error-summary
 
       - name: Run CI check script
         run: ./scripts/ci-check.sh

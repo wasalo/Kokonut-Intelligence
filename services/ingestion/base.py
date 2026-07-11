@@ -52,7 +52,7 @@ def get_clickhouse():
         import clickhouse_connect
         return clickhouse_connect.get_client(
             host=CH_HOST,
-            port=8123,
+            port=CH_PORT,
             username=CH_USER,
             password=CH_PASSWORD,
         )
@@ -84,6 +84,7 @@ def log_ingestion(
     processor_version: Optional[str] = None,
 ) -> None:
     """Log ingestion event to the ingestion_log table."""
+    db = None
     try:
         db = get_db()
         with db.cursor() as cur:
@@ -102,9 +103,11 @@ def log_ingestion(
                 ),
             )
         db.commit()
-        db.close()
     except Exception as e:
         logger.error("Failed to log ingestion: %s", e)
+    finally:
+        if db is not None:
+            db.close()
 
 
 def update_indexer_status(
@@ -115,6 +118,7 @@ def update_indexer_status(
     error_message: Optional[str] = None,
 ) -> None:
     """Update chain_indexer_status table."""
+    db = None
     try:
         db = get_db()
         with db.cursor() as cur:
@@ -132,13 +136,16 @@ def update_indexer_status(
                 (chain, indexer_type, last_synced_block, status, error_message),
             )
         db.commit()
-        db.close()
     except Exception as e:
         logger.error("Failed to update indexer status: %s", e)
+    finally:
+        if db is not None:
+            db.close()
 
 
 def get_last_synced_block(chain: str, indexer_type: str = "rpc") -> Optional[int]:
     """Get the last synced block for a chain."""
+    db = None
     try:
         db = get_db()
         with db.cursor() as cur:
@@ -147,10 +154,12 @@ def get_last_synced_block(chain: str, indexer_type: str = "rpc") -> Optional[int
                 (chain, indexer_type),
             )
             row = cur.fetchone()
-        db.close()
         return row[0] if row else None
     except Exception:
         return None
+    finally:
+        if db is not None:
+            db.close()
 
 
 def retry(
@@ -174,7 +183,7 @@ def retry(
                 except exceptions as e:
                     last_error = e
                     if attempt < max_retries - 1:
-                        wait = backoff ** attempt + random.uniform(0, jitter)
+                        wait = backoff * (2 ** attempt) + random.uniform(0, jitter)
                         logger.warning(
                             "Retry %d/%d for %s after %.1fs: %s",
                             attempt + 1, max_retries, func.__name__, wait, e,

@@ -14,7 +14,6 @@ Usage:
 
 import argparse
 import json
-import re
 import sys
 import time
 from datetime import datetime, timezone
@@ -23,16 +22,12 @@ from web3 import Web3
 
 from ..common.logging import get_logger
 from .base import (
-    get_db, log_ingestion, hash_payload, retry,
+    get_db, get_clickhouse, log_ingestion, hash_payload, retry,
     update_indexer_status, get_last_synced_block, now_utc,
 )
-from .config import CHAIN_RPC_MAP, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .config import CHAIN_RPC_MAP
 
 logger = get_logger("ingestion.rpc")
-
-# Validation patterns for ClickHouse SQL interpolation
-_STR_RE = re.compile(r'^[a-zA-Z0-9_\-\. ]+$')
-_STR_LOOSE_RE = re.compile(r'^[a-zA-Z0-9_\-\.:/ ]+$')
 
 # Block range per request (limits API usage)
 BLOCK_BATCH = 100
@@ -41,7 +36,7 @@ BLOCK_BATCH = 100
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
 
-def _validate_ch_value(value: str, pattern: re.Pattern, name: str) -> str:
+def _validate_ch_value(value: str, pattern, name: str) -> str:
     """Validate a value against a regex pattern for ClickHouse SQL safety."""
     if not pattern.match(value):
         raise ValueError(f"Invalid {name} for ClickHouse insert: {value!r}")
@@ -128,6 +123,7 @@ def insert_activity(db, record: dict) -> str:
                  from_address, to_address, value, token, gas_used, gas_price,
                  status, activity_type)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (tx_hash) DO NOTHING
             RETURNING id
             """,
             (
@@ -145,66 +141,50 @@ def insert_activity(db, record: dict) -> str:
 
 def insert_activity_clickhouse(records: list[dict]) -> None:
     """Insert wallet activity into ClickHouse wallet_events table."""
-    import requests as req
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
+    client = get_clickhouse()
+    if client is None:
+        logger.warning("ClickHouse client unavailable — skipping wallet_events insert")
+        return
 
+    rows = []
     for rec in records:
         timestamp = rec.get("block_timestamp", "")
         if isinstance(timestamp, datetime):
-            ch_timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            ts = timestamp
         else:
             try:
-                dt = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
-                ch_timestamp = dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                ts = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
             except Exception:
-                ch_timestamp = str(timestamp)
+                ts = datetime.now(timezone.utc)
 
-        # Validate interpolated values for SQL safety
-        chain = rec.get("chain", "")
-        if chain:
-            _validate_ch_value(chain, _STR_RE, "chain")
+        wallet_address = rec.get("to_address", "") or rec.get("from_address", "")
+        rows.append([
+            ts,
+            str(wallet_address),
+            str(rec.get("chain", "")),
+            str(rec.get("tx_hash", "")),
+            int(rec.get("block_number", 0)),
+            str(rec.get("activity_type", "")),
+            float(rec.get("value", 0)),
+            str(rec.get("token", "ETH")),
+            str(rec.get("status", "success")),
+            {},
+        ])
 
-        tx_hash = rec.get("tx_hash", "")
-        if tx_hash:
-            _validate_ch_value(tx_hash, _STR_LOOSE_RE, "tx_hash")
+    if not rows:
+        return
 
-        activity_type = rec.get("activity_type", "")
-        if activity_type:
-            _validate_ch_value(activity_type, _STR_RE, "activity_type")
-
-        token = rec.get("token", "ETH")
-        _validate_ch_value(token, _STR_RE, "token")
-
-        status = rec.get("status", "success")
-        _validate_ch_value(status, _STR_RE, "status")
-
-        query = f"""INSERT INTO wallet_events
-            (timestamp, wallet_address, chain, tx_hash, block_number,
-             event_type, value, token, status, metadata)
-            VALUES (
-                '{ch_timestamp}',
-                '{rec.get("to_address", "") or rec.get("from_address", "")}',
-                '{chain}',
-                '{tx_hash}',
-                {rec.get("block_number", 0)},
-                '{activity_type}',
-                {rec.get("value", 0)},
-                '{token}',
-                '{status}',
-                map()
-            )"""
-
-        try:
-            resp = req.post(
-                ch_url,
-                data=query.encode("utf-8"),
-                auth=(CH_USER, CH_PASSWORD),
-                headers={"Content-Type": "text/plain"},
-                timeout=10,
-            )
-            resp.raise_for_status()
-        except Exception as e:
-            logger.warning("ClickHouse insert failed: %s", e)
+    try:
+        client.insert(
+            "wallet_events",
+            rows,
+            column_names=[
+                "timestamp", "wallet_address", "chain", "tx_hash",
+                "block_number", "event_type", "value", "token", "status", "metadata",
+            ],
+        )
+    except Exception as e:
+        logger.warning("ClickHouse insert failed: %s", e)
 
 
 def run(chain: str = None, wallet_address: str = None):
@@ -236,7 +216,7 @@ def run(chain: str = None, wallet_address: str = None):
             record = {
                 "wallet_id": wallet_id,
                 "chain": w_chain,
-                "tx_hash": f"balance-check-{current_block}",
+                "tx_hash": f"balance-check-{w_chain}-{str(wallet_id)}-{current_block}",
                 "block_number": current_block,
                 "block_timestamp": timestamp,
                 "from_address": "",

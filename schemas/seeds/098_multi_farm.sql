@@ -3,21 +3,21 @@
 -- ============================================================
 
 -- Second farm: Kokonut Genesis, Barahona, Dominican Republic
-INSERT INTO location (id, name, status, centroid, metadata) VALUES
-('a0000000-0000-0000-0000-000000000002', 'Kokonut Genesis', 'active',
- ST_SetSRID(ST_MakePoint(-71.1896, 18.2918), 4326),
+INSERT INTO location (id, name, slug, status, metadata) VALUES
+('a0000000-0000-0000-0000-000000000002', 'Kokonut Genesis', 'kokonut-genesis', 'active',
  '{"region":"Caribbean","country":"Dominican Republic","province":"Barahona","coordinates_source":"manual"}'::jsonb)
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, status = EXCLUDED.status;
 
--- Farm record
-INSERT INTO farm (id, location_id, name, farm_type, status) VALUES
-('a0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000002', 'Kokonut Genesis Farm', 'coconut', 'active')
+-- Farm record (farm table requires slug)
+INSERT INTO farm (id, location_id, name, slug, farm_type, status) VALUES
+('a0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000002', 'Kokonut Genesis Farm', 'kokonut-genesis', 'coconut', 'active')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
 -- Farm registry record
 INSERT INTO farm_registry_record (
     id, farm_id, location_id, registry_slug, project_date,
     forecasted_budget, land_size_m2,
+    source_of_funding,
     governance_mechanism, token_allocation,
     public_goods_allocation_pct,
     project_summary, local_problem, proposed_solution,
@@ -30,6 +30,7 @@ INSERT INTO farm_registry_record (
     '2026-03-01',
     45000.00,
     20000.0000,
+    'DAO treasury and Gitcoin grants',
     'moloch_dao',
     'Genesis DAO shares backed by coconut trees',
     10.000,
@@ -63,9 +64,14 @@ INSERT INTO farm_onboarding_workflow (farm_id, location_id, step_order, step_nam
 ('a0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000002', 13, 'Go Live', 'go_live', 'pending')
 ON CONFLICT (farm_id, step_order) DO UPDATE SET status = EXCLUDED.status;
 
--- Farm template instance
-INSERT INTO farm_template_instance (farm_id, location_id, template_id, template_version, customizations, status) VALUES
-('a0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000002',
- (SELECT id FROM farm_template WHERE template_name = 'Coconut Syntropic' LIMIT 1),
- '1.0', '{"climate_zone": "tropical", "primary_crop": "coconut", "secondary_crops": ["cacao", "banana"]}'::jsonb, 'applied')
-ON CONFLICT DO NOTHING;
+-- Farm template instance (skip if no template exists)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM farm_template WHERE template_name = 'Coconut Syntropic') THEN
+        INSERT INTO farm_template_instance (farm_id, location_id, template_id, template_version, customizations, status) VALUES
+        ('a0000000-0000-0000-0000-000000000012', 'a0000000-0000-0000-0000-000000000002',
+         (SELECT id FROM farm_template WHERE template_name = 'Coconut Syntropic' LIMIT 1),
+         '1.0', '{"climate_zone": "tropical", "primary_crop": "coconut", "secondary_crops": ["cacao", "banana"]}'::jsonb, 'applied')
+        ON CONFLICT DO NOTHING;
+    END IF;
+END $$;
