@@ -1,6 +1,6 @@
 services:
   database:
-    image: postgis/postgis:17-3.5
+    image: postgis/postgis:16-3.4
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -65,7 +65,7 @@ services:
       CACHE_ENABLED: "true"
       CACHE_AUTO_PURGE: "true"
       CACHE_STORE: "redis"
-      REDIS: "redis://cache:6379"
+      REDIS: "redis://:${REDIS_PASSWORD:-changeme}@cache:6379"
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8055}
@@ -83,7 +83,7 @@ services:
       PUBLIC_RESTRICT: "true"
 
   metabase:
-    image: metabase/metabase:v0.63.0
+    image: metabase/metabase:v0.62.4
     restart: unless-stopped
     expose:
       - "3000"
