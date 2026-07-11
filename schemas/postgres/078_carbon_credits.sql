@@ -34,9 +34,7 @@ CREATE TABLE IF NOT EXISTS carbon_credit (
     effective_price_per_tonne_usd NUMERIC(10,2) GENERATED ALWAYS AS (
         COALESCE(market_price_per_tonne_usd, price_per_tonne_usd)
     ) STORED,
-    total_value_usd NUMERIC(15,2) GENERATED ALWAYS AS (
-        available_tonnes * COALESCE(market_price_per_tonne_usd, price_per_tonne_usd)
-    ) STORED,
+    total_value_usd NUMERIC(15,2),
 
     -- Evidence chain
     climate_impact_summary_id UUID REFERENCES climate_impact_summary(id) ON DELETE SET NULL,
