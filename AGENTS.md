@@ -25,7 +25,11 @@
 
 ## Local Commands
 
-- Start services: `docker compose up -d`
+- Start services with encrypted secrets: `sops exec-env .env.sops docker compose up -d`
+- Start services (plaintext .env fallback): `docker compose up -d`
+- Decrypt secrets to stdout: `sops -d .env.sops`
+- Edit encrypted secrets: `sops .env.sops`
+- Source secrets into shell: `source scripts/load-secrets.sh`
 - Apply schemas/base seeds: `./scripts/seed.sh`
 - Apply pilot data: `./scripts/seed-pilot.sh`
 - Run smoke tests: `python3 -m tests.test_smoke`

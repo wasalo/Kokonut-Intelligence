@@ -1,7 +1,14 @@
-# Environment
+# Environment (raw secrets — never committed)
 .env
 .env.local
 .env.*.local
+
+# SOPS encrypted files ARE tracked (safe to commit)
+!.env.sops
+
+# age private keys (never committed)
+*.agekey
+keys.txt
 
 # Private keys and secrets
 *.pem

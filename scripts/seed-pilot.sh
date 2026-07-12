@@ -10,13 +10,15 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 echo "=== Kokonut Intelligence — Pilot Farm Data ==="
 echo ""
 
-# Source environment
-if [ -f "$PROJECT_DIR/.env" ]; then
+# Source secrets (SOPS encrypted .env.sops, or plaintext .env fallback)
+if [ -f "$PROJECT_DIR/.env.sops" ]; then
+    source "$SCRIPT_DIR/load-secrets.sh"
+elif [ -f "$PROJECT_DIR/.env" ]; then
     set -a
     source "$PROJECT_DIR/.env"
     set +a
 else
-    echo "ERROR: .env file not found. Run ./scripts/setup.sh first."
+    echo "ERROR: No secrets found. Expected .env.sops or .env."
     exit 1
 fi
 

@@ -18,8 +18,10 @@ echo "=== Kokonut Intelligence Platform — Backup ==="
 echo "Timestamp: $TIMESTAMP"
 echo ""
 
-# Source environment
-if [ -f "$PROJECT_DIR/.env" ]; then
+# Source secrets (SOPS encrypted .env.sops, or plaintext .env fallback)
+if [ -f "$PROJECT_DIR/.env.sops" ]; then
+    source "$SCRIPT_DIR/load-secrets.sh"
+elif [ -f "$PROJECT_DIR/.env" ]; then
     set -a
     source "$PROJECT_DIR/.env"
     set +a

@@ -1,0 +1,25 @@
+# SOPS configuration — defines which age keys can decrypt which files.
+# This file IS committed to git (contains only public keys).
+#
+# To add a new team member or server:
+#   1. They generate a key: age-keygen -o ~/.config/sops/age/keys.txt
+#   2. They share their public key (age1...)
+#   3. Add it to the age: list below
+#   4. Run: sops updatekeys .env.sops
+#
+# To add a production server key, uncomment and add it:
+#   age: age1_dev_key,age1_prod_server_key
+
+creation_rules:
+  # Encrypt .env and .env.sops files to the dev machine key.
+  # Add more keys (comma-separated) as team members or servers are onboarded.
+  - path_regex: '\.env(\.sops)?$'
+    age: age1ql43n065tcfs7tcwkt7s9c54np5phu9rgez4agw0chf08wapns2scjtppx
+
+  # Future: per-environment rules
+  # - path_regex: 'secrets/prod/.*\.sops$'
+  #   age: age1_prod_key_here
+
+  # Future: CI-specific key
+  # - path_regex: 'ci/.*\.sops$'
+  #   age: age1_ci_key_here
