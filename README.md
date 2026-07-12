@@ -4,7 +4,7 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 
 PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores analytical events. Python services compute metrics, forecasts, exports, registry payloads, AI summaries, and ingestion jobs. EAS on Celo anchors public verification metadata while private evidence stays offchain.
 
-**Repo stats**: 497 tests · 16 agents · 56 report types · 53 dashboards · 71 seed files · 48 docs
+**Repo stats**: 92 tests · 32 service packages · 109 SQL schemas · 435 tables · 186 views · 16 agents · 57 report types · 53 dashboards · 82 seed files · 49 docs
 
 ## Table Of Contents
 
@@ -32,6 +32,7 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 | Governance and Guilds | Gnosis Moloch DAO + Colony metadata | Treasury governance, Guild contribution records, reputation snapshots |
 | Contracts | Foundry + Solidity | KokonutResolver attester gating for EAS schemas |
 | Workflow | Prefect 3.x | Pipeline orchestration with event-driven automations |
+| External API | gRPC (port 50051) + Protobuf | Type-safe external API with streaming, API key auth, Buf codegen |
 
 See [Architecture](docs/architecture.md) for system design, data flow, and security model details.
 
@@ -104,6 +105,14 @@ Optional local overrides may expose Directus at `http://localhost:8055` and Meta
 - **dMRV architecture**: Automated satellite data collection (GEE/Copernicus), real-time IoT ingestion (MQTT/HTTP), ML anomaly detection (Prophet + Isolation Forest), and EAS on-chain verification.
 - **Field data collection**: Detailed SOPs for soil sampling, tree measurement, biodiversity surveys, water sampling, harvest recording, and pest monitoring with measurement cadence matrix.
 - **Oracle infrastructure**: Multi-source price feeds with median consensus, real-time commodity futures, and actuator command dispatch.
+- **Data Stream**: Chronological project data posts with Markdown content, file attachments (Directus + URLs), geo-tagged files, full-text search, blockchain anchoring via EAS, and visibility controls.
+- **Ecocredit module**: Credit class/batch hierarchy, basket with token deposits, marketplace with escrow, per-account balance tracking, bridge operations, project enrollment workflow, and retirement certificates.
+- **Linked data infrastructure**: IRI system with versioning, RDF triple store, SPARQL queries, content-addressed storage, resolver registry, and evidence chaining.
+- **Schema.org alignment**: All LinkML schemas mapped to schema.org URIs via slot_uri, JSON-LD context generation, and `@graph` support for complex documents.
+- **Regen Network parity**: Full alignment with Regen Data Standards (ClaimType, VerificationStatus, VerdictType enums), CreditClassInfo, ProjectInfo, ProjectPost schemas, and Data module v2 concepts.
+- **ARKIV parity**: Time-scoped data (expires_at), origin transaction indexing for double-mint prevention, and marketplace fee collection/distribution.
+- **GeoNode parity**: Shapefile import (fiona), KML import, raster metadata, CSW OGC Catalogue Service, ISO 19115 metadata fields, hierarchical thesaurus system, interactive Leaflet map viewer, geostories, and general harvesting framework.
+- **gRPC API**: Type-safe external API with Protobuf schemas, server-side streaming (5s batching), API key authentication, Buf codegen for Python/TypeScript, and gRPC-web support.
 
 ## How Metrics Enable Answers
 
@@ -235,13 +244,13 @@ See [Deployment](docs/deployment.md) for full production setup, reverse proxy op
 config/             Docker, PostgreSQL, ClickHouse, Caddy, Directus, Mosquitto, and worker crontab config
 contracts/          Foundry project for KokonutResolver and EAS-related contracts
 dashboards/         42 Metabase dashboard templates with backing SQL
-docs/               48 docs — see Documentation section below
+docs/               49 docs — see Documentation section below
 extensions/         Directus lifecycle hooks, workflow rules, metric hooks, AI helpers
 migrations/         Migration tooling and legacy migration helpers
-schemas/            PostgreSQL schemas (100+), ClickHouse schemas, Directus snapshots, seed files
+schemas/            PostgreSQL schemas (109+), ClickHouse schemas, Directus snapshots, seed files
 scripts/            Setup, seed, schema, metrics, backup, health-check, and CI scripts
 sdk/                JavaScript/TypeScript and Python SDKs
-services/           Python services for ingestion, metrics, analytics, export, agents, attestation, scoring, abundance, flows
+services/           Python services for ingestion, metrics, analytics, export, agents, attestation, scoring, abundance, flows, data_stream, credit_class, iri, rdf, data_module, certificates, metadata_api, linkml, csw, geostory, maps, thesaurus, grpc
 tests/              55+ test files — smoke, CLI, attestation, metrics, EBF, agents, CRISP, telemetry
 Dockerfile.worker   Optional worker container for cron-based ingestion
 docker-compose.yml  Base services (PostgreSQL 16, ClickHouse 25.8, Directus 12.1.1, Metabase 0.62.4, Caddy, Mosquitto)
@@ -286,8 +295,11 @@ All 48 docs live under `docs/`. Key entry points:
 | [Agent Workflows](docs/agent-workflows.md) | Agent task catalogue, output schemas, and safety rules |
 | [Evidence Maturity](docs/evidence-maturity.md) | Evidence maturity levels and public carbon claim rules |
 | [Reporting Principles](docs/reporting-principles.md) | Public-interest reporting principles and report snapshot fields |
+| [Data Stream](docs/data-stream.md) | Chronological data posts, file attachments, blockchain anchoring |
+| [gRPC API](docs/grpc-api.md) | Type-safe external API, streaming, Protobuf schemas |
+| [Dependency Capabilities](docs/dependency-capabilities.md) | All dependency updates mapped to platform capabilities |
 
-Additional docs cover: CIDS mapping, stakeholder feedback, participatory metrics, holistic well-being, financial sustainability, risk mitigation, scaling roadmap, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source capitalist scaling, commons governance, EBF trust graph, spreadsheet guide, common foundations checklist, agent safety, public report disclaimer, operator guide, reviewer guide, advisor review guide, PRD completion scope, partner dashboards, sandbox, subgraph guide, EBF implementation memo, and OpenAPI spec (`docs/openapi.yaml`).
+Additional docs cover: CIDS mapping, stakeholder feedback, participatory metrics, holistic well-being, financial sustainability, risk mitigation, scaling roadmap, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source capitalist scaling, commons governance, EBF trust graph, spreadsheet guide, common foundations checklist, agent safety, public report disclaimer, operator guide, reviewer guide, advisor review guide, PRD completion scope, partner dashboards, sandbox, subgraph guide, EBF implementation memo, CRISP risk scoring, dMRV architecture, field data collection guide, telemetry infrastructure, ecological modeling, and OpenAPI spec (`docs/openapi.yaml`).
 
 ## License
 
