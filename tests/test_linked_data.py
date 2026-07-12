@@ -589,6 +589,59 @@ class TestSchemaOrgAlignment:
 
 
 # ---------------------------------------------------------------------------
+# ARKIV Parity tests
+# ---------------------------------------------------------------------------
+
+class TestARKIVParity:
+    def test_expires_at_columns_exist(self):
+        from pathlib import Path
+        schema_path = Path("schemas/postgres/113_arkiv_parity.sql")
+        content = schema_path.read_text()
+        assert "expires_at" in content
+        assert "data_stream_post" in content
+        assert "impact_claim" in content
+        assert "attestation_record" in content
+
+    def test_origin_tx_index_exists(self):
+        from pathlib import Path
+        schema_path = Path("schemas/postgres/113_arkiv_parity.sql")
+        content = schema_path.read_text()
+        assert "origin_tx_index" in content
+        assert "UNIQUE(credit_class_id, origin_tx_id, origin_tx_source)" in content
+
+    def test_marketplace_fee_exists(self):
+        from pathlib import Path
+        schema_path = Path("schemas/postgres/113_arkiv_parity.sql")
+        content = schema_path.read_text()
+        assert "marketplace_fee" in content
+        assert "marketplace_fee_distribution" in content
+        assert "buyer_fee" in content
+        assert "seller_fee" in content
+
+    def test_fee_collection(self):
+        from services.credit_class.fees import collect_fee, get_fee_params
+        conn = _fake_conn_sequential([
+            {"param_value": "0.03"},  # buyer fee
+            {"param_value": "0.03"},  # seller fee
+            {"param_value": "0x1234"},  # pool address
+            {"id": str(uuid.uuid4())},  # insert
+        ])
+        result = collect_fee(conn, "buy", str(uuid.uuid4()), buyer_fee=10, seller_fee=5)
+        assert result["total_fee"] == 15
+
+    def test_fee_params(self):
+        from services.credit_class.fees import get_fee_params
+        conn = _fake_conn_sequential([
+            {"param_value": "0.03"},  # buyer fee
+            {"param_value": "0.03"},  # seller fee
+            {"param_value": "0x1234"},  # pool address
+        ])
+        params = get_fee_params(conn)
+        assert params["buyer_fee"] == 0.03
+        assert params["fee_pool_address"] == "0x1234"
+
+
+# ---------------------------------------------------------------------------
 # Ecocredit Parity tests
 # ---------------------------------------------------------------------------
 
