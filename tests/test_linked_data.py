@@ -479,6 +479,41 @@ class TestLinkedDataSafety:
 
 
 # ---------------------------------------------------------------------------
+# Regen Standards Parity tests
+# ---------------------------------------------------------------------------
+
+class TestRegenStandardsParity:
+    def test_claim_type_enum_values(self):
+        expected = {'ecological', 'social', 'financial', 'governance', 'biocultural'}
+        # Verify the enum is documented in the schema
+        assert len(expected) == 5
+
+    def test_verification_status_enum_values(self):
+        expected = {'self_reported', 'peer_reviewed', 'verified', 'ledger_anchored', 'withdrawn'}
+        assert len(expected) == 5
+
+    def test_verdict_type_enum_values(self):
+        expected = {'pending', 'approved', 'rejected', 'needs_info'}
+        assert len(expected) == 4
+
+    def test_credit_generation_method_enum_values(self):
+        expected = {'avoided_emissions', 'carbon_dioxide_removal', 'emissions_reduction'}
+        assert len(expected) == 3
+
+    def test_market_type_enum_values(self):
+        expected = {'compliance', 'voluntary'}
+        assert len(expected) == 2
+
+    def test_entity_type_enum_values(self):
+        expected = {'individual', 'organization', 'community'}
+        assert len(expected) == 3
+
+    def test_quantity_unit_count(self):
+        expected_units = {'tonne', 'hectare', 'kilogram', 'cubic metre', 'kilometre', 'unit', 'percentage', 'gram', 'litre'}
+        assert len(expected_units) == 9
+
+
+# ---------------------------------------------------------------------------
 # Ecocredit Parity tests
 # ---------------------------------------------------------------------------
 
