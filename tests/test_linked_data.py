@@ -642,6 +642,57 @@ class TestARKIVParity:
 
 
 # ---------------------------------------------------------------------------
+# GeoNode Parity tests
+# ---------------------------------------------------------------------------
+
+class TestGeoNodeParity:
+    def test_iso_19115_fields_exist(self):
+        from pathlib import Path
+        schema_path = Path("schemas/postgres/114_geonode_parity.sql")
+        content = schema_path.read_text()
+        assert "date_created" in content
+        assert "topic_category" in content
+        assert "spatial_resolution" in content
+        assert "lineage" in content
+        assert "reference_system" in content
+        assert "purpose" in content
+
+    def test_file_crs_field(self):
+        from pathlib import Path
+        schema_path = Path("schemas/postgres/114_geonode_parity.sql")
+        content = schema_path.read_text()
+        assert "crs VARCHAR(50) DEFAULT 'EPSG:4326'" in content
+        assert "file_hash" in content
+
+    def test_thesaurus_tables(self):
+        from pathlib import Path
+        schema_path = Path("schemas/postgres/114_geonode_parity.sql")
+        content = schema_path.read_text()
+        assert "thesaurus" in content
+        assert "thesaurus_keyword" in content
+        assert "thesaurus_keyword_label" in content
+        assert "parent_keyword_id" in content
+
+    def test_thesaurus_service(self):
+        from services.thesaurus import create_thesaurus, list_thesauri
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = create_thesaurus(conn, "test_vocab", "Test Vocabulary")
+        assert result["identifier"] == "test_vocab"
+
+    def test_thesaurus_keywords(self):
+        from services.thesaurus import add_keyword, list_keywords
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_keyword(conn, str(uuid.uuid4()), "agroforestry")
+        assert result["keyword_about"] == "agroforestry"
+
+    def test_thesaurus_labels(self):
+        from services.thesaurus import add_keyword_label
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = add_keyword_label(conn, str(uuid.uuid4()), "Agroforestry", "en")
+        assert result["label"] == "Agroforestry"
+
+
+# ---------------------------------------------------------------------------
 # Ecocredit Parity tests
 # ---------------------------------------------------------------------------
 
