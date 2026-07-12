@@ -1,19 +1,24 @@
 id: https://kokonut.network/linkml/project
 name: Project
 title: Kokonut Project
-version: "2.0.0"
+version: "3.0.0"
 description: >-
   Standardized metadata schema for farm/project definitions, aligned with
-  Regen Network Framework Working Group ProjectInfo schema.
+  Regen Network Framework Working Group ProjectInfo schema and schema.org.
 
 imports:
   - linkml:types
+  - core
 
 prefixes:
   kokonut: https://kokonut.network/ontology#
   schema: http://schema.org/
   geojson: https://purl.org/geojson/vocab#
+  qudt: http://qudt.org/schema/qudt/
   rfs: https://framework.regen.network/schema/
+
+default_prefix: schema
+default_range: string
 
 classes:
   Project:
@@ -22,264 +27,113 @@ classes:
       - name
       - description
       - url
-      - projectStartDate
-      - projectEndDate
-      - hasLinks
-      - hasReferenceId
-      - hasFeature
-      - projectSize
-      - environmentType
-      - region
-      - bioregion
-      - biomeType
-      - watershed
-      - subWatershed
-      - activity
-      - hasPrimaryImpact
-      - hasCoBenefits
-      - hasProjectDeveloper
-      - hasProjectMonitor
-      - hasProjectOperator
-      - hasProjectOwner
-      - hasProjectPartner
-      - usesMethodology
-    attributes:
+      - same_as
+      - main_entity_of_page
+    slot_usage:
       name:
-        range: string
         required: true
-        description: Project name
-        slot_uri: schema:name
-      description:
-        range: string
-        description: Project description
-        slot_uri: schema:description
       url:
         range: uri
-        description: Link to project information
-        slot_uri: schema:url
-      projectStartDate:
-        range: date
-        description: The start date of the project
-        slot_uri: schema:startDate
-      projectEndDate:
-        range: date
-        description: The end date of the project
-        slot_uri: schema:endDate
+    attributes:
       hasLinks:
+        slot_uri: rfs:hasLinks
+        description: Links associated with the project.
         range: Link
         multivalued: true
-        description: Links associated with the project
+        inlined: true
+        inlined_as_list: true
       hasReferenceId:
+        slot_uri: rfs:hasReferenceId
+        description: External reference IDs associated with the project.
         range: ReferenceId
         multivalued: true
-        description: External reference IDs
+        inlined: true
+        inlined_as_list: true
       hasFeature:
+        slot_uri: rfs:hasFeature
+        description: The location of the project.
         range: Feature
         required: true
-        description: Geographic location of the project
       projectSize:
-        range: QuantityValue
-        description: Size of the project area
+        slot_uri: rfs:projectSize
+        description: Size of the project area.
+        range: QuantitativeValue
       environmentType:
-        range: string
+        slot_uri: rfs:environmentType
+        description: The environment type of the project.
+        range: EnvironmentType
         multivalued: true
-        description: Environment types of the project
       region:
-        range: string
-        description: Geographic region
+        slot_uri: rfs:region
+        description: The region associated with the project.
       bioregion:
-        range: string
+        slot_uri: rfs:bioregion
+        description: The bioregion associated with the project.
         multivalued: true
-        description: Bioregion classifications
       biomeType:
-        range: string
+        slot_uri: rfs:biomeType
+        description: The type of biome associated with the project.
         multivalued: true
-        description: Biome type classifications
       watershed:
-        range: string
-        description: Watershed name
+        slot_uri: rfs:watershed
+        description: The watershed associated with the project.
       subWatershed:
-        range: string
-        description: Sub-watershed name
+        slot_uri: rfs:subWatershed
+        description: The sub-watershed associated with the project.
       activity:
-        range: string
+        slot_uri: rfs:activity
+        description: The types of activities being implemented in projects
+        range: ActivityType
         multivalued: true
-        description: Activities being implemented
       hasPrimaryImpact:
+        slot_uri: rfs:hasPrimaryImpact
+        description: The primary impact expected.
         range: Impact
         required: true
-        description: Primary impact of the project
+        inlined: true
       hasCoBenefits:
+        slot_uri: rfs:hasCoBenefits
+        description: Co-benefits are any secondary impacts.
         range: Impact
         multivalued: true
-        description: Secondary/co-benefit impacts
+        inlined: true
+        inlined_as_list: true
       hasProjectDeveloper:
+        slot_uri: rfs:hasProjectDeveloper
+        description: The organization responsible for developing the project.
         range: Entity
-        description: Organization responsible for developing the project
       hasProjectMonitor:
+        slot_uri: rfs:hasProjectMonitor
+        description: The organization responsible for monitoring.
         range: Entity
-        description: Organization responsible for monitoring
       hasProjectOperator:
+        slot_uri: rfs:hasProjectOperator
+        description: The organization responsible for operating.
         range: Entity
-        description: Organization responsible for operating
       hasProjectOwner:
+        slot_uri: rfs:hasProjectOwner
+        description: The organization that owns the project.
         range: Entity
-        description: Organization that owns the project
       hasProjectPartner:
+        slot_uri: rfs:hasProjectPartner
+        description: Partner organization.
         range: Entity
-        description: Partner organization
+      hasProjectVerifier:
+        slot_uri: rfs:hasProjectVerifier
+        description: The organization responsible for verification.
+        range: Entity
       usesMethodology:
+        slot_uri: rfs:usesMethodology
+        description: The methodology that the project uses.
         range: Methodology
         multivalued: true
-        description: Methodologies used by the project
-
-  Link:
-    description: An external link
-    attributes:
-      link_name:
-        range: string
-        required: true
-      link_url:
-        range: uri
-        required: true
-      link_description:
-        range: string
-      link_type:
-        range: string
-
-  ReferenceId:
-    description: An external reference identifier
-    attributes:
-      identifier:
-        range: string
-        required: true
-      reference_type:
-        range: string
-        required: true
-      registry_name:
-        range: string
-      url:
-        range: uri
-
-  Feature:
-    description: A geographic feature
-    attributes:
-      name:
-        range: string
-      geometry:
-        range: string
-      boundingBox:
-        range: string
-      centroid:
-        range: string
-
-  QuantityValue:
-    description: A numeric value with unit
-    attributes:
-      numericValue:
-        range: float
-      unit:
-        range: string
-
-  Impact:
-    description: An impact with SDG mappings
-    attributes:
-      impact_name:
-        range: string
-        required: true
-      impact_type:
-        range: string
-      sdg_numbers:
-        range: integer
-        multivalued: true
-      description:
-        range: string
-
-  Entity:
-    description: An organization or person
-    attributes:
-      name:
-        range: string
-        required: true
-      description:
-        range: string
-      url:
-        range: uri
-      image:
-        range: uri
-      type:
-        range: string
-      walletAddress:
-        range: string
-
-  Methodology:
-    description: A methodology for quantifying benefits
-    attributes:
-      name:
-        range: string
-        required: true
-      url:
-        range: uri
-      version:
-        range: string
-      identifier:
-        range: string
-
-slots:
-  name:
-    range: string
-    required: true
-  description:
-    range: string
-  url:
-    range: uri
-  projectStartDate:
-    range: date
-  projectEndDate:
-    range: date
-  hasLinks:
-    range: Link
-    multivalued: true
-  hasReferenceId:
-    range: ReferenceId
-    multivalued: true
-  hasFeature:
-    range: Feature
-  projectSize:
-    range: QuantityValue
-  environmentType:
-    range: string
-    multivalued: true
-  region:
-    range: string
-  bioregion:
-    range: string
-    multivalued: true
-  biomeType:
-    range: string
-    multivalued: true
-  watershed:
-    range: string
-  subWatershed:
-    range: string
-  activity:
-    range: string
-    multivalued: true
-  hasPrimaryImpact:
-    range: Impact
-  hasCoBenefits:
-    range: Impact
-    multivalued: true
-  hasProjectDeveloper:
-    range: Entity
-  hasProjectMonitor:
-    range: Entity
-  hasProjectOperator:
-    range: Entity
-  hasProjectOwner:
-    range: Entity
-  hasProjectPartner:
-    range: Entity
-  usesMethodology:
-    range: Methodology
-    multivalued: true
+        inlined: true
+        inlined_as_list: true
+      projectStartDate:
+        slot_uri: schema:startDate
+        description: The start date of the project.
+        range: date
+      projectEndDate:
+        slot_uri: schema:endDate
+        description: The end date of the project.
+        range: date

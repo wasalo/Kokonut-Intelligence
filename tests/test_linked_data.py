@@ -514,6 +514,81 @@ class TestRegenStandardsParity:
 
 
 # ---------------------------------------------------------------------------
+# Schema.org alignment tests
+# ---------------------------------------------------------------------------
+
+class TestSchemaOrgAlignment:
+    def test_slot_uri_on_credit_class(self):
+        from pathlib import Path
+        schema_path = Path("services/linkml/schemas/credit_class.linkml.yaml")
+        content = schema_path.read_text()
+        # Credit class uses slot_uri from core imports for name/description/url
+        # and has rfs: URIs for domain-specific fields
+        assert "slot_uri: rfs:hasPrimaryImpact" in content
+        assert "slot_uri: rfs:hasCoBenefits" in content
+        assert "slot_uri: rfs:hasSourceRegistry" in content
+        assert "slot_uri: schema:url" in content
+
+    def test_slot_uri_on_project(self):
+        from pathlib import Path
+        schema_path = Path("services/linkml/schemas/project.linkml.yaml")
+        content = schema_path.read_text()
+        assert "slot_uri: rfs:hasLinks" in content
+        assert "slot_uri: rfs:hasFeature" in content
+        assert "slot_uri: schema:startDate" in content
+        assert "slot_uri: schema:endDate" in content
+
+    def test_core_types_defined(self):
+        from pathlib import Path
+        schema_path = Path("services/linkml/schemas/core.linkml.yaml")
+        content = schema_path.read_text()
+        assert "PropertyValue" in content
+        assert "QuantitativeValue" in content
+        assert "GeoShape" in content
+        assert "Feature" in content
+        assert "Duration" in content
+        assert "Link" in content
+
+    def test_core_slot_uris(self):
+        from pathlib import Path
+        schema_path = Path("services/linkml/schemas/core.linkml.yaml")
+        content = schema_path.read_text()
+        assert "slot_uri: schema:name" in content
+        assert "slot_uri: schema:description" in content
+        assert "slot_uri: schema:url" in content
+        assert "slot_uri: schema:sameAs" in content
+        assert "slot_uri: schema:mainEntityOfPage" in content
+        assert "slot_uri: schema:potentialAction" in content
+
+    def test_jsonld_context_generation(self):
+        from services.linkml.jsonld import generate_context, to_jsonld_document
+        context = generate_context("CreditClass")
+        assert "schema" in context
+        assert "kokonut" in context
+        doc = to_jsonld_document("CreditClass", {"name": "Test Class"}, iri="kokonut:credit_class:1")
+        assert doc["@type"] == "kokonut:CreditClass"
+        assert doc["@id"] == "kokonut:credit_class:1"
+        assert doc["name"] == "Test Class"
+
+    def test_jsonld_with_graph(self):
+        from services.linkml.jsonld import to_jsonld_with_graph
+        entities = [
+            {"@type": "kokonut:CreditClass", "name": "Class A"},
+            {"@type": "kokonut:Project", "name": "Project 1"},
+        ]
+        doc = to_jsonld_with_graph(entities)
+        assert "@graph" in doc
+        assert len(doc["@graph"]) == 2
+
+    def test_duration_type_in_schema(self):
+        from pathlib import Path
+        schema_path = Path("services/linkml/schemas/core.linkml.yaml")
+        content = schema_path.read_text()
+        assert "xsd:duration" in content
+        assert "ISO 8601" in content
+
+
+# ---------------------------------------------------------------------------
 # Ecocredit Parity tests
 # ---------------------------------------------------------------------------
 
