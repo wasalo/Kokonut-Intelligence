@@ -51,14 +51,3 @@
 	}
 }
 
-# gRPC proxy (separate listener for gRPC traffic)
-grpc://{$CADDY_DOMAIN:localhost} {
-	tls internal
-
-	log {
-		output stdout
-		format json
-	}
-
-	reverse_proxy grpc://grpc:50051
-}
