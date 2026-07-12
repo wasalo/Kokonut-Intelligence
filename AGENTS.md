@@ -319,9 +319,32 @@
 - Migration status: `python3 -m services.migration status`
 - Migration apply: `python3 -m services.migration migrate`
 - Migration dry-run: `python3 -m services.migration dry-run`
+- Situation assess: `python3 -m services.orientation.assess --location-id UUID`
+- Situation latest: `python3 -m services.orientation.assess --latest --location-id UUID`
+- OODA cycle stats: `python3 -m services.orientation.cycles --stats --location-id UUID`
+- OODA cycle list: `python3 -m services.orientation.cycles --list --location-id UUID`
+- Decision policy list: `python3 -m services.decision.policies --list`
+- Decision evaluate: `python3 -m services.decision.policies --evaluate --location-id UUID`
+- Decision pending: `python3 -m services.decision.policies --pending --location-id UUID`
+- Decision approve: `python3 -m services.decision.policies --approve --decision-id UUID --approved-by admin`
+- Decision reject: `python3 -m services.decision.policies --reject --decision-id UUID --rejected-by admin --reason "reason"`
+- Feedback outcomes: `python3 -m services.feedback.controller --outcomes --location-id UUID`
+- Feedback stats: `python3 -m services.feedback.controller --stats --location-id UUID`
+- Feedback thresholds: `python3 -m services.feedback.controller --thresholds`
+- Adaptive sampler list: `python3 -m services.ingestion.adaptive_sampler --list --location-id UUID`
+- Adaptive sampler history: `python3 -m services.ingestion.adaptive_sampler --history --location-id UUID`
+- OODA tests: `python3 -m tests.test_orientation && python3 -m tests.test_decision_policy && python3 -m tests.test_feedback_controller && python3 -m tests.test_ooda_cycles && python3 -m tests.test_adaptive_sampler`
 
 ## Development Notes
 
+- OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
+- All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
+- Situation assessment synthesizes CRISP scores, metric trends, anomaly counts, and analytics outputs into a unified `situation_grade` (critical/warning/stable/flourishing).
+- OODA cycle tracking uses `correlation_id` to thread Observe→Orient→Decide→Act timing.
+- Adaptive sampling adjusts sensor polling intervals based on feedback: increase when uncertainty is high, decrease when stable.
+- Decision policies are seeded via `schemas/seeds/080_ooda_policies.sql` with 5 default rules.
+- Adaptive thresholds are seeded via `schemas/seeds/081_adaptive_thresholds.sql`.
+- Feedback loops modify `adaptive_threshold` records and trigger cache invalidation via event bus.
 - Data stream posts use governed lifecycle (`draft`, `submitted`, `verified`, `published`, `rejected`).
 - Data stream posts require verified/published `farm_registry_record` for public visibility.
 - Data stream blockchain anchoring uses the `kokonut-data-post` EAS schema on Celo.
