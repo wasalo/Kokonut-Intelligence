@@ -334,8 +334,28 @@
 - Adaptive sampler list: `python3 -m services.ingestion.adaptive_sampler --list --location-id UUID`
 - Adaptive sampler history: `python3 -m services.ingestion.adaptive_sampler --history --location-id UUID`
 - OODA tests: `python3 -m tests.test_orientation && python3 -m tests.test_decision_policy && python3 -m tests.test_feedback_controller && python3 -m tests.test_ooda_cycles && python3 -m tests.test_adaptive_sampler`
+- Causal loops list: `python3 -m systems.causal_loops --list`
+- Causal loop evaluate: `python3 -m systems.causal_loops --evaluate --loop-name soil_carbon_reinforcing --location-id UUID`
+- Causal loop active: `python3 -m systems.causal_loops --active --location-id UUID`
+- Leverage assess: `python3 -m systems.leverage --assess --location-id UUID`
+- Leverage rank: `python3 -m systems.leverage --rank --location-id UUID`
+- Archetype detect: `python3 -m systems.archetypes --detect --location-id UUID`
+- Archetype list: `python3 -m systems.archetypes --list --location-id UUID`
+- Delay get: `python3 -m systems.delays --get --action cover_crop_planting --effect soil_carbon_increase`
+- Delay adjust: `python3 -m systems.delays --adjust --action-date 2026-01-01 --action cover_crop_planting --effect soil_carbon_increase`
+- Double-loop questions: `python3 -m systems.double_loop --questions --location-id UUID`
+- Double-loop challenge: `python3 -m systems.double_loop --challenge --assumption-id UUID --text "text"`
+- Double-loop health: `python3 -m systems.double_loop --health --location-id UUID`
+- Stock-flow models: `python3 -m systems.stock_flow --list`
+- Stock-flow simulate: `python3 -m systems.stock_flow --run --model soil_carbon --location-id UUID --duration 365`
+- Stock-flow compare: `python3 -m systems.stock_flow --compare --model soil_carbon --location-id UUID`
+- Mental model elicit: `python3 -m systems.mental_models --elicit --stakeholder-id UUID --dimension regenerative_vs_industrial --position 0.7`
+- Mental model compare: `python3 -m systems.mental_models --compare --stakeholders UUID1 UUID2`
+- Systems thinking tests: `python3 -m pytest tests/test_systems_thinking.py tests/test_stock_flow_mental.py -v`
 
 ## Development Notes
+
+- Systems thinking: Causal loops, leverage points, archetypes, double-loop learning, time delays, stock-and-flow simulation, and mental models enhance the Orient phase of the OODA loop.
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
