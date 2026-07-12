@@ -65,6 +65,22 @@
 - Driver test instance: `python3 -m services.drivers --test-instance --instance-id UUID`
 - Feature flags: `python3 -c "from services.core.features import list_features; print(list_features())"`
 - Health check: `python3 -c "from services.core.health import overall_health; import json; print(json.dumps(overall_health(), indent=2))"`
+- Stream ingest: `python3 -m services.stream --run`
+- Stream stats: `python3 -m services.stream --stats`
+- Stream windows: `python3 -m services.stream --windows --sensor UUID --metric soil_moisture`
+- Stream alerts: `python3 -m services.stream --alerts`
+- Security issue token: `python3 -m services.security --issue --holder NAME --capabilities '[{"resource":"harvest_event","action":"write"}]'`
+- Security verify token: `python3 -m services.security --verify --token TOKEN --resource harvest_event --action write`
+- Security audit log: `python3 -m services.security --audit [--caller NAME] [--status denied]`
+- Federation register: `python3 -m services.federation --register --name NAME --url URL`
+- Federation list nodes: `python3 -m services.federation --list-nodes`
+- Federation share: `python3 -m services.federation --share --node NAME --data-type TYPE --data '{}'`
+- Federation query: `python3 -m services.federation --query --type TYPE`
+- Sandbox create: `python3 -m services.sandbox --create --location-id UUID`
+- Sandbox run: `python3 -m services.sandbox --run --env-id UUID --module PATH`
+- Sandbox list: `python3 -m services.sandbox --list`
+- Gateway serve: `python3 -m services.gateway --serve --port 8099`
+- Gateway health: `python3 -m services.gateway --health`
 - NDVI trends: `python3 -m services.analytics --ndvi-trends --location-id UUID`
 - Water resilience: `python3 -m services.analytics --water-resilience --location-id UUID`
 - Crop diversity: `python3 -m services.analytics --crop-diversity --location-id UUID`
