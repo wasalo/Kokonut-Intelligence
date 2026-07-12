@@ -37,6 +37,17 @@ from typing import Optional
 from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload
 
+# Lazy event bus
+_event_bus = None
+
+
+def _get_event_bus(conn=None):
+    global _event_bus
+    if _event_bus is None:
+        from services.events.bus import EventBus
+        _event_bus = EventBus(conn=conn)
+    return _event_bus
+
 logger = get_logger("ingestion.anomaly")
 
 # Email notification config
@@ -711,6 +722,26 @@ def run_check(sensor_id: str = None, since: str = None):
                     }
                     send_notifications(alert_data)
 
+                    bus = _get_event_bus(conn=db)
+                    priority = "high" if rule["severity"] == "critical" else "normal"
+                    bus.publish(
+                        "sensor_alert",
+                        {
+                            "alert_id": alert_id,
+                            "sensor_device_id": sensor_device_id,
+                            "sensor_id": sensor_id_val,
+                            "severity": rule["severity"],
+                            "rule_name": rule["name"],
+                            "reading_value": value,
+                            "threshold_value": rule["threshold_value"],
+                            "message": message,
+                            "location_id": str(device_info.get("location_name")),
+                        },
+                        source_table="sensor_alert",
+                        source_id=alert_id,
+                        priority=priority,
+                    )
+
                     alerts_triggered += 1
                     logger.info("  %s: %s", rule["severity"].upper(), message)
 
@@ -833,6 +864,25 @@ def run_baseline_check():
                     **device_info,
                 }
                 send_notifications(alert_data)
+
+                bus = _get_event_bus(conn=db)
+                bus.publish(
+                    "sensor_alert",
+                    {
+                        "alert_id": alert_id,
+                        "sensor_device_id": sensor_device_id,
+                        "sensor_id": sensor_id,
+                        "severity": "warning",
+                        "rule_name": "baseline_deviation",
+                        "reading_value": avg_value,
+                        "threshold_value": baseline_value,
+                        "message": message,
+                        "location_id": location_id,
+                    },
+                    source_table="sensor_alert",
+                    source_id=alert_id,
+                    priority="normal",
+                )
 
                 alerts_triggered += 1
                 logger.info("  Baseline deviation: %s", message)

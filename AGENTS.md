@@ -49,6 +49,14 @@
 - Compute all metrics as verified (all locations): `python3 -m services.metrics --compute --all-locations --verify`
 - Compute all metrics (script): `./scripts/compute-metrics.sh`
 - List metrics: `python3 -m services.metrics --list`
+- Event bus process: `python3 -m services.events --process`
+- Event bus stats: `python3 -m services.events --stats`
+- Event bus cleanup: `python3 -m services.events --cleanup`
+- Event bus handlers: `python3 -m services.events --list-handlers`
+- Event bus dead letter: `python3 -m services.events --list-dead-letter`
+- Scheduler worker: `python3 -m services.scheduler.worker --tick-interval 30`
+- Scheduler status: `python3 -m services.scheduler.cli --status`
+- Scheduler list runs: `python3 -m services.scheduler.cli --list-runs`
 - NDVI trends: `python3 -m services.analytics --ndvi-trends --location-id UUID`
 - Water resilience: `python3 -m services.analytics --water-resilience --location-id UUID`
 - Crop diversity: `python3 -m services.analytics --crop-diversity --location-id UUID`

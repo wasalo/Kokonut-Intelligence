@@ -22,6 +22,16 @@ MODULES = [
     "services.export.exporter",
     "services.metrics.engine",
     "services.metrics.cli",
+    "services.events.bus",
+    "services.events.handlers",
+    "services.events.cli",
+    "services.scheduler.engine",
+    "services.scheduler.worker",
+    "services.scheduler.cli",
+    "services.scheduler.parser",
+    "services.scheduler.resources",
+    "services.cache.cache",
+    "services.cache.events",
 ]
 
 

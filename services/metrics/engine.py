@@ -14,6 +14,17 @@ import psycopg2.extras
 
 from .calculators import CALCULATORS
 
+# Lazy event bus
+_event_bus = None
+
+
+def _get_event_bus(conn=None):
+    global _event_bus
+    if _event_bus is None:
+        from services.events.bus import EventBus
+        _event_bus = EventBus(conn=conn)
+    return _event_bus
+
 UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 
@@ -116,7 +127,7 @@ def compute_all(
             else:
                 results[key] = result
 
-    return {
+    final = {
         "location_id": location_id,
         "period_start": period_start,
         "period_end": period_end,
@@ -125,6 +136,31 @@ def compute_all(
         "total_computed": len(results),
         "total_errors": len(errors),
     }
+
+    _publish_metric_event(conn, location_id, period_start, period_end, final)
+
+    return final
+
+
+def _publish_metric_event(conn, location_id: str, period_start, period_end, result: dict) -> None:
+    """Publish a metric_computed event on the event bus."""
+    try:
+        bus = _get_event_bus(conn=conn)
+        bus.publish(
+            "metric_computed",
+            {
+                "location_id": location_id,
+                "period_start": period_start,
+                "period_end": period_end,
+                "total_computed": result.get("total_computed", 0),
+                "total_errors": result.get("total_errors", 0),
+                "metric_keys": list(result.get("computed", {}).keys()),
+            },
+            source_table="metric_value",
+            priority="normal",
+        )
+    except Exception:
+        pass  # Never fail metric computation due to event bus errors
 
 
 

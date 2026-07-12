@@ -29,6 +29,17 @@ import requests
 from ..common.logging import get_logger
 from .base import get_db, get_clickhouse, log_ingestion, hash_payload, retry
 
+# Lazy event bus — initialized on first publish to avoid import-time side effects
+_event_bus = None
+
+
+def _get_event_bus(conn=None):
+    global _event_bus
+    if _event_bus is None:
+        from services.events.bus import EventBus
+        _event_bus = EventBus(conn=conn)
+    return _event_bus
+
 logger = get_logger("ingestion.sensor")
 
 # Validation patterns
@@ -256,6 +267,24 @@ def run_csv(file_path: str):
                     status="success",
                     rows_affected=1,
                 )
+
+                bus = _get_event_bus(conn=db)
+                bus.publish(
+                    "sensor_reading",
+                    {
+                        "sensor_id": str(sensor_info[0]),
+                        "sensor_type": sensor_info[4],
+                        "location_id": str(sensor_info[5]),
+                        "value": value,
+                        "quality": quality,
+                        "reading_date": reading_date,
+                        "reading_time": reading_time,
+                    },
+                    source_table="sensor_reading",
+                    source_id=pg_id,
+                    priority="normal",
+                )
+
                 success += 1
 
             except Exception as e:
@@ -317,6 +346,24 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
             payload_hash=hash_payload({"sensor_id": sensor_id, "value": value}),
             status="success",
             rows_affected=1,
+        )
+
+        bus = _get_event_bus(conn=db)
+        bus.publish(
+            "sensor_reading",
+            {
+                "sensor_id": str(sensor_info[0]),
+                "sensor_type": sensor_info[4],
+                "location_id": str(sensor_info[5]),
+                "value": value,
+                "quality": quality,
+                "reading_date": reading_date,
+                "reading_time": reading_time,
+                "source": "api",
+            },
+            source_table="sensor_reading",
+            source_id=pg_id,
+            priority="normal",
         )
 
         db.commit()
