@@ -32,6 +32,12 @@ MODULES = [
     "services.scheduler.resources",
     "services.cache.cache",
     "services.cache.events",
+    "services.drivers.protocol",
+    "services.drivers.base",
+    "services.drivers.registry",
+    "services.drivers.cli",
+    "services.core.features",
+    "services.core.health",
 ]
 
 

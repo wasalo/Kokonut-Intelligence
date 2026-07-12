@@ -57,6 +57,14 @@
 - Scheduler worker: `python3 -m services.scheduler.worker --tick-interval 30`
 - Scheduler status: `python3 -m services.scheduler.cli --status`
 - Scheduler list runs: `python3 -m services.scheduler.cli --list-runs`
+- Driver list: `python3 -m services.drivers --list`
+- Driver list (by type): `python3 -m services.drivers --list --type weather`
+- Driver instances: `python3 -m services.drivers --list-instances`
+- Driver install: `python3 -m services.drivers --install --driver NAME --instance-name NAME --config '{}'`
+- Driver test: `python3 -m services.drivers --test --driver NAME`
+- Driver test instance: `python3 -m services.drivers --test-instance --instance-id UUID`
+- Feature flags: `python3 -c "from services.core.features import list_features; print(list_features())"`
+- Health check: `python3 -c "from services.core.health import overall_health; import json; print(json.dumps(overall_health(), indent=2))"`
 - NDVI trends: `python3 -m services.analytics --ndvi-trends --location-id UUID`
 - Water resilience: `python3 -m services.analytics --water-resilience --location-id UUID`
 - Crop diversity: `python3 -m services.analytics --crop-diversity --location-id UUID`
