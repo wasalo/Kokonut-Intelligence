@@ -21,3 +21,4 @@ grpcio-reflection>=1.68.0,<2.0.0
 grpcio-health-checking>=1.68.0,<2.0.0
 protobuf>=5.29.0,<7.0.0
 fiona>=1.10.0,<2.0.0
+gstools>=1.6.0,<2.0.0

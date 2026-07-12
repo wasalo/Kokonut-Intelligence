@@ -362,12 +362,23 @@
 - Trend dashboard: `python3 -m services.trends.dashboard --location-id UUID`
 - Trend dashboard alerts: `python3 -m services.trends.dashboard --location-id UUID --alerts`
 - Trend tests: `python3 -m pytest tests/test_trend_estimator.py tests/test_trend_smoothing.py tests/test_trend_change_points.py tests/test_trend_forecasting.py -v`
+- Geostatistics variogram: `python3 -m services.geostatistics variogram --location-id UUID --property soil_carbon`
+- Geostatistics kriging: `python3 -m services.geostatistics kriging --location-id UUID --property soil_carbon --method ordinary --resolution 10`
+- Geostatistics simulation: `python3 -m services.geostatistics simulate --location-id UUID --property soil_carbon --realizations 100`
+- Geostatistics autocorrelation: `python3 -m services.geostatistics autocorrelation --location-id UUID --property soil_carbon --weights queen`
+- Geostatistics cross-validate: `python3 -m services.geostatistics cross-validate --location-id UUID --property soil_carbon --strategy spatial_block --block-size 200`
+- Geostatistics sensor design: `python3 -m services.geostatistics sensor-design --location-id UUID --property soil_moisture`
+- Geostatistics residual kriging: `python3 -m services.geostatistics residual-kriging --location-id UUID`
+- Geostatistics spatial CV SOC: `python3 -m services.geostatistics spatial-cv-soc --location-id UUID --block-size 200`
+- Geostatistics tests: `python3 -m tests.test_geostatistics`
 
 ## Development Notes
 
 - Trend analysis: Least-squares trend estimation, Mann-Kendall significance testing, exponential smoothing, seasonal decomposition, CUSUM/PELT change-point detection, ARIMA forecasting, and forecast accuracy tracking.
 
 - Systems thinking: Causal loops, leverage points, archetypes, double-loop learning, time delays, stock-and-flow simulation, and mental models enhance the Orient phase of the OODA loop.
+
+- Geostatistics: Variogram modeling (spherical, exponential, Gaussian, Matérn), ordinary/simple/indicator kriging, sequential Gaussian simulation, spatial autocorrelation (Moran's I, Geary's C), spatial cross-validation (block CV, leave-one-out), and sensor network optimization. Complements SOC prediction pipeline via residual kriging correction and spatial block CV.
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
