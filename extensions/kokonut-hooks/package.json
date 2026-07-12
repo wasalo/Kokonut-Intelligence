@@ -20,6 +20,6 @@
     "@directus/extensions-sdk": "^18.0.1",
     "esbuild": "^0.28.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.10"
   }
 }
