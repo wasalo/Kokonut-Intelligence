@@ -693,6 +693,42 @@ class TestGeoNodeParity:
 
 
 # ---------------------------------------------------------------------------
+# GeoNode Enhancement tests
+# ---------------------------------------------------------------------------
+
+class TestGeoNodeEnhancements:
+    def test_shapefile_import_module(self):
+        from services.ingestion.shapefile_import import SUPPORTED_FORMATS
+        assert "shp" in SUPPORTED_FORMATS
+        assert "geojson" in SUPPORTED_FORMATS
+        assert "kml" in SUPPORTED_FORMATS
+
+    def test_kml_import_module(self):
+        from services.ingestion.kml_import import parse_kml_coordinates
+        coords = parse_kml_coordinates("1.0,2.0,0.0")
+        assert len(coords) == 1
+        assert coords[0] == (2.0, 1.0)
+
+    def test_csw_capabilities(self):
+        from services.csw import get_capabilities
+        caps = get_capabilities()
+        assert caps["service"] == "CSW"
+        assert "GetCapabilities" in caps["operations"]
+
+    def test_geostory_module(self):
+        from services.geostory import create_geostory
+        conn = _fake_conn(rows={"id": str(uuid.uuid4())})
+        result = create_geostory(conn, str(uuid.uuid4()), "Test Story")
+        assert result["title"] == "Test Story"
+
+    def test_harvest_manager_module(self):
+        from services.ingestion.harvest_manager import list_harvest_logs
+        conn = _fake_conn(rows=[])
+        logs = list_harvest_logs(conn)
+        assert isinstance(logs, list)
+
+
+# ---------------------------------------------------------------------------
 # Ecocredit Parity tests
 # ---------------------------------------------------------------------------
 

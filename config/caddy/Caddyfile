@@ -24,6 +24,13 @@
 		reverse_proxy directus:8055
 	}
 
+	# Map viewer
+	handle /maps/* {
+		uri strip_prefix /maps
+		root * /app/services/maps
+		file_server
+	}
+
 	# Metabase dashboards
 	handle /metabase/* {
 		uri strip_prefix /metabase

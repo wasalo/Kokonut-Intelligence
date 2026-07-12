@@ -1,0 +1,119 @@
+"""General harvesting framework: pull data from external sources."""
+
+from __future__ import annotations
+
+import json
+import os
+from typing import Any
+
+from services.common.logging import get_logger
+
+logger = get_logger("ingestion.harvest_manager")
+
+
+def harvest_from_url(conn, location_id: str, source_url: str,
+                     source_format: str = "json",
+                     source_system: str = "manual") -> dict:
+    log_id = _create_log(conn, location_id, source_url, source_format, source_system)
+
+    try:
+        import requests
+        response = requests.get(source_url, timeout=30)
+        response.raise_for_status()
+
+        if source_format == "json":
+            data = response.json()
+            records_count = len(data) if isinstance(data, list) else 1
+        elif source_format == "csv":
+            import io
+            import csv
+            reader = csv.DictReader(io.StringIO(response.text))
+            records_count = sum(1 for _ in reader)
+        else:
+            records_count = 1
+
+        _complete_log(conn, log_id, records_count)
+        return {"status": "success", "records_ingested": records_count, "log_id": log_id}
+    except Exception as e:
+        _fail_log(conn, log_id, str(e))
+        return {"status": "error", "message": str(e), "log_id": log_id}
+
+
+def harvest_from_file(conn, location_id: str, filepath: str,
+                      source_format: str = None,
+                      source_system: str = "manual") -> dict:
+    if not os.path.exists(filepath):
+        return {"status": "error", "message": f"File not found: {filepath}"}
+
+    if source_format is None:
+        ext = filepath.rsplit(".", 1)[-1].lower()
+        format_map = {"json": "json", "csv": "csv", "geojson": "geojson", "kml": "kml"}
+        source_format = format_map.get(ext, "json")
+
+    log_id = _create_log(conn, location_id, filepath, source_format, source_system)
+
+    try:
+        with open(filepath, "r") as f:
+            if source_format in ("json", "geojson"):
+                data = json.load(f)
+                records_count = len(data.get("features", [])) if isinstance(data, dict) else len(data) if isinstance(data, list) else 1
+            elif source_format == "csv":
+                import csv
+                reader = csv.DictReader(f)
+                records_count = sum(1 for _ in reader)
+            else:
+                records_count = 1
+
+        _complete_log(conn, log_id, records_count)
+        return {"status": "success", "records_ingested": records_count, "log_id": log_id}
+    except Exception as e:
+        _fail_log(conn, log_id, str(e))
+        return {"status": "error", "message": str(e), "log_id": log_id}
+
+
+def list_harvest_logs(conn, location_id: str = None, status: str = None) -> list[dict]:
+    conditions = []
+    params: dict[str, Any] = {}
+    if location_id:
+        conditions.append("location_id = :lid")
+        params["lid"] = location_id
+    if status:
+        conditions.append("status = :s")
+        params["s"] = status
+    where = "WHERE " + " AND ".join(conditions) if conditions else ""
+    result = conn.execute(
+        conn.text(f"SELECT * FROM harvest_ingestion_log {where} ORDER BY started_at DESC"),
+        params,
+    )
+    return [dict(r) for r in result.mappings()]
+
+
+def _create_log(conn, location_id: str, source_url: str, source_format: str,
+                source_system: str) -> str:
+    result = conn.execute(
+        conn.text(
+            "INSERT INTO harvest_ingestion_log "
+            "(location_id, source_url, source_format, source_system) "
+            "VALUES (:lid, :url, :fmt, :sys) RETURNING id"
+        ),
+        {"lid": location_id, "url": source_url, "fmt": source_format, "sys": source_system},
+    ).mappings().first()
+    return str(result["id"])
+
+
+def _complete_log(conn, log_id: str, records_count: int):
+    conn.execute(
+        conn.text(
+            "UPDATE harvest_ingestion_log SET status = 'success', records_ingested = :count, completed_at = NOW() WHERE id = :lid"
+        ),
+        {"count": records_count, "lid": log_id},
+    )
+
+
+def _fail_log(conn, log_id: str, error_message: str):
+    conn.execute(
+        conn.text(
+            "UPDATE harvest_ingestion_log SET status = 'failed', error_message = :msg, completed_at = NOW() WHERE id = :lid"
+        ),
+        {"msg": error_message, "lid": log_id},
+    )
