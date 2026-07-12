@@ -58,7 +58,7 @@ def serve():
     # Import and register ecocredit service
     try:
         from services.grpc.credit_class_service import EcocreditServiceServicer
-        from services.grpc import ecocredit_pb2_grpc
+        from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_pb2_grpc
         ecocredit_servicer = EcocreditServiceServicer(db_factory)
         ecocredit_pb2_grpc.add_EcocreditServiceServicer_to_server(ecocredit_servicer, server)
         service_names = service_names + ("ecocredit.v1.EcocreditService",)
@@ -68,7 +68,7 @@ def serve():
     # Import and register data service
     try:
         from services.grpc.data_service import DataServiceServicer
-        from services.grpc import data_pb2_grpc
+        from services.grpc.data.v1 import service_pb2_grpc as data_pb2_grpc
         data_servicer = DataServiceServicer(db_factory)
         data_pb2_grpc.add_DataServiceServicer_to_server(data_servicer, server)
         service_names = service_names + ("data.v1.DataService",)

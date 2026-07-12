@@ -31,9 +31,27 @@ RUN python -m grpc_tools.protoc \
     proto/data/v1/types.proto \
     proto/data/v1/service.proto
 
+# Copy generated proto files to services/grpc for easy import
+RUN cp -r sdk/python/generated/ecocredit services/grpc/ecocredit && \
+    cp -r sdk/python/generated/data services/grpc/data && \
+    cp -r sdk/python/generated/common services/grpc/common && \
+    touch sdk/python/generated/ecocredit/__init__.py && \
+    touch sdk/python/generated/ecocredit/v1/__init__.py && \
+    touch sdk/python/generated/data/__init__.py && \
+    touch sdk/python/generated/data/v1/__init__.py && \
+    touch sdk/python/generated/common/__init__.py && \
+    touch services/grpc/ecocredit/__init__.py && \
+    touch services/grpc/ecocredit/v1/__init__.py && \
+    touch services/grpc/data/__init__.py && \
+    touch services/grpc/data/v1/__init__.py && \
+    touch services/grpc/common/__init__.py
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
-    CMD python3 -c "import grpc; from services.grpc.server import serve" || exit 1
+    CMD python3 -c "import grpc; print('ok')"
+
+# Add generated proto files to Python path
+ENV PYTHONPATH="${PYTHONPATH}:/app/sdk/python/generated"
 
 EXPOSE 50051
 

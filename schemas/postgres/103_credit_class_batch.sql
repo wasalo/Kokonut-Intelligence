@@ -3,6 +3,32 @@
 -- Aligned with Regen Network Framework Working Group CreditClassInfo schema
 
 -- ============================================================
+-- credit_type (Credit Type with abbreviation, unit, precision)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS credit_type (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(50) NOT NULL UNIQUE,
+    abbreviation VARCHAR(3) NOT NULL UNIQUE,
+    unit VARCHAR(50) NOT NULL,
+    precision INTEGER DEFAULT 2,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO credit_type (name, abbreviation, unit, precision, description) VALUES
+('carbon', 'C', 'tonneCO2e', 2, 'Carbon dioxide equivalent sequestered or avoided'),
+('biodiversity', 'B', 'species_ha', 2, 'Biodiversity impact per hectare'),
+('water', 'W', 'm3', 2, 'Water quality or quantity improvement'),
+('soil', 'S', 'tonne', 2, 'Soil organic matter or health improvement'),
+('mixed', 'M', 'unit', 2, 'Mixed ecosystem service credits')
+ON CONFLICT (name) DO UPDATE SET
+    abbreviation = EXCLUDED.abbreviation,
+    unit = EXCLUDED.unit,
+    precision = EXCLUDED.precision,
+    description = EXCLUDED.description;
+
+-- ============================================================
 -- credit_class
 -- ============================================================
 CREATE TABLE IF NOT EXISTS credit_class (

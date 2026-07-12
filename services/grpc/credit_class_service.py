@@ -23,7 +23,7 @@ class EcocreditServiceServicer:
     # --- Class queries ---
 
     def Classes(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.class_manager import list_classes
@@ -39,7 +39,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def Class(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.class_manager import get_class_full
@@ -57,7 +57,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def ClassesByAdmin(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.class_manager import list_classes
@@ -73,7 +73,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def ClassIssuers(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.entities import list_issuers
@@ -90,7 +90,7 @@ class EcocreditServiceServicer:
     # --- Class mutations ---
 
     def CreateClass(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.class_manager import create_class
@@ -104,7 +104,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def UpdateClass(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.class_manager import update_class
@@ -127,7 +127,7 @@ class EcocreditServiceServicer:
     # --- Project queries ---
 
     def Projects(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         from services.metadata_api.project_info import get_project_info
         conn = self._get_conn()
         try:
@@ -147,7 +147,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def Project(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         from services.metadata_api.project_info import get_project_info
         conn = self._get_conn()
         try:
@@ -164,7 +164,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def ProjectsByClass(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import list_batches
@@ -185,7 +185,7 @@ class EcocreditServiceServicer:
     # --- Batch queries ---
 
     def Batches(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import list_batches
@@ -206,7 +206,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def Batch(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import get_batch
@@ -229,7 +229,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def BatchesByClass(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import list_batches
@@ -246,7 +246,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def BatchesByProject(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import list_batches
@@ -265,7 +265,7 @@ class EcocreditServiceServicer:
     # --- Batch mutations ---
 
     def CreateBatch(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import create_batch
@@ -285,7 +285,7 @@ class EcocreditServiceServicer:
     # --- Balance queries ---
 
     def Balance(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_balance
@@ -303,7 +303,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def Balances(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_balances_for_account
@@ -323,7 +323,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def BalancesByBatch(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_balances_for_batch
@@ -341,7 +341,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def Supply(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_supply
@@ -360,7 +360,7 @@ class EcocreditServiceServicer:
     # --- Streaming ---
 
     def StreamBalances(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_balances_for_account
@@ -380,7 +380,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def StreamBatchUpdates(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             last_check = int(time.time())
@@ -410,7 +410,7 @@ class EcocreditServiceServicer:
     # --- Basket ---
 
     def Baskets(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.basket import list_baskets
@@ -429,7 +429,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def Basket(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.basket import get_basket_info
@@ -451,7 +451,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def CreateBasket(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.basket import create_basket
@@ -470,7 +470,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def PutInBasket(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.basket import deposit_credits
@@ -485,7 +485,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def TakeFromBasket(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.basket import withdraw_from_basket
@@ -506,7 +506,7 @@ class EcocreditServiceServicer:
     # --- Marketplace ---
 
     def SellOrders(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import list_sell_orders
@@ -528,7 +528,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def SellOrder(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import get_sell_order
@@ -548,7 +548,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def CreateSellOrder(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import create_sell_order
@@ -566,7 +566,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def UpdateSellOrder(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import update_sell_order
@@ -580,7 +580,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def CancelSellOrder(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import cancel_sell_order
@@ -592,7 +592,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def CreateBuyOrder(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import create_buy_order
@@ -614,7 +614,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def ExecuteBuyOrder(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import execute_buy_order
@@ -627,7 +627,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def StreamSellOrders(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             last_check = int(time.time())
@@ -657,7 +657,7 @@ class EcocreditServiceServicer:
     # --- Allowed Denoms ---
 
     def AllowedDenoms(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import list_allowed_denoms
@@ -674,7 +674,7 @@ class EcocreditServiceServicer:
     # --- Fee Params ---
 
     def GetFeeParams(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import get_fee_params
@@ -691,7 +691,7 @@ class EcocreditServiceServicer:
     # --- Bridge ---
 
     def BridgeOut(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.bridge import create_bridge_outbound
@@ -707,7 +707,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def BridgeIn(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.bridge import create_bridge_inbound
@@ -724,7 +724,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def BridgeComplete(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.bridge import complete_bridge
@@ -736,7 +736,7 @@ class EcocreditServiceServicer:
     # --- Enrollment ---
 
     def ApplyToClass(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.enrollment import apply_to_class
@@ -752,7 +752,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def EvaluateApplication(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.enrollment import evaluate_application
@@ -771,7 +771,7 @@ class EcocreditServiceServicer:
             conn.close()
 
     def ListEnrollments(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.enrollment import list_enrollments_by_project, list_enrollments_by_class
@@ -794,7 +794,7 @@ class EcocreditServiceServicer:
     # --- Credit Types ---
 
     def CreditTypes(self, request, context):
-        from services.grpc import ecocredit_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
         conn = self._get_conn()
         try:
             from services.credit_class.entities import list_credit_types

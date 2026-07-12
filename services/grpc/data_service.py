@@ -20,7 +20,7 @@ class DataServiceServicer:
         return self._db_factory()
 
     def GenerateIRI(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.iri.resolver import generate_iri
@@ -35,7 +35,7 @@ class DataServiceServicer:
             conn.close()
 
     def ResolveIRI(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         from services.common.logging import get_logger
         conn = self._get_conn()
         try:
@@ -54,7 +54,7 @@ class DataServiceServicer:
             conn.close()
 
     def GetVersionHistory(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.iri.resolver import get_version_history
@@ -69,7 +69,7 @@ class DataServiceServicer:
             conn.close()
 
     def ComputeContentHash(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         from services.data_module.content_hash import compute_content_hash
         result = compute_content_hash(
             request.data, algorithm=request.algorithm or "sha256",
@@ -79,7 +79,7 @@ class DataServiceServicer:
         return data_pb2.ComputeContentHashResponse(**result)
 
     def CreateContentHash(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.data_module.content_hash import create_content_hash
@@ -96,7 +96,7 @@ class DataServiceServicer:
             conn.close()
 
     def FindIRIByHash(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.data_module.content_hash import find_iri_by_content_hash
@@ -113,7 +113,7 @@ class DataServiceServicer:
             conn.close()
 
     def DefineResolver(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.data_module.resolver import define_resolver
@@ -124,7 +124,7 @@ class DataServiceServicer:
             conn.close()
 
     def RegisterToResolver(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.data_module.resolver import register_data_to_resolver
@@ -135,7 +135,7 @@ class DataServiceServicer:
             conn.close()
 
     def GetResolversForIRI(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.data_module.resolver import get_resolvers_for_iri
@@ -151,7 +151,7 @@ class DataServiceServicer:
             conn.close()
 
     def ListResolvers(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.data_module.resolver import list_resolvers
@@ -167,7 +167,7 @@ class DataServiceServicer:
             conn.close()
 
     def AttestToIRI(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.data_module.attestor import attest_to_iri
@@ -177,7 +177,7 @@ class DataServiceServicer:
             conn.close()
 
     def GetAttestorsForIRI(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             from services.data_module.attestor import get_attestors_for_iri
@@ -192,7 +192,7 @@ class DataServiceServicer:
             conn.close()
 
     def StreamNewIRIs(self, request, context):
-        from services.grpc import data_pb2
+        from services.grpc.data.v1 import types_pb2 as data_pb2
         conn = self._get_conn()
         try:
             last_check = int(time.time())
