@@ -352,8 +352,20 @@
 - Mental model elicit: `python3 -m systems.mental_models --elicit --stakeholder-id UUID --dimension regenerative_vs_industrial --position 0.7`
 - Mental model compare: `python3 -m systems.mental_models --compare --stakeholders UUID1 UUID2`
 - Systems thinking tests: `python3 -m pytest tests/test_systems_thinking.py tests/test_stock_flow_mental.py -v`
+- Trend estimate: `python3 -m services.trends.estimator --metric-key soil_carbon_delta --location-id UUID`
+- Trend significance: `python3 -m services.trends.significance --test mann_kendall --location-id UUID`
+- Trend smoothing: `python3 -m services.trends.smoothing --metric-key soil_moisture --location-id UUID --method exponential`
+- Trend decomposition: `python3 -m services.trends.decomposer --metric-key rainfall --location-id UUID --period 12`
+- Trend change-points: `python3 -m services.trends.change_points --metric-key soil_carbon_delta --location-id UUID`
+- Trend forecast: `python3 -m services.trends.forecasting --metric-key crop_revenue --location-id UUID --horizon 30`
+- Trend forecast accuracy: `python3 -m services.trends.accuracy --forecast-id UUID`
+- Trend dashboard: `python3 -m services.trends.dashboard --location-id UUID`
+- Trend dashboard alerts: `python3 -m services.trends.dashboard --location-id UUID --alerts`
+- Trend tests: `python3 -m pytest tests/test_trend_estimator.py tests/test_trend_smoothing.py tests/test_trend_change_points.py tests/test_trend_forecasting.py -v`
 
 ## Development Notes
+
+- Trend analysis: Least-squares trend estimation, Mann-Kendall significance testing, exponential smoothing, seasonal decomposition, CUSUM/PELT change-point detection, ARIMA forecasting, and forecast accuracy tracking.
 
 - Systems thinking: Causal loops, leverage points, archetypes, double-loop learning, time delays, stock-and-flow simulation, and mental models enhance the Orient phase of the OODA loop.
 
