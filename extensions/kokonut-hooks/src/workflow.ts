@@ -40,6 +40,16 @@ export const LIFECYCLE_COLLECTIONS = [
   'stakeholder_outcome',
   'impact_claim',
   'data_stream_post',
+  'credit_class',
+  'credit_batch',
+  'retirement_certificate',
+  'linkml_schema',
+  'credit_sell_order',
+  'credit_buy_order',
+  'credit_bridge_transaction',
+  'project_credit_class_enrollment',
+  'credit_basket',
+  'credit_basket_deposit',
 ] as const;
 
 export type LifecycleCollection = (typeof LIFECYCLE_COLLECTIONS)[number];
@@ -112,6 +122,23 @@ const ROLE_ROUTING: Record<string, string[]> = {
   'data_stream_post:verified': ['manager', 'supervisor', 'admin'],
   'data_stream_post:rejected': ['manager', 'supervisor', 'admin'],
   'data_stream_post:published': ['manager', 'admin'],
+  'credit_class:verified': ['manager', 'admin'],
+  'credit_class:rejected': ['manager', 'admin'],
+  'credit_class:published': ['admin'],
+  'credit_batch:verified': ['manager', 'admin'],
+  'credit_batch:rejected': ['manager', 'admin'],
+  'credit_batch:published': ['admin'],
+  'retirement_certificate:issued': ['manager', 'admin'],
+  'credit_sell_order:active': ['manager', 'admin'],
+  'credit_sell_order:filled': ['manager', 'admin'],
+  'credit_sell_order:cancelled': ['manager', 'admin'],
+  'credit_buy_order:completed': ['manager', 'admin'],
+  'credit_buy_order:cancelled': ['manager', 'admin'],
+  'credit_bridge_transaction:completed': ['manager', 'admin'],
+  'credit_bridge_transaction:failed': ['manager', 'admin'],
+  'project_credit_class_enrollment:accepted': ['manager', 'admin'],
+  'project_credit_class_enrollment:rejected': ['manager', 'admin'],
+  'project_credit_class_enrollment:terminated': ['manager', 'admin'],
 };
 
 // Stash from_status between filter (pre-write) and action (post-write) hooks

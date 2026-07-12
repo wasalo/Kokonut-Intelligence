@@ -1,5 +1,6 @@
 """Scenario parameters tests: schema, seeds, params, monte carlo, sensitivity."""
 
+import statistics
 from pathlib import Path
 
 from services.forecast.scenario_params import (

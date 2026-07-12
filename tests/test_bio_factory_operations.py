@@ -418,7 +418,7 @@ def test_eas_bio_batch_placeholder_is_inactive() -> None:
         f"Kokonut Bio-Batch EAS schema_uid must not be the 0x00 placeholder. Got: {line}"
     )
     # Must be active so attestations can be submitted
-    assert line.rstrip(")").rstrip().endswith("TRUE"), (
+    assert line.rstrip(",) \n").rstrip().endswith("TRUE"), (
         "Kokonut Bio-Batch EAS schema must be active (TRUE) after mainnet registration; "
         f"otherwise attestations cannot be submitted. Got: {line}"
     )

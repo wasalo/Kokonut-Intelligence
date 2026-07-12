@@ -51,9 +51,13 @@ def _query_location_weights(conn, location_id: str) -> Dict[str, float]:
 
 
 def _assign_rating(composite_score: float) -> str:
-    """Assign AAA-D rating based on composite score."""
+    """Assign AAA-D rating based on composite score.
+
+    Bands are defined as [low, high) — exclusive upper bound.
+    D covers everything below the lowest defined band.
+    """
     for rating, (low, high) in RATING_BANDS.items():
-        if low <= composite_score <= high:
+        if low <= composite_score < high:
             return rating
     return "D"
 

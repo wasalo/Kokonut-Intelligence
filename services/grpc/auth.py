@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import contextvars
 import hashlib
 from concurrent import futures
+from datetime import datetime, timezone
 
 import grpc
 
 from services.common.logging import get_logger
 
 logger = get_logger("grpc.auth")
+
+# Context variable to propagate auth info to downstream handlers
+grpc_auth_context: contextvars.ContextVar[dict | None] = contextvars.ContextVar("grpc_auth_context", default=None)
 
 
 class APIKeyInterceptor(grpc.ServerInterceptor):
@@ -38,17 +43,19 @@ class APIKeyInterceptor(grpc.ServerInterceptor):
 
         try:
             conn = self._db_factory()
-            result = conn.execute(
-                conn.text(
-                    "SELECT ak.id, ak.is_active, ak.expires_at, ak.scopes, "
-                    "ar.name AS role_name, ar.permissions "
-                    "FROM api_key ak "
-                    "LEFT JOIN app_role ar ON ar.id = ak.role_id "
-                    "WHERE ak.key_hash = :hash"
-                ),
-                {"hash": key_hash},
-            ).mappings().first()
-            conn.close()
+            try:
+                result = conn.execute(
+                    conn.text(
+                        "SELECT ak.id, ak.is_active, ak.expires_at, ak.scopes, "
+                        "ar.name AS role_name, ar.permissions "
+                        "FROM api_key ak "
+                        "LEFT JOIN app_role ar ON ar.id = ak.role_id "
+                        "WHERE ak.key_hash = :hash"
+                    ),
+                    {"hash": key_hash},
+                ).mappings().first()
+            finally:
+                conn.close()
         except Exception as e:
             logger.error("API key lookup failed: %s", e)
             return _abort(grpc.StatusCode.INTERNAL, "Authentication service error")
@@ -59,17 +66,25 @@ class APIKeyInterceptor(grpc.ServerInterceptor):
         if not result["is_active"]:
             return _abort(grpc.StatusCode.PERMISSION_DENIED, "API key is deactivated")
 
-        if result["expires_at"] and result["expires_at"] < __import__("datetime").datetime.now(__import__("datetime").timezone.utc):
+        if result["expires_at"] and result["expires_at"] < datetime.now(timezone.utc):
             return _abort(grpc.StatusCode.PERMISSION_DENIED, "API key has expired")
 
-        context = grpc.ServerInterceptorContext(
-            method=method,
-            metadata=metadata,
-            api_key_id=str(result["id"]),
-            role_name=result.get("role_name"),
-            scopes=result.get("scopes") or [],
-        )
-        return continuation(handler_call_details)
+        # Propagate auth context via contextvars
+        auth_info = {
+            "api_key_id": str(result["id"]),
+            "role_name": result.get("role_name"),
+            "scopes": result.get("scopes") or [],
+        }
+        token = grpc_auth_context.set(auth_info)
+        try:
+            return continuation(handler_call_details)
+        finally:
+            grpc_auth_context.reset(token)
+
+
+def get_current_auth() -> dict | None:
+    """Get the current gRPC authentication context (for use in service handlers)."""
+    return grpc_auth_context.get()
 
 
 def _abort(code: grpc.StatusCode, message: str):
@@ -80,14 +95,3 @@ def _abort(code: grpc.StatusCode, message: str):
         request_deserializer=None,
         response_serializer=None,
     )
-
-
-class ServerInterceptorContext:
-    """Holds authentication context for the request."""
-    def __init__(self, method: str, metadata: dict, api_key_id: str,
-                 role_name: str = None, scopes: list = None):
-        self.method = method
-        self.metadata = metadata
-        self.api_key_id = api_key_id
-        self.role_name = role_name
-        self.scopes = scopes or []

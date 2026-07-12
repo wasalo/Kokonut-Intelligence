@@ -240,7 +240,7 @@
 - Bio Factory agent: `python3 -m services.agents.bio_factory_agent --location-id UUID`
 - Ecological modeling agent: `python3 -m services.agents.ecological_modeling_agent --location-id UUID`
 - Organic readiness agent: `python3 -m services.agents.organic_readiness_agent --location-id UUID`
-- Stewardship agent: `python3 -m services.agents.stewardship_agent --location-id UUID`
+- Regenerator agent: `python3 -m services.agents.regenerator_agent --location-id UUID`
 - EBF scorecard agent: `python3 -m services.agents.ebf_scorecard_agent --help`
 - EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
 - EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`
@@ -266,8 +266,8 @@
 - Report types (organic certification): `python3 -m services.export.report_generator --type organic_certification_readiness --location-id UUID`
 - Report types (organic transition): `python3 -m services.export.report_generator --type organic_transition_progress --location-id UUID`
 - Report types (organic input audit): `python3 -m services.export.report_generator --type organic_input_audit --location-id UUID`
-- Report types (stewardship agreement): `python3 -m services.export.report_generator --type stewardship_agreement --location-id UUID`
-- Report types (dispute resolution): `python3 -m services.export.report_generator --type dispute_resolution --location-id UUID`
+- Report types (stewardship agreement): `python3 -m services.export.report_generator --type land_stewardship --location-id UUID`
+- Report types (dispute resolution): `python3 -m services.export.report_generator --type adaptive_stewardship --location-id UUID`
 - Report types (trophic pyramid): `python3 -m services.export.report_generator --type trophic_pyramid --location-id UUID`
 - Report types (pest management): `python3 -m services.export.report_generator --type pest_management --location-id UUID`
 - Report types (resource efficiency): `python3 -m services.export.report_generator --type resource_efficiency --location-id UUID`

@@ -233,17 +233,6 @@ def fetch_modis(conn, location_id: str) -> Dict[str, Any]:
 
     from .gee_climate import fetch_modis_lst
     return fetch_modis_lst(conn, location_id, bbox)
-    """, (
-        location_id, "6month",
-        datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-        None, None, None, None, "modis_mod11a2",
-    ))
-    record_id = str(cur.fetchone()[0])
-    cur.close()
-    conn.commit()
-
-    return {"status": "success", "record_id": record_id, "note": "placeholder - requires MODIS download pipeline"}
 
 
 def fetch_smap(conn, location_id: str) -> Dict[str, Any]:

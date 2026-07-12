@@ -47,3 +47,11 @@ services:
       resources:
         limits:
           memory: 256M
+
+  grpc:
+    # No ports exposed to host in production — accessible only through reverse proxy
+    ports: []
+    deploy:
+      resources:
+        limits:
+          memory: 512M

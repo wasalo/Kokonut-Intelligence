@@ -71,9 +71,12 @@ All gRPC calls require an API key passed via metadata:
 
 ```python
 import grpc
+from services.grpc.ecocredit.v1 import types_pb2, service_pb2_grpc
 
+channel = grpc.insecure_channel("localhost:50051")
+stub = service_pb2_grpc.EcocreditServiceStub(channel)
 metadata = [("x-api-key", "kk_live_your_api_key_here")]
-response = stub.Classes ClassesRequest(), metadata=metadata)
+response = stub.Classes(types_pb2.ClassesRequest(), metadata=metadata)
 ```
 
 API keys are validated against the `api_key` table. Keys must be:
@@ -96,15 +99,15 @@ The gRPC server supports server-side streaming for real-time data:
 
 ```python
 import grpc
-from services.grpc import ecocredit_pb2, ecocredit_pb2_grpc
+from services.grpc.ecocredit.v1 import types_pb2, service_pb2_grpc
 
 channel = grpc.insecure_channel("localhost:50051")
-stub = ecocredit_pb2_grpc.EcocreditServiceStub(channel)
+stub = service_pb2_grpc.EcocreditServiceStub(channel)
 
 metadata = [("x-api-key", "kk_live_your_key")]
 
 for update in stub.StreamBalances(
-    ecocredit_pb2.StreamBalancesRequest(account_address="0x1234..."),
+    types_pb2.StreamBalancesRequest(account_address="0x1234..."),
     metadata=metadata,
 ):
     print(f"Balance update: {update.account_address} "

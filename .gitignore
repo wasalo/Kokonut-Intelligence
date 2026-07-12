@@ -13,7 +13,7 @@ secrets.json
 config/keys/
 
 # Data directories (persistent state)
-data/
+/data/
 
 # Directus
 data/uploads/

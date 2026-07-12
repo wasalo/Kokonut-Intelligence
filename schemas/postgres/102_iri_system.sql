@@ -30,4 +30,4 @@ CREATE INDEX idx_iri_schema ON iri_registry(schema_name);
 CREATE INDEX idx_iri_type ON iri_registry(entity_type);
 CREATE INDEX idx_iri_attestation ON iri_registry(attestation_uid) WHERE attestation_uid IS NOT NULL;
 
-ALTER TABLE iri_registry ADD CONSTRAINT chk_iri_hash_type CHECK (content_hash_type IN ('raw', 'graph'));
+ALTER TABLE IF EXISTS iri_registry ADD CONSTRAINT chk_iri_hash_type CHECK (content_hash_type IN ('raw', 'graph'));

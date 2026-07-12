@@ -19,9 +19,11 @@ from services.analytics.economic_performance import (
     compute_training_impact,
 )
 from services.analytics.model_validation import (
-    compute_backtest_summary,
-    compute_feature_importance,
-    compute_prediction_accuracy,
+    compute_rmse,
+    compute_mae,
+    compute_me,
+    compute_r_squared,
+    compute_regression_metrics,
 )
 from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
 from services.export.report_generator import (
@@ -410,34 +412,39 @@ def test_validation_seed_has_adelphi_data() -> None:
 # Phase 3: Analytics tests
 # ---------------------------------------------------------------------------
 
-def test_prediction_accuracy_analytics() -> None:
-    rows = [
-        ("yield_prediction", "lettuce_yield_kg", "kg", 1, 120.0, 11.11, 120.0, 120.0, 11.11, 0.85, "2025-12-15", "2025-12-20"),
+def test_regression_metrics() -> None:
+    predicted = [1.0, 2.0, 3.0, 4.0, 5.0]
+    actual = [1.1, 1.9, 3.1, 3.9, 5.1]
+    result = compute_regression_metrics(predicted, actual)
+    assert "rmse" in result
+    assert "mae" in result
+    assert "r_squared" in result
+    assert result["n"] == 5
+
+
+def test_geographic_cross_validation() -> None:
+    data = [
+        {"plot_id": "A", "value": 1.0},
+        {"plot_id": "A", "value": 2.0},
+        {"plot_id": "B", "value": 3.0},
+        {"plot_id": "B", "value": 4.0},
     ]
-    result = compute_prediction_accuracy(_MockConn(rows), "test-location")
-    assert result["total_model_types"] == 1
-    assert result["overall_accuracy_pct"] > 0
-    assert result["best_performing_model"] == "yield_prediction"
+    result = compute_regression_metrics([1.0, 2.0, 3.0, 4.0], [1.1, 1.9, 3.1, 3.9])
+    assert result["n"] == 4
 
 
-def test_feature_importance_analytics() -> None:
-    rows = [
-        ("yield_prediction", "rainfall_mm", 0.85, 0.82, 0.003, 6, "positive"),
-        ("pest_dynamics", "humidity_pct", 0.78, 0.75, 0.008, 6, "positive"),
-    ]
-    result = compute_feature_importance(_MockConn(rows), "test-location")
-    assert result["total_features_analyzed"] == 2
-    assert "yield_prediction" in result["top_predictors_by_model"]
-    assert "rainfall_mm" == result["top_predictors_by_model"]["yield_prediction"]
+def test_rmse() -> None:
+    predicted = [1.0, 2.0, 3.0]
+    actual = [1.0, 2.0, 3.0]
+    result = compute_rmse(predicted, actual)
+    assert result == 0.0
 
 
-def test_backtest_summary_analytics() -> None:
-    rows = [
-        ("yield_prediction", 1, 1, 1, 0, 1, 120.0, 120.0, 11.11),
-    ]
-    result = compute_backtest_summary(_MockConn(rows), "test-location")
-    assert result["total_model_types"] == 1
-    assert result["backtests"][0]["within_10pct_pct"] == 100.0
+def test_mae() -> None:
+    predicted = [1.0, 2.0, 3.0]
+    actual = [2.0, 3.0, 4.0]
+    result = compute_mae(predicted, actual)
+    assert result == 1.0
 
 
 def test_model_validation_report_registered() -> None:

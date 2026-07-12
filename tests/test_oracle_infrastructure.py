@@ -48,7 +48,7 @@ def test_oracle_aggregator_exists() -> None:
 
 
 def test_oracle_aggregator_has_consensus() -> None:
-    from services.ingestion.oracle_aggregator import median_consensus, PriceReading
+    from services.ingestion.oracle_aggregator import median_consensus, weighted_average_consensus, PriceReading
     assert callable(median_consensus)
     assert callable(weighted_average_consensus)
 

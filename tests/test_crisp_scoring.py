@@ -24,6 +24,7 @@ from services.crisp.normalization import (
     normalize_to_risk,
     weighted_average_risk,
 )
+from services.crisp.scoring_engine import _assign_rating
 
 SCHEMA = Path("schemas/postgres/076_crisp_risk_scoring.sql")
 
@@ -176,24 +177,20 @@ def test_weighted_average_risk_default_weights() -> None:
 
 def test_rating_band_aaa() -> None:
     for score in [91, 95, 100]:
-        for rating, (low, high) in RATING_BANDS.items():
-            if low <= score <= high:
-                if score >= 91:
-                    assert rating == "AAA"
+        rating = _assign_rating(score)
+        assert rating == "AAA", f"Score {score} should be AAA, got {rating}"
 
 
 def test_rating_band_d() -> None:
     for score in [0, 10, 19]:
-        for rating, (low, high) in RATING_BANDS.items():
-            if low <= score <= high:
-                if score <= 20:
-                    assert rating == "D"
+        rating = _assign_rating(score)
+        assert rating == "D", f"Score {score} should be D, got {rating}"
 
 
 def test_all_bands_cover_full_range() -> None:
     covered = set()
     for rating, (low, high) in RATING_BANDS.items():
-        for score in range(low, high + 1):
+        for score in range(low, high):
             covered.add(score)
     assert 0 in covered
     assert 100 in covered

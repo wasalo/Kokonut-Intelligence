@@ -19,15 +19,28 @@ from services.grpc.health import HealthServicer
 logger = get_logger("grpc.server")
 
 
-def _get_db_factory():
+def _get_db_pool():
     import psycopg2
+    from psycopg2 import pool
     from services.common.db import PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD
 
+    min_conn = int(os.environ.get("GRPC_DB_MIN_CONN", "2"))
+    max_conn = int(os.environ.get("GRPC_DB_MAX_CONN", "20"))
+
+    connection_pool = pool.ThreadedConnectionPool(
+        minconn=min_conn,
+        maxconn=max_conn,
+        host=PG_HOST, port=PG_PORT, dbname=PG_DB,
+        user=PG_USER, password=PG_PASSWORD,
+    )
+
     def factory():
-        return psycopg2.connect(
-            host=PG_HOST, port=PG_PORT, dbname=PG_DB,
-            user=PG_USER, password=PG_PASSWORD,
-        )
+        return connection_pool.getconn()
+
+    def release(conn):
+        connection_pool.putconn(conn)
+
+    factory.release = release
     return factory
 
 
@@ -35,7 +48,7 @@ def serve():
     port = int(os.environ.get("GRPC_PORT", "50051"))
     max_workers = int(os.environ.get("GRPC_MAX_WORKERS", "10"))
 
-    db_factory = _get_db_factory()
+    db_factory = _get_db_pool()
 
     auth_interceptor = APIKeyInterceptor(db_factory)
     logging_interceptor = LoggingInterceptor()

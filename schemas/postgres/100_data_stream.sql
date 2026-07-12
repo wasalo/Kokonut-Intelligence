@@ -4,7 +4,7 @@
 -- ============================================================
 -- data_stream_post
 -- ============================================================
-CREATE TABLE data_stream_post (
+CREATE TABLE IF NOT EXISTS data_stream_post (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
     -- Location anchor
@@ -89,7 +89,7 @@ CREATE TRIGGER dsp_search_update
 -- ============================================================
 -- data_stream_post_comment
 -- ============================================================
-CREATE TABLE data_stream_post_comment (
+CREATE TABLE IF NOT EXISTS data_stream_post_comment (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     post_id UUID NOT NULL REFERENCES data_stream_post(id) ON DELETE CASCADE,
     author_id UUID,
@@ -107,7 +107,7 @@ CREATE INDEX idx_dspc_status ON data_stream_post_comment(status);
 -- ============================================================
 -- data_stream_file (Regen ProjectPost.files — structured file metadata)
 -- ============================================================
-CREATE TABLE data_stream_file (
+CREATE TABLE IF NOT EXISTS data_stream_file (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     post_id UUID NOT NULL REFERENCES data_stream_post(id) ON DELETE CASCADE,
     file_iri TEXT,

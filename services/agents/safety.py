@@ -86,6 +86,9 @@ GOVERNED_COLLECTIONS = {
     "retirement_certificate",
     "iri_registry",
     "app_project_metadata",
+    "credit_balance",
+    "project_credit_class_enrollment",
+    "credit_bridge_transaction",
 }
 
 
