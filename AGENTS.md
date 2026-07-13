@@ -294,6 +294,18 @@
 - Yield trend: `python3 -m services.analytics.yield_monitoring trend --location-id UUID --crop maize`
 - Yield predict: `python3 -m services.analytics.yield_monitoring predict --location-id UUID --crop maize --days 60`
 - Yield benchmark: `python3 -m services.analytics.yield_monitoring benchmark --location-id UUID --crop maize`
+- Irrigation create-zone: `python3 -m services.analytics.precision_irrigation create-zone --location-id UUID --name "Zone A"`
+- Irrigation set-target: `python3 -m services.analytics.precision_irrigation set-target --zone-id UUID --crop-stage vegetative --target-min 50 --target-max 65 --trigger-pct 40 --refill-pct 65`
+- Irrigation schedule: `python3 -m services.analytics.precision_irrigation schedule --zone-id UUID --etc 4.5 --rainfall 2.0 --moisture 42`
+- Irrigation record-event: `python3 -m services.analytics.precision_irrigation record-event --zone-id UUID --volume 500 --duration 60 --method drip --moisture-before 38 --moisture-after 62`
+- Irrigation create-rule: `python3 -m services.analytics.precision_irrigation create-rule --location-id UUID --name "Low moisture" --metric soil_moisture --operator lt --threshold 40 --action irrigate`
+- Irrigation eval-rules: `python3 -m services.analytics.precision_irrigation eval-rules --zone-id UUID --readings '{"soil_moisture": 35}'`
+- Irrigation zone-status: `python3 -m services.analytics.precision_irrigation zone-status --zone-id UUID`
+- Irrigation status: `python3 -m services.analytics.precision_irrigation irrigation-status --location-id UUID`
+- Irrigation water-efficiency: `python3 -m services.analytics.precision_irrigation water-efficiency --location-id UUID --days 30`
+- Irrigation water-balance: `python3 -m services.analytics.precision_irrigation water-balance --zone-id UUID`
+- Irrigation optimize: `python3 -m services.analytics.precision_irrigation optimize --zone-id UUID`
+- Irrigation efficiency-report: `python3 -m services.analytics.precision_irrigation efficiency-report --location-id UUID`
 - Digital twin create: `python3 -m services.analytics.digital_twin create --location-id UUID --name "Adelphi Twin"`
 - Digital twin configure: `python3 -m services.analytics.digital_twin configure --twin-id UUID --key crop --value maize`
 - Digital twin simulate: `python3 -m services.analytics.digital_twin simulate --twin-id UUID`
@@ -309,10 +321,203 @@
 - LLM chat send: `python3 -m services.analytics.llm_chat chat --session-id UUID --message "What was the maize yield?"`
 - LLM chat intents: `python3 -m services.analytics.llm_chat intents`
 - LLM chat history: `python3 -m services.analytics.llm_chat history --session-id UUID`
+- Marketplace create listing: `python3 -m services.analytics.marketplace create-listing --location-id UUID --crop maize --quantity 500 --unit kg --price 0.50 --grade A`
+- Marketplace list active: `python3 -m services.analytics.marketplace list-active --location-id UUID --crop maize`
+- Marketplace record price: `python3 -m services.analytics.marketplace record-price --crop maize --market "Adelphi Coop" --price 0.55 --grade A`
+- Marketplace price trends: `python3 -m services.analytics.marketplace price-trends --crop maize --days 30`
+- Marketplace create order: `python3 -m services.analytics.marketplace create-order --listing-id UUID --buyer-id UUID --quantity 200`
+- Marketplace market overview: `python3 -m services.analytics.marketplace market-overview --location-id UUID`
+- Marketplace evaluate: `python3 -m services.analytics.marketplace evaluate --listing-id UUID`
+- Cooperative create: `python3 -m services.analytics.cooperative create-coop --name "Adelphi Coop" --type marketing --location-id UUID --governance one_member_one_vote`
+- Cooperative add member: `python3 -m services.analytics.cooperative add-member --cooperative-id UUID --farmer-id UUID --role member --shares 10`
+- Cooperative summary: `python3 -m services.analytics.cooperative summary --cooperative-id UUID`
+- Cooperative list: `python3 -m services.analytics.cooperative list --location-id UUID`
+- Cooperative add asset: `python3 -m services.analytics.cooperative add-asset --cooperative-id UUID --name "Tractor" --type tractor --daily-rate 50.00`
+- Cooperative book asset: `python3 -m services.analytics.cooperative book-asset --asset-id UUID --membership-id UUID --start "2026-07-15T08:00" --end "2026-07-20T17:00"`
+- Cooperative asset utilization: `python3 -m services.analytics.cooperative asset-utilization --cooperative-id UUID`
+- Cooperative create purchase: `python3 -m services.analytics.cooperative create-purchase --cooperative-id UUID --order-name "Bulk Seeds" --category seeds --target-qty 1000 --unit kg --target-price 2.50`
+- Cooperative add purchase participant: `python3 -m services.analytics.cooperative add-purchase-participant --purchase-id UUID --membership-id UUID --quantity 100 --commitment 250.00`
+- Cooperative create market order: `python3 -m services.analytics.cooperative create-market-order --cooperative-id UUID --order-name "Maize Bulk" --crop maize --quantity 5000 --target-price 350.00`
+- Cooperative add market participant: `python3 -m services.analytics.cooperative add-market-participant --market-order-id UUID --membership-id UUID --quantity 500`
+- Cooperative collective orders: `python3 -m services.analytics.cooperative collective-orders --cooperative-id UUID`
+- Cooperative member dashboard: `python3 -m services.analytics.cooperative member-dashboard --farmer-id UUID`
+- Data governance record consent: `python3 -m services.analytics.data_governance record-consent --farmer-id F001 --data-category soil --scope collection --status granted`
+- Data governance withdraw consent: `python3 -m services.analytics.data_governance withdraw-consent --consent-id UUID --reason "reason"`
+- Data governance consent status: `python3 -m services.analytics.data_governance consent-status --farmer-id F001`
+- Data governance check consent: `python3 -m services.analytics.data_governance check-consent --farmer-id F001 --data-category soil --scope collection`
+- Data governance log access: `python3 -m services.analytics.data_governance log-access --accessor-id A001 --data-category soil --resource-type soil_sample --access-type read`
+- Data governance access audit: `python3 -m services.analytics.data_governance access-audit --farmer-id F001`
+- Data governance request portability: `python3 -m services.analytics.data_governance request-portability --farmer-id F001 --format csv --scope all`
+- Data governance fulfill portability: `python3 -m services.analytics.data_governance fulfill-portability --request-id UUID --file-path /tmp/export.csv`
+- Data governance portability requests: `python3 -m services.analytics.data_governance portability-requests --farmer-id F001`
+- Data governance create agreement: `python3 -m services.analytics.data_governance create-agreement --provider-id F001 --consumer-id ORG001 --data-categories soil,yield --purpose "research"`
+- Data governance sharing agreements: `python3 -m services.analytics.data_governance sharing-agreements --farmer-id F001`
+- Data governance set retention: `python3 -m services.analytics.data_governance set-retention --data-category soil --retention-days 2555 --action soft_delete`
+- Data governance summary: `python3 -m services.analytics.data_governance governance-summary --location-id UUID`
 - Yield monitoring tests: `python3 -m tests.test_yield_monitoring`
 - Digital twin tests: `python3 -m tests.test_digital_twin`
 - Mobile offline tests: `python3 -m tests.test_mobile_offline`
 - LLM chat tests: `python3 -m tests.test_llm_chat`
+- Pest management record scouting: `python3 -m services.analytics.pest_management record-scouting --location-id UUID --pest fall_armyworm --type insect --severity moderate`
+- Pest management set threshold: `python3 -m services.analytics.pest_management set-threshold --location-id UUID --pest fall_armyworm --crop maize --eil 2.0 --et 1.0`
+- Pest management check threshold: `python3 -m services.analytics.pest_management check-threshold --location-id UUID --pest fall_armyworm --crop maize --count 3`
+- Pest management record intervention: `python3 -m services.analytics.pest_management record-intervention --location-id UUID --scouting-id UUID --type biological --method "Bt spray"`
+- Pest management record pesticide: `python3 -m services.analytics.pest_management record-pesticide --location-id UUID --product "Bt spray" --ingredient "Bacillus thuringiensis" --class bioinsecticide --rate 2.0 --area 1.0`
+- Pest management record resistance: `python3 -m services.analytics.pest_management record-resistance --location-id UUID --pest fall_armyworm --class pyrethroid --level moderate`
+- Pest management record degree day: `python3 -m services.analytics.pest_management record-degree-day --location-id UUID --pest fall_armyworm --base 10.0 --max 38.0 --min 25.0`
+- Pest management summary: `python3 -m services.analytics.pest_management summary --location-id UUID`
+- Pest management pesticide usage: `python3 -m services.analytics.pest_management pesticide-usage --location-id UUID --days 30`
+- Pest management degree day tracking: `python3 -m services.analytics.pest_management degree-day-tracking --location-id UUID --pest fall_armyworm`
+- Pest management recommend: `python3 -m services.analytics.pest_management recommend --scouting-id UUID`
+- Pest management dashboard: `python3 -m services.analytics.pest_management dashboard --location-id UUID`
+- Pest management add reference: `python3 -m services.analytics.pest_management add-reference --pest fall_armyworm --scientific-name "Spodoptera frugiperda"`
+- Pest management get reference: `python3 -m services.analytics.pest_management get-reference --pest fall_armyworm`
+- Pest management list references: `python3 -m services.analytics.pest_management list-references --category insect`
+- Pest management create schedule: `python3 -m services.analytics.pest_management create-schedule --location-id UUID --pest fall_armyworm --frequency 7`
+- Pest management due scouting: `python3 -m services.analytics.pest_management due-scouting --location-id UUID`
+- Pest management record compliance: `python3 -m services.analytics.pest_management record-compliance --schedule-id UUID --scouting-id UUID`
+- Pest management compliance report: `python3 -m services.analytics.pest_management compliance-report --location-id UUID --days 30`
+- Pest management schedule re-scout: `python3 -m services.analytics.pest_management schedule-re-scout --intervention-id UUID --date 2026-07-15`
+- Pest management evaluate intervention: `python3 -m services.analytics.pest_management evaluate-intervention --intervention-id UUID --scouting-id UUID --effectiveness 75`
+- Pest management compliance score: `python3 -m services.analytics.pest_management compliance-score --location-id UUID`
+- Pest management add interaction: `python3 -m services.analytics.pest_management add-interaction --pest fall_armyworm --crop maize --loss-potential 50`
+- Pest management get interactions: `python3 -m services.analytics.pest_management get-interactions --crop maize`
+- Pest management recommend for crop: `python3 -m services.analytics.pest_management recommend-for-crop --crop maize --stage tasseling`
+- Pest management add trap: `python3 -m services.analytics.pest_management add-trap --location-id UUID --name "FAW Trap 1" --type pheromone --pest fall_armyworm`
+- Pest management record catch: `python3 -m services.analytics.pest_management record-catch --trap-id UUID --pest-count 15`
+- Pest management trap trends: `python3 -m services.analytics.pest_management trap-trends --trap-id UUID --days 30`
+- Pest management check trap threshold: `python3 -m services.analytics.pest_management check-trap-threshold --trap-id UUID`
+- Pest management add MoA: `python3 -m services.analytics.pest_management add-moa --class pyrethroid --code 3A --action "Sodium channel modulation"`
+- Pest management check rotation: `python3 -m services.analytics.pest_management check-rotation --location-id UUID --class pyrethroid`
+- Pest management rotation history: `python3 -m services.analytics.pest_management rotation-history --location-id UUID --days 90`
+- Pest management spray windows: `python3 -m services.analytics.pest_management spray-windows --location-id UUID --pest fall_armyworm --days-ahead 7`
+- Pest management organic pest score: `python3 -m services.analytics.pest_management organic-pest-score --location-id UUID`
+- Pest management generate audit: `python3 -m services.analytics.pest_management generate-audit --location-id UUID`
+- Pest management tests: `python3 -m tests.test_pest_management`
+- Crop rotation create plan: `python3 -m services.analytics.crop_rotation create-plan --location-id UUID --name "3-Year Plan"`
+- Crop rotation add slot: `python3 -m services.analytics.crop_rotation add-slot --plan-id UUID --season 1 --crop maize --purpose cash_crop`
+- Crop rotation get plan: `python3 -m services.analytics.crop_rotation get-plan --plan-id UUID`
+- Crop rotation list plans: `python3 -m services.analytics.crop_rotation list-plans --location-id UUID`
+- Crop rotation record impact: `python3 -m services.analytics.crop_rotation record-impact --plan-id UUID --slot-id UUID --type soil_health --direction positive --severity 15`
+- Crop rotation impact summary: `python3 -m services.analytics.crop_rotation impact-summary --plan-id UUID`
+- Crop rotation family usage: `python3 -m services.analytics.crop_rotation family-usage --location-id UUID`
+- Crop rotation recommend: `python3 -m services.analytics.crop_rotation recommend --location-id UUID --plot-id UUID`
+- Crop rotation validate: `python3 -m services.analytics.crop_rotation validate --plan-id UUID`
+- Crop rotation dashboard: `python3 -m services.analytics.crop_rotation dashboard --location-id UUID`
+- Crop rotation tests: `python3 -m tests.test_crop_rotation`
+- Nutrient budget create: `python3 -m services.analytics.nutrient_budget create-budget --location-id UUID --season 2026S1 --crop maize --area 2.5`
+- Nutrient budget record input: `python3 -m services.analytics.nutrient_budget record-input --budget-id UUID --type fertilizer --product "Urea 46-0-0" --n 50 --p 0 --k 0`
+- Nutrient budget record removal: `python3 -m services.analytics.nutrient-budget record-removal --budget-id UUID --crop maize --yield 2500 --n 37.5 --p 12.5 --k 25.0`
+- Nutrient budget balance: `python3 -m services.analytics.nutrient_budget balance --location-id UUID`
+- Nutrient budget input summary: `python3 -m services.analytics.nutrient_budget input-summary --budget-id UUID`
+- Nutrient budget soil test: `python3 -m services.analytics.nutrient_budget record-soil-test --location-id UUID --plot-id UUID --ph 6.2 --om 3.5 --n 25 --p 18 --k 120`
+- Nutrient budget recommendation: `python3 -m services.analytics.nutrient_budget recommendation --plot-id UUID`
+- Nutrient budget dashboard: `python3 -m services.analytics.nutrient_budget dashboard --location-id UUID`
+- Nutrient budget compute removal: `python3 -m services.analytics.nutrient_budget compute-removal --crop maize --yield 2500`
+- Nutrient budget efficiency: `python3 -m services.analytics.nutrient_budget efficiency --location-id UUID --season 2026S1`
+- Nutrient budget tests: `python3 -m tests.test_nutrient_budget`
+- Energy add source: `python3 -m services.analytics.energy_monitoring add-source --location-id UUID --name "Solar PV" --type solar --capacity 5.0`
+- Energy record reading: `python3 -m services.analytics.energy_monitoring record-reading --source-id UUID --date 2026-07-01 --type consumption --kwh 150 --activity irrigation`
+- Energy consumption: `python3 -m services.analytics.energy_monitoring consumption --location-id UUID --days 30`
+- Energy efficiency: `python3 -m services.analytics.energy_monitoring efficiency --location-id UUID --period monthly`
+- Energy add renewable: `python3 -m services.analytics.energy_monitoring add-renewable --location-id UUID --source-id UUID --renewable-type solar_pv --capacity 5.0`
+- Energy renewable summary: `python3 -m services.analytics.energy_monitoring renewable-summary --location-id UUID`
+- Energy dashboard: `python3 -m services.analytics.energy_monitoring dashboard --location-id UUID`
+- Energy carbon intensity: `python3 -m services.analytics.energy_monitoring carbon-intensity --location-id UUID`
+- Energy cost analysis: `python3 -m services.analytics.energy_monitoring cost-analysis --location-id UUID --days 30`
+- Energy monitoring tests: `python3 -m tests.test_energy_monitoring`
+- Waste record waste: `python3 -m services.analytics.waste_management record-waste --location-id UUID --waste-type organic --waste-name "Crop residues" --quantity 50.0 --disposal-method composting`
+- Waste record composting: `python3 -m services.analytics.waste_management record-composting --location-id UUID --feedstock "Banana stems" --feedstock-kg 100 --method vermicomposting`
+- Waste record recycling: `python3 -m services.analytics.waste_management record-recycling --location-id UUID --material plastic --quantity 15.0 --destination "Recycling center" --revenue 5.00`
+- Waste report incident: `python3 -m services.analytics.waste_management report-incident --location-id UUID --incident-type chemical_spill --severity high --description "Pesticide container leak" --affected-area "Near stream"`
+- Waste resolve incident: `python3 -m services.analytics.waste_management resolve-incident --incident-id UUID --remedial-action "Cleaned and neutralized soil" --resolution-date 2026-07-10`
+- Waste summary: `python3 -m services.analytics.waste_management waste-summary --location-id UUID`
+- Waste composting efficiency: `python3 -m services.analytics.waste_management composting-efficiency --location-id UUID`
+- Waste open incidents: `python3 -m services.analytics.waste_management open-incidents --location-id UUID`
+- Waste dashboard: `python3 -m services.analytics.waste_management dashboard --location-id UUID`
+- Waste management tests: `python3 -m tests.test_waste_management`
+- Landscape create habitat: `python3 -m services.analytics.landscape_conservation create-habitat --location-id UUID --name "Riparian Buffer" --type riparian --area 0.5 --biodiversity high`
+- Landscape create corridor: `python3 -m services.analytics.landscape_conservation create-corridor --location-id UUID --name "Stream Link" --source UUID --target UUID --width 15 --length 200`
+- Landscape record hedgerow: `python3 -m services.analytics.landscape_conservation record-hedgerow --location-id UUID --name "North Windbreak" --species '["calliandra","leucaena"]' --length 180 --purpose '["windbreak","biodiversity"]'`
+- Landscape record buffer check: `python3 -m services.analytics.landscape_conservation record-buffer-check --location-id UUID --habitat-zone UUID --buffer-width 12 --minimum-required 10 --vegetation-pct 85`
+- Landscape record biodiversity: `python3 -m services.analytics.landscape_conservation record-biodiversity --location-id UUID --richness 34 --shannon 2.45 --habitat-diversity 1.8 --connectivity 6.5 --overall 7.2`
+- Landscape habitat summary: `python3 -m services.analytics.landscape_conservation habitat-summary --location-id UUID`
+- Landscape corridor status: `python3 -m services.analytics.landscape_conservation corridor-status --location-id UUID`
+- Landscape buffer compliance: `python3 -m services.analytics.landscape_conservation buffer-compliance --location-id UUID`
+- Landscape biodiversity trends: `python3 -m services.analytics.landscape_conservation biodiversity-trends --location-id UUID`
+- Landscape dashboard: `python3 -m services.analytics.landscape_conservation dashboard --location-id UUID`
+- Landscape conservation tests: `python3 -m tests.test_landscape_conservation`
+- Pollinator record observation: `python3 -m services.analytics.pollinator_health record-observation --location-id UUID --type honeybee --count 50`
+- Pollinator create habitat: `python3 -m services.analytics.pollinator_health create-habitat --location-id UUID --name "Wildflower Strip" --type wildflower --area 200`
+- Pollinator record pesticide: `python3 -m services.analytics.pollinator_health record-pesticide --location-id UUID --product "Chlorpyrifos" --toxicity high`
+- Pollinator add hive: `python3 -m services.analytics.pollinator_health add-hive --location-id UUID --hive-id H-001 --colony-strength 8`
+- Pollinator record inspection: `python3 -m services.analytics.pollinator_health record-inspection --hive-id H-001 --colony-strength 9`
+- Pollinator summary: `python3 -m services.analytics.pollinator_health summary --location-id UUID`
+- Pollinator habitat inventory: `python3 -m services.analytics.pollinator_health habitat-inventory --location-id UUID`
+- Pollinator pesticide risk: `python3 -m services.analytics.pollinator_health pesticide-risk --location-id UUID`
+- Pollinator hive status: `python3 -m services.analytics.pollinator_health hive-status --location-id UUID`
+- Pollinator dashboard: `python3 -m services.analytics.pollinator_health dashboard --location-id UUID`
+- Pollinator health tests: `python3 -m tests.test_pollinator_health`
+- Digital Finance create account: `python3 -m services.analytics.digital_finance create-account --location-id UUID --type savings --currency KES --holder "John Doe"`
+- Digital Finance record tx: `python3 -m services.analytics.digital_finance record-tx --account-id UUID --type deposit --amount 5000 --direction credit`
+- Digital Finance balance: `python3 -m services.analytics.digital_finance balance --account-id UUID`
+- Digital Finance list: `python3 -m services.analytics.digital_finance list --location-id UUID`
+- Digital Finance create insurance: `python3 -m services.analytics.digital_finance create-insurance --location-id UUID --product weather_index --coverage 100000 --premium 5000`
+- Digital Finance file claim: `python3 -m services.analytics.digital_finance file-claim --policy-id UUID --type drought --amount 20000 --evidence '{"rainfall_deficit": 40}'`
+- Digital Finance evaluate claim: `python3 -m services.analytics.digital_finance evaluate-claim --claim-id UUID --status approved --adjustment 0`
+- Digital Finance create loan: `python3 -m services.analytics.digital_finance create-loan --location-id UUID --amount 50000 --rate 0.12 --term 12 --purpose "input_purchase" --eligibility 0.85`
+- Digital Finance repay: `python3 -m services.analytics.digital_finance repay --loan-id UUID --amount 5000 --method mobile_money`
+- Digital Finance portfolio: `python3 -m services.analytics.digital_finance portfolio --location-id UUID`
+- Digital Finance premium: `python3 -m services.analytics.digital_finance premium --location-id UUID --product yield_guarantee --coverage 200000`
+- Digital Finance eligibility: `python3 -m services.analytics.digital_finance eligibility --location-id UUID --amount 75000`
+- Digital Finance tests: `python3 -m tests.test_digital_finance`
+- Traceability create batch: `python3 -m services.analytics.traceability create-batch --location-id UUID --crop maize --quantity 500 --harvest-date 2026-07-10`
+- Traceability custody: `python3 -m services.analytics.traceability custody --batch-id UUID --from "Farm A" --to "Cooperative B" --type harvest_collection`
+- Traceability quality: `python3 -m services.analytics.traceability quality --batch-id UUID --type visual --result pass --grade A`
+- Traceability certification: `python3 -m services.analytics.traceability certification --batch-id UUID --type organic --cert-number ORG-001 --issuer KCB --expiry 2027-01-01`
+- Traceability provenance: `python3 -m services.analytics.traceability provenance --batch-id UUID --event harvest --actor "Farmer John" --location "Adelphi"`
+- Traceability provenance log: `python3 -m services.analytics.traceability provenance-log --batch-id UUID`
+- Traceability status: `python3 -m services.analytics.traceability status --batch-id UUID`
+- Traceability list: `python3 -m services.analytics.traceability list --location-id UUID --status active`
+- Traceability food safety: `python3 -m services.analytics.traceability food-safety --batch-id UUID --type temperature --result pass --temperature 4.2`
+- Traceability certs: `python3 -m services.analytics.traceability certs --location-id UUID`
+- Traceability trace forward: `python3 -m services.analytics.traceability trace-forward --batch-id UUID`
+- Traceability trace backward: `python3 -m services.analytics.traceability trace-backward --batch-id UUID`
+- Traceability cold chain: `python3 -m services.analytics.traceability cold-chain --batch-id UUID`
+- Traceability tests: `python3 -m tests.test_traceability`
+- Extension create module: `python3 -m services.analytics.extension create-module --title "Soil Health 101" --category soil_health --content-type guide`
+- Extension list modules: `python3 -m services.analytics.extension list-modules --category soil_health --difficulty beginner`
+- Extension enroll: `python3 -m services.analytics.extension enroll --farmer-id FARMER --module-id UUID`
+- Extension update progress: `python3 -m services.analytics.extension update-progress --progress-id UUID --status completed --score 85`
+- Extension farmer progress: `python3 -m services.analytics.extension farmer-progress --farmer-id FARMER`
+- Extension module stats: `python3 -m services.analytics.extension module-stats --module-id UUID`
+- Extension create peer group: `python3 -m services.analytics.extension create-peer-group --name "Adelphi FFS" --topic soil_health`
+- Extension add peer member: `python3 -m services.analytics.extension add-peer-member --group-id UUID --farmer-id FARMER --role member`
+- Extension peer groups: `python3 -m services.analytics.extension peer-groups --location-id UUID`
+- Extension deliver: `python3 -m services.analytics.extension deliver --farmer-id FARMER --module-id UUID --channel sms`
+- Extension delivery stats: `python3 -m services.analytics.extension delivery-stats --farmer-id FARMER`
+- Extension record assessment: `python3 -m services.analytics.extension record-assessment --farmer-id FARMER --module-id UUID --type pre_test --score 60`
+- Extension effectiveness: `python3 -m services.analytics.extension effectiveness --location-id UUID`
+- Extension recommend: `python3 -m services.analytics.extension recommend --farmer-id FARMER --location-id UUID`
+- Extension tests: `python3 -m tests.test_extension`
+- Farmer Identity create profile: `python3 -m services.analytics.farmer_identity create-profile --first-name John --location-id UUID`
+- Farmer Identity update profile: `python3 -m services.analytics.farmer_identity update-profile --farmer-id UUID --last-name Doe`
+- Farmer Identity get profile: `python3 -m services.analytics.farmer_identity get-profile --farmer-id UUID`
+- Farmer Identity list farmers: `python3 -m services.analytics.farmer_identity list-farmers --location-id UUID`
+- Farmer Identity add credential: `python3 -m services.analytics.farmer_identity add-credential --farmer-id UUID --type organic_cert --name "Organic Certificate"`
+- Farmer Identity verify credential: `python3 -m services.analytics.farmer_identity verify-credential --credential-id UUID`
+- Farmer Identity get credentials: `python3 -m services.analytics.farmer_identity get-credentials --farmer-id UUID`
+- Farmer Identity create KYC: `python3 -m services.analytics.farmer_identity create-kyc --farmer-id UUID --method national_id`
+- Farmer Identity verify KYC: `python3 -m services.analytics.farmer_identity verify-kyc --kyc-id UUID --status approved --verified-by UUID`
+- Farmer Identity assign role: `python3 -m services.analytics.farmer_identity assign-role --farmer-id UUID --role farmer`
+- Farmer Identity check permission: `python3 -m services.analytics.farmer_identity check-permission --farmer-id UUID --resource farm --action read`
+- Farmer Identity record consent: `python3 -m services.analytics.farmer_identity record-consent --farmer-id UUID --data-type soil_data --recipient-type buyer`
+- Farmer Identity register device: `python3 -m services.analytics.farmer_identity register-device --farmer-id UUID --device-id DEV001 --device-type phone`
+- Farmer Identity access matrix: `python3 -m services.analytics.farmer_identity access-matrix --location-id UUID`
+- Farmer Identity directory: `python3 -m services.analytics.farmer_identity directory --location-id UUID`
+- Farmer Identity tests: `python3 -m tests.test_farmer_identity`
+- Marketplace tests: `python3 -m tests.test_marketplace`
+- Cooperative tests: `python3 -m tests.test_cooperative`
 - Oracle infrastructure tests: `python3 -m tests.test_oracle_infrastructure`
 - Yahoo Finance price fetch: `python3 -m services.ingestion.yahoo_finance`
 - Price attestation: `python3 -m services.ingestion.price_attestation --run-daily`
@@ -443,6 +648,9 @@
 - Precision Agriculture Phase 2: Prescription maps (VRT) with natural-breaks and equal-interval rate classification, per-zone application rate computation (fertilizer/irrigation/seed), material cost estimation, and approval workflow. Advisory engine with 8 default rules (soil moisture, heat stress, nitrogen deficiency, pest alert, harvest readiness, frost warning, spray window, schedule-based), cooldown/daily-limit guardrails, accept/dismiss lifecycle, and audit logging. Equipment usage logging, OEE (Availability × Performance × Quality) computation, maintenance schedule tracking, and cost analysis (fuel + electricity + depreciation).
 - Precision Agriculture Phase 3: Yield monitoring with harvest recording, trend analysis (linear regression), yield prediction (ensemble model using GDD, weather, and historical data), and benchmark comparison. Digital twin crop growth simulation with daily time-step model (GDD accumulation, biomass growth, water balance, nitrogen dynamics, carbon sequestration), what-if scenario management, and scenario comparison.
 - Precision Agriculture Phase 4: Mobile offline-first data collection with device registration, offline queue, batch sync, conflict resolution, and sync audit logging. LLM chat interface with keyword-based intent classification, entity extraction, session management, structured query handlers for yield/weather/soil/CRISP/advisory/cost/twin, and response caching.
+- Precision Agriculture Phase 5: Irrigation automation with zone management, soil moisture targets by crop/growth stage, ETc-based schedule generation, irrigation event recording, automation rules engine (lt/lte/gt/gte/eq/neq/between operators with cooldown, time windows, daily limits, approval gates), water balance computation (ETc − rainfall − irrigation), schedule optimization (deficit-based volume calculation from target range), and water use efficiency reporting (weekly trends, distribution uniformity, water productivity kg/m³).
+
+- Pest Management: Field scouting records with severity/incidence tracking, IPM action thresholds (economic injury level, economic threshold) per pest-crop combination, intervention recording with IPM ladder recommendation (biological → cultural → mechanical → chemical), pesticide application logging with safety intervals (REI/PHI), resistance monitoring, and degree-day modeling with lifecycle stage tracking from `pest_degree_day_config`. Dashboard aggregates pest activity, interventions, chemical use, resistance alerts, and degree-day accumulation.
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
