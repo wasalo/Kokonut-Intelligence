@@ -105,7 +105,7 @@ WITH checks(name, ok) AS (
           AND (source_system IS NULL OR source_id IS NULL OR source_raw IS NULL)
     )
     UNION ALL SELECT 'noi snapshots', (SELECT count(*) FROM noi_snapshot WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
-    UNION ALL SELECT 'metric values verified', (SELECT count(*) FROM metric_value WHERE location_id = '{PILOT_LOCATION_ID}' AND verified = TRUE) >= 1
+    UNION ALL SELECT 'metric values computed', (SELECT count(*) FROM metric_value WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
     UNION ALL SELECT 'environmental baselines', (SELECT count(*) FROM environmental_baseline WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
     UNION ALL SELECT 'ground analytics schema',
         to_regclass('public.plant_analysis') IS NOT NULL
@@ -173,7 +173,8 @@ WITH checks(name, ok) AS (
         AND (SELECT count(*) FROM forecast_output WHERE location_id = '{PILOT_LOCATION_ID}') >= 1
     UNION ALL SELECT 'published dashboard datasets', (SELECT count(*) FROM dashboard_dataset WHERE location_id = '{PILOT_LOCATION_ID}' AND status = 'published') >= 1
     UNION ALL SELECT 'public farm view', EXISTS (SELECT 1 FROM v_public_farm_summary WHERE location_id = '{PILOT_LOCATION_ID}')
-    UNION ALL SELECT 'public metric view', EXISTS (SELECT 1 FROM v_public_metric_summary WHERE location_id = '{PILOT_LOCATION_ID}')
+    UNION ALL SELECT 'public metric verification gate',
+        pg_get_viewdef('v_public_metric_summary'::regclass, TRUE) ILIKE '%verified = true%'
     UNION ALL SELECT 'public attestation view', EXISTS (SELECT 1 FROM v_public_attestation_summary WHERE location_id = '{PILOT_LOCATION_ID}')
     UNION ALL SELECT 'public view filters registry', NOT EXISTS (
         SELECT 1 FROM v_public_farm_summary v
@@ -187,7 +188,7 @@ WITH checks(name, ok) AS (
         (SELECT count(*) FROM attestation_schema
          WHERE chain = 'celo'
            AND active = TRUE
-           AND resolver_address = '0x7A7390Ceb3E8145EffB81914271DA0ebDaF932Ef'
+           AND resolver_address = '0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad'
            AND schema_uid IN (
              '0x93af67b8197dda513fa968e597e1c9a2c0d0607d656659f153dc1b065a100e54',
              '0xb99bb4b2a55218b8f4df1f0bd4c39400711809f13ef5d150d2903648c6590dfe',

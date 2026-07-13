@@ -11,11 +11,17 @@ try:
     from fastapi.responses import JSONResponse
 except ImportError:
     # Stub for environments without FastAPI
-    APIRouter = None
+    class APIRouter:
+        def get(self, _path):
+            return lambda func: func
+
+        def post(self, _path):
+            return lambda func: func
+
     Request = None
     JSONResponse = None
 
-router = APIRouter() if APIRouter else None
+router = APIRouter()
 logger = get_logger("gateway.router")
 
 

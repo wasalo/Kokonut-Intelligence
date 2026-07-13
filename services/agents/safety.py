@@ -92,6 +92,20 @@ GOVERNED_COLLECTIONS = {
     "delphi_study",
     "delphi_recommendation",
     "delphi_consensus",
+    "report_snapshot",
+    "dashboard_dataset",
+    "forecast_scenario",
+    "forecast_output",
+    "scenario_parameter",
+    "scenario_simulation",
+    "crisp_risk_assessment",
+    "threat",
+    "threat_signal",
+    "threat_narrative",
+    "backcast_plan",
+    "backcast_milestone",
+    "backcast_assumption_challenge",
+    "backcast_path_comparison",
 }
 
 

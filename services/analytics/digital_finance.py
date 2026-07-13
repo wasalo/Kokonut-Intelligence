@@ -1205,21 +1205,20 @@ def evaluate_loan_eligibility(
 # ============================================================
 
 def _crisp_rating(score: float) -> str:
-    """Map CRISP composite score to rating band."""
+    """Map a higher-is-riskier CRISP score to a conventional rating."""
     if score is None:
         return "NR"
-    if score <= 20:
-        return "D"
-    elif score <= 44:
-        return "C"
-    elif score <= 69:
-        return "B"
-    elif score <= 80:
-        return "A"
-    elif score <= 91:
-        return "AA"
-    else:
+    if score < 20:
         return "AAA"
+    if score < 44:
+        return "AA"
+    if score < 69:
+        return "A"
+    if score < 80:
+        return "B"
+    if score < 91:
+        return "C"
+    return "D"
 
 
 # ============================================================

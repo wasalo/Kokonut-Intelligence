@@ -1,4 +1,6 @@
-# API Reference
+# Directus API Reference
+
+This document and `openapi.yaml` describe the Directus REST/GraphQL surface. They do not describe the optional Kokonut FastAPI gateway.
 
 ## Directus REST API
 
@@ -7,6 +9,8 @@ Base URL through base Compose Caddy: `https://localhost/directus`
 If a local Compose override exposes Directus directly, `http://localhost:8055` can also be used. The examples below use `DIRECTUS_URL` so both modes work.
 
 ### Authentication
+
+Directus endpoints use Directus access tokens and permissions. Gateway credentials (`x-api-key` and `x-capability-token`) are a separate security boundary and are not interchangeable with Directus bearer tokens. The gateway is started separately with `python3 -m services.gateway --serve`; base Caddy does not route to it.
 
 ```bash
 # Login
@@ -110,6 +114,11 @@ These collections are exposed through the same Directus `/items/{collection}` RE
 | `agent_capability_manifest` | Versioned capability manifest JSON and CID/hash metadata | Linked to `agent_identity` |
 | `agent_task` | Agent task inputs, outputs, execution state, and review lifecycle | Human review remains governed by lifecycle status |
 | `agent_action_log` | Audit trail for agent actions | Uses `action_result` for success/failure/skipped state |
+| `metric_value` | Computed governed metric result | Computation creates drafts; human verification is a separate action |
+| `forecast_scenario` | Governed forecast scenario | Forecast execution transitions it to `submitted`, never directly to published |
+| `credit_batch` | Governed internal credit batch | Issuance requires human-verified status and an authorized issuer; external registry recognition is separate |
+
+Credit class, batch, balance, custody, marketplace, bridge, and retirement records represent Kokonut's governed internal ledger. Their presence does not assert certification, issuance, or retirement recognition by an external registry.
 
 ### Helper CLIs
 

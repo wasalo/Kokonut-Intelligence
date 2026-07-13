@@ -176,13 +176,13 @@ def test_weighted_average_risk_default_weights() -> None:
 # ---------------------------------------------------------------------------
 
 def test_rating_band_aaa() -> None:
-    for score in [91, 95, 100]:
+    for score in [0, 10, 19]:
         rating = _assign_rating(score)
         assert rating == "AAA", f"Score {score} should be AAA, got {rating}"
 
 
 def test_rating_band_d() -> None:
-    for score in [0, 10, 19]:
+    for score in [91, 95, 100]:
         rating = _assign_rating(score)
         assert rating == "D", f"Score {score} should be D, got {rating}"
 

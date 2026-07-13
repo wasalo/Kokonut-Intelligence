@@ -6,7 +6,7 @@
 
 - Docker Desktop (with Docker Compose v2)
 - 4GB+ RAM available for Docker
-- Ports available for base Compose: 80 and 443. PostgreSQL, ClickHouse, Directus, and Metabase are internal Docker services unless a local override exposes additional ports.
+- Ports available for base Compose: 80, 443, and 50051; loopback ports 8055 and 1883 must also be available. PostgreSQL, ClickHouse, and Metabase are internal-only. Directus is additionally bound to `127.0.0.1:8055`, MQTT to `127.0.0.1:1883`, and gRPC to host port `50051` in base Compose.
 
 ### Quick Start
 
@@ -40,11 +40,14 @@ docker compose ps
 | Directus | `https://localhost` or `https://localhost/directus` | Schema management, API, admin |
 | Directus admin | `https://localhost/admin` | Admin UI route through Caddy |
 | Metabase | `https://localhost/metabase` | Internal BI dashboards |
+| Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
+| gRPC | `localhost:50051` | gRPC service; host exposure is removed by the production overlay |
+| MQTT | `mqtt://127.0.0.1:1883` | Loopback-only sensor broker |
 | PostgreSQL | Docker service `database:5432` | Canonical data store |
 | ClickHouse HTTP | Docker service `clickhouse:8123` | Analytical queries |
 | ClickHouse Native | Docker service `clickhouse:9000` | Native protocol |
 
-Optional local overrides may expose Directus at `http://localhost:8055` and Metabase at `http://localhost:3001`. Use those direct URLs only when your Compose overlay maps the ports.
+Metabase has no host binding in base Compose. A local override may expose it at `http://localhost:3001`.
 
 ### Stopping Services
 
@@ -123,7 +126,7 @@ Python ingestion services (weather, market data, EAS indexer, RPC indexer, senso
 docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile worker up -d kokonut-worker
 ```
 
-The worker container runs a cron daemon with all ingestion jobs pre-configured in `config/worker/crontab`. To customize the schedule, edit the crontab file and rebuild.
+The worker container runs a cron daemon with jobs pre-configured in `config/worker/crontab`. Its metric entry invokes `python3 -m services.metrics --compute --all-locations` once and exits; cron supplies the repetition. Metric computation writes draft `metric_value` rows and does not verify them.
 
 To run ad-hoc commands inside the worker:
 
@@ -133,7 +136,7 @@ docker compose exec kokonut-worker python3 -m services.analytics --portfolio-sum
 docker compose exec kokonut-worker bash scripts/health-check.sh
 ```
 
-Alternatively, keep the host-based CLI approach (see Ingestion Scheduler below) — both paths are fully supported.
+Alternatively, keep the host-based CLI approach (see Ingestion Scheduler below). Choose one scheduling owner for each job; do not run the same cron job in both places.
 
 ### Monitoring and Alerting
 
@@ -178,7 +181,8 @@ Before deploying to production:
 - [ ] `CADDY_DOMAIN` or `KOKONUT_DOMAIN` set to your domain
 - [ ] TLS configured (Caddy auto-provisions or Traefik with cert resolver)
 - [ ] `docker-compose.prod.yml` applied (no direct port exposure to host)
-- [ ] Worker container or cron scheduler set up for ingestion jobs
+- [ ] Exactly one scheduling owner selected for each recurring job (worker cron, host cron, or database scheduler)
+- [ ] `event-worker` running if queued events must be processed continuously
 - [ ] Health-check cron with alerting configured
 - [ ] Backup cron job configured (`scripts/backup.sh`)
 - [ ] Resource limits reviewed for your VM size
@@ -196,11 +200,15 @@ Before deploying to production:
 
 ### Ingestion Scheduler
 
-Ingestion services are CLI tools. Two options are available:
+Ingestion services are CLI tools. The worker overlay also defines a continuous event worker and an opt-in database scheduler:
 
 1. **Worker container** (recommended for production) — see [Worker Container](#worker-container-optional) section above. All cron jobs are pre-configured in `config/worker/crontab`.
 
 2. **Host-based cron** — schedule directly on the host or VM. Use the entries below as a starting point.
+
+3. **Database scheduler** — start `kokonut-scheduler` with profile `scheduler` for jobs registered in the scheduler tables. Do not also schedule those jobs in worker or host cron.
+
+The `worker` profile starts `kokonut-worker` and `event-worker`; the latter runs `python3 -m services.events --worker --worker-id event-worker`. Inspect event processing with `python3 -m services.events --stats` and scheduler state with `python3 -m services.scheduler.cli --status`. Avoid starting the scheduler profile until overlapping cron entries have been disabled.
 
 Example cron entries for host-based scheduling (adjust paths and timezone as needed):
 
@@ -222,6 +230,8 @@ Example cron entries for host-based scheduling (adjust paths and timezone as nee
 ```
 
 Ensure `KOKONUT_ENV=production` and all required secrets are set in the environment used by the scheduler. Use `./scripts/health-check.sh` after deploy to verify service connectivity.
+
+For an explicit host-side metric run, set `KOKONUT_METRICS_EXECUTION=host ./scripts/compute-metrics.sh`. Without that setting, the script may launch a one-shot worker container when the Compose database is running. This is computation only; a reviewer must verify a value separately with `python3 -m services.metrics --verify-value UUID --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"`.
 
 ### Production Compose
 
@@ -268,7 +278,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compos
 | `ARBITRUM_RPC_URL` | Arbitrum RPC endpoint | For RPC indexer |
 | `CELO_RPC_URL` | Celo RPC endpoint (default: `https://forno.celo.org`) | For EAS attestation |
 | `ATTESTER_PRIVATE_KEY` | Private key for EAS attestation wallet | For EAS attestation |
-| `EAS_RESOLVER_ADDRESS` | EAS resolver contract address (`0x7A7390Ceb3E8145EffB81914271DA0ebDaF932Ef`) | For EAS attestation |
+| `EAS_RESOLVER_ADDRESS` | EAS resolver contract address (`0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`) | For EAS attestation |
+| `KOKONUT_METRICS_EXECUTION` | Set to `host` to force `scripts/compute-metrics.sh` to use the current Python environment | No |
 | `BASEROW_API_URL` | Baserow API URL | For migration |
 | `BASEROW_TOKEN` | Baserow API token | For migration |
 
@@ -313,6 +324,16 @@ cd contracts && forge script script/DeployKokonutResolver.s.sol \
 ClickHouse listens inside the Docker network for service-to-service access. Query it with `docker compose exec clickhouse ...` or expose its ports only through an intentional local override.
 
 ## Database Management
+
+### Migrations
+
+```bash
+python3 -m services.migration status
+python3 -m services.migration dry-run
+python3 -m services.migration migrate
+```
+
+Take and test a backup before `migrate`, review the dry-run list, and run only one migration process. The runner uses `ON_ERROR_STOP`, a PostgreSQL advisory lock, deterministic schema-before-seed ordering, and checksums that reject modification of an applied migration. Add a new migration instead of editing an applied file. Because repository SQL may contain its own transaction control, a failed file can be partially committed; inspect database state and `schema_migration` before retrying. `status` and `dry-run` create or reconcile the tracking table, so they are not strictly read-only database operations.
 
 ### Backup
 

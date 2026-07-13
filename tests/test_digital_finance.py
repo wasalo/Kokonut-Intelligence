@@ -438,22 +438,22 @@ class TestEvaluateLoanEligibility(unittest.TestCase):
 class TestCrispRating(unittest.TestCase):
 
     def test_rating_d(self):
-        self.assertEqual(_crisp_rating(15), "D")
+        self.assertEqual(_crisp_rating(95), "D")
 
     def test_rating_c(self):
-        self.assertEqual(_crisp_rating(30), "C")
+        self.assertEqual(_crisp_rating(85), "C")
 
     def test_rating_b(self):
-        self.assertEqual(_crisp_rating(60), "B")
+        self.assertEqual(_crisp_rating(75), "B")
 
     def test_rating_a(self):
-        self.assertEqual(_crisp_rating(75), "A")
+        self.assertEqual(_crisp_rating(60), "A")
 
     def test_rating_aa(self):
-        self.assertEqual(_crisp_rating(85), "AA")
+        self.assertEqual(_crisp_rating(30), "AA")
 
     def test_rating_aaa(self):
-        self.assertEqual(_crisp_rating(95), "AAA")
+        self.assertEqual(_crisp_rating(10), "AAA")
 
     def test_rating_none(self):
         self.assertEqual(_crisp_rating(None), "NR")

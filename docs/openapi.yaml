@@ -1,7 +1,9 @@
 openapi: 3.0.3
 info:
-  title: Kokonut Intelligence Platform API
-  description: 'The Kokonut Intelligence Platform is a comprehensive agricultural and environmental data management system.
+  title: Kokonut Intelligence Directus API
+  description: 'This specification describes the Directus REST and GraphQL surface for the Kokonut Intelligence Platform, not the optional Kokonut FastAPI gateway.
+
+    The platform is a comprehensive agricultural and environmental data management system.
 
     Built on Directus, it provides REST and GraphQL APIs for managing farm operations, environmental monitoring,
 
@@ -10,7 +12,7 @@ info:
 
     ## Authentication
 
-    All endpoints require Bearer token authentication unless noted otherwise.
+    Endpoints require Directus Bearer token authentication unless noted otherwise and remain subject to Directus role and collection permissions. Gateway API keys and capability tokens are a separate authentication boundary.
 
     Obtain tokens via the `/auth/login` endpoint.
 
@@ -28,11 +30,13 @@ info:
     name: Kokonut Intelligence Support
     email: support@kokonutintelligence.com
   license:
-    name: Proprietary
-    url: https://kokonutintelligence.com/license
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
 servers:
-- url: http://localhost:8055
-  description: Local development server
+- url: https://localhost/directus
+  description: Base Compose through Caddy (development certificate)
+- url: http://127.0.0.1:8055
+  description: Base Compose loopback-only Directus binding
 tags:
 - name: Authentication
   description: Token-based authentication operations

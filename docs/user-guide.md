@@ -57,7 +57,6 @@ Kokonut Intelligence is an open-source platform for managing regenerative farm o
 2. Enter your email and password provided by your administrator.
 3. You'll land on the Directus home screen.
 
-![Directus home](images/directus-home.png)
 
 ### Navigating the Interface
 
@@ -521,7 +520,6 @@ The flagship platform-wide overview with 8 cards:
 - Environmental health (soil carbon, biodiversity, NDVI)
 - Expense breakdown (pie chart)
 
-![Eagle View dashboard](images/eagle-view-dashboard.png)
 
 ### Accessing Dashboards
 

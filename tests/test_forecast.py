@@ -8,6 +8,7 @@ from services.forecast.models import (
     ScenarioAssumptions,
 )
 from services.forecast.pricing import project_prices
+from services.forecast.risk import calculate_confidence_interval
 
 
 def test_price_assumptions_defaults():
@@ -64,6 +65,11 @@ def test_forecast_submission_does_not_publish():
     assert "SET status = 'published'" not in run_source
     assert "'draft'" in dashboard_source
     assert "status = 'published'" not in dashboard_source
+
+
+def test_negative_financial_interval_is_ordered_and_preserves_downside():
+    low, high = calculate_confidence_interval(-100.0, 0.8)
+    assert low < -100.0 < high
 
 
 if __name__ == "__main__":

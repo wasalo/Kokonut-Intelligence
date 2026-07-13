@@ -54,7 +54,7 @@ def _assign_rating(composite_score: float) -> str:
     """Assign AAA-D rating based on composite score.
 
     Bands are defined as [low, high) — exclusive upper bound.
-    D covers everything below the lowest defined band.
+    Higher scores receive weaker ratings because higher means more risk.
     """
     for rating, (low, high) in RATING_BANDS.items():
         if low <= composite_score < high:

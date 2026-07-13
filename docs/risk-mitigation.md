@@ -55,12 +55,12 @@ The CRISP (Carbon Risk Identification and Scoring Principles) engine provides fi
 
 | Rating | Score | Meaning |
 |--------|-------|---------|
-| AAA | 91–100 | Prime — lowest risk |
-| AA | 80–91 | Very low risk |
-| A | 69–80 | Low risk |
-| B | 44–69 | Neutral — moderate risk |
-| C | 20–44 | High risk |
-| D | 0–20 | Junk — highest risk |
+| AAA | 0–<20 | Prime — lowest risk |
+| AA | 20–<44 | Very low risk |
+| A | 44–<69 | Low risk |
+| B | 69–<80 | Neutral — moderate risk |
+| C | 80–<91 | High risk |
+| D | 91–100 | Junk — highest risk |
 
 ### Adaptive Weights
 

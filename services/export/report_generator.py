@@ -2881,7 +2881,7 @@ def compute_hash(data: dict) -> str:
 
 
 def store_snapshot(conn, report_data: dict, location_id: str = None, period_start: str = None, period_end: str = None) -> str:
-    """Store report snapshot in the database."""
+    """Store an unfrozen draft report for independent review."""
     report_data = attach_public_interest_context(conn, report_data, location_id)
     snapshot_hash = compute_hash(report_data)
     report_type = report_data.get("report_type", "unknown")
@@ -2903,7 +2903,7 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
             report_data, snapshot_hash, status, frozen, frozen_at,
             public_interest_summary, uncertainty_notes, negative_findings, affected_community_voice
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, 'published', TRUE, NOW(), %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, 'draft', FALSE, NULL, %s, %s, %s, %s)
         RETURNING id
         """,
         (

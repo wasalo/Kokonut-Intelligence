@@ -4,8 +4,6 @@ Open-source intelligence layer for regenerative farm operations, financial perfo
 
 PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores analytical events. Python services compute metrics, forecasts, exports, registry payloads, AI summaries, and ingestion jobs. EAS on Celo anchors public verification metadata while private evidence stays offchain.
 
-**Repo stats**: 92 tests · 32 service packages · 109 SQL schemas · 435 tables · 186 views · 16 agents · 57 report types · 53 dashboards · 82 seed files · 49 docs
-
 ## Table Of Contents
 
 - [Architecture](#architecture)
@@ -50,10 +48,14 @@ docker compose up -d
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 
-# 4. Compute verified governed metrics for public views
+# 4. Compute draft, unverified governed metric values
 ./scripts/compute-metrics.sh
 
-# 5. Verify the MVP definition of done
+# 5. Have a human reviewer verify each accepted value
+python3 -m services.metrics --verify-value METRIC_VALUE_UUID \
+  --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"
+
+# 6. Verify the MVP definition of done
 ./scripts/verify-mvp.sh
 ```
 
@@ -61,7 +63,7 @@ Or using Make targets:
 
 ```bash
 make seed          # applies schema + base seeds
-make ci            # runs full local CI (105 checks)
+make ci            # runs the full local CI suite
 make test          # runs pytest over all tests
 make lint          # ruff lint check
 make typecheck     # mypy type check
@@ -74,18 +76,22 @@ Run the full local check with `./scripts/ci-check.sh` or `make ci`. For sandbox-
 
 ## Local Services
 
-Base `docker-compose.yml` exposes Caddy on the host and keeps PostgreSQL, ClickHouse, Directus, and Metabase on Docker networks unless an overlay or local override maps additional ports.
+Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus and MQTT to loopback, and keeps PostgreSQL, ClickHouse, and Metabase private. The optional worker overlay joins the private database network without turning metric computation into a persistent service.
 
 | Service | Base URL | Notes |
 |---------|----------|-------|
 | Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
 | Directus API | `https://localhost/directus` | Canonical API and data access |
 | Directus admin | `https://localhost/admin` | Admin UI and data entry |
+| Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
 | Metabase | `https://localhost/metabase` | BI dashboards |
+| gRPC | `localhost:50051` | Host-exposed external API in base Compose; removed by the production overlay |
+| MQTT | `mqtt://127.0.0.1:1883` | Loopback-only sensor broker |
 | PostgreSQL | Docker service `database:5432` | Canonical data store; use `docker compose exec database ...` |
 | ClickHouse | Docker service `clickhouse:8123` | Analytical store; use Docker network or `docker compose exec clickhouse ...` |
+| Worker | Compose service `kokonut-worker` | Cron/one-shot Python execution; `compute-metrics.sh` uses an ephemeral `run --rm` worker when the Compose database is running |
 
-Optional local overrides may expose Directus at `http://localhost:8055` and Metabase at `http://localhost:3001`. Use those direct URLs only if your Compose override maps the ports.
+The default local override may expose Metabase at `http://localhost:3001`. Use direct service URLs only when the effective Compose configuration maps them.
 
 ## Core Capabilities
 
@@ -94,8 +100,8 @@ Optional local overrides may expose Directus at `http://localhost:8055` and Meta
 - **Impact accountability and evidence**: Evidence maturity levels, stakeholder feedback, impact claims, participatory metric proposals, holistic well-being, financial resilience, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source scaling, commons governance, bio-factory operations, and CIDS Essential Tier JSON-LD export.
 - **Web3 verification**: EAS schemas on Celo, KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, wallet activity, Gnosis DAO metadata, and public attestation summaries.
 - **Governance and guilds**: Colony-backed Guild metadata, contribution records, reputation snapshots, anti-capture governance, flexible redistribution, federation protocols, and DAO proposal links while Gnosis Moloch remains the treasury governance layer.
-- **Agent ecosystem**: 16 agent identities with capability manifests, tasks, action logs, AI summaries, and scoped MCP/Directus access. Agents can draft and submit but cannot verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repo.
-- **Organic certification readiness**: 8-table organic compliance system with transition tracking, input audit, buffer zones, harvest segregation, and composite readiness scoring (0-100).
+- **Agent ecosystem**: Agent identities with capability manifests, tasks, action logs, AI summaries, and scoped MCP/Directus access. Agents can draft and submit but cannot verify, publish, attest, or score. Contract identity, payments, escrow, and marketplace logic remain external to this repo.
+- **Organic certification readiness**: Organic compliance records for transition tracking, input audit, buffer zones, harvest segregation, and composite readiness scoring (0-100).
 - **True Cost Accounting**: Hidden cost tracking, natural/social capital valuation, life cycle assessment, GRI indicator mapping, and cross-capital flow analysis for triple bottom line reporting.
 - **Silvi tree-tracking integration**: Individual tree GPS tracking, growth rate analytics, GeoJSON/KML/XML export, spatial clustering, pest hotspots, canopy analysis, and habitat connectivity scoring.
 - **Emergency response**: Incident tracking with response actions, recovery timelines, and lessons learned for crisis resilience.
@@ -107,6 +113,10 @@ Optional local overrides may expose Directus at `http://localhost:8055` and Meta
 - **Oracle infrastructure**: Multi-source price feeds with median consensus, real-time commodity futures, and actuator command dispatch.
 - **Data Stream**: Chronological project data posts with Markdown content, file attachments (Directus + URLs), geo-tagged files, full-text search, blockchain anchoring via EAS, and visibility controls.
 - **Ecocredit module**: Credit class/batch hierarchy, basket with token deposits, marketplace with escrow, per-account balance tracking, bridge operations, project enrollment workflow, and retirement certificates.
+- **Platform integrity**: Ordered, checksummed PostgreSQL migrations reject drift; the API gateway defaults unknown routes to authenticated access; durable scheduler leases/runs and event outbox/dead-letter handling support safe retries and operator recovery.
+- **Credit custody and retirement**: Ledger-backed balances preserve account and batch custody, while carbon retirement reserves quantity atomically, requires separate human confirmation, and generates certificates only from governed retirement records.
+- **Threatcasting and backcasting**: Threats, warning signals, cross-impact and cascade analysis feed future narratives, horizons, backcast milestones, sustainability-principle alignment, assumption challenges, and comparable pathways.
+- **Real-time Delphi**: Roundless, pseudonymous panel consultation provides weighted consensus and stability tracking; facilitator outputs remain drafts and recommendations require human approval.
 - **Linked data infrastructure**: IRI system with versioning, RDF triple store, SPARQL queries, content-addressed storage, resolver registry, and evidence chaining.
 - **Schema.org alignment**: All LinkML schemas mapped to schema.org URIs via slot_uri, JSON-LD context generation, and `@graph` support for complex documents.
 - **Regen Network parity**: Full alignment with Regen Data Standards (ClaimType, VerificationStatus, VerdictType enums), CreditClassInfo, ProjectInfo, ProjectPost schemas, and Data module v2 concepts.
@@ -116,7 +126,7 @@ Optional local overrides may expose Directus at `http://localhost:8055` and Meta
 
 ## How Metrics Enable Answers
 
-The platform is built across 62 development phases, each adding governed tables, analytics, and metrics. **17 governed metrics**, **50+ analytics functions**, **16 agents**, and **55 report types** collectively answer questions across 6 tiers:
+The platform combines governed metrics, analytics functions, agents, and report types to answer questions across six tiers:
 
 | Tier | Collective Question | Example Answer |
 |------|-------------------|----------------|
@@ -164,15 +174,16 @@ See [User Guide](docs/user-guide.md) for role workflows and data-entry walkthrou
 # Metrics
 python3 -m services.metrics --list
 python3 -m services.metrics --compute --all-locations
+python3 -m services.metrics --verify-value METRIC_VALUE_UUID --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"
 
-# Reports (42 types; use --auto for all)
+# Reports (use --auto for all registered types)
 python3 -m services.export.report_generator --auto --location-id UUID
 python3 -m services.export.report_generator --type climate_impact --location-id UUID
 
 # CIDS export
 python3 -m services.registry.cids_export --location-id UUID
 
-# Agents (14 agents; see AGENTS.md for full list)
+# Agents (see AGENTS.md for the full list)
 python3 -m services.agents.tasks --list
 python3 -m services.agents.ai_summary --location-id UUID --summary-type combined
 
@@ -193,7 +204,7 @@ CI runs 3 jobs on every push and pull request via `.github/workflows/ci.yml`:
 
 | Job | What it checks |
 |-----|----------------|
-| Python checks | Ruff lint, 105-check CI script, CLI smoke tests, attestation tests, integration tests |
+| Python checks | Ruff lint, full `ci-check.sh` suite, CLI smoke tests, attestation tests, integration tests |
 | Directus hooks | `npm ci`, `npm run build`, `npm test` in `extensions/kokonut-hooks` |
 | Foundry contracts | `forge fmt --check`, `forge build --sizes`, `forge test -vvv` |
 
@@ -243,15 +254,15 @@ See [Deployment](docs/deployment.md) for full production setup, reverse proxy op
 ```text
 config/             Docker, PostgreSQL, ClickHouse, Caddy, Directus, Mosquitto, and worker crontab config
 contracts/          Foundry project for KokonutResolver and EAS-related contracts
-dashboards/         42 Metabase dashboard templates with backing SQL
-docs/               49 docs — see Documentation section below
+dashboards/         Metabase dashboard templates with backing SQL
+docs/               Guides and references; see Documentation below
 extensions/         Directus lifecycle hooks, workflow rules, metric hooks, AI helpers
 migrations/         Migration tooling and legacy migration helpers
-schemas/            PostgreSQL schemas (109+), ClickHouse schemas, Directus snapshots, seed files
+schemas/            PostgreSQL and ClickHouse schemas, Directus snapshots, seed files
 scripts/            Setup, seed, schema, metrics, backup, health-check, and CI scripts
 sdk/                JavaScript/TypeScript and Python SDKs
 services/           Python services for ingestion, metrics, analytics, export, agents, attestation, scoring, abundance, flows, data_stream, credit_class, iri, rdf, data_module, certificates, metadata_api, linkml, csw, geostory, maps, thesaurus, grpc
-tests/              55+ test files — smoke, CLI, attestation, metrics, EBF, agents, CRISP, telemetry
+tests/              Unit and integration tests for platform services and invariants
 Dockerfile.worker   Optional worker container for cron-based ingestion
 docker-compose.yml  Base services (PostgreSQL 16, ClickHouse 25.8, Directus 12.1.1, Metabase 0.62.4, Caddy, Mosquitto)
 docker-compose.prod.yml     Production overlay (resource limits, no direct port exposure)
@@ -261,8 +272,8 @@ docker-compose.worker.yml   Worker overlay (cron-based Python ingestion containe
 
 ## Security And Privacy
 
-- Secrets come from environment variables; do not commit `.env` or private keys. See `.env.example` for the full catalog (44 env vars with placeholder warnings).
-- Base Compose exposes Caddy only; PostgreSQL and ClickHouse remain internal to Docker networks unless a local override maps ports.
+- Secrets come from environment variables; do not commit `.env` or private keys. See `.env.example` for the current catalog and placeholder warnings.
+- Base Compose keeps PostgreSQL and ClickHouse internal, binds Directus and MQTT to loopback, and exposes Caddy plus gRPC. The production overlay removes direct application-service exposure.
 - `PUBLIC_RESTRICT=true` disables unauthenticated public Directus data access.
 - Directus rate limiting and login throttling are enabled.
 - Public EAS metadata stores hashes, CIDs, UIDs, chain labels, transaction hashes, and timestamps; private evidence remains offchain.
@@ -275,19 +286,27 @@ See [Deployment](docs/deployment.md), [Attestation Guide](docs/attestation-guide
 
 ## Documentation
 
-All 48 docs live under `docs/`. Key entry points:
+Documentation lives under `docs/`. Key entry points:
 
 | Document | Description |
 |----------|-------------|
 | [User Guide](docs/user-guide.md) | Role workflows, data entry, lifecycle, dashboards, analytics, export |
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
+| [Platform Integrity](docs/platform-integrity.md) | Cross-cutting integrity boundaries and operational guarantees |
+| [Migrations](docs/migrations.md) | Ordered migration execution, checksums, drift detection, and recovery |
+| [Gateway](docs/gateway.md) | Route policy, authentication, default-deny behavior, rate limits, and audit |
+| [Metric Verification](docs/metric-verification.md) | Draft computation, independent human verification, and public exposure |
+| [Scheduler and Events](docs/scheduler-and-events.md) | Durable scheduler runs, event processing, retries, and dead-letter recovery |
+| [Credit Lifecycle](docs/credit-lifecycle.md) | Issuance, custody, balances, retirement review, and certificates |
+| [Threatcasting and Backcasting](docs/threatcasting-and-backcasting.md) | Threat intelligence, future narratives, principles, and pathway planning |
+| [Delphi](docs/delphi.md) | Real-time Delphi studies, consensus, facilitation, and approval boundaries |
 | [API Reference](docs/api-reference.md) | Directus REST/GraphQL and ClickHouse access notes |
 | [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |
 | [Metrics by Development Phase](docs/metrics-by-phase.md) | Which metrics each phase enables, how they're measured, and collective insights |
 | [AGENTS.md](AGENTS.md) | Canonical command reference (CLI, analytics, ingestion, agents, tests) |
 | [CHANGELOG.md](CHANGELOG.md) | Release history and unreleased changes |
 | [Green Paper V1](docs/green-paper-v1.md) | Comprehensive 15-section publication-ready document |
-| [Export Guide](docs/export-guide.md) | 42 report types, data exports, report snapshots |
+| [Export Guide](docs/export-guide.md) | Report types, data exports, and report snapshots |
 | [EBF Scorecard Guide](docs/ebf-scorecard.md) | EBF pillars, rubric, scorecards, trust graphs |
 | [Attestation Guide](docs/attestation-guide.md) | EAS on Celo, schemas, onchain/offchain attestations |
 | [Deployment](docs/deployment.md) | Docker setup, environment variables, backup, operations |

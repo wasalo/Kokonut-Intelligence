@@ -34,7 +34,6 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 | Gnosis | Chain 100 | Moloch DAO treasury governance |
 | Foundry | Latest | KokonutResolver, OpenZeppelin |
 | Mosquitto | 2 | MQTT broker for IoT sensor ingestion |
-```
 
 ## Data Lifecycle
 
@@ -66,7 +65,10 @@ Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus sna
 | Directus SDK | JavaScript | Session | Application integration |
 | ClickHouse HTTP | HTTP | Basic auth | Analytical queries |
 | Directus MCP | MCP | Scoped token | AI agent access |
+| Kokonut gateway | HTTP REST | API key or capability token | Optional policy-aware routes under `/api`; separate process, not the Directus API |
 | Helper CLIs | Python modules | Local process auth | Registry validation, local CID prep, attestation request prep, agent manifest prep |
+
+The gateway is an optional service started with `python3 -m services.gateway --serve`. Its `/health`, `/`, `/docs`, and `/openapi.json` discovery routes are public; route policies determine whether other gateway routes are public, and protected routes require `x-api-key` or `x-capability-token`. A Directus bearer token is not gateway authentication. Base Caddy configuration routes to Directus and Metabase, not to the gateway.
 
 ## Security Model
 
@@ -104,7 +106,7 @@ Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Ce
 |----------|---------|
 | EAS | `0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92` |
 | SchemaRegistry | `0x5ece93bE4BDCF293Ed61FA78698B594F2135AF34` |
-| KokonutResolver | `0x7A7390Ceb3E8145EffB81914271DA0ebDaF932Ef` | Gates attestation to allowed attesters |
+| KokonutResolver | `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad` | Gates attestation to allowed attesters |
 
 **Registered Schemas:**
 

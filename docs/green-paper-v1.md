@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Date:** June 2026  
 **Status:** V1 — Publication Ready  
-**License:** Open Source
+**License:** Apache License 2.0
 
 ---
 
@@ -54,7 +54,7 @@ This Green Paper is the publication-ready stakeholder document for the Kokonut I
 
 **What this document does NOT claim:**
 
-- The platform does not issue carbon credits or provide external verification services.
+- The platform can govern internal credit classes, batches, balances, custody, and retirements; these records do not constitute external registry recognition or external verification.
 - EAS attestations are verification metadata, not automatic proof of external verification.
 - Carbon-balance evidence is distinct from carbon credit issuance.
 - Agent outputs are draft aids for human review, not publication authority.
@@ -239,6 +239,8 @@ Kokonut Intelligence addresses these challenges through governed data models, ev
 | Directus MCP | MCP | Scoped token | AI agent access |
 | Helper CLIs | Python modules | Local process auth | Registry validation, local CID prep, attestation request prep, agent manifest prep |
 
+The optional Kokonut gateway is a separate FastAPI process, not part of the Directus API or base Caddy routing. Its protected routes accept gateway API keys or capability tokens according to route policy; Directus bearer authentication remains a separate boundary.
+
 ### Security Model
 
 - **Roles:** Administrator, Field Worker, Supervisor, Manager, Finance, Analyst, Auditor, Agent Read-Only, Agent Write, Agent Full.
@@ -269,6 +271,8 @@ draft → submitted → verified → published
 - **Published:** Available to dashboards, APIs, attestations.
 
 `rejected` is available for rework and exception paths. Payment, attestation, execution, and domain-specific states live in dedicated fields such as `payment_status`, `attestation_uid`, `attested_at`, `execution_status`, and `revocation_date`.^[2]^
+
+Metric computation writes draft `metric_value` records; it does not verify them. Verification is a separate, explicit human action. Forecast execution similarly moves a scenario to `submitted`, not to `verified` or `published`.
 
 ### Time-Based Enforcement
 
@@ -731,7 +735,7 @@ python3 -m services.analytics --ebf-portfolio-summary
 
 ### Carbon Disclaimer
 
-Carbon-balance evidence is distinct from carbon credit issuance. Public carbon claims require Evidence Maturity Level 6, external verifier text, methodology reference, and published status. EAS attestations provide verification metadata but do not replace external verification.^[20]^
+Carbon-balance evidence is distinct from carbon credit issuance. The platform implements governed internal records for credit classes, verified-batch issuance by authorized issuers, balances, custody, marketplace activity, bridging, and retirement. Those ledger events do not by themselves create recognition by an external registry or replace independent certification. Public carbon claims require Evidence Maturity Level 6, external verifier text, methodology reference, and published status. EAS attestations provide verification metadata but do not replace external verification.^[20]^
 
 ---
 
@@ -750,7 +754,7 @@ Records scenario-based capital leverage, regenerative practice payback periods, 
 | `governance_throughput_observation` | Proposal volume, voting participation, execution rate |
 | `capital_provider_utility_scenario` | Provider satisfaction, risk-adjusted return, redeployment intent |
 
-Report types: `capital_efficiency`, `governance_throughput`, `capital_provider_utility`. Agent: `capital_efficiency_agent`. Guide: [docs/capital-efficiency.md](docs/capital-efficiency.md).^[35]^
+Report types: `capital_efficiency`, `governance_throughput`, `capital_provider_utility`. Agent: `capital_efficiency_agent`. Guide: [capital-efficiency.md](capital-efficiency.md).^[35]^
 
 ### Commons Liberation and Stewardship
 
@@ -763,7 +767,7 @@ Records time reclaimed from extractive labor, capital alignment with regenerativ
 | `governance_inclusion_observation` | Participation by group, decision influence, barrier removal |
 | `land_stewardship_commitment` | Stewardship area, tenure security, biodiversity commitment, community access |
 
-Report types: `time_liberation`, `capital_alignment`, `governance_inclusion`, `land_stewardship`. Agent: `commons_agent`. Guide: [docs/commons-liberation.md](docs/commons-liberation.md).^[36]^
+Report types: `time_liberation`, `capital_alignment`, `governance_inclusion`, `land_stewardship`. Agent: `commons_agent`. Guide: [commons-liberation.md](commons-liberation.md).^[36]^
 
 ### GNH Alignment and Inclusion
 
@@ -777,7 +781,7 @@ Records Gross National Happiness domain-level alignment, cultural preservation p
 | `vulnerable_group_access_plan` | Group identification (privacy-protected), access barrier, mitigation, outcome |
 | `foundational_wellbeing_observation` | Food security, housing, water access, energy access, education access observations |
 
-Report types: `gnh_alignment`, `cultural_preservation`, `renewable_energy`, `vulnerable_access`, `foundational_wellbeing`. Agent: `gnh_agent`. Guide: [docs/gnh-alignment.md](docs/gnh-alignment.md).^[37]^
+Report types: `gnh_alignment`, `cultural_preservation`, `renewable_energy`, `vulnerable_access`, `foundational_wellbeing`. Agent: `gnh_agent`. Guide: [gnh-alignment.md](gnh-alignment.md).^[37]^
 
 ### Regenerative Outcomes and Stewardship
 
@@ -790,7 +794,7 @@ Records concise grant-facing outcome summaries, community governance decision me
 | `replication_readiness_assessment` | Readiness dimension, score, evidence, blocker, mitigation |
 | `adaptive_stewardship_review` | Review cycle, observation, adjustment, rationale, next review date |
 
-Report types: `regenerative_outcomes`, `community_governance`, `replication_readiness`, `adaptive_stewardship`. Agent: `regenerator_agent`. Guide: [docs/regenerative-outcomes.md](docs/regenerative-outcomes.md).^[38]^
+Report types: `regenerative_outcomes`, `community_governance`, `replication_readiness`, `adaptive_stewardship`. Agent: `regenerator_agent`. Guide: [regenerative-outcomes.md](regenerative-outcomes.md).^[38]^
 
 ### Open Source Capitalist Scaling
 
@@ -804,7 +808,7 @@ Records farm launch unit economics, network scaling targets, adoption barrier as
 | `perpetual_value_stress_test` | Scenario, shock type, impact, recovery path, residual risk |
 | `open_source_impact_artifact` | Artifact type, license, reuse count, derivative works, community contribution |
 
-Report types: `scaling_economics`, `adoption_barriers`, `perpetual_value_stress`, `open_source_impact`. Agent: `open_source_capitalist_agent`. Guide: [docs/open-source-capitalist-scaling.md](docs/open-source-capitalist-scaling.md).^[39]^
+Report types: `scaling_economics`, `adoption_barriers`, `perpetual_value_stress`, `open_source_impact`. Agent: `open_source_capitalist_agent`. Guide: [open-source-capitalist-scaling.md](open-source-capitalist-scaling.md).^[39]^
 
 ### Kokonut Commons Governance
 
@@ -818,7 +822,7 @@ Records anti-capture governance policies, flexible redistribution policies, fede
 | `algorithmic_redistribution_mechanism` | Algorithm, input signals, output allocation, audit trail, override |
 | `participatory_signal_experiment` | Signal type, source, weight, advisory vs binding, review status |
 
-Report types: `anti_capture_governance`, `redistribution_policy`, `federation_mutual_aid`, `algorithmic_redistribution`, `participatory_signal`. Agent: `kokonut_commons_agent`. Guide: [docs/kokonut-commons-governance.md](docs/kokonut-commons-governance.md).^[40]^
+Report types: `anti_capture_governance`, `redistribution_policy`, `federation_mutual_aid`, `algorithmic_redistribution`, `participatory_signal`. Agent: `kokonut_commons_agent`. Guide: [kokonut-commons-governance.md](kokonut-commons-governance.md).^[40]^
 
 ### Bio Factory Operations
 
@@ -834,7 +838,7 @@ Records bio-organic fertilizer production batches, ingredient provenance, recipe
 | `bio_ingredient_composition_reference` | Composition matrix: typical NPK ranges for 20 ingredients |
 | `bio_regional_input_availability` | LAC regional inputs: region, seasonality, cautions, quality considerations |
 
-Report types: `bio_factory_batch`, `bio_input_provenance`, `bio_recipe_library`, `bio_quality_test`, `bio_regional_input`. Agent: `bio_factory_agent`. Guide: [docs/bio-factory-operations.md](docs/bio-factory-operations.md).^[41]^
+Report types: `bio_factory_batch`, `bio_input_provenance`, `bio_recipe_library`, `bio_quality_test`, `bio_regional_input`. Agent: `bio_factory_agent`. Guide: [bio-factory-operations.md](bio-factory-operations.md).^[41]^
 
 ---
 
@@ -987,7 +991,7 @@ This section defines what Green Paper V1 claims and what it does not claim.
 - Bio-factory batch yields, input provenance records, and quality test results are smallholder pilot evidence, not commercial production guarantees. Recipes are public knowledge for adaptation, not commercial endorsements. Quality test results are advisory, not certification.
 - Redistribution policies are flexible per scenario; no single allocation percentage is hardcoded across all contexts.
 - Forecast and modeled outputs are projections, not guarantees.
-- The platform does not issue carbon credits or provide external verification services.
+- The platform's governed credit issuance and retirement records are internal ledger events, not claims of external registry issuance, certification, or recognition. The platform does not provide external verification services.
 - Agent capabilities described in this document are current; future capabilities are not commitments.
 
 ### Suggested Narrative
@@ -1042,7 +1046,7 @@ Framework reference data is seeded by `schemas/seeds/023_impact_frameworks.sql` 
 # Apply pilot data (Kokonut Adelphi)
 ./scripts/seed-pilot.sh
 
-# Compute verified governed metrics
+# Compute draft governed metrics; human verification is separate
 ./scripts/compute-metrics.sh
 
 # Verify MVP definition of done

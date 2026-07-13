@@ -23,6 +23,18 @@
 - Do not overload lifecycle `status` with payment, attestation, or domain state.
 - Use fields like `payment_status`, `attestation_uid`, `attested_at`, and `revocation_date` for domain-specific state.
 
+## Operational Integrity
+
+- Metric computation creates draft, unverified `metric_value` rows. Never describe `--compute` or `compute-metrics.sh` as verification; a human must run `--verify-value` separately.
+- Base Compose keeps PostgreSQL and ClickHouse private. Use Compose service names for database access; do not document host ports unless an explicit override publishes them.
+- `compute-metrics.sh` runs metrics once and exits. With the Compose database running it uses an ephemeral `kokonut-worker` via `docker compose run --rm`; it is not a persistent metrics service.
+- Migrations are ordered and checksummed. Do not edit an applied migration or bypass drift detection; add a new migration and preserve transactional failure behavior.
+- Gateway public access is explicit opt-in. Unknown routes remain protected, and new routes require deliberate resource/action/public policy plus authorization tests.
+- Scheduler claims, run state, event delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
+- Credit writes must preserve batch/account custody and supply invariants. Retirement reserves quantity atomically and requires an independent human confirmation before final balance mutation or certificate use.
+- Threatcasting/backcasting outputs and Delphi facilitator recommendations are advisory. Preserve governed lifecycle, evidence links, and human approval boundaries.
+- Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
+
 ## Local Commands
 
 - Start services with encrypted secrets: `sops exec-env .env.sops docker compose up -d`
@@ -851,7 +863,7 @@
 - Framework reference data is canonicalized by `schemas/seeds/023_impact_frameworks.sql`; Adelphi mappings and Guild/DAO alignment are in `schemas/seeds/024_adelphi_alignment.sql`.
 - Impact framework rows should be nonblank and active for SDGs, 8 Forms of Capital, Pillars of Value, EBF, CRISP, and regeneration principles.
 - CRISP risk scoring uses `crisp_risk_dimension` for operational dimension config (separate from `impact_dimension` framework metadata). Weights are configurable per-location via `crisp_location_weight`. Default weights: carbon_yield 0.40, climate 0.25, policy 0.15, financial 0.10, implementation 0.10.
-- CRISP composite rating bands: AAA (91-100), AA (80-91), A (69-80), B (44-69), C (20-44), D (0-20). Scores are 0-100 where higher = more risk.
+- CRISP composite rating bands: AAA (0-<20), AA (20-<44), A (44-<69), B (69-<80), C (80-<91), D (91-100). Scores are 0-100 where higher = more risk.
 - CRISP scoring queries tree_inventory, soil_carbon_measurement, harvest_event, weather_observation, emergency_incident, organic_certification_record, adoption_barrier_assessment, land_stewardship_commitment, governance_inclusion_observation, stakeholder_feedback, financial_sustainability_plan, farm_launch_unit_economics, revenue_event, expense_event, farm_onboarding_profile, regenerative_practice_checklist, training_event, and risk_mitigation_register.
 - CRISP version is date-based (`vYYYY.MM`), auto-bumps monthly, stored in `services/crisp/config.py`.
 - Baseline calculators (revenue, asset_value, cash_flow, cost) query the `location` table directly.
