@@ -701,6 +701,31 @@
 - Weather forecast tests: `python3 -m tests.test_weather_forecast`
 - Evapotranspiration tests: `python3 -m tests.test_evapotranspiration`
 - Crop phenology tests: `python3 -m tests.test_crop_phenology`
+- Threat create: `python3 -m services.threatcasting create-threat --location-id UUID --name "Drought" --type climate --severity high --probability 0.7 --velocity fast --reversibility partially`
+- Threat list: `python3 -m services.threatcasting list-threats --location-id UUID`
+- Threat get: `python3 -m services.threatcasting get-threat --threat-id UUID`
+- Cross-impact matrix: `python3 -m services.threatcasting cross-impact --location-id UUID`
+- Cross-impact simulate: `python3 -m services.threatcasting simulate-interaction --threat-ids UUID1,UUID2`
+- Flag create: `python3 -m services.threatcasting create-flag --threat-id UUID --name "Rainfall Deficit" --indicator-type quantitative --threshold-critical 0.9 --threshold-warning 0.7 --threshold-normal 0.5`
+- Flag list: `python3 -m services.threatcasting list-flags --location-id UUID`
+- Flag status: `python3 -m services.threatcasting flag-status --location-id UUID`
+- Flag evaluate: `python3 -m services.threatcasting evaluate-flag --flag-id UUID`
+- Signal ingest: `python3 -m services.threatcasting ingest-signal --source weather_api --content "Rainfall 40% below normal" --threat-id UUID`
+- Signal list: `python3 -m services.threatcasting list-signals --location-id UUID`
+- Signal list unclassified: `python3 -m services.threatcasting list-signals --unclassified`
+- Narrative create: `python3 -m services.threatcasting create-narrative --threat-id UUID --type undesirable --title "Drought Cascade" --summary "..." --story "..." --years 5 --probability 0.7`
+- Narrative list: `python3 -m services.threatcasting list-narratives --location-id UUID`
+- Narrative evaluate: `python3 -m services.threatcasting evaluate-narrative --narrative-id UUID --framework gnh`
+- Horizon create: `python3 -m services.threatcasting create-horizon --location-id UUID --name "5-Year" --years 5 --focus climate ecological`
+- Horizon overview: `python3 -m services.threatcasting horizon-overview --horizon-id UUID`
+- Backcast create: `python3 -m services.threatcasting create-backcast --narrative-id UUID --location-id UUID --name "Drought Preparedness" --future-state "..." --gaps "..."`
+- Backcast progress: `python3 -m services.threatcasting backcast-progress --narrative-id UUID`
+- Cascade model: `python3 -m services.threatcasting model-cascade --trigger-id UUID --chain UUID1,UUID2`
+- Cascade risk: `python3 -m services.threatcasting cascade-risk --location-id UUID`
+- Intelligence: `python3 -m services.threatcasting intelligence --location-id UUID`
+- Threat briefing: `python3 -m services.threatcasting briefing --location-id UUID`
+- Threat landscape: `python3 -m services.threatcasting landscape --location-id UUID`
+- Threatcasting tests: `python3 -m pytest tests/test_threatcasting.py -v`
 
 ## Development Notes
 
@@ -721,6 +746,8 @@
 - Precision Agriculture Phase 5: Irrigation automation with zone management, soil moisture targets by crop/growth stage, ETc-based schedule generation, irrigation event recording, automation rules engine (lt/lte/gt/gte/eq/neq/between operators with cooldown, time windows, daily limits, approval gates), water balance computation (ETc − rainfall − irrigation), schedule optimization (deficit-based volume calculation from target range), and water use efficiency reporting (weekly trends, distribution uniformity, water productivity kg/m³).
 
 - Pest Management: Field scouting records with severity/incidence tracking, IPM action thresholds (economic injury level, economic threshold) per pest-crop combination, intervention recording with IPM ladder recommendation (biological → cultural → mechanical → chemical), pesticide application logging with safety intervals (REI/PHI), resistance monitoring, and degree-day modeling with lifecycle stage tracking from `pest_degree_day_config`. Dashboard aggregates pest activity, interventions, chemical use, resistance alerts, and degree-day accumulation.
+
+- Threatcasting: Cross-impact analysis (how threats amplify/attenuate/trigger each other), warning flag monitoring (quantitative thresholds with status escalation), threat signal ingestion (internal + external + manual), narrative construction (desirable/undesirable/baseline/wildcard futures), multi-horizon planning (configurable per-location 1/3/5/10 year horizons), backcasting (work backward from future states with milestones), cascading failure modeling (chain propagation with probability), GNH-aligned desirability assessment (9 GNH dimensions, 8 Forms of Capital, SDGs), and threat intelligence aggregation (landscape assessment, briefings, evolution prediction). Schema: `159_threatcasting.sql` with 10 tables, 6 views.
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
