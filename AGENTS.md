@@ -289,6 +289,19 @@
 - Prescription tests: `python3 -m tests.test_prescription`
 - Advisory tests: `python3 -m tests.test_advisor`
 - Equipment tests: `python3 -m tests.test_equipment`
+- Yield record: `python3 -m services.analytics.yield_monitoring record --location-id UUID --yield-amount 2500 --area 1.5 --crop maize`
+- Yield summary: `python3 -m services.analytics.yield_monitoring summary --location-id UUID`
+- Yield trend: `python3 -m services.analytics.yield_monitoring trend --location-id UUID --crop maize`
+- Yield predict: `python3 -m services.analytics.yield_monitoring predict --location-id UUID --crop maize --days 60`
+- Yield benchmark: `python3 -m services.analytics.yield_monitoring benchmark --location-id UUID --crop maize`
+- Digital twin create: `python3 -m services.analytics.digital_twin create --location-id UUID --name "Adelphi Twin"`
+- Digital twin configure: `python3 -m services.analytics.digital_twin configure --twin-id UUID --key crop --value maize`
+- Digital twin simulate: `python3 -m services.analytics.digital_twin simulate --twin-id UUID`
+- Digital twin scenario: `python3 -m services.analytics.digital_twin scenario --twin-id UUID --name "High Irrigation" --params '{"irrigation_mm": 30}'`
+- Digital twin compare: `python3 -m services.analytics.digital_twin compare --twin-id UUID`
+- Digital twin list: `python3 -m services.analytics.digital_twin list --location-id UUID`
+- Yield monitoring tests: `python3 -m tests.test_yield_monitoring`
+- Digital twin tests: `python3 -m tests.test_digital_twin`
 - Oracle infrastructure tests: `python3 -m tests.test_oracle_infrastructure`
 - Yahoo Finance price fetch: `python3 -m services.ingestion.yahoo_finance`
 - Price attestation: `python3 -m services.ingestion.price_attestation --run-daily`
@@ -417,6 +430,7 @@
 
 - Precision Agriculture Phase 1: Weather forecast ingestion (OpenWeatherMap 5-day / 3-hour), FAO-56 Penman-Monteith ET₀ computation, crop-specific ETc with stage-based Kc values, field-level water balance, Growing Degree Day (GDD) accumulation, crop phenology tracking with growth stage detection, and schedule anomaly detection. Weather forecast data populates `weather_forecast` table with 40 data points per location (5 days × 8 intervals). ET₀ computed using solar radiation when available with Hargreaves fallback. GDD thresholds and Kc values seeded for 8 crop types (maize, beans, cassava, sweet potato, coffee, avocado, tomato, banana).
 - Precision Agriculture Phase 2: Prescription maps (VRT) with natural-breaks and equal-interval rate classification, per-zone application rate computation (fertilizer/irrigation/seed), material cost estimation, and approval workflow. Advisory engine with 8 default rules (soil moisture, heat stress, nitrogen deficiency, pest alert, harvest readiness, frost warning, spray window, schedule-based), cooldown/daily-limit guardrails, accept/dismiss lifecycle, and audit logging. Equipment usage logging, OEE (Availability × Performance × Quality) computation, maintenance schedule tracking, and cost analysis (fuel + electricity + depreciation).
+- Precision Agriculture Phase 3: Yield monitoring with harvest recording, trend analysis (linear regression), yield prediction (ensemble model using GDD, weather, and historical data), and benchmark comparison. Digital twin crop growth simulation with daily time-step model (GDD accumulation, biomass growth, water balance, nitrogen dynamics, carbon sequestration), what-if scenario management, and scenario comparison.
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
