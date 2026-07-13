@@ -300,8 +300,19 @@
 - Digital twin scenario: `python3 -m services.analytics.digital_twin scenario --twin-id UUID --name "High Irrigation" --params '{"irrigation_mm": 30}'`
 - Digital twin compare: `python3 -m services.analytics.digital_twin compare --twin-id UUID`
 - Digital twin list: `python3 -m services.analytics.digital_twin list --location-id UUID`
+- Mobile device register: `python3 -m services.analytics.mobile_offline register --device-id sensor-phone-001 --name "Field Phone 1"`
+- Mobile queue: `python3 -m services.analytics.mobile_offline queue --device-id sensor-phone-001 --type soil_reading --location-id UUID`
+- Mobile sync: `python3 -m services.analytics.mobile_offline sync --device-id sensor-phone-001`
+- Mobile status: `python3 -m services.analytics.mobile_offline status`
+- Mobile devices: `python3 -m services.analytics.mobile_offline devices`
+- LLM chat session: `python3 -m services.analytics.llm_chat session --create --location-id UUID --user admin`
+- LLM chat send: `python3 -m services.analytics.llm_chat chat --session-id UUID --message "What was the maize yield?"`
+- LLM chat intents: `python3 -m services.analytics.llm_chat intents`
+- LLM chat history: `python3 -m services.analytics.llm_chat history --session-id UUID`
 - Yield monitoring tests: `python3 -m tests.test_yield_monitoring`
 - Digital twin tests: `python3 -m tests.test_digital_twin`
+- Mobile offline tests: `python3 -m tests.test_mobile_offline`
+- LLM chat tests: `python3 -m tests.test_llm_chat`
 - Oracle infrastructure tests: `python3 -m tests.test_oracle_infrastructure`
 - Yahoo Finance price fetch: `python3 -m services.ingestion.yahoo_finance`
 - Price attestation: `python3 -m services.ingestion.price_attestation --run-daily`
@@ -431,6 +442,7 @@
 - Precision Agriculture Phase 1: Weather forecast ingestion (OpenWeatherMap 5-day / 3-hour), FAO-56 Penman-Monteith ET₀ computation, crop-specific ETc with stage-based Kc values, field-level water balance, Growing Degree Day (GDD) accumulation, crop phenology tracking with growth stage detection, and schedule anomaly detection. Weather forecast data populates `weather_forecast` table with 40 data points per location (5 days × 8 intervals). ET₀ computed using solar radiation when available with Hargreaves fallback. GDD thresholds and Kc values seeded for 8 crop types (maize, beans, cassava, sweet potato, coffee, avocado, tomato, banana).
 - Precision Agriculture Phase 2: Prescription maps (VRT) with natural-breaks and equal-interval rate classification, per-zone application rate computation (fertilizer/irrigation/seed), material cost estimation, and approval workflow. Advisory engine with 8 default rules (soil moisture, heat stress, nitrogen deficiency, pest alert, harvest readiness, frost warning, spray window, schedule-based), cooldown/daily-limit guardrails, accept/dismiss lifecycle, and audit logging. Equipment usage logging, OEE (Availability × Performance × Quality) computation, maintenance schedule tracking, and cost analysis (fuel + electricity + depreciation).
 - Precision Agriculture Phase 3: Yield monitoring with harvest recording, trend analysis (linear regression), yield prediction (ensemble model using GDD, weather, and historical data), and benchmark comparison. Digital twin crop growth simulation with daily time-step model (GDD accumulation, biomass growth, water balance, nitrogen dynamics, carbon sequestration), what-if scenario management, and scenario comparison.
+- Precision Agriculture Phase 4: Mobile offline-first data collection with device registration, offline queue, batch sync, conflict resolution, and sync audit logging. LLM chat interface with keyword-based intent classification, entity extraction, session management, structured query handlers for yield/weather/soil/CRISP/advisory/cost/twin, and response caching.
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
