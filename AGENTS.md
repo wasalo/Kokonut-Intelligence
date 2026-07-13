@@ -257,6 +257,38 @@
 - Prefect workflow tests: `python3 -m tests.test_prefect_workflow`
 - Prefect pipeline: `python3 -m services.flows.pipelines full_pipeline`
 - Field data collection guide: `docs/field-data-collection-guide.md`
+- Weather forecast ingestion: `python3 -m services.ingestion.weather_forecast`
+- Weather forecast ingestion (single location): `python3 -m services.ingestion.weather_forecast --location-id UUID`
+- Weather forecast daily summary: `python3 -c "from services.ingestion.weather_forecast import get_daily_summary, get_db; print(get_daily_summary(get_db(), 'UUID'))"`
+- Weather forecast spray windows: `python3 -c "from services.ingestion.weather_forecast import get_spray_windows, get_db; print(get_spray_windows(get_db(), 'UUID'))"`
+- Evapotranspiration (Penman-Monteith): `python3 -m services.analytics.evapotranspiration et0 --temp-max 30 --temp-min 18 --humidity 65 --wind 10 --solar 18 --lat -1.2 --doy 180`
+- Evapotranspiration water balance: `python3 -m services.analytics.evapotranspiration water-balance --location-id UUID`
+- Evapotranspiration store ET for forecasts: `python3 -m services.analytics.evapotranspiration store-et --location-id UUID`
+- Crop GDD accumulate: `python3 -m services.analytics.crop_phenology accumulate --crop-cycle-id UUID`
+- Crop GDD detect stage: `python3 -m services.analytics.crop_phenology detect-stage --crop-cycle-id UUID`
+- Crop GDD project stages: `python3 -m services.analytics.crop_phenology project --crop-cycle-id UUID`
+- Crop GDD anomalies: `python3 -m services.analytics.crop_phenology anomalies --location-id UUID`
+- Crop GDD list stages: `python3 -m services.analytics.crop_phenology list-stages --crop maize`
+- Crop GDD current stages: `python3 -m services.analytics.crop_phenology current --location-id UUID`
+- Prescription classify (natural breaks): `python3 -m services.analytics.prescription classify --crop maize --stage mid --values 10,20,30,80,90,100`
+- Prescription classify (equal interval): `python3 -m services.analytics.prescription classify --method equal-interval --values 10,20,30,40,50`
+- Prescription generate: `python3 -m services.analytics.prescription generate --location-id UUID --plot-id UUID --input fertilizer`
+- Prescription list: `python3 -m services.analytics.prescription list --location-id UUID`
+- Prescription approve: `python3 -m services.analytics.prescription approve --prescription-id UUID --approved-by admin`
+- Prescription estimate: `python3 -m services.analytics.prescription estimate --prescription-id UUID`
+- Advisory evaluate: `python3 -m services.analytics.advisor evaluate --location-id UUID`
+- Advisory run cycle: `python3 -m services.analytics.advisor run-cycle --location-id UUID`
+- Advisory list pending: `python3 -m services.analytics.advisor pending --location-id UUID`
+- Advisory accept: `python3 -m services.analytics.advisor accept --recommendation-id UUID --user-id admin`
+- Advisory dismiss: `python3 -m services.analytics.advisor dismiss --recommendation-id UUID --reason "not needed"`
+- Equipment status: `python3 -m services.analytics.equipment status --location-id UUID`
+- Equipment log usage: `python3 -m services.analytics.equipment log --location-id UUID --asset-id UUID --start 2026-01-15T08:00 --end 2026-01-15T12:00`
+- Equipment OEE: `python3 -m services.analytics.equipment oee --asset-id UUID`
+- Equipment maintenance: `python3 -m services.analytics.equipment maintenance --location-id UUID`
+- Equipment cost: `python3 -m services.analytics.equipment cost --location-id UUID`
+- Prescription tests: `python3 -m tests.test_prescription`
+- Advisory tests: `python3 -m tests.test_advisor`
+- Equipment tests: `python3 -m tests.test_equipment`
 - Oracle infrastructure tests: `python3 -m tests.test_oracle_infrastructure`
 - Yahoo Finance price fetch: `python3 -m services.ingestion.yahoo_finance`
 - Price attestation: `python3 -m services.ingestion.price_attestation --run-daily`
@@ -371,6 +403,9 @@
 - Geostatistics residual kriging: `python3 -m services.geostatistics residual-kriging --location-id UUID`
 - Geostatistics spatial CV SOC: `python3 -m services.geostatistics spatial-cv-soc --location-id UUID --block-size 200`
 - Geostatistics tests: `python3 -m tests.test_geostatistics`
+- Weather forecast tests: `python3 -m tests.test_weather_forecast`
+- Evapotranspiration tests: `python3 -m tests.test_evapotranspiration`
+- Crop phenology tests: `python3 -m tests.test_crop_phenology`
 
 ## Development Notes
 
@@ -379,6 +414,9 @@
 - Systems thinking: Causal loops, leverage points, archetypes, double-loop learning, time delays, stock-and-flow simulation, and mental models enhance the Orient phase of the OODA loop.
 
 - Geostatistics: Variogram modeling (spherical, exponential, Gaussian, Matérn), ordinary/simple/indicator kriging, sequential Gaussian simulation, spatial autocorrelation (Moran's I, Geary's C), spatial cross-validation (block CV, leave-one-out), and sensor network optimization. Complements SOC prediction pipeline via residual kriging correction and spatial block CV.
+
+- Precision Agriculture Phase 1: Weather forecast ingestion (OpenWeatherMap 5-day / 3-hour), FAO-56 Penman-Monteith ET₀ computation, crop-specific ETc with stage-based Kc values, field-level water balance, Growing Degree Day (GDD) accumulation, crop phenology tracking with growth stage detection, and schedule anomaly detection. Weather forecast data populates `weather_forecast` table with 40 data points per location (5 days × 8 intervals). ET₀ computed using solar radiation when available with Hargreaves fallback. GDD thresholds and Kc values seeded for 8 crop types (maize, beans, cassava, sweet potato, coffee, avocado, tomato, banana).
+- Precision Agriculture Phase 2: Prescription maps (VRT) with natural-breaks and equal-interval rate classification, per-zone application rate computation (fertilizer/irrigation/seed), material cost estimation, and approval workflow. Advisory engine with 8 default rules (soil moisture, heat stress, nitrogen deficiency, pest alert, harvest readiness, frost warning, spray window, schedule-based), cooldown/daily-limit guardrails, accept/dismiss lifecycle, and audit logging. Equipment usage logging, OEE (Availability × Performance × Quality) computation, maintenance schedule tracking, and cost analysis (fuel + electricity + depreciation).
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
