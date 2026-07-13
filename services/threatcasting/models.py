@@ -367,3 +367,115 @@ class BackcastProgress(BaseModel):
     overdue_milestones: List[Dict[str, Any]]
     next_milestone: Optional[Dict[str, Any]]
     gaps: List[str]
+
+
+# ---------------------------------------------------------------------------
+# Backcast Principle
+# ---------------------------------------------------------------------------
+class BackcastPrinciple(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    narrative_id: str
+    location_id: str
+    principle_name: str
+    description: str
+    principle_type: str  # sustainability, operational, financial, ecological, social, custom
+    metric_key: Optional[str] = None
+    comparison_operator: str = "gte"  # gt, gte, lt, lte, eq, neq, between
+    target_value: Optional[float] = None
+    target_value_upper: Optional[float] = None
+    invert_direction: bool = False
+    weight: float = Field(default=1.0, ge=0, le=1)
+    source_system: str = "manual"  # metric, crisp, manual
+    crisp_dimension: Optional[str] = None
+    is_active: bool = True
+    metadata: Dict[str, Any] = {}
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class BackcastPrincipleCreate(BaseModel):
+    narrative_id: str
+    location_id: str
+    principle_name: str
+    description: str
+    principle_type: str = "custom"
+    metric_key: Optional[str] = None
+    comparison_operator: str = "gte"
+    target_value: Optional[float] = None
+    target_value_upper: Optional[float] = None
+    invert_direction: bool = False
+    weight: float = 1.0
+    source_system: str = "manual"
+    crisp_dimension: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Backcast Principle Alignment
+# ---------------------------------------------------------------------------
+class BackcastPrincipleAlignment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    milestone_id: str
+    principle_id: str
+    alignment_score: float = Field(ge=-1, le=1)
+    current_value: Optional[float] = None
+    target_value: Optional[float] = None
+    gap: Optional[float] = None
+    alignment_evidence: Optional[str] = None
+    assessed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ---------------------------------------------------------------------------
+# Backcast Assumption Challenge
+# ---------------------------------------------------------------------------
+class BackcastAssumptionChallenge(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    plan_id: str
+    narrative_id: str
+    original_assumption: str
+    challenged_assumption: str
+    challenge_reason: Optional[str] = None
+    outcome: str = "pending"  # pending, confirmed, modified, rejected
+    revised_milestone_id: Optional[str] = None
+    impact_on_principles: Optional[str] = None
+    approved_by: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    resolved_at: Optional[datetime] = None
+
+
+class AssumptionChallengeCreate(BaseModel):
+    plan_id: str
+    narrative_id: str
+    original_assumption: str
+    challenged_assumption: str
+    challenge_reason: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# Backcast Path Comparison
+# ---------------------------------------------------------------------------
+class BackcastPathComparison(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    location_id: str
+    comparison_name: str
+    narrative_ids: List[str]
+    comparison_criteria: Dict[str, Any] = {}
+    auto_scores: Dict[str, Any] = {}
+    manual_scores: Dict[str, Any] = {}
+    final_scores: Dict[str, Any] = {}
+    winner_narrative_id: Optional[str] = None
+    winner_score: Optional[float] = None
+    rationale: Optional[str] = None
+    compared_by: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class PathComparisonCreate(BaseModel):
+    location_id: str
+    comparison_name: str
+    narrative_ids: List[str]
+    comparison_criteria: Dict[str, Any] = {}
+
+
+class PathComparisonScores(BaseModel):
+    scores: Dict[str, Dict[str, float]]  # {narrative_id: {criterion: score}}

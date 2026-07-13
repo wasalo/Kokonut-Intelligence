@@ -300,6 +300,165 @@ def cmd_landscape(args):
     print(_json(result))
 
 
+# ------------------------------------------------------------------
+# Backcasting enhancements — Principles
+# ------------------------------------------------------------------
+
+def cmd_create_principle(args):
+    from services.threatcasting.principles import PrincipleManager
+    pm = PrincipleManager(conn=_get_conn())
+    result = pm.create_principle(
+        narrative_id=args.narrative_id,
+        location_id=args.location_id,
+        principle_name=args.name,
+        description=args.description,
+        principle_type=args.type,
+        metric_key=args.metric_key,
+        comparison_operator=args.operator,
+        target_value=args.target,
+        target_value_upper=args.target_upper,
+        invert_direction=args.invert,
+        weight=args.weight,
+        source_system=args.source_system,
+        crisp_dimension=args.crisp_dimension,
+    )
+    print(_json(result))
+
+
+def cmd_list_principles(args):
+    from services.threatcasting.principles import PrincipleManager
+    pm = PrincipleManager(conn=_get_conn())
+    results = pm.list_principles(
+        narrative_id=args.narrative_id,
+        location_id=args.location_id,
+    )
+    print(_json(results))
+
+
+def cmd_align_milestone(args):
+    from services.threatcasting.principles import PrincipleManager
+    pm = PrincipleManager(conn=_get_conn())
+    results = pm.align_milestone(
+        milestone_id=args.milestone_id,
+        principle_id=args.principle_id,
+    )
+    print(_json(results))
+
+
+def cmd_align_all(args):
+    from services.threatcasting.principles import PrincipleManager
+    pm = PrincipleManager(conn=_get_conn())
+    results = pm.align_all_milestones(args.narrative_id)
+    print(_json(results))
+
+
+def cmd_check_direction(args):
+    from services.threatcasting.principles import PrincipleManager
+    pm = PrincipleManager(conn=_get_conn())
+    result = pm.check_direction(args.plan_id)
+    print(_json(result))
+
+
+def cmd_gap_analysis(args):
+    from services.threatcasting.principles import PrincipleManager
+    pm = PrincipleManager(conn=_get_conn())
+    result = pm.automated_gap_analysis(args.plan_id)
+    print(_json(result))
+
+
+def cmd_effectiveness(args):
+    from services.threatcasting.principles import PrincipleManager
+    pm = PrincipleManager(conn=_get_conn())
+    result = pm.effectiveness_score(args.plan_id)
+    print(_json(result))
+
+
+# ------------------------------------------------------------------
+# Backcasting enhancements — Assumption challenges
+# ------------------------------------------------------------------
+
+def cmd_challenge_assumption(args):
+    from services.threatcasting.backcasting import Backcaster
+    backcaster = Backcaster(conn=_get_conn())
+    result = backcaster.challenge_assumption(
+        plan_id=args.plan_id,
+        narrative_id=args.narrative_id,
+        original_assumption=args.original,
+        challenged_assumption=args.challenged,
+        reason=args.reason,
+    )
+    print(_json(result))
+
+
+def cmd_list_challenges(args):
+    from services.threatcasting.backcasting import Backcaster
+    backcaster = Backcaster(conn=_get_conn())
+    results = backcaster.list_challenges(args.plan_id)
+    print(_json(results))
+
+
+def cmd_resolve_challenge(args):
+    from services.threatcasting.backcasting import Backcaster
+    backcaster = Backcaster(conn=_get_conn())
+    result = backcaster.resolve_challenge(
+        challenge_id=args.challenge_id,
+        outcome=args.outcome,
+        approved_by=args.approved_by,
+        revised_milestone_id=args.revised_milestone_id,
+        impact_on_principles=args.impact,
+    )
+    print(_json(result))
+
+
+# ------------------------------------------------------------------
+# Backcasting enhancements — Path comparison
+# ------------------------------------------------------------------
+
+def cmd_compare_paths(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    criteria = json.loads(args.criteria) if args.criteria else None
+    result = pc.create_comparison(
+        location_id=args.location_id,
+        comparison_name=args.name,
+        narrative_ids=[n.strip() for n in args.narrative_ids.split(",")],
+        criteria=criteria,
+    )
+    print(_json(result))
+
+
+def cmd_evaluate_paths(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    result = pc.evaluate_paths(args.comparison_id)
+    print(_json(result))
+
+
+def cmd_manual_compare(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    scores = json.loads(args.scores)
+    result = pc.manual_compare(
+        comparison_id=args.comparison_id,
+        user_scores=scores,
+    )
+    print(_json(result))
+
+
+def cmd_list_comparisons(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    results = pc.list_comparisons(location_id=args.location_id)
+    print(_json(results))
+
+
+def cmd_delete_comparison(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    deleted = pc.delete_comparison(args.comparison_id)
+    print(f"Deleted: {deleted}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Threatcasting Service")
     sub = parser.add_subparsers(dest="command", help="Command")
@@ -455,6 +614,95 @@ def main():
     p = sub.add_parser("landscape", help="Threat landscape")
     p.add_argument("--location-id", required=True)
     p.set_defaults(func=cmd_landscape)
+
+    # Backcasting enhancements — Principles
+    p = sub.add_parser("create-principle", help="Create a sustainability principle")
+    p.add_argument("--narrative-id", required=True)
+    p.add_argument("--location-id", required=True)
+    p.add_argument("--name", required=True)
+    p.add_argument("--description", required=True)
+    p.add_argument("--type", default="custom", choices=["sustainability","operational","financial","ecological","social","custom"])
+    p.add_argument("--metric-key")
+    p.add_argument("--operator", default="gte", choices=["gt","gte","lt","lte","eq","neq","between"])
+    p.add_argument("--target", type=float)
+    p.add_argument("--target-upper", type=float)
+    p.add_argument("--invert", action="store_true")
+    p.add_argument("--weight", type=float, default=1.0)
+    p.add_argument("--source-system", default="manual", choices=["metric","crisp","manual"])
+    p.add_argument("--crisp-dimension")
+    p.set_defaults(func=cmd_create_principle)
+
+    p = sub.add_parser("list-principles", help="List principles")
+    p.add_argument("--narrative-id")
+    p.add_argument("--location-id")
+    p.set_defaults(func=cmd_list_principles)
+
+    p = sub.add_parser("align-milestone", help="Align milestone to principles")
+    p.add_argument("--milestone-id", required=True)
+    p.add_argument("--principle-id")
+    p.set_defaults(func=cmd_align_milestone)
+
+    p = sub.add_parser("align-all", help="Align all milestones for a narrative")
+    p.add_argument("--narrative-id", required=True)
+    p.set_defaults(func=cmd_align_all)
+
+    p = sub.add_parser("check-direction", help="Check direction toward principles")
+    p.add_argument("--plan-id", required=True)
+    p.set_defaults(func=cmd_check_direction)
+
+    p = sub.add_parser("gap-analysis", help="Automated gap analysis")
+    p.add_argument("--plan-id", required=True)
+    p.set_defaults(func=cmd_gap_analysis)
+
+    p = sub.add_parser("effectiveness", help="Effectiveness score for completed milestones")
+    p.add_argument("--plan-id", required=True)
+    p.set_defaults(func=cmd_effectiveness)
+
+    # Backcasting enhancements — Assumption challenges
+    p = sub.add_parser("challenge-assumption", help="Record an assumption challenge")
+    p.add_argument("--plan-id", required=True)
+    p.add_argument("--narrative-id", required=True)
+    p.add_argument("--original", required=True, help="Original assumption")
+    p.add_argument("--challenged", required=True, help="Challenged assumption")
+    p.add_argument("--reason", help="Reason for challenge")
+    p.set_defaults(func=cmd_challenge_assumption)
+
+    p = sub.add_parser("list-challenges", help="List assumption challenges")
+    p.add_argument("--plan-id", required=True)
+    p.set_defaults(func=cmd_list_challenges)
+
+    p = sub.add_parser("resolve-challenge", help="Resolve assumption challenge (requires approval)")
+    p.add_argument("--challenge-id", required=True)
+    p.add_argument("--outcome", required=True, choices=["confirmed","modified","rejected"])
+    p.add_argument("--approved-by", required=True, help="Human approver")
+    p.add_argument("--revised-milestone-id")
+    p.add_argument("--impact", help="Impact on principles")
+    p.set_defaults(func=cmd_resolve_challenge)
+
+    # Backcasting enhancements — Path comparison
+    p = sub.add_parser("compare-paths", help="Create path comparison")
+    p.add_argument("--location-id", required=True)
+    p.add_argument("--name", required=True)
+    p.add_argument("--narrative-ids", required=True, help="Comma-separated narrative UUIDs")
+    p.add_argument("--criteria", help="JSON criteria weights")
+    p.set_defaults(func=cmd_compare_paths)
+
+    p = sub.add_parser("evaluate-paths", help="Auto-evaluate and rank paths")
+    p.add_argument("--comparison-id", required=True)
+    p.set_defaults(func=cmd_evaluate_paths)
+
+    p = sub.add_parser("manual-compare", help="Apply manual scores to paths")
+    p.add_argument("--comparison-id", required=True)
+    p.add_argument("--scores", required=True, help="JSON {narrative_id: {criterion: score}}")
+    p.set_defaults(func=cmd_manual_compare)
+
+    p = sub.add_parser("list-comparisons", help="List path comparisons")
+    p.add_argument("--location-id")
+    p.set_defaults(func=cmd_list_comparisons)
+
+    p = sub.add_parser("delete-comparison", help="Delete path comparison")
+    p.add_argument("--comparison-id", required=True)
+    p.set_defaults(func=cmd_delete_comparison)
 
     args = parser.parse_args()
     if hasattr(args, "func"):

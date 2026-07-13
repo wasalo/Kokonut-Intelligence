@@ -726,6 +726,22 @@
 - Threat briefing: `python3 -m services.threatcasting briefing --location-id UUID`
 - Threat landscape: `python3 -m services.threatcasting landscape --location-id UUID`
 - Threatcasting tests: `python3 -m pytest tests/test_threatcasting.py -v`
+- Principle create: `python3 -m services.threatcasting create-principle --narrative-id UUID --location-id UUID --name "Carbon Negative" --description "Net carbon sequestration" --type ecological --metric-key soil_carbon_delta --operator gte --target 0`
+- Principle list: `python3 -m services.threatcasting list-principles --narrative-id UUID`
+- Principle align-milestone: `python3 -m services.threatcasting align-milestone --milestone-id UUID`
+- Principle align-all: `python3 -m services.threatcasting align-all --narrative-id UUID`
+- Principle check-direction: `python3 -m services.threatcasting check-direction --plan-id UUID`
+- Principle gap-analysis: `python3 -m services.threatcasting gap-analysis --plan-id UUID`
+- Principle effectiveness: `python3 -m services.threatcasting effectiveness --plan-id UUID`
+- Assumption challenge: `python3 -m services.threatcasting challenge-assumption --plan-id UUID --narrative-id UUID --original "Rainfall > 800mm" --challenged "Rainfall may drop to 600mm" --reason "Trend analysis shows 15% decline"`
+- Assumption list: `python3 -m services.threatcasting list-challenges --plan-id UUID`
+- Assumption resolve: `python3 -m services.threatcasting resolve-challenge --challenge-id UUID --outcome modified --approved-by admin`
+- Path compare create: `python3 -m services.threatcasting compare-paths --location-id UUID --name "Drought Response Options" --narrative-ids UUID1,UUID2,UUID3`
+- Path compare evaluate: `python3 -m services.threatcasting evaluate-paths --comparison-id UUID`
+- Path compare manual: `python3 -m services.threatcasting manual-compare --comparison-id UUID --scores '{"narrative1": {"cost": 0.8, "time": 0.6}}'`
+- Path compare list: `python3 -m services.threatcasting list-comparisons --location-id UUID`
+- Path compare delete: `python3 -m services.threatcasting delete-comparison --comparison-id UUID`
+- Backcasting enhancement tests: `python3 -m pytest tests/test_backcasting_enhancements.py -v`
 
 ## Development Notes
 
@@ -748,6 +764,8 @@
 - Pest Management: Field scouting records with severity/incidence tracking, IPM action thresholds (economic injury level, economic threshold) per pest-crop combination, intervention recording with IPM ladder recommendation (biological → cultural → mechanical → chemical), pesticide application logging with safety intervals (REI/PHI), resistance monitoring, and degree-day modeling with lifecycle stage tracking from `pest_degree_day_config`. Dashboard aggregates pest activity, interventions, chemical use, resistance alerts, and degree-day accumulation.
 
 - Threatcasting: Cross-impact analysis (how threats amplify/attenuate/trigger each other), warning flag monitoring (quantitative thresholds with status escalation), threat signal ingestion (internal + external + manual), narrative construction (desirable/undesirable/baseline/wildcard futures), multi-horizon planning (configurable per-location 1/3/5/10 year horizons), backcasting (work backward from future states with milestones), cascading failure modeling (chain propagation with probability), GNH-aligned desirability assessment (9 GNH dimensions, 8 Forms of Capital, SDGs), and threat intelligence aggregation (landscape assessment, briefings, evolution prediction). Schema: `159_threatcasting.sql` with 10 tables, 6 views.
+
+- Backcasting enhancements: Sustainability principles (FSSD approach) linked to metric definitions and CRISP dimensions for quantitative alignment scoring. Milestone alignment scores computed on-demand from metric_value and crisp_risk_assessment tables. Direction checking (toward/away/mixed) across milestone portfolios. Automated gap analysis reads current metrics + CRISP scores against principle targets. Assumption challenges with human approval workflow (pending → confirmed/modified/rejected). Path comparison with auto-scoring (cost, time, risk, desirability, principle alignment) and manual user overrides (50/50 hybrid). Effectiveness scoring combines before/after delta with trend analysis via TrendEstimator. Schema: `160_backcasting_enhancements.sql` with 4 tables, 3 views.
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.

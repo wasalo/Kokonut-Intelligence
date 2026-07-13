@@ -223,3 +223,118 @@ class Backcaster:
         conn.commit()
         cur.close()
         return deleted
+
+    # ------------------------------------------------------------------
+    # Assumption challenges
+    # ------------------------------------------------------------------
+
+    def challenge_assumption(
+        self,
+        plan_id: str,
+        narrative_id: str,
+        original_assumption: str,
+        challenged_assumption: str,
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Record an assumption challenge during backcasting.
+
+        Requires human approval before resolution.
+        """
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        challenge_id = str(uuid.uuid4())
+        cur.execute(
+            """
+            INSERT INTO backcast_assumption_challenge
+                (id, plan_id, narrative_id, original_assumption,
+                 challenged_assumption, challenge_reason)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING *
+            """,
+            (challenge_id, plan_id, narrative_id, original_assumption,
+             challenged_assumption, reason),
+        )
+        result = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+
+        logger.info("Created assumption challenge %s for plan %s", challenge_id, plan_id)
+        return result
+
+    def list_challenges(self, plan_id: str) -> List[Dict[str, Any]]:
+        """List all assumption challenges for a plan."""
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute(
+            """
+            SELECT bac.*, nt.title AS narrative_title
+            FROM backcast_assumption_challenge bac
+            JOIN threat_narrative nt ON nt.id = bac.narrative_id
+            WHERE bac.plan_id = %s
+            ORDER BY bac.created_at DESC
+            """,
+            (plan_id,),
+        )
+        results = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        return results
+
+    def resolve_challenge(
+        self,
+        challenge_id: str,
+        outcome: str,
+        approved_by: str,
+        revised_milestone_id: Optional[str] = None,
+        impact_on_principles: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Resolve an assumption challenge with human approval.
+
+        outcome: confirmed, modified, or rejected.
+        Requires approved_by to document human oversight.
+        """
+        if outcome not in ("confirmed", "modified", "rejected"):
+            raise ValueError(f"Invalid outcome: {outcome}. Must be confirmed, modified, or rejected")
+
+        if not approved_by:
+            raise ValueError("approved_by is required for human oversight")
+
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute(
+            """
+            UPDATE backcast_assumption_challenge
+            SET outcome = %s, approved_by = %s, approved_at = NOW(),
+                revised_milestone_id = %s, impact_on_principles = %s,
+                resolved_at = NOW()
+            WHERE id = %s
+            RETURNING *
+            """,
+            (outcome, approved_by, revised_milestone_id, impact_on_principles, challenge_id),
+        )
+        result = cur.fetchone()
+        if not result:
+            cur.close()
+            raise ValueError(f"Challenge {challenge_id} not found")
+
+        conn.commit()
+        cur.close()
+
+        logger.info(
+            "Resolved challenge %s as %s by %s", challenge_id, outcome, approved_by
+        )
+        return dict(result)
+
+    def get_challenge(self, challenge_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single assumption challenge."""
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            "SELECT * FROM backcast_assumption_challenge WHERE id = %s",
+            (challenge_id,),
+        )
+        result = cur.fetchone()
+        cur.close()
+        return dict(result) if result else None
