@@ -613,6 +613,72 @@
 - Mental model elicit: `python3 -m systems.mental_models --elicit --stakeholder-id UUID --dimension regenerative_vs_industrial --position 0.7`
 - Mental model compare: `python3 -m systems.mental_models --compare --stakeholders UUID1 UUID2`
 - Systems thinking tests: `python3 -m pytest tests/test_systems_thinking.py tests/test_stock_flow_mental.py -v`
+- Adaptation velocity record: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.record_velocity('UUID'))"`
+- Adaptation velocity get: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.compute_velocity('UUID'))"`
+- Adaptation velocity classify: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.classify_acceleration('UUID'))"`
+- Adaptation velocity history: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.get_velocity_history('UUID'))"`
+- Adaptation velocity global: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.get_global_velocity())"`
+- Feedback automation evaluate: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(); print(a.run_evaluation('UUID'))"`
+- Feedback automation full-cycle: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(dry_run=True); print(a.run_full_cycle('UUID'))"`
+- Feedback automation log: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(); print(a.get_automation_log('UUID'))"`
+- Feedback automation configure: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(); print(a.configure('UUID', eval_interval_hours=12))"`
+- Feedback automation pending: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(); print(a.get_pending_adjustments('UUID'))"`
+- Improvement tracker record: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; from datetime import datetime,timezone; t=ImprovementRateTracker(); print(t.record_improvement('UUID','metric',1.0,datetime.now(timezone.utc),datetime.now(timezone.utc)))"`
+- Improvement tracker report: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; t=ImprovementRateTracker(); print(t.get_improvement_report('UUID'))"`
+- Improvement tracker plateau: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; t=ImprovementRateTracker(); print(t.detect_plateau('UUID','metric'))"`
+- Improvement tracker degradation: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; t=ImprovementRateTracker(); print(t.detect_degradation('UUID'))"`
+- Improvement tracker learning-curve: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; t=ImprovementRateTracker(); print(t.get_learning_curve('UUID','metric'))"`
+- Adaptation acceleration tests: `python3 -m pytest tests/test_velocity_tracker.py tests/test_feedback_automation.py tests/test_improvement_tracker.py -v`
+- Causal loops list: `python3 -m systems.causal_loops --list`
+- Causal loop evaluate: `python3 -m systems.causal_loops --evaluate --loop-name soil_carbon_reinforcing --location-id UUID`
+- Causal loop active: `python3 -m systems.causal_loops --active --location-id UUID`
+- Leverage assess: `python3 -m systems.leverage --assess --location-id UUID`
+- Leverage rank: `python3 -m systems.leverage --rank --location-id UUID`
+- Archetype detect: `python3 -m systems.archetypes --detect --location-id UUID`
+- Archetype list: `python3 -m systems.archetypes --list --location-id UUID`
+- Delay get: `python3 -m systems.delays --get --action cover_crop_planting --effect soil_carbon_increase`
+- Delay adjust: `python3 -m systems.delays --adjust --action-date 2026-01-01 --action cover_crop_planting --effect soil_carbon_increase`
+- Double-loop questions: `python3 -m systems.double_loop --questions --location-id UUID`
+- Double-loop challenge: `python3 -m systems.double_loop --challenge --assumption-id UUID --text "text"`
+- Double-loop health: `python3 -m systems.double_loop --health --location-id UUID`
+- Stock-flow models: `python3 -m systems.stock_flow --list`
+- Stock-flow simulate: `python3 -m systems.stock_flow --run --model soil_carbon --location-id UUID --duration 365`
+- Stock-flow compare: `python3 -m systems.stock_flow --compare --model soil_carbon --location-id UUID`
+- Mental model elicit: `python3 -m systems.mental_models --elicit --stakeholder-id UUID --dimension regenerative_vs_industrial --position 0.7`
+- Mental model compare: `python3 -m systems.mental_models --compare --stakeholders UUID1 UUID2`
+- Systems thinking tests: `python3 -m pytest tests/test_systems_thinking.py tests/test_stock_flow_mental.py -v`
+- Insight transfer process: `python3 -m services.events.insight_transfer process-event --source-domain pest --event-type outbreak --event-data '{}'`
+- Insight transfer pending: `python3 -m services.events.insight_transfer pending-transfers --target-domain irrigation`
+- Insight transfer resolve: `python3 -m services.events.insight_transfer resolve-transfer --transfer-id UUID --outcome helpful`
+- Insight transfer stats: `python3 -m services.events.insight_transfer get-stats`
+- Insight transfer list rules: `python3 -m services.events.insight_transfer list-rules --source-domain pest`
+- ML retrain check: `python3 -m services.systems.ml_retraining check-models`
+- ML retrain trigger: `python3 -m services.systems.ml_retraining trigger-retrain --model yield_forecast`
+- ML retrain history: `python3 -m services.systems.ml_retraining get-history --model yield_forecast`
+- ML retrain configure: `python3 -m services.systems.ml_retraining configure-schedule --model yield_forecast --interval 30 --threshold 15.0`
+- ML retrain health: `python3 -m services.systems.ml_retraining get-health`
+- Threshold auto-tune: `python3 -c "from services.feedback.controller import FeedbackController; c=FeedbackController(); print(c.auto_tune_thresholds(dry_run=True))"`
+- Threshold tuning history: `python3 -c "from services.feedback.controller import FeedbackController; c=FeedbackController(); print(c.get_tuning_history())"`
+- Threshold optimal: `python3 -c "from services.feedback.controller import FeedbackController; c=FeedbackController(); print(c.compute_optimal_threshold('UUID','soil_moisture'))"`
+- Cross-domain insight tests: `python3 -m pytest tests/test_insight_transfer.py -v`
+- ML retraining tests: `python3 -m pytest tests/test_ml_retraining.py -v`
+- Growth curve analyze: `python3 -m services.systems.growth_curve analyze-metric --location-id UUID --metric yield`
+- Growth curve tipping-points: `python3 -m services.systems.growth_curve detect-tipping-points --location-id UUID`
+- Growth curve exponential: `python3 -m services.systems.growth_curve detect-exponential --location-id UUID`
+- Growth curve saturation: `python3 -m services.systems.growth_curve detect-saturation --location-id UUID`
+- Growth curve report: `python3 -m services.systems.growth_curve get-report --location-id UUID`
+- Growth curve predict: `python3 -m services.systems.growth_curve predict-trajectory --location-id UUID --metric yield --periods 5`
+- Growth curve tests: `python3 -m pytest tests/test_growth_curve.py -v`
+- Meta-learning select-strategy: `python3 -m services.systems.meta_learning select-strategy --context-type threshold_tuning --domain pest`
+- Meta-learning rankings: `python3 -m services.systems.meta_learning get-rankings`
+- Meta-learning summary: `python3 -m services.systems.meta_learning get-summary`
+- Meta-learning recommend: `python3 -m services.systems.meta_learning recommend --situation anomaly_detection --domain weather`
+- Meta-learning update-effectiveness: `python3 -m services.systems.meta_learning update-effectiveness --strategy-id UUID`
+- Meta-learning tests: `python3 -m pytest tests/test_meta_learning.py -v`
+- Paradigm shift detect: `python3 -c "from services.systems.double_loop import DoubleLoopController; d=DoubleLoopController(); print(d.detect_paradigm_shifts('UUID'))"`
+- Paradigm shift history: `python3 -c "from services.systems.double_loop import DoubleLoopController; d=DoubleLoopController(); print(d.get_shift_history('UUID'))"`
+- Paradigm shift recommend: `python3 -c "from services.systems.double_loop import DoubleLoopController; d=DoubleLoopController(); print(d.recommend_mindstep('UUID','pest'))"`
+- Double-loop tests: `python3 -m pytest tests/test_double_loop.py -v`
 - Trend estimate: `python3 -m services.trends.estimator --metric-key soil_carbon_delta --location-id UUID`
 - Trend significance: `python3 -m services.trends.significance --test mann_kendall --location-id UUID`
 - Trend smoothing: `python3 -m services.trends.smoothing --metric-key soil_moisture --location-id UUID --method exponential`
@@ -641,6 +707,10 @@
 - Trend analysis: Least-squares trend estimation, Mann-Kendall significance testing, exponential smoothing, seasonal decomposition, CUSUM/PELT change-point detection, ARIMA forecasting, and forecast accuracy tracking.
 
 - Systems thinking: Causal loops, leverage points, archetypes, double-loop learning, time delays, stock-and-flow simulation, and mental models enhance the Orient phase of the OODA loop.
+
+- Adaptation acceleration: Adaptation velocity tracker (OODA cycle times, feedback rates, effectiveness trends), feedback loop automation (periodic evaluation and adjustment), improvement rate tracker (trend detection, learning curves, plateau detection), and cross-domain insight transfer. Acceleration score classifies system as accelerating/stable/decelerating/stalled.
+
+- Cross-domain insight transfer: Event-driven propagation of insights across domains using configurable rules. Pest management insights inform irrigation, weather informs planting, energy informs irrigation. Rules learn effectiveness from outcome feedback.
 
 - Geostatistics: Variogram modeling (spherical, exponential, Gaussian, Matérn), ordinary/simple/indicator kriging, sequential Gaussian simulation, spatial autocorrelation (Moran's I, Geary's C), spatial cross-validation (block CV, leave-one-out), and sensor network optimization. Complements SOC prediction pipeline via residual kriging correction and spatial block CV.
 

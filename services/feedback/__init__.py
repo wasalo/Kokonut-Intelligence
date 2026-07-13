@@ -7,5 +7,6 @@ Closes the Observe→Orient→Decide→Act→Observe loop.
 
 from .controller import FeedbackController
 from .outcomes import ActionOutcomeTracker
+from .automation import FeedbackAutomation
 
-__all__ = ["FeedbackController", "ActionOutcomeTracker"]
+__all__ = ["FeedbackController", "ActionOutcomeTracker", "FeedbackAutomation"]

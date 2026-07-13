@@ -138,3 +138,66 @@ class TestFeedbackController:
         })
         assert result is not None
         assert result["signal"] == "negative"
+
+
+# ---------------------------------------------------------------------------
+# FeedbackController Auto-Tuning Tests
+# ---------------------------------------------------------------------------
+
+class TestFeedbackControllerAutoTuning:
+    def _make_controller(self):
+        from services.feedback.controller import FeedbackController
+        mock_cursor = MagicMock()
+        mock_conn = _make_mock_conn(mock_cursor)
+        return FeedbackController(conn=mock_conn), mock_conn, mock_cursor
+
+    def test_auto_tune_thresholds_empty(self):
+        controller, _, mock_cursor = self._make_controller()
+        mock_cursor.fetchall.return_value = []
+
+        result = controller.auto_tune_thresholds(dry_run=True)
+
+        assert result["thresholds_analyzed"] == 0
+        assert result["adjustments_recommended"] == 0
+        assert result["dry_run"] is True
+
+    def test_auto_tune_thresholds_with_threshold(self):
+        controller, _, mock_cursor = self._make_controller()
+        threshold_id = str(uuid.uuid4())
+        # First fetchall returns thresholds, subsequent calls return outcomes
+        mock_cursor.fetchall.side_effect = [
+            [{
+                "id": threshold_id,
+                "threshold_key": "test_threshold",
+                "threshold_name": "Test Threshold",
+                "entity_type": "anomaly_sensitivity",
+                "location_id": "test-loc",
+                "current_value": {"sensitivity": 1.0},
+                "baseline_value": {"sensitivity": 1.0},
+                "adaptation_rate": 0.1,
+                "is_enabled": True,
+            }],
+            [],  # outcomes for analyze_threshold_performance
+        ]
+
+        result = controller.auto_tune_thresholds(dry_run=True)
+
+        assert result["thresholds_analyzed"] == 1
+        assert result["dry_run"] is True
+
+    def test_get_tuning_history_returns_list(self):
+        controller, _, mock_cursor = self._make_controller()
+        mock_cursor.fetchall.return_value = []
+
+        result = controller.get_tuning_history()
+
+        assert isinstance(result, list)
+
+    def test_compute_optimal_threshold_no_match(self):
+        controller, _, mock_cursor = self._make_controller()
+        mock_cursor.fetchall.return_value = []
+
+        result = controller.compute_optimal_threshold("test-loc", "nonexistent_metric")
+
+        assert result["optimal_value"] is None
+        assert result["reason"] == "no_matching_thresholds"

@@ -3,3 +3,7 @@
 Publish-subscribe event system replacing polling-based workflows
 with reactive, event-driven communication between services.
 """
+
+from .insight_transfer import InsightTransferEngine
+
+__all__ = ["InsightTransferEngine"]

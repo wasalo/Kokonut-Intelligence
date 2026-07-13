@@ -354,3 +354,258 @@ class FeedbackController:
             return dict(row) if row else None
 
         return None
+
+    # --- Threshold Auto-Tuning ---
+
+    def auto_tune_thresholds(
+        self,
+        location_id: Optional[str] = None,
+        dry_run: bool = True,
+    ) -> Dict[str, Any]:
+        """Automatically adjust thresholds based on accumulated outcome data.
+
+        Thresholds with high false-positive rates get raised.
+        Thresholds with high false-negative rates get lowered.
+        """
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # Get thresholds to analyze
+        conditions = ["at.is_enabled = TRUE"]
+        params: list = []
+
+        if location_id:
+            conditions.append("at.location_id = %s")
+            params.append(location_id)
+
+        where_clause = " AND ".join(conditions)
+
+        cur.execute(f"""
+            SELECT at.* FROM adaptive_threshold at
+            WHERE {where_clause}
+        """, params)
+
+        thresholds = [dict(r) for r in cur.fetchall()]
+        adjustments = []
+
+        for threshold in thresholds:
+            analysis = self.analyze_threshold_performance(cur, threshold)
+
+            if analysis["should_adjust"]:
+                adj = {
+                    "threshold_id": threshold["id"],
+                    "threshold_name": threshold["threshold_name"],
+                    "previous_value": threshold["current_value"],
+                    "recommended_adjustment": analysis["adjustment"],
+                    "evidence": analysis["evidence"],
+                    "confidence": analysis["confidence"],
+                }
+
+                if not dry_run and analysis["adjustment"] is not None:
+                    # Apply the adjustment
+                    self._apply_threshold_adjustment(
+                        cur, threshold, analysis["adjustment"]
+                    )
+                    adj["applied"] = True
+                else:
+                    adj["applied"] = False
+
+                adjustments.append(adj)
+
+        if not dry_run:
+            conn.commit()
+
+        cur.close()
+
+        return {
+            "thresholds_analyzed": len(thresholds),
+            "adjustments_recommended": len(adjustments),
+            "adjustments_applied": sum(1 for a in adjustments if a.get("applied")),
+            "dry_run": dry_run,
+            "adjustments": adjustments,
+        }
+
+    def analyze_threshold_performance(
+        self, cur, threshold: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Analyze how a threshold has performed: precision, recall, false positive rate."""
+        threshold_id = threshold["id"]
+        entity_type = threshold.get("entity_type", "")
+
+        # Get outcomes associated with this threshold's entity
+        cur.execute("""
+            SELECT ao.outcome_type, ao.confidence
+            FROM action_outcome ao
+            JOIN feedback_loop fl ON fl.source_outcome_id = ao.id
+            WHERE fl.target_entity_id = %s
+              AND fl.status = 'applied'
+        """, (threshold_id,))
+
+        outcomes = [dict(r) for r in cur.fetchall()]
+
+        if len(outcomes) < 3:
+            return {
+                "should_adjust": False,
+                "reason": "insufficient_outcomes",
+                "adjustment": None,
+                "evidence": {},
+                "confidence": 0.0,
+            }
+
+        # Count outcomes
+        total = len(outcomes)
+        effective = sum(1 for o in outcomes if o["outcome_type"] in ("effective", "partially_effective"))
+        ineffective = sum(1 for o in outcomes if o["outcome_type"] in ("ineffective", "no_effect"))
+        counterproductive = sum(1 for o in outcomes if o["outcome_type"] == "counterproductive")
+
+        # Compute rates
+        false_positive_rate = ineffective / total if total > 0 else 0.0
+        false_negative_rate = counterproductive / total if total > 0 else 0.0
+
+        should_adjust = False
+        adjustment = None
+        evidence = {
+            "total_outcomes": total,
+            "effective": effective,
+            "ineffective": ineffective,
+            "counterproductive": counterproductive,
+            "false_positive_rate": round(false_positive_rate, 3),
+            "false_negative_rate": round(false_negative_rate, 3),
+        }
+
+        if false_positive_rate > 0.3:
+            # Too many false positives — raise threshold
+            should_adjust = True
+            adjustment = "raise"
+            evidence["reason"] = "high_false_positive_rate"
+        elif false_negative_rate > 0.3:
+            # Too many false negatives — lower threshold
+            should_adjust = True
+            adjustment = "lower"
+            evidence["reason"] = "high_false_negative_rate"
+
+        return {
+            "should_adjust": should_adjust,
+            "adjustment": adjustment,
+            "evidence": evidence,
+            "confidence": min(0.95, total / 20.0),
+        }
+
+    def get_tuning_history(
+        self, location_id: Optional[str] = None, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Get history of automatic threshold adjustments."""
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        conditions = []
+        params: list = []
+
+        if location_id:
+            conditions.append("location_id = %s")
+            params.append(location_id)
+
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+        cur.execute(f"""
+            SELECT * FROM threshold_adjustment_log
+            {where_clause}
+            ORDER BY created_at DESC
+            LIMIT %s
+        """, params + [limit])
+
+        rows = [dict(r) for r in cur.fetchall()]
+        cur.close()
+        return rows
+
+    def compute_optimal_threshold(
+        self,
+        location_id: Optional[str],
+        metric_name: str,
+        target_precision: float = 0.8,
+    ) -> Dict[str, Any]:
+        """Compute optimal threshold value from outcome data."""
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("""
+            SELECT at.current_value, at.threshold_name, at.id
+            FROM adaptive_threshold at
+            WHERE at.threshold_name ILIKE %s
+              AND (%s IS NULL OR at.location_id = %s)
+        """, (f"%{metric_name}%", location_id, location_id))
+
+        thresholds = [dict(r) for r in cur.fetchall()]
+
+        if not thresholds:
+            return {
+                "metric": metric_name,
+                "optimal_value": None,
+                "reason": "no_matching_thresholds",
+            }
+
+        # For each threshold, compute precision from outcomes
+        results = []
+        for t in thresholds:
+            analysis = self.analyze_threshold_performance(cur, t)
+            results.append({
+                "threshold_id": t["id"],
+                "threshold_name": t["threshold_name"],
+                "current_value": t["current_value"],
+                "analysis": analysis,
+            })
+
+        cur.close()
+
+        return {
+            "metric": metric_name,
+            "thresholds": results,
+            "target_precision": target_precision,
+        }
+
+    def _apply_threshold_adjustment(
+        self, cur, threshold: Dict[str, Any], direction: str
+    ) -> None:
+        """Apply a threshold adjustment (raise or lower)."""
+        threshold_id = threshold["id"]
+        current_value = threshold.get("current_value")
+        adaptation_rate = threshold.get("adaptation_rate", 0.1)
+
+        if not current_value:
+            return
+
+        # Parse JSON value
+        import json
+        if isinstance(current_value, str):
+            value_dict = json.loads(current_value)
+        else:
+            value_dict = current_value
+
+        # Adjust the first numeric value found
+        for key, val in value_dict.items():
+            if isinstance(val, (int, float)):
+                if direction == "raise":
+                    value_dict[key] = round(val * (1 + adaptation_rate), 4)
+                else:
+                    value_dict[key] = round(val * (1 - adaptation_rate), 4)
+                break
+
+        now = datetime.now(timezone.utc)
+
+        cur.execute("""
+            UPDATE adaptive_threshold
+            SET current_value = %s,
+                last_adjusted_at = %s,
+                adjustment_count = adjustment_count + 1,
+                updated_at = %s
+            WHERE id = %s
+        """, (psycopg2.extras.Json(value_dict), now, now, threshold_id))
+
+        # Log the adjustment
+        log_id = str(uuid.uuid4())
+        cur.execute("""
+            INSERT INTO threshold_adjustment_log (
+                id, threshold_id, location_id, evidence_type,
+                auto_applied, created_at
+            ) VALUES (%s, %s, %s, 'threshold_analysis', TRUE, %s)
+        """, (log_id, threshold_id, threshold.get("location_id"), now))
