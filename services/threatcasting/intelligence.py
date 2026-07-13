@@ -303,7 +303,8 @@ class ThreatIntelligence:
             """,
             (threat_id,),
         )
-        threat = dict(cur.fetchone()) if cur.fetchone() else None
+        threat_row = cur.fetchone()
+        threat = dict(threat_row) if threat_row else None
         if not threat:
             cur.close()
             return {"error": "Threat not found"}

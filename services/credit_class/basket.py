@@ -134,31 +134,40 @@ def deposit_credits(
         raise ValueError(f"Basket is not active: {basket['status']}")
 
     exponent = basket.get("exponent", 6)
+    expected_token_amount = _compute_token_amount(quantity, exponent)
     if token_amount is None:
-        token_amount = _compute_token_amount(quantity, exponent)
+        token_amount = expected_token_amount
+    elif not math.isclose(token_amount, expected_token_amount, rel_tol=0, abs_tol=1e-8):
+        raise ValueError("Token amount must match the basket exponent")
+
+    if quantity <= 0:
+        raise ValueError("Quantity must be positive")
 
     batch = conn.execute(
-        conn.text("SELECT available_quantity FROM credit_batch WHERE id = :bid"),
+        conn.text("SELECT vintage_year FROM credit_batch WHERE id = :bid"),
         {"bid": credit_batch_id},
     ).mappings().first()
     if not batch:
         raise ValueError(f"Batch not found: {credit_batch_id}")
-    if float(batch["available_quantity"]) < quantity:
-        raise ValueError(f"Insufficient available quantity: {batch['available_quantity']} < {quantity}")
+    batch_start_date = f"{batch['vintage_year']}-01-01"
 
-    batch_info = conn.execute(
-        conn.text("SELECT start_date FROM credit_batch WHERE id = :bid"),
-        {"bid": credit_batch_id},
-    ).mappings().first()
-    batch_start_date = batch_info.get("start_date") if batch_info else None
+    if basket.get("min_start_year") and int(batch["vintage_year"]) < int(basket["min_start_year"]):
+        raise ValueError("Batch vintage is earlier than basket criteria")
+    if basket.get("min_start_date") and str(batch_start_date) < str(basket["min_start_date"]):
+        raise ValueError("Batch vintage is earlier than basket criteria")
+    if basket.get("max_start_date") and str(batch_start_date) > str(basket["max_start_date"]):
+        raise ValueError("Batch vintage is later than basket criteria")
 
-    conn.execute(
+    escrowed = conn.execute(
         conn.text(
-            "UPDATE credit_batch SET retired_quantity = retired_quantity + :qty, updated_at = NOW() "
-            "WHERE id = :bid"
+            "UPDATE credit_balance SET tradable_amount = tradable_amount - :qty, "
+            "escrowed_amount = escrowed_amount + :qty, updated_at = NOW() "
+            "WHERE credit_batch_id = :bid AND account_address = :addr AND tradable_amount >= :qty"
         ),
-        {"qty": quantity, "bid": credit_batch_id},
+        {"qty": quantity, "bid": credit_batch_id, "addr": depositor_address},
     )
+    if escrowed.rowcount != 1:
+        raise ValueError("Depositor does not own enough tradable credits")
 
     result = conn.execute(
         conn.text(
@@ -216,7 +225,9 @@ def withdraw_from_basket(
     if basket["status"] != "active":
         raise ValueError(f"Basket is not active: {basket['status']}")
 
-    token_balance = get_token_balance(conn, basket_id, holder_address)
+    token_balance = conn.execute(conn.text(
+        "SELECT * FROM credit_basket_token WHERE basket_id = :bid AND holder_address = :addr FOR UPDATE"),
+        {"bid": basket_id, "addr": holder_address}).mappings().first()
     if float(token_balance.get("token_amount", 0)) < quantity:
         raise ValueError(f"Insufficient basket tokens: {token_balance.get('token_amount', 0)} < {quantity}")
 
@@ -231,10 +242,12 @@ def withdraw_from_basket(
         conn.text(
             "SELECT * FROM credit_basket_deposit "
             "WHERE basket_id = :bid AND status = 'deposited' "
-            "ORDER BY batch_start_date ASC, deposited_at ASC"
+            "ORDER BY batch_start_date ASC, deposited_at ASC FOR UPDATE"
         ),
         {"bid": basket_id},
     ).mappings().all()
+    if sum(float(deposit["token_amount"]) for deposit in deposits) < quantity:
+        raise ValueError("Basket does not have enough escrowed credits")
 
     remaining = quantity
     taken_credits = []
@@ -245,32 +258,59 @@ def withdraw_from_basket(
         take_tokens = min(dep_tokens, remaining)
 
         new_dep_tokens = dep_tokens - take_tokens
+        new_dep_quantity = float(deposit["quantity"]) - _compute_credit_amount(take_tokens, exponent)
         new_status = "withdrawn" if new_dep_tokens <= 0 else "deposited"
 
         conn.execute(
             conn.text(
                 "UPDATE credit_basket_deposit SET "
-                "token_amount = :ta, status = :s "
+                "token_amount = :ta, quantity = :qty, status = :s "
                 "WHERE id = :did"
             ),
-            {"ta": max(new_dep_tokens, 0), "s": new_status, "did": str(deposit["id"])},
+            {"ta": max(new_dep_tokens, 0), "qty": max(new_dep_quantity, 0),
+             "s": new_status, "did": str(deposit["id"])},
         )
+
+        credit_quantity = _compute_credit_amount(take_tokens, exponent)
+        moved = conn.execute(conn.text(
+            "UPDATE credit_balance SET escrowed_amount = escrowed_amount - :qty, updated_at = NOW() "
+            "WHERE credit_batch_id = :bid AND account_address = :addr AND escrowed_amount >= :qty"),
+            {"qty": credit_quantity, "bid": deposit["credit_batch_id"],
+             "addr": deposit["depositor_address"]})
+        if moved.rowcount != 1:
+            raise ValueError("Basket deposit escrow is inconsistent")
+
+        from services.credit_class.balance import upsert_balance
+        if retire_on_take:
+            upsert_balance(conn, str(deposit["credit_batch_id"]), holder_address,
+                           retired_delta=credit_quantity)
+            retired = conn.execute(conn.text(
+                "UPDATE credit_batch SET retired_quantity = retired_quantity + :qty, updated_at = NOW() "
+                "WHERE id = :bid AND issued_quantity - retired_quantity - cancelled_quantity >= :qty"),
+                {"qty": credit_quantity, "bid": deposit["credit_batch_id"]})
+            if retired.rowcount != 1:
+                raise ValueError("Batch does not have enough issued credits to retire")
+        else:
+            upsert_balance(conn, str(deposit["credit_batch_id"]), holder_address,
+                           tradable_delta=credit_quantity)
 
         taken_credits.append({
             "batch_id": str(deposit["credit_batch_id"]),
-            "quantity": _compute_credit_amount(take_tokens, exponent),
+            "quantity": credit_quantity,
             "retired": retire_on_take,
         })
         remaining -= take_tokens
 
-    conn.execute(
+    debited = conn.execute(
         conn.text(
             "UPDATE credit_basket_token SET "
             "token_amount = token_amount - :qty, last_updated_at = NOW() "
-            "WHERE basket_id = :bid AND holder_address = :addr"
+            "WHERE basket_id = :bid AND holder_address = :addr AND token_amount >= :qty"
         ),
         {"qty": quantity, "bid": basket_id, "addr": holder_address},
     )
+    if debited.rowcount != 1:
+        raise ValueError("Insufficient basket tokens")
 
     logger.info("Withdrew %s basket tokens from %s (credits=%s, retire=%s)",
                 quantity, holder_address, credit_amount, retire_on_take)
@@ -282,6 +322,39 @@ def withdraw_from_basket(
         "retire_on_take": retire_on_take,
         "credits": taken_credits,
     }
+
+
+def cancel_deposit(conn, deposit_id: str, depositor_address: str) -> dict:
+    row = conn.execute(conn.text(
+        "SELECT * FROM credit_basket_deposit WHERE id = :did FOR UPDATE"),
+        {"did": deposit_id}).mappings().first()
+    if not row:
+        raise ValueError(f"Deposit not found: {deposit_id}")
+    deposit = dict(row)
+    if deposit["depositor_address"] != depositor_address:
+        raise ValueError("Only the depositor can cancel a deposit")
+    if deposit["status"] != "deposited":
+        raise ValueError(f"Deposit is not active: {deposit['status']}")
+
+    token = conn.execute(conn.text(
+        "UPDATE credit_basket_token SET token_amount = token_amount - :tokens, last_updated_at = NOW() "
+        "WHERE basket_id = :bid AND holder_address = :addr AND token_amount >= :tokens"),
+        {"tokens": deposit["token_amount"], "bid": deposit["basket_id"],
+         "addr": depositor_address})
+    if token.rowcount != 1:
+        raise ValueError("Depositor no longer owns the basket tokens")
+    moved = conn.execute(conn.text(
+        "UPDATE credit_balance SET tradable_amount = tradable_amount + :qty, "
+        "escrowed_amount = escrowed_amount - :qty, updated_at = NOW() "
+        "WHERE credit_batch_id = :bid AND account_address = :addr AND escrowed_amount >= :qty"),
+        {"qty": deposit["quantity"], "bid": deposit["credit_batch_id"],
+         "addr": depositor_address})
+    if moved.rowcount != 1:
+        raise ValueError("Basket deposit escrow is inconsistent")
+    conn.execute(conn.text(
+        "UPDATE credit_basket_deposit SET status = 'cancelled', quantity = 0, token_amount = 0 "
+        "WHERE id = :did"), {"did": deposit_id})
+    return {"id": deposit_id, "status": "cancelled"}
 
 
 def update_curator(conn, basket_id: str, current_curator: str, new_curator: str) -> dict:

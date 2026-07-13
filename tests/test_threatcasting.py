@@ -498,6 +498,25 @@ class TestThreatIntelligence:
         assert "executive_summary" in result
         assert "detailed_intelligence" in result
 
+    def test_predict_threat_evolution_consumes_one_row(self):
+        ti, _, mock_cursor = self._make_ti()
+        mock_cursor.fetchone.return_value = {
+            "id": "threat-1",
+            "threat_name": "Drought",
+            "threat_type": "climate",
+            "severity_potential": "high",
+            "probability": 0.5,
+            "velocity": "fast",
+            "reversibility": "partially",
+            "time_horizon_years": 5,
+        }
+
+        result = ti.predict_threat_evolution("threat-1", horizon_years=2)
+
+        assert result["threat"]["threat_name"] == "Drought"
+        assert len(result["projections"]) == 2
+        assert mock_cursor.fetchone.call_count == 1
+
 
 # ---------------------------------------------------------------------------
 # CLI Tests (basic import test)

@@ -111,7 +111,7 @@ class TrendEstimator:
         cur.execute("""
             SELECT mv.value, mv.computed_at
             FROM metric_value mv
-            JOIN metric_definition md ON md.id = mv.metric_definition_id
+            JOIN metric_definition md ON md.id = mv.metric_id
             WHERE mv.location_id = %s AND md.metric_key = %s
             AND mv.verified = TRUE
             AND mv.computed_at > NOW() - INTERVAL '%s days'

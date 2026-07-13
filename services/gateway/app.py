@@ -22,7 +22,7 @@ def create_app():
     from services.gateway.auth import verify_request
     from services.gateway.rate_limiter import RateLimiter
     from services.gateway.audit import GatewayAudit
-    from services.gateway.router import router
+    from services.gateway.router import get_route_policy, router
 
     app = FastAPI(
         title="Kokonut Intelligence Gateway",
@@ -40,7 +40,7 @@ def create_app():
         client_ip = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "")
 
-        # Skip auth for health and docs
+        # Health and API discovery are intentionally public.
         if request.url.path in ("/health", "/docs", "/openapi.json", "/"):
             response = await call_next(request)
             return response
@@ -51,11 +51,20 @@ def create_app():
         if not allowed:
             return JSONResponse(
                 status_code=429,
-                content={"error": "Rate limit exceeded", "caller": caller},
+                content={"error": "Rate limit exceeded"},
             )
 
-        # Auth verification
-        auth_result = verify_request(request)
+        policy = get_route_policy(request.method, request.url.path)
+        auth_result = (
+            {"authenticated": True, "caller": "anonymous"}
+            if policy["public"]
+            else verify_request(
+                request,
+                resource=policy["resource"],
+                action=policy["action"],
+                location_id=policy["location_id"],
+            )
+        )
         if not auth_result.get("authenticated"):
             audit.log(
                 caller=caller,
@@ -70,6 +79,8 @@ def create_app():
                 status_code=401,
                 content={"error": "Unauthorized", "reason": auth_result.get("reason")},
             )
+
+        request.state.caller = auth_result.get("caller", "anonymous")
 
         # Process request
         response = await call_next(request)

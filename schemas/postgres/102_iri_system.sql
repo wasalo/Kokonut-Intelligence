@@ -24,10 +24,21 @@ CREATE TABLE IF NOT EXISTS iri_registry (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_iri_entity ON iri_registry(entity_type, entity_id, version);
-CREATE INDEX idx_iri_current ON iri_registry(entity_type, entity_id) WHERE is_current = TRUE;
-CREATE INDEX idx_iri_schema ON iri_registry(schema_name);
-CREATE INDEX idx_iri_type ON iri_registry(entity_type);
-CREATE INDEX idx_iri_attestation ON iri_registry(attestation_uid) WHERE attestation_uid IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_iri_entity ON iri_registry(entity_type, entity_id, version);
+CREATE INDEX IF NOT EXISTS idx_iri_current ON iri_registry(entity_type, entity_id) WHERE is_current = TRUE;
+CREATE INDEX IF NOT EXISTS idx_iri_schema ON iri_registry(schema_name);
+CREATE INDEX IF NOT EXISTS idx_iri_type ON iri_registry(entity_type);
+CREATE INDEX IF NOT EXISTS idx_iri_attestation ON iri_registry(attestation_uid) WHERE attestation_uid IS NOT NULL;
 
-ALTER TABLE IF EXISTS iri_registry ADD CONSTRAINT chk_iri_hash_type CHECK (content_hash_type IN ('raw', 'graph'));
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'chk_iri_hash_type'
+          AND conrelid = 'iri_registry'::regclass
+    ) THEN
+        ALTER TABLE iri_registry
+            ADD CONSTRAINT chk_iri_hash_type CHECK (content_hash_type IN ('raw', 'graph'));
+    END IF;
+END $$;

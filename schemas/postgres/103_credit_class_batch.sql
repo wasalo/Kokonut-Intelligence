@@ -65,9 +65,9 @@ CREATE TABLE IF NOT EXISTS credit_class (
     CONSTRAINT chk_credit_class_status CHECK (status IN ('draft', 'submitted', 'verified', 'published', 'deprecated'))
 );
 
-CREATE INDEX idx_cc_type ON credit_class(credit_type);
-CREATE INDEX idx_cc_status ON credit_class(status);
-CREATE INDEX idx_cc_methodology ON credit_class(methodology);
+CREATE INDEX IF NOT EXISTS idx_cc_type ON credit_class(credit_type);
+CREATE INDEX IF NOT EXISTS idx_cc_status ON credit_class(status);
+CREATE INDEX IF NOT EXISTS idx_cc_methodology ON credit_class(methodology);
 
 -- ============================================================
 -- credit_class_cobenefit (hasCoBenefits)
@@ -82,7 +82,7 @@ CREATE TABLE IF NOT EXISTS credit_class_cobenefit (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_ccc_class ON credit_class_cobenefit(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_ccc_class ON credit_class_cobenefit(credit_class_id);
 
 -- ============================================================
 -- credit_class_registry (hasSourceRegistry)
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS credit_class_registry (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_ccr_class ON credit_class_registry(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_ccr_class ON credit_class_registry(credit_class_id);
 
 -- ============================================================
 -- crediting_program (managedUnderProgram)
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS crediting_program (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_cp_class ON crediting_program(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_cp_class ON crediting_program(credit_class_id);
 
 -- ============================================================
 -- credit_protocol (hasCreditProtocol)
@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS credit_protocol (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_cpr_class ON credit_protocol(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_cpr_class ON credit_protocol(credit_class_id);
 
 -- ============================================================
 -- credit_class_methodology (hasApprovedMethodologies)
@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS credit_class_methodology (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_ccm_class ON credit_class_methodology(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_ccm_class ON credit_class_methodology(credit_class_id);
 
 -- ============================================================
 -- buffer_pool_account (hasBufferPoolAccounts)
@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS buffer_pool_account (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_bpa_class ON buffer_pool_account(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_bpa_class ON buffer_pool_account(credit_class_id);
 
 -- ============================================================
 -- credit_batch
@@ -195,10 +195,10 @@ CREATE TABLE IF NOT EXISTS credit_batch (
     CONSTRAINT chk_batch_status CHECK (status IN ('draft', 'submitted', 'verified', 'published', 'retired', 'cancelled'))
 );
 
-CREATE INDEX idx_cb_class ON credit_batch(credit_class_id);
-CREATE INDEX idx_cb_location ON credit_batch(location_id);
-CREATE INDEX idx_cb_vintage ON credit_batch(vintage_year);
-CREATE INDEX idx_cb_status ON credit_batch(status);
+CREATE INDEX IF NOT EXISTS idx_cb_class ON credit_batch(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_cb_location ON credit_batch(location_id);
+CREATE INDEX IF NOT EXISTS idx_cb_vintage ON credit_batch(vintage_year);
+CREATE INDEX IF NOT EXISTS idx_cb_status ON credit_batch(status);
 
 -- Link existing carbon_credit to hierarchy
 ALTER TABLE carbon_credit ADD COLUMN IF NOT EXISTS credit_class_id UUID REFERENCES credit_class(id);

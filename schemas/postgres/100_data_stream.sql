@@ -62,14 +62,14 @@ CREATE TABLE IF NOT EXISTS data_stream_post (
     CONSTRAINT chk_dsp_visibility CHECK (visibility IN ('public','internal','private'))
 );
 
-CREATE INDEX idx_dsp_location ON data_stream_post(location_id);
-CREATE INDEX idx_dsp_status ON data_stream_post(status);
-CREATE INDEX idx_dsp_type ON data_stream_post(post_type);
-CREATE INDEX idx_dsp_created ON data_stream_post(created_at DESC);
-CREATE INDEX idx_dsp_visibility ON data_stream_post(visibility);
-CREATE INDEX idx_dsp_search ON data_stream_post USING GIN(content_search);
-CREATE INDEX idx_dsp_evidence_urls ON data_stream_post USING GIN(evidence_urls);
-CREATE INDEX idx_dsp_file_ids ON data_stream_post USING GIN(file_ids);
+CREATE INDEX IF NOT EXISTS idx_dsp_location ON data_stream_post(location_id);
+CREATE INDEX IF NOT EXISTS idx_dsp_status ON data_stream_post(status);
+CREATE INDEX IF NOT EXISTS idx_dsp_type ON data_stream_post(post_type);
+CREATE INDEX IF NOT EXISTS idx_dsp_created ON data_stream_post(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_dsp_visibility ON data_stream_post(visibility);
+CREATE INDEX IF NOT EXISTS idx_dsp_search ON data_stream_post USING GIN(content_search);
+CREATE INDEX IF NOT EXISTS idx_dsp_evidence_urls ON data_stream_post USING GIN(evidence_urls);
+CREATE INDEX IF NOT EXISTS idx_dsp_file_ids ON data_stream_post USING GIN(file_ids);
 
 -- Auto-update full-text search vector
 CREATE OR REPLACE FUNCTION trg_dsp_search_update() RETURNS trigger AS $$
@@ -101,8 +101,8 @@ CREATE TABLE IF NOT EXISTS data_stream_post_comment (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_dspc_post ON data_stream_post_comment(post_id);
-CREATE INDEX idx_dspc_status ON data_stream_post_comment(status);
+CREATE INDEX IF NOT EXISTS idx_dspc_post ON data_stream_post_comment(post_id);
+CREATE INDEX IF NOT EXISTS idx_dspc_status ON data_stream_post_comment(status);
 
 -- ============================================================
 -- data_stream_file (Regen ProjectPost.files — structured file metadata)
@@ -126,9 +126,9 @@ CREATE TABLE IF NOT EXISTS data_stream_file (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_dsf_post ON data_stream_file(post_id);
-CREATE INDEX idx_dsf_media ON data_stream_file(media_type);
-CREATE INDEX idx_dsf_geometry ON data_stream_file USING GIST(geometry);
+CREATE INDEX IF NOT EXISTS idx_dsf_post ON data_stream_file(post_id);
+CREATE INDEX IF NOT EXISTS idx_dsf_media ON data_stream_file(media_type);
+CREATE INDEX IF NOT EXISTS idx_dsf_geometry ON data_stream_file USING GIST(geometry);
 
 -- Add file count for quick access
 ALTER TABLE data_stream_post ADD COLUMN IF NOT EXISTS file_count INTEGER DEFAULT 0;

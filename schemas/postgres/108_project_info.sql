@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS project_link (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_pl_location ON project_link(location_id);
-CREATE INDEX idx_pl_type ON project_link(link_type);
+CREATE INDEX IF NOT EXISTS idx_pl_location ON project_link(location_id);
+CREATE INDEX IF NOT EXISTS idx_pl_type ON project_link(link_type);
 
 -- ============================================================
 -- project_reference_id (hasReferenceId)
@@ -29,5 +29,5 @@ CREATE TABLE IF NOT EXISTS project_reference_id (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_pri_location ON project_reference_id(location_id);
-CREATE INDEX idx_pri_type ON project_reference_id(reference_type);
+CREATE INDEX IF NOT EXISTS idx_pri_location ON project_reference_id(location_id);
+CREATE INDEX IF NOT EXISTS idx_pri_type ON project_reference_id(reference_type);

@@ -20,10 +20,10 @@ CREATE TABLE IF NOT EXISTS content_hash_entry (
     CONSTRAINT chk_merkle_tree CHECK (merkle_tree IN ('none', 'ipld_dag', 'hashlinked'))
 );
 
-CREATE INDEX idx_che_iri ON content_hash_entry(iri_id);
-CREATE INDEX idx_che_hash ON content_hash_entry(hash_value);
-CREATE INDEX idx_che_algorithm ON content_hash_entry(hash_algorithm);
-CREATE INDEX idx_che_content_type ON content_hash_entry(content_type);
+CREATE INDEX IF NOT EXISTS idx_che_iri ON content_hash_entry(iri_id);
+CREATE INDEX IF NOT EXISTS idx_che_hash ON content_hash_entry(hash_value);
+CREATE INDEX IF NOT EXISTS idx_che_algorithm ON content_hash_entry(hash_algorithm);
+CREATE INDEX IF NOT EXISTS idx_che_content_type ON content_hash_entry(content_type);
 
 -- ============================================================
 -- data_resolver (resolver URL + manager)
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS data_resolver (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_dr_url ON data_resolver(resolver_url);
-CREATE INDEX idx_dr_manager ON data_resolver(manager_address);
+CREATE INDEX IF NOT EXISTS idx_dr_url ON data_resolver(resolver_url);
+CREATE INDEX IF NOT EXISTS idx_dr_manager ON data_resolver(manager_address);
 
 -- ============================================================
 -- data_resolver_registration (IRI ↔ resolver mapping)
@@ -52,8 +52,8 @@ CREATE TABLE IF NOT EXISTS data_resolver_registration (
     UNIQUE(resolver_id, iri_id)
 );
 
-CREATE INDEX idx_drr_resolver ON data_resolver_registration(resolver_id);
-CREATE INDEX idx_drr_iri ON data_resolver_registration(iri_id);
+CREATE INDEX IF NOT EXISTS idx_drr_resolver ON data_resolver_registration(resolver_id);
+CREATE INDEX IF NOT EXISTS idx_drr_iri ON data_resolver_registration(iri_id);
 
 -- ============================================================
 -- data_iri_attestor (per-IRI attestor tracking)
@@ -66,5 +66,5 @@ CREATE TABLE IF NOT EXISTS data_iri_attestor (
     UNIQUE(iri_id, attestor_address)
 );
 
-CREATE INDEX idx_dia_iri ON data_iri_attestor(iri_id);
-CREATE INDEX idx_dia_attestor ON data_iri_attestor(attestor_address);
+CREATE INDEX IF NOT EXISTS idx_dia_iri ON data_iri_attestor(iri_id);
+CREATE INDEX IF NOT EXISTS idx_dia_attestor ON data_iri_attestor(attestor_address);

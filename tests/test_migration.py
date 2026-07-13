@@ -1,0 +1,130 @@
+"""Focused tests for migration discovery, tracking, and execution safety."""
+
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from services.migration import cli
+
+
+def _sql_file(path: Path, content: str = "SELECT 1;") -> Path:
+    path.write_text(content)
+    return path
+
+
+def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path, monkeypatch):
+    schemas = tmp_path / "postgres"
+    seeds = tmp_path / "seeds"
+    schemas.mkdir()
+    seeds.mkdir()
+    _sql_file(schemas / "010_second.sql")
+    _sql_file(schemas / "002_first.sql")
+    _sql_file(seeds / "001_seed.sql")
+    monkeypatch.setattr(cli, "SCHEMA_DIR", schemas)
+    monkeypatch.setattr(cli, "SEED_DIR", seeds)
+
+    files = cli._discover_files()
+
+    assert [item["id"] for item in files] == [
+        "schema:002_first.sql",
+        "schema:010_second.sql",
+        "seed:001_seed.sql",
+    ]
+
+
+def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
+    directory = tmp_path / "sql"
+    directory.mkdir()
+    migration = _sql_file(directory / "001_same.sql")
+
+    class DuplicateDirectory:
+        def glob(self, pattern):
+            return [migration, migration]
+
+    monkeypatch.setattr(cli, "SCHEMA_DIR", DuplicateDirectory())
+    monkeypatch.setattr(cli, "SEED_DIR", tmp_path / "empty")
+
+    with pytest.raises(cli.MigrationError, match="duplicate migration ID"):
+        cli._discover_files()
+
+
+def test_psql_raises_on_query_failure(monkeypatch):
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 1, "", "bad query"),
+    )
+
+    with pytest.raises(cli.MigrationError, match="bad query"):
+        cli._psql("SELECT 1")
+
+
+def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):
+    captured = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["input"] = kwargs["input"]
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    cli._psql("SELECT :'value';", {"value": "name'; DROP TABLE x; --"})
+
+    assert "DROP TABLE" not in captured["input"]
+    assert "value=name'; DROP TABLE x; --" in captured["command"]
+    assert "ON_ERROR_STOP=1" in captured["command"]
+
+
+def test_legacy_reconciliation_requires_exact_version_and_name(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cli, "_psql", lambda sql, variables=None: calls.append((sql, variables)))
+    file_info = {
+        "id": "schema:008_governance.sql",
+        "version": "008",
+        "name": "008_governance",
+    }
+
+    cli._reconcile_legacy([file_info])
+
+    sql, variables = calls[0]
+    assert "migration_id IS NULL" in sql
+    assert "version = :'legacy_version'" in sql
+    assert "name = :'name'" in sql
+    assert variables == {
+        "migration_id": "schema:008_governance.sql",
+        "legacy_version": "008",
+        "name": "008_governance",
+    }
+
+
+def test_apply_batch_holds_lock_and_tracks_after_sql(tmp_path, monkeypatch):
+    migration = _sql_file(tmp_path / "001_o'hare.sql", "CREATE TABLE example (id int);")
+    captured = {}
+
+    def fake_psql(sql, variables=None):
+        captured["sql"] = sql
+        captured["variables"] = variables
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+    cli._apply_files([{
+        "id": "schema:001_o'hare.sql",
+        "name": "001_o'hare",
+        "path": migration,
+        "checksum": "abc",
+    }])
+
+    sql = captured["sql"]
+    assert sql.index("pg_advisory_lock") < sql.index("CREATE TABLE example")
+    assert sql.index("CREATE TABLE example") < sql.index("INSERT INTO schema_migration")
+    assert sql.index("INSERT INTO schema_migration") < sql.index("pg_advisory_unlock")
+    assert "o'hare" not in sql
+    assert captured["variables"]["migration_id_0"] == "schema:001_o'hare.sql"
+
+
+def test_modified_applied_migration_is_rejected():
+    files = [{"id": "schema:001_a.sql", "checksum": "new"}]
+    applied = {"schema:001_a.sql": {"status": "applied", "checksum": "old"}}
+
+    with pytest.raises(cli.MigrationError, match="was modified"):
+        cli._validate_applied(files, applied)

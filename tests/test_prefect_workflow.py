@@ -83,7 +83,7 @@ def test_metrics_flow_wraps_cli() -> None:
     content = Path("services/flows/metrics.py").read_text()
     assert "services.metrics" in content
     assert "--all-locations" in content
-    assert "--verify" in content
+    assert "--verify" not in content
 
 
 def test_pipeline_has_dependency_chains() -> None:

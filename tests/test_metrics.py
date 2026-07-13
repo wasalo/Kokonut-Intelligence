@@ -11,6 +11,7 @@ Usage:
 
 import sys
 import os
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -136,6 +137,54 @@ def test_metric_definition_version_trigger_exists():
     assert "record_metric_definition_version" in sql
     assert "INSERT INTO metric_version" in sql
     assert "CREATE TRIGGER trg_metric_definition_version" in sql
+
+
+def test_metric_computation_always_creates_draft_value():
+    """Computers cannot self-verify governed metric values."""
+    from services.metrics.engine import compute_metric
+
+    cur = MagicMock()
+    cur.fetchone.side_effect = [
+        {"id": "metric-id", "display_name": "Test", "unit": "kg", "version": 1},
+        {"id": "value-id"},
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+    calculator = MagicMock(return_value={
+        "value": 12.0,
+        "computation_method": "test",
+        "source_record_ids": [],
+        "metadata": {},
+    })
+
+    with patch.dict("services.metrics.engine.CALCULATORS", {"test_metric": calculator}, clear=True):
+        result = compute_metric(conn, "test_metric", "location-id")
+
+    insert_sql = cur.execute.call_args_list[1].args[0]
+    assert "NOW(), FALSE" in insert_sql
+    assert result["metric_value_id"] == "value-id"
+
+
+def test_metric_verification_records_reviewer():
+    from services.metrics.engine import verify_metric_value
+
+    cur = MagicMock()
+    cur.fetchone.return_value = {
+        "id": "value-id",
+        "verified": True,
+        "verified_by": "reviewer-id",
+    }
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    result = verify_metric_value(conn, "value-id", "reviewer-id", "Reviewed")
+
+    sql, params = cur.execute.call_args.args
+    assert "verified_by = %s" in sql
+    assert "verified_at = NOW()" in sql
+    assert params == ("reviewer-id", "Reviewed", "value-id")
+    assert result["verified"] is True
+    conn.commit.assert_called_once()
 
 
 # Integration tests (require running PostgreSQL)

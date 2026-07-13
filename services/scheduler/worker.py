@@ -35,25 +35,27 @@ def run_worker(tick_interval: int = 30, worker_id: str | None = None):
 
     logger.info("Scheduler worker started (tick=%ds, worker=%s)", tick_interval, engine._worker_id)
 
-    while _running:
-        try:
-            stats = engine.tick()
-            if stats["launched"] > 0 or stats["failed"] > 0:
-                logger.info(
-                    "Tick complete: launched=%d skipped=%d no_resources=%d",
-                    stats["launched"], stats["skipped"], stats["no_resources"],
-                )
-        except Exception:
-            logger.exception("Scheduler tick failed")
+    try:
+        while _running:
+            try:
+                stats = engine.tick()
+                if stats["launched"] > 0 or stats["failed"] > 0:
+                    logger.info(
+                        "Tick complete: launched=%d failed=%d skipped=%d no_resources=%d",
+                        stats["launched"], stats["failed"], stats["skipped"], stats["no_resources"],
+                    )
+            except Exception:
+                conn.rollback()
+                logger.exception("Scheduler tick failed")
 
-        # Sleep in small increments so we respond to signals quickly
-        for _ in range(tick_interval):
-            if not _running:
-                break
-            time.sleep(1.0)
-
-    logger.info("Scheduler worker stopped")
-    conn.close()
+            # Sleep in small increments so we respond to signals quickly
+            for _ in range(tick_interval):
+                if not _running:
+                    break
+                time.sleep(1.0)
+    finally:
+        logger.info("Scheduler worker stopped")
+        conn.close()
 
 
 def main():

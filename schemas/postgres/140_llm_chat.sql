@@ -72,8 +72,12 @@ CREATE TABLE IF NOT EXISTS chat_intent (
     requires_auth   BOOLEAN DEFAULT FALSE,
     status          VARCHAR(50) NOT NULL DEFAULT 'active',
     metadata        JSONB DEFAULT '{}',
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE chat_intent
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
 -- Query cache (avoid re-running identical queries)
 CREATE TABLE IF NOT EXISTS chat_query_cache (

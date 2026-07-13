@@ -30,8 +30,8 @@ CREATE TABLE IF NOT EXISTS origin_tx_index (
     UNIQUE(credit_class_id, origin_tx_id, origin_tx_source)
 );
 
-CREATE INDEX idx_oti_class ON origin_tx_index(credit_class_id);
-CREATE INDEX idx_oti_tx ON origin_tx_index(origin_tx_id);
+CREATE INDEX IF NOT EXISTS idx_oti_class ON origin_tx_index(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_oti_tx ON origin_tx_index(origin_tx_id);
 
 -- ============================================================
 -- Marketplace fee tracking
@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS marketplace_fee (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_mf_transaction ON marketplace_fee(transaction_type, transaction_id);
-CREATE INDEX idx_mf_status ON marketplace_fee(status);
+CREATE INDEX IF NOT EXISTS idx_mf_transaction ON marketplace_fee(transaction_type, transaction_id);
+CREATE INDEX IF NOT EXISTS idx_mf_status ON marketplace_fee(status);
 
 -- Fee distribution log
 CREATE TABLE IF NOT EXISTS marketplace_fee_distribution (
@@ -64,4 +64,4 @@ CREATE TABLE IF NOT EXISTS marketplace_fee_distribution (
     distributed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_mfd_fee ON marketplace_fee_distribution(fee_id);
+CREATE INDEX IF NOT EXISTS idx_mfd_fee ON marketplace_fee_distribution(fee_id);

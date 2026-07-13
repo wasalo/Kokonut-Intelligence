@@ -356,8 +356,8 @@ class TestOptimizeSchedule(unittest.TestCase):
 
     def test_optimize_no_target(self):
         self.mock_cursor.fetchone.side_effect = [
-            None,  # schedule condition → falsy → schedule = None
-            None,  # target condition → falsy → target = None
+            None,  # no pending schedule
+            None,  # no moisture target
             (5000.0,),  # zone area (runs before early return)
         ]
         result = optimize_schedule(self.conn, "zone-001")
@@ -366,11 +366,8 @@ class TestOptimizeSchedule(unittest.TestCase):
 
     def test_optimize_no_current_moisture(self):
         self.mock_cursor.fetchone.side_effect = [
-            # schedule query: condition fetchone (truthy) → body fetchone (tuple)
-            ("sched-1",),
+            # One row per query, matching real cursor consumption.
             ("sched-1", None, 500.0, 4.0, 0.0, None),
-            # target query: condition fetchone (truthy) → body fetchone (tuple)
-            (50.0,),
             (50.0, 65.0, 40.0, 65.0),
             # zone area
             (5000.0,),

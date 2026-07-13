@@ -163,7 +163,7 @@ See [User Guide](docs/user-guide.md) for role workflows and data-entry walkthrou
 ```bash
 # Metrics
 python3 -m services.metrics --list
-python3 -m services.metrics --compute --all-locations --verify
+python3 -m services.metrics --compute --all-locations
 
 # Reports (42 types; use --auto for all)
 python3 -m services.export.report_generator --auto --location-id UUID

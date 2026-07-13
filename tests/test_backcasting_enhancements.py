@@ -286,6 +286,51 @@ class TestPrincipleManager:
         evidence = pm._build_alignment_evidence(None, 5.0, "gte")
         assert "No current data" in evidence
 
+    def test_metric_read_uses_canonical_contract(self):
+        pm, _, cursor = self._make_manager()
+        cursor.fetchone.return_value = (12.5,)
+
+        assert pm._read_current_metric_value("soil_carbon", "loc-1") == 12.5
+        query = cursor.execute.call_args.args[0]
+        assert "SELECT mv.value" in query
+        assert "md.id = mv.metric_id" in query
+        assert "ORDER BY mv.computed_at DESC" in query
+        assert "numeric_value" not in query
+        assert "recorded_at" not in query
+
+    @pytest.mark.parametrize(
+        ("dimension", "column"),
+        [("carbon_yield", "carbon_yield_score"), ("climate", "climate_score"),
+         ("policy", "policy_score"), ("financial", "financial_score"),
+         ("implementation", "implementation_score"), ("composite", "composite_score")],
+    )
+    def test_crisp_dimension_maps_to_allowlisted_column(self, dimension, column):
+        pm, _, cursor = self._make_manager()
+        cursor.fetchone.return_value = (42,)
+
+        assert pm._read_current_crisp_score(dimension, "loc-1") == 42
+        query = cursor.execute.call_args.args[0]
+        assert f"SELECT {column}" in query
+        assert "ORDER BY score_computed_at DESC NULLS LAST" in query
+        assert cursor.execute.call_args.args[1] == ("loc-1",)
+
+    def test_crisp_dimension_rejects_unknown_column(self):
+        pm, _, cursor = self._make_manager()
+        with pytest.raises(ValueError, match="Unsupported CRISP dimension"):
+            pm._read_current_crisp_score("rating; DROP TABLE", "loc-1")
+        cursor.execute.assert_not_called()
+
+    def test_effectiveness_delta_uses_canonical_metric_contract(self):
+        pm, _, cursor = self._make_manager()
+        cursor.fetchone.side_effect = [(10,), (12,)]
+
+        assert pm._compute_effectiveness_delta("soil_carbon", "loc-1", date.today()) == 0.2
+        queries = [call.args[0] for call in cursor.execute.call_args_list]
+        assert all("SELECT mv.value" in query for query in queries)
+        assert all("md.id = mv.metric_id" in query for query in queries)
+        assert all("mv.computed_at" in query for query in queries)
+        assert all("numeric_value" not in query and "recorded_at" not in query for query in queries)
+
 
 # ---------------------------------------------------------------------------
 # Backcaster Challenge Tests

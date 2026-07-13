@@ -128,7 +128,7 @@ def cmd_run_now(args):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT module_path, timeout_seconds FROM scheduled_task WHERE name = %s",
+                "SELECT module_path, command_args, timeout_seconds FROM scheduled_task WHERE name = %s",
                 (args.task_name,),
             )
             row = cur.fetchone()
@@ -136,10 +136,10 @@ def cmd_run_now(args):
                 print(f"Task not found: {args.task_name}")
                 return 1
 
-            module_path, timeout = row
+            module_path, command_args, timeout = row
             print(f"Running {args.task_name} ({module_path})...")
             result = subprocess.run(
-                [_sys.executable, "-m", module_path],
+                [_sys.executable, "-m", module_path, *list(command_args or [])],
                 timeout=timeout,
             )
             return result.returncode

@@ -10,14 +10,12 @@ from services.common.logging import get_logger
 logger = get_logger("gateway.auth")
 
 
-def verify_request(request) -> dict:
+def verify_request(request, resource: str, action: str, location_id: str | None = None) -> dict:
     """Verify authentication for a gateway request.
 
     Checks (in order):
     1. Capability token (x-capability-token header)
     2. API key (x-api-key header)
-    3. Session cookie
-
     Returns dict with 'authenticated' bool and optional 'caller' and 'reason'.
     """
     headers = dict(request.headers)
@@ -27,7 +25,12 @@ def verify_request(request) -> dict:
     if cap_token:
         from services.security.capabilities import CapabilityManager
         manager = CapabilityManager()
-        result = manager.verify(cap_token, resource="api", action="read")
+        result = manager.verify(
+            cap_token,
+            resource=resource,
+            action=action,
+            location_id=location_id,
+        )
         if result:
             return {"authenticated": True, "caller": result.get("holder", "cap-token")}
         return {"authenticated": False, "reason": "invalid_capability_token"}
@@ -41,9 +44,7 @@ def verify_request(request) -> dict:
             return {"authenticated": True, "caller": caller}
         return {"authenticated": False, "reason": "invalid_api_key"}
 
-    # 3. Check session (cookie-based for browser clients)
-    # For now, allow unauthenticated read access to public endpoints
-    return {"authenticated": True, "caller": "anonymous"}
+    return {"authenticated": False, "reason": "credentials_required"}
 
 
 def _get_valid_api_keys() -> dict:

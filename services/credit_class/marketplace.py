@@ -26,14 +26,8 @@ def create_sell_order(
     allow_partial_fills: bool = True,
     expiration: str = None,
 ) -> dict:
-    batch = conn.execute(
-        conn.text("SELECT available_quantity FROM credit_batch WHERE id = :bid"),
-        {"bid": credit_batch_id},
-    ).mappings().first()
-    if not batch:
-        raise ValueError(f"Batch not found: {credit_batch_id}")
-    if float(batch["available_quantity"]) < quantity:
-        raise ValueError(f"Insufficient available quantity: {batch['available_quantity']} < {quantity}")
+    if quantity <= 0:
+        raise ValueError("Quantity must be positive")
 
     denom_check = conn.execute(
         conn.text("SELECT id FROM credit_allowed_denom WHERE denom = :d AND is_active = TRUE"),
@@ -42,13 +36,17 @@ def create_sell_order(
     if not denom_check:
         raise ValueError(f"Denomination not allowed: {ask_denom}")
 
-    conn.execute(
+    escrowed = conn.execute(
         conn.text(
-            "UPDATE credit_batch SET retired_quantity = retired_quantity + :qty, updated_at = NOW() "
-            "WHERE id = :bid"
+            "UPDATE credit_balance SET tradable_amount = tradable_amount - :qty, "
+            "escrowed_amount = escrowed_amount + :qty, updated_at = NOW() "
+            "WHERE credit_batch_id = :bid AND account_address = :seller "
+            "AND tradable_amount >= :qty"
         ),
-        {"qty": quantity, "bid": credit_batch_id},
+        {"qty": quantity, "bid": credit_batch_id, "seller": seller_address},
     )
+    if escrowed.rowcount != 1:
+        raise ValueError("Seller does not own enough tradable credits")
 
     result = conn.execute(
         conn.text(
@@ -80,7 +78,9 @@ def update_sell_order(
     disable_auto_retire: bool = None,
     new_expiration: str = None,
 ) -> dict:
-    order = get_sell_order(conn, order_id)
+    row = conn.execute(conn.text("SELECT * FROM credit_sell_order WHERE id = :oid FOR UPDATE"),
+                       {"oid": order_id}).mappings().first()
+    order = dict(row) if row else None
     if not order:
         raise ValueError(f"Order not found: {order_id}")
     if order["seller_address"] != seller_address:
@@ -92,23 +92,27 @@ def update_sell_order(
     if new_quantity is not None:
         current_escrow = float(order["escrow_quantity"])
         if new_quantity > current_escrow:
-            batch = conn.execute(
-                conn.text("SELECT available_quantity FROM credit_batch WHERE id = :bid"),
-                {"bid": order["credit_batch_id"]},
-            ).mappings().first()
             additional = new_quantity - current_escrow
-            if float(batch["available_quantity"]) < additional:
-                raise ValueError(f"Insufficient available quantity for increase: {batch['available_quantity']} < {additional}")
-            conn.execute(
-                conn.text("UPDATE credit_batch SET retired_quantity = retired_quantity + :qty, updated_at = NOW() WHERE id = :bid"),
-                {"qty": additional, "bid": order["credit_batch_id"]},
+            moved = conn.execute(
+                conn.text("UPDATE credit_balance SET tradable_amount = tradable_amount - :qty, "
+                          "escrowed_amount = escrowed_amount + :qty, updated_at = NOW() "
+                          "WHERE credit_batch_id = :bid AND account_address = :seller "
+                          "AND tradable_amount >= :qty"),
+                {"qty": additional, "bid": order["credit_batch_id"], "seller": seller_address},
             )
+            if moved.rowcount != 1:
+                raise ValueError("Seller does not own enough tradable credits")
         elif new_quantity < current_escrow:
             returned = current_escrow - new_quantity
-            conn.execute(
-                conn.text("UPDATE credit_batch SET retired_quantity = retired_quantity - :qty, updated_at = NOW() WHERE id = :bid"),
-                {"qty": returned, "bid": order["credit_batch_id"]},
+            moved = conn.execute(
+                conn.text("UPDATE credit_balance SET tradable_amount = tradable_amount + :qty, "
+                          "escrowed_amount = escrowed_amount - :qty, updated_at = NOW() "
+                          "WHERE credit_batch_id = :bid AND account_address = :seller "
+                          "AND escrowed_amount >= :qty"),
+                {"qty": returned, "bid": order["credit_batch_id"], "seller": seller_address},
             )
+            if moved.rowcount != 1:
+                raise ValueError("Seller escrow is inconsistent")
         updates["quantity"] = new_quantity
         updates["escrow_quantity"] = new_quantity
 
@@ -165,7 +169,9 @@ def list_sell_orders(conn, credit_batch_id: str = None, seller_address: str = No
 
 
 def cancel_sell_order(conn, order_id: str, seller_address: str) -> dict:
-    order = get_sell_order(conn, order_id)
+    row = conn.execute(conn.text("SELECT * FROM credit_sell_order WHERE id = :oid FOR UPDATE"),
+                       {"oid": order_id}).mappings().first()
+    order = dict(row) if row else None
     if not order:
         raise ValueError(f"Order not found: {order_id}")
     if order["seller_address"] != seller_address:
@@ -173,13 +179,17 @@ def cancel_sell_order(conn, order_id: str, seller_address: str) -> dict:
     if order["status"] != "active":
         raise ValueError(f"Order is not active: {order['status']}")
 
-    conn.execute(
+    returned = conn.execute(
         conn.text(
-            "UPDATE credit_batch SET retired_quantity = retired_quantity - :qty, updated_at = NOW() "
-            "WHERE id = :bid"
+            "UPDATE credit_balance SET tradable_amount = tradable_amount + :qty, "
+            "escrowed_amount = escrowed_amount - :qty, updated_at = NOW() "
+            "WHERE credit_batch_id = :bid AND account_address = :seller "
+            "AND escrowed_amount >= :qty"
         ),
-        {"qty": order["escrow_quantity"], "bid": order["credit_batch_id"]},
+        {"qty": order["escrow_quantity"], "bid": order["credit_batch_id"], "seller": seller_address},
     )
+    if returned.rowcount != 1:
+        raise ValueError("Seller escrow is inconsistent")
 
     conn.execute(
         conn.text("UPDATE credit_sell_order SET status = 'cancelled', escrow_quantity = 0, updated_at = NOW() WHERE id = :oid"),
@@ -191,15 +201,26 @@ def cancel_sell_order(conn, order_id: str, seller_address: str) -> dict:
 
 
 def expire_sell_orders(conn) -> int:
-    result = conn.execute(
+    expired = conn.execute(
         conn.text(
-            "UPDATE credit_sell_order SET status = 'expired', escrow_quantity = 0, updated_at = NOW() "
-            "WHERE status = 'active' AND expiration IS NOT NULL AND expiration < NOW()"
+            "SELECT id, credit_batch_id, seller_address, escrow_quantity FROM credit_sell_order "
+            "WHERE status = 'active' AND expiration IS NOT NULL AND expiration < NOW() FOR UPDATE"
         ),
-    )
-    if result.rowcount > 0:
-        logger.info("Expired %d sell orders", result.rowcount)
-    return result.rowcount
+    ).mappings().all()
+    for order in expired:
+        moved = conn.execute(conn.text(
+            "UPDATE credit_balance SET tradable_amount = tradable_amount + :qty, "
+            "escrowed_amount = escrowed_amount - :qty, updated_at = NOW() "
+            "WHERE credit_batch_id = :bid AND account_address = :seller AND escrowed_amount >= :qty"),
+            {"qty": order["escrow_quantity"], "bid": order["credit_batch_id"],
+             "seller": order["seller_address"]})
+        if moved.rowcount != 1:
+            raise ValueError(f"Seller escrow is inconsistent for order {order['id']}")
+        conn.execute(conn.text("UPDATE credit_sell_order SET status = 'expired', escrow_quantity = 0, "
+                               "updated_at = NOW() WHERE id = :oid"), {"oid": order["id"]})
+    if expired:
+        logger.info("Expired %d sell orders", len(expired))
+    return len(expired)
 
 
 def create_buy_order(
@@ -271,15 +292,44 @@ def get_buy_order(conn, order_id: str) -> dict | None:
 
 
 def execute_buy_order(conn, buy_order_id: str) -> dict:
-    buy_order = get_buy_order(conn, buy_order_id)
+    row = conn.execute(conn.text("SELECT * FROM credit_buy_order WHERE id = :oid FOR UPDATE"),
+                       {"oid": buy_order_id}).mappings().first()
+    buy_order = dict(row) if row else None
     if not buy_order:
         raise ValueError(f"Buy order not found: {buy_order_id}")
     if buy_order["status"] != "pending":
         raise ValueError(f"Buy order is not pending: {buy_order['status']}")
 
-    sell_order = get_sell_order(conn, buy_order["sell_order_id"])
+    row = conn.execute(conn.text("SELECT * FROM credit_sell_order WHERE id = :oid FOR UPDATE"),
+                       {"oid": buy_order["sell_order_id"]}).mappings().first()
+    sell_order = dict(row) if row else None
     if not sell_order:
         raise ValueError("Sell order not found")
+    if sell_order["status"] != "active" or float(sell_order["escrow_quantity"]) < float(buy_order["quantity"]):
+        raise ValueError("Sell order no longer has sufficient active escrow")
+
+    quantity = float(buy_order["quantity"])
+    seller_balance = conn.execute(conn.text(
+        "UPDATE credit_balance SET escrowed_amount = escrowed_amount - :qty, updated_at = NOW() "
+        "WHERE credit_batch_id = :bid AND account_address = :seller AND escrowed_amount >= :qty"),
+        {"qty": quantity, "bid": sell_order["credit_batch_id"],
+         "seller": sell_order["seller_address"]})
+    if seller_balance.rowcount != 1:
+        raise ValueError("Seller escrow is inconsistent")
+
+    from services.credit_class.balance import upsert_balance
+    if buy_order["auto_retire"]:
+        upsert_balance(conn, sell_order["credit_batch_id"], buy_order["buyer_address"],
+                       retired_delta=quantity)
+        retired = conn.execute(conn.text(
+            "UPDATE credit_batch SET retired_quantity = retired_quantity + :qty, updated_at = NOW() "
+            "WHERE id = :bid AND issued_quantity - retired_quantity - cancelled_quantity >= :qty"),
+            {"qty": quantity, "bid": sell_order["credit_batch_id"]})
+        if retired.rowcount != 1:
+            raise ValueError("Batch does not have enough issued credits to retire")
+    else:
+        upsert_balance(conn, sell_order["credit_batch_id"], buy_order["buyer_address"],
+                       tradable_delta=quantity)
 
     new_escrow = float(sell_order["escrow_quantity"]) - float(buy_order["quantity"])
     new_status = "filled" if new_escrow <= 0 else "active"

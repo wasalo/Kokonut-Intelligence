@@ -192,6 +192,34 @@ class TestCreditBatch:
         balance = get_batch_balance(conn, BATCH_ID)
         assert balance["available_quantity"] == 80
 
+    def test_issue_credits_authorized_issuer_balance(self):
+        from services.credit_class.batch_manager import issue_batch
+        conn = _fake_conn_sequential([
+            {"id": BATCH_ID, "credit_class_id": CLASS_ID, "status": "verified",
+             "batch_code": "CC-001", "total_quantity": 10},
+            {"1": 1},
+            {"rowcount": 1},
+            {"id": str(uuid.uuid4()), "tradable_amount": 10,
+             "retired_amount": 0, "escrowed_amount": 0},
+        ])
+        result = issue_batch(conn, BATCH_ID, "0xissuer")
+        assert result["issuer_address"] == "0xissuer"
+        sql = " ".join(call.args[0] for call in conn.execute.call_args_list)
+        assert "revoked_at IS NULL" in sql
+        assert "INSERT INTO credit_balance" in sql
+
+    def test_issue_credits_rejects_submitted_batch(self):
+        from services.credit_class.batch_manager import issue_batch
+        conn = _fake_conn(rows={
+            "id": BATCH_ID,
+            "credit_class_id": CLASS_ID,
+            "status": "submitted",
+            "batch_code": "CC-001",
+            "total_quantity": 10,
+        })
+        with pytest.raises(ValueError, match="must be verified"):
+            issue_batch(conn, BATCH_ID, "0xissuer")
+
 
 # ---------------------------------------------------------------------------
 # Credit Class Entity tests
@@ -796,6 +824,21 @@ class TestBasket:
         baskets = list_baskets(conn)
         assert len(baskets) == 1
 
+    def test_deposit_moves_depositor_balance_to_escrow(self):
+        from services.credit_class.basket import deposit_credits
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4()), "status": "active", "exponent": 6},
+            {"vintage_year": 2026},
+            {"rowcount": 1},
+            {"id": str(uuid.uuid4())},
+            {"rowcount": 1},
+        ])
+        deposit_credits(conn, str(uuid.uuid4()), BATCH_ID, "0xdepositor", 2)
+        sql = " ".join(call.args[0] for call in conn.execute.call_args_list)
+        assert "SELECT vintage_year FROM credit_batch" in sql
+        assert "account_address = :addr AND tradable_amount >= :qty" in sql
+        assert "retired_quantity" not in sql
+
     def test_update_curator(self):
         from services.credit_class.basket import update_curator
         conn = _fake_conn_sequential([
@@ -819,9 +862,13 @@ class TestBasket:
         conn = _fake_conn_sequential([
             {"id": str(uuid.uuid4()), "status": "active", "disable_auto_retire": False, "exponent": 6},  # get_basket
             {"token_amount": 1000000},  # get_token_balance
-            [{"credit_batch_id": str(uuid.uuid4()), "token_amount": 1000000, "batch_start_date": "2026-01-01", "id": str(uuid.uuid4())}],  # deposits
+            [{"credit_batch_id": str(uuid.uuid4()), "depositor_address": "0xdepositor", "quantity": 1,
+              "token_amount": 1000000, "batch_start_date": "2026-01-01", "id": str(uuid.uuid4())}],  # deposits
             {"rowcount": 1},  # update deposit
-            {"rowcount": 1},  # update token
+            {"rowcount": 1},  # consume depositor escrow
+            {"id": str(uuid.uuid4()), "tradable_amount": 0, "retired_amount": 1, "escrowed_amount": 0},
+            {"rowcount": 1},  # increment batch retirement
+            {"rowcount": 1},  # debit token
         ])
         result = withdraw_from_basket(conn, str(uuid.uuid4()), "0x1234", 1000000)
         assert result["retire_on_take"] is True
@@ -829,6 +876,42 @@ class TestBasket:
 
 
 class TestMarketplace:
+    def test_create_sell_order_moves_owned_balance_to_escrow(self):
+        from services.credit_class.marketplace import create_sell_order
+        conn = _fake_conn_sequential([
+            {"id": str(uuid.uuid4())},  # allowed denom
+            {"rowcount": 1},  # conditional balance move
+            {"id": str(uuid.uuid4())},  # sell order
+        ])
+        create_sell_order(conn, BATCH_ID, "0xseller", 5, 100, "cusd")
+        sql = " ".join(call.args[0] for call in conn.execute.call_args_list)
+        assert "tradable_amount = tradable_amount - :qty" in sql
+        assert "account_address = :seller" in sql
+        assert "tradable_amount >= :qty" in sql
+        assert "retired_quantity" not in sql
+
+    def test_execute_buy_order_transfers_escrow_to_buyer(self):
+        from services.credit_class.marketplace import execute_buy_order
+        buy_id = str(uuid.uuid4())
+        sell_id = str(uuid.uuid4())
+        conn = _fake_conn_sequential([
+            {"id": buy_id, "sell_order_id": sell_id, "buyer_address": "0xbuyer",
+             "quantity": 4, "auto_retire": False, "status": "pending"},
+            {"id": sell_id, "credit_batch_id": BATCH_ID, "seller_address": "0xseller",
+             "escrow_quantity": 10, "status": "active"},
+            {"rowcount": 1},
+            {"id": str(uuid.uuid4()), "tradable_amount": 4,
+             "retired_amount": 0, "escrowed_amount": 0},
+            {"rowcount": 1},
+            {"rowcount": 1},
+        ])
+        result = execute_buy_order(conn, buy_id)
+        assert result["status"] == "completed"
+        sql = " ".join(call.args[0] for call in conn.execute.call_args_list)
+        assert "escrowed_amount = escrowed_amount - :qty" in sql
+        assert "INSERT INTO credit_balance" in sql
+        assert "retired_quantity" not in sql
+
     def test_list_allowed_denoms(self):
         from services.credit_class.marketplace import list_allowed_denoms
         conn = _fake_conn(rows=[{"denom": "cusd", "is_active": True}])
@@ -868,9 +951,17 @@ class TestMarketplace:
 
     def test_expire_sell_orders(self):
         from services.credit_class.marketplace import expire_sell_orders
-        conn = _fake_conn(rowcount=3)
+        conn = _fake_conn_sequential([
+            [{"id": str(uuid.uuid4()), "credit_batch_id": BATCH_ID,
+              "seller_address": "0xseller", "escrow_quantity": 3}],
+            {"rowcount": 1},
+            {"rowcount": 1},
+        ])
         expired = expire_sell_orders(conn)
-        assert expired == 3
+        assert expired == 1
+        sql = " ".join(call.args[0] for call in conn.execute.call_args_list)
+        assert "retired_quantity" not in sql
+        assert "escrowed_amount = escrowed_amount - :qty" in sql
 
 
 class TestIRIContentHashType:
@@ -909,6 +1000,13 @@ class TestBalance:
         conn = _fake_conn(rows={"id": str(uuid.uuid4()), "tradable_amount": 50, "retired_amount": 0, "escrowed_amount": 0})
         result = upsert_balance(conn, str(uuid.uuid4()), "0x1234", tradable_delta=50)
         assert "tradable" in result
+        assert "ON CONFLICT (credit_batch_id, account_address) DO UPDATE" in conn.execute.call_args.args[0]
+
+    def test_account_balance_joins_class_through_batch_class_id(self):
+        from services.credit_class.balance import get_balances_for_account
+        conn = _fake_conn(rows=[])
+        get_balances_for_account(conn, "0x1234")
+        assert "cc.id = b.credit_class_id" in conn.execute.call_args.args[0]
 
 
 # ---------------------------------------------------------------------------
@@ -939,9 +1037,13 @@ class TestBasketWithdrawal:
         conn = _fake_conn_sequential([
             {"id": str(uuid.uuid4()), "status": "active", "disable_auto_retire": False, "exponent": 6},  # get_basket
             {"token_amount": 100},  # get_token_balance
-            [{"credit_batch_id": str(uuid.uuid4()), "token_amount": 100, "batch_start_date": "2026-01-01", "id": str(uuid.uuid4())}],  # deposits
+            [{"credit_batch_id": str(uuid.uuid4()), "depositor_address": "0xdepositor", "quantity": 0.0001,
+              "token_amount": 100, "batch_start_date": "2026-01-01", "id": str(uuid.uuid4())}],  # deposits
             {"rowcount": 1},  # update deposit
-            {"rowcount": 1},  # update token
+            {"rowcount": 1},  # consume depositor escrow
+            {"id": str(uuid.uuid4()), "tradable_amount": 0, "retired_amount": 0.00005, "escrowed_amount": 0},
+            {"rowcount": 1},  # increment batch retirement
+            {"rowcount": 1},  # debit token
         ])
         result = withdraw_from_basket(conn, str(uuid.uuid4()), "0x1234", 50)
         assert result["token_amount_withdrawn"] == 50

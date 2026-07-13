@@ -79,12 +79,26 @@ def create_batch(
     return {"id": str(record["id"]), "batch_code": batch_code}
 
 
-def issue_batch(conn, batch_id: str) -> dict:
-    batch = get_batch(conn, batch_id)
+def issue_batch(conn, batch_id: str, issuer_address: str) -> dict:
+    batch_row = conn.execute(
+        conn.text("SELECT * FROM credit_batch WHERE id = :bid FOR UPDATE"),
+        {"bid": batch_id},
+    ).mappings().first()
+    batch = dict(batch_row) if batch_row else None
     if not batch:
         raise ValueError(f"Batch not found: {batch_id}")
-    if batch["status"] not in ("verified", "submitted"):
-        raise ValueError(f"Batch must be verified or submitted to issue, current: {batch['status']}")
+    if batch["status"] != "verified":
+        raise ValueError(f"Batch must be verified to issue, current: {batch['status']}")
+
+    authorized = conn.execute(
+        conn.text(
+            "SELECT 1 FROM credit_class_issuer WHERE credit_class_id = :cid "
+            "AND issuer_address = :addr AND revoked_at IS NULL"
+        ),
+        {"cid": batch["credit_class_id"], "addr": issuer_address},
+    ).mappings().first()
+    if not authorized:
+        raise ValueError("Issuer is not authorized for this credit class")
 
     conn.execute(
         conn.text(
@@ -93,8 +107,11 @@ def issue_batch(conn, batch_id: str) -> dict:
         ),
         {"bid": batch_id},
     )
+    from services.credit_class.balance import upsert_balance
+    upsert_balance(conn, batch_id, issuer_address, tradable_delta=float(batch["total_quantity"]))
     logger.info("Issued credit_batch %s (%s)", batch_id, batch["batch_code"])
-    return {"id": batch_id, "batch_code": batch["batch_code"], "status": "published"}
+    return {"id": batch_id, "batch_code": batch["batch_code"], "status": "published",
+            "issuer_address": issuer_address}
 
 
 def get_batch(conn, batch_id: str) -> dict | None:

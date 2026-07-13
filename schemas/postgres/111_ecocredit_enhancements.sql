@@ -20,9 +20,9 @@ CREATE TABLE IF NOT EXISTS project_credit_class_enrollment (
     ))
 );
 
-CREATE INDEX idx_pce_location ON project_credit_class_enrollment(location_id);
-CREATE INDEX idx_pce_class ON project_credit_class_enrollment(credit_class_id);
-CREATE INDEX idx_pce_status ON project_credit_class_enrollment(status);
+CREATE INDEX IF NOT EXISTS idx_pce_location ON project_credit_class_enrollment(location_id);
+CREATE INDEX IF NOT EXISTS idx_pce_class ON project_credit_class_enrollment(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_pce_status ON project_credit_class_enrollment(status);
 
 -- ============================================================
 -- Batch improvements: open, jurisdiction, origin_tx
@@ -46,8 +46,8 @@ CREATE TABLE IF NOT EXISTS credit_batch_contract (
     UNIQUE(credit_batch_id, chain)
 );
 
-CREATE INDEX idx_cbc_batch ON credit_batch_contract(credit_batch_id);
-CREATE INDEX idx_cbc_contract ON credit_batch_contract(contract_address);
+CREATE INDEX IF NOT EXISTS idx_cbc_batch ON credit_batch_contract(credit_batch_id);
+CREATE INDEX IF NOT EXISTS idx_cbc_contract ON credit_batch_contract(contract_address);
 
 -- ============================================================
 -- credit_bridge_transaction (cross-chain bridge tracking)
@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS credit_bridge_transaction (
     CONSTRAINT chk_bridge_status CHECK (status IN ('pending', 'completed', 'failed', 'cancelled'))
 );
 
-CREATE INDEX idx_cbt_direction ON credit_bridge_transaction(direction);
-CREATE INDEX idx_cbt_source ON credit_bridge_transaction(source_chain);
-CREATE INDEX idx_cbt_target ON credit_bridge_transaction(target_chain);
-CREATE INDEX idx_cbt_batch ON credit_bridge_transaction(credit_batch_id);
-CREATE INDEX idx_cbt_status ON credit_bridge_transaction(status);
+CREATE INDEX IF NOT EXISTS idx_cbt_direction ON credit_bridge_transaction(direction);
+CREATE INDEX IF NOT EXISTS idx_cbt_source ON credit_bridge_transaction(source_chain);
+CREATE INDEX IF NOT EXISTS idx_cbt_target ON credit_bridge_transaction(target_chain);
+CREATE INDEX IF NOT EXISTS idx_cbt_batch ON credit_bridge_transaction(credit_batch_id);
+CREATE INDEX IF NOT EXISTS idx_cbt_status ON credit_bridge_transaction(status);

@@ -98,19 +98,19 @@ FROM
 
         UNION ALL
 
-        SELECT toStartOfMonth(timestamp) AS month, location_id, 0, 0, 0, 0, 0, count(), 0
+        SELECT toStartOfMonth(timestamp) AS month, toUUID('00000000-0000-0000-0000-000000000000') AS location_id, 0, 0, 0, 0, 0, count(), 0
         FROM wallet_events
-        GROUP BY month, location_id
+        GROUP BY month
 
         UNION ALL
 
-        SELECT toStartOfMonth(timestamp) AS month, ifNull(location_id, toUUID('00000000-0000-0000-0000-000000000000')) AS location_id, 0, 0, 0, 0, 0, 0, count(), 0
+        SELECT toStartOfMonth(timestamp) AS month, ifNull(location_id, toUUID('00000000-0000-0000-0000-000000000000')) AS location_id, 0, 0, 0, 0, 0, count(), 0
         FROM dlego_events
         GROUP BY month, location_id
 
         UNION ALL
 
-        SELECT toStartOfMonth(timestamp) AS month, location_id, 0, 0, 0, 0, 0, 0, 0, count()
+        SELECT toStartOfMonth(timestamp) AS month, location_id, 0, 0, 0, 0, 0, 0, count()
         FROM events_raw
         GROUP BY month, location_id
     )

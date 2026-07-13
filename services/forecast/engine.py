@@ -403,12 +403,12 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     # Write dashboard dataset for BI integration
     _write_dashboard_dataset(scenario_id, location_id, outputs, scenario_type)
 
-    # Update scenario status
+    # Computation submits the scenario for independent review; it never publishes.
     db = get_db()
     with db.cursor() as cur:
         cur.execute("""
             UPDATE forecast_scenario
-            SET status = 'published', updated_at = NOW()
+            SET status = 'submitted', updated_at = NOW()
             WHERE id = %s
         """, (scenario_id,))
     db.commit()
@@ -534,10 +534,10 @@ def _write_dashboard_dataset(
                 INSERT INTO dashboard_dataset
                     (id, name, description, location_id, dataset_type, query_sql, status,
                      metadata, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, 'forecast', %s, 'published', %s::jsonb, NOW(), NOW())
+                VALUES (%s, %s, %s, %s, 'forecast', %s, 'draft', %s::jsonb, NOW(), NOW())
                 ON CONFLICT (id) DO UPDATE SET
                     metadata = EXCLUDED.metadata,
-                    status = 'published',
+                    status = 'draft',
                     updated_at = NOW()
             """, (
                 str(uuid.uuid5(uuid.NAMESPACE_DNS, f"forecast-dashboard:{scenario_id}")),
@@ -558,17 +558,17 @@ def _write_dashboard_dataset(
 
 
 def run_all_scenarios(location_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Run forecast for all draft/published scenarios."""
+    """Run forecast for all draft scenarios."""
     db = get_db()
     with db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         if location_id:
             cur.execute(
-                "SELECT id, name FROM forecast_scenario WHERE location_id = %s AND status IN ('draft', 'published')",
+                "SELECT id, name FROM forecast_scenario WHERE location_id = %s AND status = 'draft'",
                 (location_id,),
             )
         else:
             cur.execute(
-                "SELECT id, name FROM forecast_scenario WHERE status IN ('draft', 'published')"
+                "SELECT id, name FROM forecast_scenario WHERE status = 'draft'"
             )
         scenarios = cur.fetchall()
     db.close()

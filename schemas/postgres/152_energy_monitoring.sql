@@ -202,9 +202,9 @@ SELECT
     'active'
 FROM location l
 CROSS JOIN (VALUES
-    ('KPLC Grid Connection', 'grid', 50.00, '2024-01-15'),
-    ('Backup Diesel Generator', 'diesel_generator', 30.00, '2024-01-15'),
-    ('Rooftop Solar PV', 'solar', 15.00, '2024-06-01')
+    ('KPLC Grid Connection', 'grid', 50.00, DATE '2024-01-15'),
+    ('Backup Diesel Generator', 'diesel_generator', 30.00, DATE '2024-01-15'),
+    ('Rooftop Solar PV', 'solar', 15.00, DATE '2024-06-01')
 ) AS v(source_name, source_type, capacity_kw, installation_date)
 WHERE l.slug = 'adelphi'
   AND NOT EXISTS (

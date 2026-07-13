@@ -32,8 +32,8 @@
 # Anomaly detection — every hour
 0 * * * * cd /app && python3 -m services.ingestion.anomaly_detector >> /var/log/cron.log 2>&1
 
-# Metrics computation — every 4 hours (all locations, verified)
-0 */4 * * * cd /app && python3 -m services.metrics --compute --all-locations --verify >> /var/log/cron.log 2>&1
+# Metrics computation — every 4 hours (draft values for independent review)
+0 */4 * * * cd /app && python3 -m services.metrics --compute --all-locations >> /var/log/cron.log 2>&1
 
 # Health check with alerting — every 5 minutes
 */5 * * * * cd /app && bash scripts/health-alert.sh >> /var/log/cron.log 2>&1

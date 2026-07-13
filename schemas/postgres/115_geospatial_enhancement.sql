@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS raster_metadata (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_rm_location ON raster_metadata(location_id);
-CREATE INDEX idx_rm_format ON raster_metadata(file_format);
+CREATE INDEX IF NOT EXISTS idx_rm_location ON raster_metadata(location_id);
+CREATE INDEX IF NOT EXISTS idx_rm_format ON raster_metadata(file_format);
 
 -- ============================================================
 -- LinkML to Directus mapping
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS linkml_directus_mapping (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_ldm_schema ON linkml_directus_mapping(schema_name);
+CREATE INDEX IF NOT EXISTS idx_ldm_schema ON linkml_directus_mapping(schema_name);
 
 -- ============================================================
 -- Geostories (narrative spatial stories)
@@ -60,8 +60,8 @@ CREATE TABLE IF NOT EXISTS geostory (
     CONSTRAINT chk_geostory_status CHECK (status IN ('draft', 'published', 'archived'))
 );
 
-CREATE INDEX idx_gs_location ON geostory(location_id);
-CREATE INDEX idx_gs_status ON geostory(status);
+CREATE INDEX IF NOT EXISTS idx_gs_location ON geostory(location_id);
+CREATE INDEX IF NOT EXISTS idx_gs_status ON geostory(status);
 
 CREATE TABLE IF NOT EXISTS geostory_section (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -81,8 +81,8 @@ CREATE TABLE IF NOT EXISTS geostory_section (
     ))
 );
 
-CREATE INDEX idx_gss_geostory ON geostory_section(geostory_id);
-CREATE INDEX idx_gss_type ON geostory_section(section_type);
+CREATE INDEX IF NOT EXISTS idx_gss_geostory ON geostory_section(geostory_id);
+CREATE INDEX IF NOT EXISTS idx_gss_type ON geostory_section(section_type);
 
 -- ============================================================
 -- Harvest data ingestion log
@@ -101,5 +101,5 @@ CREATE TABLE IF NOT EXISTS harvest_ingestion_log (
     metadata JSONB DEFAULT '{}'
 );
 
-CREATE INDEX idx_hil_location ON harvest_ingestion_log(location_id);
-CREATE INDEX idx_hil_status ON harvest_ingestion_log(status);
+CREATE INDEX IF NOT EXISTS idx_hil_location ON harvest_ingestion_log(location_id);
+CREATE INDEX IF NOT EXISTS idx_hil_status ON harvest_ingestion_log(status);

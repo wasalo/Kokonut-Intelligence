@@ -92,6 +92,18 @@ class TestTrendEstimator:
         result = estimator.detect_trend_direction(0.5, 0.20)
         assert result["direction"] == "stable"
 
+    def test_metric_query_uses_canonical_metric_value_contract(self):
+        estimator, _, cursor = self._make_estimator()
+        cursor.fetchall.return_value = []
+
+        estimator.compute_trend_per_metric("soil_carbon", "loc-1")
+
+        query = cursor.execute.call_args.args[0]
+        assert "mv.value" in query
+        assert "mv.computed_at" in query
+        assert "md.id = mv.metric_id" in query
+        assert "metric_definition_id" not in query
+
 
 # ---------------------------------------------------------------------------
 # TrendSignificance Tests

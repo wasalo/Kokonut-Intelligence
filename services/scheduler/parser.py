@@ -84,7 +84,8 @@ def next_run_time(
             and candidate.hour in parsed["hour"]
             and candidate.day in parsed["day"]
             and candidate.month in parsed["month"]
-            and candidate.weekday() in parsed["weekday"]
+            # Python uses Monday=0; cron uses Sunday=0.
+            and (candidate.weekday() + 1) % 7 in parsed["weekday"]
         ):
             return candidate
         candidate += timedelta(minutes=1)

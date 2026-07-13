@@ -53,6 +53,19 @@ def test_retained_value_computed_after_total_noi():
     assert source.index("total_noi = 0.0") < source.index("retained_value = total_noi")
 
 
+def test_forecast_submission_does_not_publish():
+    """Forecast calculation must submit outputs for review, never publish them."""
+    import inspect
+    from services.forecast import engine
+
+    run_source = inspect.getsource(engine.run_forecast)
+    dashboard_source = inspect.getsource(engine._write_dashboard_dataset)
+    assert "SET status = 'submitted'" in run_source
+    assert "SET status = 'published'" not in run_source
+    assert "'draft'" in dashboard_source
+    assert "status = 'published'" not in dashboard_source
+
+
 if __name__ == "__main__":
     test_price_assumptions_defaults()
     test_price_assumptions_from_dict_ignores_unknown_keys()

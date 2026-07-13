@@ -33,8 +33,8 @@ CREATE TABLE IF NOT EXISTS retirement_certificate (
     CONSTRAINT chk_cert_status CHECK (status IN ('issued', 'revoked'))
 );
 
-CREATE INDEX idx_rc_retirement ON retirement_certificate(retirement_id);
-CREATE INDEX idx_rc_credit ON retirement_certificate(credit_id);
-CREATE INDEX idx_rc_location ON retirement_certificate(location_id);
-CREATE INDEX idx_rc_number ON retirement_certificate(certificate_number);
-CREATE INDEX idx_rc_status ON retirement_certificate(status);
+CREATE INDEX IF NOT EXISTS idx_rc_retirement ON retirement_certificate(retirement_id);
+CREATE INDEX IF NOT EXISTS idx_rc_credit ON retirement_certificate(credit_id);
+CREATE INDEX IF NOT EXISTS idx_rc_location ON retirement_certificate(location_id);
+CREATE INDEX IF NOT EXISTS idx_rc_number ON retirement_certificate(certificate_number);
+CREATE INDEX IF NOT EXISTS idx_rc_status ON retirement_certificate(status);

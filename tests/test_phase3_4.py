@@ -277,9 +277,9 @@ class TestGatewayAuth:
 
         mock_request = MagicMock()
         mock_request.headers = {}
-        result = verify_request(mock_request)
-        assert result["authenticated"] is True  # anonymous read access
-        assert result["caller"] == "anonymous"
+        result = verify_request(mock_request, resource="location", action="read")
+        assert result["authenticated"] is False
+        assert result["reason"] == "credentials_required"
 
 
 # ---------------------------------------------------------------------------

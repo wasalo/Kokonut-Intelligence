@@ -26,11 +26,27 @@ def main():
     parser.add_argument("--location-id", help="Location UUID")
     parser.add_argument("--period-start", help="Period start date (YYYY-MM-DD)")
     parser.add_argument("--period-end", help="Period end date (YYYY-MM-DD)")
-    parser.add_argument("--verify", action="store_true", help="Mark computed metric values as verified")
+    parser.add_argument("--verify-value", help="Metric value UUID to verify")
+    parser.add_argument("--verified-by", help="Human reviewer UUID (required with --verify-value)")
+    parser.add_argument("--verification-notes", help="Reviewer notes")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
 
     from ..ingestion.base import get_db
+
+    if args.verify_value:
+        if not args.verified_by:
+            parser.error("--verify-value requires --verified-by")
+        conn = get_db()
+        try:
+            from .engine import verify_metric_value
+            result = verify_metric_value(
+                conn, args.verify_value, args.verified_by, args.verification_notes
+            )
+        finally:
+            conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
 
     if args.list:
         conn = get_db()
@@ -69,7 +85,7 @@ def main():
             for loc in locations:
                 loc_id = str(loc[0])
                 loc_name = loc[1]
-                result = compute_all(conn, loc_id, args.period_start, args.period_end, verified=args.verify)
+                result = compute_all(conn, loc_id, args.period_start, args.period_end)
                 all_results[loc_name] = result
                 computed = result.get("total_computed", 0)
                 errors = result.get("total_errors", 0)
@@ -77,18 +93,22 @@ def main():
             conn.close()
             if args.json:
                 print(json.dumps(all_results, indent=2, default=str))
+            if any(result.get("total_errors", 0) for result in all_results.values()):
+                raise SystemExit(1)
             return
 
         if not args.location_id:
             parser.error("--compute requires --location-id (or use --all-locations)")
         if args.all:
-            result = compute_all(conn, args.location_id, args.period_start, args.period_end, verified=args.verify)
+            result = compute_all(conn, args.location_id, args.period_start, args.period_end)
         elif args.metric:
-            result = compute_metric(conn, args.metric, args.location_id, args.period_start, args.period_end, verified=args.verify)
+            result = compute_metric(conn, args.metric, args.location_id, args.period_start, args.period_end)
         else:
             parser.error("--compute requires --metric, --all, or --all-locations")
         conn.close()
         print(json.dumps(result, indent=2, default=str))
+        if result.get("total_errors", 0) or result.get("error"):
+            raise SystemExit(1)
         return
 
     parser.print_help()

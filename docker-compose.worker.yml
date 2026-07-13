@@ -67,3 +67,39 @@ services:
           memory: 512M
     profiles:
       - worker
+
+  event-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["python3", "-m", "services.events", "--worker", "--worker-id", "event-worker"]
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      PG_USER: ${PG_USER:-kokonut}
+      PG_PASSWORD: ${POSTGRES_PASSWORD}
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      DIRECTUS_URL: http://directus:8055
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - worker
+
+  # Opt-in database scheduler. The cron worker remains unchanged to avoid
+  # silently running both dispatch mechanisms during migration.
+  kokonut-scheduler:
+    extends: kokonut-worker
+    command: ["python3", "-m", "services.scheduler.worker", "--tick-interval", "30"]
+    profiles:
+      - scheduler

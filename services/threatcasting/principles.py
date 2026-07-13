@@ -148,12 +148,12 @@ class PrincipleManager:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT mv.numeric_value
+            SELECT mv.value
             FROM metric_value mv
-            JOIN metric_definition md ON md.id = mv.metric_definition_id
+            JOIN metric_definition md ON md.id = mv.metric_id
             WHERE mv.location_id = %s AND md.metric_key = %s
               AND mv.verified = TRUE
-            ORDER BY mv.recorded_at DESC
+            ORDER BY mv.computed_at DESC
             LIMIT 1
             """,
             (location_id, metric_key),
@@ -166,17 +166,28 @@ class PrincipleManager:
         self, dimension: str, location_id: str
     ) -> Optional[float]:
         """On-demand read of the latest CRISP dimension score."""
+        columns = {
+            "carbon_yield": "carbon_yield_score",
+            "climate": "climate_score",
+            "policy": "policy_score",
+            "financial": "financial_score",
+            "implementation": "implementation_score",
+            "composite": "composite_score",
+        }
+        if dimension not in columns:
+            raise ValueError(f"Unsupported CRISP dimension: {dimension}")
+
         conn = self._get_conn()
         cur = conn.cursor()
         cur.execute(
-            """
-            SELECT composite_score
+            f"""
+            SELECT {columns[dimension]}
             FROM crisp_risk_assessment
-            WHERE location_id = %s AND dimension = %s
-            ORDER BY assessed_at DESC
+            WHERE location_id = %s
+            ORDER BY score_computed_at DESC NULLS LAST
             LIMIT 1
             """,
-            (location_id, dimension),
+            (location_id,),
         )
         row = cur.fetchone()
         cur.close()
@@ -562,13 +573,13 @@ class PrincipleManager:
         # Get metric value before milestone
         cur.execute(
             """
-            SELECT mv.numeric_value
+            SELECT mv.value
             FROM metric_value mv
-            JOIN metric_definition md ON md.id = mv.metric_definition_id
+            JOIN metric_definition md ON md.id = mv.metric_id
             WHERE mv.location_id = %s AND md.metric_key = %s
               AND mv.verified = TRUE
-              AND mv.recorded_at <= %s
-            ORDER BY mv.recorded_at DESC
+              AND mv.computed_at <= %s
+            ORDER BY mv.computed_at DESC
             LIMIT 1
             """,
             (location_id, metric_key, milestone_target_date),
@@ -578,13 +589,13 @@ class PrincipleManager:
         # Get metric value after milestone
         cur.execute(
             """
-            SELECT mv.numeric_value
+            SELECT mv.value
             FROM metric_value mv
-            JOIN metric_definition md ON md.id = mv.metric_definition_id
+            JOIN metric_definition md ON md.id = mv.metric_id
             WHERE mv.location_id = %s AND md.metric_key = %s
               AND mv.verified = TRUE
-              AND mv.recorded_at > %s
-            ORDER BY mv.recorded_at ASC
+              AND mv.computed_at > %s
+            ORDER BY mv.computed_at ASC
             LIMIT 1
             """,
             (location_id, metric_key, milestone_target_date),

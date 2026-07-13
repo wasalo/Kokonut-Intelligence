@@ -107,6 +107,39 @@ class TestSituationAssessor:
         all_ranges.sort()
         assert all_ranges[0][0] == 0
 
+    @pytest.mark.parametrize(
+        ("score", "grade"),
+        [(0, "critical"), (29.999, "critical"), (30, "warning"),
+         (60, "stable"), (80, "flourishing"), (100, "flourishing")],
+    )
+    def test_health_grade_boundaries(self, score, grade):
+        assessor, _, _ = self._make_assessor()
+        assert assessor._assign_grade(score) == grade
+
+    def test_crisp_risk_is_inverted_once_and_direction_matches_health(self):
+        assessor, _, cursor = self._make_assessor()
+        cursor.fetchone.return_value = {
+            "id": "risk-1", "composite_score": 90, "carbon_yield_score": 80,
+        }
+
+        signals = assessor._gather_crisp_signals(cursor, "loc-1")
+
+        assert signals[0]["value"] == 10
+        assert signals[0]["direction"] == "negative"
+        assert signals[1]["value"] == 20
+        assert signals[1]["direction"] == "negative"
+        assert "ORDER BY score_computed_at DESC NULLS LAST" in cursor.execute.call_args.args[0]
+
+    def test_metric_queries_use_canonical_foreign_key(self):
+        assessor, _, cursor = self._make_assessor()
+        cursor.fetchall.return_value = []
+
+        assessor._gather_metric_signals(cursor, "loc-1")
+
+        query = cursor.execute.call_args.args[0]
+        assert "md.id = mv.metric_id" in query
+        assert "metric_definition_id" not in query
+
 
 # ---------------------------------------------------------------------------
 # OODACycleTracker Tests

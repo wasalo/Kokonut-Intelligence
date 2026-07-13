@@ -15,8 +15,7 @@ import psycopg2
 import psycopg2.extras
 
 
-# Grade thresholds based on composite risk score (0-100, lower = better)
-# These are inverted from CRISP: here 0 = worst, 100 = best
+# Grade thresholds based on health score (0-100, higher = better).
 GRADE_THRESHOLDS = {
     "flourishing": (80, 101),
     "stable": (60, 80),
@@ -216,7 +215,7 @@ class SituationAssessor:
         cur.execute("""
             SELECT * FROM crisp_risk_assessment
             WHERE location_id = %s AND status = 'draft'
-            ORDER BY assessed_at DESC LIMIT 1
+            ORDER BY score_computed_at DESC NULLS LAST LIMIT 1
         """, (location_id,))
         row = cur.fetchone()
         if row is None:
@@ -225,14 +224,15 @@ class SituationAssessor:
         row = dict(row)
         signals = []
 
-        # Composite score as a signal (inverted: lower CRISP score = better)
+        # CRISP is risk (higher is worse); OODA signals are health (higher is better).
+        composite_health = 100.0 - float(row.get("composite_score") or 50)
         signals.append({
             "type": "crisp_dimension",
             "key": "crisp_composite",
-            "value": row.get("composite_score", 50),
+            "value": composite_health,
             "text": f"CRISP rating: {row.get('rating', 'N/A')}",
-            "direction": "positive" if row.get("composite_score", 50) > 60
-                        else "negative" if row.get("composite_score", 50) < 40
+            "direction": "positive" if composite_health > 60
+                        else "negative" if composite_health < 40
                         else "neutral",
             "weight": 2.0,
             "source_table": "crisp_risk_assessment",
@@ -243,12 +243,12 @@ class SituationAssessor:
         for dim_key in DIMENSION_KEYS:
             score_col = f"{dim_key}_score"
             if score_col in row and row[score_col] is not None:
-                score = float(row[score_col])
+                score = 100.0 - float(row[score_col])
                 signals.append({
                     "type": "crisp_dimension",
                     "key": f"crisp_{dim_key}",
                     "value": score,
-                    "text": f"CRISP {dim_key}: {score:.1f}",
+                    "text": f"CRISP {dim_key} health: {score:.1f}",
                     "direction": "positive" if score > 60
                                 else "negative" if score < 40
                                 else "neutral",
@@ -266,7 +266,7 @@ class SituationAssessor:
         cur.execute("""
             SELECT mv.*, md.metric_key, md.display_name
             FROM metric_value mv
-            JOIN metric_definition md ON md.id = mv.metric_definition_id
+            JOIN metric_definition md ON md.id = mv.metric_id
             WHERE mv.location_id = %s
             AND mv.verified = TRUE
             ORDER BY mv.computed_at DESC
@@ -486,7 +486,7 @@ class SituationAssessor:
             SELECT rating, composite_score
             FROM crisp_risk_assessment
             WHERE location_id = %s AND status = 'draft'
-            ORDER BY assessed_at DESC LIMIT 1
+            ORDER BY score_computed_at DESC NULLS LAST LIMIT 1
         """, (location_id,))
         row = cur.fetchone()
         if row is None:
@@ -527,7 +527,7 @@ class SituationAssessor:
                 mv.value,
                 mv.computed_at
             FROM metric_value mv
-            JOIN metric_definition md ON md.id = mv.metric_definition_id
+            JOIN metric_definition md ON md.id = mv.metric_id
             WHERE mv.location_id = %s
             AND mv.verified = TRUE
             ORDER BY mv.computed_at DESC

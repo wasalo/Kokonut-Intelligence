@@ -52,7 +52,7 @@ def cmd_batch_create(args):
 def cmd_batch_issue(args):
     with get_connection() as conn:
         from services.credit_class.batch_manager import issue_batch
-        result = issue_batch(conn, args.batch_id)
+        result = issue_batch(conn, args.batch_id, args.issuer)
         print(json.dumps(result, indent=2, default=str))
 
 
@@ -153,6 +153,7 @@ def main():
 
     p_cb_issue = cb_sub.add_parser("issue", help="Issue a credit batch")
     p_cb_issue.add_argument("--batch-id", required=True)
+    p_cb_issue.add_argument("--issuer", required=True)
     p_cb_issue.set_defaults(func=cmd_batch_issue)
 
     p_cb_balance = cb_sub.add_parser("balance", help="Check batch balance")

@@ -13,6 +13,9 @@ import psycopg2
 import psycopg2.extras
 
 from .calculators import CALCULATORS
+from services.common.logging import get_logger
+
+logger = get_logger(__name__)
 
 # Lazy event bus
 _event_bus = None
@@ -34,9 +37,8 @@ def compute_metric(
     location_id: str,
     period_start: Optional[str] = None,
     period_end: Optional[str] = None,
-    verified: bool = False,
 ) -> Dict[str, Any]:
-    """Compute a single metric and store the result."""
+    """Compute and store a draft metric value for independent review."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
@@ -73,7 +75,7 @@ def compute_metric(
             INSERT INTO metric_value
                 (metric_id, location_id, period_start, period_end, value, unit,
                  computation_method, source_record_ids, computed_at, verified, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::uuid[], NOW(), %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::uuid[], NOW(), FALSE, %s)
             RETURNING id
         """, (
             definition["id"],
@@ -84,7 +86,6 @@ def compute_metric(
             definition.get("unit"),
             result.get("computation_method", metric_key),
             source_record_ids,
-            verified,
             json.dumps(metadata),
         ))
         row = cur.fetchone()
@@ -109,7 +110,6 @@ def compute_all(
     location_id: str,
     period_start: Optional[str] = None,
     period_end: Optional[str] = None,
-    verified: bool = False,
 ) -> Dict[str, Any]:
     """Compute all active metrics that have registered calculators."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -121,7 +121,7 @@ def compute_all(
     errors = []
     for key in keys:
         if key in CALCULATORS:
-            result = compute_metric(conn, key, location_id, period_start, period_end, verified=verified)
+            result = compute_metric(conn, key, location_id, period_start, period_end)
             if "error" in result:
                 errors.append({"metric_key": key, "error": result["error"]})
             else:
@@ -160,7 +160,38 @@ def _publish_metric_event(conn, location_id: str, period_start, period_end, resu
             priority="normal",
         )
     except Exception:
-        pass  # Never fail metric computation due to event bus errors
+        logger.exception("Failed to publish metric_computed event for location %s", location_id)
 
+
+def verify_metric_value(
+    conn,
+    metric_value_id: str,
+    verified_by: str,
+    verification_notes: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Verify one computed metric value with explicit reviewer attribution."""
+    if not verified_by:
+        raise ValueError("verified_by is required")
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        cur.execute(
+            """
+            UPDATE metric_value
+            SET verified = TRUE,
+                verified_by = %s,
+                verified_at = NOW(),
+                verification_notes = %s
+            WHERE id = %s AND verified = FALSE
+            RETURNING id, metric_id, location_id, verified, verified_by, verified_at
+            """,
+            (verified_by, verification_notes, metric_value_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise ValueError("Metric value not found or already verified")
+        conn.commit()
+        return dict(row)
+    finally:
+        cur.close()
 
 

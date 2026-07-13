@@ -820,7 +820,8 @@ def optimize_schedule(conn, zone_id: str) -> dict:
             (zone_id,),
         )
         cols = [d[0] for d in cur.description]
-        schedule = dict(zip(cols, cur.fetchone())) if cur.fetchone() else None
+        schedule_row = cur.fetchone()
+        schedule = dict(zip(cols, schedule_row)) if schedule_row else None
 
         # Get active moisture target
         cur.execute(
@@ -833,7 +834,8 @@ def optimize_schedule(conn, zone_id: str) -> dict:
             (zone_id,),
         )
         cols = [d[0] for d in cur.description]
-        target = dict(zip(cols, cur.fetchone())) if cur.fetchone() else None
+        target_row = cur.fetchone()
+        target = dict(zip(cols, target_row)) if target_row else None
 
         # Get zone area
         cur.execute("SELECT area_m2 FROM irrigation_zone WHERE id = %s", (zone_id,))

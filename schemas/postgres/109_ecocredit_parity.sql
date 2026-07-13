@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS credit_class_issuer (
     UNIQUE(credit_class_id, issuer_address)
 );
 
-CREATE INDEX idx_cci_class ON credit_class_issuer(credit_class_id);
-CREATE INDEX idx_cci_address ON credit_class_issuer(issuer_address);
+CREATE INDEX IF NOT EXISTS idx_cci_class ON credit_class_issuer(credit_class_id);
+CREATE INDEX IF NOT EXISTS idx_cci_address ON credit_class_issuer(issuer_address);
 
 -- ============================================================
 -- credit_class_creator_allowlist
@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS credit_class_creator_allowlist (
     added_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_ccca_address ON credit_class_creator_allowlist(address);
-CREATE INDEX idx_ccca_active ON credit_class_creator_allowlist(is_active) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_ccca_address ON credit_class_creator_allowlist(address);
+CREATE INDEX IF NOT EXISTS idx_ccca_active ON credit_class_creator_allowlist(is_active) WHERE is_active = TRUE;
 
 -- ============================================================
 -- credit_basket (Basket submodule)
@@ -59,9 +59,9 @@ CREATE TABLE IF NOT EXISTS credit_basket (
     CONSTRAINT chk_basket_status CHECK (status IN ('active', 'paused', 'deprecated'))
 );
 
-CREATE INDEX idx_cb_type ON credit_basket(credit_type_id);
-CREATE INDEX idx_cb_denom ON credit_basket(token_denom);
-CREATE INDEX idx_cb_curator ON credit_basket(curator_address);
+CREATE INDEX IF NOT EXISTS idx_cb_type ON credit_basket(credit_type_id);
+CREATE INDEX IF NOT EXISTS idx_cb_denom ON credit_basket(token_denom);
+CREATE INDEX IF NOT EXISTS idx_cb_curator ON credit_basket(curator_address);
 
 -- ============================================================
 -- credit_basket_deposit (deposits into basket)
@@ -81,9 +81,9 @@ CREATE TABLE IF NOT EXISTS credit_basket_deposit (
     CONSTRAINT chk_basket_deposit_status CHECK (status IN ('deposited', 'withdrawn', 'cancelled'))
 );
 
-CREATE INDEX idx_cbd_basket ON credit_basket_deposit(basket_id);
-CREATE INDEX idx_cbd_batch ON credit_basket_deposit(credit_batch_id);
-CREATE INDEX idx_cbd_depositor ON credit_basket_deposit(depositor_address);
+CREATE INDEX IF NOT EXISTS idx_cbd_basket ON credit_basket_deposit(basket_id);
+CREATE INDEX IF NOT EXISTS idx_cbd_batch ON credit_basket_deposit(credit_batch_id);
+CREATE INDEX IF NOT EXISTS idx_cbd_depositor ON credit_basket_deposit(depositor_address);
 
 -- ============================================================
 -- credit_basket_token (token balances per basket)
@@ -97,8 +97,8 @@ CREATE TABLE IF NOT EXISTS credit_basket_token (
     UNIQUE(basket_id, holder_address)
 );
 
-CREATE INDEX idx_cbt_basket ON credit_basket_token(basket_id);
-CREATE INDEX idx_cbt_holder ON credit_basket_token(holder_address);
+CREATE INDEX IF NOT EXISTS idx_cbt_basket ON credit_basket_token(basket_id);
+CREATE INDEX IF NOT EXISTS idx_cbt_holder ON credit_basket_token(holder_address);
 
 -- ============================================================
 -- credit_sell_order (Marketplace submodule)
@@ -122,11 +122,11 @@ CREATE TABLE IF NOT EXISTS credit_sell_order (
     CONSTRAINT chk_sell_order_status CHECK (status IN ('active', 'filled', 'cancelled', 'expired'))
 );
 
-CREATE INDEX idx_cso_batch ON credit_sell_order(credit_batch_id);
-CREATE INDEX idx_cso_seller ON credit_sell_order(seller_address);
-CREATE INDEX idx_cso_status ON credit_sell_order(status);
-CREATE INDEX idx_cso_denom ON credit_sell_order(ask_denom);
-CREATE INDEX idx_cso_expiration ON credit_sell_order(expiration) WHERE expiration IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_cso_batch ON credit_sell_order(credit_batch_id);
+CREATE INDEX IF NOT EXISTS idx_cso_seller ON credit_sell_order(seller_address);
+CREATE INDEX IF NOT EXISTS idx_cso_status ON credit_sell_order(status);
+CREATE INDEX IF NOT EXISTS idx_cso_denom ON credit_sell_order(ask_denom);
+CREATE INDEX IF NOT EXISTS idx_cso_expiration ON credit_sell_order(expiration) WHERE expiration IS NOT NULL;
 
 -- ============================================================
 -- credit_buy_order (Marketplace submodule)
@@ -149,9 +149,9 @@ CREATE TABLE IF NOT EXISTS credit_buy_order (
     CONSTRAINT chk_buy_order_status CHECK (status IN ('pending', 'completed', 'cancelled', 'failed'))
 );
 
-CREATE INDEX idx_cbo_sell ON credit_buy_order(sell_order_id);
-CREATE INDEX idx_cbo_buyer ON credit_buy_order(buyer_address);
-CREATE INDEX idx_cbo_status ON credit_buy_order(status);
+CREATE INDEX IF NOT EXISTS idx_cbo_sell ON credit_buy_order(sell_order_id);
+CREATE INDEX IF NOT EXISTS idx_cbo_buyer ON credit_buy_order(buyer_address);
+CREATE INDEX IF NOT EXISTS idx_cbo_status ON credit_buy_order(status);
 
 -- ============================================================
 -- credit_allowed_denom (approved denominations for marketplace)
@@ -166,8 +166,8 @@ CREATE TABLE IF NOT EXISTS credit_allowed_denom (
     added_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_cad_denom ON credit_allowed_denom(denom);
-CREATE INDEX idx_cad_active ON credit_allowed_denom(is_active) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_cad_denom ON credit_allowed_denom(denom);
+CREATE INDEX IF NOT EXISTS idx_cad_active ON credit_allowed_denom(is_active) WHERE is_active = TRUE;
 
 -- Seed default allowed denominations
 INSERT INTO credit_allowed_denom (denom, chain, is_active) VALUES
@@ -190,8 +190,8 @@ CREATE TABLE IF NOT EXISTS credit_balance (
     UNIQUE(credit_batch_id, account_address)
 );
 
-CREATE INDEX idx_cb_batch ON credit_balance(credit_batch_id);
-CREATE INDEX idx_cb_account ON credit_balance(account_address);
+CREATE INDEX IF NOT EXISTS idx_cb_batch ON credit_balance(credit_batch_id);
+CREATE INDEX IF NOT EXISTS idx_cb_account ON credit_balance(account_address);
 
 -- ============================================================
 -- ecocredit_params (module parameters)

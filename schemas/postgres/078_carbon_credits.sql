@@ -252,6 +252,9 @@ ALTER TABLE credit_transfer ADD CONSTRAINT chk_credit_xfer_type
     CHECK (transfer_type IN ('allocation', 'sale', 'grant', 'internal_rebalance'));
 
 -- 5. Public views
+DROP VIEW IF EXISTS v_public_carbon_credit_inventory;
+DROP VIEW IF EXISTS v_carbon_credit_balance;
+
 CREATE OR REPLACE VIEW v_public_carbon_credit_inventory AS
 SELECT
     cc.id,

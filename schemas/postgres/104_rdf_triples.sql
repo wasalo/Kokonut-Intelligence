@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS rdf_triple (
     UNIQUE(subject, predicate, object_value, object_iri, graph_name)
 );
 
-CREATE INDEX idx_rdf_subject ON rdf_triple(subject);
-CREATE INDEX idx_rdf_predicate ON rdf_triple(predicate);
-CREATE INDEX idx_rdf_object_iri ON rdf_triple(object_iri);
-CREATE INDEX idx_rdf_graph ON rdf_triple(graph_name);
-CREATE INDEX idx_rdf_source ON rdf_triple(source_table, source_id);
+CREATE INDEX IF NOT EXISTS idx_rdf_subject ON rdf_triple(subject);
+CREATE INDEX IF NOT EXISTS idx_rdf_predicate ON rdf_triple(predicate);
+CREATE INDEX IF NOT EXISTS idx_rdf_object_iri ON rdf_triple(object_iri);
+CREATE INDEX IF NOT EXISTS idx_rdf_graph ON rdf_triple(graph_name);
+CREATE INDEX IF NOT EXISTS idx_rdf_source ON rdf_triple(source_table, source_id);

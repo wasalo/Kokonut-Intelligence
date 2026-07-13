@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS thesaurus (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_th_identifier ON thesaurus(identifier);
+CREATE INDEX IF NOT EXISTS idx_th_identifier ON thesaurus(identifier);
 
 CREATE TABLE IF NOT EXISTS thesaurus_keyword (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS thesaurus_keyword (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_tk_thesaurus ON thesaurus_keyword(thesaurus_id);
-CREATE INDEX idx_tk_parent ON thesaurus_keyword(parent_keyword_id);
-CREATE INDEX idx_tk_about ON thesaurus_keyword(keyword_about);
+CREATE INDEX IF NOT EXISTS idx_tk_thesaurus ON thesaurus_keyword(thesaurus_id);
+CREATE INDEX IF NOT EXISTS idx_tk_parent ON thesaurus_keyword(parent_keyword_id);
+CREATE INDEX IF NOT EXISTS idx_tk_about ON thesaurus_keyword(keyword_about);
 
 CREATE TABLE IF NOT EXISTS thesaurus_keyword_label (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -57,8 +57,8 @@ CREATE TABLE IF NOT EXISTS thesaurus_keyword_label (
     UNIQUE(keyword_id, language)
 );
 
-CREATE INDEX idx_tkl_keyword ON thesaurus_keyword_label(keyword_id);
-CREATE INDEX idx_tkl_language ON thesaurus_keyword_label(language);
+CREATE INDEX IF NOT EXISTS idx_tkl_keyword ON thesaurus_keyword_label(keyword_id);
+CREATE INDEX IF NOT EXISTS idx_tkl_language ON thesaurus_keyword_label(language);
 
 -- Seed default thesauri
 INSERT INTO thesaurus (identifier, title, description, language) VALUES

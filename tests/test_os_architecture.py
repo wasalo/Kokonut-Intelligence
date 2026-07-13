@@ -187,13 +187,13 @@ class TestSchedulerEngine:
 
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
-        mock_cursor.fetchall.return_value = []
+        mock_cursor.fetchone.return_value = None
         mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
         mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
         engine = SchedulerEngine(mock_conn, worker_id="test-worker")
         stats = engine.tick()
-        assert stats == {"launched": 0, "skipped": 0, "no_resources": 0}
+        assert stats == {"launched": 0, "failed": 0, "skipped": 0, "no_resources": 0}
 
     def test_get_status(self):
         """get_status() returns task counts and task list."""

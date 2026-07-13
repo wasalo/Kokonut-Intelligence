@@ -227,11 +227,13 @@ LEFT JOIN LATERAL (
     ORDER BY created_at DESC LIMIT 1
 ) sm ON TRUE
 LEFT JOIN LATERAL (
-    SELECT sr.reading_value, sr.reading_time
+    SELECT
+        sr.value AS reading_value,
+        sr.reading_date + COALESCE(sr.reading_time, TIME '00:00') AS reading_time
     FROM sensor_reading sr
     WHERE sr.sensor_id = iz.sensor_device_id
       AND sr.sensor_type = 'soil_moisture'
-    ORDER BY sr.reading_time DESC LIMIT 1
+    ORDER BY sr.reading_date DESC, sr.reading_time DESC NULLS LAST LIMIT 1
 ) last_read ON TRUE
 LEFT JOIN LATERAL (
     SELECT scheduled_start, planned_volume_l, status

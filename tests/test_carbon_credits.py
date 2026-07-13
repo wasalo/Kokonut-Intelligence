@@ -3,6 +3,7 @@
 from pathlib import Path
 
 SCHEMA = Path("schemas/postgres/078_carbon_credits.sql")
+INTEGRITY_SCHEMA = Path("schemas/postgres/163_carbon_retirement_integrity.sql")
 
 
 def test_schema_file_exists() -> None:
@@ -87,6 +88,34 @@ def test_service_has_adjust_credit() -> None:
 def test_service_has_retire_credit() -> None:
     from services.analytics.carbon_credits import retire_credit
     assert callable(retire_credit)
+
+
+def test_service_has_retirement_review() -> None:
+    from services.analytics.carbon_credits import review_retirement
+    assert callable(review_retirement)
+
+
+def test_retirement_integrity_schema() -> None:
+    content = INTEGRITY_SCHEMA.read_text()
+    assert "reserved_tonnes" in content
+    assert "idempotency_key" in content
+    assert "reviewer_id <> created_by" in content
+    assert "retired_tonnes + reserved_tonnes <= issuable_tonnes" in content
+
+
+def test_retirement_uses_row_locks_and_conditional_updates() -> None:
+    content = Path("services/analytics/carbon_credits.py").read_text()
+    assert "SELECT * FROM carbon_credit WHERE id = %s FOR UPDATE" in content
+    assert "SELECT * FROM credit_retirement WHERE id = %s FOR UPDATE" in content
+    assert "issuable_tonnes - retired_tonnes - reserved_tonnes >= %s" in content
+    assert "reserved_tonnes >= %s" in content
+
+
+def test_draft_retirement_only_reserves_supply() -> None:
+    content = Path("services/analytics/carbon_credits.py").read_text()
+    draft_section = content[content.index("def retire_credit("):content.index("def review_retirement(")]
+    assert "reserved_tonnes = reserved_tonnes + %s" in draft_section
+    assert "retired_tonnes = retired_tonnes + %s" not in draft_section
 
 
 def test_service_has_list_credits() -> None:

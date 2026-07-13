@@ -32,5 +32,5 @@ CREATE TABLE IF NOT EXISTS linkml_schema_instance (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_lsi_schema ON linkml_schema_instance(schema_id);
-CREATE INDEX idx_lsi_entity ON linkml_schema_instance(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_lsi_schema ON linkml_schema_instance(schema_id);
+CREATE INDEX IF NOT EXISTS idx_lsi_entity ON linkml_schema_instance(entity_type, entity_id);

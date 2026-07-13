@@ -46,7 +46,7 @@
 - Compute metrics: `python3 -m services.metrics --compute --metric value_flowed --location-id UUID`
 - Compute all metrics (single location): `python3 -m services.metrics --compute --all --location-id UUID`
 - Compute all metrics (all locations): `python3 -m services.metrics --compute --all-locations`
-- Compute all metrics as verified (all locations): `python3 -m services.metrics --compute --all-locations --verify`
+- Verify one computed metric (human review): `python3 -m services.metrics --verify-value UUID --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"`
 - Compute all metrics (script): `./scripts/compute-metrics.sh`
 - List metrics: `python3 -m services.metrics --list`
 - Event bus process: `python3 -m services.events --process`
@@ -54,6 +54,8 @@
 - Event bus cleanup: `python3 -m services.events --cleanup`
 - Event bus handlers: `python3 -m services.events --list-handlers`
 - Event bus dead letter: `python3 -m services.events --list-dead-letter`
+- Event bus replay dead letter: `python3 -m services.events --replay-dead-letter --event-id UUID --actor OPERATOR`
+- Event bus dispose dead letter: `python3 -m services.events --dispose-dead-letter --event-id UUID --disposition resolved --actor OPERATOR --reason "Fixed upstream"`
 - Scheduler worker: `python3 -m services.scheduler.worker --tick-interval 30`
 - Scheduler status: `python3 -m services.scheduler.cli --status`
 - Scheduler list runs: `python3 -m services.scheduler.cli --list-runs`
@@ -168,7 +170,7 @@
 - Credit class get: `python3 -m services.credit_class.cli class get --class-id UUID`
 - Credit class list: `python3 -m services.credit_class.cli class list --type carbon`
 - Credit batch create: `python3 -m services.credit_class.cli batch create --class-id UUID --location-id UUID --vintage 2026 --quantity 100`
-- Credit batch issue: `python3 -m services.credit_class.cli batch issue --batch-id UUID`
+- Credit batch issue: `python3 -m services.credit_class.cli batch issue --batch-id UUID --issuer 0x1234`
 - Credit batch balance: `python3 -m services.credit_class.cli batch balance --batch-id UUID`
 - Credit batch list: `python3 -m services.credit_class.cli batch list --location-id UUID`
 - Credit class add cobenefit: `python3 -m services.credit_class.cli cobenefit add --credit-class-id UUID --impact-name "Biodiversity"`
@@ -247,7 +249,8 @@
 - Carbon credit tests: `python3 -m tests.test_carbon_credits`
 - Carbon credit issue: `python3 -m services.analytics.carbon_credits --issue --location-id UUID --vintage-year 2026 --methodology "IPCC 2006 Tier 2"`
 - Carbon credit adjust: `python3 -m services.analytics.carbon_credits --adjust --location-id UUID`
-- Carbon credit retire: `python3 -m services.analytics.carbon_credits --retire --credit-id UUID --tonnes 5.0 --reason voluntary_retirement`
+- Carbon credit retire: `python3 -m services.analytics.carbon_credits --retire --credit-id UUID --tonnes 5.0 --reason voluntary_retirement --requested-by REVIEWER_UUID --idempotency-key REQUEST_KEY`
+- Carbon retirement confirm: `python3 -m services.analytics.carbon_credits --confirm-retirement --retirement-id UUID --reviewer-id REVIEWER_UUID`
 - Carbon credit list: `python3 -m services.analytics.carbon_credits --list --location-id UUID`
 - Carbon credit balance: `python3 -m services.analytics.carbon_credits --balance --location-id UUID`
 - Carbon credit check adjustments: `python3 -m services.analytics.carbon_credits --check-adjustments --location-id UUID`
@@ -824,7 +827,7 @@
 - Field Worker create permissions exclude `status` — lifecycle starts at `draft` by default.
 - MVP-critical pilot `expense_event` and `harvest_event` rows require populated `source_system`, `source_id`, and `source_raw`.
 - `metric_value` table stores computed governed metric results.
-- Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate verified `metric_value` rows for public metric views.
+- Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate draft `metric_value` rows. A human reviewer must verify individual values before public metric views expose them.
 - Metric governance: `metric_definition` has `validation_tests`, `report_usage`, `deprecation_policy` fields populated via `schemas/seeds/022_metric_governance.sql`.
 - Public aggregate views must not expose unverified metrics; `v_public_metric_summary` reads only `metric_value.verified = TRUE`.
 - Public aggregate views require a verified or published `farm_registry_record` before exposing a location.
