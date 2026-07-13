@@ -89,6 +89,9 @@ GOVERNED_COLLECTIONS = {
     "credit_balance",
     "project_credit_class_enrollment",
     "credit_bridge_transaction",
+    "delphi_study",
+    "delphi_recommendation",
+    "delphi_consensus",
 }
 
 

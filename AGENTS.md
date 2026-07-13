@@ -742,6 +742,17 @@
 - Path compare list: `python3 -m services.threatcasting list-comparisons --location-id UUID`
 - Path compare delete: `python3 -m services.threatcasting delete-comparison --comparison-id UUID`
 - Backcasting enhancement tests: `python3 -m pytest tests/test_backcasting_enhancements.py -v`
+- Delphi create study: `python3 -m services.delphi create-study --title "Drought response priorities" --location-id UUID --variation real_time`
+- Delphi open study: `python3 -m services.delphi open-study --study-id UUID`
+- Delphi add panel member: `python3 -m services.delphi add-panel --study-id UUID --ref-type farmer_identity --ref-id UUID --role expert`
+- Delphi add item: `python3 -m services.delphi add-item --study-id UUID --label "Adopt drought-tolerant crops" --type option --scale feasibility_technical --min-value 0 --max-value 1`
+- Delphi submit evaluation: `python3 -m services.delphi submit --study-id UUID --item-id UUID --member-id UUID --score 0.8 --reasoning "Locally available seed varieties"`
+- Delphi live summary: `python3 -m services.delphi live-summary --study-id UUID`
+- Delphi stopping check: `python3 -m services.delphi check-stopping --study-id UUID`
+- Delphi draft recommendation: `python3 -m services.delphi draft-recommendation --study-id UUID --text "Adopt the consensus options"`
+- Delphi approve recommendation: `python3 -m services.delphi approve-recommendation --recommendation-id UUID --approved-by UUID`
+- Delphi facilitator agent: `python3 -m services.agents.delphi_facilitator_agent --study-id UUID --draft`
+- Delphi tests: `python3 -m pytest tests/test_delphi.py -v`
 
 ## Development Notes
 
@@ -766,6 +777,8 @@
 - Threatcasting: Cross-impact analysis (how threats amplify/attenuate/trigger each other), warning flag monitoring (quantitative thresholds with status escalation), threat signal ingestion (internal + external + manual), narrative construction (desirable/undesirable/baseline/wildcard futures), multi-horizon planning (configurable per-location 1/3/5/10 year horizons), backcasting (work backward from future states with milestones), cascading failure modeling (chain propagation with probability), GNH-aligned desirability assessment (9 GNH dimensions, 8 Forms of Capital, SDGs), and threat intelligence aggregation (landscape assessment, briefings, evolution prediction). Schema: `159_threatcasting.sql` with 10 tables, 6 views.
 
 - Backcasting enhancements: Sustainability principles (FSSD approach) linked to metric definitions and CRISP dimensions for quantitative alignment scoring. Milestone alignment scores computed on-demand from metric_value and crisp_risk_assessment tables. Direction checking (toward/away/mixed) across milestone portfolios. Automated gap analysis reads current metrics + CRISP scores against principle targets. Assumption challenges with human approval workflow (pending → confirmed/modified/rejected). Path comparison with auto-scoring (cost, time, risk, desirability, principle alignment) and manual user overrides (50/50 hybrid). Effectiveness scoring combines before/after delta with trend analysis via TrendEstimator. Schema: `160_backcasting_enhancements.sql` with 4 tables, 3 views.
+
+- Real-time Delphi: Roundless expert and stakeholder consultation with pseudonymous panel members, continuously updatable evaluations, weighted median/median/IQR/CV aggregation, consensus history, inter-submission stability checks, and issue/goal/option items scored for desirability, technical feasibility, political feasibility, or probability. The Delphi facilitator agent may produce anonymized summaries and draft recommendations only; a human UUID is required to approve recommendations. Schema: `161_delphi.sql` with 7 tables, 3 views.
 
 - OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
 - All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.

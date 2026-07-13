@@ -232,6 +232,19 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "writes": ["ebf_calibration_decision:draft"],
         "high_risk": False,
     },
+    "delphi_facilitation": {
+        "description": "Act as the Real-time Delphi facilitator: build an anonymized live summary of panel consensus and draft a recommendation. Agents cannot publish; a human must approve.",
+        "risk": "medium",
+        "inputs": {
+            "study_id": {"type": "string", "format": "uuid", "required": True},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "recommendation_draft": {"type": "object", "required": False},
+        },
+        "writes": ["delphi_recommendation:draft"],
+        "high_risk": False,
+    },
 }
 
 
