@@ -296,6 +296,7 @@ Documentation lives under `docs/`. Key entry points:
 | [Migrations](docs/migrations.md) | Ordered migration execution, checksums, drift detection, and recovery |
 | [Gateway](docs/gateway.md) | Route policy, authentication, default-deny behavior, rate limits, and audit |
 | [Metric Verification](docs/metric-verification.md) | Draft computation, independent human verification, and public exposure |
+| [Prediction Calibration](docs/prediction-calibration-and-outside-view.md) | Shared prediction ledger, outcomes, calibration gates, reference classes, and probability resolution |
 | [Scheduler and Events](docs/scheduler-and-events.md) | Durable scheduler runs, event processing, retries, and dead-letter recovery |
 | [Credit Lifecycle](docs/credit-lifecycle.md) | Issuance, custody, balances, retirement review, and certificates |
 | [Threatcasting and Backcasting](docs/threatcasting-and-backcasting.md) | Threat intelligence, future narratives, principles, and pathway planning |

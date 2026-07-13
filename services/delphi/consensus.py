@@ -30,6 +30,12 @@ def weighted_median(values: Sequence[float], weights: Sequence[float]) -> Option
     """
     if not values:
         return None
+    if len(values) != len(weights):
+        raise ValueError("values and weights must have equal length")
+    if any(not math.isfinite(float(v)) for v in values):
+        raise ValueError("values must be finite")
+    if any(not math.isfinite(float(w)) or w < 0 for w in weights):
+        raise ValueError("weights must be finite and non-negative")
     pairs = sorted(zip(values, weights), key=lambda x: x[0])
     total = sum(w for _, w in pairs)
     if total <= 0:
@@ -210,6 +216,7 @@ class ConsensusCalculator:
             reasons.append("consensus_reached")
 
         stab = None
+        median_shift = None
         if prev_history is not None:
             stab = stability_pct(
                 prev_history.get("median"),
@@ -218,7 +225,13 @@ class ConsensusCalculator:
                 iqr,
             )
             if stab is not None and stab <= stability_pct_thr and participant_count >= min_participants:
-                reasons.append("stable")
+                previous_median = prev_history.get("median")
+                current_median = item_consensus.get("median")
+                if previous_median is not None and current_median is not None:
+                    median_shift = abs(float(current_median) - float(previous_median))
+                median_threshold = float(study_stopping_criteria.get("median_shift_threshold", iqr_threshold * 0.1))
+                if median_shift is not None and median_shift <= median_threshold:
+                    reasons.append("stable")
 
         duration_trigger = False
         if opened_at is not None and now is not None:
@@ -227,10 +240,30 @@ class ConsensusCalculator:
                 duration_trigger = True
                 reasons.append("duration_exceeded")
 
-        should_stop = bool(reached or stab is not None and "stable" in reasons or duration_trigger)
+        participation_met = participant_count >= min_participants
+        stable = "stable" in reasons
+        should_stop = bool(reached or stable or duration_trigger)
+        if reached and duration_trigger:
+            outcome = "time_limit_with_consensus"
+        elif reached:
+            outcome = "consensus_reached"
+        elif duration_trigger:
+            outcome = "time_limit_without_consensus"
+        elif stable:
+            outcome = "stable_without_consensus"
+        elif not participation_met:
+            outcome = "insufficient_participation"
+        elif prev_history is None:
+            outcome = "insufficient_stability_history"
+        else:
+            outcome = "continue"
         return should_stop, {
+            "outcome": outcome,
             "consensus_reached": reached,
+            "participation_met": participation_met,
             "stability_pct": stab,
+            "median_shift": median_shift,
+            "stability_met": stable,
             "duration_trigger": duration_trigger,
             "reasons": reasons,
         }

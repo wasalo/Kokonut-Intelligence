@@ -35,6 +35,13 @@ def test_modeled_decision_outputs_are_governed() -> None:
         "crisp_risk_assessment",
         "threat_narrative",
         "backcast_path_comparison",
+        "backcast_path_premortem",
+        "prediction_ledger",
+        "prediction_outcome",
+        "reference_class",
+        "outside_view_comparison",
+        "delphi_minority_report",
+        "threat_forecast_resolution",
     }
     assert expected <= GOVERNED_COLLECTIONS
 

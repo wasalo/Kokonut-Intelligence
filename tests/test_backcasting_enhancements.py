@@ -80,6 +80,13 @@ class TestBackcastingEnhancementModels:
         )
         assert pc.auto_scores == {}
         assert pc.winner_narrative_id is None
+        assert pc.evaluation_status == "not_evaluated"
+
+    def test_path_premortem_model(self):
+        from services.threatcasting.models import PathPremortem
+        premortem = PathPremortem(comparison_id="c-1", narrative_id="n-1")
+        assert premortem.status == "draft"
+        assert premortem.failure_modes == []
 
     def test_path_comparison_create_model(self):
         from services.threatcasting.models import PathComparisonCreate
@@ -435,6 +442,7 @@ class TestPathComparator:
 
     def test_create_comparison(self):
         pc, mock_conn, mock_cursor = self._make_comparator()
+        mock_cursor.fetchall.return_value = [{"id": "n-1"}, {"id": "n-2"}]
         mock_cursor.fetchone.return_value = {
             "id": "cmp-1", "location_id": "loc-1", "comparison_name": "Test",
             "narrative_ids": ["n-1", "n-2"], "comparison_criteria": {}
@@ -453,6 +461,11 @@ class TestPathComparator:
                 location_id="loc-1", comparison_name="Test",
                 narrative_ids=["n-1"]
             )
+
+    def test_create_comparison_rejects_duplicate_narratives(self):
+        pc, _, _ = self._make_comparator()
+        with pytest.raises(ValueError, match="unique"):
+            pc.create_comparison("loc-1", "Test", ["n-1", "n-1"])
 
     def test_list_comparisons(self):
         pc, _, mock_cursor = self._make_comparator()
@@ -481,7 +494,14 @@ class TestPathComparator:
         pc, _, mock_cursor = self._make_comparator()
         mock_cursor.fetchall.return_value = []
         score = pc._score_cost(mock_cursor, "n-1")
-        assert score == 0.5
+        assert score is None
+
+    def test_missing_scores_are_unknown(self):
+        pc, _, mock_cursor = self._make_comparator()
+        mock_cursor.fetchone.return_value = None
+        assert pc._score_time(mock_cursor, "n-1") is None
+        assert pc._score_desirability(mock_cursor, "n-1") is None
+        assert pc._score_principle_alignment(mock_cursor, "n-1") is None
 
     def test_score_time_short(self):
         pc, _, mock_cursor = self._make_comparator()
@@ -546,6 +566,61 @@ class TestPathComparator:
         }
         final = pc._compute_final_scores(scores, criteria)
         assert final["n-1"] > final["n-2"]
+
+    def test_compute_final_scores_renormalizes_known_criteria(self):
+        pc, _, _ = self._make_comparator()
+        final = pc._compute_final_scores(
+            {"n-1": {"cost": 0.8, "time": None}},
+            {"cost": {"weight": 0.5}, "time": {"weight": 0.5}},
+        )
+        assert final["n-1"] == 0.8
+
+    def test_incomplete_paths_have_no_winner(self):
+        pc, _, _ = self._make_comparator()
+        status, winner, score = pc._select_winner(
+            {"n-1": 0.8, "n-2": 0.7},
+            {"all_paths_complete": False},
+            {"all_paths_verified": True},
+        )
+        assert (status, winner, score) == ("incomplete", None, None)
+
+    def test_tied_complete_paths_are_indeterminate(self):
+        pc, _, _ = self._make_comparator()
+        status, winner, score = pc._select_winner(
+            {"n-1": 0.8, "n-2": 0.8},
+            {"all_paths_complete": True},
+            {"all_paths_verified": True},
+        )
+        assert (status, winner, score) == ("indeterminate", None, None)
+
+    def test_manual_scores_reject_out_of_range_values(self):
+        pc, _, _ = self._make_comparator()
+        with pytest.raises(ValueError, match="0 to 1"):
+            pc._validate_manual_scores(
+                {"n-1": {"cost": 1.2}}, ["n-1"], {"cost": {"weight": 1.0}}
+            )
+
+    def test_submit_premortem_requires_failure_modes(self):
+        pc, mock_conn, mock_cursor = self._make_comparator()
+        mock_cursor.fetchone.return_value = None
+        with pytest.raises(ValueError, match="failure modes"):
+            pc.submit_premortem("pm-1", "human")
+        mock_conn.rollback.assert_called_once()
+
+    def test_review_premortem_requires_human_uuid(self):
+        pc, _, _ = self._make_comparator()
+        with pytest.raises(ValueError, match="UUID"):
+            pc.review_premortem("pm-1", "verified", "not-a-uuid", "Reviewed")
+
+    def test_path_integrity_migration_is_private_and_governed(self):
+        from pathlib import Path
+        migration = Path("schemas/postgres/167_path_comparison_integrity.sql").read_text()
+        compatibility = Path("schemas/postgres/168_path_comparison_view_compatibility.sql").read_text()
+        assert "CREATE TABLE IF NOT EXISTS backcast_path_premortem" in migration
+        assert "score_completeness" in migration
+        assert "premortem_complete" in migration
+        assert "v_public" not in migration
+        assert "v_backcast_path_comparison_integrity" in compatibility
 
     def test_build_rationale(self):
         pc, _, _ = self._make_comparator()

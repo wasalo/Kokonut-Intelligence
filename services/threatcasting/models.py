@@ -459,10 +459,14 @@ class BackcastPathComparison(BaseModel):
     location_id: str
     comparison_name: str
     narrative_ids: List[str]
-    comparison_criteria: Dict[str, Any] = {}
-    auto_scores: Dict[str, Any] = {}
-    manual_scores: Dict[str, Any] = {}
-    final_scores: Dict[str, Any] = {}
+    comparison_criteria: Dict[str, Any] = Field(default_factory=dict)
+    auto_scores: Dict[str, Any] = Field(default_factory=dict)
+    manual_scores: Dict[str, Any] = Field(default_factory=dict)
+    final_scores: Dict[str, Any] = Field(default_factory=dict)
+    evaluation_status: str = "not_evaluated"
+    score_completeness: Dict[str, Any] = Field(default_factory=dict)
+    scoring_version: str = "v2"
+    evaluated_at: Optional[datetime] = None
     winner_narrative_id: Optional[str] = None
     winner_score: Optional[float] = None
     rationale: Optional[str] = None
@@ -474,8 +478,26 @@ class PathComparisonCreate(BaseModel):
     location_id: str
     comparison_name: str
     narrative_ids: List[str]
-    comparison_criteria: Dict[str, Any] = {}
+    comparison_criteria: Dict[str, Any] = Field(default_factory=dict)
 
 
 class PathComparisonScores(BaseModel):
-    scores: Dict[str, Dict[str, float]]  # {narrative_id: {criterion: score}}
+    scores: Dict[str, Dict[str, Optional[float]]]
+
+
+class PathPremortem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    comparison_id: str
+    narrative_id: str
+    failure_modes: List[Dict[str, Any]] = Field(default_factory=list)
+    assumptions: List[Dict[str, Any]] = Field(default_factory=list)
+    early_warning_signals: List[Dict[str, Any]] = Field(default_factory=list)
+    mitigations: List[Dict[str, Any]] = Field(default_factory=list)
+    residual_risk_notes: Optional[str] = None
+    evidence_notes: Optional[str] = None
+    status: str = "draft"
+    submitted_by: Optional[str] = None
+    submitted_at: Optional[datetime] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[datetime] = None
+    verification_notes: Optional[str] = None

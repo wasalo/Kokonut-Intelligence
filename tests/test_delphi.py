@@ -85,6 +85,13 @@ class TestConsensusMath:
         from services.delphi.consensus import weighted_median
         assert weighted_median([], []) is None
 
+    def test_weighted_median_rejects_invalid_weights(self):
+        from services.delphi.consensus import weighted_median
+        with pytest.raises(ValueError):
+            weighted_median([0.2, 0.8], [1.0])
+        with pytest.raises(ValueError):
+            weighted_median([0.2], [-1.0])
+
     def test_mean(self):
         from services.delphi.consensus import mean
         assert mean([2.0, 4.0]) == 3.0
@@ -161,6 +168,7 @@ class TestConsensusMath:
         should_stop, detail = calc.evaluate_stopping(criteria, item, None)
         assert should_stop is True
         assert "consensus_reached" in detail["reasons"]
+        assert detail["outcome"] == "consensus_reached"
 
     def test_evaluate_stopping_not_yet(self):
         from services.delphi.consensus import ConsensusCalculator
@@ -169,6 +177,7 @@ class TestConsensusMath:
         item = {"iqr": 3.0, "participant_count": 5, "median": 0.7}
         should_stop, detail = calc.evaluate_stopping(criteria, item, None)
         assert should_stop is False
+        assert detail["outcome"] == "insufficient_stability_history"
 
 
 # ---------------------------------------------------------------------------

@@ -557,6 +557,7 @@
 - EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
 - EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`
 - Forecast CLI: `python3 -m services.forecast.cli --help`
+- Prediction ledger CLI: `python3 -m services.predictions --help`
 - Fortune 500 CLI: `python3 -m services.fortune500.cli --help`
 - Revenue multiplier CLI: `python3 -m services.revenue_multiplier.cli --help`
 - EBF scoring CLI: `python3 -m services.scoring --help`
@@ -756,6 +757,13 @@
 - Path compare manual: `python3 -m services.threatcasting manual-compare --comparison-id UUID --scores '{"narrative1": {"cost": 0.8, "time": 0.6}}'`
 - Path compare list: `python3 -m services.threatcasting list-comparisons --location-id UUID`
 - Path compare delete: `python3 -m services.threatcasting delete-comparison --comparison-id UUID`
+- Path premortem create: `python3 -m services.threatcasting premortem-create --comparison-id UUID --narrative-id UUID --failure-modes '[{"description":"Failure mode"}]'`
+- Path premortem submit: `python3 -m services.threatcasting premortem-submit --premortem-id UUID --submitted-by HUMAN`
+- Path premortem review: `python3 -m services.threatcasting premortem-review --premortem-id UUID --result verified --reviewer-id UUID --notes "Reviewed failure modes"`
+- Threat forecast question: `python3 -m services.threatcasting forecast-question-create --location-id UUID --threat-id UUID --domain climate --question "Will the event occur?" --event-definition "..." --resolution-criteria "..." --resolution-source "..." --opens-at ISO_TIMESTAMP --closes-at ISO_TIMESTAMP --resolves-by ISO_TIMESTAMP --created-by UUID`
+- Threat probability forecast: `python3 -m services.threatcasting probability-forecast --question-id UUID --probability 0.7 --source-type analyst --methodology-version v1`
+- Threat forecast resolve: `python3 -m services.threatcasting forecast-resolve --question-id UUID --status resolved --outcome 1 --evidence '[]' --notes "Resolved from governed source" --resolved-by UUID`
+- Delphi expert calibration: `python3 -m services.threatcasting expert-calibrate --panel-member-id UUID --domain climate`
 - Backcasting enhancement tests: `python3 -m pytest tests/test_backcasting_enhancements.py -v`
 - Delphi create study: `python3 -m services.delphi create-study --title "Drought response priorities" --location-id UUID --variation real_time`
 - Delphi open study: `python3 -m services.delphi open-study --study-id UUID`

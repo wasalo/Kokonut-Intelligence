@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime
 from typing import Any
 
 from services.common.logging import get_logger
@@ -459,6 +460,80 @@ def cmd_delete_comparison(args):
     print(f"Deleted: {deleted}")
 
 
+def cmd_create_premortem(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    result = pc.upsert_premortem(
+        comparison_id=args.comparison_id,
+        narrative_id=args.narrative_id,
+        failure_modes=json.loads(args.failure_modes),
+        assumptions=json.loads(args.assumptions),
+        early_warning_signals=json.loads(args.warning_signals),
+        mitigations=json.loads(args.mitigations),
+        residual_risk_notes=args.residual_risk_notes,
+        evidence_notes=args.evidence_notes,
+    )
+    print(_json(result))
+
+
+def cmd_list_premortems(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    print(_json(pc.list_premortems(args.comparison_id, args.status)))
+
+
+def cmd_submit_premortem(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    print(_json(pc.submit_premortem(args.premortem_id, args.submitted_by)))
+
+
+def cmd_review_premortem(args):
+    from services.threatcasting.path_comparison import PathComparator
+    pc = PathComparator(conn=_get_conn())
+    print(_json(pc.review_premortem(args.premortem_id, args.result, args.reviewer_id, args.notes)))
+
+
+def cmd_forecast_question_create(args):
+    from services.threatcasting.probability import ProbabilityResolver
+    resolver = ProbabilityResolver(_get_conn())
+    result = resolver.create_question(
+        args.location_id, args.domain, args.question, args.event_definition,
+        args.resolution_criteria, args.resolution_source,
+        datetime.fromisoformat(args.opens_at), datetime.fromisoformat(args.closes_at),
+        datetime.fromisoformat(args.resolves_by), args.created_by,
+        args.threat_id, args.narrative_id,
+    )
+    print(_json(result))
+
+
+def cmd_forecast_question_status(args):
+    from services.threatcasting.probability import ProbabilityResolver
+    print(_json(ProbabilityResolver(_get_conn()).set_question_status(args.question_id, args.status)))
+
+
+def cmd_probability_forecast(args):
+    from services.threatcasting.probability import ProbabilityResolver
+    result = ProbabilityResolver(_get_conn()).issue_forecast(
+        args.question_id, args.probability, args.source_type, args.methodology_version, args.source_id
+    )
+    print(_json(result))
+
+
+def cmd_forecast_resolve(args):
+    from services.threatcasting.probability import ProbabilityResolver
+    outcome = None if args.outcome is None else float(args.outcome)
+    result = ProbabilityResolver(_get_conn()).resolve(
+        args.question_id, outcome, args.status, json.loads(args.evidence), args.notes, args.resolved_by
+    )
+    print(_json(result))
+
+
+def cmd_expert_calibrate(args):
+    from services.threatcasting.probability import ProbabilityResolver
+    print(_json(ProbabilityResolver(_get_conn()).calibrate_expert(args.panel_member_id, args.domain)))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Threatcasting Service")
     sub = parser.add_subparsers(dest="command", help="Command")
@@ -703,6 +778,76 @@ def main():
     p = sub.add_parser("delete-comparison", help="Delete path comparison")
     p.add_argument("--comparison-id", required=True)
     p.set_defaults(func=cmd_delete_comparison)
+
+    p = sub.add_parser("premortem-create", help="Create or revise a path premortem draft")
+    p.add_argument("--comparison-id", required=True)
+    p.add_argument("--narrative-id", required=True)
+    p.add_argument("--failure-modes", required=True, help="JSON array with description fields")
+    p.add_argument("--assumptions", default="[]")
+    p.add_argument("--warning-signals", default="[]")
+    p.add_argument("--mitigations", default="[]")
+    p.add_argument("--residual-risk-notes")
+    p.add_argument("--evidence-notes")
+    p.set_defaults(func=cmd_create_premortem)
+
+    p = sub.add_parser("premortem-list", help="List private premortem records")
+    p.add_argument("--comparison-id", required=True)
+    p.add_argument("--status", choices=["draft", "submitted", "verified", "rejected"])
+    p.set_defaults(func=cmd_list_premortems)
+
+    p = sub.add_parser("premortem-submit", help="Submit a premortem for human review")
+    p.add_argument("--premortem-id", required=True)
+    p.add_argument("--submitted-by", required=True)
+    p.set_defaults(func=cmd_submit_premortem)
+
+    p = sub.add_parser("premortem-review", help="Verify or reject a submitted premortem")
+    p.add_argument("--premortem-id", required=True)
+    p.add_argument("--result", required=True, choices=["verified", "rejected"])
+    p.add_argument("--reviewer-id", required=True)
+    p.add_argument("--notes", required=True)
+    p.set_defaults(func=cmd_review_premortem)
+
+    p = sub.add_parser("forecast-question-create", help="Create a resolvable threat forecast question")
+    p.add_argument("--location-id", required=True)
+    p.add_argument("--threat-id")
+    p.add_argument("--narrative-id")
+    p.add_argument("--domain", required=True)
+    p.add_argument("--question", required=True)
+    p.add_argument("--event-definition", required=True)
+    p.add_argument("--resolution-criteria", required=True)
+    p.add_argument("--resolution-source", required=True)
+    p.add_argument("--opens-at", required=True)
+    p.add_argument("--closes-at", required=True)
+    p.add_argument("--resolves-by", required=True)
+    p.add_argument("--created-by", required=True)
+    p.set_defaults(func=cmd_forecast_question_create)
+
+    p = sub.add_parser("forecast-question-status", help="Open or close a forecast question")
+    p.add_argument("--question-id", required=True)
+    p.add_argument("--status", required=True, choices=["open", "closed"])
+    p.set_defaults(func=cmd_forecast_question_status)
+
+    p = sub.add_parser("probability-forecast", help="Issue an immutable probability forecast")
+    p.add_argument("--question-id", required=True)
+    p.add_argument("--probability", required=True, type=float)
+    p.add_argument("--source-type", required=True, choices=["delphi_member","delphi_unweighted_consensus","delphi_weighted_consensus","analyst","model"])
+    p.add_argument("--source-id")
+    p.add_argument("--methodology-version", default="v1")
+    p.set_defaults(func=cmd_probability_forecast)
+
+    p = sub.add_parser("forecast-resolve", help="Resolve, cancel, or invalidate a forecast question")
+    p.add_argument("--question-id", required=True)
+    p.add_argument("--status", required=True, choices=["resolved", "cancelled", "invalid"])
+    p.add_argument("--outcome", choices=["0", "1"])
+    p.add_argument("--evidence", default="[]")
+    p.add_argument("--notes", required=True)
+    p.add_argument("--resolved-by", required=True)
+    p.set_defaults(func=cmd_forecast_resolve)
+
+    p = sub.add_parser("expert-calibrate", help="Calibrate a Delphi expert from resolved forecasts")
+    p.add_argument("--panel-member-id", required=True)
+    p.add_argument("--domain", required=True)
+    p.set_defaults(func=cmd_expert_calibrate)
 
     args = parser.parse_args()
     if hasattr(args, "func"):

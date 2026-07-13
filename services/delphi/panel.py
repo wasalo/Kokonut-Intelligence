@@ -17,13 +17,6 @@ from services.common.logging import get_logger
 
 logger = get_logger(__name__)
 
-_ROLE_WEIGHTS = {
-    "expert": 1.5,
-    "policymaker": 1.2,
-    "citizen": 1.0,
-}
-
-
 def _generate_token(prefix: str = "P") -> str:
     """Generate a short pseudonymous display token."""
     alphabet = string.ascii_uppercase + string.digits
@@ -125,38 +118,60 @@ class PanelManager:
         participant_ref_id: Optional[str],
         role: str,
     ) -> float:
-        """Derive expert weight from reputation snapshot or role default.
-
-        Reputation-based weighting: if a guild reputation snapshot exists for
-        the participant, normalize reputation_pct to a 0.5..2.0 weight band.
-        Falls back to role-based default.
-        """
-        base = _ROLE_WEIGHTS.get(role, 1.0)
-
-        if participant_ref_type == "guild_contributor" and participant_ref_id:
-            try:
-                cur.execute(
-                    """
-                    SELECT reputation_pct
-                    FROM guild_reputation_snapshot
-                    WHERE contributor_id = %s
-                    ORDER BY snapshot_date DESC
-                    LIMIT 1
-                    """,
-                    (participant_ref_id,),
-                )
-                row = cur.fetchone()
-                if row and row.get("reputation_pct") is not None:
-                    pct = float(row["reputation_pct"])
-                    # Map 0..100 pct to 0.5..2.0 weight
-                    return round(0.5 + (pct / 100.0) * 1.5, 4)
-            except psycopg2.Error:
-                # Table may not exist in all environments; fall back to role.
-                pass
-
-        return base
+        """Use equal weighting until sufficient resolved forecasts calibrate skill."""
+        return 1.0
 
     def member_weights(self, study_id: str) -> Dict[str, float]:
         """Return mapping of panel_member_id -> expert_weight for a study."""
         members = self.list_members(study_id)
         return {m["id"]: float(m["expert_weight"]) for m in members}
+
+    def assess_diversity(self, study_id: str) -> Dict[str, Any]:
+        """Evaluate configured panel targets without exposing identities."""
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT * FROM delphi_diversity_target WHERE study_id=%s", (study_id,))
+        targets = [dict(row) for row in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT role, stakeholder_group, affected_community, lived_experience,
+                   COUNT(*) AS member_count
+            FROM delphi_panel_member
+            WHERE study_id=%s AND consent_status <> 'withdrawn'
+            GROUP BY role, stakeholder_group, affected_community, lived_experience
+            """,
+            (study_id,),
+        )
+        groups = [dict(row) for row in cur.fetchall()]
+        panel_size = sum(int(row["member_count"]) for row in groups)
+        results, unmet = [], []
+        for target in targets:
+            key, category = target["dimension_key"], target["category_code"]
+            count = sum(int(row["member_count"]) for row in groups if str(row.get(key)).lower() == category.lower())
+            share = count / panel_size if panel_size else 0.0
+            met = ((target["minimum_count"] is None or count >= target["minimum_count"])
+                   and (target["minimum_share"] is None or share >= float(target["minimum_share"])))
+            result = {"dimension_key": key, "category_code": category, "count": count, "share": round(share, 4), "met": met}
+            results.append(result)
+            if not met:
+                unmet.append(result)
+        if not targets:
+            status = "not_configured"
+        elif not panel_size:
+            status = "insufficient_data"
+        elif not unmet:
+            status = "targets_met"
+        elif len(unmet) == len(targets):
+            status = "targets_not_met"
+        else:
+            status = "targets_partially_met"
+        cur.execute(
+            """INSERT INTO delphi_diversity_assessment
+               (study_id,panel_size,participating_size,target_results,unmet_targets,diversity_status)
+               VALUES (%s,%s,%s,%s,%s,%s) RETURNING *""",
+            (study_id, panel_size, panel_size, psycopg2.extras.Json(results), psycopg2.extras.Json(unmet), status),
+        )
+        result = dict(cur.fetchone())
+        conn.commit()
+        cur.close()
+        return result

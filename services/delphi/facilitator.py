@@ -479,6 +479,15 @@ class Facilitator:
             UPDATE delphi_recommendation
             SET status = 'approved', approved_by = %s, approved_at = NOW()
             WHERE id = %s AND status = 'draft'
+              AND EXISTS (
+                  SELECT 1 FROM delphi_diversity_assessment da
+                  WHERE da.study_id = delphi_recommendation.study_id
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM delphi_minority_report mr
+                  WHERE mr.study_id = delphi_recommendation.study_id
+                    AND mr.status IN ('draft','submitted')
+              )
             RETURNING *
             """,
             (approved_by, recommendation_id),
@@ -486,7 +495,10 @@ class Facilitator:
         row = cur.fetchone()
         if not row:
             cur.close()
-            raise ValueError(f"Recommendation {recommendation_id} not found")
+            raise ValueError(
+                f"Recommendation {recommendation_id} is not review-ready; "
+                "complete diversity assessment and minority-report review"
+            )
         conn.commit()
         cur.close()
         return dict(row)

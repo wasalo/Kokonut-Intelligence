@@ -44,6 +44,20 @@ Agent-created summaries and tasks must not be verified or published by the agent
 - Resolve assumption challenges only with a recorded human decision and rationale. Confirm milestones do not imply commitments that lack capital, partner, governance, or operational approval.
 - For Delphi studies, check panel eligibility and weighting, item scale definitions, participation coverage, IQR/CV and stability evidence, and the configured stopping rule. Preserve pseudonymity in summaries.
 - A facilitator agent may draft a Delphi recommendation, but approval must identify a human approver UUID. Consensus is structured input, not automatic policy or publication authority.
+- Confirm path scores distinguish unknown evidence from measured midpoint performance. An incomplete comparison or tied result must not nominate a winner.
+- Review one submitted premortem for every candidate path. Verify failure modes, disconfirming evidence, uncontrollable dependencies, warning signals, mitigations, residual harms, and affected stakeholders.
+- Treat a nominated path as advisory; premortem verification confirms review quality, not authorization to execute.
+
+## Bias-Resilient Review
+
+- Compare success and failure probabilities derived from the same underlying estimate.
+- Ask which assumptions depend on perceived control and which depend on weather, markets, policy, partners, or community consent.
+- Require disconfirming evidence and a comparable outside-view case, not only evidence supporting the desired outcome.
+- For forecasts, define signed error explicitly and show repeated overprediction beside aggregate accuracy.
+- For backcasts, distinguish blocked milestones from overdue milestones and confirm whether target dates remain authoritative.
+- For Delphi, disclose non-consensus and anonymized minority views rather than presenting convergence as correctness.
+- For CRISP, state that higher scores mean higher risk and separate modeled risk severity from evidence confidence.
+- Never interpret absence of records or configured findings as evidence that harms, failures, or evidence gaps are absent.
 
 ## Credit Records
 

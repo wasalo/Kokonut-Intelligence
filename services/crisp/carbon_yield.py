@@ -102,22 +102,20 @@ def _query_ndvi_latest(conn, location_id: str) -> Optional[float]:
 
 
 def _query_carbon_benchmark(conn, species: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    """Get carbon benchmark for a tree species."""
+    """Get an explicitly matched canonical benchmark; never choose the maximum fallback."""
+    if not species:
+        return None
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if species:
-        cur.execute("""
-            SELECT species, benchmark_co2e_per_ha, benchmark_biomass_kg_per_ha
-            FROM carbon_benchmark
-            WHERE LOWER(species) = LOWER(%s)
-            LIMIT 1
-        """, (species,))
-    else:
-        cur.execute("""
-            SELECT species, benchmark_co2e_per_ha, benchmark_biomass_kg_per_ha
-            FROM carbon_benchmark
-            ORDER BY benchmark_co2e_per_ha DESC
-            LIMIT 1
-        """)
+    cur.execute("""
+        SELECT benchmark_key, tree_system,
+               sequestration_rate_tonnes_co2e_ha_year AS benchmark_co2e_per_ha,
+               total_carbon_tonnes_ha * 1000 AS benchmark_biomass_kg_per_ha,
+               source, region
+        FROM carbon_benchmark
+        WHERE LOWER(tree_system) = LOWER(%s)
+        ORDER BY benchmark_key
+        LIMIT 1
+    """, (species,))
     row = dict(cur.fetchone() or {})
     cur.close()
     return row if row else None
@@ -141,11 +139,11 @@ def _build_scenarios(
     # If no trees yet, use benchmark estimate
     if base_co2e == 0 and benchmark:
         bench_co2e = float(benchmark.get("benchmark_co2e_per_ha", 0) or 0)
-        density = planting_density or 1000
+        density = 1000 if planting_density is None else planting_density
         base_co2e = bench_co2e * (density / 1000)
 
     # Mortality adjustment
-    mortality = (mortality_rate or 10.0) / 100.0
+    mortality = (10.0 if mortality_rate is None else mortality_rate) / 100.0
 
     # Conservative (minimum): 60% of base, full mortality, no SOC
     minimum = base_co2e * 0.60 * (1 - mortality)

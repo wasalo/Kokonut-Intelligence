@@ -48,6 +48,44 @@ def _serialize_rows(rows: list[dict]) -> list[dict]:
     return [{k: _serialize_value(v) for k, v in row.items()} for row in rows]
 
 
+def build_negative_findings(context: dict) -> list[dict]:
+    """Normalize adverse and unresolved signals without claiming causation."""
+    findings = []
+    for gap in context.get("evidence_gaps", []):
+        if gap.get("public_claims_below_threshold", 0):
+            findings.append({"code": "CLAIM_BELOW_PUBLICATION_THRESHOLD", "system": "impact_claim", "severity": "warning", "summary": "Public claims lack the required evidence maturity.", "basis": {"affected_count": gap["public_claims_below_threshold"]}, "review_prompt": "Review claim maturity and evidence before publication."})
+        if gap.get("carbon_publication_gaps", 0):
+            findings.append({"code": "CARBON_VERIFICATION_GAP", "system": "impact_claim", "severity": "high", "summary": "Carbon claims lack publication requirements.", "basis": {"affected_count": gap["carbon_publication_gaps"]}, "review_prompt": "Confirm Level 6 evidence, methodology, and external verifier."})
+        if gap.get("missing_evidence_links", 0):
+            findings.append({"code": "MISSING_EVIDENCE_POINTER", "system": "impact_claim", "severity": "warning", "summary": "Claims are missing evidence pointers.", "basis": {"affected_count": gap["missing_evidence_links"]}, "review_prompt": "Attach a governed CID, hash, or attestation reference."})
+
+    forecast = context.get("forecast_performance") or {}
+    if forecast.get("overprediction_count", 0):
+        findings.append({"code": "FORECAST_OVERPREDICTION", "system": "forecast_validation", "severity": "warning", "summary": "Verified outcomes were below forecasts for some evaluated records.", "basis": forecast, "review_prompt": "Review assumptions and calibration before reusing these projections."})
+    milestones = context.get("backcast_milestone_health") or {}
+    if milestones.get("blocked_count", 0):
+        findings.append({"code": "BACKCAST_BLOCKED_MILESTONES", "system": "backcasting", "severity": "warning", "summary": "Backcast milestones are blocked.", "basis": milestones, "review_prompt": "Review dependencies, resources, and accountable owners."})
+    if milestones.get("overdue_count", 0):
+        findings.append({"code": "BACKCAST_OVERDUE_MILESTONES", "system": "backcasting", "severity": "warning", "summary": "Backcast milestones are past their target dates.", "basis": milestones, "review_prompt": "Confirm whether target dates and plans remain authoritative."})
+    assumptions = context.get("unresolved_assumption_challenges") or {}
+    if assumptions.get("pending_count", 0):
+        findings.append({"code": "BACKCAST_PENDING_ASSUMPTIONS", "system": "backcasting", "severity": "warning", "summary": "Assumption challenges remain unresolved.", "basis": assumptions, "review_prompt": "Resolve challenged assumptions before adopting dependent milestones."})
+    delphi = context.get("delphi_dissent") or {}
+    if delphi.get("non_consensus_count", 0):
+        findings.append({"code": "DELPHI_NON_CONSENSUS", "system": "delphi", "severity": "notice", "summary": "Consensus criteria were not met for some reviewed items.", "basis": delphi, "review_prompt": "Preserve anonymized minority views and disclose non-consensus."})
+    crisp = context.get("crisp_risk") or {}
+    if crisp.get("composite_score") is not None and float(crisp["composite_score"]) >= 69:
+        findings.append({"code": "CRISP_HIGH_RISK", "system": "crisp", "severity": "high", "summary": "The latest published assessment indicates elevated modeled risk.", "basis": crisp, "review_prompt": "Review the highest-risk dimensions and active mitigations."})
+    if crisp and crisp.get("confidence_level") in {"low", "insufficient_evidence"}:
+        findings.append({"code": "CRISP_INSUFFICIENT_EVIDENCE", "system": "crisp", "severity": "warning", "summary": "The latest published risk assessment has limited evidence confidence.", "basis": crisp, "review_prompt": "Treat risk severity and evidence uncertainty as separate concerns."})
+    calibration = context.get("prediction_calibration") or {}
+    if calibration.get("failed_scope_count", 0):
+        findings.append({"code": "PREDICTION_CALIBRATION_FAILED", "system": "prediction_ledger", "severity": "high", "summary": "One or more model scopes materially failed calibration policy.", "basis": calibration, "review_prompt": "Do not publish affected forecasts without recalibration and independent review."})
+    if calibration.get("insufficient_scope_count", 0):
+        findings.append({"code": "PREDICTION_CALIBRATION_INSUFFICIENT", "system": "prediction_ledger", "severity": "warning", "summary": "Some model scopes lack enough resolved outcomes for calibration.", "basis": calibration, "review_prompt": "Disclose limited calibration evidence and continue outcome collection."})
+    return findings
+
+
 def fetch_public_interest_context(conn, location_id: str) -> dict:
     """Fetch public-interest context attached to every Green Paper report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -196,6 +234,84 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
         (location_id,),
     )
     risk_mitigation = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        """
+        SELECT COUNT(*) AS evaluated_count,
+               COUNT(*) FILTER (WHERE predicted_value > actual_value) AS overprediction_count,
+               COUNT(*) FILTER (WHERE predicted_value < actual_value) AS underprediction_count,
+               AVG(predicted_value - actual_value) AS mean_signed_error
+        FROM v_public_prediction_accuracy
+        WHERE location_id = %s AND actual_value IS NOT NULL
+        """,
+        (location_id,),
+    )
+    forecast_performance = dict(cur.fetchone() or {})
+
+    cur.execute(
+        """
+        SELECT COUNT(*) FILTER (WHERE milestone_status = 'blocked') AS blocked_count,
+               COUNT(*) FILTER (
+                   WHERE milestone_target_date < CURRENT_DATE
+                     AND milestone_status NOT IN ('completed', 'skipped')
+               ) AS overdue_count,
+               MIN(milestone_target_date) FILTER (
+                   WHERE milestone_target_date < CURRENT_DATE
+                     AND milestone_status NOT IN ('completed', 'skipped')
+               ) AS oldest_overdue_date
+        FROM threat_backcast_plan WHERE location_id = %s
+        """,
+        (location_id,),
+    )
+    backcast_milestone_health = dict(cur.fetchone() or {})
+
+    cur.execute(
+        """
+        SELECT COUNT(*) AS pending_count, MIN(bac.created_at) AS oldest_pending_at
+        FROM backcast_assumption_challenge bac
+        JOIN threat_backcast_plan tbp ON tbp.id = bac.plan_id
+        WHERE tbp.location_id = %s AND bac.outcome = 'pending'
+        """,
+        (location_id,),
+    )
+    unresolved_assumption_challenges = dict(cur.fetchone() or {})
+
+    cur.execute(
+        """
+        SELECT COUNT(*) FILTER (WHERE v.consensus_reached = FALSE) AS non_consensus_count,
+               MAX(v.iqr) AS maximum_iqr
+        FROM v_delphi_consensus_public v
+        JOIN delphi_study ds ON ds.id = v.study_id
+        WHERE ds.location_id = %s
+        """,
+        (location_id,),
+    )
+    delphi_dissent = dict(cur.fetchone() or {})
+
+    cur.execute(
+        """
+        SELECT composite_score, rating, confidence_level, evidence_maturity_level,
+               period_start, period_end
+        FROM v_crisp_composite_rating
+        WHERE location_id = %s
+        ORDER BY period_end DESC, score_computed_at DESC
+        LIMIT 1
+        """,
+        (location_id,),
+    )
+    crisp_risk = dict(cur.fetchone() or {})
+
+    cur.execute(
+        """
+        SELECT COUNT(*) FILTER (WHERE gate_result='fail') AS failed_scope_count,
+               COUNT(*) FILTER (WHERE gate_result='insufficient_data') AS insufficient_scope_count,
+               COUNT(*) FILTER (WHERE gate_result='pass') AS passed_scope_count
+        FROM v_prediction_calibration_summary
+        WHERE location_id=%s OR location_id IS NULL
+        """,
+        (location_id,),
+    )
+    prediction_calibration = dict(cur.fetchone() or {})
     cur.close()
 
     has_private_feedback = any(row.get("private_or_no_consent_count", 0) for row in feedback_summary)
@@ -210,7 +326,7 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
     if has_missing_evidence:
         limitations.append("Some claims are missing CIDs, hashes, or attestation UIDs and should be treated as lower-confidence evidence.")
     if not limitations:
-        limitations.append("No public-interest evidence gaps were detected for the current governed dataset.")
+        limitations.append("No findings were detected by the configured checks in the available governed data. This is not evidence that adverse outcomes or evidence gaps are absent.")
 
     return {
         "principles": [
@@ -228,6 +344,13 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
         "participatory_actions": _serialize_rows(participatory_actions),
         "financial_sustainability": _serialize_rows(financial_sustainability),
         "risk_mitigation": _serialize_rows(risk_mitigation),
+        "forecast_performance": {k: _serialize_value(v) for k, v in forecast_performance.items()},
+        "backcast_milestone_health": {k: _serialize_value(v) for k, v in backcast_milestone_health.items()},
+        "unresolved_assumption_challenges": {k: _serialize_value(v) for k, v in unresolved_assumption_challenges.items()},
+        "delphi_dissent": {k: _serialize_value(v) for k, v in delphi_dissent.items()},
+        "crisp_risk": {k: _serialize_value(v) for k, v in crisp_risk.items()},
+        "prediction_calibration": {k: _serialize_value(v) for k, v in prediction_calibration.items()},
+        "signed_error_convention": "predicted_minus_actual; positive values indicate overprediction",
         "limitations": limitations,
     }
 
@@ -2887,12 +3010,12 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
     report_type = report_data.get("report_type", "unknown")
     public_interest = report_data.get("public_interest", {})
     public_summary = "; ".join(public_interest.get("limitations", [])) if public_interest else None
-    negative_findings = [
-        gap for gap in public_interest.get("evidence_gaps", [])
-        if gap.get("public_claims_below_threshold", 0)
-        or gap.get("carbon_publication_gaps", 0)
-        or gap.get("missing_evidence_links", 0)
-    ] if public_interest else []
+    negative_findings = build_negative_findings(public_interest) if public_interest else []
+    uncertainty_notes = (
+        "Checks use available governed records and public-safe views; missing records do not prove absence. "
+        + public_interest.get("signed_error_convention", "")
+        if public_interest else None
+    )
     affected_voice = json.dumps(public_interest.get("public_feedback", []), default=str) if public_interest else None
 
     cur = conn.cursor()
@@ -2915,7 +3038,7 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
             json.dumps(report_data, default=str),
             snapshot_hash,
             public_summary,
-            public_summary,
+            uncertainty_notes,
             json.dumps(negative_findings, default=str),
             affected_voice,
         ),

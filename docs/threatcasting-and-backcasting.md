@@ -117,6 +117,9 @@ python3 -m services.threatcasting compare-paths --location-id UUID --name "Droug
 python3 -m services.threatcasting evaluate-paths --comparison-id UUID
 python3 -m services.threatcasting manual-compare --comparison-id UUID --scores '{"UUID1":{"cost":0.8,"time":0.6},"UUID2":{"cost":0.5,"time":0.9}}'
 python3 -m services.threatcasting list-comparisons --location-id UUID
+python3 -m services.threatcasting premortem-create --comparison-id UUID --narrative-id UUID --failure-modes '[{"description":"Funding arrives after the planting window"}]'
+python3 -m services.threatcasting premortem-submit --premortem-id UUID --submitted-by HUMAN
+python3 -m services.threatcasting premortem-review --premortem-id UUID --result verified --reviewer-id UUID --notes "Reviewed failure modes and mitigations"
 ```
 
 ## Data Model
@@ -136,7 +139,7 @@ Schema 159 provides ten core tables:
 | `threat_backcast_plan` | One row per ordered backcast milestone |
 | `threat_cascade` | Persisted cascade scenarios |
 
-Schema 160 adds:
+Schemas 160 and 167 add:
 
 | Table | Purpose |
 | --- | --- |
@@ -144,6 +147,7 @@ Schema 160 adds:
 | `backcast_principle_alignment` | Current milestone-to-principle score snapshots |
 | `backcast_assumption_challenge` | Human-resolved challenges to planning assumptions |
 | `backcast_path_comparison` | Criteria, system scores, human scores, and selected winner |
+| `backcast_path_premortem` | Private failure modes, assumptions, warning signals, mitigations, and human review state |
 
 Foreign keys enforce most parent relationships. Arrays such as cascade chains, milestone dependencies, and comparison narrative IDs are UUID arrays rather than foreign-key junction tables, so the database does not validate every referenced UUID in those arrays.
 
@@ -162,9 +166,9 @@ Several `v_public_*` views expose active threat summaries, flag status, cross-im
 - Alignment values are snapshots of current evidence, not forecasts of what a milestone will cause.
 - Direction is `toward` only when more than 70% of stored alignment rows are positive, `away` only when more than 70% are negative, otherwise `mixed`; no rows returns `unknown`.
 - Effectiveness is evaluated only for completed milestones. Metric delta and a 90-day trend score are combined 50/50 when both exist. Association around a target date does not establish milestone causality.
-- Automatic path scoring uses coarse proxies. Missing cost, time, desirability, or alignment generally defaults to `0.5`; cost counts non-empty resource descriptions rather than monetary cost; time favors earlier last milestone dates; risk uses threat severity times probability.
-- Manual path scoring combines each supplied criterion 50/50 with the automatic score. Omitted manual values are treated as `0.0`, not “no override.”
-- A computed path “winner” is the maximum weighted score, not an approved plan.
+- Automatic path scoring uses coarse proxies. Missing evidence remains `null`, is reported in `score_completeness`, and is excluded from the known-evidence weighted score. Cost still counts non-empty resource descriptions rather than monetary cost; time favors earlier last milestone dates; risk uses threat severity times probability.
+- Manual path scoring combines each supplied criterion 50/50 with a known automatic score. An omitted manual value leaves the automatic value unchanged; a manual value can supply an otherwise unknown criterion.
+- The service nominates a winner only when every configured criterion is known for every path, each path has a verified premortem, and the top score is unique. A nominated winner remains advisory and is not an approved plan.
 
 ## Human Approval Boundaries
 
@@ -172,6 +176,7 @@ The service computes summaries, scores, and candidate paths, but these outputs a
 
 - Resolving an assumption challenge requires a non-empty `--approved-by` value. The field is text and the service does not itself verify the approver's identity or permissions.
 - Path evaluation and manual comparison do not constitute approval and do not trigger implementation.
+- Premortem verification confirms that a human reviewed failure modes and mitigations; it does not authorize path execution. Premortem details remain private and are not exposed in a public view.
 - Marking milestones completed, accepting a narrative, changing operational commitments, spending funds, publishing claims, or initiating an on-chain or physical action requires the applicable human governance workflow outside this service.
 - Warning and cascade states should trigger review, not automatic actuation.
 - Public communication should retain uncertainty, source quality, negative findings, and dissenting interpretations.
@@ -192,7 +197,7 @@ The schemas do not provide field-level redaction, consent handling, or source co
 - Array references are not fully protected by foreign keys.
 - `between` is allowed in the flag schema but `FlagMonitor` does not implement a two-bound `between` threshold check.
 - Desirability, cascade, and path formulas are transparent heuristics, not validated forecasting models.
-- `winner_narrative_id` in path comparisons is not declared as a foreign key.
+- Narrative arrays are service-validated but cannot enforce element-level foreign keys; `winner_narrative_id` has a database foreign key.
 - There is no built-in approval state for narratives, milestones, principles, or path comparisons.
 
 ## Operational Checklist

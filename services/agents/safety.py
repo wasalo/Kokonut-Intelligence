@@ -106,6 +106,21 @@ GOVERNED_COLLECTIONS = {
     "backcast_milestone",
     "backcast_assumption_challenge",
     "backcast_path_comparison",
+    "backcast_path_premortem",
+    "prediction_ledger",
+    "prediction_outcome",
+    "prediction_calibration_policy",
+    "prediction_calibration_assessment",
+    "reference_class",
+    "outside_view_comparison",
+    "delphi_diversity_target",
+    "delphi_diversity_assessment",
+    "delphi_stopping_evaluation",
+    "delphi_minority_report",
+    "threat_forecast_question",
+    "threat_probability_forecast",
+    "threat_forecast_resolution",
+    "delphi_expert_calibration",
 }
 
 

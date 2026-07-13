@@ -6,6 +6,7 @@ data, calculates forecasts, and writes results to the database.
 """
 
 import json
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
@@ -491,7 +492,8 @@ def _make_output(
 
 
 def _write_outputs(outputs: List[Dict[str, Any]]) -> None:
-    """Write forecast outputs to the database."""
+    """Write forecast outputs and canonical ledger rows atomically."""
+    from services.predictions.service import _domain_for_metric
     db = get_db()
     with db.cursor() as cur:
         for out in outputs:
@@ -508,6 +510,30 @@ def _write_outputs(outputs: List[Dict[str, Any]]) -> None:
                 out["value"], out["unit"], out["confidence_low"], out["confidence_high"],
                 out["confidence_level"], out["calculation_version"],
                 out["calculated_at"], out["inputs"], out.get("crop_cycle_id"),
+            ))
+            input_hash = hashlib.sha256(out["inputs"].encode()).hexdigest()
+            cur.execute("""
+                INSERT INTO prediction_ledger (
+                    source_table, source_id, domain, metric_key, unit, location_id,
+                    crop_cycle_id, model_name, model_version, issued_at,
+                    target_start, target_end, horizon_seconds, predicted_value,
+                    interval_low, interval_high, confidence_level, inputs, input_hash,
+                    status
+                ) VALUES (
+                    'forecast_output', %s, %s, %s, %s, %s, %s,
+                    'kokonut_forecast_engine', %s, %s, %s::date, %s::date,
+                    GREATEST(0, EXTRACT(EPOCH FROM (%s::date - %s))::bigint),
+                    %s, LEAST(%s, %s), GREATEST(%s, %s), %s, %s::jsonb, %s, 'submitted'
+                )
+                ON CONFLICT (source_table, source_id, source_point_key) DO NOTHING
+            """, (
+                out["id"], _domain_for_metric(out["metric_name"]), out["metric_name"],
+                out["unit"], out["location_id"], out.get("crop_cycle_id"),
+                out["calculation_version"], out["calculated_at"], out["period_start"],
+                out["period_end"], out["period_end"], out["calculated_at"], out["value"],
+                out["confidence_low"], out["confidence_high"], out["confidence_low"],
+                out["confidence_high"], out["confidence_level"],
+                out["inputs"], input_hash,
             ))
     db.commit()
     db.close()
