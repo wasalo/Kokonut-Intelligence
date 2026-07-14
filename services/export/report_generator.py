@@ -25,6 +25,7 @@ import psycopg2.extras
 
 from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
 from ..analytics.value_stream import generate_value_stream_map
+from .business_plan import generate_business_plan
 
 
 def get_pg():
@@ -2995,7 +2996,8 @@ REPORT_GENERATORS = {
     "organic_input_audit": generate_organic_input_audit,
      "statement_of_work": generate_statement_of_work,
     "data_stream_summary": generate_data_stream_summary,
-    "value_stream_map": generate_value_stream_map,
+     "value_stream_map": generate_value_stream_map,
+     "business_plan": generate_business_plan,
 }
 
 

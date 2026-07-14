@@ -557,11 +557,13 @@
 - EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
 - EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`
 - Forecast CLI: `python3 -m services.forecast.cli --help`
+- Forecast reference-class: `python3 -m services.forecast.cli --reference-class --location-id UUID [--rc-metric crop_noi] [--rc-alpha 0.5]`
 - Prediction ledger CLI: `python3 -m services.predictions --help`
 - Fortune 500 CLI: `python3 -m services.fortune500.cli --help`
 - Revenue multiplier CLI: `python3 -m services.revenue_multiplier.cli --help`
 - EBF scoring CLI: `python3 -m services.scoring --help`
 - Report types (scaling economics): `python3 -m services.export.report_generator --type scaling_economics --location-id UUID`
+- Report types (business plan): `python3 -m services.export.report_generator --type business_plan --location-id UUID` (or `--org-id UUID`)
 - Report types (adoption barriers): `python3 -m services.export.report_generator --type adoption_barriers --location-id UUID`
 - Report types (perpetual value stress): `python3 -m services.export.report_generator --type perpetual_value_stress --location-id UUID`
 - Report types (open source impact): `python3 -m services.export.report_generator --type open_source_impact --location-id UUID`
@@ -818,6 +820,12 @@
 - Value-stream report: `python3 -m services.export.report_generator --type value_stream_map [--location-id UUID]`
 - Compute flow metrics: `python3 -m services.metrics --compute --metric governed_lead_time_days --location-id UUID` (also `first_time_through_yield_pct`, `rework_rate_pct`)
 - Value-stream tests: `python3 -m pytest tests/test_value_stream.py tests/test_flow_metrics.py -v`
+- SWOT create: `python3 -m services.analytics.swot create --location-id UUID [--strengths s1 s2] [--threats t1]`
+- SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
+- SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`
+- SWOT suggest: `python3 -m services.analytics.swot suggest --location-id UUID` (or `--org-id UUID`)
+- Business plan generate: `python3 -m services.export.business_plan --location-id UUID` (or `--org-id UUID`)
+- Business-plan tests: `python3 -m pytest tests/test_business_plan.py tests/test_swot.py tests/test_reference_class.py -v`
 
 ## Development Notes
 

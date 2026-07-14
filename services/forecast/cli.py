@@ -102,6 +102,9 @@ def main():
     parser.add_argument("--variable", choices=["price", "yield", "cost"], default="price", help="Variable for sensitivity")
     parser.add_argument("--range-pct", type=float, default=20.0, help="Range pct for sensitivity")
     parser.add_argument("--sensitivity-steps", type=int, default=5, help="Steps for sensitivity")
+    parser.add_argument("--reference-class", action="store_true", help="Apply reference-class dampening to a location projection")
+    parser.add_argument("--rc-metric", default="crop_noi", help="Metric for reference-class blend")
+    parser.add_argument("--rc-alpha", type=float, default=0.5, help="Weight on self-projection (0-1)")
     args = parser.parse_args()
 
     if args.list:
@@ -150,6 +153,19 @@ def main():
             parser.error("--sensitivity requires --scenario-id")
         from ..analytics.ecology import sensitivity_analysis
         result = sensitivity_analysis(args.scenario_id, args.variable, args.range_pct, args.sensitivity_steps)
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.reference_class:
+        if not args.location_id:
+            parser.error("--reference-class requires --location-id")
+        from ..ingestion.base import get_db
+        from .reference_class import apply_reference_class
+        conn = get_db()
+        try:
+            result = apply_reference_class(conn, args.location_id, args.rc_metric, args.rc_alpha)
+        finally:
+            conn.close()
         print(json.dumps(result, indent=2, default=str))
         return
 
