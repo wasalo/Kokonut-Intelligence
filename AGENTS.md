@@ -837,6 +837,9 @@
 - Process-health board: `python3 -m services.analytics.process_health board [--location-id UUID] [--sla-target-hours 72]`
 - Process-health report: `python3 -m services.export.report_generator --type process_health [--location-id UUID]`
 - Process-health tests: `python3 -m pytest tests/test_process_health.py -v`
+- Process escalation sweep: `python3 -m services.management.escalation sweep [--org-id UUID] [--sla-target-hours 72] [--threshold 0.5]`
+- Process escalation resolve: `python3 -m services.management.escalation resolve --escalation-id UUID [--resolved-by UUID]`
+- Process escalation tests: `python3 -m pytest tests/test_process_escalation.py -v`
 - SWOT create: `python3 -m services.analytics.swot create --location-id UUID [--strengths s1 s2] [--threats t1]`
 - SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
 - SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`

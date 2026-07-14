@@ -18,7 +18,7 @@ board, and auto-escalation on top of that foundation.
 | Predictive BPM | `services/analytics/predictive_bpm.py` | **Phase B** |
 | SPC / Control | `services/systems/process_control.py` | **Phase C** |
 | Process-health board | `services/analytics/process_health.py` | **Phase D** |
-| Auto-escalation | `services/management/escalation.py` | planned |
+| Auto-escalation | `services/management/escalation.py` | **Phase E** |
 
 ## Phase A — Process mining
 
@@ -74,4 +74,18 @@ python3 -m services.export.report_generator --type process_health [--location-id
 > this phase: `wip_by_stage` was missing a `GROUP BY`, and `_entity_loc_sql`
 > assumed every pipeline table had `location_id` (it does not for
 > `agent_task` and `ai_summary`).
+
+## Phase E — Auto-escalation / handover
+
+When a governed process instance is predicted to breach its SLA, raise an
+escalation: record it in `process_escalation` and (optionally, when an org is
+supplied) create a draft `work_item` for human follow-up. Idempotent per open
+instance; never verifies or publishes anything (agents/handlers stay
+read/draft-only).
+
+```bash
+python3 -m services.management.escalation sweep [--org-id UUID] [--sla-target-hours 72] [--threshold 0.5]
+python3 -m services.management.escalation resolve --escalation-id UUID [--resolved-by UUID]
+```
+
 
