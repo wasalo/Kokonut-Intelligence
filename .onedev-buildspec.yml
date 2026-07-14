@@ -30,7 +30,7 @@ jobs:
         fi
         docker --version; docker compose version
         # Ephemeral .env from OneDev job secrets (read by compose and load_dotenv).
-        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
+        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=ci-placeholder-secret\nADMIN_PASSWORD=ci-admin-password\nADMIN_EMAIL=ci@kokonut.network\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
         # Start databases on the host (CI override publishes to 127.0.0.1).
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse
         # Wait for PostgreSQL to accept connections.
