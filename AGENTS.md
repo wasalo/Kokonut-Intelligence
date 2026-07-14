@@ -820,6 +820,12 @@
 - Value-stream report: `python3 -m services.export.report_generator --type value_stream_map [--location-id UUID]`
 - Compute flow metrics: `python3 -m services.metrics --compute --metric governed_lead_time_days --location-id UUID` (also `first_time_through_yield_pct`, `rework_rate_pct`)
 - Value-stream tests: `python3 -m pytest tests/test_value_stream.py tests/test_flow_metrics.py -v`
+- Process mining variants: `python3 -m services.analytics.process_mining discover [--entity-type TYPE]`
+- Process mining conformance: `python3 -m services.analytics.process_mining conformance [--entity-type TYPE] [--limit N]`
+- Process mining case timeline: `python3 -m services.analytics.process_mining timeline --entity-id UUID`
+- Process mining cycle times: `python3 -m services.analytics.process_mining cycle-times [--entity-type TYPE]`
+- Process mining persist variants: `python3 -m services.analytics.process_mining persist [--entity-type TYPE]`
+- Process mining tests: `python3 -m pytest tests/test_process_mining.py -v`
 - SWOT create: `python3 -m services.analytics.swot create --location-id UUID [--strengths s1 s2] [--threats t1]`
 - SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
 - SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`
