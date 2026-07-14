@@ -102,7 +102,7 @@ SELECT
     p.name AS plot_name,
     p.farm_id,
     f.name AS farm_name,
-    p.location_id,
+    f.location_id,
     l.name AS location_name,
     p.area,
     p.boundary,
@@ -112,7 +112,7 @@ SELECT
     p.status
 FROM plot p
 JOIN farm f ON p.farm_id = f.id
-JOIN location l ON p.location_id = l.id
+JOIN location l ON f.location_id = l.id
 WHERE l.status IN ('active', 'verified', 'published')
   AND p.boundary IS NOT NULL;
 
