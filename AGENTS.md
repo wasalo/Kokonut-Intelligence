@@ -826,6 +826,10 @@
 - Process mining cycle times: `python3 -m services.analytics.process_mining cycle-times [--entity-type TYPE]`
 - Process mining persist variants: `python3 -m services.analytics.process_mining persist [--entity-type TYPE]`
 - Process mining tests: `python3 -m pytest tests/test_process_mining.py -v`
+- Predictive BPM predict: `python3 -m services.analytics.predictive_bpm predict --entity-type TYPE --state submitted --age-hours 24 [--sla-target-hours 72]`
+- Predictive BPM breaches: `python3 -m services.analytics.predictive_bpm breaches --entity-type TYPE --sla-target-hours 72 [--threshold 0.5]`
+- Predictive BPM persist: `python3 -m services.analytics.predictive_bpm persist --entity-type TYPE [--sla-target-hours 72]`
+- Predictive BPM tests: `python3 -m pytest tests/test_predictive_bpm.py -v`
 - SWOT create: `python3 -m services.analytics.swot create --location-id UUID [--strengths s1 s2] [--threats t1]`
 - SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
 - SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`
