@@ -79,3 +79,39 @@ def test_claim_query_recovers_expired_processing_lease():
     sql = cursor.execute.call_args.args[0]
     assert "status = 'processing' AND lease_expires_at < NOW()" in sql
     assert "FOR UPDATE SKIP LOCKED" in sql
+
+
+def test_completion_reports_lost_lease_when_update_changes_no_row():
+    conn, cursor = _connection(fetchone=None)
+    bus = EventBus(conn=conn)
+
+    assert bus._complete("event", "stale-worker") is False
+    assert "status = 'processing'" in cursor.execute.call_args.args[0]
+
+
+def test_process_event_does_not_report_success_after_lease_loss():
+    conn, _ = _connection(fetchall=[])
+    bus = EventBus(conn=conn)
+    with patch.object(bus, "_complete", return_value=False):
+        assert bus._process_event("event", "kind", {}, "worker") == "lease_lost"
+
+
+def test_orphaned_dead_letter_cannot_report_successful_replay():
+    conn, _ = _connection(fetchone=None)
+    bus = EventBus(conn=conn)
+
+    assert bus.replay_dead_letter("missing-event", "operator") is False
+
+
+def test_dead_letter_operator_actions_require_identity_and_reason():
+    bus = EventBus(conn=MagicMock())
+    try:
+        bus.replay_dead_letter("event", "")
+        assert False, "blank replay actor should fail"
+    except ValueError:
+        pass
+    try:
+        bus.dispose_dead_letter("event", "discarded", "operator", "")
+        assert False, "blank disposal reason should fail"
+    except ValueError:
+        pass

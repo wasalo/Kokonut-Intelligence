@@ -1,6 +1,7 @@
 """Carbon credit tests."""
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 SCHEMA = Path("schemas/postgres/078_carbon_credits.sql")
 INTEGRITY_SCHEMA = Path("schemas/postgres/163_carbon_retirement_integrity.sql")
@@ -209,3 +210,43 @@ def test_adjustment_trigger_sources() -> None:
     assert "soil_carbon_measurement" in content
     assert "ghg_emissions_inventory" in content
     assert "remote_sensing" in content
+
+
+def test_retirement_review_requires_reviewer() -> None:
+    from services.analytics.carbon_credits import review_retirement
+
+    conn = MagicMock()
+    result = review_retirement(conn, "retirement", "", "confirm")
+    assert result == {"status": "error", "message": "reviewer_id is required"}
+    conn.cursor.assert_not_called()
+
+
+def test_conflicting_terminal_retirement_decision_is_rejected() -> None:
+    from services.analytics.carbon_credits import review_retirement
+
+    conn = MagicMock()
+    cursor = conn.cursor.return_value
+    cursor.fetchone.return_value = {
+        "id": "retirement", "status": "verified", "created_by": "requester"
+    }
+
+    result = review_retirement(conn, "retirement", "reviewer", "reject")
+
+    assert result["status"] == "error"
+    assert "already verified" in result["message"]
+    conn.rollback.assert_called_once_with()
+
+
+def test_same_terminal_retirement_decision_is_idempotent() -> None:
+    from services.analytics.carbon_credits import review_retirement
+
+    conn = MagicMock()
+    cursor = conn.cursor.return_value
+    cursor.fetchone.return_value = {
+        "id": "retirement", "status": "rejected", "created_by": "requester"
+    }
+
+    result = review_retirement(conn, "retirement", "reviewer", "reject")
+
+    assert result["status"] == "success"
+    assert result["idempotent"] is True

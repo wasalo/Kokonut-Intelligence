@@ -63,6 +63,7 @@ check "Import EBF agents" "python3 -c 'import services.agents.ebf_scorecard_agen
 check "Import services.analytics.portfolio" "python3 -c 'import services.analytics.portfolio'"
 check "Import services.export.spreadsheet_bridge" "python3 -c 'import services.export.spreadsheet_bridge'"
 check "Import services.scoring" "python3 -c 'import services.scoring.export; import services.scoring.trust_graph; import services.scoring.confidence; import services.scoring.calculators; import services.scoring.rubric; import services.scoring.normalization; import services.scoring.gates; import services.scoring.equity; import services.scoring.implementation_quality; import services.scoring.equity_community'"
+check "Import workflow specifications" "python3 -c 'import services.workflow_specs'"
 echo ""
 
 # 2. CLI parsers
@@ -92,6 +93,7 @@ check "EBF evidence gap agent CLI --help" "python3 -m services.agents.ebf_eviden
 check "EBF calibration agent CLI --help" "python3 -m services.agents.ebf_calibration_agent --help"
 check "spreadsheet bridge CLI --help" "python3 -m services.export.spreadsheet_bridge --help"
 check "EBF scoring CLI --help" "python3 -m services.scoring --help"
+check "workflow specs CLI --help" "python3 -m services.workflow_specs --help"
 echo ""
 
 # 3. TypeScript extension build (if node_modules present)
@@ -162,6 +164,7 @@ check "EBF trust graph" "python3 -m tests.test_ebf_trust_graph"
 check "EBF agents" "python3 -m tests.test_ebf_agents"
 check "EBF equity scoring" "python3 -m tests.test_ebf_equity_scoring"
 check "EBF DB integration" "python3 -m tests.test_ebf_db_integration"
+check "workflow specifications" "python3 -m pytest tests/test_workflow_specs.py tests/test_workflow_spec_conformance.py -q"
 echo ""
 
 # 6. Smoke test suite

@@ -125,8 +125,7 @@ class EventBus:
             handlers = cur.fetchall()
         conn.commit()
         if not handlers:
-            self._complete(event_id, worker_id)
-            return "skipped"
+            return "skipped" if self._complete(event_id, worker_id) else "lease_lost"
 
         failed = False
         for handler_id, module_path, function_name, timeout_seconds, status in handlers:
@@ -175,8 +174,7 @@ class EventBus:
                 failed = True
         if failed:
             return "failed"
-        self._complete(event_id, worker_id)
-        return "success"
+        return "success" if self._complete(event_id, worker_id) else "lease_lost"
 
     def _invoke_handler(self, module_path, function_name, event_type, payload, timeout_seconds):
         ctx = multiprocessing.get_context("spawn")
@@ -202,9 +200,12 @@ class EventBus:
             cur.execute("""
                 UPDATE platform_event SET status = 'completed', processed_at = NOW(),
                     lease_owner = NULL, lease_expires_at = NULL
-                WHERE id = %s AND lease_owner = %s
+                WHERE id = %s AND status = 'processing' AND lease_owner = %s
+                RETURNING id
             """, (event_id, worker_id))
+            completed = cur.fetchone() is not None
         conn.commit()
+        return completed
 
     def _retry_or_dead_letter(self, event_id, retry_count, max_retries, worker_id):
         conn = self._get_conn()
@@ -232,27 +233,45 @@ class EventBus:
         conn.commit()
 
     def replay_dead_letter(self, event_id: str, actor: str) -> bool:
+        if not actor or not actor.strip():
+            raise ValueError("actor is required")
         conn = self._get_conn()
         with conn.cursor() as cur:
             cur.execute("""
-                UPDATE event_dead_letter SET disposition = 'replayed', replayed_at = NOW(),
+                WITH replayable AS (
+                    SELECT dead.id AS dead_letter_id
+                    FROM event_dead_letter dead
+                    JOIN platform_event event ON event.id = dead.original_event_id
+                    WHERE dead.original_event_id = %s
+                      AND dead.disposition = 'pending'
+                      AND event.status = 'dead_letter'
+                    FOR UPDATE OF dead, event
+                ), reset_event AS (
+                    UPDATE platform_event event
+                    SET status = 'pending', retry_count = 0, error_message = NULL,
+                        claimed_at = NULL, lease_owner = NULL, lease_expires_at = NULL
+                    FROM replayable
+                    WHERE event.id = %s
+                    RETURNING replayable.dead_letter_id
+                )
+                UPDATE event_dead_letter dead
+                SET disposition = 'replayed', replayed_at = NOW(),
                     disposed_by = %s, disposed_at = NOW()
-                WHERE original_event_id = %s AND disposition = 'pending'
-                RETURNING original_event_id
-            """, (actor, event_id))
+                FROM reset_event
+                WHERE dead.id = reset_event.dead_letter_id
+                RETURNING dead.original_event_id
+            """, (event_id, event_id, actor))
             found = cur.fetchone()
-            if found:
-                cur.execute("""
-                    UPDATE platform_event SET status = 'pending', retry_count = 0,
-                        error_message = NULL, claimed_at = NULL, lease_owner = NULL,
-                        lease_expires_at = NULL WHERE id = %s
-                """, (event_id,))
         conn.commit()
         return found is not None
 
     def dispose_dead_letter(self, event_id: str, disposition: str, actor: str, reason: str) -> bool:
         if disposition not in {"resolved", "discarded"}:
             raise ValueError("disposition must be resolved or discarded")
+        if not actor or not actor.strip():
+            raise ValueError("actor is required")
+        if not reason or not reason.strip():
+            raise ValueError("reason is required")
         conn = self._get_conn()
         with conn.cursor() as cur:
             cur.execute("""

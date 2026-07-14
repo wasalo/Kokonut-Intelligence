@@ -349,6 +349,8 @@ def review_retirement(
     """Confirm, reject, or cancel a retirement while holding ledger row locks."""
     if decision not in ("confirm", "reject", "cancel"):
         return {"status": "error", "message": "Decision must be confirm, reject, or cancel"}
+    if not reviewer_id:
+        return {"status": "error", "message": "reviewer_id is required"}
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("SELECT * FROM credit_retirement WHERE id = %s FOR UPDATE", (retirement_id,))
@@ -360,6 +362,12 @@ def review_retirement(
     if retirement["status"] in ("verified", "published", "rejected", "cancelled"):
         conn.rollback()
         cur.close()
+        expected_decision = {
+            "verified": "confirm", "published": "confirm",
+            "rejected": "reject", "cancelled": "cancel",
+        }[retirement["status"]]
+        if decision != expected_decision:
+            return {"status": "error", "message": f"Retirement is already {retirement['status']}"}
         return {"status": "success", "retirement_id": retirement_id,
                 "retirement_status": retirement["status"], "idempotent": True}
     if retirement["status"] not in ("draft", "submitted"):

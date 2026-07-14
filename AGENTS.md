@@ -780,6 +780,11 @@
 - Evidence lineage graph status: `python3 -m services.graph_projection status`
 - Evidence lineage graph validate: `python3 -m services.graph_projection validate`
 - Evidence lineage graph query: `python3 -m services.graph_projection query --entity-key ENTITY_TYPE:UUID --depth 2 --audience internal`
+- Workflow specifications list: `python3 -m services.workflow_specs list`
+- Workflow specifications validate: `python3 -m services.workflow_specs validate`
+- Workflow specification render: `python3 -m services.workflow_specs render event_bus_delivery --format mermaid`
+- Regenerate workflow documentation: `python3 scripts/render-workflow-specs.py`
+- Workflow specification tests: `python3 -m pytest tests/test_workflow_specs.py tests/test_workflow_spec_conformance.py -v`
 
 ## Development Notes
 
