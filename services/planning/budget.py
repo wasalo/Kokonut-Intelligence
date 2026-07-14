@@ -146,9 +146,12 @@ def actuals_rollup(conn, plan_id: str) -> Sequence[Mapping]:
 
 
 def _sum_events(conn, table: str, location_id, category: str, start: date, end: date) -> float:
-    clauses = ["category = %s", "status = 'verified'",
+    clauses = ["status = 'verified'",
                "expense_date BETWEEN %s AND %s" if table == "expense_event" else "revenue_date BETWEEN %s AND %s"]
-    params: list = [category, start, end]
+    params: list = [start, end]
+    if table == "expense_event":
+        clauses.append("category = %s")
+        params.append(category)
     if location_id:
         clauses.append("location_id = %s")
         params.append(location_id)

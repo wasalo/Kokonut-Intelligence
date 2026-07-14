@@ -55,10 +55,10 @@ def cockpit(conn, organization_id: str) -> Dict[str, Any]:
         plans = _rows(
             cur,
             """
-            SELECT id, name, fiscal_year, version, status, currency
+            SELECT id, name, version, status, currency
             FROM financial_plan
             WHERE organization_id = %s
-            ORDER BY fiscal_year DESC, version DESC
+            ORDER BY created_at DESC, version DESC
             """,
             (oid,),
         )

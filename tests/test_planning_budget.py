@@ -28,7 +28,10 @@ def org_id():
     conn = _db()
     try:
         with conn.cursor() as cur:
-            cur.execute("INSERT INTO organization (name) VALUES (%s) RETURNING id", ("plan-test",))
+            cur.execute(
+                "INSERT INTO organization (org_key, name) VALUES (%s, %s) RETURNING id",
+                (str(uuid.uuid4()), "plan-test"),
+            )
             oid = cur.fetchone()[0]
             conn.commit()
         yield str(oid)

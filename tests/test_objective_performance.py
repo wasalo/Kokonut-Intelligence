@@ -27,7 +27,10 @@ def org_and_objective():
     conn = _db()
     try:
         with conn.cursor() as cur:
-            cur.execute("INSERT INTO organization (name) VALUES (%s) RETURNING id", ("perf-test",))
+            cur.execute(
+                "INSERT INTO organization (org_key, name) VALUES (%s, %s) RETURNING id",
+                (str(uuid.uuid4()), "perf-test"),
+            )
             org = cur.fetchone()[0]
             cur.execute("INSERT INTO objective (objective_name) VALUES (%s) RETURNING id", ("Grow maize",))
             obj = cur.fetchone()[0]

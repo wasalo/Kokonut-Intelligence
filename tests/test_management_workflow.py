@@ -34,7 +34,10 @@ def org_id():
     conn = _db()
     try:
         with conn.cursor() as cur:
-            cur.execute("INSERT INTO organization (name) VALUES (%s) RETURNING id", ("mgmt-test",))
+            cur.execute(
+                "INSERT INTO organization (org_key, name) VALUES (%s, %s) RETURNING id",
+                (str(uuid.uuid4()), "mgmt-test"),
+            )
             oid = cur.fetchone()[0]
             conn.commit()
         yield str(oid)
@@ -53,14 +56,14 @@ def test_create_draft_and_assign_lifecycle(org_id):
         assert row["status"] == "draft"
         wid = str(row["id"])
 
-        row = workbench.assign(conn, wid, "staff", str(uuid.uuid4()), "manager")
+        row = workbench.assign(conn, wid, "staff", str(uuid.uuid4()), "staff")
         assert row["status"] == "assigned"
 
-        row = workbench.transition(conn, wid, "in_progress", "worker")
+        row = workbench.transition(conn, wid, "in_progress", "staff")
         assert row["status"] == "in_progress"
         assert row["started_at"] is not None
 
-        row = workbench.transition(conn, wid, "done", "worker")
+        row = workbench.transition(conn, wid, "done", "staff")
         assert row["status"] == "done"
         assert row["completed_at"] is not None
     finally:
@@ -73,7 +76,7 @@ def test_invalid_transition_rejected(org_id):
         row = workbench.create_work_item(conn, org_id, "Task", "system")
         wid = str(row["id"])
         with pytest.raises(ValueError):
-            workbench.transition(conn, wid, "done", "worker")
+            workbench.transition(conn, wid, "done", "staff")
     finally:
         conn.close()
 
@@ -86,10 +89,10 @@ def test_blocked_requires_note(org_id):
             assignee_type="staff", assignee_id=str(uuid.uuid4()),
         )
         wid = str(row["id"])
-        workbench.transition(conn, wid, "in_progress", "worker")
+        workbench.transition(conn, wid, "in_progress", "staff")
         with pytest.raises(ValueError):
-            workbench.transition(conn, wid, "blocked", "worker", note=None)
-        workbench.transition(conn, wid, "blocked", "worker", note="waiting on parts")
+            workbench.transition(conn, wid, "blocked", "staff", note=None)
+        workbench.transition(conn, wid, "blocked", "staff", note="waiting on parts")
         assert workbench.get_work_item(conn, wid)["status"] == "blocked"
     finally:
         conn.close()

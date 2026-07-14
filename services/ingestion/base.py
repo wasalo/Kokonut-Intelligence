@@ -16,6 +16,8 @@ from typing import Any, Optional
 import psycopg2
 import psycopg2.extras
 
+psycopg2.extras.register_uuid()
+
 from ..common.logging import get_logger
 from .config import (
     PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD,

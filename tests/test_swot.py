@@ -39,7 +39,7 @@ def test_create_and_list():
             created_by=None,
         )
         assert created["entity_type"] == "location"
-        assert created["entity_id"] == loc
+        assert str(created["entity_id"]) == loc
         assert created["status"] == "draft"
         rows = swot.list_swot(conn, location_id=loc)
         assert any(str(r["id"]) == str(created["id"]) for r in rows)

@@ -1,5 +1,7 @@
 """Tests for the S&OP cockpit (read-only)."""
 
+import uuid
+
 import pytest
 
 from services.ingestion.base import get_db
@@ -18,7 +20,10 @@ def org_id():
     conn = _db()
     try:
         with conn.cursor() as cur:
-            cur.execute("INSERT INTO organization (name) VALUES (%s) RETURNING id", ("sandop-test",))
+            cur.execute(
+                "INSERT INTO organization (org_key, name) VALUES (%s, %s) RETURNING id",
+                (str(uuid.uuid4()), "sandop-test"),
+            )
             oid = cur.fetchone()[0]
             conn.commit()
         yield str(oid)

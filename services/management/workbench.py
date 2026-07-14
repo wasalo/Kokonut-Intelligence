@@ -99,6 +99,7 @@ def create_work_item(
     assignee_id: Optional[str] = None,
     location_id: Optional[str] = None,
     parent_work_item_id: Optional[str] = None,
+    objective_id: Optional[str] = None,
     due_at: Optional[str] = None,
     sla_at: Optional[str] = None,
 ):
@@ -112,8 +113,8 @@ def create_work_item(
                 INSERT INTO work_item (
                     organization_id, title, description, status, priority,
                     assignee_type, assignee_id, created_by_type, created_by_id,
-                    location_id, parent_work_item_id, due_at, sla_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    location_id, parent_work_item_id, objective_id, due_at, sla_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING *
                 """,
                 (
@@ -122,6 +123,7 @@ def create_work_item(
                     created_by_type, uuid.UUID(created_by_id) if created_by_id else None,
                     uuid.UUID(location_id) if location_id else None,
                     uuid.UUID(parent_work_item_id) if parent_work_item_id else None,
+                    uuid.UUID(objective_id) if objective_id else None,
                     _parse_ts(due_at), _parse_ts(sla_at),
                 ),
             )

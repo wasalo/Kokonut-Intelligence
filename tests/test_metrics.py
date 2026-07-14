@@ -22,6 +22,7 @@ METRIC_KEYS = [
     "baseline_cash_flow", "baseline_cost", "value_flowed",
     "wallet_retention", "digital_lego_usage", "soil_carbon_delta",
     "biodiversity_delta", "attestation_coverage",
+    "governed_lead_time_days", "first_time_through_yield_pct", "rework_rate_pct",
 ]
 
 BASELINE_KEYS = [
@@ -31,11 +32,11 @@ BASELINE_KEYS = [
 
 
 def test_calculator_registration():
-    """All 17 metric keys have registered calculators."""
+    """All 20 metric keys have registered calculators."""
     from services.metrics.calculators import CALCULATORS
     for key in METRIC_KEYS:
         assert key in CALCULATORS, f"Missing calculator for {key}"
-    assert len(CALCULATORS) == 17
+    assert len(CALCULATORS) == 20
 
 
 def test_all_calculators_return_required_keys():
@@ -119,7 +120,7 @@ def test_baseline_calculators_use_location_table():
 def test_engine_registers_all_calculators():
     """Verify engine.py can import all calculators."""
     from services.metrics.calculators import CALCULATORS
-    assert len(CALCULATORS) == 17
+    assert len(CALCULATORS) == 20
 
 
 def test_public_metric_view_requires_verified_values():
@@ -219,7 +220,7 @@ def test_calculators_return_valid_structure():
 
 
 def test_metric_definitions_have_governance_fields():
-    """All 17 metrics have validation_tests, report_usage, deprecation_policy (requires DB)."""
+    """All 20 metrics have validation_tests, report_usage, deprecation_policy (requires DB)."""
     from services.ingestion.base import get_db
 
     try:
