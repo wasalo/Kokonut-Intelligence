@@ -776,6 +776,10 @@
 - Delphi approve recommendation: `python3 -m services.delphi approve-recommendation --recommendation-id UUID --approved-by UUID`
 - Delphi facilitator agent: `python3 -m services.agents.delphi_facilitator_agent --study-id UUID --draft`
 - Delphi tests: `python3 -m pytest tests/test_delphi.py -v`
+- Evidence lineage graph rebuild: `python3 -m services.graph_projection rebuild --actor OPERATOR`
+- Evidence lineage graph status: `python3 -m services.graph_projection status`
+- Evidence lineage graph validate: `python3 -m services.graph_projection validate`
+- Evidence lineage graph query: `python3 -m services.graph_projection query --entity-key ENTITY_TYPE:UUID --depth 2 --audience internal`
 
 ## Development Notes
 
