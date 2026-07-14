@@ -73,7 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_ct_asset ON capacity_threshold(asset_id);
 CREATE OR REPLACE VIEW v_infrastructure_utilization_summary AS
 SELECT
     ia.id AS asset_id,
-    ia.asset_name,
+    ia.name AS asset_name,
     ia.asset_type,
     ia.capacity,
     ia.capacity_unit,
