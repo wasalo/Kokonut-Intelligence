@@ -13,26 +13,26 @@ jobs:
     optional: false
   - type: CommandStep
     name: command
-    runInContainer: true
-    image: python:3.11
+    runInContainer: false
     interpreter:
       type: PosixInterpreter
       shell: sh
       commands: |
         set -e
-        export DEBIAN_FRONTEND=noninteractive
-        # Install Docker CLI + compose plugin and Python build deps at runtime
-        # (the job container runs with the host Docker socket mounted).
-        apt-get update && apt-get install -y --no-install-recommends \
-          docker.io docker-compose-plugin gcc libpq-dev python3-dev
-        # Materialize an ephemeral, gitignored .env from OneDev job secrets.
+        # Ephemeral, gitignored .env from OneDev job secrets.
+        # docker compose AND Python's load_dotenv() both read this file.
         printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
-        pip install -r requirements.txt
+        # Start databases on the host (CI override publishes to 127.0.0.1).
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse
         ./scripts/seed.sh
+        # Isolate Python deps (host Python 3.11).
+        python3 -m venv .venv
+        . .venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        export PG_HOST=localhost PG_PORT=5432 CH_HOST=localhost CH_PORT=8123
         python3 -m tests.test_metrics
-        PG_HOST=localhost PG_PORT=5432 python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py tests/test_management_workflow.py tests/test_responsibility_assignment.py tests/test_planning_budget.py tests/test_objective_performance.py tests/test_program_portfolio.py tests/test_sandop.py tests/test_value_stream.py tests/test_flow_metrics.py tests/test_swot.py tests/test_reference_class.py tests/test_business_plan.py tests/test_marketplace_integration.py tests/test_process_mining.py tests/test_predictive_bpm.py tests/test_process_control.py tests/test_process_health.py tests/test_process_escalation.py tests/test_bpm_state_models.py tests/test_process_model_sync.py -q
-    runAs: 0:0
+        python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py tests/test_management_workflow.py tests/test_responsibility_assignment.py tests/test_planning_budget.py tests/test_objective_performance.py tests/test_program_portfolio.py tests/test_sandop.py tests/test_value_stream.py tests/test_flow_metrics.py tests/test_swot.py tests/test_reference_class.py tests/test_business_plan.py tests/test_marketplace_integration.py tests/test_process_mining.py tests/test_predictive_bpm.py tests/test_process_control.py tests/test_process_health.py tests/test_process_escalation.py tests/test_bpm_state_models.py tests/test_process_model_sync.py -q
     useTTY: false
     condition: SUCCESSFUL
     optional: false
