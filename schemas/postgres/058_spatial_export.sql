@@ -117,6 +117,12 @@ WHERE l.status IN ('active', 'verified', 'published')
   AND p.boundary IS NOT NULL;
 
 -- 5. Buffer zone GeoJSON-ready view
+ALTER TABLE buffer_zone ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+ALTER TABLE buffer_zone DROP CONSTRAINT IF EXISTS chk_buffer_zone_status;
+ALTER TABLE buffer_zone ADD CONSTRAINT chk_buffer_zone_status CHECK (status IN (
+    'active', 'inactive', 'maintenance_needed'
+));
+
 CREATE OR REPLACE VIEW v_spatial_buffer_geojson AS
 SELECT
     b.id,
