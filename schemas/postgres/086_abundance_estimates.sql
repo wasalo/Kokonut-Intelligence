@@ -41,7 +41,23 @@ ALTER TABLE impact_estimate_post ADD CONSTRAINT chk_eep_status CHECK (status IN 
     'draft', 'submitted', 'waiting_list', 'validating', 'validated', 'disputed', 'finalized', 'rejected'
 ));
 
--- 2. Estimate category assignment
+-- 2. Expertise category (must precede tables that reference it)
+CREATE TABLE IF NOT EXISTS expertise_category (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    category_name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    parent_category_id UUID REFERENCES expertise_category(id) ON DELETE SET NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by UUID REFERENCES evaluator(id) ON DELETE SET NULL,
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ec_parent ON expertise_category(parent_category_id);
+CREATE INDEX IF NOT EXISTS idx_ec_active ON expertise_category(is_active);
+
+-- 3. Estimate category assignment
 CREATE TABLE IF NOT EXISTS estimate_category_assignment (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     estimate_id UUID NOT NULL REFERENCES impact_estimate_post(id) ON DELETE CASCADE,
@@ -55,7 +71,7 @@ CREATE TABLE IF NOT EXISTS estimate_category_assignment (
 CREATE INDEX IF NOT EXISTS idx_eca_estimate ON estimate_category_assignment(estimate_id);
 CREATE INDEX IF NOT EXISTS idx_eca_category ON estimate_category_assignment(category_id);
 
--- 3. Waiting list entry
+-- 4. Waiting list entry
 CREATE TABLE IF NOT EXISTS waiting_list_entry (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     estimate_id UUID NOT NULL REFERENCES impact_estimate_post(id) ON DELETE CASCADE,
@@ -76,22 +92,6 @@ CREATE INDEX IF NOT EXISTS idx_wle_sort ON waiting_list_entry(sort_score DESC);
 
 ALTER TABLE waiting_list_entry DROP CONSTRAINT IF EXISTS chk_wle_status;
 ALTER TABLE waiting_list_entry ADD CONSTRAINT chk_wle_status CHECK (status IN ('queued', 'processing', 'dequeued', 'cancelled'));
-
--- 4. Expertise category
-CREATE TABLE IF NOT EXISTS expertise_category (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    category_name VARCHAR(255) NOT NULL UNIQUE,
-    description TEXT,
-    parent_category_id UUID REFERENCES expertise_category(id) ON DELETE SET NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_by UUID REFERENCES evaluator(id) ON DELETE SET NULL,
-    metadata JSONB DEFAULT '{}',
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_ec_parent ON expertise_category(parent_category_id);
-CREATE INDEX IF NOT EXISTS idx_ec_active ON expertise_category(is_active);
 
 -- 5. Category relatedness
 CREATE TABLE IF NOT EXISTS category_relatedness (
