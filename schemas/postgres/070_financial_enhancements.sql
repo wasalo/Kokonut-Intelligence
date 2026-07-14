@@ -27,9 +27,9 @@ SELECT
     l.id AS location_id,
     l.name AS location_name,
     COALESCE(SUM(re.amount_usd), 0) AS revenue_usd,
-    COALESCE(SUM(CASE WHEN ee.is_direct = TRUE THEN ee.amount ELSE 0 END), 0) AS cost_of_goods_sold_usd,
-    COALESCE(SUM(re.amount_usd), 0) - COALESCE(SUM(CASE WHEN ee.is_direct = TRUE THEN ee.amount ELSE 0 END), 0) AS gross_profit_usd,
-    COALESCE(SUM(CASE WHEN ee.is_direct = FALSE THEN ee.amount ELSE 0 END), 0) AS operating_expenses_usd,
+    COALESCE(SUM(CASE WHEN ec.is_direct = TRUE THEN ee.amount ELSE 0 END), 0) AS cost_of_goods_sold_usd,
+    COALESCE(SUM(re.amount_usd), 0) - COALESCE(SUM(CASE WHEN ec.is_direct = TRUE THEN ee.amount ELSE 0 END), 0) AS gross_profit_usd,
+    COALESCE(SUM(CASE WHEN ec.is_direct = FALSE THEN ee.amount ELSE 0 END), 0) AS operating_expenses_usd,
     COALESCE(SUM(re.amount_usd), 0) - COALESCE(SUM(ee.amount), 0) AS net_income_usd,
     CASE WHEN COALESCE(SUM(re.amount_usd), 0) > 0
         THEN ROUND((COALESCE(SUM(re.amount_usd), 0) - COALESCE(SUM(ee.amount), 0)) / SUM(re.amount_usd) * 100, 2)
@@ -38,6 +38,7 @@ SELECT
 FROM location l
 LEFT JOIN revenue_event re ON re.location_id = l.id AND re.status IN ('verified', 'published')
 LEFT JOIN expense_event ee ON ee.location_id = l.id AND ee.status IN ('verified', 'published')
+LEFT JOIN expense_category ec ON ec.name = ee.category
 WHERE l.status IN ('active', 'verified', 'published')
 GROUP BY l.id, l.name;
 
