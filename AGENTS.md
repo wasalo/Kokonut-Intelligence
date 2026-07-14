@@ -830,6 +830,10 @@
 - Predictive BPM breaches: `python3 -m services.analytics.predictive_bpm breaches --entity-type TYPE --sla-target-hours 72 [--threshold 0.5]`
 - Predictive BPM persist: `python3 -m services.analytics.predictive_bpm persist --entity-type TYPE [--sla-target-hours 72]`
 - Predictive BPM tests: `python3 -m pytest tests/test_predictive_bpm.py -v`
+- Process control capture: `python3 -m services.systems.process_control capture [--entity-type TYPE]`
+- Process control chart: `python3 -m services.systems.process_control chart --entity-type TYPE --metric cycle_time_days`
+- Process control CTQ: `python3 -m services.systems.process_control ctq [--process NAME]`
+- Process control tests: `python3 -m pytest tests/test_process_control.py -v`
 - SWOT create: `python3 -m services.analytics.swot create --location-id UUID [--strengths s1 s2] [--threats t1]`
 - SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
 - SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`
