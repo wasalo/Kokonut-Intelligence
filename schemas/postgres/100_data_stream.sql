@@ -156,11 +156,12 @@ SELECT
     dsp.created_by,
     dsp.metadata,
     l.name AS location_name,
-    fr.farm_name,
+    fm.name AS farm_name,
     (SELECT COUNT(*) FROM data_stream_post_comment dsc WHERE dsc.post_id = dsp.id) AS comment_count
 FROM data_stream_post dsp
 JOIN location l ON l.id = dsp.location_id
 LEFT JOIN farm_registry_record fr ON fr.location_id = dsp.location_id AND fr.status IN ('verified', 'published')
+LEFT JOIN farm fm ON fm.id = fr.farm_id
 WHERE l.status = 'active'
   AND dsp.status IN ('published', 'verified')
   AND dsp.visibility = 'public'

@@ -88,9 +88,10 @@ SELECT
     ST_AsGeoJSON(l.center, 6) AS center_geojson,
     l.status,
     fr.id AS farm_registry_id,
-    fr.farm_name
+    fm.name AS farm_name
 FROM location l
 LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
+LEFT JOIN farm fm ON fm.id = fr.farm_id
 WHERE l.status IN ('active', 'verified', 'published')
   AND l.boundary IS NOT NULL;
 
