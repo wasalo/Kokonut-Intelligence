@@ -447,5 +447,53 @@ class TestGetColdChainLog(unittest.TestCase):
         self.assertEqual(result["temperature_stats"], {})
 
 
+class TestCanonicalSchemaContract(unittest.TestCase):
+
+    def test_write_queries_use_canonical_traceability_tables(self):
+        cases = [
+            (create_produce_batch, ("loc-001", "maize", 500), "produce_batch"),
+            (record_quality_inspection, ("batch-001", "visual", "pass"), "quality_inspection"),
+            (log_provenance_event, ("batch-001", "harvest", "Farmer"), "provenance_event"),
+            (record_food_safety, ("batch-001", "temperature", "pass"), "food_safety_record"),
+        ]
+        for function, args, expected_table in cases:
+            with self.subTest(function=function.__name__):
+                conn = MagicMock()
+                function(conn, *args)
+                sql = " ".join(str(call.args[0]) for call in conn.cursor.return_value.execute.call_args_list)
+                self.assertIn(f"INSERT INTO {expected_table}", sql)
+                self.assertNotIn("INSERT INTO custody_transfer", sql)
+                self.assertNotIn("INSERT INTO certification_record", sql)
+                self.assertNotIn("INSERT INTO food_safety_check", sql)
+
+    def test_custody_query_uses_canonical_table_and_sequence(self):
+        conn = MagicMock()
+        conn.cursor.return_value.fetchone.side_effect = [(500, "kg"), (1,)]
+        record_custody_transfer(conn, "batch-001", "Farm", "Coop")
+        sql = " ".join(str(call.args[0]) for call in conn.cursor.return_value.execute.call_args_list)
+        self.assertIn("INSERT INTO chain_of_custody", sql)
+        self.assertIn("sequence_num", sql)
+        self.assertIn("from_actor_type", sql)
+        self.assertIn("to_actor_type", sql)
+
+    def test_certification_query_uses_canonical_tables(self):
+        conn = MagicMock()
+        conn.cursor.return_value.fetchone.side_effect = [("loc-001",), ("type-001",)]
+        verify_certification(conn, "batch-001", "organic", "ORG-001", "KCB")
+        sql = " ".join(str(call.args[0]) for call in conn.cursor.return_value.execute.call_args_list)
+        self.assertIn("FROM certification_type", sql)
+        self.assertIn("INSERT INTO certification_verify", sql)
+        self.assertIn("location_id", sql)
+        self.assertIn("issued_date", sql)
+
+    def test_write_rolls_back_when_second_statement_fails(self):
+        conn = MagicMock()
+        conn.cursor.return_value.execute.side_effect = [None, RuntimeError("provenance failed")]
+        with self.assertRaises(RuntimeError):
+            create_produce_batch(conn, "loc-001", "maize", 500)
+        conn.rollback.assert_called_once()
+        conn.commit.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

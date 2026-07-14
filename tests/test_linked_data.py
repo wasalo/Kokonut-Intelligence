@@ -283,7 +283,17 @@ class TestRDFTripleStore:
         from services.rdf.triple_store import add_triple
         conn = _fake_conn(rowcount=1)
         result = add_triple(conn, "s1", "p1", object_value="o1", graph_name="test")
-        assert result["subject"] == "s1"
+        assert result is True
+
+    def test_add_triples_counts_only_inserts(self):
+        from services.rdf.triple_store import add_triples
+        conn = _fake_conn(rowcount=0)
+        assert add_triples(conn, [{"subject": "s1", "predicate": "p1", "object_value": "o1"}]) == 0
+
+    def test_add_triple_requires_exactly_one_object(self):
+        from services.rdf.triple_store import add_triple
+        with pytest.raises(ValueError, match="Exactly one"):
+            add_triple(_fake_conn(), "s1", "p1")
 
     def test_count_triples(self):
         from services.rdf.triple_store import count_triples
@@ -340,6 +350,17 @@ class TestRDFGraphBuilder:
         triples = build_location_graph(conn, LOCATION_ID)
         assert len(triples) >= 2
 
+    def test_persist_graph_forces_aggregate_graph_and_actual_count(self, monkeypatch):
+        import services.rdf.graph_builder as builder
+        triples = [{"subject": "s", "predicate": "p", "object_value": "v", "graph_name": "credit:c"}]
+        monkeypatch.setattr(builder, "build_full_graph", lambda conn, location_id: triples)
+        monkeypatch.setattr(builder, "delete_triples", MagicMock(return_value=3))
+        add = MagicMock(return_value=1)
+        monkeypatch.setattr(builder, "add_triples", add)
+        conn = _fake_conn()
+        assert builder.persist_graph(conn, LOCATION_ID) == 1
+        assert triples[0]["graph_name"] == f"location:{LOCATION_ID}"
+
 
 # ---------------------------------------------------------------------------
 # SPARQL Engine tests
@@ -352,6 +373,26 @@ class TestSPARQLEngine:
         parsed = parse_select_query(query)
         assert len(parsed["variables"]) == 3
         assert parsed["limit"] == 10
+
+    def test_parse_is_strict_and_bounds_limit(self):
+        from services.rdf.sparql_engine import parse_select_query
+        assert parse_select_query("SELECT ?s WHERE { ?s <urn:p> \"v\" . } LIMIT 99999")["limit"] == 1000
+        with pytest.raises(ValueError, match="Only SELECT"):
+            parse_select_query("ASK WHERE { ?s ?p ?o }")
+        with pytest.raises(ValueError, match="Malformed"):
+            parse_select_query("SELECT ?s WHERE { ?s ?p ?o FILTER(true) }")
+
+    def test_translate_multiple_patterns_and_rdf_term_join(self):
+        from services.rdf.sparql_engine import parse_select_query, translate_basic_graph_pattern
+        parsed = parse_select_query(
+            "SELECT ?s ?x WHERE { ?s <urn:links> ?x . ?x <urn:name> \"Adelphi\" . }"
+        )
+        sql = translate_basic_graph_pattern(parsed["patterns"], parsed["variables"])
+        assert "rdf_triple AS t0, rdf_triple AS t1" in sql
+        assert "t1.subject = COALESCE(t0.object_iri, t0.object_value)" in sql
+        assert "CASE WHEN t0.object_iri IS NOT NULL" in sql
+        assert 'AS "x"' in sql
+        assert "t1.object_value = :o1" in sql
 
     def test_list_named_graphs(self):
         from services.rdf.sparql_engine import list_named_graphs

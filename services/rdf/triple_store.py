@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from typing import Any
 
 from services.common.logging import get_logger
@@ -11,8 +10,8 @@ from services.common.logging import get_logger
 logger = get_logger("rdf.triple_store")
 
 
-def _triple_hash(subject: str, predicate: str, object_value: str, object_iri: str, graph_name: str) -> str:
-    content = f"{subject}|{predicate}|{object_value or ''}|{object_iri or ''}|{graph_name}"
+def _triple_hash(subject: str, predicate: str, object_value: str, object_type: str, object_iri: str, graph_name: str) -> str:
+    content = f"{subject}|{predicate}|{object_value or ''}|{object_type}|{object_iri or ''}|{graph_name}"
     return hashlib.sha256(content.encode()).hexdigest()
 
 
@@ -27,17 +26,19 @@ def add_triple(
     source_table: str = None,
     source_id: str = None,
     source_column: str = None,
-) -> dict:
-    content_hash = _triple_hash(subject, predicate, object_value, object_iri, graph_name)
+) -> bool:
+    if (object_value is None) == (object_iri is None):
+        raise ValueError("Exactly one of object_value or object_iri must be provided")
+    content_hash = _triple_hash(subject, predicate, object_value, object_type, object_iri, graph_name)
 
-    conn.execute(
+    result = conn.execute(
         conn.text(
             "INSERT INTO rdf_triple "
             "(subject, predicate, object_value, object_type, object_iri, graph_name, "
             "source_table, source_id, source_column, content_hash) "
             "VALUES "
             "(:s, :p, :ov, :ot, :oi, :gn, :st, :sid, :sc, :ch) "
-            "ON CONFLICT (subject, predicate, object_value, object_iri, graph_name) DO NOTHING"
+            "ON CONFLICT DO NOTHING"
         ),
         {
             "s": subject, "p": predicate, "ov": object_value, "ot": object_type,
@@ -45,13 +46,13 @@ def add_triple(
             "sid": source_id, "sc": source_column, "ch": content_hash,
         },
     )
-    return {"subject": subject, "predicate": predicate}
+    return result.rowcount == 1
 
 
 def add_triples(conn, triples: list[dict], graph_name: str = "default") -> int:
     count = 0
     for t in triples:
-        add_triple(
+        inserted = add_triple(
             conn,
             subject=t["subject"],
             predicate=t["predicate"],
@@ -63,7 +64,7 @@ def add_triples(conn, triples: list[dict], graph_name: str = "default") -> int:
             source_id=t.get("source_id"),
             source_column=t.get("source_column"),
         )
-        count += 1
+        count += int(inserted)
     return count
 
 

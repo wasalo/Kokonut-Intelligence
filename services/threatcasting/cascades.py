@@ -124,31 +124,49 @@ class CascadeModeler:
         chain: List[str],
     ) -> Dict[str, Any]:
         """Simulate a cascade from trigger through the chain."""
+        if not chain:
+            raise ValueError("Cascade chain must contain at least one downstream threat")
+        node_ids = [trigger_threat_id, *chain]
+        if len(node_ids) > CASCADE_CONFIG["max_chain_length"]:
+            raise ValueError("Cascade chain exceeds configured maximum length")
+        if len(set(node_ids)) != len(node_ids):
+            raise ValueError("Cascade chain cannot contain repeated nodes")
+
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         # Get trigger threat
         cur.execute(
-            "SELECT id, threat_name, threat_type, severity_potential, probability, velocity FROM threat WHERE id = %s",
+            "SELECT id, location_id, threat_name, threat_type, severity_potential, probability, velocity FROM threat WHERE id = %s AND is_active = TRUE",
             (trigger_threat_id,),
         )
         trigger_row = cur.fetchone()
         trigger = dict(trigger_row) if trigger_row else None
+        if trigger is None:
+            cur.close()
+            raise ValueError("Trigger threat is missing or inactive")
 
         # Get all threats in chain
         chain_threats = []
         for tid in chain:
             cur.execute(
-                "SELECT id, threat_name, threat_type, severity_potential, probability FROM threat WHERE id = %s",
+                "SELECT id, location_id, threat_name, threat_type, severity_potential, probability, velocity FROM threat WHERE id = %s AND is_active = TRUE",
                 (tid,),
             )
             row = cur.fetchone()
-            if row:
-                chain_threats.append(dict(row))
+            if not row:
+                cur.close()
+                raise ValueError(f"Cascade node is missing or inactive: {tid}")
+            threat = dict(row)
+            if threat.get("location_id") != trigger.get("location_id"):
+                cur.close()
+                raise ValueError(f"Cascade node belongs to another location: {tid}")
+            chain_threats.append(threat)
 
         # Get cross-impacts along the chain
-        cumulative_prob = 1.0
+        cumulative_prob = float(trigger.get("probability") or 0)
         chain_effects = []
+        estimated_time_hours = self._estimate_propagation_time(trigger.get("velocity", "moderate"))
         prev_tid = trigger_threat_id
 
         for tid in chain:
@@ -161,16 +179,24 @@ class CascadeModeler:
                 (prev_tid, tid),
             )
             impact = cur.fetchone()
-            if impact:
-                impact = dict(impact)
-                modifier = impact["impact_magnitude"] if impact["impact_type"] in ("amplifies", "triggers") else -impact["impact_magnitude"]
-                cumulative_prob *= (1 + modifier)
-                cumulative_prob = max(0, min(1, cumulative_prob))
-                chain_effects.append({
+            if not impact:
+                cur.close()
+                raise ValueError(f"Missing enabled cascade edge: {prev_tid} -> {tid}")
+            impact = dict(impact)
+            modifier = impact["impact_magnitude"] if impact["impact_type"] in ("amplifies", "triggers") else -impact["impact_magnitude"]
+            target = chain_threats[len(chain_effects)]
+            cumulative_prob *= float(target.get("probability") or 0) * (1 + modifier)
+            cumulative_prob = max(0, min(1, cumulative_prob))
+            lag_hours = max(0, int(impact.get("lag_days") or 0)) * 24
+            velocity_hours = self._estimate_propagation_time(target.get("velocity", "moderate"))
+            estimated_time_hours += lag_hours + velocity_hours
+            chain_effects.append({
                     "from": prev_tid,
                     "to": tid,
                     "impact": impact["impact_type"],
                     "magnitude": impact["impact_magnitude"],
+                    "lag_days": int(impact.get("lag_days") or 0),
+                    "velocity_hours": velocity_hours,
                 })
             prev_tid = tid
 
@@ -181,7 +207,7 @@ class CascadeModeler:
         severity_labels = {1: "low", 2: "medium", 3: "high", 4: "critical"}
 
         max_sev = 1
-        for t in chain_threats:
+        for t in [trigger, *chain_threats]:
             sev = severity_map.get(t.get("severity_potential", "low"), 1)
             if sev > max_sev:
                 max_sev = sev
@@ -193,10 +219,8 @@ class CascadeModeler:
             "cumulative_probability": round(cumulative_prob, 4),
             "chain_effects": chain_effects,
             "total_impact_severity": severity_labels.get(max_sev, "low"),
-            "estimated_time_hours": sum(
-                self._estimate_propagation_time(t.get("velocity", "moderate"))
-                for t in chain_threats
-            ),
+            "estimated_time_hours": estimated_time_hours,
+            "advisory_only": True,
         }
 
     def _estimate_propagation_time(self, velocity: str) -> int:

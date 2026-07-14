@@ -87,8 +87,8 @@ class CrossImpactAnalyzer:
             conditions.append("ci.target_threat_id = %s")
             params.append(target_threat_id)
         if location_id:
-            conditions.append("t.location_id = %s")
-            params.append(location_id)
+            conditions.append("ts.location_id = %s AND tt.location_id = %s")
+            params.extend([location_id, location_id])
 
         where_clause = " AND ".join(conditions)
 
@@ -132,8 +132,11 @@ class CrossImpactAnalyzer:
             JOIN threat ts ON ts.id = ci.source_threat_id
             JOIN threat tt ON tt.id = ci.target_threat_id
             WHERE ci.is_enabled = TRUE
+              AND ts.location_id = %s
+              AND tt.location_id = %s
             ORDER BY ci.impact_magnitude DESC
             """,
+            (location_id, location_id),
         )
         impacts = [dict(r) for r in cur.fetchall()]
         cur.close()
@@ -152,7 +155,7 @@ class CrossImpactAnalyzer:
                 matrix[imp["source_threat_id"]][imp["target_threat_id"]] = imp["impact_magnitude"] * direction
 
         # Detect amplification chains
-        chains = self._detect_amplification_chains(threat_ids, impacts)
+        cycles = self._detect_amplification_chains(threat_ids, impacts)
 
         # Compute summary statistics
         total_impacts = len(impacts)
@@ -166,7 +169,8 @@ class CrossImpactAnalyzer:
             "threats": threats,
             "impacts": impacts,
             "matrix": matrix,
-            "amplification_chains": chains,
+            "amplification_cycles": cycles,
+            "amplification_chains": cycles,  # Deprecated response alias.
             "summary": {
                 "total_threats": len(threats),
                 "total_impacts": total_impacts,
@@ -174,7 +178,8 @@ class CrossImpactAnalyzer:
                 "attenuations": attenuations,
                 "triggers": triggers,
                 "avg_magnitude": round(avg_magnitude, 4),
-                "chain_count": len(chains),
+                "cycle_count": len(cycles),
+                "chain_count": len(cycles),  # Deprecated response alias.
             },
         }
 
@@ -183,21 +188,28 @@ class CrossImpactAnalyzer:
         threat_ids: Dict[str, str],
         impacts: List[Dict[str, Any]],
     ) -> List[List[str]]:
-        """Detect self-reinforcing amplification chains using DFS."""
+        """Detect unique directed amplification cycles using DFS."""
         # Build adjacency list for amplification edges
         adj: Dict[str, List[str]] = {tid: [] for tid in threat_ids}
         for imp in impacts:
-            if imp["impact_type"] == "amplifies":
+            if (imp["impact_type"] == "amplifies"
+                    and imp["source_threat_id"] in adj
+                    and imp["target_threat_id"] in adj):
                 adj[imp["source_threat_id"]].append(imp["target_threat_id"])
 
         # Detect cycles (amplification loops)
-        chains: List[List[str]] = []
+        cycles: List[List[str]] = []
+        seen: set[Tuple[str, ...]] = set()
         visited: set = set()
         path: list = []
 
         def dfs(node: str, start: str):
             if node in visited and node == start and len(path) > 1:
-                chains.append(list(path))
+                rotations = [tuple(path[i:] + path[:i]) for i in range(len(path))]
+                canonical = min(rotations)
+                if canonical not in seen:
+                    seen.add(canonical)
+                    cycles.append(list(canonical))
                 return
             if node in visited:
                 return
@@ -213,7 +225,7 @@ class CrossImpactAnalyzer:
             path.clear()
             dfs(tid, tid)
 
-        return chains
+        return cycles
 
     def simulate_threat_interaction(
         self,
@@ -221,6 +233,8 @@ class CrossImpactAnalyzer:
         scenario: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Simulate combined effect of multiple threats interacting."""
+        if not threat_ids:
+            raise ValueError("At least one threat endpoint is required")
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -235,6 +249,11 @@ class CrossImpactAnalyzer:
             threat_ids,
         )
         threats = {str(r["id"]): dict(r) for r in cur.fetchall()}
+
+        unknown_ids = [tid for tid in threat_ids if tid not in threats]
+        if unknown_ids:
+            cur.close()
+            raise ValueError(f"Unknown or inactive threat endpoint(s): {', '.join(unknown_ids)}")
 
         # Get cross-impacts between these threats
         cur.execute(
@@ -296,6 +315,7 @@ class CrossImpactAnalyzer:
             threat_connectivity[tgt] = threat_connectivity.get(tgt, 0) + 1
 
         hub_threats = sorted(threat_connectivity.items(), key=lambda x: x[1], reverse=True)[:5]
+        threat_names = {str(t["id"]): t["threat_name"] for t in matrix["threats"]}
 
         # Identify critical paths (high-magnitude amplifications)
         critical_paths = [
@@ -312,10 +332,13 @@ class CrossImpactAnalyzer:
             "triggers": matrix["summary"]["triggers"],
             "avg_magnitude": matrix["summary"]["avg_magnitude"],
             "chain_count": matrix["summary"]["chain_count"],
+            "cycle_count": matrix["summary"]["cycle_count"],
             "hub_threats": [
-                {"threat_id": tid, "connections": cnt, "name": matrix["threats"][0]["threat_name"] if matrix["threats"] else "unknown"}
+                {"threat_id": tid, "connections": cnt, "name": threat_names.get(str(tid), "unknown")}
                 for tid, cnt in hub_threats
             ],
             "critical_paths_count": len(critical_paths),
+            "critical_amplification_edges_count": len(critical_paths),
+            "amplification_cycles": matrix["amplification_cycles"],
             "amplification_chains": matrix["amplification_chains"],
         }

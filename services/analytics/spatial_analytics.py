@@ -291,13 +291,13 @@ def compute_habitat_connectivity(conn, location_id: str) -> dict[str, Any]:
             ROUND(ST_Distance(a.geometry::geography, b.geometry::geography)::numeric, 2) AS distance_m
         FROM farm_zone a
         JOIN farm_zone b ON a.id < b.id
-        WHERE a.location_id = %s
+        WHERE a.location_id = %s AND b.location_id = %s
           AND a.geometry IS NOT NULL AND b.geometry IS NOT NULL
           AND a.zone_type IN ('agroforestry', 'syntropic_plot')
           AND b.zone_type IN ('agroforestry', 'syntropic_plot')
         ORDER BY distance_m
         """,
-        (location_id,),
+        (location_id, location_id),
     )
     pairs = cur.fetchall()
     cur.close()
@@ -312,13 +312,13 @@ def compute_habitat_connectivity(conn, location_id: str) -> dict[str, Any]:
             ROUND(ST_Distance(a.geometry::geography, b.geometry::geography)::numeric, 2) AS distance_m
         FROM farm_zone a
         JOIN farm_zone b ON a.id != b.id
-        WHERE a.location_id = %s
+        WHERE a.location_id = %s AND b.location_id = %s
           AND a.geometry IS NOT NULL AND b.geometry IS NOT NULL
           AND a.zone_type IN ('agroforestry', 'syntropic_plot')
           AND b.zone_type IN ('agroforestry', 'syntropic_plot')
         ORDER BY a.id, ST_Distance(a.geometry::geography, b.geometry::geography)
         """,
-        (location_id,),
+        (location_id, location_id),
     )
     nearest_neighbors = cur.fetchall()
     cur.close()

@@ -54,18 +54,19 @@ def create_produce_batch(
     cur = conn.cursor()
     try:
         batch_id = str(uuid.uuid4())
+        batch_number = f"PB-{batch_id}"
         hd = harvest_date or date.today().isoformat()
 
         cur.execute(
             """
             INSERT INTO produce_batch
-                (id, location_id, crop_name, variety, quantity, unit,
-                 harvest_date, organic, field_id, notes, metadata, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'active')
+                (id, location_id, batch_number, crop_name, variety, quantity_kg,
+                 quantity_unit, harvest_date, organic, origin_plot_id, notes, metadata, status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'active')
             RETURNING id
             """,
             (
-                batch_id, location_id, crop_name, variety, quantity, unit,
+                batch_id, location_id, batch_number, crop_name, variety, quantity, unit,
                 hd, organic, field_id, notes, json.dumps(metadata or {}),
             ),
         )
@@ -73,7 +74,7 @@ def create_produce_batch(
         cur.execute(
             """
             INSERT INTO provenance_event
-                (id, batch_id, event_type, actor, location, description, metadata)
+                (id, batch_id, event_type, actor_name, location_name, description, data)
             VALUES (%s, %s, 'batch_created', %s, %s, %s, %s::jsonb)
             """,
             (
@@ -97,6 +98,9 @@ def create_produce_batch(
             "organic": organic,
             "status": "active",
         }
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cur.close()
 
@@ -123,7 +127,7 @@ def record_custody_transfer(
 
         cur.execute(
             """
-            SELECT quantity, unit FROM produce_batch WHERE id = %s
+            SELECT quantity_kg, quantity_unit FROM produce_batch WHERE id = %s
             """,
             (batch_id,),
         )
@@ -136,24 +140,29 @@ def record_custody_transfer(
         if quantity is None:
             quantity = batch_qty
 
+        cur.execute("SELECT COALESCE(MAX(sequence_num), 0) + 1 FROM chain_of_custody WHERE batch_id = %s", (batch_id,))
+        sequence_num = cur.fetchone()[0]
+
         cur.execute(
             """
-            INSERT INTO custody_transfer
-                (id, batch_id, from_actor, to_actor, transfer_type,
-                 location, quantity, unit, notes, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            INSERT INTO chain_of_custody
+                (id, batch_id, sequence_num, from_actor_name, from_actor_type,
+                 to_actor_name, to_actor_type, quantity_kg, quantity_unit,
+                 transfer_method, notes, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
             RETURNING id
             """,
             (
-                transfer_id, batch_id, from_actor, to_actor, transfer_type,
-                location, quantity, batch_unit, notes, json.dumps(metadata or {}),
+                transfer_id, batch_id, sequence_num, from_actor, "sender",
+                to_actor, "recipient", quantity, batch_unit, transfer_type,
+                notes, json.dumps({**(metadata or {}), "location": location}),
             ),
         )
 
         cur.execute(
             """
             INSERT INTO provenance_event
-                (id, batch_id, event_type, actor, location, description, metadata)
+                (id, batch_id, event_type, actor_name, location_name, description, data)
             VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
             """,
             (
@@ -176,6 +185,9 @@ def record_custody_transfer(
             "unit": batch_unit,
             "location": location,
         }
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cur.close()
 
@@ -202,22 +214,22 @@ def record_quality_inspection(
         cur.execute(
             """
             INSERT INTO quality_inspection
-                (id, batch_id, inspection_type, result, grade,
-                 inspector, notes, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                (id, batch_id, inspection_point, overall_grade, inspector_name,
+                 passed, notes, metadata)
+            VALUES (%s, %s, 'harvest', %s, %s, %s, %s, %s::jsonb)
             RETURNING id
             """,
             (
-                inspection_id, batch_id, inspection_type, result, grade,
-                inspector, notes, json.dumps(metadata or {}),
+                inspection_id, batch_id, grade, inspector, result.lower() in ("pass", "passed"),
+                notes, json.dumps({**(metadata or {}), "inspection_type": inspection_type, "result": result}),
             ),
         )
 
         cur.execute(
             """
             INSERT INTO provenance_event
-                (id, batch_id, event_type, actor, location, description, metadata)
-            VALUES (%s, %s, 'quality_inspection', %s, NULL, %s, %s::jsonb)
+                (id, batch_id, event_type, actor_name, description, data)
+            VALUES (%s, %s, 'quality_inspection', %s, %s, %s::jsonb)
             """,
             (
                 str(uuid.uuid4()), batch_id, inspector or "system",
@@ -236,6 +248,9 @@ def record_quality_inspection(
             "grade": grade,
             "inspector": inspector,
         }
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cur.close()
 
@@ -260,25 +275,37 @@ def verify_certification(
     try:
         cert_id = str(uuid.uuid4())
 
+        cur.execute("SELECT location_id FROM produce_batch WHERE id = %s", (batch_id,))
+        batch = cur.fetchone()
+        if not batch:
+            raise ValueError(f"Batch {batch_id} not found")
+        cur.execute("SELECT id FROM certification_type WHERE name = %s OR category = %s ORDER BY name LIMIT 1", (cert_type, cert_type))
+        cert_type_row = cur.fetchone()
+        if not cert_type_row:
+            raise ValueError(f"Certification type {cert_type} not found")
+
         cur.execute(
             """
-            INSERT INTO certification_record
-                (id, batch_id, cert_type, cert_number, issuer,
-                 expiry_date, verified, notes, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            INSERT INTO certification_verify
+                (id, location_id, certification_type_id, batch_id, certificate_number,
+                 issuing_body, issued_date, expiry_date, verified, verified_at,
+                 status, notes, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    CASE WHEN %s THEN NOW() ELSE NULL END, %s, %s, %s::jsonb)
             RETURNING id
             """,
             (
-                cert_id, batch_id, cert_type, cert_number, issuer,
-                expiry_date, verified, notes, json.dumps(metadata or {}),
+                cert_id, batch[0], cert_type_row[0], batch_id, cert_number, issuer,
+                date.today().isoformat(), expiry_date, verified, verified,
+                "verified" if verified else "pending", notes, json.dumps(metadata or {}),
             ),
         )
 
         cur.execute(
             """
             INSERT INTO provenance_event
-                (id, batch_id, event_type, actor, location, description, metadata)
-            VALUES (%s, %s, 'certification_verified', %s, NULL, %s, %s::jsonb)
+                (id, batch_id, event_type, actor_name, description, data)
+            VALUES (%s, %s, 'certification_verified', %s, %s, %s::jsonb)
             """,
             (
                 str(uuid.uuid4()), batch_id, issuer,
@@ -298,6 +325,9 @@ def verify_certification(
             "expiry_date": expiry_date,
             "verified": verified,
         }
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cur.close()
 
@@ -324,14 +354,14 @@ def log_provenance_event(
         cur.execute(
             """
             INSERT INTO provenance_event
-                (id, batch_id, event_type, actor, location,
-                 description, evidence_url, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                (id, batch_id, event_type, actor_name, location_name,
+                 description, evidence_urls, data)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb)
             RETURNING id
             """,
             (
                 event_id, batch_id, event_type, actor, location,
-                description, evidence_url, json.dumps(metadata or {}),
+                description, json.dumps([evidence_url] if evidence_url else []), json.dumps(metadata or {}),
             ),
         )
 
@@ -346,6 +376,9 @@ def log_provenance_event(
             "description": description,
             "evidence_url": evidence_url,
         }
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cur.close()
 
@@ -360,8 +393,9 @@ def get_batch_provenance(conn, batch_id: str) -> dict:
     try:
         cur.execute(
             """
-            SELECT id, batch_id, event_type, actor, location,
-                   description, evidence_url, metadata, created_at
+            SELECT id, batch_id, event_type, actor_name AS actor,
+                   location_name AS location, description,
+                   evidence_urls, data AS metadata, event_time AS created_at
             FROM provenance_event
             WHERE batch_id = %s
             ORDER BY created_at ASC
@@ -373,7 +407,8 @@ def get_batch_provenance(conn, batch_id: str) -> dict:
 
         cur.execute(
             """
-            SELECT id, crop_name, variety, quantity, unit,
+            SELECT id, crop_name, variety, quantity_kg AS quantity,
+                   quantity_unit AS unit,
                    harvest_date, organic, status
             FROM produce_batch WHERE id = %s
             """,
@@ -405,7 +440,8 @@ def get_batch_status(conn, batch_id: str) -> dict:
     try:
         cur.execute(
             """
-            SELECT id, location_id, crop_name, variety, quantity, unit,
+            SELECT id, location_id, crop_name, variety, quantity_kg AS quantity,
+                   quantity_unit AS unit,
                    harvest_date, organic, status, created_at
             FROM produce_batch WHERE id = %s
             """,
@@ -420,10 +456,10 @@ def get_batch_status(conn, batch_id: str) -> dict:
 
         cur.execute(
             """
-            SELECT to_actor, transfer_type, quantity, location, created_at
-            FROM custody_transfer
+            SELECT to_actor_name, transfer_method, quantity_kg, metadata, transfer_date
+            FROM chain_of_custody
             WHERE batch_id = %s
-            ORDER BY created_at DESC
+            ORDER BY sequence_num DESC
             LIMIT 1
             """,
             (batch_id,),
@@ -482,7 +518,8 @@ def list_batches(
 
         cur.execute(
             f"""
-            SELECT id, location_id, crop_name, variety, quantity, unit,
+            SELECT id, location_id, crop_name, variety, quantity_kg AS quantity,
+                   quantity_unit AS unit,
                    harvest_date, organic, status, created_at
             FROM produce_batch
             WHERE {where}
@@ -523,23 +560,25 @@ def record_food_safety(
 
         cur.execute(
             """
-            INSERT INTO food_safety_check
-                (id, batch_id, check_type, result, temperature,
-                 inspector, notes, metadata)
+            INSERT INTO food_safety_record
+                (id, batch_id, record_type, recorded_by, temperature_c,
+                 passed, notes, metadata)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
             RETURNING id
             """,
             (
-                check_id, batch_id, check_type, result, temperature,
-                inspector, notes, json.dumps(metadata or {}),
+                check_id, batch_id,
+                "temperature_log" if check_type in ("temperature", "cold_chain") else check_type,
+                inspector, temperature, result.lower() in ("pass", "passed"),
+                notes, json.dumps({**(metadata or {}), "result": result}),
             ),
         )
 
         cur.execute(
             """
             INSERT INTO provenance_event
-                (id, batch_id, event_type, actor, location, description, metadata)
-            VALUES (%s, %s, 'food_safety_check', %s, NULL, %s, %s::jsonb)
+                (id, batch_id, event_type, actor_name, description, data)
+            VALUES (%s, %s, 'food_safety_check', %s, %s, %s::jsonb)
             """,
             (
                 str(uuid.uuid4()), batch_id, inspector or "system",
@@ -558,6 +597,9 @@ def record_food_safety(
             "temperature": temperature,
             "inspector": inspector,
         }
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cur.close()
 
@@ -572,13 +614,16 @@ def get_certification_status(conn, location_id: str) -> dict:
     try:
         cur.execute(
             """
-            SELECT cr.id, cr.batch_id, cr.cert_type, cr.cert_number,
-                   cr.issuer, cr.expiry_date, cr.verified,
-                   pb.crop_name, pb.quantity, pb.unit
-            FROM certification_record cr
-            JOIN produce_batch pb ON pb.id = cr.batch_id
-            WHERE pb.location_id = %s AND cr.verified = TRUE
-            ORDER BY cr.expiry_date DESC
+            SELECT cv.id, cv.batch_id, ct.name AS cert_type,
+                   cv.certificate_number AS cert_number,
+                   cv.issuing_body AS issuer, cv.expiry_date, cv.verified,
+                   pb.crop_name, pb.quantity_kg AS quantity,
+                   pb.quantity_unit AS unit
+            FROM certification_verify cv
+            JOIN certification_type ct ON ct.id = cv.certification_type_id
+            LEFT JOIN produce_batch pb ON pb.id = cv.batch_id
+            WHERE cv.location_id = %s AND cv.verified = TRUE
+            ORDER BY cv.expiry_date DESC
             """,
             (location_id,),
         )
@@ -623,7 +668,7 @@ def trace_forward(conn, batch_id: str) -> dict:
     try:
         cur.execute(
             """
-            SELECT id, crop_name, quantity, unit, status
+            SELECT id, crop_name, quantity_kg, quantity_unit, status
             FROM produce_batch WHERE id = %s
             """,
             (batch_id,),
@@ -634,27 +679,17 @@ def trace_forward(conn, batch_id: str) -> dict:
 
         cur.execute(
             """
-            SELECT to_actor, transfer_type, quantity, location,
-                   created_at, notes
-            FROM custody_transfer
+            SELECT to_actor_name AS to_actor, transfer_method AS transfer_type,
+                   quantity_kg AS quantity, metadata AS location,
+                   transfer_date AS created_at, notes
+            FROM chain_of_custody
             WHERE batch_id = %s
-            ORDER BY created_at ASC
+            ORDER BY sequence_num ASC
             """,
             (batch_id,),
         )
         cols = [d[0] for d in cur.description]
         transfers = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-        cur.execute(
-            """
-            SELECT DISTINCT batch_id FROM custody_transfer
-            WHERE batch_id IN (
-                SELECT DISTINCT batch_id FROM custody_transfer
-                WHERE batch_id = %s
-            )
-            """,
-            (batch_id,),
-        )
 
         return {
             "batch_id": batch_id,
@@ -678,7 +713,8 @@ def trace_backward(conn, batch_id: str) -> dict:
     try:
         cur.execute(
             """
-            SELECT id, location_id, crop_name, quantity, unit,
+            SELECT id, location_id, crop_name, quantity_kg AS quantity,
+                   quantity_unit AS unit,
                    harvest_date, organic, status
             FROM produce_batch WHERE id = %s
             """,
@@ -693,11 +729,12 @@ def trace_backward(conn, batch_id: str) -> dict:
 
         cur.execute(
             """
-            SELECT from_actor, transfer_type, quantity, location,
-                   created_at, notes
-            FROM custody_transfer
+            SELECT from_actor_name AS from_actor, transfer_method AS transfer_type,
+                   quantity_kg AS quantity, metadata AS location,
+                   transfer_date AS created_at, notes
+            FROM chain_of_custody
             WHERE batch_id = %s
-            ORDER BY created_at ASC
+            ORDER BY sequence_num ASC
             """,
             (batch_id,),
         )
@@ -706,8 +743,8 @@ def trace_backward(conn, batch_id: str) -> dict:
 
         cur.execute(
             """
-            SELECT event_type, actor, location, description,
-                   evidence_url, created_at
+            SELECT event_type, actor_name AS actor, location_name AS location,
+                   description, evidence_urls, event_time AS created_at
             FROM provenance_event
             WHERE batch_id = %s
             ORDER BY created_at ASC
@@ -746,11 +783,13 @@ def get_cold_chain_log(conn, batch_id: str) -> dict:
     try:
         cur.execute(
             """
-            SELECT id, check_type, result, temperature,
-                   inspector, notes, metadata, created_at
-            FROM food_safety_check
-            WHERE batch_id = %s AND check_type IN ('temperature', 'cold_chain')
-            ORDER BY created_at ASC
+            SELECT id, record_type AS check_type,
+                   CASE WHEN passed THEN 'pass' ELSE 'fail' END AS result,
+                   temperature_c AS temperature, recorded_by AS inspector,
+                   notes, metadata, record_time AS created_at
+            FROM food_safety_record
+            WHERE batch_id = %s AND record_type = 'temperature_log'
+            ORDER BY record_time ASC
             """,
             (batch_id,),
         )

@@ -158,6 +158,42 @@ class TestCrossImpactAnalyzer:
         assert "combined_probability" in result
         assert "combined_severity" in result
 
+    def test_location_filters_both_cross_impact_endpoints(self):
+        analyzer, _, mock_cursor = self._make_analyzer()
+        mock_cursor.fetchall.return_value = []
+        analyzer.get_impacts(location_id="loc-1")
+        sql, params = mock_cursor.execute.call_args.args
+        assert "ts.location_id = %s AND tt.location_id = %s" in sql
+        assert params == ["loc-1", "loc-1"]
+
+    def test_amplification_cycles_are_directed_and_deduplicated(self):
+        analyzer, _, _ = self._make_analyzer()
+        impacts = [
+            {"source_threat_id": "a", "target_threat_id": "b", "impact_type": "amplifies"},
+            {"source_threat_id": "b", "target_threat_id": "a", "impact_type": "amplifies"},
+        ]
+        assert analyzer._detect_amplification_chains({"a": "A", "b": "B"}, impacts) == [["a", "b"]]
+
+    def test_unknown_interaction_endpoint_fails_closed(self):
+        analyzer, _, mock_cursor = self._make_analyzer()
+        mock_cursor.fetchall.return_value = []
+        with pytest.raises(ValueError, match="Unknown or inactive"):
+            analyzer.simulate_threat_interaction(["missing"])
+
+    def test_summary_uses_each_hub_name(self):
+        analyzer, _, _ = self._make_analyzer()
+        analyzer.analyze_cross_impact_matrix = MagicMock(return_value={
+            "threats": [{"id": "a", "threat_name": "A"}, {"id": "b", "threat_name": "B"}],
+            "impacts": [{"source_threat_id": "a", "target_threat_id": "b", "impact_type": "amplifies", "impact_magnitude": 0.8}],
+            "amplification_cycles": [], "amplification_chains": [],
+            "summary": {"total_threats": 2, "total_impacts": 1, "amplifications": 1,
+                        "attenuations": 0, "triggers": 0, "avg_magnitude": 0.8,
+                        "cycle_count": 0, "chain_count": 0},
+        })
+        result = analyzer.get_cross_impact_summary("loc-1")
+        assert {hub["name"] for hub in result["hub_threats"]} == {"A", "B"}
+        assert "amplification_cycles" in result
+
 
 # ---------------------------------------------------------------------------
 # Flag Tests
@@ -420,15 +456,51 @@ class TestCascadeModeler:
         # fetchone: trigger threat, chain threat, cross-impact
         mock_cursor.fetchone.side_effect = [
             {"id": "t1", "threat_name": "Drought", "threat_type": "climate",
-             "severity_potential": "high", "probability": 0.7, "velocity": "fast"},
+             "location_id": "loc-1", "severity_potential": "high", "probability": 0.7, "velocity": "fast"},
             {"id": "t2", "threat_name": "Crop Failure", "threat_type": "ecological",
-             "severity_potential": "critical", "probability": 0.5},
+             "location_id": "loc-1", "severity_potential": "critical", "probability": 0.5,
+             "velocity": "rapid"},
             {"impact_type": "amplifies", "impact_magnitude": 0.8,
              "impact_direction": "positive", "lag_days": 30},
         ]
         result = modeler.model_cascade("t1", ["t2"])
         assert "cumulative_probability" in result
         assert "chain_effects" in result
+        assert result["cumulative_probability"] == 0.63
+        assert result["total_impact_severity"] == "critical"
+        assert result["estimated_time_hours"] == 48 + 30 * 24 + 12
+        assert result["advisory_only"] is True
+
+    def test_model_cascade_rejects_repeated_nodes(self):
+        modeler, _, _ = self._make_modeler()
+        with pytest.raises(ValueError, match="repeated"):
+            modeler.model_cascade("t1", ["t2", "t1"])
+
+    def test_model_cascade_enforces_maximum_total_chain_length(self):
+        modeler, _, _ = self._make_modeler()
+        with pytest.raises(ValueError, match="maximum length"):
+            modeler.model_cascade("trigger", [f"t{i}" for i in range(10)])
+
+    def test_model_cascade_rejects_missing_edge(self):
+        modeler, _, mock_cursor = self._make_modeler()
+        mock_cursor.fetchone.side_effect = [
+            {"id": "t1", "location_id": "loc-1", "severity_potential": "high",
+             "probability": 0.7, "velocity": "fast"},
+            {"id": "t2", "location_id": "loc-1", "severity_potential": "critical",
+             "probability": 0.5, "velocity": "rapid"},
+            None,
+        ]
+        with pytest.raises(ValueError, match="Missing enabled cascade edge"):
+            modeler.model_cascade("t1", ["t2"])
+
+    def test_model_cascade_rejects_cross_location_node(self):
+        modeler, _, mock_cursor = self._make_modeler()
+        mock_cursor.fetchone.side_effect = [
+            {"id": "t1", "location_id": "loc-1", "probability": 0.7},
+            {"id": "t2", "location_id": "loc-2", "probability": 0.5},
+        ]
+        with pytest.raises(ValueError, match="another location"):
+            modeler.model_cascade("t1", ["t2"])
 
     def test_get_cascade_risk_score_no_cascades(self):
         modeler, _, mock_cursor = self._make_modeler()

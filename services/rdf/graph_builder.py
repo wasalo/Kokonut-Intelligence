@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import json
-from typing import Any
-
 from services.common.logging import get_logger
-from services.rdf.triple_store import add_triples
+from services.rdf.triple_store import add_triples, delete_triples
 
 logger = get_logger("rdf.graph_builder")
 
@@ -131,6 +128,8 @@ def persist_graph(conn, location_id: str) -> int:
     graph_name = f"location:{location_id}"
     delete_triples(conn, graph_name=graph_name)
     triples = build_full_graph(conn, location_id)
+    for triple in triples:
+        triple["graph_name"] = graph_name
     count = add_triples(conn, triples, graph_name=graph_name)
 
     conn.execute(
@@ -143,10 +142,3 @@ def persist_graph(conn, location_id: str) -> int:
     )
     logger.info("Persisted %d triples for location %s", count, location_id)
     return count
-
-
-def delete_triples(graph_name: str = None, source_table: str = None, source_id: str = None):
-    from services.rdf.triple_store import delete_triples as _delete
-    from services.common.database import get_connection
-    with get_connection() as conn:
-        return _delete(conn, graph_name=graph_name, source_table=source_table, source_id=source_id)
