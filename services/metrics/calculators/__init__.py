@@ -22,6 +22,9 @@ from .baseline_revenue import compute_baseline_revenue
 from .baseline_asset_value import compute_baseline_asset_value
 from .baseline_cash_flow import compute_baseline_cash_flow
 from .baseline_cost import compute_baseline_cost
+from .governed_lead_time import compute_governed_lead_time
+from .first_time_through_yield import compute_first_time_through_yield
+from .rework_rate import compute_rework_rate
 
 CALCULATORS = {
     "value_flowed": compute_value_flowed,
@@ -41,4 +44,7 @@ CALCULATORS = {
     "baseline_asset_value": compute_baseline_asset_value,
     "baseline_cash_flow": compute_baseline_cash_flow,
     "baseline_cost": compute_baseline_cost,
+    "governed_lead_time_days": compute_governed_lead_time,
+    "first_time_through_yield_pct": compute_first_time_through_yield,
+    "rework_rate_pct": compute_rework_rate,
 }

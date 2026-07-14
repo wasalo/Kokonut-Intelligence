@@ -810,6 +810,14 @@
 - Planning portfolio rollup: `python3 -m services.planning portfolio rollup --id UUID`
 - Planning S&OP cockpit: `python3 -m services.planning cockpit show --org-id UUID`
 - Planning tests: `python3 -m pytest tests/test_planning_budget.py tests/test_objective_performance.py tests/test_program_portfolio.py tests/test_sandop.py -v`
+- Value-stream current-state map: `python3 -m services.analytics.value_stream current-state [--location-id UUID]`
+- Value-stream WIP by stage: `python3 -m services.analytics.value_stream wip [--location-id UUID]`
+- Value-stream lead times: `python3 -m services.analytics.value_stream lead-times [--location-id UUID]`
+- Value-stream first-time-through yield: `python3 -m services.analytics.value_stream fty [--location-id UUID]`
+- Value-stream bottleneck ranking: `python3 -m services.analytics.value_stream bottleneck [--location-id UUID]`
+- Value-stream report: `python3 -m services.export.report_generator --type value_stream_map [--location-id UUID]`
+- Compute flow metrics: `python3 -m services.metrics --compute --metric governed_lead_time_days --location-id UUID` (also `first_time_through_yield_pct`, `rework_rate_pct`)
+- Value-stream tests: `python3 -m pytest tests/test_value_stream.py tests/test_flow_metrics.py -v`
 
 ## Development Notes
 
