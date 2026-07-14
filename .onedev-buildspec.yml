@@ -13,13 +13,19 @@ jobs:
     optional: false
   - type: CommandStep
     name: command
-    runInContainer: false
+    runInContainer: true
     image: python:3.11
     interpreter:
       type: PosixInterpreter
       shell: sh
       commands: |
         set -e
+        export DEBIAN_FRONTEND=noninteractive
+        # Install Docker CLI + compose plugin and Python build deps at runtime
+        # (the job container runs with the host Docker socket mounted).
+        apt-get update && apt-get install -y --no-install-recommends \
+          docker.io docker-compose-plugin gcc libpq-dev python3-dev
+        # Materialize an ephemeral, gitignored .env from OneDev job secrets.
         printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
         pip install -r requirements.txt
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse
