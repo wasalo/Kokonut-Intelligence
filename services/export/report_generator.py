@@ -25,6 +25,7 @@ import psycopg2.extras
 
 from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
 from ..analytics.value_stream import generate_value_stream_map
+from ..analytics.process_health import generate_process_health
 from .business_plan import generate_business_plan
 
 
@@ -2998,6 +2999,7 @@ REPORT_GENERATORS = {
     "data_stream_summary": generate_data_stream_summary,
      "value_stream_map": generate_value_stream_map,
      "business_plan": generate_business_plan,
+     "process_health": generate_process_health,
 }
 
 

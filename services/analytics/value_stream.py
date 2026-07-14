@@ -20,7 +20,8 @@ import psycopg2.extras
 from services.ingestion.base import get_db
 
 # (table, lifecycle_column) for the governed publication pipeline.
-# Every table here carries a location_id, enabling per-location scoping.
+# Most tables carry a location_id (enabling per-location scoping); agent_task
+# does not, so it is excluded from location-scoped queries.
 _PIPELINE = [
     ("data_stream_post", "status"),
     ("ai_summary", "status"),
@@ -31,6 +32,8 @@ _PIPELINE = [
     ("harvest_event", "status"),
     ("agent_task", "review_status"),
 ]
+
+_NO_LOCATION = {"agent_task", "ai_summary"}
 
 # VSM value classification of each lifecycle stage.
 STAGES = {
@@ -45,9 +48,13 @@ STAGES = {
 def _entity_loc_sql(loc: Optional[str]):
     legs = []
     for tbl, _ in _PIPELINE:
-        leg = f"SELECT '{tbl}' AS et, id, location_id FROM {tbl}"
+        loc_expr = "NULL::uuid AS location_id" if tbl in _NO_LOCATION else "location_id"
+        leg = f"SELECT '{tbl}' AS et, id, {loc_expr} FROM {tbl}"
         if loc:
-            leg += " WHERE location_id = %(loc)s"
+            if tbl in _NO_LOCATION:
+                leg += " WHERE 1 = 0"  # no location dimension; exclude when scoping
+            else:
+                leg += " WHERE location_id = %(loc)s"
         legs.append(leg)
     return " UNION ALL ".join(legs), ({"loc": loc} if loc else {})
 
@@ -57,9 +64,12 @@ def wip_by_stage(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]
     legs, params = [], []
     for tbl, col in _PIPELINE:
         leg = f"SELECT '{tbl}' AS entity_type, {col} AS status, COUNT(*) AS wip FROM {tbl}"
-        if location_id:
+        if location_id and tbl not in _NO_LOCATION:
             leg += " WHERE location_id = %s"
             params.append(location_id)
+        elif location_id and tbl in _NO_LOCATION:
+            leg += " WHERE 1 = 0"
+        leg += f" GROUP BY {col}"
         legs.append(leg)
     sql = " UNION ALL ".join(legs) + " ORDER BY entity_type, wip DESC"
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)

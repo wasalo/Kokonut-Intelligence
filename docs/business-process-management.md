@@ -15,9 +15,9 @@ board, and auto-escalation on top of that foundation.
 | Execution / Rules | event bus, scheduler, `decision` engine | exists |
 | Monitoring / BAM | `value_stream.py` + `lifecycle_transition` | exists (batch) |
 | Process Mining | `services/analytics/process_mining.py` | **Phase A** |
-| Predictive BPM | `services/analytics/predictive_bpm.py` | planned |
-| SPC / Control | `services/systems/process_control.py` | planned |
-| Process-health board | `services/analytics/process_health.py` | planned |
+| Predictive BPM | `services/analytics/predictive_bpm.py` | **Phase B** |
+| SPC / Control | `services/systems/process_control.py` | **Phase C** |
+| Process-health board | `services/analytics/process_health.py` | **Phase D** |
 | Auto-escalation | `services/management/escalation.py` | planned |
 
 ## Phase A — Process mining
@@ -58,3 +58,20 @@ python3 -m services.analytics.process_mining persist [--entity-type TYPE]
 ```bash
 python3 -m pytest tests/test_process_mining.py -v
 ```
+
+## Phase D — Process-health board
+
+Single BAM-style view combining VSM metrics (WIP, lead time, FTY,
+bottlenecks), process-mining conformance, and optional predictive-breach
+risk. Registered as the `process_health` report type and exposed via a CLI.
+
+```bash
+python3 -m services.analytics.process_health board [--location-id UUID] [--sla-target-hours 72]
+python3 -m services.export.report_generator --type process_health [--location-id UUID]
+```
+
+> Process mining surfaced two latent VSM bugs that were fixed as part of
+> this phase: `wip_by_stage` was missing a `GROUP BY`, and `_entity_loc_sql`
+> assumed every pipeline table had `location_id` (it does not for
+> `agent_task` and `ai_summary`).
+
