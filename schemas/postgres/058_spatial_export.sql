@@ -103,7 +103,7 @@ SELECT
     f.name AS farm_name,
     p.location_id,
     l.name AS location_name,
-    p.area_ha,
+    p.area,
     p.boundary,
     ST_AsGeoJSON(p.boundary, 6) AS boundary_geojson,
     p.center,
