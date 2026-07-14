@@ -20,11 +20,32 @@ def _transitions(spec):
 
 
 def test_builtin_specs_validate_and_have_invariants():
-    assert {spec.id for spec in list_specs()} == {"carbon_retirement", "event_bus_delivery"}
+    assert {spec.id for spec in list_specs()} == {
+        "carbon_retirement",
+        "event_bus_delivery",
+        "work_item",
+    }
     for spec in list_specs():
         validate(spec)
         assert spec.invariants
         assert spec.source_refs
+
+
+def test_work_item_spec_covers_lifecycle_and_is_acyclic_outside_revisions():
+    from services.workflow_specs.work_item import WORK_ITEM
+
+    transitions = _transitions(WORK_ITEM)
+    # Forward lifecycle edges exist.
+    assert ("draft", "assigned", "assign") in transitions
+    assert ("assigned", "in_progress", "start") in transitions
+    assert ("in_progress", "done", "complete") in transitions
+    assert ("in_progress", "blocked", "block") in transitions
+    assert ("blocked", "in_progress", "unblock") in transitions
+    # Cancellation reachable from every non-terminal state.
+    for state in ("draft", "assigned", "in_progress", "blocked"):
+        assert any(cs == state and ns == "cancelled" for cs, ns, _ in transitions)
+    # No agent path reaches a governed publish/verify state.
+    assert all(step.actor != "agent" for step in WORK_ITEM.steps)
 
 
 def test_event_bus_spec_covers_retry_completion_and_operator_disposition():

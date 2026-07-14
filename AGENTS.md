@@ -785,6 +785,16 @@
 - Workflow specification render: `python3 -m services.workflow_specs render event_bus_delivery --format mermaid`
 - Regenerate workflow documentation: `python3 scripts/render-workflow-specs.py`
 - Workflow specification tests: `python3 -m pytest tests/test_workflow_specs.py tests/test_workflow_spec_conformance.py -v`
+- Management work-item create: `python3 -m services.management work-item create --org-id UUID --title "Task"`
+- Management work-item list: `python3 -m services.management work-item list --org-id UUID`
+- Management work-item show: `python3 -m services.management work-item show --id UUID`
+- Management work-item assign: `python3 -m services.management work-item assign --id UUID --assignee-type staff --assignee-id UUID`
+- Management work-item transition: `python3 -m services.management work-item transition --id UUID --to-status in_progress --actor-type worker`
+- Management work-item SLA sweep: `python3 -m services.management work-item sla --org-id UUID`
+- Management responsibility assign: `python3 -m services.management responsibility assign --entity-type location --entity-id UUID --party-type staff --party-id UUID --role accountable`
+- Management responsibility list: `python3 -m services.management responsibility list --entity-type location --entity-id UUID`
+- Management responsibility list-by-party: `python3 -m services.management responsibility list-party --party-type staff --party-id UUID`
+- Management tests: `python3 -m pytest tests/test_management_workflow.py tests/test_responsibility_assignment.py -v`
 
 ## Development Notes
 
