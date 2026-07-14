@@ -255,13 +255,14 @@ def cmd_create_backcast(args):
         current_gap_analysis=args.gaps,
         milestones=milestones,
     )
-    print(_json(result))
+    plan_id = result[0]["plan_id"] if result else None
+    print(_json({"plan_id": plan_id, "milestones": result}))
 
 
 def cmd_backcast_progress(args):
     from services.threatcasting.backcasting import Backcaster
     backcaster = Backcaster(conn=_get_conn())
-    result = backcaster.get_progress(args.narrative_id)
+    result = backcaster.get_progress(args.plan_id or args.narrative_id)
     print(_json(result))
 
 
@@ -663,7 +664,9 @@ def main():
     p.set_defaults(func=cmd_create_backcast)
 
     p = sub.add_parser("backcast-progress", help="Backcast progress")
-    p.add_argument("--narrative-id", required=True)
+    identifier = p.add_mutually_exclusive_group(required=True)
+    identifier.add_argument("--plan-id", help="Canonical backcast plan UUID (preferred)")
+    identifier.add_argument("--narrative-id", help="Legacy narrative UUID; fails if it has multiple plans")
     p.set_defaults(func=cmd_backcast_progress)
 
     # Cascades

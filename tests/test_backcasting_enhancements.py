@@ -183,13 +183,16 @@ class TestPrincipleManager:
 
     def test_check_direction_toward(self):
         pm, _, mock_cursor = self._make_manager()
-        mock_cursor.fetchall.return_value = [
-            {"alignment_score": 0.8, "current_value": 0.8, "target_value": 1.0,
-             "gap": -0.2, "principle_name": "P1", "invert_direction": False,
-             "milestone_order": 1, "milestone_status": "completed"},
-            {"alignment_score": 0.6, "current_value": 0.6, "target_value": 1.0,
-             "gap": -0.4, "principle_name": "P2", "invert_direction": False,
-             "milestone_order": 2, "milestone_status": "in_progress"},
+        mock_cursor.fetchall.side_effect = [
+            [{"id": "plan-1"}],
+            [
+                {"alignment_score": 0.8, "current_value": 0.8, "target_value": 1.0,
+                 "gap": -0.2, "principle_name": "P1", "invert_direction": False,
+                 "milestone_order": 1, "milestone_status": "completed"},
+                {"alignment_score": 0.6, "current_value": 0.6, "target_value": 1.0,
+                 "gap": -0.4, "principle_name": "P2", "invert_direction": False,
+                 "milestone_order": 2, "milestone_status": "in_progress"},
+            ],
         ]
         result = pm.check_direction("n-1")
         assert result["overall_direction"] == "toward"
@@ -197,26 +200,32 @@ class TestPrincipleManager:
 
     def test_check_direction_away(self):
         pm, _, mock_cursor = self._make_manager()
-        mock_cursor.fetchall.return_value = [
-            {"alignment_score": -0.8, "current_value": 0.2, "target_value": 1.0,
-             "gap": -0.8, "principle_name": "P1", "invert_direction": False,
-             "milestone_order": 1, "milestone_status": "completed"},
-            {"alignment_score": -0.5, "current_value": 0.5, "target_value": 1.0,
-             "gap": -0.5, "principle_name": "P2", "invert_direction": False,
-             "milestone_order": 2, "milestone_status": "in_progress"},
+        mock_cursor.fetchall.side_effect = [
+            [{"id": "plan-1"}],
+            [
+                {"alignment_score": -0.8, "current_value": 0.2, "target_value": 1.0,
+                 "gap": -0.8, "principle_name": "P1", "invert_direction": False,
+                 "milestone_order": 1, "milestone_status": "completed"},
+                {"alignment_score": -0.5, "current_value": 0.5, "target_value": 1.0,
+                 "gap": -0.5, "principle_name": "P2", "invert_direction": False,
+                 "milestone_order": 2, "milestone_status": "in_progress"},
+            ],
         ]
         result = pm.check_direction("n-1")
         assert result["overall_direction"] == "away"
 
     def test_check_direction_mixed(self):
         pm, _, mock_cursor = self._make_manager()
-        mock_cursor.fetchall.return_value = [
-            {"alignment_score": 0.8, "current_value": 0.8, "target_value": 1.0,
-             "gap": -0.2, "principle_name": "P1", "invert_direction": False,
-             "milestone_order": 1, "milestone_status": "completed"},
-            {"alignment_score": -0.5, "current_value": 0.5, "target_value": 1.0,
-             "gap": -0.5, "principle_name": "P2", "invert_direction": False,
-             "milestone_order": 2, "milestone_status": "in_progress"},
+        mock_cursor.fetchall.side_effect = [
+            [{"id": "plan-1"}],
+            [
+                {"alignment_score": 0.8, "current_value": 0.8, "target_value": 1.0,
+                 "gap": -0.2, "principle_name": "P1", "invert_direction": False,
+                 "milestone_order": 1, "milestone_status": "completed"},
+                {"alignment_score": -0.5, "current_value": 0.5, "target_value": 1.0,
+                 "gap": -0.5, "principle_name": "P2", "invert_direction": False,
+                 "milestone_order": 2, "milestone_status": "in_progress"},
+            ],
         ]
         result = pm.check_direction("n-1")
         assert result["overall_direction"] == "mixed"
@@ -234,13 +243,13 @@ class TestPrincipleManager:
             {"narrative_id": "n-1", "location_id": "loc-1"},
             (0.3,),
         ]
-        # fetchall for principles
-        mock_cursor.fetchall.return_value = [
-            {"id": "p-1", "narrative_id": "n-1", "source_system": "metric",
-             "metric_key": "soil_carbon_delta", "comparison_operator": "gte",
-             "target_value": 0.0, "target_value_upper": None,
-             "invert_direction": False, "principle_name": "Carbon",
-             "principle_type": "ecological", "crisp_dimension": None, "weight": 1.0},
+        mock_cursor.fetchall.side_effect = [
+            [{"id": "plan-1"}],
+            [{"id": "p-1", "narrative_id": "n-1", "source_system": "metric",
+              "metric_key": "soil_carbon_delta", "comparison_operator": "gte",
+              "target_value": 0.0, "target_value_upper": None,
+              "invert_direction": False, "principle_name": "Carbon",
+              "principle_type": "ecological", "crisp_dimension": None, "weight": 1.0}],
         ]
         result = pm.automated_gap_analysis("n-1")
         assert result["total_principles"] == 1
@@ -352,6 +361,7 @@ class TestBackcasterChallenges:
 
     def test_challenge_assumption(self):
         bc, mock_conn, mock_cursor = self._make_backcaster()
+        mock_cursor.fetchall.return_value = [{"id": "plan-1"}]
         mock_cursor.fetchone.return_value = {
             "id": "ac-1", "plan_id": "plan-1", "narrative_id": "n-1",
             "original_assumption": "Original", "challenged_assumption": "Challenged",
@@ -484,15 +494,16 @@ class TestPathComparator:
 
     def test_score_cost_fewer_resources(self):
         pc, _, mock_cursor = self._make_comparator()
-        mock_cursor.fetchall.return_value = [
-            {"resource_requirements": "Tractor"},
+        mock_cursor.fetchall.side_effect = [
+            [{"id": "plan-1"}],
+            [{"resource_requirements": "Tractor"}],
         ]
         score = pc._score_cost(mock_cursor, "n-1")
         assert 0.0 <= score <= 1.0
 
     def test_score_cost_no_resources(self):
         pc, _, mock_cursor = self._make_comparator()
-        mock_cursor.fetchall.return_value = []
+        mock_cursor.fetchall.side_effect = [[{"id": "plan-1"}], []]
         score = pc._score_cost(mock_cursor, "n-1")
         assert score is None
 
@@ -505,6 +516,7 @@ class TestPathComparator:
 
     def test_score_time_short(self):
         pc, _, mock_cursor = self._make_comparator()
+        mock_cursor.fetchall.return_value = [{"id": "plan-1"}]
         mock_cursor.fetchone.return_value = {
             "milestone_target_date": date.today() + timedelta(days=30)
         }
@@ -513,11 +525,18 @@ class TestPathComparator:
 
     def test_score_time_long(self):
         pc, _, mock_cursor = self._make_comparator()
+        mock_cursor.fetchall.return_value = [{"id": "plan-1"}]
         mock_cursor.fetchone.return_value = {
             "milestone_target_date": date.today() + timedelta(days=365 * 6)
         }
         score = pc._score_time(mock_cursor, "n-1")
         assert score < 0.1  # 6 years ≈ very low score
+
+    def test_cost_and_time_unknown_for_ambiguous_narrative(self):
+        pc, _, mock_cursor = self._make_comparator()
+        mock_cursor.fetchall.return_value = [{"id": "plan-1"}, {"id": "plan-2"}]
+        assert pc._score_cost(mock_cursor, "n-1") is None
+        assert pc._score_time(mock_cursor, "n-1") is None
 
     def test_score_risk_low(self):
         pc, _, mock_cursor = self._make_comparator()

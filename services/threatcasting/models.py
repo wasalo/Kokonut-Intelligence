@@ -255,7 +255,39 @@ class DesirabilityAssessmentCreate(BaseModel):
 # ---------------------------------------------------------------------------
 # Backcast Plan
 # ---------------------------------------------------------------------------
+class BackcastPlanHeader(BaseModel):
+    """Canonical backcast plan record, separate from its milestones."""
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    narrative_id: str
+    location_id: str
+    plan_name: str
+    future_state_description: str
+    current_gap_analysis: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class BackcastMilestone(BaseModel):
+    """Normalized milestone belonging to a canonical backcast plan."""
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    plan_id: str
+    milestone_order: int
+    milestone_description: str
+    milestone_target_date: Optional[date] = None
+    milestone_status: str = "pending"
+    dependencies: List[str] = Field(default_factory=list)
+    responsible_party: Optional[str] = None
+    resource_requirements: Optional[str] = None
+    completion_evidence: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class BackcastPlan(BaseModel):
+    """Flattened milestone compatibility model."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     narrative_id: str
     location_id: str
@@ -276,6 +308,7 @@ class BackcastPlan(BaseModel):
 
 
 class BackcastPlanCreate(BaseModel):
+    """Compatibility request model accepted by the plan creation service."""
     narrative_id: str
     location_id: str
     plan_name: str

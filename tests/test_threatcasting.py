@@ -420,24 +420,33 @@ class TestBackcaster:
 
     def test_get_progress_returns_structure(self):
         backcaster, _, mock_cursor = self._make_backcaster()
-        mock_cursor.fetchall.return_value = [
-            {"id": "m1", "milestone_order": 1, "milestone_status": "completed",
-             "milestone_target_date": None, "milestone_description": "m1",
-             "plan_name": "Test Plan", "resource_requirements": None},
-            {"id": "m2", "milestone_order": 2, "milestone_status": "pending",
-             "milestone_target_date": None, "milestone_description": "m2",
-             "plan_name": "Test Plan", "resource_requirements": None},
+        mock_cursor.fetchone.return_value = {
+            "id": "p1", "narrative_id": "n-1", "plan_name": "Test Plan"
+        }
+        mock_cursor.fetchall.side_effect = [
+            [{"id": "p1"}],
+            [
+                {"id": "m1", "milestone_order": 1, "milestone_status": "completed",
+                 "milestone_target_date": None, "milestone_description": "m1",
+                 "resource_requirements": None},
+                {"id": "m2", "milestone_order": 2, "milestone_status": "pending",
+                 "milestone_target_date": None, "milestone_description": "m2",
+                 "resource_requirements": None},
+            ],
+            [{"milestone_id": "m2", "depends_on_milestone_id": "m1"}],
         ]
         result = backcaster.get_progress("n-1")
         assert "total" in result
         assert "completed" in result
         assert "progress_pct" in result
+        assert result["next_milestone"]["id"] == "m2"
+        assert result["advisory_only"] is True
 
-    def test_get_progress_empty(self):
+    def test_get_progress_unknown_identifier(self):
         backcaster, _, mock_cursor = self._make_backcaster()
         mock_cursor.fetchall.return_value = []
-        result = backcaster.get_progress("n-1")
-        assert result["total"] == 0
+        with pytest.raises(ValueError, match="not found"):
+            backcaster.get_progress("n-1")
 
 
 # ---------------------------------------------------------------------------
@@ -470,6 +479,52 @@ class TestCascadeModeler:
         assert result["total_impact_severity"] == "critical"
         assert result["estimated_time_hours"] == 48 + 30 * 24 + 12
         assert result["advisory_only"] is True
+
+    def test_create_cascade_inserts_ordered_normalized_steps(self):
+        modeler, mock_conn, mock_cursor = self._make_modeler()
+        modeler.model_cascade = MagicMock(return_value={})
+        mock_cursor.fetchone.return_value = {
+            "id": "cascade-1", "failure_chain": [], "cascade_name": "Test"
+        }
+
+        result = modeler.create_cascade("t1", "Test", failure_chain=["t2", "t3"])
+
+        modeler.model_cascade.assert_called_once_with("t1", ["t2", "t3"])
+        step_calls = [
+            call for call in mock_cursor.execute.call_args_list
+            if "INSERT INTO threat_cascade_step" in call.args[0]
+        ]
+        assert [call.args[1][1:] for call in step_calls] == [(1, "t2"), (2, "t3")]
+        assert result["failure_chain"] == ["t2", "t3"]
+        mock_conn.commit.assert_called_once()
+        mock_conn.rollback.assert_not_called()
+
+    def test_create_cascade_invalid_chain_rolls_back_before_parent_insert(self):
+        modeler, mock_conn, mock_cursor = self._make_modeler()
+        modeler.model_cascade = MagicMock(side_effect=ValueError("invalid chain"))
+
+        with pytest.raises(ValueError, match="invalid chain"):
+            modeler.create_cascade("t1", "Test", failure_chain=["t2"])
+
+        assert not any(
+            "INSERT INTO threat_cascade" in call.args[0]
+            for call in mock_cursor.execute.call_args_list
+        )
+        mock_conn.rollback.assert_called_once()
+        mock_conn.commit.assert_not_called()
+
+    def test_get_cascade_preserves_legacy_failure_chain(self):
+        modeler, _, mock_cursor = self._make_modeler()
+        mock_cursor.fetchone.return_value = {
+            "id": "cascade-1",
+            "failure_chain": ["legacy-t2"],
+            "normalized_failure_chain": ["step-t2"],
+        }
+
+        result = modeler.get_cascade("cascade-1")
+
+        assert result["failure_chain"] == ["legacy-t2"]
+        assert "normalized_failure_chain" not in result
 
     def test_model_cascade_rejects_repeated_nodes(self):
         modeler, _, _ = self._make_modeler()

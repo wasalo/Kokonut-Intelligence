@@ -269,8 +269,8 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
         """
         SELECT COUNT(*) AS pending_count, MIN(bac.created_at) AS oldest_pending_at
         FROM backcast_assumption_challenge bac
-        JOIN threat_backcast_plan tbp ON tbp.id = bac.plan_id
-        WHERE tbp.location_id = %s AND bac.outcome = 'pending'
+        JOIN backcast_plan bp ON bp.id = bac.backcast_plan_id
+        WHERE bp.location_id = %s AND bac.outcome = 'pending'
         """,
         (location_id,),
     )

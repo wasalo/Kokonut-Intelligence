@@ -485,13 +485,16 @@ class PathComparator:
 
     def _score_cost(self, cur, narrative_id: str) -> Optional[float]:
         """Score cost: fewer resource requirements = higher score (0-1)."""
+        plan_id = self._resolve_narrative_plan_id(cur, narrative_id)
+        if plan_id is None:
+            return None
         cur.execute(
             """
             SELECT resource_requirements
             FROM threat_backcast_plan
-            WHERE narrative_id = %s AND resource_requirements IS NOT NULL
+            WHERE plan_id = %s AND resource_requirements IS NOT NULL
             """,
-            (narrative_id,),
+            (plan_id,),
         )
         rows = cur.fetchall()
         if not rows:
@@ -509,15 +512,18 @@ class PathComparator:
 
     def _score_time(self, cur, narrative_id: str) -> Optional[float]:
         """Score time: earlier completion = higher score (0-1)."""
+        plan_id = self._resolve_narrative_plan_id(cur, narrative_id)
+        if plan_id is None:
+            return None
         cur.execute(
             """
             SELECT milestone_target_date
             FROM threat_backcast_plan
-            WHERE narrative_id = %s AND milestone_target_date IS NOT NULL
+            WHERE plan_id = %s AND milestone_target_date IS NOT NULL
             ORDER BY milestone_target_date DESC
             LIMIT 1
             """,
-            (narrative_id,),
+            (plan_id,),
         )
         row = cur.fetchone()
         if not row or not row.get("milestone_target_date"):
@@ -536,6 +542,22 @@ class PathComparator:
             return 1.0
         years = days_remaining / 365.25
         return round(max(0.0, 1.0 - (years / 5.0)), 4)
+
+    def _resolve_narrative_plan_id(self, cur, narrative_id: str) -> Optional[str]:
+        """Return the sole plan for a narrative; ambiguous paths remain unscored."""
+        cur.execute(
+            "SELECT id FROM backcast_plan WHERE narrative_id = %s ORDER BY created_at",
+            (narrative_id,),
+        )
+        plan_ids = list(dict.fromkeys(str(row["id"]) for row in cur.fetchall()))
+        if len(plan_ids) != 1:
+            if len(plan_ids) > 1:
+                logger.warning(
+                    "Narrative %s has multiple backcast plans; cost/time scores are unknown",
+                    narrative_id,
+                )
+            return None
+        return plan_ids[0]
 
     def _score_risk(self, cur, narrative_id: str, location_id: str) -> Optional[float]:
         """Score risk: lower linked threat severity = higher score (0-1)."""

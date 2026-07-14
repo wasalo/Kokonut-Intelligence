@@ -735,7 +735,7 @@
 - Horizon create: `python3 -m services.threatcasting create-horizon --location-id UUID --name "5-Year" --years 5 --focus climate ecological`
 - Horizon overview: `python3 -m services.threatcasting horizon-overview --horizon-id UUID`
 - Backcast create: `python3 -m services.threatcasting create-backcast --narrative-id UUID --location-id UUID --name "Drought Preparedness" --future-state "..." --gaps "..."`
-- Backcast progress: `python3 -m services.threatcasting backcast-progress --narrative-id UUID`
+- Backcast progress: `python3 -m services.threatcasting backcast-progress --plan-id UUID` (preferred; legacy `--narrative-id UUID` is accepted when the narrative has exactly one plan)
 - Cascade model: `python3 -m services.threatcasting model-cascade --trigger-id UUID --chain UUID1,UUID2`
 - Cascade risk: `python3 -m services.threatcasting cascade-risk --location-id UUID`
 - Intelligence: `python3 -m services.threatcasting intelligence --location-id UUID`

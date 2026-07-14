@@ -39,25 +39,45 @@ class CascadeModeler:
     ) -> Dict[str, Any]:
         """Create a new cascade scenario."""
         conn = self._get_conn()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cascade_id = str(uuid.uuid4())
+        chain = failure_chain or []
+        cur = None
 
-        cur.execute(
-            """
-            INSERT INTO threat_cascade
-                (id, trigger_threat_id, cascade_name, description,
-                 failure_chain, mitigation_strategies, early_warning_signals)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-            RETURNING *
-            """,
-            (
-                cascade_id, trigger_threat_id, cascade_name, description,
-                failure_chain or [], mitigation_strategies or [], early_warning_signals or [],
-            ),
-        )
-        result = dict(cur.fetchone())
-        conn.commit()
-        cur.close()
+        try:
+            self.model_cascade(trigger_threat_id, chain)
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(
+                """
+                INSERT INTO threat_cascade
+                    (id, trigger_threat_id, cascade_name, description,
+                     failure_chain, mitigation_strategies, early_warning_signals)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING *
+                """,
+                (
+                    cascade_id, trigger_threat_id, cascade_name, description,
+                    [], mitigation_strategies or [], early_warning_signals or [],
+                ),
+            )
+            result = dict(cur.fetchone())
+            for step_order, threat_id in enumerate(chain, start=1):
+                cur.execute(
+                    """
+                    INSERT INTO threat_cascade_step
+                        (cascade_id, step_order, threat_id)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (cascade_id, step_order, threat_id),
+                )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            if cur is not None:
+                cur.close()
+
+        result["failure_chain"] = chain
 
         logger.info("Created cascade %s: %s", cascade_id, cascade_name)
         return result
@@ -69,7 +89,13 @@ class CascadeModeler:
 
         cur.execute(
             """
-            SELECT c.*, t.threat_name AS trigger_threat_name
+            SELECT c.*, t.threat_name AS trigger_threat_name,
+                   ARRAY(
+                       SELECT s.threat_id
+                       FROM threat_cascade_step s
+                       WHERE s.cascade_id = c.id
+                       ORDER BY s.step_order
+                   ) AS normalized_failure_chain
             FROM threat_cascade c
             JOIN threat t ON t.id = c.trigger_threat_id
             WHERE c.id = %s
@@ -78,7 +104,12 @@ class CascadeModeler:
         )
         result = cur.fetchone()
         cur.close()
-        return dict(result) if result else None
+        if not result:
+            return None
+        cascade = dict(result)
+        normalized = cascade.pop("normalized_failure_chain", [])
+        cascade["failure_chain"] = cascade.get("failure_chain") or normalized
+        return cascade
 
     def get_cascades(
         self,
@@ -106,7 +137,13 @@ class CascadeModeler:
 
         cur.execute(
             f"""
-            SELECT c.*, t.threat_name AS trigger_threat_name
+            SELECT c.*, t.threat_name AS trigger_threat_name,
+                   ARRAY(
+                       SELECT s.threat_id
+                       FROM threat_cascade_step s
+                       WHERE s.cascade_id = c.id
+                       ORDER BY s.step_order
+                   ) AS normalized_failure_chain
             FROM threat_cascade c
             JOIN threat t ON t.id = c.trigger_threat_id
             WHERE {where_clause}
@@ -114,7 +151,12 @@ class CascadeModeler:
             """,
             params,
         )
-        results = [dict(r) for r in cur.fetchall()]
+        results = []
+        for row in cur.fetchall():
+            cascade = dict(row)
+            normalized = cascade.pop("normalized_failure_chain", [])
+            cascade["failure_chain"] = cascade.get("failure_chain") or normalized
+            results.append(cascade)
         cur.close()
         return results
 

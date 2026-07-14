@@ -337,6 +337,14 @@ class PrincipleManager:
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+        try:
+            canonical_plan_id = self._resolve_plan_id(cur, plan_id)
+        except ValueError as exc:
+            cur.close()
+            if "not found" in str(exc):
+                return {"overall_direction": "unknown", "milestone_details": [], "confidence": 0.0}
+            raise
+
         cur.execute(
             """
             SELECT pa.alignment_score, pa.current_value, pa.target_value, pa.gap,
@@ -344,10 +352,10 @@ class PrincipleManager:
             FROM backcast_principle_alignment pa
             JOIN backcast_principle bp ON bp.id = pa.principle_id
             JOIN threat_backcast_plan tbp ON tbp.id = pa.milestone_id
-            WHERE tbp.narrative_id = %s
+            WHERE tbp.plan_id = %s
             ORDER BY tbp.milestone_order
             """,
-            (plan_id,),
+            (canonical_plan_id,),
         )
         rows = [dict(r) for r in cur.fetchall()]
         cur.close()
@@ -387,14 +395,17 @@ class PrincipleManager:
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # Get the narrative and location from the plan
+        try:
+            canonical_plan_id = self._resolve_plan_id(cur, plan_id)
+        except ValueError as exc:
+            cur.close()
+            if "not found" in str(exc):
+                return {"narrative_id": plan_id, "gaps": [], "summary": "No plan found"}
+            raise
+
         cur.execute(
-            """
-            SELECT DISTINCT narrative_id, location_id
-            FROM threat_backcast_plan
-            WHERE narrative_id = %s
-            """,
-            (plan_id,),
+            "SELECT narrative_id, location_id FROM backcast_plan WHERE id = %s",
+            (canonical_plan_id,),
         )
         row = cur.fetchone()
         if not row:
@@ -479,22 +490,30 @@ class PrincipleManager:
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
+        try:
+            canonical_plan_id = self._resolve_plan_id(cur, plan_id)
+        except ValueError as exc:
+            cur.close()
+            if "not found" in str(exc):
+                return {"plan_id": plan_id, "milestones_evaluated": 0, "results": []}
+            raise
+
         # Get completed milestones with target dates
         cur.execute(
             """
             SELECT id, milestone_description, milestone_target_date, completion_evidence,
                    location_id, narrative_id
             FROM threat_backcast_plan
-            WHERE narrative_id = %s AND milestone_status = 'completed'
+            WHERE plan_id = %s AND milestone_status = 'completed'
             ORDER BY milestone_order
             """,
-            (plan_id,),
+            (canonical_plan_id,),
         )
         completed = [dict(r) for r in cur.fetchall()]
         cur.close()
 
         if not completed:
-            return {"plan_id": plan_id, "milestones_evaluated": 0, "results": []}
+            return {"plan_id": canonical_plan_id, "milestones_evaluated": 0, "results": []}
 
         # Get principles for this narrative
         narrative_id = completed[0]["narrative_id"] if completed else plan_id
@@ -551,7 +570,7 @@ class PrincipleManager:
             avg_combined = round(sum(all_scores) / len(all_scores), 4)
 
         return {
-            "plan_id": plan_id,
+            "plan_id": canonical_plan_id,
             "milestones_evaluated": len(completed),
             "average_effectiveness": avg_combined,
             "results": results,
@@ -644,6 +663,12 @@ class PrincipleManager:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _resolve_plan_id(self, cur, identifier: str) -> str:
+        """Resolve a canonical plan ID while preserving legacy single-plan inputs."""
+        from services.threatcasting.backcasting import Backcaster
+
+        return Backcaster(conn=self._get_conn())._resolve_plan_id(identifier, cur)
 
     def _get_milestone(self, cur, milestone_id: str) -> Optional[Dict[str, Any]]:
         """Get a milestone by ID."""

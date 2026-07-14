@@ -2,7 +2,7 @@
 
 Kokonut's threatcasting service records plausible threats, observable warning signals, interactions, narratives, and response paths for a location. Backcasting starts from a described future state and works backward through ordered milestones. These tools support structured judgment; they do not predict the future, prove causality, authorize action, or replace human review.
 
-The implementation is defined by `schemas/postgres/159_threatcasting.sql`, `schemas/postgres/160_backcasting_enhancements.sql`, and `services/threatcasting/`.
+The implementation is defined by `schemas/postgres/159_threatcasting.sql`, `schemas/postgres/160_backcasting_enhancements.sql`, `schemas/postgres/172_backcast_cascade_normalization.sql`, and `services/threatcasting/`.
 
 ## Concepts
 
@@ -14,7 +14,7 @@ The implementation is defined by `schemas/postgres/159_threatcasting.sql`, `sche
 - **Horizon:** A location-scoped planning interval with focus areas, review timing, and a desirability framework. Threats are linked to horizons through relevance, time-to-impact, and priority metadata.
 - **Desirability assessment:** A weighted score from -1 to 1 for dimensions in GNH, 8 Forms of Capital, SDG, wellbeing, composite, or custom frameworks.
 - **Cascade:** A proposed failure chain rooted in a trigger threat, with probability, severity, timing, warning, and mitigation metadata.
-- **Backcast plan:** A set of rows representing ordered milestones for one narrative and location. Each milestone has its own status, target date, dependencies, responsible party, resources, and completion evidence.
+- **Backcast plan:** A canonical plan header identified by `plan_id`, with normalized milestone rows for one narrative and location. Each milestone has its own status, target date, dependencies, responsible party, resources, and completion evidence.
 - **Principle:** A desired condition linked to a narrative, optionally evaluated from a verified metric or a CRISP dimension.
 - **Path comparison:** A comparison of at least two narrative routes using system heuristics and optional human scores.
 
@@ -92,8 +92,8 @@ Without supplied dimension assessments at the Python API level, `evaluate-narrat
 ### Backcasting and principles
 
 ```bash
-python3 -m services.threatcasting create-backcast --narrative-id UUID --location-id UUID --name "Drought preparedness" --future-state "..." --gaps "..." --milestones '[{"order":1,"description":"Install storage","target_date":"2027-06-30"}]'
-python3 -m services.threatcasting backcast-progress --narrative-id UUID
+python3 -m services.threatcasting create-backcast --narrative-id UUID --location-id UUID --name "Drought preparedness" --future-state "..." --gaps "..." --milestones '[{"key":"storage","order":1,"description":"Install storage","target_date":"2027-06-30"},{"key":"training","order":2,"description":"Train operators","depends_on":["storage"]}]'
+python3 -m services.threatcasting backcast-progress --plan-id UUID
 
 python3 -m services.threatcasting create-principle --narrative-id UUID --location-id UUID --name "Carbon negative" --description "Net carbon sequestration" --type ecological --metric-key soil_carbon_delta --operator gte --target 0 --source-system metric
 python3 -m services.threatcasting list-principles --narrative-id UUID
@@ -104,7 +104,9 @@ python3 -m services.threatcasting gap-analysis --plan-id UUID
 python3 -m services.threatcasting effectiveness --plan-id UUID
 ```
 
-In the last three commands, `--plan-id` is interpreted by the implementation as a narrative ID, because a backcast is represented by multiple milestone rows rather than a separate plan header.
+`create-backcast` returns `plan_id` plus the preserved `milestones` array. Use that canonical plan UUID for subsequent commands. Within the input JSON, `key` is a request-local milestone label and `depends_on` is an array of those labels; the service resolves them to milestone UUID dependencies and rejects unknown references, self-dependencies, duplicate order values, and cycles. The older `dependencies` JSON property remains accepted as an alias.
+
+`backcast-progress --plan-id` is preferred. `--narrative-id` remains available for legacy callers, but exactly one identifier is required and narrative lookup fails when a narrative has multiple plans. Progress reports dependency readiness and `blocked_by` from the DAG. The reported `critical_path` is a deterministic planning heuristic based on target dates, with milestone order as a fallback; it and all readiness output are advisory and do not authorize execution.
 
 ### Assumptions and path comparison
 
@@ -124,7 +126,7 @@ python3 -m services.threatcasting premortem-review --premortem-id UUID --result 
 
 ## Data Model
 
-Schema 159 provides ten core tables:
+Schemas 159 and 172 provide the core threatcasting tables and normalized backcast plan header:
 
 | Table | Purpose |
 | --- | --- |
@@ -136,7 +138,8 @@ Schema 159 provides ten core tables:
 | `threat_horizon` | Planning horizons |
 | `threat_horizon_threat` | Horizon-to-threat linkage |
 | `threat_desirability_assessment` | Dimension-level narrative assessments |
-| `threat_backcast_plan` | One row per ordered backcast milestone |
+| `backcast_plan` | Canonical plan header and `plan_id` |
+| `threat_backcast_plan` | One normalized row per ordered backcast milestone; flattened plan fields remain for compatibility |
 | `threat_cascade` | Persisted cascade scenarios |
 
 Schemas 160 and 167 add:
@@ -149,7 +152,9 @@ Schemas 160 and 167 add:
 | `backcast_path_comparison` | Criteria, system scores, human scores, and selected winner |
 | `backcast_path_premortem` | Private failure modes, assumptions, warning signals, mitigations, and human review state |
 
-Foreign keys enforce most parent relationships. Arrays such as cascade chains, milestone dependencies, and comparison narrative IDs are UUID arrays rather than foreign-key junction tables, so the database does not validate every referenced UUID in those arrays.
+Foreign keys enforce most parent relationships. Milestone dependencies use the normalized `backcast_milestone_dependency` table. Other arrays, such as compatibility cascade chains and comparison narrative IDs, do not validate every referenced UUID at the array-element level.
+
+Assumption challenges should use the canonical `--plan-id` returned by creation. `--narrative-id` is retained on that command as a consistency check against the plan. The CLI does not expose a separate `--milestone-id` selector because the current challenge handler stores a compatibility milestone reference and cannot safely accept both identifiers independently.
 
 Several `v_public_*` views expose active threat summaries, flag status, cross-impacts, narratives, horizons, and cascades. Unlike some other Kokonut public views, schema 159 does not gate these views on a verified or published farm registry record. Access control must therefore be enforced by the API/Directus deployment if the records are sensitive.
 
