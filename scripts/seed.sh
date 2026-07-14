@@ -77,11 +77,11 @@ fi
 echo ""
 echo "Applying Directus permissions..."
 PERMISSIONS_FILE="$PROJECT_DIR/config/directus/permissions.sql"
-if [ -f "$PERMISSIONS_FILE" ]; then
+if [ -f "$PERMISSIONS_FILE" ] && docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=0 -U kokonut -d kokonut_intelligence -c "SELECT 1 FROM directus_roles LIMIT 1" >/dev/null 2>&1; then
     docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PERMISSIONS_FILE"
     echo "Directus permissions applied."
 else
-    echo "No permissions file found at $PERMISSIONS_FILE — skipping."
+    echo "Directus not running or no permissions file — skipping."
 fi
 
 # Seed expense categories
@@ -95,6 +95,12 @@ echo ""
 echo "Seeding metric definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/000_metric_definitions.sql"
 echo "Metric definitions seeded."
+
+# Seed metric governance fields
+echo ""
+echo "Seeding metric governance fields..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/022_metric_governance.sql"
+echo "Metric governance fields seeded."
 
 # Seed VSM flow metrics (governed lead-time / FTY / rework definitions)
 echo ""

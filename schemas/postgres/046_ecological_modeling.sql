@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS ecological_interaction (
     description TEXT,
     evidence_urls TEXT[],
     evidence_hashes TEXT[],
+    evidence_maturity INTEGER DEFAULT 1 REFERENCES evidence_maturity_level(level),
     notes TEXT,
     status VARCHAR(50) DEFAULT 'draft',
     verified_by UUID,
@@ -54,12 +55,15 @@ CREATE TABLE IF NOT EXISTS ecological_interaction (
     updated_by UUID
 );
 
+ALTER TABLE ecological_interaction ADD COLUMN IF NOT EXISTS evidence_maturity INTEGER DEFAULT 1 REFERENCES evidence_maturity_level(level);
+
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_location ON ecological_interaction(location_id);
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_zone ON ecological_interaction(zone_id);
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_species_a ON ecological_interaction(species_a_name);
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_species_b ON ecological_interaction(species_b_name);
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_type ON ecological_interaction(interaction_type);
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_status ON ecological_interaction(status);
+CREATE INDEX IF NOT EXISTS idx_eco_interaction_maturity ON ecological_interaction(evidence_maturity);
 
 ALTER TABLE ecological_interaction DROP CONSTRAINT IF EXISTS chk_eco_interaction_type;
 ALTER TABLE ecological_interaction ADD CONSTRAINT chk_eco_interaction_type CHECK (interaction_type IN (

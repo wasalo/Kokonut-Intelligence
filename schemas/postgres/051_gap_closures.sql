@@ -2,6 +2,14 @@
 -- 051_gap_closures.sql — Q1, Q3, Q4, Q5, Q11 gap closures
 -- ============================================================
 
+-- Q11: Add lifecycle status to species_observation
+ALTER TABLE species_observation ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'draft';
+ALTER TABLE species_observation DROP CONSTRAINT IF EXISTS chk_species_obs_status;
+ALTER TABLE species_observation ADD CONSTRAINT chk_species_obs_status CHECK (status IN (
+    'draft', 'submitted', 'verified', 'published', 'rejected'
+));
+CREATE INDEX IF NOT EXISTS idx_species_obs_status ON species_observation(status);
+
 -- Q5: Add irrigation_mm_used to resource_consumption for rainfall-vs-irrigation comparison
 ALTER TABLE resource_consumption ADD COLUMN IF NOT EXISTS irrigation_mm_used NUMERIC(8,2);
 ALTER TABLE resource_consumption ADD COLUMN IF NOT EXISTS rainfall_mm_during_period NUMERIC(8,2);

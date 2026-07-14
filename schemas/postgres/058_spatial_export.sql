@@ -88,9 +88,10 @@ SELECT
     ST_AsGeoJSON(l.center, 6) AS center_geojson,
     l.status,
     fr.id AS farm_registry_id,
-    fr.farm_name
+    fm.name AS farm_name
 FROM location l
 LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
+LEFT JOIN farm fm ON fm.id = fr.farm_id
 WHERE l.status IN ('active', 'verified', 'published')
   AND l.boundary IS NOT NULL;
 
@@ -101,9 +102,9 @@ SELECT
     p.name AS plot_name,
     p.farm_id,
     f.name AS farm_name,
-    p.location_id,
+    f.location_id,
     l.name AS location_name,
-    p.area_ha,
+    p.area,
     p.boundary,
     ST_AsGeoJSON(p.boundary, 6) AS boundary_geojson,
     p.center,
@@ -111,11 +112,17 @@ SELECT
     p.status
 FROM plot p
 JOIN farm f ON p.farm_id = f.id
-JOIN location l ON p.location_id = l.id
+JOIN location l ON f.location_id = l.id
 WHERE l.status IN ('active', 'verified', 'published')
   AND p.boundary IS NOT NULL;
 
 -- 5. Buffer zone GeoJSON-ready view
+ALTER TABLE buffer_zone ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+ALTER TABLE buffer_zone DROP CONSTRAINT IF EXISTS chk_buffer_zone_status;
+ALTER TABLE buffer_zone ADD CONSTRAINT chk_buffer_zone_status CHECK (status IN (
+    'active', 'inactive', 'maintenance_needed'
+));
+
 CREATE OR REPLACE VIEW v_spatial_buffer_geojson AS
 SELECT
     b.id,
