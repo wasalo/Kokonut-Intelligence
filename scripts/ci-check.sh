@@ -167,7 +167,7 @@ PY
 }
 
 check "revenue multiplier" "run_db_pytest tests/test_revenue_multiplier.py"
-check "heartland durability" "run_db_pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py tests/test_management_workflow.py tests/test_responsibility_assignment.py"
+check "heartland durability" "run_db_pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py tests/test_management_workflow.py tests/test_responsibility_assignment.py tests/test_planning_budget.py tests/test_objective_performance.py tests/test_program_portfolio.py tests/test_sandop.py"
 echo ""
 
 # 5. Directus metadata checks

@@ -27,4 +27,4 @@ def list_specs() -> Tuple[WorkflowSpec, ...]:
 
 def load_builtin_specs() -> None:
     """Import built-in specifications once."""
-    from . import carbon_retirement, event_bus, work_item  # noqa: F401
+    from . import carbon_retirement, event_bus, work_item, budget, objective, project  # noqa: F401

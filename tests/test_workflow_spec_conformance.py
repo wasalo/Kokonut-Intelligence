@@ -24,11 +24,53 @@ def test_builtin_specs_validate_and_have_invariants():
         "carbon_retirement",
         "event_bus_delivery",
         "work_item",
+        "budget",
+        "objective",
+        "project",
     }
     for spec in list_specs():
         validate(spec)
         assert spec.invariants
         assert spec.source_refs
+
+
+def test_project_spec_blocks_without_note_and_is_terminal():
+    from services.workflow_specs.project import PROJECT
+
+    transitions = _transitions(PROJECT)
+    assert ("draft", "active", "start") in transitions
+    assert ("active", "on_hold", "hold") in transitions
+    assert ("active", "done", "complete") in transitions
+    for state in ("draft", "active", "on_hold"):
+        assert any(cs == state and ns == "cancelled" for cs, ns, _ in transitions)
+    done = next(step for step in PROJECT.steps if step.id == "project_done")
+    assert done.terminal
+
+
+def test_objective_spec_review_lifecycle_and_closed_terminal():
+    from services.workflow_specs.objective import OBJECTIVE
+
+    transitions = _transitions(OBJECTIVE)
+    for state in ("on_track", "at_risk", "off_track"):
+        assert any(cs == state and ns == "closed" for cs, ns, _ in transitions)
+    closed = next(step for step in OBJECTIVE.steps if step.id == "closed")
+    assert closed.terminal
+    assert not closed.transitions
+
+
+def test_budget_spec_requires_human_approval_and_lifecycle():
+    from services.workflow_specs.budget import BUDGET
+
+    transitions = _transitions(BUDGET)
+    assert ("draft", "approved", "approve") in transitions
+    assert ("approved", "active", "activate") in transitions
+    assert ("active", "closed", "close") in transitions
+    # Cancellation reachable from every non-terminal state.
+    for state in ("draft", "approved", "active"):
+        assert any(cs == state and ns == "cancelled" for cs, ns, _ in transitions)
+    approve = next(step for step in BUDGET.steps if step.id == "budget_approve")
+    assert approve.human_approval
+    assert approve.actor == "human reviewer"
 
 
 def test_work_item_spec_covers_lifecycle_and_is_acyclic_outside_revisions():

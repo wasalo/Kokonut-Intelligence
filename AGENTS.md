@@ -795,6 +795,21 @@
 - Management responsibility list: `python3 -m services.management responsibility list --entity-type location --entity-id UUID`
 - Management responsibility list-by-party: `python3 -m services.management responsibility list-party --party-type staff --party-id UUID`
 - Management tests: `python3 -m pytest tests/test_management_workflow.py tests/test_responsibility_assignment.py -v`
+- Planning budget create: `python3 -m services.planning budget create --org-id UUID --name "2026 Plan" --fiscal-year 2026 --currency USD`
+- Planning budget add line: `python3 -m services.planning budget add-line --plan-id UUID --category opex --period 2026-Q1 --planned-amount 10000`
+- Planning budget approve: `python3 -m services.planning budget approve --id UUID --approved-by UUID`
+- Planning budget list: `python3 -m services.planning budget list --org-id UUID`
+- Planning budget variance: `python3 -m services.planning budget variance --id UUID`
+- Planning objective assign KPI: `python3 -m services.planning objective assign-kpi --id UUID --name "Yield" --target 2500 --unit kg`
+- Planning objective review: `python3 -m services.planning objective review --id UUID --status-at-review on_track --actor-type manager`
+- Planning objective health: `python3 -m services.planning objective health --id UUID`
+- Planning portfolio create program: `python3 -m services.planning portfolio create-program --org-id UUID --name "Regenerative rollout"`
+- Planning portfolio create project: `python3 -m services.planning portfolio create-project --org-id UUID --name "Plot A" --program-id UUID`
+- Planning portfolio list programs: `python3 -m services.planning portfolio list-programs --org-id UUID`
+- Planning portfolio start/hold/resume/complete/cancel: `python3 -m services.planning portfolio start --id UUID`
+- Planning portfolio rollup: `python3 -m services.planning portfolio rollup --id UUID`
+- Planning S&OP cockpit: `python3 -m services.planning cockpit show --org-id UUID`
+- Planning tests: `python3 -m pytest tests/test_planning_budget.py tests/test_objective_performance.py tests/test_program_portfolio.py tests/test_sandop.py -v`
 
 ## Development Notes
 
