@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS ecological_interaction (
     updated_by UUID
 );
 
+ALTER TABLE ecological_interaction ADD COLUMN IF NOT EXISTS evidence_maturity INTEGER DEFAULT 1 REFERENCES evidence_maturity_level(level);
+
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_location ON ecological_interaction(location_id);
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_zone ON ecological_interaction(zone_id);
 CREATE INDEX IF NOT EXISTS idx_eco_interaction_species_a ON ecological_interaction(species_a_name);
