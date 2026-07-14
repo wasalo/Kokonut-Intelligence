@@ -33,6 +33,7 @@ jobs:
         printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
         # Start databases on the host (CI override publishes to 127.0.0.1).
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse
+        rm -f .env.sops
         ./scripts/seed.sh
         # Isolate Python deps (host Python 3.11).
         python3 -m venv .venv
