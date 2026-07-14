@@ -96,6 +96,12 @@ echo "Seeding metric definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/000_metric_definitions.sql"
 echo "Metric definitions seeded."
 
+# Seed metric governance fields
+echo ""
+echo "Seeding metric governance fields..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/022_metric_governance.sql"
+echo "Metric governance fields seeded."
+
 # Seed VSM flow metrics (governed lead-time / FTY / rework definitions)
 echo ""
 echo "Seeding VSM flow metric definitions..."
