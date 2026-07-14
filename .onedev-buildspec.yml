@@ -20,14 +20,18 @@ jobs:
       commands: |
         set -e
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-        # Defeat any agent-shell shim/alias that drops the `compose` subcommand:
-        # always invoke the real docker binary with all arguments intact.
         docker() { command /usr/bin/docker "$*"; }
         export -f docker
-        # Diagnostic: confirm compose is reachable inside the agent environment.
-        echo "PATH=$PATH"; docker --version; docker compose version || echo "COMPOSE_PLUGIN_MISSING"
-        # Ephemeral, gitignored .env from OneDev job secrets.
-        # docker compose AND Python's load_dotenv() both read this file.
+        # Install docker compose plugin if missing (persists on host after first build).
+        if ! docker compose version >/dev/null 2>&1; then
+          echo "Installing docker compose plugin..."
+          mkdir -p /usr/libexec/docker/cli-plugins
+          curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
+            -o /usr/libexec/docker/cli-plugins/docker-compose
+          chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+        fi
+        docker --version; docker compose version
+        # Ephemeral .env from OneDev job secrets (read by compose and load_dotenv).
         printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
         # Start databases on the host (CI override publishes to 127.0.0.1).
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse
