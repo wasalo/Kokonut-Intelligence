@@ -13,7 +13,7 @@ import json
 from typing import Any, Dict, List, Optional
 
 from services.ingestion.base import get_db
-from services.analytics import value_stream, process_mining, predictive_bpm
+from services.analytics import value_stream, process_mining as pm, predictive_bpm
 
 
 DEFAULT_SLA_HOURS = 72.0
@@ -31,11 +31,11 @@ def _count_instances(conn, entity_type: str) -> int:
 
 def _conformance(conn) -> List[Dict[str, Any]]:
     out = []
-    for etype, _col in value_stream._PIPELINE:
+    for etype in value_stream.INSTRUMENTED_TYPES:
         total = _count_instances(conn, etype)
         if total == 0:
             continue
-        findings = process_mining.check_conformance(conn, etype)
+        findings = pm.check_conformance(conn, etype)
         nonconf = len(findings)
         ratio = round(1.0 - nonconf / total, 4) if total else None
         out.append(
@@ -54,18 +54,34 @@ def build_health(
     location_id: Optional[str] = None,
     sla_target_hours: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Assemble the process-health board."""
+    """Assemble the process-health board across all instrumented entity types."""
+    # Model-driven VSM lead time + first-time-through yield (per entity type).
+    lead_times: List[Dict[str, Any]] = []
+    fty: Dict[str, Any] = {}
+    for etype, _col in value_stream._PIPELINE:
+        model = pm.load_model(conn, etype)
+        goal = pm.goal_state(model) or "published"
+        init = pm.initial_state(model) or "draft"
+        fail = pm.fail_state(model)
+        lead_times += value_stream.stage_lead_times(
+            conn, location_id, initial_status=init, goal_status=goal, entity_type=etype
+        )
+        fty[etype] = value_stream.first_time_through(
+            conn, location_id, goal_status=goal,
+            fail_status=fail, entity_type=etype,
+        )
+
     health: Dict[str, Any] = {
         "scope": {"location_id": location_id},
         "wip_by_stage": value_stream.wip_by_stage(conn, location_id),
-        "stage_lead_times_days": value_stream.stage_lead_times(conn, location_id),
-        "first_time_through_yield": value_stream.first_time_through(conn, location_id),
+        "stage_lead_times_days": lead_times,
+        "first_time_through_yield": fty,
         "bottleneck_ranking": value_stream.bottleneck_ranking(conn, location_id),
         "conformance": _conformance(conn),
     }
     if sla_target_hours:
         risk = []
-        for etype, _col in value_stream._PIPELINE:
+        for etype in value_stream.INSTRUMENTED_TYPES:
             found = predictive_bpm.breaches(conn, etype, sla_target_hours)
             if found:
                 risk.append({"entity_type": etype, "at_risk": len(found)})

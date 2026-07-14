@@ -29,18 +29,28 @@ CREATE INDEX IF NOT EXISTS idx_pv_conforming ON process_variant(entity_type, is_
 -- Canonical governed lifecycle model (single source of truth for conformance).
 -- draft -> submitted -> verified -> published, with rejected reachable from any
 -- non-terminal state and published/rejected acting as terminal.
+--
+-- Keyed by (entity_type, status): the default '*' row holds the original
+-- 5-state publication vocabulary; 186 generalizes this to per-entity-type
+-- models (work_item, market_order, metric_value, ...).
 CREATE TABLE IF NOT EXISTS process_model (
-    status VARCHAR(50) PRIMARY KEY,
+    entity_type VARCHAR(50) NOT NULL DEFAULT '*',
+    status VARCHAR(50) NOT NULL,
     is_terminal BOOLEAN NOT NULL DEFAULT FALSE,
-    allowed_next JSONB NOT NULL
+    allowed_next JSONB NOT NULL,
+    is_goal BOOLEAN NOT NULL DEFAULT FALSE,
+    is_initial BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (entity_type, status)
 );
 
-INSERT INTO process_model (status, is_terminal, allowed_next) VALUES
-    ('draft',     FALSE, '["submitted","rejected"]'),
-    ('submitted', FALSE, '["verified","rejected"]'),
-    ('verified',  FALSE, '["published","rejected"]'),
-    ('published', TRUE,  '[]'),
-    ('rejected',  TRUE,  '[]')
-ON CONFLICT (status) DO UPDATE SET
+INSERT INTO process_model (entity_type, status, is_terminal, allowed_next, is_goal, is_initial) VALUES
+    ('*', 'draft',     FALSE, '["submitted","rejected"]',     FALSE, TRUE),
+    ('*', 'submitted', FALSE, '["verified","rejected"]',      FALSE, FALSE),
+    ('*', 'verified',  FALSE, '["published","rejected"]',     FALSE, FALSE),
+    ('*', 'published', TRUE,  '[]',                           TRUE,  FALSE),
+    ('*', 'rejected',  TRUE,  '[]',                           FALSE, FALSE)
+ON CONFLICT (entity_type, status) DO UPDATE SET
     is_terminal = EXCLUDED.is_terminal,
-    allowed_next = EXCLUDED.allowed_next;
+    allowed_next = EXCLUDED.allowed_next,
+    is_goal = EXCLUDED.is_goal,
+    is_initial = EXCLUDED.is_initial;

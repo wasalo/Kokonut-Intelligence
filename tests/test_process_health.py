@@ -51,12 +51,17 @@ def _seed_one(conn):
 
 
 def _cleanup(conn, eid):
-    with conn.cursor() as cur:
-        cur.execute(
-            "DELETE FROM lifecycle_transition WHERE entity_type = %s AND entity_id = %s",
-            (PIPE, str(eid)),
-        )
-    conn.commit()
+    conn.rollback()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM lifecycle_transition WHERE entity_type = %s "
+                "AND entity_id = %s::uuid",
+                (PIPE, str(eid)),
+            )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def test_build_health_structure():

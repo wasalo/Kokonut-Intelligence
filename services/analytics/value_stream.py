@@ -19,9 +19,9 @@ import psycopg2.extras
 
 from services.ingestion.base import get_db
 
-# (table, lifecycle_column) for the governed publication pipeline.
-# Most tables carry a location_id (enabling per-location scoping); agent_task
-# does not, so it is excluded from location-scoped queries.
+# (table, lifecycle_column) for the governed publication pipeline (5-state
+# vocabulary). Most tables carry a location_id (enabling per-location scoping);
+# agent_task does not, so it is excluded from location-scoped queries.
 _PIPELINE = [
     ("data_stream_post", "status"),
     ("ai_summary", "status"),
@@ -32,6 +32,10 @@ _PIPELINE = [
     ("harvest_event", "status"),
     ("agent_task", "review_status"),
 ]
+
+# All entity types mined/monitored (includes metric_value, which has no status
+# column but is tracked via the verified boolean -> draft/verified mapping).
+INSTRUMENTED_TYPES = [t for t, _ in _PIPELINE] + ["metric_value"]
 
 _NO_LOCATION = {"agent_task", "ai_summary"}
 
@@ -63,13 +67,13 @@ def wip_by_stage(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]
     """Current work-in-process counts per stage across the pipeline."""
     legs, params = [], []
     for tbl, col in _PIPELINE:
-        leg = f"SELECT '{tbl}' AS entity_type, {col} AS status, COUNT(*) AS wip FROM {tbl}"
+        leg = f"SELECT '{tbl}' AS entity_type, {col}::text AS status, COUNT(*) AS wip FROM {tbl}"
         if location_id and tbl not in _NO_LOCATION:
             leg += " WHERE location_id = %s"
             params.append(location_id)
         elif location_id and tbl in _NO_LOCATION:
             leg += " WHERE 1 = 0"
-        leg += f" GROUP BY {col}"
+        leg += f" GROUP BY {col}::text"
         legs.append(leg)
     sql = " UNION ALL ".join(legs) + " ORDER BY entity_type, wip DESC"
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -80,13 +84,23 @@ def wip_by_stage(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]
 def stage_lead_times(
     conn, location_id: Optional[str] = None,
     period_start: Optional[str] = None, period_end: Optional[str] = None,
+    initial_status: str = "draft", goal_status: str = "published",
+    entity_type: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """Average draft->published lead time (days) per entity type."""
+    """Average entry->goal lead time (days) per entity type.
+
+    ``initial_status``/``goal_status`` let callers drive this for any model
+    (e.g. work_item draft->done, market_order pending->delivered).
+    """
     ps = period_start or "1970-01-01"
     pe = period_end or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     el_sql, el_params = _entity_loc_sql(location_id)
     params: Dict[str, Any] = dict(el_params)
-    params.update(ps=ps, pe=pe)
+    params.update(ps=ps, pe=pe, goal=goal_status, initial=initial_status)
+    et_filter = ""
+    if entity_type:
+        et_filter = " AND lt.entity_type = %(etype)s"
+        params["etype"] = entity_type
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(f"""
         WITH entity_loc AS ({el_sql}),
@@ -94,14 +108,16 @@ def stage_lead_times(
             SELECT lt.entity_type, lt.entity_id, MIN(lt.transitioned_at) AS published_at
             FROM lifecycle_transition lt
             JOIN entity_loc el ON el.et = lt.entity_type AND el.id = lt.entity_id
-            WHERE lt.to_status = 'published'
+            WHERE lt.to_status = %(goal)s
               AND lt.transitioned_at >= %(ps)s AND lt.transitioned_at <= %(pe)s
+              {et_filter}
             GROUP BY lt.entity_type, lt.entity_id
         ),
         start AS (
             SELECT entity_type, entity_id, MIN(transitioned_at) AS start_at
-            FROM lifecycle_transition
-            WHERE from_status = 'draft' OR to_status = 'draft'
+            FROM lifecycle_transition lt
+            WHERE (from_status = %(initial)s OR to_status = %(initial)s)
+              {et_filter}
             GROUP BY entity_type, entity_id
         )
         SELECT p.entity_type,
@@ -118,13 +134,19 @@ def stage_lead_times(
 def first_time_through(
     conn, location_id: Optional[str] = None,
     period_start: Optional[str] = None, period_end: Optional[str] = None,
+    goal_status: str = "published", fail_status: str = "rejected",
+    entity_type: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Share of published entities that never entered a rejected state."""
+    """Share of goal-reaching entities that never entered a failure terminal."""
     ps = period_start or "1970-01-01"
     pe = period_end or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     el_sql, el_params = _entity_loc_sql(location_id)
     params: Dict[str, Any] = dict(el_params)
-    params.update(ps=ps, pe=pe)
+    params.update(ps=ps, pe=pe, goal=goal_status, fail=fail_status)
+    et_filter = ""
+    if entity_type:
+        et_filter = " AND lt.entity_type = %(etype)s"
+        params["etype"] = entity_type
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(f"""
         WITH entity_loc AS ({el_sql}),
@@ -132,10 +154,11 @@ def first_time_through(
             SELECT DISTINCT lt.entity_type, lt.entity_id
             FROM lifecycle_transition lt
             JOIN entity_loc el ON el.et = lt.entity_type AND el.id = lt.entity_id
-            WHERE lt.to_status = 'published'
+            WHERE lt.to_status = %(goal)s
               AND lt.transitioned_at >= %(ps)s AND lt.transitioned_at <= %(pe)s
+              {et_filter}
         ),
-        rej AS (SELECT DISTINCT entity_type, entity_id FROM lifecycle_transition WHERE to_status = 'rejected')
+        rej AS (SELECT DISTINCT entity_type, entity_id FROM lifecycle_transition lt WHERE to_status = %(fail)s {et_filter})
         SELECT COUNT(*) AS published_count,
                COUNT(*) FILTER (WHERE r.entity_type IS NULL) AS first_time_through
         FROM pub p

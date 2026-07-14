@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -40,6 +41,10 @@ def find_at_risk(
     """All in-flight instances predicted to breach the SLA across governed types."""
     at_risk: List[Dict[str, Any]] = []
     for etype in _distinct_entity_types(conn):
+        if etype == "work_item":
+            # work items carry their own due_at / sla_at -> per-instance SLA.
+            at_risk.extend(_work_item_risks(conn, sla_target_hours, threshold))
+            continue
         for f in pp.breaches(conn, etype, sla_target_hours, threshold):
             at_risk.append(
                 {
@@ -50,6 +55,43 @@ def find_at_risk(
                 }
             )
     return at_risk
+
+
+def _work_item_risks(conn, default_sla: float, threshold: float) -> List[Dict[str, Any]]:
+    """Per-instance SLA breach for work_item using due_at / sla_at when present."""
+    inflight = pp.current_state_of(conn, "work_item")
+    if not inflight:
+        return []
+    eids = list(inflight.keys())
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
+        "SELECT id, due_at, sla_at FROM work_item WHERE id::text = ANY(%s)",
+        (eids,),
+    )
+    due = {str(r["id"]): r for r in cur.fetchall()}
+    now = datetime.now(timezone.utc)
+    out: List[Dict[str, Any]] = []
+    for eid, info in inflight.items():
+        row = due.get(eid)
+        target = default_sla
+        if row:
+            due_at = row.get("due_at") or row.get("sla_at")
+            if due_at:
+                target = max(0.0, (due_at - now).total_seconds() / 3600.0)
+        pred = pp.predict(
+            conn, "work_item", info["current_state"],
+            age_hours=info["age_hours"], sla_target_hours=target,
+        )
+        if pred["breach_probability"] is not None and pred["breach_probability"] >= threshold:
+            out.append(
+                {
+                    "entity_type": "work_item",
+                    "entity_id": eid,
+                    "breach_probability": pred["breach_probability"],
+                    "predicted_total_hours": pred.get("predicted_total_hours"),
+                }
+            )
+    return out
 
 
 def _open_escalation(conn, entity_type: str, entity_id: str) -> bool:

@@ -28,17 +28,77 @@ from services.ingestion.base import get_db
 
 # --- model loading ----------------------------------------------------------
 
-def load_model(conn) -> Dict[str, Dict[str, Any]]:
-    """Return {status: {is_terminal, allowed_next[]}} from process_model."""
+_MODEL_COLS = "status, is_terminal, allowed_next, is_goal, is_initial"
+
+
+def load_model(conn, entity_type: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+    """Return {status: {is_terminal, allowed_next[], is_goal, is_initial}}.
+
+    With ``entity_type`` given, per-type rows take precedence over the default
+    '*' model (so a table with its own state machine is not polluted by the
+    5-state publication vocabulary). With no argument, returns the default '*'
+    model only.
+    """
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT status, is_terminal, allowed_next FROM process_model")
     model: Dict[str, Dict[str, Any]] = {}
-    for r in cur.fetchall():
-        model[r["status"]] = {
-            "is_terminal": bool(r["is_terminal"]),
-            "allowed_next": list(r["allowed_next"] or []),
-        }
+    if entity_type is not None:
+        cur.execute(
+            f"SELECT {_MODEL_COLS} FROM process_model WHERE entity_type = %s",
+            (entity_type,),
+        )
+        for r in cur.fetchall():
+            model[r["status"]] = _row_to_node(r)
+        cur.execute(
+            f"SELECT {_MODEL_COLS} FROM process_model WHERE entity_type = '*'"
+        )
+        for r in cur.fetchall():
+            model.setdefault(r["status"], _row_to_node(r))
+    else:
+        cur.execute(f"SELECT {_MODEL_COLS} FROM process_model WHERE entity_type = '*'")
+        for r in cur.fetchall():
+            model[r["status"]] = _row_to_node(r)
     return model
+
+
+def _row_to_node(r) -> Dict[str, Any]:
+    return {
+        "is_terminal": bool(r["is_terminal"]),
+        "allowed_next": list(r["allowed_next"] or []),
+        "is_goal": bool(r.get("is_goal")),
+        "is_initial": bool(r.get("is_initial")),
+    }
+
+
+def goal_state(model: Dict[str, Dict[str, Any]]) -> Optional[str]:
+    """The success terminal state of a model (fallback: first terminal)."""
+    for s, n in model.items():
+        if n.get("is_goal"):
+            return s
+    for s, n in model.items():
+        if n["is_terminal"]:
+            return s
+    return None
+
+
+def initial_state(model: Dict[str, Dict[str, Any]]) -> Optional[str]:
+    """The entry state of a model (fallback: 'draft' if present)."""
+    for s, n in model.items():
+        if n.get("is_initial"):
+            return s
+    if "draft" in model:
+        return "draft"
+    for s, n in model.items():
+        if not n["is_terminal"]:
+            return s
+    return None
+
+
+def fail_state(model: Dict[str, Dict[str, Any]]) -> Optional[str]:
+    """A terminal-but-not-goal (failure) state, if any."""
+    for s, n in model.items():
+        if n["is_terminal"] and not n.get("is_goal"):
+            return s
+    return None
 
 
 # --- trace extraction --------------------------------------------------------
@@ -121,15 +181,16 @@ def discover_variants(
     entity_type: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Aggregate traces into variants with counts + conformance."""
-    model = load_model(conn)
     traces = get_traces(conn, entity_type=entity_type)
     agg: Dict[Tuple[str, str], Dict[str, Any]] = {}
+    models: Dict[str, Dict[str, Any]] = {}
     for (etype, _eid), trace in traces.items():
         seq = _sequence(trace)
         sig = ">".join(seq)
         key = (etype, sig)
         if key not in agg:
-            is_conf, reasons = classify_conformance(seq, model)
+            models.setdefault(etype, load_model(conn, etype))
+            is_conf, reasons = classify_conformance(seq, models[etype])
             agg[key] = {
                 "entity_type": etype,
                 "variant_signature": sig,
@@ -154,12 +215,13 @@ def check_conformance(
     limit: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """Return only the non-conforming traces with reasons."""
-    model = load_model(conn)
     traces = get_traces(conn, entity_type=entity_type, limit=limit)
+    models: Dict[str, Dict[str, Any]] = {}
     findings: List[Dict[str, Any]] = []
     for (etype, eid), trace in traces.items():
         seq = _sequence(trace)
-        is_conf, reasons = classify_conformance(seq, model)
+        models.setdefault(etype, load_model(conn, etype))
+        is_conf, reasons = classify_conformance(seq, models[etype])
         if not is_conf:
             findings.append(
                 {
@@ -182,7 +244,7 @@ def case_timeline(
         """
         SELECT from_status, to_status, transitioned_at
         FROM lifecycle_transition
-        WHERE entity_id = %s
+        WHERE entity_id = %s::uuid
         ORDER BY transitioned_at
         """,
         (entity_id,),
@@ -211,16 +273,19 @@ def cycle_time_distribution(
     conn,
     entity_type: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
-    """draft -> published elapsed days per instance that reached published."""
+    """Elapsed days from entry to the model's goal state, per instance."""
     traces = get_traces(conn, entity_type=entity_type)
+    models: Dict[str, Dict[str, Any]] = {}
     out: List[Dict[str, Any]] = []
     for (etype, eid), trace in traces.items():
         seq = _sequence(trace)
-        if seq and seq[-1] == "published":
+        models.setdefault(etype, load_model(conn, etype))
+        goal = goal_state(models[etype])
+        if seq and goal and seq[-1] == goal:
             start = trace[0]["at"]
             end = None
             for t in trace:
-                if t["to_status"] == "published":
+                if t["to_status"] == goal:
                     end = t["at"]
                     break
             if start and end:

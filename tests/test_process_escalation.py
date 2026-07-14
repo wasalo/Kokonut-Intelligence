@@ -138,3 +138,67 @@ def test_resolve_escalation():
     finally:
         _cleanup(conn, org_id, ids)
         conn.close()
+
+
+def test_work_item_due_at_escalation():
+    """work_item instances use their own due_at as the SLA target."""
+    conn = _db()
+    org_id = uuid.uuid4()
+    w1 = uuid.uuid5(uuid.NAMESPACE_DNS, "esc-wi-W1")
+    w2 = uuid.uuid5(uuid.NAMESPACE_DNS, "esc-wi-W2")
+    now = datetime.now(timezone.utc)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO organization (id, org_key, name, org_type, status, "
+                "created_at, updated_at) VALUES (%s, %s, %s, %s, %s, now(), now())",
+                (str(org_id), "esc-wi-org", "ESC WI Org", "cooperative", "active"),
+            )
+            cur.execute(
+                "INSERT INTO work_item (id, organization_id, title, created_by_type, "
+                "status, priority, version, assignee_id, assignee_type, due_at) "
+                "VALUES (%s, %s, %s, %s, 'assigned', 'medium', 1, %s::uuid, 'staff', %s)",
+                (str(w2), str(org_id), "ESC WI", "system", str(org_id),
+                 now - timedelta(hours=1)),
+            )
+        base = now - timedelta(days=1)
+        train = [
+            (w1, None, "draft", base),
+            (w1, "draft", "assigned", base + timedelta(hours=1)),
+            (w1, "assigned", "in_progress", base + timedelta(hours=1.5)),
+            (w1, "in_progress", "done", base + timedelta(hours=2)),
+        ]
+        inflight = [
+            (w2, None, "draft", now - timedelta(hours=3)),
+            (w2, "draft", "assigned", now - timedelta(hours=2)),
+        ]
+        with conn.cursor() as cur:
+            for eid, frm, to, ts in train + inflight:
+                cur.execute(
+                    "INSERT INTO lifecycle_transition "
+                    "(entity_type, entity_id, from_status, to_status, transitioned_at) "
+                    "VALUES ('work_item', %s, %s, %s, %s)",
+                    (str(eid), frm, to, ts),
+                )
+        conn.commit()
+        at_risk = esc.find_at_risk(conn, 72.0, 0.5)
+        ids = {r["entity_type"] + ":" + r["entity_id"] for r in at_risk}
+        assert f"work_item:{w2}" in ids
+        assert f"work_item:{w1}" not in ids
+    except psycopg2.ProgrammingError:
+        pytest.skip("tables not present")
+    finally:
+        conn.rollback()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM work_item WHERE id = %s::uuid", (str(w2),))
+                cur.execute("DELETE FROM organization WHERE id = %s::uuid", (str(org_id),))
+                cur.execute(
+                    "DELETE FROM organization WHERE org_key = 'esc-wi-org'"
+                )
+                cur.execute(
+                    "DELETE FROM lifecycle_transition WHERE entity_type = 'work_item' "
+                    "AND entity_id = ANY(%s::uuid[])", ([str(w1), str(w2)],))
+            conn.commit()
+        finally:
+            conn.close()

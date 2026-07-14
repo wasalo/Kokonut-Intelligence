@@ -20,7 +20,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.ingestion.base import get_db
-from services.analytics.process_mining import get_traces
+from services.analytics.process_mining import get_traces, load_model, goal_state
 
 
 MODEL_VERSION = "v2026.07"
@@ -33,23 +33,30 @@ def _median(xs: List[float]) -> float:
 def compute_state_durations(
     conn, entity_type: Optional[str] = None
 ) -> Tuple[Dict[str, List[float]], List[float]]:
-    """Return (per-state remaining-hours-to-published, all total-hours)."""
+    """Return (per-state remaining-hours-to-goal, all total-hours-to-goal).
+
+    The "goal" is the model's success terminal state, so this works for any
+    entity type (5-state publication, work_item done, market_order delivered,
+    metric_value verified, ...).
+    """
     traces = get_traces(conn, entity_type=entity_type)
+    models: Dict[str, Dict[str, Any]] = {}
     per_state: Dict[str, List[float]] = {}
     totals: List[float] = []
     for _etype, _eid, trace in _iter_traces(traces):
+        models.setdefault(_etype, load_model(conn, _etype))
+        goal = goal_state(models[_etype])
         seq = [t["to_status"] for t in trace]
-        if not seq or seq[-1] != "published":
+        if not seq or not goal or seq[-1] != goal:
             continue
-        # total draft -> published hours
         start = trace[0]["at"]
-        end = next(t["at"] for t in trace if t["to_status"] == "published")
+        end = next(t["at"] for t in trace if t["to_status"] == goal)
         if start and end:
             totals.append((end - start).total_seconds() / 3600.0)
-        # remaining hours from each intermediate state to published
         pub_at = end
         for t in trace:
-            if t["to_status"] in ("published", "rejected"):
+            terminal = models[_etype].get(t["to_status"], {}).get("is_terminal")
+            if terminal:
                 continue
             if t["at"] and pub_at:
                 rem = (pub_at - t["at"]).total_seconds() / 3600.0
@@ -99,7 +106,11 @@ def predict(
 
 
 def current_state_of(conn, entity_type: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
-    """Map of in-flight (entity_id -> current_state, age_hours, last_at)."""
+    """Map of in-flight (entity_id -> current_state, age_hours, last_at).
+
+    An instance is in-flight if its latest transition is not a terminal state
+    of its entity type's model (per-type aware).
+    """
     where = ""
     params: List[Any] = []
     if entity_type:
@@ -118,14 +129,21 @@ def current_state_of(conn, entity_type: Optional[str] = None) -> Dict[str, Dict[
     """
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(sql, params)
+    rows = cur.fetchall()
+    distinct = {r["entity_type"] for r in rows}
+    term_map: Dict[str, set] = {}
+    for et in distinct:
+        term_map[et] = {s for s, n in load_model(conn, et).items() if n["is_terminal"]}
+    default_term = {s for s, n in load_model(conn).items() if n["is_terminal"]}
     out: Dict[str, Dict[str, Any]] = {}
     now = datetime.now(timezone.utc)
-    for r in cur.fetchall():
-        if r["to_status"] in ("published", "rejected"):
+    for r in rows:
+        et = r["entity_type"]
+        if r["to_status"] in term_map.get(et, default_term):
             continue
         age = (now - r["transitioned_at"]).total_seconds() / 3600.0 if r["transitioned_at"] else 0.0
         out[str(r["entity_id"])] = {
-            "entity_type": r["entity_type"],
+            "entity_type": et,
             "current_state": r["to_status"],
             "age_hours": age,
         }

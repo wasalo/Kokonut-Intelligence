@@ -19,6 +19,7 @@ board, and auto-escalation on top of that foundation.
 | SPC / Control | `services/systems/process_control.py` | **Phase C** |
 | Process-health board | `services/analytics/process_health.py` | **Phase D** |
 | Auto-escalation | `services/management/escalation.py` | **Phase E** |
+| Per-entity-type models | `process_model` (186) + `process_model_sync.py` | **Phase F** |
 
 ## Phase A — Process mining
 
@@ -88,20 +89,41 @@ python3 -m services.management.escalation sweep [--org-id UUID] [--sla-target-ho
 python3 -m services.management.escalation resolve --escalation-id UUID [--resolved-by UUID]
 ```
 
+## Phase F — Per-entity-type state models
+
+The canonical 5-state `process_model` is generalized to a per-`entity_type`
+model (`186_process_state_models.sql`): the `entity_type` column defaults to
+`'*'` for the existing publication pipeline, and explicit rows define other
+state machines. Mining, prediction, and escalation now load the model for each
+entity type, so any governed table with its own lifecycle is handled by the
+same engine.
+
+Four more tables are instrumented (`187_state_model_triggers.sql`):
+
+- `work_item` — 6-state spec (`draft→assigned→in_progress→done`, with `blocked`
+  and back-edges, `cancelled` terminal). Rows are kept in sync from
+  `services/workflow_specs/work_item.py` via `process_model_sync`.
+- `market_order` — `pending→confirmed→shipped→delivered`, `cancelled` terminal;
+  vocabulary enforced by a `CHECK` constraint.
+- `credit_retirement` — already the 5-state vocabulary; only needed a trigger.
+- `metric_value` — no `status` column; the `verified` boolean is mapped to
+  `draft`/`verified` by a dedicated trigger (`fn_record_metric_lifecycle`).
+
+```bash
+python3 -m services.analytics.process_model_sync   # workflow_specs -> process_model
+```
+
 ## Notes & follow-ups
 
 - `persist_forecasts` is idempotent: a periodic sweep refreshes the single
   current forecast row per in-flight instance (DELETE-then-INSERT) rather than
   appending duplicates.
-- Ledger coverage is intentionally scoped to the 9 governed tables that use the
-  canonical 5-state `draft → submitted → verified → published` vocabulary
-  (`data_stream_post`, `ai_summary`, `stakeholder_feedback`, `impact_claim`,
-  `report_snapshot`, `farm_activity`, `harvest_event`, `metric_proposal`,
-  `participatory_metric_proposal`). Tables with a different state machine
-  (`work_item`, `market_order`, `credit_retirement`, `metric_value`) are not
-  yet instrumented, because conformance/prediction assume the canonical model.
-  Broadening coverage safely requires per-entity-type state models (a planned
-  extension, not part of the MVP).
+- Per-entity-type models make the BPM engine data-driven: adding a new governed
+  table = add a `workflow_spec` (or seed a `process_model` row) + a lifecycle
+  trigger. No engine code changes are needed for conformance, prediction, the
+  process-health board, or auto-escalation.
+- `work_item` escalation uses `due_at`/`sla_at` as the per-instance SLA target
+  when present, falling back to the default 72h.
 
 
 

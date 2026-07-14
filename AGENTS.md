@@ -840,6 +840,11 @@
 - Process escalation sweep: `python3 -m services.management.escalation sweep [--org-id UUID] [--sla-target-hours 72] [--threshold 0.5]`
 - Process escalation resolve: `python3 -m services.management.escalation resolve --escalation-id UUID [--resolved-by UUID]`
 - Process escalation tests: `python3 -m pytest tests/test_process_escalation.py -v`
+- Process model sync (workflow_specs -> process_model): `python3 -m services.analytics.process_model_sync`
+- Process model sync tests: `python3 -m pytest tests/test_process_model_sync.py -v`
+- Per-entity-type BPM state-model tests: `python3 -m pytest tests/test_bpm_state_models.py -v`
+
+**BPM per-entity-type models.** The canonical 5-state `process_model` (draft→submitted→verified→published, rejected terminal) is now generalized per `entity_type` (186). Tables with their own state machine are mined/monitored/predicted/escalated with the same engine: `work_item` (from `services/workflow_specs/work_item.py`, kept in sync via `process_model_sync`), `market_order` (pending→confirmed→shipped→delivered, with a `CHECK` constraint), and `metric_value` (verified boolean mapped to draft/verified). `credit_retirement` already uses the 5-state vocabulary and only needed a trigger. `process_model_sync` keeps spec-driven models in sync; `market_order`/`metric_value` are seeded explicitly in 186.
 - SWOT create: `python3 -m services.analytics.swot create --location-id UUID [--strengths s1 s2] [--threats t1]`
 - SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
 - SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`
