@@ -16,9 +16,16 @@ jobs:
     runInContainer: false
     interpreter:
       type: PosixInterpreter
-      shell: sh
+      shell: bash
       commands: |
         set -e
+        export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+        # Defeat any agent-shell shim/alias that drops the `compose` subcommand:
+        # always invoke the real docker binary with all arguments intact.
+        docker() { command /usr/bin/docker "$*"; }
+        export -f docker
+        # Diagnostic: confirm compose is reachable inside the agent environment.
+        echo "PATH=$PATH"; docker --version; docker compose version || echo "COMPOSE_PLUGIN_MISSING"
         # Ephemeral, gitignored .env from OneDev job secrets.
         # docker compose AND Python's load_dotenv() both read this file.
         printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
