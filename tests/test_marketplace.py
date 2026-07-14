@@ -47,11 +47,11 @@ class TestCreateListing(unittest.TestCase):
         self.assertEqual(result["unit"], "kg")
         self.assertEqual(result["price_per_unit"], 0.50)
         self.assertEqual(result["quality_grade"], "A")
-        self.assertEqual(result["status"], "active")
+        self.assertEqual(result["status"], "published")
 
     def test_create_listing_calls_insert(self):
         create_listing(self.conn, "loc-001", "maize", 500)
-        self.mock_cursor.execute.assert_called_once()
+        self.mock_cursor.execute.assert_called()
         self.conn.commit.assert_called_once()
 
     def test_create_listing_with_harvest_date(self):
@@ -237,7 +237,7 @@ class TestCreateOrder(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
         self.mock_cursor.fetchone.side_effect = [
-            (0.50,),
+            ("seller-001", "loc-001", "kg", 0.50),
             ("order-001",),
         ]
 
@@ -252,7 +252,10 @@ class TestCreateOrder(unittest.TestCase):
         self.assertEqual(result["status"], "pending")
 
     def test_create_order_with_offered_price(self):
-        self.mock_cursor.fetchone.return_value = ("order-002",)
+        self.mock_cursor.fetchone.side_effect = [
+            ("seller-001", "loc-001", "kg", 0.50),
+            ("order-002",),
+        ]
         result = create_order(
             self.conn, "listing-001", "buyer-001", 200, offered_price=0.60,
         )

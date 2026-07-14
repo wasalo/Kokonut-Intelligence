@@ -6,12 +6,16 @@ Manages produce listings, buyer profiles, price observations, orders,
 logistics tracking, price alerts, and AI-assisted listing evaluation.
 
 Usage:
-    python -m services.analytics.marketplace create-listing --location-id UUID --crop maize --quantity 500 --unit kg --price 0.50 --grade A
-    python -m services.analytics.marketplace list-active --location-id UUID --crop maize
-    python -m services.analytics.marketplace record-price --crop maize --market "Adelphi Coop" --price 0.55 --grade A
-    python -m services.analytics.marketplace price-trends --crop maize --days 30
+    python -m services.analytics.marketplace create-listing --location-id UUID --crop Lettuce --quantity 500 --unit kg --price 0.50 --grade A
+    python -m services.analytics.marketplace list-active --location-id UUID --crop Lettuce
+    python -m services.analytics.marketplace record-price --crop Lettuce --market "Adelphi Coop" --price 0.55 --grade A
+    python -m services.analytics.marketplace price-trends --crop Lettuce --days 30
     python -m services.analytics.marketplace create-order --listing-id UUID --buyer-id UUID --quantity 200
     python -m services.analytics.marketplace market-overview --location-id UUID
+
+NOTE: the canonical schema uses `market_*` tables (142_marketplace.sql) and
+references crops by `crop_id` (FK to `crop`). This module keeps its
+public `crop_name` API and resolves names to `crop_id` internally.
 """
 
 import argparse
@@ -23,6 +27,21 @@ from typing import Optional
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.marketplace")
+
+# Listings are "active" when published and not yet sold/expired. The canonical
+# `market_listing.status` has no literal 'active' value, so we use a predicate.
+ACTIVE_LISTING_WHERE = (
+    "ml.status = 'published' AND ml.sold_at IS NULL "
+    "AND (ml.expires_at IS NULL OR ml.expires_at > now())"
+)
+
+
+def _resolve_crop_id(conn, crop_name: str) -> Optional[str]:
+    """Resolve a human crop name to its canonical `crop_id` UUID."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT id FROM crop WHERE name = %s", (crop_name,))
+        row = cur.fetchone()
+    return str(row[0]) if row else None
 
 
 # ============================================================
@@ -43,29 +62,33 @@ def create_listing(
     metadata: dict = None,
 ) -> dict:
     """Create a produce listing on the marketplace."""
+    crop_id = _resolve_crop_id(conn, crop_name)
+    if not crop_id:
+        raise ValueError(f"crop not found: {crop_name}")
+
     cur = conn.cursor()
     listing_id = str(uuid.uuid4())
-
     harvest_date = harvest_date or date.today()
 
     cur.execute(
         """
-        INSERT INTO marketplace_listing
-            (id, location_id, crop_name, quantity, unit, price_per_unit,
+        INSERT INTO market_listing
+            (id, location_id, crop_id, quantity, unit, price_per_unit,
              quality_grade, harvest_date, description, images, status,
              metadata, created_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb,
-                'active', %s::jsonb, %s)
+                'published', %s::jsonb, %s)
         RETURNING id
         """,
         (
-            listing_id, location_id, crop_name, quantity, unit,
+            listing_id, location_id, crop_id, quantity, unit,
             price_per_unit, quality_grade, harvest_date,
             description, json.dumps(images or []),
             json.dumps(metadata or {}),
             datetime.now(timezone.utc),
         ),
     )
+    row = cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -80,7 +103,7 @@ def create_listing(
         "price_per_unit": price_per_unit,
         "quality_grade": quality_grade,
         "harvest_date": harvest_date.isoformat(),
-        "status": "active",
+        "status": "published",
     }
 
 
@@ -121,7 +144,7 @@ def update_listing(
     params.append(listing_id)
 
     cur.execute(
-        f"UPDATE marketplace_listing SET {', '.join(set_clauses)} WHERE id = %s RETURNING id",
+        f"UPDATE market_listing SET {', '.join(set_clauses)} WHERE id = %s RETURNING id",
         tuple(params),
     )
     row = cur.fetchone()
@@ -145,11 +168,13 @@ def get_listing(conn, listing_id: str) -> dict:
 
     cur.execute(
         """
-        SELECT id, location_id, crop_name, quantity, unit, price_per_unit,
-               quality_grade, harvest_date, description, images, status,
-               metadata, created_at, updated_at
-        FROM marketplace_listing
-        WHERE id = %s
+        SELECT ml.id, ml.location_id, c.name AS crop_name, ml.quantity, ml.unit,
+               ml.price_per_unit, ml.quality_grade, ml.harvest_date,
+               ml.description, ml.images, ml.status, ml.metadata,
+               ml.created_at, ml.updated_at
+        FROM market_listing ml
+        LEFT JOIN crop c ON c.id = ml.crop_id
+        WHERE ml.id = %s
         """,
         (listing_id,),
     )
@@ -161,6 +186,7 @@ def get_listing(conn, listing_id: str) -> dict:
         return {"error": f"listing {listing_id} not found"}
 
     result = dict(zip(cols, row))
+    result["crop_name"] = result["crop_name"] or "unknown"
     result["harvest_date"] = result["harvest_date"].isoformat() if result["harvest_date"] else None
     result["created_at"] = result["created_at"].isoformat() if result["created_at"] else None
     result["updated_at"] = result["updated_at"].isoformat() if result["updated_at"] else None
@@ -181,22 +207,27 @@ def list_active_listings(
     """List active marketplace listings with optional filters."""
     cur = conn.cursor()
 
-    where = "status = 'active'"
+    where = ACTIVE_LISTING_WHERE
     params = []
     if location_id:
-        where += " AND location_id = %s"
+        where += " AND ml.location_id = %s"
         params.append(location_id)
     if crop_name:
-        where += " AND crop_name = %s"
-        params.append(crop_name)
+        crop_id = _resolve_crop_id(conn, crop_name)
+        if not crop_id:
+            cur.close()
+            return {"listings": [], "total": 0, "limit": limit, "offset": offset}
+        where += " AND ml.crop_id = %s"
+        params.append(crop_id)
 
     cur.execute(
         f"""
-        SELECT id, location_id, crop_name, quantity, unit, price_per_unit,
-               quality_grade, harvest_date, created_at
-        FROM marketplace_listing
+        SELECT ml.id, ml.location_id, c.name AS crop_name, ml.quantity, ml.unit,
+               ml.price_per_unit, ml.quality_grade, ml.harvest_date, ml.created_at
+        FROM market_listing ml
+        LEFT JOIN crop c ON c.id = ml.crop_id
         WHERE {where}
-        ORDER BY created_at DESC
+        ORDER BY ml.created_at DESC
         LIMIT %s OFFSET %s
         """,
         tuple(params) + (limit, offset),
@@ -205,11 +236,12 @@ def list_active_listings(
     rows = [dict(zip(cols, row)) for row in cur.fetchall()]
 
     for r in rows:
+        r["crop_name"] = r["crop_name"] or "unknown"
         r["harvest_date"] = r["harvest_date"].isoformat() if r["harvest_date"] else None
         r["created_at"] = r["created_at"].isoformat() if r["created_at"] else None
 
     cur.execute(
-        f"SELECT COUNT(*) FROM marketplace_listing WHERE {where}",
+        f"SELECT COUNT(*) FROM market_listing ml WHERE {where}",
         tuple(params),
     )
     total = cur.fetchone()[0]
@@ -239,23 +271,28 @@ def create_buyer_profile(
     """Register a buyer on the marketplace."""
     cur = conn.cursor()
     buyer_id = str(uuid.uuid4())
+    contact_info = contact_info or {}
+    preferences = preferences or {}
 
     cur.execute(
         """
-        INSERT INTO marketplace_buyer
-            (id, name, buyer_type, location, preferences,
-             contact_info, metadata, status, created_at)
-        VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb, 'active', %s)
+        INSERT INTO buyer_profile
+            (id, name, buyer_type, address, contact_name, contact_email,
+             contact_phone, crops_of_interest, metadata, status, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, 'active', %s)
         RETURNING id
         """,
         (
             buyer_id, name, buyer_type, location,
-            json.dumps(preferences or {}),
-            json.dumps(contact_info or {}),
+            contact_info.get("name"),
+            contact_info.get("email"),
+            contact_info.get("phone"),
+            json.dumps(preferences.get("crops", preferences)),
             json.dumps(metadata or {}),
             datetime.now(timezone.utc),
         ),
     )
+    row = cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -286,24 +323,30 @@ def record_price(
     metadata: dict = None,
 ) -> dict:
     """Record a price observation from a market."""
+    crop_id = _resolve_crop_id(conn, crop_name)
+    if not crop_id:
+        raise ValueError(f"crop not found: {crop_name}")
+
     cur = conn.cursor()
     price_id = str(uuid.uuid4())
 
     cur.execute(
         """
-        INSERT INTO marketplace_price_observation
-            (id, crop_name, market_name, price, quality_grade,
-             unit, currency, source, metadata, observed_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+        INSERT INTO price_observation
+            (id, crop_id, market_name, price_per_unit, price_date,
+             unit, currency, source, location_id, metadata, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
         RETURNING id
         """,
         (
-            price_id, crop_name, market_name, price, quality_grade,
-            unit, currency, source,
+            price_id, crop_id, market_name, price,
+            datetime.now(timezone.utc).date(),
+            unit, currency, source, None,
             json.dumps(metadata or {}),
             datetime.now(timezone.utc),
         ),
     )
+    row = cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -331,24 +374,22 @@ def get_price_trends(
 ) -> dict:
     """Get price history and trend analysis for a crop."""
     cur = conn.cursor()
-
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    crop_id = _resolve_crop_id(conn, crop_name)
 
     cur.execute(
         """
-        SELECT price, quality_grade, market_name, observed_at
-        FROM marketplace_price_observation
-        WHERE crop_name = %s AND observed_at >= %s
-        ORDER BY observed_at
+        SELECT po.price_per_unit AS price, po.quality_grade, po.market_name,
+               po.price_date AS observed_at, c.name AS crop_name
+        FROM price_observation po
+        LEFT JOIN crop c ON c.id = po.crop_id
+        WHERE po.crop_id = %s AND po.price_date >= %s
+        ORDER BY po.price_date
         """,
-        (crop_name, cutoff),
+        (crop_id, cutoff.date() if crop_id else cutoff.date()),
     )
     cols = [d[0] for d in cur.description]
     rows = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    for r in rows:
-        r["observed_at"] = r["observed_at"].isoformat() if r["observed_at"] else None
-
     cur.close()
 
     if not rows:
@@ -364,7 +405,6 @@ def get_price_trends(
     min_price = min(prices)
     max_price = max(prices)
 
-    # Simple trend: compare first half to second half
     mid = len(prices) // 2
     if mid > 0:
         first_half_avg = sum(prices[:mid]) / mid
@@ -411,32 +451,38 @@ def create_order(
     cur = conn.cursor()
     order_id = str(uuid.uuid4())
 
-    # Fetch listing price if not offered
-    if offered_price is None:
-        cur.execute(
-            "SELECT price_per_unit FROM marketplace_listing WHERE id = %s",
-            (listing_id,),
-        )
-        row = cur.fetchone()
-        offered_price = float(row[0]) if row and row[0] else None
+    cur.execute(
+        """
+        SELECT seller_id, location_id, unit, price_per_unit
+        FROM market_listing WHERE id = %s
+        """,
+        (listing_id,),
+    )
+    listing = cur.fetchone()
+    if not listing:
+        cur.close()
+        return {"error": f"listing {listing_id} not found"}
 
+    seller_id, location_id, unit, list_price = listing
+    if offered_price is None:
+        offered_price = float(list_price) if list_price else None
     total_amount = round(offered_price * quantity, 2) if offered_price else None
 
     cur.execute(
         """
-        INSERT INTO marketplace_order
-            (id, listing_id, buyer_id, quantity, offered_price,
-             total_amount, notes, metadata, status, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'pending', %s)
+        INSERT INTO market_order
+            (id, listing_id, buyer_id, seller_id, location_id, quantity,
+             unit, price_per_unit, total_amount, currency, status, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'USD', 'pending', %s)
         RETURNING id
         """,
         (
-            order_id, listing_id, buyer_id, quantity, offered_price,
-            total_amount, notes,
-            json.dumps(metadata or {}),
+            order_id, listing_id, buyer_id, seller_id, location_id,
+            quantity, unit or "kg", offered_price, total_amount,
             datetime.now(timezone.utc),
         ),
     )
+    row = cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -468,7 +514,7 @@ def update_order_status(
 
     cur.execute(
         """
-        UPDATE marketplace_order
+        UPDATE market_order
         SET status = %s, notes = COALESCE(%s, notes), updated_at = %s
         WHERE id = %s
         RETURNING id
@@ -505,22 +551,29 @@ def track_shipment(
     cur = conn.cursor()
     tracking_id = str(uuid.uuid4())
 
+    shipment_meta = dict(metadata or {})
+    shipment_meta.update({
+        "order_id": order_id,
+        "temperature": temperature,
+        "humidity": humidity,
+        "tracking_number": tracking_number,
+    })
+
     cur.execute(
         """
-        INSERT INTO marketplace_shipment_tracking
-            (id, order_id, location, temperature, humidity,
-             estimated_arrival, carrier, tracking_number,
-             metadata, tracked_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+        INSERT INTO shipment
+            (id, location_id, origin_name, carrier_name, estimated_arrival,
+             status, notes, metadata, created_at)
+        VALUES (%s, %s, %s, %s, %s, 'created', %s, %s::jsonb, %s)
         RETURNING id
         """,
         (
-            tracking_id, order_id, location, temperature, humidity,
-            estimated_arrival, carrier, tracking_number,
-            json.dumps(metadata or {}),
+            tracking_id, None, location, carrier, estimated_arrival,
+            None, json.dumps(shipment_meta),
             datetime.now(timezone.utc),
         ),
     )
+    row = cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -547,10 +600,10 @@ def get_market_overview(conn, location_id: str) -> dict:
 
     # Active listings count
     cur.execute(
-        """
-        SELECT COUNT(*), COALESCE(SUM(quantity), 0)
-        FROM marketplace_listing
-        WHERE location_id = %s AND status = 'active'
+        f"""
+        SELECT COUNT(*), COALESCE(SUM(ml.quantity), 0)
+        FROM market_listing ml
+        WHERE ml.location_id = %s AND {ACTIVE_LISTING_WHERE}
         """,
         (location_id,),
     )
@@ -560,12 +613,13 @@ def get_market_overview(conn, location_id: str) -> dict:
 
     # Listings by crop
     cur.execute(
-        """
-        SELECT crop_name, COUNT(*) AS count, SUM(quantity) AS total_qty,
-               AVG(price_per_unit) AS avg_price
-        FROM marketplace_listing
-        WHERE location_id = %s AND status = 'active'
-        GROUP BY crop_name
+        f"""
+        SELECT c.name AS crop_name, COUNT(*) AS count, SUM(ml.quantity) AS total_qty,
+               AVG(ml.price_per_unit) AS avg_price
+        FROM market_listing ml
+        LEFT JOIN crop c ON c.id = ml.crop_id
+        WHERE ml.location_id = %s AND {ACTIVE_LISTING_WHERE}
+        GROUP BY c.name
         ORDER BY total_qty DESC
         """,
         (location_id,),
@@ -576,14 +630,16 @@ def get_market_overview(conn, location_id: str) -> dict:
     # Recent prices
     cur.execute(
         """
-        SELECT crop_name, AVG(price) AS avg_price, MIN(price) AS min_price,
-               MAX(price) AS max_price, COUNT(*) AS observations
-        FROM marketplace_price_observation
-        WHERE observed_at >= %s
-        GROUP BY crop_name
+        SELECT c.name AS crop_name, AVG(po.price_per_unit) AS avg_price,
+               MIN(po.price_per_unit) AS min_price,
+               MAX(po.price_per_unit) AS max_price, COUNT(*) AS observations
+        FROM price_observation po
+        LEFT JOIN crop c ON c.id = po.crop_id
+        WHERE po.price_date >= %s
+        GROUP BY c.name
         ORDER BY observations DESC
         """,
-        (datetime.now(timezone.utc) - timedelta(days=30),),
+        (datetime.now(timezone.utc).date() - timedelta(days=30),),
     )
     cols = [d[0] for d in cur.description]
     recent_prices = [dict(zip(cols, row)) for row in cur.fetchall()]
@@ -592,15 +648,14 @@ def get_market_overview(conn, location_id: str) -> dict:
     cur.execute(
         """
         SELECT o.status, COUNT(*) AS count
-        FROM marketplace_order o
-        JOIN marketplace_listing l ON o.listing_id = l.id
+        FROM market_order o
+        JOIN market_listing l ON o.listing_id = l.id
         WHERE l.location_id = %s
         GROUP BY o.status
         """,
         (location_id,),
     )
     order_statuses = {row[0]: int(row[1]) for row in cur.fetchall()}
-
     cur.close()
 
     return {
@@ -629,24 +684,42 @@ def create_price_alert(
     metadata: dict = None,
 ) -> dict:
     """Create a price alert for a crop."""
+    crop_id = _resolve_crop_id(conn, crop_name)
+    if not crop_id:
+        raise ValueError(f"crop not found: {crop_name}")
+
     cur = conn.cursor()
     alert_id = str(uuid.uuid4())
+    title = f"Price alert: {crop_name} {direction} {threshold} {currency}/{unit}"
+    message = (
+        f"Alert when {crop_name} price goes {direction} {threshold} {currency}/{unit}."
+    )
+    alert_meta = dict(metadata or {})
+    alert_meta.update({
+        "notify_email": notify_email,
+        "currency": currency,
+        "unit": unit,
+        "direction": direction,
+    })
 
     cur.execute(
         """
-        INSERT INTO marketplace_price_alert
-            (id, location_id, crop_name, threshold, direction,
-             currency, unit, notify_email, metadata, status, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'active', %s)
+        INSERT INTO market_alert
+            (id, location_id, crop_id, alert_type, severity, title, message,
+             trigger_metric, trigger_condition, trigger_threshold, channel,
+             status, metadata, created_at)
+        VALUES (%s, %s, %s, 'price', 'info', %s, %s, 'price', %s, %s,
+                'email', 'active', %s::jsonb, %s)
         RETURNING id
         """,
         (
-            alert_id, location_id, crop_name, threshold, direction,
-            currency, unit, notify_email,
-            json.dumps(metadata or {}),
+            alert_id, location_id, crop_id, title, message,
+            direction, threshold,
+            json.dumps(alert_meta),
             datetime.now(timezone.utc),
         ),
     )
+    row = cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -675,10 +748,11 @@ def evaluate_listing(conn, listing_id: str) -> dict:
     # Fetch listing
     cur.execute(
         """
-        SELECT id, crop_name, quantity, unit, price_per_unit,
-               quality_grade, harvest_date, location_id
-        FROM marketplace_listing
-        WHERE id = %s
+        SELECT ml.id, c.name AS crop_name, ml.quantity, ml.unit, ml.price_per_unit,
+               ml.quality_grade, ml.harvest_date, ml.location_id
+        FROM market_listing ml
+        LEFT JOIN crop c ON c.id = ml.crop_id
+        WHERE ml.id = %s
         """,
         (listing_id,),
     )
@@ -689,20 +763,26 @@ def evaluate_listing(conn, listing_id: str) -> dict:
         return {"error": f"listing {listing_id} not found"}
 
     listing = dict(zip(cols, row))
+    listing["crop_name"] = listing["crop_name"] or "unknown"
+
+    crop_id = _resolve_crop_id(conn, listing["crop_name"])
 
     # Fetch recent prices for same crop
-    cur.execute(
-        """
-        SELECT price, quality_grade
-        FROM marketplace_price_observation
-        WHERE crop_name = %s
-        ORDER BY observed_at DESC
-        LIMIT 50
-        """,
-        (listing["crop_name"],),
-    )
-    cols = [d[0] for d in cur.description]
-    price_rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    if crop_id:
+        cur.execute(
+            """
+            SELECT price_per_unit AS price, quality_grade
+            FROM price_observation
+            WHERE crop_id = %s
+            ORDER BY price_date DESC
+            LIMIT 50
+            """,
+            (crop_id,),
+        )
+        cols = [d[0] for d in cur.description]
+        price_rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    else:
+        price_rows = []
 
     # Fetch historical yield for this location/crop
     cur.execute(
@@ -717,7 +797,6 @@ def evaluate_listing(conn, listing_id: str) -> dict:
     yield_row = cur.fetchone()
     avg_yield = float(yield_row[0]) if yield_row and yield_row[0] else None
     std_yield = float(yield_row[1]) if yield_row and yield_row[1] else None
-
     cur.close()
 
     # Quality score (0-100) based on grade and market comparison
@@ -838,6 +917,8 @@ def main():
     cb.add_argument("--name", required=True)
     cb.add_argument("--type", dest="buyer_type", default="individual")
     cb.add_argument("--location")
+    cb.add_argument("--preferences", default="{}")
+    cb.add_argument("--contact-info", default="{}")
     cb.add_argument("--json", action="store_true")
 
     # record-price
@@ -902,7 +983,7 @@ def main():
 
     args = parser.parse_args()
 
-    from .base import get_db
+    from ..ingestion.base import get_db
 
     if not args.command:
         parser.print_help()
@@ -947,7 +1028,11 @@ def main():
             print(output)
 
         elif args.command == "create-buyer":
-            result = create_buyer_profile(db, args.name, args.buyer_type, args.location)
+            result = create_buyer_profile(
+                db, args.name, args.buyer_type, args.location,
+                preferences=json.loads(args.preferences),
+                contact_info=json.loads(args.contact_info),
+            )
             output = json.dumps(result, indent=2, default=str) if args.json else _format_buyer(result)
             print(output)
 
@@ -1069,6 +1154,8 @@ def _format_trends(r: dict) -> str:
 
 
 def _format_order(r: dict) -> str:
+    if "error" in r:
+        return f"Error: {r['error']}"
     return (
         f"Order created: {r['order_id'][:8]}... — {r['quantity']} units "
         f"@ {r['offered_price'] or '?'} = {r['total_amount'] or '?'} [{r['status']}]"
