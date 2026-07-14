@@ -20,8 +20,6 @@ jobs:
       commands: |
         set -e
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-        docker() { command /usr/bin/docker "$*"; }
-        export -f docker
         # Install docker compose plugin if missing (persists on host after first build).
         if ! docker compose version >/dev/null 2>&1; then
           echo "Installing docker compose plugin..."
