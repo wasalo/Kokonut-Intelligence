@@ -16,6 +16,12 @@ jobs:
     env:
       POSTGRES_PASSWORD: ci-placeholder
       CLICKHOUSE_PASSWORD: ci-placeholder
+      PG_HOST: localhost
+      PG_PORT: "5432"
+      CH_HOST: localhost
+      CH_PORT: "8123"
+      KOKONUT_METRICS_EXECUTION: host
+      KOKONUT_ENV: development
     steps:
       - uses: actions/checkout@v7
         with:
@@ -27,6 +33,36 @@ jobs:
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt && pip install ruff mypy
+
+      - name: Write CI environment file
+        run: |
+          cat > .env <<'EOF'
+          POSTGRES_PASSWORD=ci-placeholder
+          CLICKHOUSE_PASSWORD=ci-placeholder
+          REDIS_PASSWORD=ci-placeholder
+          DIRECTUS_SECRET=ci-secret
+          ADMIN_EMAIL=ci@kokonut.network
+          ADMIN_PASSWORD=ci-password
+          PUBLIC_URL=http://localhost:8055
+          METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
+          EOF
+
+      - name: Start PostgreSQL and ClickHouse
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse
+          for i in $(seq 1 30); do
+            if docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -U kokonut -d kokonut_intelligence >/dev/null 2>&1 && \
+               docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T clickhouse clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --query "SELECT 1" >/dev/null 2>&1; then
+              echo "Databases ready."
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Databases did not become ready"
+              docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database clickhouse
+              exit 1
+            fi
+            sleep 5
+          done
 
       - name: Run ruff linter
         run: ruff check services/ tests/
@@ -51,13 +87,6 @@ jobs:
           python3 -m tests.test_gis_import && \
           python3 -m tests.test_market_data && \
           python3 -m tests.test_sdk
-
-      - name: Run DB integration tests
-        continue-on-error: true
-        run: |
-          python3 -m tests.test_mvp_done && \
-          python3 -m tests.test_revenue_multiplier && \
-          python3 -m tests.test_seed_idempotency
 
   hooks:
     name: Directus hooks

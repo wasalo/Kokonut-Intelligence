@@ -1,0 +1,12 @@
+# CI override — publishes PostgreSQL and ClickHouse to localhost so the
+# host-run CI checks (pytest, seed idempotency, MVP verification) can reach
+# the databases. This is an explicit, CI-only override; base Compose keeps
+# these services private (per repo policy). Never use this file for
+# production deployments.
+services:
+  database:
+    ports:
+      - "127.0.0.1:5432:5432"
+  clickhouse:
+    ports:
+      - "127.0.0.1:8123:8123"

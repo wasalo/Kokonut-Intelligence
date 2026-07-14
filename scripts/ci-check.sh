@@ -107,18 +107,67 @@ else
 fi
 echo ""
 
-# 4. Seed idempotency and DB integration tests (if DB is available)
+# 4. Seed idempotency and DB integration checks (REQUIRED; never silently skipped)
 echo "[4/8] Seed idempotency check..."
-if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --status running --services 2>/dev/null | grep -qx 'database'; then
-    check "seed.sh idempotent" "bash $SCRIPT_DIR/seed.sh"
-    check "seed-pilot.sh idempotent" "bash $SCRIPT_DIR/seed-pilot.sh"
+COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
+ensure_db() {
+    if docker compose -f "$COMPOSE_FILE" ps --status running --services 2>/dev/null | grep -qx 'database'; then
+        return 0
+    fi
+    echo "  Attempting to bring up database and clickhouse..."
+    docker compose -f "$COMPOSE_FILE" up -d database clickhouse
+    for _ in $(seq 1 30); do
+        if docker compose -f "$COMPOSE_FILE" exec -T database pg_isready -U kokonut -d kokonut_intelligence >/dev/null 2>&1; then
+            return 0
+        fi
+        sleep 5
+    done
+    return 1
+}
+
+if ensure_db; then
+    check "seed idempotency" "python3 -m tests.test_seed_idempotency"
     check "compute metrics" "bash $SCRIPT_DIR/compute-metrics.sh"
     check "MVP definition of done" "bash $SCRIPT_DIR/verify-mvp.sh"
-    check "MVP done checks" "python3 -m tests.test_mvp_done"
-    check "seed idempotency" "python3 -m tests.test_seed_idempotency"
 else
-    echo "  ⚠ Database not running — skipping seed and DB integration checks"
+    echo "  ✗ Database unavailable — seed and DB integration checks are REQUIRED and cannot be skipped."
+    FAIL=$((FAIL + 1))
 fi
+echo ""
+
+# 4b. DB-backed pytest suite (heartland durability + revenue multiplier).
+# Runs on the host when PostgreSQL is reachable; otherwise falls back to the
+# worker container (project mounted read-only) so the check still executes.
+echo "[4b/8] DB-backed pytest suite..."
+run_db_pytest() {
+    local rc=0
+    if python3 - "${PG_HOST:-localhost}" "${PG_PORT:-5432}" <<'PY' 2>/dev/null
+import socket, sys
+host, port = sys.argv[1], int(sys.argv[2])
+try:
+    with socket.create_connection((host, port), timeout=3):
+        sys.exit(0)
+except Exception:
+    sys.exit(1)
+PY
+    then
+        python3 -m pytest "$@" -q || rc=$?
+    else
+        if command -v docker >/dev/null 2>&1; then
+            docker compose -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.worker.yml" \
+                run --rm --no-deps -T -e KOKONUT_ENV=development \
+                -v "$PROJECT_DIR:/app:ro" \
+                kokonut-worker python3 -m pytest -p no:cacheprovider "$@" -q || rc=$?
+        else
+            echo "  ✗ Cannot reach database from host and docker is unavailable — required DB checks cannot run."
+            rc=1
+        fi
+    fi
+    return $rc
+}
+
+check "revenue multiplier" "run_db_pytest tests/test_revenue_multiplier.py"
+check "heartland durability" "run_db_pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py"
 echo ""
 
 # 5. Directus metadata checks
