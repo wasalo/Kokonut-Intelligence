@@ -157,9 +157,19 @@ def breaches(
 def persist_forecasts(
     conn, entity_type: str, sla_target_hours: Optional[float] = None,
 ) -> int:
-    """Store current in-flight breach predictions into predictive_process_forecast."""
+    """Store current in-flight breach predictions into predictive_process_forecast.
+
+    Idempotent per entity: a periodic sweep refreshes the single current
+    forecast row for each in-flight instance rather than appending duplicates.
+    """
     inflight = current_state_of(conn, entity_type)
     cur = conn.cursor()
+    if inflight:
+        cur.execute(
+            "DELETE FROM predictive_process_forecast WHERE entity_type = %s "
+            "AND entity_id::text = ANY(%s)",
+            (entity_type, [str(k) for k in inflight.keys()]),
+        )
     n = 0
     for eid, info in inflight.items():
         p = predict(

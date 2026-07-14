@@ -88,4 +88,20 @@ python3 -m services.management.escalation sweep [--org-id UUID] [--sla-target-ho
 python3 -m services.management.escalation resolve --escalation-id UUID [--resolved-by UUID]
 ```
 
+## Notes & follow-ups
+
+- `persist_forecasts` is idempotent: a periodic sweep refreshes the single
+  current forecast row per in-flight instance (DELETE-then-INSERT) rather than
+  appending duplicates.
+- Ledger coverage is intentionally scoped to the 9 governed tables that use the
+  canonical 5-state `draft → submitted → verified → published` vocabulary
+  (`data_stream_post`, `ai_summary`, `stakeholder_feedback`, `impact_claim`,
+  `report_snapshot`, `farm_activity`, `harvest_event`, `metric_proposal`,
+  `participatory_metric_proposal`). Tables with a different state machine
+  (`work_item`, `market_order`, `credit_retirement`, `metric_value`) are not
+  yet instrumented, because conformance/prediction assume the canonical model.
+  Broadening coverage safely requires per-entity-type state models (a planned
+  extension, not part of the MVP).
+
+
 
