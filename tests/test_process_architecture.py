@@ -41,11 +41,17 @@ _db_skip = pytest.mark.skipif(not _db_available(), reason="process_map table not
 class TestProcessMapCRUD:
     def test_list_processes_returns_seeded_data(self):
         procs = list_processes()
-        assert len(procs) >= 21
+        assert len(procs) >= 27
         keys = {p["process_key"] for p in procs}
         assert "work_management" in keys
         assert "farm_operations" in keys
         assert "event_delivery" in keys
+        assert "traceability" in keys
+        assert "digital_finance" in keys
+        assert "pest_management" in keys
+        assert "emergency_response" in keys
+        assert "cooperative_management" in keys
+        assert "extension_training" in keys
 
     def test_list_processes_filter_by_type(self):
         mgmt = list_processes(process_type="management")
@@ -119,12 +125,18 @@ class TestProcessOwnership:
 class TestEntityMapping:
     def test_list_entity_mappings_returns_seeded_data(self):
         mappings = list_entity_mappings()
-        assert len(mappings) >= 16
+        assert len(mappings) >= 22
         entity_types = {m["entity_type"] for m in mappings}
         assert "farm_activity" in entity_types
         assert "harvest_event" in entity_types
         assert "data_stream_post" in entity_types
         assert "metric_value" in entity_types
+        assert "traceability_batch" in entity_types
+        assert "insurance_claim" in entity_types
+        assert "pest_intervention" in entity_types
+        assert "emergency_incident" in entity_types
+        assert "cooperative_order" in entity_types
+        assert "extension_enrollment" in entity_types
 
     def test_get_entity_mapping(self):
         m = get_entity_mapping("farm_activity")
@@ -168,7 +180,7 @@ class TestProcessHierarchy:
 class TestNewWorkflowSpecs:
     """Validate that the 8 new workflow specs are well-formed."""
 
-    def test_all_14_specs_present(self):
+    def test_all_21_specs_present(self):
         from services.workflow_specs.registry import list_specs
         specs = {s.id for s in list_specs()}
         expected = {
@@ -177,6 +189,9 @@ class TestNewWorkflowSpecs:
             "data_stream_post", "ai_summary", "impact_claim",
             "report_snapshot", "stakeholder_feedback", "farm_activity",
             "harvest_event", "metric_value",
+            "traceability_batch", "insurance_claim", "pest_intervention",
+            "emergency_incident", "cooperative_order", "extension_enrollment",
+            "market_order",
         }
         assert specs == expected
 
@@ -191,7 +206,9 @@ class TestNewWorkflowSpecs:
         standard_ids = {
             "data_stream_post", "ai_summary", "impact_claim",
             "report_snapshot", "stakeholder_feedback", "farm_activity",
-            "harvest_event",
+            "harvest_event", "traceability_batch", "insurance_claim",
+            "pest_intervention", "emergency_incident", "cooperative_order",
+            "extension_enrollment", "market_order",
         }
         for spec in list_specs():
             if spec.id in standard_ids:
@@ -209,7 +226,9 @@ class TestNewWorkflowSpecs:
         standard_ids = {
             "data_stream_post", "ai_summary", "impact_claim",
             "report_snapshot", "stakeholder_feedback", "farm_activity",
-            "harvest_event",
+            "harvest_event", "traceability_batch", "insurance_claim",
+            "pest_intervention", "emergency_incident", "cooperative_order",
+            "extension_enrollment", "market_order",
         }
         for spec in list_specs():
             if spec.id in standard_ids:

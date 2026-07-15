@@ -35,6 +35,13 @@ def test_builtin_specs_validate_and_have_invariants():
         "farm_activity",
         "harvest_event",
         "metric_value",
+        "traceability_batch",
+        "insurance_claim",
+        "pest_intervention",
+        "emergency_incident",
+        "cooperative_order",
+        "extension_enrollment",
+        "market_order",
     }
     for spec in list_specs():
         validate(spec)
@@ -159,3 +166,33 @@ def test_specs_reference_current_production_states_and_controls():
     assert "reserved_tonnes" in retirement_schema
     assert "FOR UPDATE" in retirement_service
     assert 'str(retirement["created_by"]) == reviewer_id' in retirement_service
+
+
+def test_new_5_state_specs_have_proper_steps():
+    """Validate that the 7 new 5-state specs have proper step structure."""
+    from services.workflow_specs.registry import get_spec
+
+    new_spec_ids = [
+        "traceability_batch", "insurance_claim", "pest_intervention",
+        "emergency_incident", "cooperative_order", "extension_enrollment",
+        "market_order",
+    ]
+    for spec_id in new_spec_ids:
+        spec = get_spec(spec_id)
+        # Must have exactly 7 steps (1 entry, 1 submit, 1 verify, 1 publish, 3 reject terminals)
+        assert len(spec.steps) == 7, f"{spec_id} should have 7 steps, got {len(spec.steps)}"
+        # Must have an entry step
+        entry_steps = [s for s in spec.steps if s.entry]
+        assert len(entry_steps) == 1, f"{spec_id} must have exactly 1 entry step"
+        # Must have a terminal publish step
+        publish_steps = [s for s in spec.steps if s.terminal and "publish" in s.id]
+        assert len(publish_steps) == 1, f"{spec_id} must have exactly 1 terminal publish step"
+        # Must have 3 terminal reject steps
+        reject_steps = [s for s in spec.steps if s.terminal and "reject" in s.id]
+        assert len(reject_steps) == 3, f"{spec_id} must have 3 terminal reject steps"
+        # Verify step must have human_approval
+        verify_steps = [s for s in spec.steps if "verify" in s.id and not s.terminal]
+        assert verify_steps, f"{spec_id} must have a verify step"
+        assert verify_steps[0].human_approval, f"{spec_id} verify step must require human approval"
+        # States must be the standard 5-state set
+        assert spec.states == frozenset({"draft", "submitted", "verified", "published", "rejected"}), f"{spec_id} has non-standard states"
