@@ -51,6 +51,7 @@ SEED_DIR="$PROJECT_DIR/schemas/seeds"
 
 # Support seeds required before pilot files with foreign-key dependencies.
 for seed_file in \
+    "$SEED_DIR/001_pilot_farm.sql" \
     "$SEED_DIR/018_module_e_water_access.sql"; do
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
