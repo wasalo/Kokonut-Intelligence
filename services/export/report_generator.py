@@ -2969,6 +2969,29 @@ def generate_business_model_canvas(conn, location_id: str, period_start: str = N
 
 
 # ---------------------------------------------------------------------------
+# Pitch Deck report
+# ---------------------------------------------------------------------------
+
+def generate_pitch_deck(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    from services.analytics.pitch import generate_pitch, render_markdown
+    pitch_data = generate_pitch(conn, location_id, "elevator")
+    return {
+        "report_type": "pitch_deck",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "pitch": pitch_data,
+        "markdown": render_markdown(pitch_data),
+        "limitations": [
+            "Pitch data is generated from live platform records at query time.",
+            "Metrics reflect the latest available data and may change.",
+            "Audience-specific pitches are available via the pitch CLI.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # REPORT_GENERATORS dictionary
 # ---------------------------------------------------------------------------
 
@@ -3034,6 +3057,7 @@ REPORT_GENERATORS = {
      "business_plan": generate_business_plan,
      "process_health": generate_process_health,
      "business_model_canvas": generate_business_model_canvas,
+     "pitch_deck": generate_pitch_deck,
 }
 
 
