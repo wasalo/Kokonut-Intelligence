@@ -3345,6 +3345,27 @@ def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, peri
     }
 
 
+def generate_coordination_cockpit(conn, location_id=None, period_start=None, period_end=None):
+    """Generate internal coordination controls and public-safe alliance output."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_coordination_cockpit_internal ORDER BY name")
+        internal = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_public_coordination_alliance ORDER BY name")
+        public = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "coordination_cockpit",
+        "location_id": location_id,
+        "internal": internal,
+        "public_safe": public,
+        "limitations": [
+            "Internal output includes unresolved conflicts, risks, remedies, and dependency signals for human review.",
+            "Public output includes only published summaries and consent-safe aggregate evidence.",
+            "Coordination observations do not create ownership or reputation scores.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # PESTEL Assessment report
 # ---------------------------------------------------------------------------
@@ -3525,7 +3546,8 @@ REPORT_GENERATORS = {
      "stakeholder_outcomes": generate_stakeholder_outcomes,
      "stakeholder_trust": generate_stakeholder_trust,
      "stakeholder_value_streams": generate_stakeholder_value_streams,
-     "stakeholder_cockpit": generate_stakeholder_cockpit,
+      "stakeholder_cockpit": generate_stakeholder_cockpit,
+      "coordination_cockpit": generate_coordination_cockpit,
     "pestel_assessment": generate_pestel_assessment,
      "regional_readiness": generate_regional_readiness,
      "publics_market_landscape": generate_publics_market_landscape,

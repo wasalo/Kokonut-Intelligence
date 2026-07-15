@@ -31,6 +31,11 @@ export const STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = new Set([
   'coordination_review',
   'coordination_learning_link',
   'coordination_metric_observation',
+  'coordination_conflict_declaration',
+  'coordination_benefit_harm_analysis',
+  'coordination_minority_view',
+  'coordination_appeal',
+  'coordination_remedy',
   'party_trust_evidence',
   'stewardship_proxy_authority',
   'nature_stewardship_obligation',
@@ -79,6 +84,9 @@ export function enforceStakeholderGovernanceSafety(
   payload: Record<string, any>,
   meta?: Record<string, any>
 ): Record<string, any> {
+  if (collection === 'coordination_alliance' && isAgentActor(meta) && payload.status === 'draft') {
+    return payload;
+  }
   if (isAgentActor(meta) && STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS.has(collection)) {
     throw new Error(`Agent writes are blocked for human-governed stakeholder collection ${collection}`);
   }

@@ -23,7 +23,7 @@ def build_parser(parser: argparse.ArgumentParser) -> None:
     create.add_argument("name")
     create.add_argument("purpose")
     create.add_argument("--type", dest="coordination_type", default="alliance",
-                        choices=["alliance", "cooperative_network", "knowledge_network"])
+                        choices=["alliance", "cooperative_network", "knowledge_network", "ecological_alliance", "joint_venture", "equity_alliance", "nonequity_alliance"])
     create.add_argument("--scope-type", default="network")
     create.add_argument("--scope-id")
     create.add_argument("--strategy-id")
@@ -32,11 +32,17 @@ def build_parser(parser: argparse.ArgumentParser) -> None:
     create.add_argument("--cooperative-proposal-id")
     create.add_argument("--steward-party-id")
     create.add_argument("--created-by-party-id")
+    create.add_argument("--market-cycle", choices=["slow", "standard", "fast"], default="standard")
+    create.add_argument("--work-item-id")
+    create.add_argument("--proxy-authority-id")
+    create.add_argument("--review-due-at")
     create.set_defaults(func=lambda a: _out(create_alliance(
         a.name, a.purpose, coordination_type=a.coordination_type, scope_type=a.scope_type,
         scope_id=a.scope_id, strategy_map_id=a.strategy_id, value_stream_id=a.value_stream_id,
         stakeholder_decision_id=a.stakeholder_decision_id, cooperative_proposal_id=a.cooperative_proposal_id,
-        steward_party_id=a.steward_party_id, created_by_party_id=a.created_by_party_id)))
+        steward_party_id=a.steward_party_id, created_by_party_id=a.created_by_party_id,
+        market_cycle=a.market_cycle, work_item_id=a.work_item_id,
+        proxy_authority_id=a.proxy_authority_id, review_due_at=a.review_due_at)))
 
     listing = sub.add_parser("list", help="List alliances")
     listing.add_argument("--status")
@@ -124,9 +130,11 @@ def build_parser(parser: argparse.ArgumentParser) -> None:
     exchange.add_argument("--to-party-id")
     exchange.add_argument("--artifact-uri")
     exchange.add_argument("--consent-scope")
+    exchange.add_argument("--consent-event-id")
     exchange.set_defaults(func=lambda a: _out(add_knowledge_exchange(
         a.alliance_id, a.from_party_id, a.topic, a.exchange_type,
-        to_party_id=a.to_party_id, artifact_uri=a.artifact_uri, consent_scope=a.consent_scope)))
+        to_party_id=a.to_party_id, artifact_uri=a.artifact_uri, consent_scope=a.consent_scope,
+        consent_event_id=a.consent_event_id)))
 
     health = sub.add_parser("health", help="Show coordination health")
     health.add_argument("--alliance-id")

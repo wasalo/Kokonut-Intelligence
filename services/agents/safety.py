@@ -68,6 +68,11 @@ GOVERNED_COLLECTIONS = {
     "coordination_review",
     "coordination_learning_link",
     "coordination_metric_observation",
+    "coordination_conflict_declaration",
+    "coordination_benefit_harm_analysis",
+    "coordination_minority_view",
+    "coordination_appeal",
+    "coordination_remedy",
     "party_trust_evidence",
     "party_trust_snapshot",
     "relationship_risk_indicator",
@@ -184,6 +189,11 @@ STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
     "coordination_review",
     "coordination_learning_link",
     "coordination_metric_observation",
+    "coordination_conflict_declaration",
+    "coordination_benefit_harm_analysis",
+    "coordination_minority_view",
+    "coordination_appeal",
+    "coordination_remedy",
     "party_trust_evidence",
     "stewardship_proxy_authority",
     "nature_stewardship_obligation",
@@ -211,6 +221,9 @@ def assess_agent_action(action: str, collection: str, payload: Optional[dict[str
     """Assess whether an agent action is allowed before writing."""
     payload = payload or {}
     high_risk = action in HIGH_RISK_ACTIONS
+
+    if collection == "coordination_alliance" and action == "create" and payload.get("status", "draft") == "draft":
+        return SafetyDecision(True, False, False, "agents may create draft coordination alliance options only")
 
     if collection in STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS and action not in {"read", "list", "query"}:
         return SafetyDecision(False, True, True, f"agents cannot write human-governed stakeholder collection {collection}")

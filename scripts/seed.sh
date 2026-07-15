@@ -223,6 +223,12 @@ echo "Seeding stakeholder cockpit datasets..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/107_stakeholder_cockpit.sql"
 echo "Stakeholder Engagement foundation seeded."
 
+# Seed a draft-only Adelphi coordination example. It contains no approval,
+# activation, publication, benefit distribution, or private alliance evidence.
+echo "Seeding draft Adelphi coordination example..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/108_coordination_example.sql"
+echo "Draft Adelphi coordination example seeded."
+
 fi
 
 echo ""

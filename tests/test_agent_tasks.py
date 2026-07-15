@@ -15,10 +15,14 @@ def test_task_catalogue_contains_green_paper_agents() -> None:
     assert "ebf_scorecard_draft" in tasks
     assert "ebf_evidence_gap" in tasks
     assert "ebf_calibration_memo" in tasks
+    assert "coordination_strategy_draft" in tasks
     assert get_task("cids_export")["high_risk"] is False
     assert get_task("holistic_wellbeing_synthesis")["writes"] == ["ai_summary:draft"]
     assert get_task("financial_resilience_synthesis")["writes"] == ["ai_summary:draft"]
     assert "verify" not in " ".join(get_task("ebf_scorecard_draft")["writes"])
+    coordination = get_task("coordination_strategy_draft")
+    assert coordination["writes"] == ["coordination_alliance:draft"]
+    assert coordination["high_risk"] is False
 
 
 def test_output_validation_checks_required_fields() -> None:

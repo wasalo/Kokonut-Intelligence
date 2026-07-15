@@ -6,11 +6,13 @@ learning evidence. It deliberately does not create ownership or reputation.
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from typing import Any, Dict, List, Optional
 
 from services.analytics.coordination import (
     _conn,
+    _insert,
     _row,
     activate_alliance,
     activate_participant,
@@ -30,6 +32,167 @@ def create_coordination_alliance(*args, **kwargs) -> Dict[str, Any]:
 
 def manage_participant(*args, **kwargs) -> Dict[str, Any]:
     return add_participant(*args, **kwargs)
+
+
+def declare_conflict(
+    alliance_id: str,
+    party_id: str,
+    declaration_type: str,
+    description: str,
+    *,
+    recusal_required: bool = False,
+    recused_from: Optional[str] = None,
+) -> Dict[str, Any]:
+    if declaration_type not in {"conflict", "no_conflict"}:
+        raise ValueError("declaration_type must be conflict or no_conflict")
+    return _insert("coordination_conflict_declaration", {
+        "alliance_id": alliance_id, "party_id": party_id,
+        "declaration_type": declaration_type, "description": description,
+        "recusal_required": recusal_required, "recused_from": recused_from,
+    })
+
+
+def review_conflict_declaration(declaration_id: str, reviewed_by_party_id: str, status: str = "reviewed") -> Dict[str, Any]:
+    if status not in {"reviewed", "managed", "dismissed"}:
+        raise ValueError("invalid conflict declaration review status")
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE coordination_conflict_declaration SET status = %s, reviewed_by_party_id = %s::uuid, reviewed_at = NOW() WHERE id = %s::uuid RETURNING id, status",
+            (status, reviewed_by_party_id, declaration_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("conflict declaration not found")
+        return {"id": str(row[0]), "status": row[1]}
+
+
+def record_benefit_harm_analysis(
+    alliance_id: str,
+    analysis_type: str,
+    description: str,
+    *,
+    party_id: Optional[str] = None,
+    severity: Optional[str] = None,
+    mitigation: Optional[str] = None,
+) -> Dict[str, Any]:
+    if analysis_type not in {"benefit", "harm"}:
+        raise ValueError("analysis_type must be benefit or harm")
+    return _insert("coordination_benefit_harm_analysis", {
+        "alliance_id": alliance_id, "party_id": party_id,
+        "analysis_type": analysis_type, "description": description,
+        "severity": severity, "mitigation": mitigation,
+    })
+
+
+def review_benefit_harm_analysis(analysis_id: str, reviewed_by_party_id: str, status: str = "reviewed") -> Dict[str, Any]:
+    if status not in {"reviewed", "accepted", "rejected"}:
+        raise ValueError("invalid benefit/harm analysis review status")
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE coordination_benefit_harm_analysis SET status = %s, reviewed_by_party_id = %s::uuid, reviewed_at = NOW() WHERE id = %s::uuid RETURNING id, status",
+            (status, reviewed_by_party_id, analysis_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("benefit/harm analysis not found")
+        return {"id": str(row[0]), "status": row[1]}
+
+
+def preserve_minority_view(
+    alliance_id: str,
+    view_text: str,
+    *,
+    party_id: Optional[str] = None,
+    anonymous_group: Optional[str] = None,
+    review_id: Optional[str] = None,
+    consent_checked: bool = False,
+) -> Dict[str, Any]:
+    return _insert("coordination_minority_view", {
+        "alliance_id": alliance_id, "view_text": view_text,
+        "party_id": party_id, "anonymous_group": anonymous_group,
+        "review_id": review_id, "consent_checked": consent_checked,
+    })
+
+
+def file_appeal(
+    alliance_id: str,
+    target_type: str,
+    target_id: str,
+    appealed_by_party_id: str,
+    reason: str,
+    *,
+    correction_requested: bool = False,
+) -> Dict[str, Any]:
+    return _insert("coordination_appeal", {
+        "alliance_id": alliance_id, "target_type": target_type,
+        "target_id": target_id, "appealed_by_party_id": appealed_by_party_id,
+        "reason": reason, "correction_requested": correction_requested,
+    })
+
+
+def propose_remedy(
+    alliance_id: str,
+    description: str,
+    remedy_type: str = "other",
+    *,
+    harm_analysis_id: Optional[str] = None,
+    benefit_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    return _insert("coordination_remedy", {
+        "alliance_id": alliance_id, "description": description,
+        "remedy_type": remedy_type, "harm_analysis_id": harm_analysis_id,
+        "benefit_id": benefit_id,
+    })
+
+
+def publish_alliance(alliance_id: str, published_by_party_id: str, public_summary: str, limitations: str) -> Dict[str, Any]:
+    if not public_summary.strip() or not limitations.strip():
+        raise ValueError("public summary and limitations are required")
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """UPDATE coordination_alliance
+               SET publication_status = 'published', published_by_party_id = %s::uuid,
+                   published_at = NOW(), public_summary = %s, public_limitations = %s
+               WHERE id = %s::uuid RETURNING id, publication_status""",
+            (published_by_party_id, public_summary, limitations, alliance_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("alliance not found or not publishable")
+        return {"id": str(row[0]), "publication_status": row[1]}
+
+
+def suspend_alliance(alliance_id: str, reviewed_by_party_id: str, reason: str) -> Dict[str, Any]:
+    if not reason.strip():
+        raise ValueError("suspension reason is required")
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE coordination_alliance SET status = 'paused', evidence = evidence || %s::jsonb WHERE id = %s::uuid AND status = 'active' RETURNING id, status",
+            (json.dumps([{"type": "suspension", "reviewed_by": reviewed_by_party_id, "reason": reason}]), alliance_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("only active alliances can be suspended")
+        return {"id": str(row[0]), "status": row[1]}
+
+
+def terminate_alliance(alliance_id: str, terminated_by_party_id: str, reason: str) -> Dict[str, Any]:
+    if not reason.strip():
+        raise ValueError("termination reason is required")
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE coordination_alliance SET status = 'dissolved', ends_at = NOW(), evidence = evidence || %s::jsonb WHERE id = %s::uuid AND status NOT IN ('dissolved', 'completed') RETURNING id, status",
+            (json.dumps([{"type": "termination", "reviewed_by": terminated_by_party_id, "reason": reason}]), alliance_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("alliance is already terminated or not found")
+        return {"id": str(row[0]), "status": row[1]}
 
 
 def review_and_renew(
@@ -75,5 +238,8 @@ def review_and_renew(
 __all__ = [
     "activate_alliance", "activate_participant", "add_objective", "approve_alliance",
     "create_coordination_alliance", "explain_coordination_health", "get_coordination_health",
-    "link_learning_target", "list_alliances", "manage_participant", "review_and_renew",
+    "declare_conflict", "file_appeal", "link_learning_target", "list_alliances",
+    "manage_participant", "preserve_minority_view", "propose_remedy",
+    "publish_alliance", "record_benefit_harm_analysis", "review_benefit_harm_analysis",
+    "review_conflict_declaration", "review_and_renew", "suspend_alliance", "terminate_alliance",
 ]

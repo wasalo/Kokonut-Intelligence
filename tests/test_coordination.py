@@ -16,6 +16,10 @@ from services.analytics.coordination import (
     create_alliance,
     get_coordination_health,
 )
+from services.analytics.coordination_strategy import (
+    declare_conflict, record_benefit_harm_analysis,
+    review_benefit_harm_analysis, review_conflict_declaration,
+)
 from services.agents.safety import assess_agent_action
 
 
@@ -36,6 +40,10 @@ def test_coordination_round_trip():
         created_by_party_id="a0000000-0000-0000-0000-000000001000",
     )
     try:
+        declaration = declare_conflict(alliance["id"], "a0000000-0000-0000-0000-000000001000", "no_conflict", "No conflict declared")
+        review_conflict_declaration(declaration["id"], "a0000000-0000-0000-0000-000000001000")
+        analysis = record_benefit_harm_analysis(alliance["id"], "benefit", "Benefits and harms reviewed")
+        review_benefit_harm_analysis(analysis["id"], "a0000000-0000-0000-0000-000000001000")
         approved = approve_alliance(
             alliance["id"], "a0000000-0000-0000-0000-000000001000", "Reviewed scope, risks, and participant protections",
         )
@@ -72,5 +80,5 @@ def test_coordination_round_trip():
 
 def test_coordination_agents_cannot_write_governed_records():
     decision = assess_agent_action("create", "coordination_alliance", {"status": "draft"})
-    assert not decision.allowed
-    assert decision.requires_human_approval
+    assert decision.allowed
+    assert not assess_agent_action("update", "coordination_alliance", {"status": "approved"}).allowed

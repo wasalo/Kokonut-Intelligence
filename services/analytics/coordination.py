@@ -60,6 +60,10 @@ def create_alliance(
     stakeholder_decision_id: Optional[str] = None,
     cooperative_proposal_id: Optional[str] = None,
     steward_party_id: Optional[str] = None,
+    market_cycle: str = "standard",
+    work_item_id: Optional[str] = None,
+    proxy_authority_id: Optional[str] = None,
+    review_due_at: Optional[str] = None,
     created_by_party_id: Optional[str] = None,
     evidence: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
@@ -69,6 +73,8 @@ def create_alliance(
         "value_stream_id": value_stream_id, "steward_party_id": steward_party_id,
         "stakeholder_decision_id": stakeholder_decision_id,
         "cooperative_proposal_id": cooperative_proposal_id,
+        "market_cycle": market_cycle, "work_item_id": work_item_id,
+        "proxy_authority_id": proxy_authority_id, "review_due_at": review_due_at,
         "created_by_party_id": created_by_party_id, "evidence": evidence or [],
     })
 
@@ -184,11 +190,11 @@ def add_risk(alliance_id: str, risk_type: str, description: str, *, likelihood: 
 
 def add_knowledge_exchange(alliance_id: str, from_party_id: str, topic: str, exchange_type: str, *,
                            to_party_id: Optional[str] = None, artifact_uri: Optional[str] = None,
-                           consent_scope: Optional[str] = None) -> Dict[str, Any]:
+                           consent_scope: Optional[str] = None, consent_event_id: Optional[str] = None) -> Dict[str, Any]:
     return _insert("coordination_knowledge_exchange", {
         "alliance_id": alliance_id, "from_party_id": from_party_id, "to_party_id": to_party_id,
         "topic": topic, "exchange_type": exchange_type, "artifact_uri": artifact_uri,
-        "consent_scope": consent_scope,
+        "consent_scope": consent_scope, "consent_event_id": consent_event_id,
     })
 
 

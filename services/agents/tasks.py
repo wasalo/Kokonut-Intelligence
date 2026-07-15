@@ -245,6 +245,34 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "writes": ["delphi_recommendation:draft"],
         "high_risk": False,
     },
+    "coordination_strategy_draft": {
+        "description": "Draft candidate coordination alliances from stakeholder, capability, market, trust, ecological, and cooperative evidence; human governance is required before any transition.",
+        "risk": "medium",
+        "inputs": {
+            "stakeholder_landscape": {"type": "object", "required": True},
+            "capability_gaps": {"type": "array", "required": True},
+            "value_stream_bottlenecks": {"type": "array", "required": True},
+            "marketplace_evidence": {"type": "object", "required": True},
+            "cooperative_evidence": {"type": "object", "required": True},
+            "trust_evidence": {"type": "object", "required": True},
+            "market_cycle_context": {"type": "object", "required": True},
+            "ecological_constraints": {"type": "array", "required": True},
+            "stakeholder_constraints": {"type": "array", "required": True},
+        },
+        "outputs": {
+            "candidate_alliance_types": {"type": "array", "required": True},
+            "candidate_participants": {"type": "array", "required": True},
+            "shared_objective_draft": {"type": "object", "required": True},
+            "contribution_assumptions": {"type": "array", "required": True},
+            "expected_benefits": {"type": "array", "required": True},
+            "risks_and_harms": {"type": "array", "required": True},
+            "evidence_gaps": {"type": "array", "required": True},
+            "governance_questions": {"type": "array", "required": True},
+            "recommended_review_cadence": {"type": "object", "required": True},
+        },
+        "writes": ["coordination_alliance:draft"],
+        "high_risk": False,
+    },
 }
 
 
