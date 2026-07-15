@@ -175,7 +175,6 @@ def test_new_5_state_specs_have_proper_steps():
     new_spec_ids = [
         "traceability_batch", "insurance_claim", "pest_intervention",
         "emergency_incident", "cooperative_order", "extension_enrollment",
-        "market_order",
     ]
     for spec_id in new_spec_ids:
         spec = get_spec(spec_id)
@@ -196,3 +195,21 @@ def test_new_5_state_specs_have_proper_steps():
         assert verify_steps[0].human_approval, f"{spec_id} verify step must require human approval"
         # States must be the standard 5-state set
         assert spec.states == frozenset({"draft", "submitted", "verified", "published", "rejected"}), f"{spec_id} has non-standard states"
+
+
+def test_market_order_spec_matches_trade_fulfillment_lifecycle():
+    from services.workflow_specs.registry import get_spec
+
+    spec = get_spec("market_order")
+    transitions = _transitions(spec)
+    assert spec.states == frozenset({"pending", "confirmed", "shipped", "delivered", "cancelled"})
+    assert ("pending", "confirmed", "confirm") in transitions
+    assert ("confirmed", "shipped", "ship") in transitions
+    assert ("shipped", "delivered", "deliver") in transitions
+    assert all(
+        any(cs == state and ns == "cancelled" for cs, ns, _ in transitions)
+        for state in ("pending", "confirmed", "shipped")
+    )
+    delivered = next(step for step in spec.steps if step.current_state == "delivered")
+    cancelled = next(step for step in spec.steps if step.current_state == "cancelled")
+    assert delivered.terminal and cancelled.terminal

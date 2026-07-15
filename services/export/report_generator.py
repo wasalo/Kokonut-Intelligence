@@ -2992,6 +2992,77 @@ def generate_pitch_deck(conn, location_id: str, period_start: str = None, period
 
 
 # ---------------------------------------------------------------------------
+# Business Architecture Report Generators
+# ---------------------------------------------------------------------------
+
+def generate_capability_dashboard(conn, location_id=None, period_start=None, period_end=None):
+    """Generate a capability map dashboard report."""
+    from ..analytics.capability_map import get_capability_dashboard, get_coverage_analysis
+    dashboard = get_capability_dashboard()
+    coverage = get_coverage_analysis()
+    return {
+        "report_type": "capability_dashboard",
+        "location_id": location_id,
+        "capability_count": coverage.get("total_capabilities", 0),
+        "process_count": coverage.get("total_processes", 0),
+        "service_count": coverage.get("total_services", 0),
+        "unmapped_processes": len(coverage.get("unmapped_processes", [])),
+        "unmapped_services": len(coverage.get("unmapped_services", [])),
+        "capabilities": dashboard,
+        "coverage": coverage,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_strategy_execution(conn, location_id=None, period_start=None, period_end=None):
+    """Generate a strategy execution report (Balanced Scorecard)."""
+    from ..analytics.strategy_map import get_execution_dashboard, get_perspective_summary
+    execution = get_execution_dashboard()
+    perspectives = get_perspective_summary()
+    return {
+        "report_type": "strategy_execution",
+        "location_id": location_id,
+        "perspectives": perspectives,
+        "entries": execution,
+        "total_entries": len(execution),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_capability_assessment(conn, location_id=None, period_start=None, period_end=None):
+    """Generate a capability maturity and coverage assessment."""
+    from ..analytics.capability_map import get_capability_dashboard, get_coverage_analysis
+    dashboard = get_capability_dashboard()
+    coverage = get_coverage_analysis()
+    maturity_scores = [c.get("latest_maturity_score") for c in dashboard if c.get("latest_maturity_score")]
+    avg_maturity = round(sum(maturity_scores) / len(maturity_scores), 1) if maturity_scores else None
+    return {
+        "report_type": "capability_assessment",
+        "location_id": location_id,
+        "average_maturity": avg_maturity,
+        "capabilities_with_maturity": len(maturity_scores),
+        "total_capabilities": len(dashboard),
+        "unmapped_processes": len(coverage.get("unmapped_processes", [])),
+        "unmapped_services": len(coverage.get("unmapped_services", [])),
+        "capabilities": dashboard,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_value_stream_formal(conn, location_id=None, period_start=None, period_end=None):
+    """Generate a formal value stream map report."""
+    from ..analytics.value_stream_defs import get_stream_summary
+    streams = get_stream_summary()
+    return {
+        "report_type": "value_stream_formal",
+        "location_id": location_id,
+        "stream_count": len(streams),
+        "streams": streams,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # PESTEL Assessment report
 # ---------------------------------------------------------------------------
 
@@ -3157,6 +3228,10 @@ REPORT_GENERATORS = {
      "process_health": generate_process_health,
      "business_model_canvas": generate_business_model_canvas,
      "pitch_deck": generate_pitch_deck,
+    "capability_dashboard": generate_capability_dashboard,
+    "strategy_execution": generate_strategy_execution,
+    "capability_assessment": generate_capability_assessment,
+    "value_stream_formal": generate_value_stream_formal,
      "pestel_assessment": generate_pestel_assessment,
      "regional_readiness": generate_regional_readiness,
      "publics_market_landscape": generate_publics_market_landscape,
