@@ -98,6 +98,7 @@ def add_member(
     shares: int = 1,
     member_type: str = "farmer",
     metadata: dict = None,
+    party_id: str = None,
 ) -> dict:
     """Add a member to a cooperative."""
     cur = conn.cursor()
@@ -133,12 +134,12 @@ def add_member(
         cur.execute(
             """
             INSERT INTO cooperative_membership
-                (id, cooperative_id, location_id, member_name, member_type,
+                (id, cooperative_id, location_id, member_name, party_id, member_type,
                  role, share_count, metadata, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'active')
+            VALUES (%s, %s, %s, %s, %s::uuid, %s, %s, %s, %s::jsonb, 'active')
             RETURNING id, created_at
             """,
-            (member_id, cooperative_id, location_id, farmer_id, member_type,
+            (member_id, cooperative_id, location_id, farmer_id, party_id, member_type,
              role, shares, json.dumps(metadata or {})),
         )
         row = cur.fetchone()
@@ -1154,6 +1155,7 @@ def main():
     am.add_argument("--role", default="member", help="Role: member, board_member, treasurer, secretary, chairperson, manager")
     am.add_argument("--shares", type=int, default=1)
     am.add_argument("--member-type", default="farmer", help="Type: farmer, associate, youth, women_group")
+    am.add_argument("--party-id", help="Canonical stakeholder party UUID")
     am.add_argument("--json", action="store_true")
 
     # Summary
@@ -1276,6 +1278,7 @@ def main():
             result = add_member(
                 db, args.cooperative_id, args.farmer_id,
                 role=args.role, shares=args.shares, member_type=args.member_type,
+                party_id=args.party_id,
             )
             output = json.dumps(result, indent=2, default=str) if args.json else _format_member(result)
             print(output)

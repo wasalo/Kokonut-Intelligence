@@ -40,6 +40,7 @@ import {
 import {
   enforceAgentTaskSafety,
   enforceAiSummarySafety,
+  enforceStakeholderGovernanceSafety,
   prepareAgentActionLog,
 } from './agent-safety.js';
 
@@ -358,14 +359,35 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return await applyWorkflow('impact_claim', payload, meta);
   });
 
-  filter('agent_task.create', (payload: Record<string, any>) => enforceAgentTaskSafety(payload));
-  filter('agent_task.update', (payload: Record<string, any>) => enforceAgentTaskSafety(payload));
-  filter('ai_summary.create', (payload: Record<string, any>) => enforceAiSummarySafety(payload));
+  filter('agent_task.create', (payload: Record<string, any>, meta: Record<string, any>) => enforceAgentTaskSafety(payload, meta));
+  filter('agent_task.update', (payload: Record<string, any>, meta: Record<string, any>) => enforceAgentTaskSafety(payload, meta));
+  filter('ai_summary.create', (payload: Record<string, any>, meta: Record<string, any>) => enforceAiSummarySafety(payload, meta));
   filter('ai_summary.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    enforceAiSummarySafety(payload);
+    enforceAiSummarySafety(payload, meta);
     return await applyWorkflow('ai_summary', payload, meta);
   });
   filter('agent_action_log.create', (payload: Record<string, any>) => prepareAgentActionLog(payload));
+
+  for (const collection of [
+    'party_resolution_case',
+    'stakeholder_consent',
+    'stakeholder_grievance_case',
+    'grievance_remedy',
+    'stakeholder_decision',
+    'stakeholder_decision_evidence',
+    'buyer_verification',
+    'market_dispute',
+    'cooperative_distribution_decision',
+    'party_trust_evidence',
+    'stewardship_proxy_authority',
+    'nature_stewardship_obligation',
+    'future_generation_principle',
+  ]) {
+    filter(`${collection}.create`, (payload: Record<string, any>, meta: Record<string, any>) =>
+      enforceStakeholderGovernanceSafety(collection, payload, meta));
+    filter(`${collection}.update`, (payload: Record<string, any>, meta: Record<string, any>) =>
+      enforceStakeholderGovernanceSafety(collection, payload, meta));
+  }
 
   // ============================================================
   // Action hooks (non-blocking - run after DB write)

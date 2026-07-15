@@ -11,13 +11,41 @@ const HIGH_RISK_ACTIONS = new Set([
 const AGENT_REVIEW_STATUSES = new Set(['draft', 'submitted', 'rejected']);
 const AGENT_AI_STATUSES = new Set(['draft', 'submitted', 'rejected']);
 
+export const STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = new Set([
+  'party_resolution_case',
+  'stakeholder_consent',
+  'stakeholder_grievance_case',
+  'grievance_remedy',
+  'stakeholder_decision',
+  'stakeholder_decision_evidence',
+  'buyer_verification',
+  'market_dispute',
+  'cooperative_distribution_decision',
+  'party_trust_evidence',
+  'stewardship_proxy_authority',
+  'nature_stewardship_obligation',
+  'future_generation_principle',
+]);
+
 export function isHighRiskAgentAction(action: string | undefined): boolean {
   return HIGH_RISK_ACTIONS.has(action || '');
 }
 
-export function enforceAgentTaskSafety(payload: Record<string, any>): Record<string, any> {
-  const initiatorType = payload.initiator_type || 'agent';
-  if (initiatorType === 'agent' && payload.review_status && !AGENT_REVIEW_STATUSES.has(payload.review_status)) {
+function isAgentActor(meta?: Record<string, any>): boolean {
+  const role = meta?.accountability?.role;
+  return typeof role === 'string' && (
+    role === 'agent_read_only' ||
+    role === 'agent_write' ||
+    role === 'agent_full' ||
+    role.startsWith('agent')
+  );
+}
+
+export function enforceAgentTaskSafety(
+  payload: Record<string, any>,
+  meta?: Record<string, any>
+): Record<string, any> {
+  if (isAgentActor(meta) && payload.review_status && !AGENT_REVIEW_STATUSES.has(payload.review_status)) {
     throw new Error('Agent tasks can only be draft, submitted, or rejected');
   }
 
@@ -30,15 +58,19 @@ export function enforceAgentTaskSafety(payload: Record<string, any>): Record<str
 }
 
 export function enforceAiSummarySafety(payload: Record<string, any>, meta?: Record<string, any>): Record<string, any> {
-  // Gate on actor identity from accountability, not payload.created_by
-  const accountability = meta?.accountability;
-  const isAgent = accountability?.role === 'agent_read_only' ||
-                  accountability?.role === 'agent_write' ||
-                  accountability?.role === 'agent_full' ||
-                  accountability?.role?.startsWith?.('agent');
-
-  if (isAgent && payload.status && !AGENT_AI_STATUSES.has(payload.status)) {
+  if (isAgentActor(meta) && payload.status && !AGENT_AI_STATUSES.has(payload.status)) {
     throw new Error('Agent-created AI summaries can only be draft, submitted, or rejected');
+  }
+  return payload;
+}
+
+export function enforceStakeholderGovernanceSafety(
+  collection: string,
+  payload: Record<string, any>,
+  meta?: Record<string, any>
+): Record<string, any> {
+  if (isAgentActor(meta) && STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS.has(collection)) {
+    throw new Error(`Agent writes are blocked for human-governed stakeholder collection ${collection}`);
   }
   return payload;
 }

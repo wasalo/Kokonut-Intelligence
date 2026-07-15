@@ -12,13 +12,13 @@ def _row(row: Any):
     return dict(row) if row else None
 
 
-def record_evidence(conn, subject_party_id: str, dimension: str, direction: str, source_type: str, summary: str, *, relationship_party_id: Optional[str] = None, source_id: Optional[str] = None, source_label: Optional[str] = None, observed_at: Optional[str] = None, expires_at: Optional[str] = None, confidence: Optional[float] = None, uncertainty: Optional[float] = None, evidence_hash: Optional[str] = None, evidence_cid: Optional[str] = None, created_by_party_id: Optional[str] = None):
+def record_evidence(conn, subject_party_id: str, dimension: str, direction: str, source_type: str, summary: str, *, relationship_party_id: Optional[str] = None, source_id: Optional[str] = None, source_label: Optional[str] = None, observed_at: Optional[str] = None, expires_at: Optional[str] = None, confidence: Optional[float] = None, uncertainty: Optional[float] = None, evidence_hash: Optional[str] = None, evidence_cid: Optional[str] = None, audience: str = "internal", created_by_party_id: Optional[str] = None):
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("""INSERT INTO party_trust_evidence
             (subject_party_id, relationship_party_id, dimension, direction, source_type, source_id,
-             source_label, summary, observed_at, expires_at, confidence, uncertainty, evidence_hash, evidence_cid, created_by_party_id)
-            VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s::uuid, %s, %s, COALESCE(%s::timestamptz, NOW()), %s::timestamptz, %s, %s, %s, %s, %s::uuid) RETURNING *""",
-            (subject_party_id, relationship_party_id, dimension, direction, source_type, source_id, source_label, summary, observed_at, expires_at, confidence, uncertainty, evidence_hash, evidence_cid, created_by_party_id))
+             source_label, summary, observed_at, expires_at, confidence, uncertainty, evidence_hash, evidence_cid, audience, created_by_party_id)
+             VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s::uuid, %s, %s, COALESCE(%s::timestamptz, NOW()), %s::timestamptz, %s, %s, %s, %s, %s, %s::uuid) RETURNING *""",
+            (subject_party_id, relationship_party_id, dimension, direction, source_type, source_id, source_label, summary, observed_at, expires_at, confidence, uncertainty, evidence_hash, evidence_cid, audience, created_by_party_id))
         result = _row(cur.fetchone()); conn.commit(); return result
 
 

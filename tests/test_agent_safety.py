@@ -54,6 +54,24 @@ def test_agent_cannot_publish_modeled_decision_output() -> None:
     assert decision.requires_human_approval is True
 
 
+def test_stakeholder_human_review_collections_are_write_protected() -> None:
+    for collection in (
+        "stakeholder_consent",
+        "stakeholder_decision",
+        "buyer_verification",
+        "party_trust_evidence",
+        "nature_stewardship_obligation",
+    ):
+        decision = assess_agent_action("create", collection, {})
+        assert decision.allowed is False
+        assert decision.requires_human_approval is True
+
+
+def test_agent_can_read_stakeholder_records() -> None:
+    decision = assess_agent_action("read", "stakeholder_decision", {})
+    assert decision.allowed is True
+
+
 if __name__ == "__main__":
     test_payload_hash_is_stable()
     test_blocks_agent_publish_status()
