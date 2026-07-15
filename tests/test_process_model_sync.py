@@ -30,12 +30,24 @@ def test_sync_work_item_model():
         }
         assert rows["done"]["terminal"] and rows["done"]["goal"]
         assert rows["draft"]["initial"]
-        # market_order / metric_value (seeded in 186, no spec) must survive.
+        # Custom market_order and metric_value models retain their canonical states.
         cur.execute(
-            "SELECT COUNT(*) FROM process_model WHERE entity_type IN "
-            "('market_order', 'metric_value')"
+            "SELECT status, is_terminal, is_goal, is_initial FROM process_model "
+            "WHERE entity_type = 'market_order' ORDER BY status"
         )
-        assert cur.fetchone()[0] >= 7
+        market_rows = {
+            r[0]: {"terminal": r[1], "goal": r[2], "initial": r[3]}
+            for r in cur.fetchall()
+        }
+        assert set(market_rows) == {
+            "pending", "confirmed", "shipped", "delivered", "cancelled"
+        }
+        assert market_rows["delivered"]["terminal"] and market_rows["delivered"]["goal"]
+        assert market_rows["pending"]["initial"]
+        cur.execute(
+            "SELECT COUNT(*) FROM process_model WHERE entity_type = 'metric_value'"
+        )
+        assert cur.fetchone()[0] == 2
     except psycopg2.ProgrammingError:
         pytest.skip("process_model not present")
     finally:

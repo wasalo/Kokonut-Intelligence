@@ -7,31 +7,30 @@ from .registry import register
 SPEC_NAME = register(WorkflowSpec(
     id="market_order",
     title="Market Order Lifecycle",
-    states=frozenset({"draft", "submitted", "verified", "published", "rejected"}),
+    states=frozenset({"pending", "confirmed", "shipped", "delivered", "cancelled"}),
     invariants=(
         "order requires listing_id, buyer_id, quantity",
-        "verification confirms payment and shipping",
-        "publication records completed transaction",
+        "confirmation records payment and fulfillment acceptance",
+        "delivery records completed transaction",
     ),
     source_refs=(
-        "schemas/postgres/194_process_taxonomy_expansion.sql",
+        "schemas/postgres/186_process_state_models.sql",
+        "schemas/postgres/187_state_model_triggers.sql",
     ),
     steps=(
-        Step("mo_draft_entry", "buyer", "draft", "Create market order", entry=True, transitions=(
-            Transition("mo_submit", "submitted", "submit for verification", "submit"),
-            Transition("mo_reject_draft", "rejected", "withdrawn before submission", "reject"),
+        Step("mo_pending_entry", "buyer", "pending", "Create market order", entry=True, transitions=(
+            Transition("mo_confirm", "confirmed", "payment and fulfillment accepted", "confirm"),
+            Transition("mo_cancel", "cancelled", "withdrawn before confirmation", "cancel"),
         )),
-        Step("mo_submit", "buyer", "submitted", "Submit market order for review", transitions=(
-            Transition("mo_verify", "verified", "payment and shipping confirmed", "verify"),
-            Transition("mo_reject_submitted", "rejected", "payment failed", "reject"),
+        Step("mo_confirm", "seller", "confirmed", "Confirm market order", human_approval=True, transitions=(
+            Transition("mo_ship", "shipped", "order handed to carrier", "ship"),
+            Transition("mo_cancel", "cancelled", "fulfillment failed", "cancel"),
         )),
-        Step("mo_verify", "seller", "verified", "Verify market order payment and shipping", human_approval=True, transitions=(
-            Transition("mo_publish", "published", "approved for transaction recording", "publish"),
-            Transition("mo_reject_verified", "rejected", "order fulfillment failed", "reject"),
+        Step("mo_ship", "carrier", "shipped", "Ship market order", transitions=(
+            Transition("mo_deliver", "delivered", "order received", "deliver"),
+            Transition("mo_cancel", "cancelled", "delivery failed", "cancel"),
         )),
-        Step("mo_publish", "system", "published", "Terminal published market order", terminal=True),
-        Step("mo_reject_draft", "seller", "rejected", "Terminal rejected market order", terminal=True),
-        Step("mo_reject_submitted", "seller", "rejected", "Terminal rejected market order", terminal=True),
-        Step("mo_reject_verified", "seller", "rejected", "Terminal rejected market order", terminal=True),
+        Step("mo_deliver", "carrier", "delivered", "Terminal delivered market order", terminal=True),
+        Step("mo_cancel", "seller", "cancelled", "Terminal cancelled market order", terminal=True),
     ),
 ))

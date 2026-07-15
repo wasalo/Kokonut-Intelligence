@@ -5,43 +5,40 @@ Spec: `market_order`
 ## Invariants
 
 - order requires listing_id, buyer_id, quantity
-- verification confirms payment and shipping
-- publication records completed transaction
+- confirmation records payment and fulfillment acceptance
+- delivery records completed transaction
 
 ## Decision Table
 
 | Step | Actor | Current state | Action | Guard | Outcome | Next state | Target | Controls |
 |---|---|---|---|---|---|---|---|---|
-| mo_draft_entry | buyer | draft | Create market order | withdrawn before submission | reject | rejected | mo_reject_draft | entry |
-| mo_draft_entry | buyer | draft | Create market order | submit for verification | submit | submitted | mo_submit | entry |
-| mo_publish | system | published | Terminal published market order | - | terminal | - | - | terminal |
-| mo_reject_draft | seller | rejected | Terminal rejected market order | - | terminal | - | - | terminal |
-| mo_reject_submitted | seller | rejected | Terminal rejected market order | - | terminal | - | - | terminal |
-| mo_reject_verified | seller | rejected | Terminal rejected market order | - | terminal | - | - | terminal |
-| mo_submit | buyer | submitted | Submit market order for review | payment failed | reject | rejected | mo_reject_submitted | - |
-| mo_submit | buyer | submitted | Submit market order for review | payment and shipping confirmed | verify | verified | mo_verify | - |
-| mo_verify | seller | verified | Verify market order payment and shipping | approved for transaction recording | publish | published | mo_publish | human-approval |
-| mo_verify | seller | verified | Verify market order payment and shipping | order fulfillment failed | reject | rejected | mo_reject_verified | human-approval |
+| mo_cancel | seller | cancelled | Terminal cancelled market order | - | terminal | - | - | terminal |
+| mo_confirm | seller | confirmed | Confirm market order | fulfillment failed | cancel | cancelled | mo_cancel | human-approval |
+| mo_confirm | seller | confirmed | Confirm market order | order handed to carrier | ship | shipped | mo_ship | human-approval |
+| mo_deliver | carrier | delivered | Terminal delivered market order | - | terminal | - | - | terminal |
+| mo_pending_entry | buyer | pending | Create market order | withdrawn before confirmation | cancel | cancelled | mo_cancel | entry |
+| mo_pending_entry | buyer | pending | Create market order | payment and fulfillment accepted | confirm | confirmed | mo_confirm | entry |
+| mo_ship | carrier | shipped | Ship market order | delivery failed | cancel | cancelled | mo_cancel | - |
+| mo_ship | carrier | shipped | Ship market order | order received | deliver | delivered | mo_deliver | - |
 
 ## Sources
 
-- `schemas/postgres/194_process_taxonomy_expansion.sql`
+- `schemas/postgres/186_process_state_models.sql`
+- `schemas/postgres/187_state_model_triggers.sql`
 
 ## Mermaid
 
 ```mermaid
 flowchart TD
-    mo_draft_entry[mo_draft_entry: Create market order [buyer]]
-    mo_publish((mo_publish: Terminal published market order [system]))
-    mo_reject_draft((mo_reject_draft: Terminal rejected market order [seller]))
-    mo_reject_submitted((mo_reject_submitted: Terminal rejected market order [seller]))
-    mo_reject_verified((mo_reject_verified: Terminal rejected market order [seller]))
-    mo_submit[mo_submit: Submit market order for review [buyer]]
-    mo_verify[mo_verify: Verify market order payment and shipping [seller]]
-    mo_draft_entry -->|withdrawn before submission / reject -> rejected| mo_reject_draft
-    mo_draft_entry -->|submit for verification / submit -> submitted| mo_submit
-    mo_submit -->|payment failed / reject -> rejected| mo_reject_submitted
-    mo_submit -->|payment and shipping confirmed / verify -> verified| mo_verify
-    mo_verify -->|approved for transaction recording / publish -> published| mo_publish
-    mo_verify -->|order fulfillment failed / reject -> rejected| mo_reject_verified
+    mo_cancel((mo_cancel: Terminal cancelled market order [seller]))
+    mo_confirm[mo_confirm: Confirm market order [seller]]
+    mo_deliver((mo_deliver: Terminal delivered market order [carrier]))
+    mo_pending_entry[mo_pending_entry: Create market order [buyer]]
+    mo_ship[mo_ship: Ship market order [carrier]]
+    mo_confirm -->|fulfillment failed / cancel -> cancelled| mo_cancel
+    mo_confirm -->|order handed to carrier / ship -> shipped| mo_ship
+    mo_pending_entry -->|withdrawn before confirmation / cancel -> cancelled| mo_cancel
+    mo_pending_entry -->|payment and fulfillment accepted / confirm -> confirmed| mo_confirm
+    mo_ship -->|delivery failed / cancel -> cancelled| mo_cancel
+    mo_ship -->|order received / deliver -> delivered| mo_deliver
 ```
