@@ -900,6 +900,14 @@ All work follows a 3-step branch → PR → merge flow:
 - Business plan generate: `python3 -m services.export.business_plan --location-id UUID` (or `--org-id UUID`)
 - Business-plan tests: `python3 -m pytest tests/test_business_plan.py tests/test_swot.py tests/test_reference_class.py -v`
 - BMC tests: `python3 -m pytest tests/test_business_model_canvas.py tests/test_revenue_model.py tests/test_channel_health.py tests/test_partner_lifecycle.py -v`
+- Pitch generate: `python3 -m services.analytics.pitch generate --location-id UUID --audience funders`
+- Pitch elevator: `python3 -m services.analytics.pitch elevator --location-id UUID`
+- Pitch evidence: `python3 -m services.analytics.pitch evidence --location-id UUID`
+- Pitch templates list: `python3 -m services.analytics.pitch templates list`
+- Pitch templates get: `python3 -m services.analytics.pitch templates get --audience funders`
+- Pitch templates create: `python3 -m services.analytics.pitch templates create --audience funders --hook "..." --problem "..." --solution "..." --proof "..." --cta-label "..." --cta-url "..."`
+- Pitch report: `python3 -m services.export.report_generator --type pitch_deck --location-id UUID`
+- Pitch tests: `python3 -m pytest tests/test_pitch.py -v`
 
 ## Development Notes
 
