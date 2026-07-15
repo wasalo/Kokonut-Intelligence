@@ -28,9 +28,8 @@ def _purge(conn, entity_type, entity_ids):
     ids = [str(i) for i in entity_ids]
     with conn.cursor() as cur:
         cur.execute(
-            "DELETE FROM lifecycle_transition WHERE entity_type = %s "
-            "AND entity_id = ANY(%s::uuid[])",
-            (entity_type, ids),
+            "DELETE FROM lifecycle_transition WHERE entity_type = %s",
+            (entity_type,),
         )
         for eid in ids:
             cur.execute("DELETE FROM metric_value WHERE id = %s::uuid", (eid,))
