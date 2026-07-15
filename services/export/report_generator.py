@@ -3092,6 +3092,259 @@ def generate_technology_roadmap(conn, location_id=None, period_start=None, perio
     }
 
 
+def generate_stakeholder_landscape(conn, location_id=None, period_start=None, period_end=None):
+    """Generate an internal stakeholder landscape report."""
+    query = "SELECT * FROM v_stakeholder_landscape"
+    params = []
+    if location_id:
+        query += " WHERE EXISTS (SELECT 1 FROM party_identifier pi WHERE pi.party_id = party_id AND pi.identifier_type = 'location_id' AND pi.identifier_value = %s)"
+        params.append(location_id)
+    query += " ORDER BY advisory_score DESC NULLS LAST, display_name"
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(query, params)
+        parties = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "stakeholder_landscape",
+        "location_id": location_id,
+        "party_count": len(parties),
+        "parties": parties,
+        "limitations": [
+            "Salience is advisory and depends on evidence quality and representation coverage.",
+            "Proxy parties represent interests through governed evidence; they do not provide human consent or votes.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_engagement(conn, location_id=None, period_start=None, period_end=None):
+    """Generate stakeholder engagement plan and commitment health report."""
+    query = "SELECT * FROM v_stakeholder_engagement_summary"
+    params = []
+    if location_id:
+        query += " WHERE scope_type = 'location' AND scope_id = %s::uuid"
+        params.append(location_id)
+    query += " ORDER BY overdue_commitment_count DESC, name"
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(query, params)
+        plans = [dict(row) for row in cur.fetchall()]
+        health = []
+        for plan in plans:
+            cur.execute(
+                "SELECT * FROM v_stakeholder_commitment_health WHERE plan_id = %s AND is_overdue = TRUE ORDER BY due_at NULLS LAST",
+                (plan["plan_id"],),
+            )
+            health.extend(dict(row) for row in cur.fetchall())
+    return {
+        "report_type": "stakeholder_engagement",
+        "location_id": location_id,
+        "plan_count": len(plans),
+        "plans": plans,
+        "overdue_commitments": health,
+        "limitations": [
+            "Commitment health indicates due-date and linkage status, not whether the stakeholder considers an outcome satisfactory.",
+            "Engagement mode is a plan-level intention and does not prove meaningful participation.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_grievance(conn, location_id=None, period_start=None, period_end=None):
+    """Generate an internal grievance, remedy, and appeal health report."""
+    query = "SELECT * FROM v_stakeholder_grievance_health"
+    params = []
+    if location_id:
+        query += " WHERE location_id = %s::uuid"
+        params.append(location_id)
+    query += " ORDER BY is_overdue DESC, severity DESC, received_at"
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(query, params)
+        cases = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "stakeholder_grievance",
+        "location_id": location_id,
+        "case_count": len(cases),
+        "overdue_count": sum(1 for case in cases if case.get("is_overdue")),
+        "cases": cases,
+        "limitations": [
+            "This is an internal operational report; protected details and private evidence are excluded.",
+            "Case status does not establish that a remedy was satisfactory without affected-party confirmation.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_representation(conn, location_id=None, period_start=None, period_end=None):
+    """Generate privacy-aware stakeholder representation and equity metrics."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_public_stakeholder_representation ORDER BY activity_type, activity_id")
+        representation = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_stakeholder_equity_distribution ORDER BY distribution_type, metric_name")
+        distributions = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "stakeholder_representation",
+        "location_id": location_id,
+        "representation_count": len(representation),
+        "representation": representation,
+        "distribution_count": len(distributions),
+        "distributions": distributions,
+        "limitations": [
+            "Public representation rows are suppressed for activities with fewer than five invitees.",
+            "Aggregated benefit and harm records require verified or published evidence.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_decision_lineage(conn, location_id=None, period_start=None, period_end=None):
+    """Generate an internal stakeholder decision, trade-off, and evidence report."""
+    query = "SELECT * FROM v_stakeholder_decision_lineage"
+    params = []
+    if location_id:
+        query += " WHERE scope_type = 'location' AND scope_id = %s::uuid"
+        params.append(location_id)
+    query += " ORDER BY approved_at DESC NULLS LAST, decision_id"
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(query, params)
+        decisions = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "stakeholder_decision_lineage",
+        "location_id": location_id,
+        "decision_count": len(decisions),
+        "decisions": decisions,
+        "limitations": [
+            "This is an internal lineage report; private evidence and protected grievance details are not exposed.",
+            "Approval records human authorization but does not establish that affected stakeholders consented.",
+            "Outcome records require separate verification before public impact claims are made.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, period_end=None):
+    """Generate the internal stakeholder ecosystem cockpit report."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
+        cockpit = dict(cur.fetchone())
+        cur.execute("SELECT * FROM v_stakeholder_landscape ORDER BY advisory_score DESC NULLS LAST, display_name")
+        landscape = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM relationship_risk_indicator ORDER BY created_at DESC")
+        risks = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_party_relationship_recommendations ORDER BY recommendation, display_name")
+        recommendations = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "stakeholder_ecosystem",
+        "location_id": location_id,
+        "cockpit": cockpit,
+        "landscape": landscape,
+        "relationship_risks": risks,
+        "relationship_recommendations": recommendations,
+        "limitations": [
+            "Salience is advisory and must not be used as an automatic exclusion rule.",
+            "Trust and relationship risks require evidence review, correction, and appeal pathways.",
+            "Proxy parties represent documented interests; they do not consent or vote.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, period_end=None):
+    """Generate stakeholder outcomes from governed outcomes and architecture links."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        query = "SELECT * FROM stakeholder_outcome WHERE status IN ('verified', 'published')"
+        params = []
+        if location_id:
+            query += " AND location_id = %s::uuid"; params.append(location_id)
+        query += " ORDER BY created_at DESC"
+        cur.execute(query, params); outcomes = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_stakeholder_capability_value_stream ORDER BY entity_type, entity_name, party_name")
+        architecture = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "stakeholder_outcomes",
+        "location_id": location_id,
+        "outcome_count": len(outcomes),
+        "outcomes": outcomes,
+        "capability_and_value_stream_links": architecture,
+        "limitations": [
+            "Only verified or published governed outcomes are included.",
+            "Outcome presence does not establish causal attribution or satisfaction without supporting evidence.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_trust(conn, location_id=None, period_start=None, period_end=None):
+    """Generate explainable trust profiles, evidence timelines, and disputes."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_party_trust_profile ORDER BY open_risk_count DESC, display_name")
+        profiles = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_market_dispute_performance")
+        disputes = dict(cur.fetchone())
+        cur.execute("SELECT * FROM relationship_risk_indicator WHERE status IN ('open', 'monitoring') ORDER BY created_at DESC")
+        risks = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_party_financing_eligibility_inputs ORDER BY open_risk_count DESC, display_name")
+        eligibility_inputs = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "stakeholder_trust",
+        "location_id": location_id,
+        "profiles": profiles,
+        "dispute_performance": disputes,
+        "relationship_risks": risks,
+        "financing_and_insurance_inputs": eligibility_inputs,
+        "limitations": [
+            "No universal reputation score is calculated or exposed.",
+            "Every evidence record should be interpreted with its source, age, confidence, uncertainty, correction, and appeal state.",
+            "Trust signals are inputs for human review, not automatic exclusion, financing, or insurance decisions.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_value_streams(conn, location_id=None, period_start=None, period_end=None):
+    """Generate stakeholder-aware capability and value-stream outcomes."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_stakeholder_capability_value_stream ORDER BY entity_type, entity_name, party_name")
+        links = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_value_stream_performance")
+        performance = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM stakeholder_bottleneck_priority WHERE status IN ('reviewed', 'active') ORDER BY priority, reviewed_at DESC NULLS LAST")
+        bottlenecks = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM technology_alternative_stakeholder_outcome WHERE status IN ('reviewed', 'approved') ORDER BY reviewed_at DESC NULLS LAST")
+        alternatives = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "stakeholder_value_streams",
+        "location_id": location_id,
+        "stakeholder_links": links,
+        "performance": performance,
+        "stakeholder_bottleneck_priorities": bottlenecks,
+        "technology_alternative_outcomes": alternatives,
+        "limitations": [
+            "Operational bottleneck metrics are prioritization signals, not proof of stakeholder harm.",
+            "Stakeholder outcomes require evidence and human interpretation alongside process measures.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_stakeholder_cockpit(conn, location_id=None, period_start=None, period_end=None):
+    """Generate a composite internal/public-safe stakeholder cockpit snapshot."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_stakeholder_cockpit_internal")
+        internal = dict(cur.fetchone())
+        cur.execute("SELECT * FROM v_public_stakeholder_cockpit")
+        public = dict(cur.fetchone())
+    return {
+        "report_type": "stakeholder_cockpit",
+        "location_id": location_id,
+        "internal": internal,
+        "public_safe": public,
+        "limitations": [
+            "Internal and public-safe sections are deliberately separated.",
+            "Counts are governed-record indicators and do not prove absence of harm or satisfaction.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # PESTEL Assessment report
 # ---------------------------------------------------------------------------
@@ -3263,6 +3516,16 @@ REPORT_GENERATORS = {
     "capability_assessment": generate_capability_assessment,
     "value_stream_formal": generate_value_stream_formal,
     "technology_roadmap": generate_technology_roadmap,
+    "stakeholder_landscape": generate_stakeholder_landscape,
+    "stakeholder_engagement": generate_stakeholder_engagement,
+    "stakeholder_grievance": generate_stakeholder_grievance,
+     "stakeholder_representation": generate_stakeholder_representation,
+     "stakeholder_decision_lineage": generate_stakeholder_decision_lineage,
+     "stakeholder_ecosystem": generate_stakeholder_ecosystem,
+     "stakeholder_outcomes": generate_stakeholder_outcomes,
+     "stakeholder_trust": generate_stakeholder_trust,
+     "stakeholder_value_streams": generate_stakeholder_value_streams,
+     "stakeholder_cockpit": generate_stakeholder_cockpit,
     "pestel_assessment": generate_pestel_assessment,
      "regional_readiness": generate_regional_readiness,
      "publics_market_landscape": generate_publics_market_landscape,

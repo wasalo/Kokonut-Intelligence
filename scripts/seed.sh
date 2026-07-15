@@ -208,6 +208,21 @@ echo "Seeding Technology and Capability Roadmap definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/092_technology_roadmap.sql"
 echo "Technology and Capability Roadmap definitions seeded."
 
+# Seed canonical stakeholder vocabulary and pilot proxy interests
+echo ""
+echo "Seeding Stakeholder Ecosystem foundation..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/105_stakeholder_vocabulary.sql"
+echo "Stakeholder Ecosystem foundation seeded."
+
+# Seed stakeholder engagement foundation
+echo ""
+echo "Seeding Stakeholder Engagement foundation..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/106_stakeholder_engagement.sql"
+
+echo "Seeding stakeholder cockpit datasets..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/107_stakeholder_cockpit.sql"
+echo "Stakeholder Engagement foundation seeded."
+
 fi
 
 echo ""

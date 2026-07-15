@@ -968,6 +968,65 @@ All work follows a 3-step branch → PR → merge flow:
 - Publics matrix: `python3 -m services.analytics.publics matrix --location-id UUID`
 - Publics suggest: `python3 -m services.analytics.publics suggest --location-id UUID`
 - Publics tests: `python3 -m pytest tests/test_publics.py -v`
+- Stakeholder create party: `python3 -m services.analytics.cli_stakeholders create-party community "Community Name"`
+- Stakeholder list: `python3 -m services.analytics.cli_stakeholders list [--party-type community]`
+- Stakeholder landscape: `python3 -m services.analytics.cli_stakeholders landscape`
+- Stakeholder show: `python3 -m services.analytics.cli_stakeholders show PARTY_UUID`
+- Stakeholder link identity: `python3 -m services.analytics.cli_stakeholders identifier PARTY_UUID TYPE VALUE SOURCE --status candidate`
+- Stakeholder relationship: `python3 -m services.analytics.cli_stakeholders relationship FROM_PARTY TO_PARTY RELATIONSHIP_TYPE`
+- Stakeholder interest: `python3 -m services.analytics.cli_stakeholders interest PARTY_UUID need "Accessible participation"`
+- Stakeholder salience: `python3 -m services.analytics.cli_stakeholders salience PARTY_UUID --legitimacy-score 9 --harm-exposure 8 --rationale "Evidence-backed assessment"`
+- Stakeholder report: `python3 -m services.export.report_generator --type stakeholder_landscape --location-id UUID`
+- Stakeholder tests: `python3 -m pytest tests/test_stakeholder_foundation.py -v`
+- Stakeholder consent record: `python3 -m services.analytics.cli_consent record PARTY_UUID social "community research" --recipient-type researcher`
+- Stakeholder consent check: `python3 -m services.analytics.cli_consent check PARTY_UUID social "community research" --recipient-type researcher`
+- Stakeholder consent list: `python3 -m services.analytics.cli_consent list --party-id PARTY_UUID`
+- Stakeholder consent withdraw: `python3 -m services.analytics.cli_consent withdraw CONSENT_EVENT_UUID --reason "Purpose changed"`
+- Stakeholder consent tests: `python3 -m pytest tests/test_stakeholder_consent.py -v`
+- Stakeholder engagement create plan: `python3 -m services.analytics.cli_stakeholder_engagement create-plan "Plan" --stakeholder-party-id PARTY_UUID`
+- Stakeholder engagement list plans: `python3 -m services.analytics.cli_stakeholder_engagement list-plans`
+- Stakeholder engagement add objective: `python3 -m services.analytics.cli_stakeholder_engagement add-objective PLAN_UUID "Objective" "Desired outcome"`
+- Stakeholder engagement schedule touchpoint: `python3 -m services.analytics.cli_stakeholder_engagement schedule-touchpoint PLAN_UUID "Purpose" --channel-type sms --consent-checked`
+- Stakeholder engagement commitment health: `python3 -m services.analytics.cli_stakeholder_engagement commitment-health [--overdue-only]`
+- Stakeholder engagement record outcome: `python3 -m services.analytics.cli_stakeholder_engagement record-outcome PLAN_UUID progress "Outcome summary"`
+- Stakeholder engagement report: `python3 -m services.export.report_generator --type stakeholder_engagement --location-id UUID`
+- Stakeholder engagement tests: `python3 -m pytest tests/test_stakeholder_engagement.py -v`
+- Stakeholder grievance create: `python3 -m services.analytics.cli_stakeholder_grievances create-case representation "Input was not acknowledged" --complainant-party-id PARTY_UUID`
+- Stakeholder grievance acknowledge: `python3 -m services.analytics.cli_stakeholder_grievances acknowledge CASE_UUID --owner-party-id PARTY_UUID`
+- Stakeholder grievance investigate: `python3 -m services.analytics.cli_stakeholder_grievances assign-investigation CASE_UUID INVESTIGATOR_PARTY_UUID "Review participation records"`
+- Stakeholder grievance remedy: `python3 -m services.analytics.cli_stakeholder_grievances propose-remedy CASE_UUID explanation "Publish a response"`
+- Stakeholder grievance health: `python3 -m services.analytics.cli_stakeholder_grievances health [--overdue-only]`
+- Stakeholder grievance report: `python3 -m services.export.report_generator --type stakeholder_grievance --location-id UUID`
+- Stakeholder grievance tests: `python3 -m pytest tests/test_stakeholder_grievances.py -v`
+- Stakeholder participation: `python3 -m services.analytics.cli_stakeholder_representation record-participation decision DECISION_UUID --party-id PARTY_UUID --status attended --consent-checked`
+- Stakeholder accessibility: `python3 -m services.analytics.cli_stakeholder_representation request-accessibility PARTICIPATION_UUID language "Provide interpretation"`
+- Stakeholder minority view: `python3 -m services.analytics.cli_stakeholder_representation record-minority-view decision DECISION_UUID "Protect water access first" --anonymous-group "Affected households"`
+- Stakeholder representation metrics: `python3 -m services.analytics.cli_stakeholder_representation metrics decision DECISION_UUID`
+- Stakeholder distribution summary: `python3 -m services.analytics.cli_stakeholder_representation distribution-summary --scope-type location --scope-id UUID`
+- Stakeholder representation report: `python3 -m services.export.report_generator --type stakeholder_representation --location-id UUID`
+- Stakeholder representation tests: `python3 -m pytest tests/test_stakeholder_representation.py -v`
+- Stakeholder decision create: `python3 -m services.analytics.cli_stakeholder_decisions create "Decision title" "Decision description" policy --created-by-party-id PARTY_UUID`
+- Stakeholder decision submit: `python3 -m services.analytics.cli_stakeholder_decisions submit DECISION_UUID`
+- Stakeholder decision approve: `python3 -m services.analytics.cli_stakeholder_decisions approve DECISION_UUID APPROVER_PARTY_UUID`
+- Stakeholder decision link execution: `python3 -m services.analytics.cli_stakeholder_decisions link-execution DECISION_UUID --work-item-id WORK_ITEM_UUID`
+- Stakeholder decision complete: `python3 -m services.analytics.cli_stakeholder_decisions complete DECISION_UUID`
+- Stakeholder decision add participant: `python3 -m services.analytics.cli_stakeholder_decisions add-participant DECISION_UUID affected --party-id PARTY_UUID --status participated --consent-checked`
+- Stakeholder decision add trade-off: `python3 -m services.analytics.cli_stakeholder_decisions add-tradeoff DECISION_UUID harm "Potential water access impact" --severity 8 --mitigation "Protect minimum access"`
+- Stakeholder decision add evidence: `python3 -m services.analytics.cli_stakeholder_decisions add-evidence DECISION_UUID metric "Verified soil moisture trend" --role supporting --maturity 4 --verified`
+- Stakeholder decision record outcome: `python3 -m services.analytics.cli_stakeholder_decisions record-outcome DECISION_UUID harm "No material access disruption observed" --status verified`
+- Stakeholder decision report: `python3 -m services.export.report_generator --type stakeholder_decision_lineage --location-id UUID`
+- Stakeholder trust evidence: `python3 -m services.analytics.cli_stakeholder_trust record-evidence PARTY_UUID payment supporting financial_transaction "Payment settled within agreed terms" --confidence 0.9 --uncertainty 0.1`
+- Stakeholder trust profile: `python3 -m services.analytics.cli_stakeholder_trust profile PARTY_UUID`
+- Stakeholder trust timeline: `python3 -m services.analytics.cli_stakeholder_trust timeline PARTY_UUID`
+- Stakeholder trust risks: `python3 -m services.analytics.cli_stakeholder_trust risks [--party-id PARTY_UUID]`
+- Buyer verification: `python3 -m services.analytics.cli_stakeholder_trust verify-buyer BUYER_UUID registration "Registry review" --verified-by-party-id REVIEWER_UUID`
+- Cooperative governance health: `python3 -m services.analytics.cli_stakeholder_trust governance-health [--cooperative-id UUID]`
+- Stakeholder ecosystem report: `python3 -m services.export.report_generator --type stakeholder_ecosystem --location-id UUID`
+- Stakeholder outcomes report: `python3 -m services.export.report_generator --type stakeholder_outcomes --location-id UUID`
+- Stakeholder trust report: `python3 -m services.export.report_generator --type stakeholder_trust --location-id UUID`
+- Stakeholder value-stream report: `python3 -m services.export.report_generator --type stakeholder_value_streams --location-id UUID`
+- Stakeholder cockpit report: `python3 -m services.export.report_generator --type stakeholder_cockpit --location-id UUID`
+- Stakeholder Phase 8-11 tests: `python3 -m pytest tests/test_stakeholder_phases_8_11.py -v`
 - Env scanning create: `python3 -m services.analytics.env_scanning create --location-id UUID --title "Q1 Scan" --type full`
 - Env scanning update-step: `python3 -m services.analytics.env_scanning update-step --scan-id UUID --step 1 --status completed --findings "3 threats identified"`
 - Env scanning get: `python3 -m services.analytics.env_scanning get --scan-id UUID`
