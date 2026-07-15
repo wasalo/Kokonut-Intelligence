@@ -1,8 +1,8 @@
 """Platform definition-of-done verifier for a seeded local database.
 
 Replaces test_mvp_done.py with comprehensive coverage of the full platform:
-712 tables, 275 views, 21 workflow specs, 57 services, 27 process_map entries,
-and all critical seed data.
+Critical platform tables, views, workflow specs, services, process maps,
+and all governed seed data.
 
 Usage:
     python3 -m tests.test_platform_done
@@ -105,6 +105,11 @@ def schema_completeness_checks() -> List[Tuple[str, bool]]:
         "process_model", "process_variant", "work_item",
         # Service & Data Quality (Phase 6C)
         "service_registry", "data_quality_rule", "data_quality_score",
+        # Business Architecture
+        "business_capability", "capability_process_map", "capability_service_map",
+        "capability_maturity_assessment", "strategy_map", "strategy_capability_map",
+        "strategy_initiative", "vision_mission", "value_stream_definition",
+        "value_stream_stage", "value_stream_stage_observation",
         # PRM (Phase 6D)
         "customer_satisfaction",
         # Governance & Wellbeing
@@ -189,6 +194,16 @@ def seed_data_checks() -> List[Tuple[str, bool]]:
         ("seed:process_model >= 3", count_check("process_model", 3)),
         ("seed:process_entity_mapping >= 22", count_check("process_entity_mapping", 22)),
         ("seed:service_registry >= 57", count_check("service_registry", 57)),
+        ("seed:business_capability >= 30",
+         count_check("business_capability", 30, "status = 'active'")),
+        ("seed:capability_process_map >= 30", count_check("capability_process_map", 30)),
+        ("seed:capability_service_map >= 60", count_check("capability_service_map", 60)),
+        ("seed:strategy_map perspectives = 4",
+         "(SELECT count(DISTINCT perspective) FROM strategy_map WHERE entity_type = 'platform') = 4"),
+        ("seed:vision_mission approved >= 3",
+         count_check("vision_mission", 3, "entity_type = 'platform' AND status = 'approved'")),
+        ("seed:value_stream_definition >= 4",
+         count_check("value_stream_definition", 4, "status = 'active'")),
         ("seed:data_quality_rule >= 14", count_check("data_quality_rule", 14)),
         ("seed:impact_framework >= 7",
          count_check("impact_framework", 7, "status = 'active'")),
@@ -288,6 +303,14 @@ def view_integrity_checks() -> List[Tuple[str, bool]]:
          to_regclass_check("v_crisp_composite_rating")),
         ("view:v_delphi_study_summary exists",
          to_regclass_check("v_delphi_study_summary")),
+        ("view:v_capability_dashboard exists",
+         to_regclass_check("v_capability_dashboard")),
+        ("view:v_strategy_execution exists",
+         to_regclass_check("v_strategy_execution")),
+        ("view:v_current_vision_mission exists",
+         to_regclass_check("v_current_vision_mission")),
+        ("view:v_value_stream_performance exists",
+         to_regclass_check("v_value_stream_performance")),
     ]
     sql = _batch(checks)
     return run_sql(sql)

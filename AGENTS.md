@@ -921,6 +921,26 @@ All work follows a 3-step branch → PR → merge flow:
 - Pitch templates create: `python3 -m services.analytics.pitch templates create --audience funders --hook "..." --problem "..." --solution "..." --proof "..." --cta-label "..." --cta-url "..."`
 - Pitch report: `python3 -m services.export.report_generator --type pitch_deck --location-id UUID`
 - Pitch tests: `python3 -m pytest tests/test_pitch.py -v`
+- Capability map list: `python3 -m services.analytics.cli_capability_map list [--guild technology]`
+- Capability map hierarchy: `python3 -m services.analytics.cli_capability_map hierarchy`
+- Capability map coverage: `python3 -m services.analytics.cli_capability_map coverage`
+- Capability maturity assess: `python3 -m services.analytics.cli_capability_map maturity CAPABILITY_UUID LEVEL --assessed-by REVIEWER`
+- Capability process mapping: `python3 -m services.analytics.cli_capability_map map-process CAPABILITY_UUID PROCESS_KEY`
+- Capability service mapping: `python3 -m services.analytics.cli_capability_map map-service CAPABILITY_UUID SERVICE_NAME`
+- Strategy map create: `python3 -m services.analytics.cli_strategy_map create "Objective" --perspective internal_process --theme "Operational Excellence"`
+- Strategy map list: `python3 -m services.analytics.cli_strategy_map list [--perspective financial]`
+- Strategy capability mapping: `python3 -m services.analytics.cli_strategy_map map-capability STRATEGY_UUID CAPABILITY_UUID`
+- Strategy initiative create: `python3 -m services.analytics.cli_strategy_map initiative-create STRATEGY_UUID "Initiative"`
+- Strategy execution dashboard: `python3 -m services.analytics.cli_strategy_map dashboard`
+- Vision/mission current: `python3 -m services.analytics.cli_vision_mission current`
+- Vision/mission create: `python3 -m services.analytics.cli_vision_mission create "Statement" --type vision`
+- Vision/mission approve: `python3 -m services.analytics.cli_vision_mission approve STATEMENT_UUID --approved-by REVIEWER`
+- Value stream list: `python3 -m services.analytics.cli_value_stream_defs list`
+- Value stream stages: `python3 -m services.analytics.cli_value_stream_defs stages STREAM_UUID`
+- Value stream observation: `python3 -m services.analytics.cli_value_stream_defs observe STAGE_UUID ENTITY_TYPE ENTITY_UUID --lead-time HOURS --fty PERCENT`
+- Value stream performance: `python3 -m services.analytics.cli_value_stream_defs performance STREAM_UUID`
+- Business architecture reports: `python3 -m services.export.report_generator --type capability_dashboard` (also `strategy_execution`, `capability_assessment`, `value_stream_formal`)
+- Business architecture tests: `python3 -m pytest tests/test_capability_map.py tests/test_strategy_map.py tests/test_vision_mission.py tests/test_value_stream_defs.py tests/test_ba_integration.py -v`
 
 ## Development Notes
 

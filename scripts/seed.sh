@@ -198,6 +198,12 @@ echo "Seeding Bio Factory Operations definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/044_bio_factory_operations.sql"
 echo "Bio Factory Operations definitions seeded."
 
+# Seed Business Architecture reference data
+echo ""
+echo "Seeding Business Architecture capability and value-stream definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/091_business_architecture.sql"
+echo "Business Architecture definitions seeded."
+
 echo ""
 echo "=== Seed Complete ==="
 echo ""
