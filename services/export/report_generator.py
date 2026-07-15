@@ -3063,6 +3063,105 @@ def generate_value_stream_formal(conn, location_id=None, period_start=None, peri
 
 
 # ---------------------------------------------------------------------------
+# PESTEL Assessment report
+# ---------------------------------------------------------------------------
+
+def generate_pestel_assessment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    from services.analytics.pestel import list_analyses, render_markdown
+    analyses = list_analyses(conn, location_id)
+    latest = analyses[0] if analyses else {}
+    return {
+        "report_type": "pestel_assessment",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "analysis_count": len(analyses),
+        "latest_analysis": latest,
+        "markdown": render_markdown(latest) if latest else "No PESTEL analyses found",
+        "limitations": [
+            "PESTEL data is generated from platform records at query time.",
+            "Factor scores reflect subjective assessments and evidence availability.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Regional Readiness report
+# ---------------------------------------------------------------------------
+
+def generate_regional_readiness(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    from services.analytics.regional_readiness import list_assessments, render_markdown
+    assessments = list_assessments(conn, location_id)
+    latest = assessments[0] if assessments else {}
+    return {
+        "report_type": "regional_readiness",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "assessment_count": len(assessments),
+        "latest_assessment": latest,
+        "markdown": render_markdown(latest) if latest else "No regional readiness assessments found",
+        "limitations": [
+            "Readiness scores are computed from available platform data.",
+            "Missing data sources result in lower scores (not absence of capability).",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Publics & Market Landscape report
+# ---------------------------------------------------------------------------
+
+def generate_publics_market_landscape(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    from services.analytics.publics import list_publics, list_segments, influence_interest_matrix
+    publics = list_publics(conn, location_id)
+    segments = list_segments(conn, location_id)
+    matrix = influence_interest_matrix(conn, location_id)
+    return {
+        "report_type": "publics_market_landscape",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "public_count": len(publics),
+        "segment_count": len(segments),
+        "publics": publics,
+        "segments": segments,
+        "matrix": matrix,
+        "limitations": [
+            "Stakeholder classifications are manually curated or auto-suggested.",
+            "Market segment sizes are estimates based on available demand signals.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Environmental Scan report
+# ---------------------------------------------------------------------------
+
+def generate_env_scan_report(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    from services.analytics.env_scanning import list_scans, render_markdown
+    scans = list_scans(conn, location_id)
+    latest = scans[0] if scans else {}
+    return {
+        "report_type": "env_scan_report",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "scan_count": len(scans),
+        "latest_scan": latest,
+        "markdown": render_markdown(latest) if latest else "No environmental scans found",
+        "limitations": [
+            "Scan findings are auto-populated from platform data.",
+            "Manual review and human judgment are required for all scan conclusions.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # REPORT_GENERATORS dictionary
 # ---------------------------------------------------------------------------
 
@@ -3133,6 +3232,10 @@ REPORT_GENERATORS = {
     "strategy_execution": generate_strategy_execution,
     "capability_assessment": generate_capability_assessment,
     "value_stream_formal": generate_value_stream_formal,
+     "pestel_assessment": generate_pestel_assessment,
+     "regional_readiness": generate_regional_readiness,
+     "publics_market_landscape": generate_publics_market_landscape,
+     "env_scan_report": generate_env_scan_report,
 }
 
 

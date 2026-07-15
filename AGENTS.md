@@ -941,6 +941,45 @@ All work follows a 3-step branch → PR → merge flow:
 - Value stream performance: `python3 -m services.analytics.cli_value_stream_defs performance STREAM_UUID`
 - Business architecture reports: `python3 -m services.export.report_generator --type capability_dashboard` (also `strategy_execution`, `capability_assessment`, `value_stream_formal`)
 - Business architecture tests: `python3 -m pytest tests/test_capability_map.py tests/test_strategy_map.py tests/test_vision_mission.py tests/test_value_stream_defs.py tests/test_ba_integration.py -v`
+- PESTEL create: `python3 -m services.analytics.pestel create --location-id UUID --title "Q1 2026" --period-start 2026-01-01 --period-end 2026-03-31`
+- PESTEL add-factor: `python3 -m services.analytics.pestel add-factor --analysis-id UUID --category political --factor-type risk --title "Policy Change" --impact 7.0 --likelihood 0.6`
+- PESTEL list: `python3 -m services.analytics.pestel list --location-id UUID`
+- PESTEL get: `python3 -m services.analytics.pestel get --analysis-id UUID`
+- PESTEL compute: `python3 -m services.analytics.pestel compute --analysis-id UUID`
+- PESTEL suggest: `python3 -m services.analytics.pestel suggest --location-id UUID`
+- PESTEL export: `python3 -m services.analytics.pestel export --analysis-id UUID`
+- PESTEL tests: `python3 -m pytest tests/test_pestel.py -v`
+- Regional readiness create: `python3 -m services.analytics.regional_readiness create --location-id UUID --title "Q1 Assessment" --period-start 2026-01-01 --period-end 2026-03-31`
+- Regional readiness compute: `python3 -m services.analytics.regional_readiness compute --assessment-id UUID`
+- Regional readiness list: `python3 -m services.analytics.regional_readiness list --location-id UUID`
+- Regional readiness get: `python3 -m services.analytics.regional_readiness get --assessment-id UUID`
+- Regional readiness compare: `python3 -m services.analytics.regional_readiness compare --location-ids UUID1 UUID2`
+- Regional readiness create-benchmark: `python3 -m services.analytics.regional_readiness create-benchmark --dimension-key infrastructure --name "Regional Average" --score 60.0`
+- Regional readiness benchmark: `python3 -m services.analytics.regional_readiness benchmark --assessment-id UUID --benchmark-id UUID`
+- Regional readiness dimensions: `python3 -m services.analytics.regional_readiness dimensions`
+- Regional readiness export: `python3 -m services.analytics.regional_readiness export --assessment-id UUID`
+- Regional readiness tests: `python3 -m pytest tests/test_regional_readiness.py -v`
+- Publics add-public: `python3 -m services.analytics.publics add-public --location-id UUID --type government --name "Local Municipality" --influence 8.0 --interest 6.0`
+- Publics list: `python3 -m services.analytics.publics list --location-id UUID`
+- Publics update-stance: `python3 -m services.analytics.publics update-stance --public-id UUID --stance supportive`
+- Publics create-segment: `python3 -m services.analytics.publics create-segment --location-id UUID --type business --name "Organic Buyers" --size-estimate 500`
+- Publics list-segments: `python3 -m services.analytics.publics list-segments --location-id UUID`
+- Publics map-demand: `python3 -m services.analytics.publics map-demand --segment-id UUID`
+- Publics matrix: `python3 -m services.analytics.publics matrix --location-id UUID`
+- Publics suggest: `python3 -m services.analytics.publics suggest --location-id UUID`
+- Publics tests: `python3 -m pytest tests/test_publics.py -v`
+- Env scanning create: `python3 -m services.analytics.env_scanning create --location-id UUID --title "Q1 Scan" --type full`
+- Env scanning update-step: `python3 -m services.analytics.env_scanning update-step --scan-id UUID --step 1 --status completed --findings "3 threats identified"`
+- Env scanning get: `python3 -m services.analytics.env_scanning get --scan-id UUID`
+- Env scanning list: `python3 -m services.analytics.env_scanning list --location-id UUID`
+- Env scanning complete: `python3 -m services.analytics.env_scanning complete --scan-id UUID`
+- Env scanning auto-populate: `python3 -m services.analytics.env_scanning auto-populate --scan-id UUID`
+- Env scanning export: `python3 -m services.analytics.env_scanning export --scan-id UUID`
+- Env scanning tests: `python3 -m pytest tests/test_env_scanning.py -v`
+- PESTEL report: `python3 -m services.export.report_generator --type pestel_assessment --location-id UUID`
+- Regional readiness report: `python3 -m services.export.report_generator --type regional_readiness --location-id UUID`
+- Publics market landscape report: `python3 -m services.export.report_generator --type publics_market_landscape --location-id UUID`
+- Env scan report: `python3 -m services.export.report_generator --type env_scan_report --location-id UUID`
 
 ## Development Notes
 
