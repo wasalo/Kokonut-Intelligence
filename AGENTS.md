@@ -1,5 +1,23 @@
 # Repository Guidelines
 
+## Contributing Workflow
+
+All work follows a 3-step branch → PR → merge flow:
+
+1. **Branch**: Create a new local branch from `main` when starting a feature or improvement.
+   - Naming: `feat/short-name`, `fix/short-name`, or `chore/short-name`
+   - `git checkout -b feat/my-feature main`
+
+2. **Commit & PR**: Commit locally, push the branch, and open a PR to `main`.
+   - Use TOD agent skills (`work-on-issue`, `submit-pull-request-work`) to create PRs via OneDev.
+   - Never push directly to `main`.
+
+3. **Merge**: When CI passes, merge the PR into `main`.
+   - Use TOD agent skills (`submit-pull-request-work`) or merge via OneDev UI.
+   - Delete the feature branch after merge.
+
+**Exception**: Hotfixes may be committed directly to `main` with a follow-up PR for any ancillary changes.
+
 ## Project Shape
 
 - PostgreSQL and Directus are the canonical schema/API layer.
