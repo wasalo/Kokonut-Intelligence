@@ -57,6 +57,8 @@ def create_alliance(
     scope_id: Optional[str] = None,
     strategy_map_id: Optional[str] = None,
     value_stream_id: Optional[str] = None,
+    stakeholder_decision_id: Optional[str] = None,
+    cooperative_proposal_id: Optional[str] = None,
     steward_party_id: Optional[str] = None,
     created_by_party_id: Optional[str] = None,
     evidence: Optional[List[Dict[str, Any]]] = None,
@@ -65,6 +67,8 @@ def create_alliance(
         "name": name, "purpose": purpose, "coordination_type": coordination_type,
         "scope_type": scope_type, "scope_id": scope_id, "strategy_map_id": strategy_map_id,
         "value_stream_id": value_stream_id, "steward_party_id": steward_party_id,
+        "stakeholder_decision_id": stakeholder_decision_id,
+        "cooperative_proposal_id": cooperative_proposal_id,
         "created_by_party_id": created_by_party_id, "evidence": evidence or [],
     })
 

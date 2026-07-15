@@ -27,6 +27,10 @@ Markdown decision tables are authoritative for review. Mermaid output is explana
 
 `carbon_retirement` specifies reservation, submission, independent review, confirmation, rejection, cancellation, terminal idempotency, and the reserved/retired supply equation.
 
+### Coordination Alliance
+
+`coordination_alliance` specifies consultation, due diligence, human approval, activation, periodic review, suspension, renewal, and termination for non-equity alliances and knowledge networks. It links approval evidence to stakeholder decisions or cooperative proposals and records status transitions in the lifecycle ledger.
+
 ## Commands
 
 ```bash
