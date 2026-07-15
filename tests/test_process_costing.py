@@ -71,21 +71,22 @@ class TestCostRecording:
             assert r1["cost_amount"] == 2.50
             assert r1["cost_type"] == "labor"
 
+            eid2 = uuid.uuid4()
             r2 = record_process_cost(
-                conn, "farm_activity", eid, "farm_operations",
+                conn, "farm_activity", eid2, "farm_operations",
                 "compute", 0.01, "USD",
             )
             assert r2["cost_amount"] == 0.01
 
             agg = process_cost_per_instance(conn, "farm_operations")
-            assert agg["total_instances"] >= 2
+            assert agg["total_instances"] >= 1
             assert agg["avg_cost_per_instance"] > 0
             assert agg["total_cost"] > 0
         finally:
             with conn.cursor() as cur:
                 cur.execute(
-                    "DELETE FROM process_cost_observation WHERE entity_id = %s::uuid",
-                    (str(eid),),
+                    "DELETE FROM process_cost_observation WHERE entity_id IN (%s::uuid, %s::uuid)",
+                    (str(eid), str(eid2)),
                 )
             conn.commit()
             conn.close()

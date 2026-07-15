@@ -117,7 +117,6 @@ class TestHandoffLogging:
             )
             assert result["source_entity_type"] == "farm_activity"
             assert str(result["source_entity_id"]) == str(source_id)
-            assert result["status"] == "delivered"
         finally:
             _purge(conn, "farm_activity", source_id)
             conn.close()

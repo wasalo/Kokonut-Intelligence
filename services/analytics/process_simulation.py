@@ -41,9 +41,9 @@ def _row_to_dict(row: psycopg2.extras.RealDictRow) -> Dict[str, Any]:
 def create_simulation(
     conn,
     name: str,
-    description: Optional[str],
-    process_key: Optional[str],
     scenario_params: Dict[str, Any],
+    description: Optional[str] = None,
+    process_key: Optional[str] = None,
     created_by=None,
     location_id=None,
 ) -> Dict[str, Any]:
@@ -56,11 +56,19 @@ def create_simulation(
         VALUES (%s, %s, %s, %s, 'draft', %s, %s)
         RETURNING *
     """
+    # Validate created_by as UUID or set None
+    cb = None
+    if created_by is not None:
+        try:
+            cb = str(uuid.UUID(str(created_by)))
+        except (ValueError, AttributeError):
+            cb = None
+
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(sql, (
             name, description, process_key,
             psycopg2.extras.Json(scenario_params),
-            created_by, location_id,
+            cb, location_id,
         ))
         conn.commit()
         return _row_to_dict(cur.fetchone())
@@ -436,8 +444,11 @@ def main():
         if args.command == "create":
             params = json.loads(args.params)
             out = create_simulation(
-                conn, args.name, args.description, args.process_key,
-                params, args.created_by, args.location_id,
+                conn, args.name, params,
+                description=args.description,
+                process_key=args.process_key,
+                created_by=args.created_by,
+                location_id=args.location_id,
             )
         elif args.command == "run":
             out = run_simulation(conn, args.simulation_id)

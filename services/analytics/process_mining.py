@@ -364,7 +364,7 @@ def cross_entity_traces(
             ph.handoff_type
         FROM process_handoff_log phl
         JOIN process_handoff ph ON phl.handoff_id = ph.id
-        WHERE phl.status = 'delivered'
+        WHERE phl.handoff_at IS NOT NULL
     """
     params: List[Any] = []
     sql += " ORDER BY phl.handoff_at"

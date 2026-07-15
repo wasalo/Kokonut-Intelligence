@@ -74,7 +74,7 @@ def record_handoff(
     elapsed_hours = None
     met_sla = None
 
-    if handoff_id is None and correlation_key is not None:
+    if handoff_id is None:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute(
             "SELECT id, correlation_key, sla_hours FROM process_handoff "
@@ -98,8 +98,8 @@ def record_handoff(
         INSERT INTO process_handoff_log
             (source_entity_type, source_entity_id, target_entity_type,
              target_entity_id, handoff_id, handoff_at, elapsed_hours,
-             met_sla, status, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'delivered', %s)
+             met_sla, metadata)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING *
     """
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

@@ -8,6 +8,7 @@ migration 188_process_architecture.sql.
 from __future__ import annotations
 
 import json
+import uuid as uuid_mod
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -29,6 +30,8 @@ def _row_to_dict(row: psycopg2.extras.RealDictRow) -> Dict[str, Any]:
     for k, v in d.items():
         if isinstance(v, datetime):
             d[k] = v.isoformat()
+        elif isinstance(v, uuid_mod.UUID):
+            d[k] = str(v)
     return d
 
 
