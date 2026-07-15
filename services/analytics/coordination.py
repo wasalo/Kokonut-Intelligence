@@ -1,0 +1,201 @@
+"""Governed coordination strategy service.
+
+Coordination records describe commitments and learning between parties. They
+do not create legal ownership, authorize spending, or activate operations.
+Those transitions require an explicit human actor.
+"""
+
+from __future__ import annotations
+
+import json
+import uuid as uuid_mod
+from datetime import date, datetime
+from typing import Any, Dict, List, Optional
+
+import psycopg2
+import psycopg2.extras
+
+from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+
+
+def _conn():
+    return psycopg2.connect(host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)
+
+
+def _row(row: Optional[psycopg2.extras.RealDictRow]) -> Optional[Dict[str, Any]]:
+    if not row:
+        return None
+    result = dict(row)
+    for key, value in result.items():
+        if isinstance(value, (datetime, date, uuid_mod.UUID)):
+            result[key] = str(value)
+    return result
+
+
+def _insert(table: str, values: Dict[str, Any]) -> Dict[str, Any]:
+    record_id = str(uuid_mod.uuid4())
+    values = {"id": record_id, **values}
+    columns = list(values)
+    placeholders = ["%s::jsonb" if column in {"evidence", "metadata"} else "%s" for column in columns]
+    params = [json.dumps(values[column]) if column in {"evidence", "metadata"} else values[column] for column in columns]
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(placeholders)}) RETURNING *",
+                params,
+            )
+            conn.commit()
+            return _row(cur.fetchone()) or {}
+
+
+def create_alliance(
+    name: str,
+    purpose: str,
+    *,
+    coordination_type: str = "alliance",
+    scope_type: str = "network",
+    scope_id: Optional[str] = None,
+    strategy_map_id: Optional[str] = None,
+    value_stream_id: Optional[str] = None,
+    steward_party_id: Optional[str] = None,
+    created_by_party_id: Optional[str] = None,
+    evidence: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    return _insert("coordination_alliance", {
+        "name": name, "purpose": purpose, "coordination_type": coordination_type,
+        "scope_type": scope_type, "scope_id": scope_id, "strategy_map_id": strategy_map_id,
+        "value_stream_id": value_stream_id, "steward_party_id": steward_party_id,
+        "created_by_party_id": created_by_party_id, "evidence": evidence or [],
+    })
+
+
+def list_alliances(*, status: Optional[str] = None, coordination_type: Optional[str] = None) -> List[Dict[str, Any]]:
+    clauses: List[str] = []
+    params: List[Any] = []
+    if status:
+        clauses.append("status = %s")
+        params.append(status)
+    if coordination_type:
+        clauses.append("coordination_type = %s")
+        params.append(coordination_type)
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(f"SELECT * FROM coordination_alliance{where} ORDER BY created_at DESC", params)
+            return [_row(row) or {} for row in cur.fetchall()]
+
+
+def approve_alliance(alliance_id: str, approved_by_party_id: str, approval_basis: str) -> Dict[str, Any]:
+    if not approval_basis.strip():
+        raise ValueError("approval_basis is required")
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "UPDATE coordination_alliance SET status = 'approved', approved_by_party_id = %s::uuid, "
+                "approved_at = NOW(), approval_basis = %s WHERE id = %s::uuid RETURNING *",
+                (approved_by_party_id, approval_basis, alliance_id),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            if not row:
+                raise ValueError("alliance not found")
+            return _row(row) or {}
+
+
+def activate_alliance(alliance_id: str, approved_by_party_id: str) -> Dict[str, Any]:
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "UPDATE coordination_alliance SET status = 'active', starts_at = COALESCE(starts_at, NOW()) "
+                "WHERE id = %s::uuid AND approved_by_party_id = %s::uuid AND status = 'approved' RETURNING *",
+                (alliance_id, approved_by_party_id),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            if not row:
+                raise ValueError("alliance must be approved by the activating reviewer")
+            return _row(row) or {}
+
+
+def add_participant(alliance_id: str, party_id: str, *, role: str = "participant", consent_event_id: Optional[str] = None,
+                    contribution_expectation: Optional[str] = None, benefit_expectation: Optional[str] = None) -> Dict[str, Any]:
+    return _insert("coordination_participant", {
+        "alliance_id": alliance_id, "party_id": party_id, "role": role,
+        "consent_event_id": consent_event_id, "contribution_expectation": contribution_expectation,
+        "benefit_expectation": benefit_expectation,
+    })
+
+
+def activate_participant(participant_id: str, consent_event_id: str) -> Dict[str, Any]:
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "UPDATE coordination_participant SET status = 'active', consent_event_id = %s::uuid "
+                "WHERE id = %s::uuid RETURNING *", (consent_event_id, participant_id),
+            )
+            row = cur.fetchone()
+            conn.commit()
+            if not row:
+                raise ValueError("participant not found")
+            return _row(row) or {}
+
+
+def add_objective(alliance_id: str, title: str, description: str, objective_type: str, *,
+                  target_value: Optional[float] = None, target_unit: Optional[str] = None,
+                  harm_if_missed: Optional[str] = None) -> Dict[str, Any]:
+    return _insert("coordination_objective", {
+        "alliance_id": alliance_id, "title": title, "description": description,
+        "objective_type": objective_type, "target_value": target_value,
+        "target_unit": target_unit, "harm_if_missed": harm_if_missed,
+    })
+
+
+def add_contribution(alliance_id: str, participant_id: str, contribution_type: str, description: str, *,
+                     committed_value: Optional[float] = None, value_unit: Optional[str] = None) -> Dict[str, Any]:
+    return _insert("coordination_contribution", {
+        "alliance_id": alliance_id, "participant_id": participant_id,
+        "contribution_type": contribution_type, "description": description,
+        "committed_value": committed_value, "value_unit": value_unit,
+    })
+
+
+def add_benefit(alliance_id: str, description: str, benefit_type: str, *, participant_id: Optional[str] = None,
+                expected_value: Optional[float] = None, value_unit: Optional[str] = None) -> Dict[str, Any]:
+    return _insert("coordination_benefit", {
+        "alliance_id": alliance_id, "participant_id": participant_id,
+        "benefit_type": benefit_type, "description": description,
+        "expected_value": expected_value, "value_unit": value_unit,
+    })
+
+
+def add_risk(alliance_id: str, risk_type: str, description: str, *, likelihood: Optional[float] = None,
+             impact: Optional[float] = None, mitigation: Optional[str] = None,
+             owner_party_id: Optional[str] = None) -> Dict[str, Any]:
+    return _insert("coordination_risk", {
+        "alliance_id": alliance_id, "risk_type": risk_type, "description": description,
+        "likelihood": likelihood, "impact": impact, "mitigation": mitigation,
+        "owner_party_id": owner_party_id,
+    })
+
+
+def add_knowledge_exchange(alliance_id: str, from_party_id: str, topic: str, exchange_type: str, *,
+                           to_party_id: Optional[str] = None, artifact_uri: Optional[str] = None,
+                           consent_scope: Optional[str] = None) -> Dict[str, Any]:
+    return _insert("coordination_knowledge_exchange", {
+        "alliance_id": alliance_id, "from_party_id": from_party_id, "to_party_id": to_party_id,
+        "topic": topic, "exchange_type": exchange_type, "artifact_uri": artifact_uri,
+        "consent_scope": consent_scope,
+    })
+
+
+def get_coordination_health(alliance_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    query = "SELECT * FROM v_coordination_health"
+    params: List[Any] = []
+    if alliance_id:
+        query += " WHERE alliance_id = %s::uuid"
+        params.append(alliance_id)
+    query += " ORDER BY name"
+    with _conn() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(query, params)
+            return [_row(row) or {} for row in cur.fetchall()]
