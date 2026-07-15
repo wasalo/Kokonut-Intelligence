@@ -52,6 +52,7 @@ SEED_DIR="$PROJECT_DIR/schemas/seeds"
 # Support seeds required before pilot files with foreign-key dependencies.
 for seed_file in \
     "$SEED_DIR/001_pilot_farm.sql" \
+    "$SEED_DIR/024_adelphi_alignment.sql" \
     "$SEED_DIR/018_module_e_water_access.sql"; do
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
@@ -73,7 +74,6 @@ for seed_file in \
     "$SEED_DIR/021_metric_versions.sql" \
     "$SEED_DIR/022_metric_governance.sql" \
     "$SEED_DIR/023_impact_frameworks.sql" \
-    "$SEED_DIR/024_adelphi_alignment.sql" \
     "$SEED_DIR/027_carbon_framework_seeds.sql"; do
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
