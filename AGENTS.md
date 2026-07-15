@@ -867,6 +867,19 @@ All work follows a 3-step branch → PR → merge flow:
 - SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
 - SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`
 - SWOT suggest: `python3 -m services.analytics.swot suggest --location-id UUID` (or `--org-id UUID`)
+- SWOT factor create: `python3 -m services.analytics.swot factor create --swot-id UUID --factor-type strength --category financial --description "Strong revenue"`
+- SWOT factor list: `python3 -m services.analytics.swot factor list --swot-id UUID [--factor-type strength] [--classification internal]`
+- SWOT factor delete: `python3 -m services.analytics.swot factor delete --factor-id UUID`
+- SWOT tows generate: `python3 -m services.analytics.swot tows generate --swot-id UUID`
+- SWOT tows list: `python3 -m services.analytics.swot tows list --swot-id UUID`
+- SWOT tows approve: `python3 -m services.analytics.swot tows approve --strategy-id UUID --approved-by UUID`
+- SWOT tows fit: `python3 -m services.analytics.swot tows fit --swot-id UUID`
+- SWOT competitor create: `python3 -m services.analytics.swot competitor create --location-id UUID --name "BigAg" [--strengths s1 s2] [--weaknesses w1] [--threat-level high]`
+- SWOT competitor list: `python3 -m services.analytics.swot competitor list --location-id UUID`
+- SWOT temporal snapshot: `python3 -m services.analytics.swot temporal snapshot --swot-id UUID [--summary "Added competitor"]`
+- SWOT temporal list: `python3 -m services.analytics.swot temporal list --swot-id UUID`
+- SWOT action link: `python3 -m services.analytics.swot action link --swot-id UUID --description "Secure financing" [--factor-id UUID] [--strategy-id UUID]`
+- SWOT action list: `python3 -m services.analytics.swot action list --swot-id UUID`
 - BMC create: `python3 -m services.analytics.business_model_canvas create --location-id UUID [--canvas-name NAME] [--fiscal-year YEAR]`
 - BMC list: `python3 -m services.analytics.business_model_canvas list --location-id UUID`
 - BMC get: `python3 -m services.analytics.business_model_canvas get --canvas-id UUID`

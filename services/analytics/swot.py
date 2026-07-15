@@ -186,11 +186,90 @@ def _cmd(args) -> None:
             out = get(conn, args.swot_id)
         elif args.command == "suggest":
             out = suggest(conn, args.org_id, args.location_id)
+        elif args.command == "factor":
+            out = _cmd_factor(args, conn)
+        elif args.command == "tows":
+            out = _cmd_tows(args, conn)
+        elif args.command == "competitor":
+            out = _cmd_competitor(args, conn)
+        elif args.command == "temporal":
+            out = _cmd_temporal(args, conn)
+        elif args.command == "action":
+            out = _cmd_action(args, conn)
         else:
             out = {}
         print(json.dumps(out, indent=2, default=str))
     finally:
         conn.close()
+
+
+def _cmd_factor(args, conn):
+    from services.analytics import swot_enhanced
+    if args.factor_command == "create":
+        return swot_enhanced.create_factor(
+            conn, args.swot_id, args.factor_type, args.category,
+            args.description, priority=args.priority, confidence=args.confidence,
+            source=args.source,
+        )
+    elif args.factor_command == "list":
+        return swot_enhanced.list_factors(
+            conn, args.swot_id, factor_type=args.factor_type,
+            classification=args.classification,
+        )
+    elif args.factor_command == "delete":
+        return {"deleted": swot_enhanced.delete_factor(conn, args.factor_id)}
+    return {}
+
+
+def _cmd_tows(args, conn):
+    from services.analytics import swot_enhanced
+    if args.tows_command == "generate":
+        return swot_enhanced.generate_tows(conn, args.swot_id)
+    elif args.tows_command == "list":
+        return swot_enhanced.get_tows(conn, args.swot_id)
+    elif args.tows_command == "approve":
+        return swot_enhanced.approve_tows(conn, args.strategy_id, args.approved_by)
+    elif args.tows_command == "fit":
+        return swot_enhanced.compute_strategic_fit(conn, args.swot_id)
+    return {}
+
+
+def _cmd_competitor(args, conn):
+    from services.analytics import swot_enhanced
+    if args.competitor_command == "create":
+        return swot_enhanced.create_competitor(
+            conn, args.location_id, args.name,
+            competitor_type=args.type,
+            strengths=args.strengths, weaknesses=args.weaknesses,
+            competitive_threat_level=args.threat_level,
+        )
+    elif args.competitor_command == "list":
+        return swot_enhanced.list_competitors(conn, args.location_id)
+    return {}
+
+
+def _cmd_temporal(args, conn):
+    from services.analytics import swot_enhanced
+    if args.temporal_command == "snapshot":
+        return swot_enhanced.snapshot_temporal(
+            conn, args.swot_id, change_summary=args.summary,
+        )
+    elif args.temporal_command == "list":
+        return swot_enhanced.list_temporal(conn, args.swot_id)
+    return {}
+
+
+def _cmd_action(args, conn):
+    from services.analytics import swot_enhanced
+    if args.action_command == "link":
+        return swot_enhanced.link_action(
+            conn, args.swot_id, args.description,
+            target_type=args.target_type, factor_id=args.factor_id,
+            strategy_id=args.strategy_id,
+        )
+    elif args.action_command == "list":
+        return swot_enhanced.list_actions(conn, args.swot_id)
+    return {}
 
 
 def main() -> None:
@@ -208,6 +287,72 @@ def main() -> None:
     g = sub.add_parser("get")
     g.add_argument("--swot-id", required=True)
     sub.add_parser("suggest")
+
+    # factor subcommands
+    f = sub.add_parser("factor")
+    fs = f.add_subparsers(dest="factor_command", required=True)
+    fc = fs.add_parser("create")
+    fc.add_argument("--swot-id", required=True)
+    fc.add_argument("--factor-type", required=True, choices=["strength", "weakness", "opportunity", "threat"])
+    fc.add_argument("--category", required=True)
+    fc.add_argument("--description", required=True)
+    fc.add_argument("--priority", type=int, default=0)
+    fc.add_argument("--confidence", type=float, default=0.5)
+    fc.add_argument("--source", default=None)
+    fl = fs.add_parser("list")
+    fl.add_argument("--swot-id", required=True)
+    fl.add_argument("--factor-type", default=None)
+    fl.add_argument("--classification", default=None)
+    fd = fs.add_parser("delete")
+    fd.add_argument("--factor-id", required=True)
+
+    # tows subcommands
+    t = sub.add_parser("tows")
+    ts = t.add_subparsers(dest="tows_command", required=True)
+    tg = ts.add_parser("generate")
+    tg.add_argument("--swot-id", required=True)
+    tl = ts.add_parser("list")
+    tl.add_argument("--swot-id", required=True)
+    ta = ts.add_parser("approve")
+    ta.add_argument("--strategy-id", required=True)
+    ta.add_argument("--approved-by", required=True)
+    tf = ts.add_parser("fit")
+    tf.add_argument("--swot-id", required=True)
+
+    # competitor subcommands
+    comp = sub.add_parser("competitor")
+    comps = comp.add_subparsers(dest="competitor_command", required=True)
+    cc = comps.add_parser("create")
+    cc.add_argument("--location-id", required=True)
+    cc.add_argument("--name", required=True)
+    cc.add_argument("--type", default=None)
+    cc.add_argument("--strengths", nargs="*", default=[])
+    cc.add_argument("--weaknesses", nargs="*", default=[])
+    cc.add_argument("--threat-level", default="moderate")
+    cl = comps.add_parser("list")
+    cl.add_argument("--location-id", required=True)
+
+    # temporal subcommands
+    tmp = sub.add_parser("temporal")
+    tmps = tmp.add_subparsers(dest="temporal_command", required=True)
+    tsnap = tmps.add_parser("snapshot")
+    tsnap.add_argument("--swot-id", required=True)
+    tsnap.add_argument("--summary", default=None)
+    tlist = tmps.add_parser("list")
+    tlist.add_argument("--swot-id", required=True)
+
+    # action subcommands
+    act = sub.add_parser("action")
+    acts = act.add_subparsers(dest="action_command", required=True)
+    al = acts.add_parser("link")
+    al.add_argument("--swot-id", required=True)
+    al.add_argument("--description", required=True)
+    al.add_argument("--target-type", default="recommendation")
+    al.add_argument("--factor-id", default=None)
+    al.add_argument("--strategy-id", default=None)
+    alst = acts.add_parser("list")
+    alst.add_argument("--swot-id", required=True)
+
     args = p.parse_args()
     _cmd(args)
 
