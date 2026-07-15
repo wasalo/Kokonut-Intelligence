@@ -29,7 +29,7 @@ docker compose ps
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 ./scripts/compute-metrics.sh
-./scripts/verify-mvp.sh
+./scripts/verify-platform.sh
 ```
 
 ### Service URLs

@@ -48,7 +48,7 @@
 - Run CLI tests: `python3 -m tests.test_cli`
 - Run attestation tests: `python3 -m tests.test_attestation`
 - Run Directus metadata tests: `python3 -m tests.test_directus_metadata`
-- Verify MVP definition of done: `./scripts/verify-mvp.sh`
+- Verify platform definition of done: `./scripts/verify-platform.sh`
 - Run CI checks: `./scripts/ci-check.sh` (also runs on push via `.github/workflows/ci.yml`). CI exposes PostgreSQL/ClickHouse to localhost via the `docker-compose.ci.yml` override so host-run DB checks execute; `ci-check.sh` fails loudly if the database cannot be brought up (no silent skip).
 - Build Solidity contracts: `cd contracts && forge build`
 - Run Solidity tests: `cd contracts && forge test`
@@ -903,7 +903,7 @@
 - Seed files must correct stale source-of-truth rows on conflict when the record is canonical metadata, not only `DO NOTHING`.
 - `seed-pilot.sh` must fail on SQL errors; do not hide seed failures with `|| true`.
 - Seed scripts use `psql -v ON_ERROR_STOP=1`; preserve that behavior for all PostgreSQL seed/schema calls.
-- MVP setup order: `./scripts/seed.sh`, `./scripts/seed-pilot.sh`, `./scripts/compute-metrics.sh`, then `./scripts/verify-mvp.sh`.
+- Platform setup order: `./scripts/seed.sh`, `./scripts/seed-pilot.sh`, `./scripts/compute-metrics.sh`, then `./scripts/verify-platform.sh`.
 - Use Compose service names (`database`, `clickhouse`) instead of generated container names.
 - Do not print, copy, or commit secrets from `.env`.
 - Never commit private keys to Git. Bots exploit leaked secrets in seconds.

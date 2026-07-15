@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
-# verify-mvp.sh — Validate MVP definition of done on local DB
+# verify-platform.sh — Validate platform definition of done
 # ============================================================
 set -euo pipefail
 
-python3 -m tests.test_mvp_done
+python3 -m tests.test_platform_done
