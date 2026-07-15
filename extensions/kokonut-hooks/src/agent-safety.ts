@@ -29,6 +29,8 @@ export const STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = new Set([
   'coordination_risk',
   'coordination_knowledge_exchange',
   'coordination_review',
+  'coordination_learning_link',
+  'coordination_metric_observation',
   'party_trust_evidence',
   'stewardship_proxy_authority',
   'nature_stewardship_obligation',
