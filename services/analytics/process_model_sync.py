@@ -58,7 +58,9 @@ def sync_process_models(conn) -> int:
     cur = conn.cursor()
     updated = 0
     for spec in list_specs():
+        expected_states = []
         for row in spec_to_rows(spec):
+            expected_states.append(row["status"])
             cur.execute(
                 """
                 INSERT INTO process_model
@@ -81,6 +83,12 @@ def sync_process_models(conn) -> int:
                 ),
             )
             updated += 1
+        placeholders = ", ".join(["%s"] * len(expected_states))
+        cur.execute(
+            f"DELETE FROM process_model WHERE entity_type = %s "
+            f"AND status NOT IN ({placeholders})",
+            [spec.id, *expected_states],
+        )
     conn.commit()
     return updated
 
