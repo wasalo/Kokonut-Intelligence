@@ -1050,7 +1050,7 @@ Framework reference data is seeded by `schemas/seeds/023_impact_frameworks.sql` 
 ./scripts/compute-metrics.sh
 
 # Verify MVP definition of done
-./scripts/verify-mvp.sh
+./scripts/verify-platform.sh
 ```
 
 ### Verification
@@ -1180,7 +1180,7 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 ./scripts/compute-metrics.sh
-./scripts/verify-mvp.sh
+./scripts/verify-platform.sh
 
 # CIDS export
 python3 -m services.registry.cids_export --location-id UUID

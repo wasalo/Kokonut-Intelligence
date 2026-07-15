@@ -23,7 +23,7 @@ sops exec-env .env.sops docker compose up -d
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 ./scripts/compute-metrics.sh
-./scripts/verify-mvp.sh
+./scripts/verify-platform.sh
 ./scripts/ci-check.sh
 ```
 

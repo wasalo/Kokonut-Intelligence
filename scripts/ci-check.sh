@@ -133,7 +133,7 @@ if ensure_db; then
     check "compute metrics" "bash $SCRIPT_DIR/compute-metrics.sh"
     # MVP verification requires pilot data from seed-pilot.sh (may fail in CI without Directus)
     if docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=0 -U kokonut -d kokonut_intelligence -tAc "SELECT 1 FROM farm_activity WHERE source_system='pilot' LIMIT 1" 2>/dev/null | grep -q 1; then
-        check "MVP definition of done" "bash $SCRIPT_DIR/verify-mvp.sh"
+        check "platform definition of done" "bash $SCRIPT_DIR/verify-platform.sh"
     else
         echo "  ⚠ Pilot data not loaded — skipping MVP check"
     fi

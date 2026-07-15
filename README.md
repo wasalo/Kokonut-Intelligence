@@ -55,8 +55,8 @@ docker compose up -d
 python3 -m services.metrics --verify-value METRIC_VALUE_UUID \
   --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"
 
-# 6. Verify the MVP definition of done
-./scripts/verify-mvp.sh
+# 6. Verify the platform definition of done
+./scripts/verify-platform.sh
 ```
 
 Or using Make targets:
