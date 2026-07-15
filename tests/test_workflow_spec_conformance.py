@@ -27,6 +27,14 @@ def test_builtin_specs_validate_and_have_invariants():
         "budget",
         "objective",
         "project",
+        "data_stream_post",
+        "ai_summary",
+        "impact_claim",
+        "report_snapshot",
+        "stakeholder_feedback",
+        "farm_activity",
+        "harvest_event",
+        "metric_value",
     }
     for spec in list_specs():
         validate(spec)

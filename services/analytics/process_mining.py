@@ -7,6 +7,7 @@ log and reconstructs, per governed entity type:
   * conformance             - which traces violate the canonical model
   * case timelines          - per-instance step durations
   * cycle-time distribution - draft -> published elapsed time per instance
+  * cross-entity traces     - end-to-end flows spanning multiple entity types
 
 The canonical model lives in the process_model table (182); classify
 uses it so conformance is uniform across every instrumented entity.
@@ -336,6 +337,135 @@ def persist_variants(
     return updated
 
 
+# --- Cross-entity analysis -------------------------------------------------
+
+def cross_entity_traces(
+    conn,
+    location_id: Optional[str] = None,
+    trace_key_pattern: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Extract traces that span multiple entity types via process_handoff_log.
+
+    Each trace is a sequence of (entity_type, entity_id, handoff_at) entries
+    linked by handoff declarations. Returns ordered traces grouped by
+    correlation path.
+    """
+    sql = """
+        SELECT
+            phl.source_entity_type,
+            phl.source_entity_id,
+            phl.target_entity_type,
+            phl.target_entity_id,
+            phl.handoff_at,
+            phl.elapsed_hours,
+            phl.met_sla,
+            ph.source_entity_type AS source_type,
+            ph.target_entity_type AS target_type,
+            ph.handoff_type
+        FROM process_handoff_log phl
+        JOIN process_handoff ph ON phl.handoff_id = ph.id
+        WHERE phl.status = 'delivered'
+    """
+    params: List[Any] = []
+    sql += " ORDER BY phl.handoff_at"
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+
+    chains: Dict[str, List[Dict[str, Any]]] = {}
+    for r in rows:
+        key = str(r["source_entity_id"])
+        chains.setdefault(key, []).append({
+            "source_type": r["source_entity_type"],
+            "source_id": str(r["source_entity_id"]),
+            "target_type": r["target_entity_type"],
+            "target_id": str(r["target_entity_id"]) if r["target_entity_id"] else None,
+            "handoff_at": r["handoff_at"],
+            "elapsed_hours": r["elapsed_hours"],
+            "met_sla": r["met_sla"],
+            "handoff_type": r["handoff_type"],
+        })
+
+    traces = []
+    for chain_key, steps in chains.items():
+        if len(steps) > 1:
+            traces.append({
+                "chain_key": chain_key,
+                "step_count": len(steps),
+                "entity_types": list(dict.fromkeys(
+                    [s["source_type"] for s in steps] + [steps[-1]["target_type"]]
+                )),
+                "steps": steps,
+            })
+    traces.sort(key=lambda t: t["step_count"], reverse=True)
+    return traces
+
+
+def cross_entity_variants(
+    conn,
+    location_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Discover variants across entity types from handoff logs.
+
+    A cross-entity variant is the ordered sequence of entity types
+    traversed in a handoff chain (e.g., farm_activity->harvest_event->data_stream_post).
+    """
+    traces = cross_entity_traces(conn, location_id=location_id)
+    agg: Dict[str, Dict[str, Any]] = {}
+    for trace in traces:
+        sig = "->".join(trace["entity_types"])
+        if sig not in agg:
+            agg[sig] = {
+                "variant_signature": sig,
+                "entity_types": trace["entity_types"],
+                "instance_count": 0,
+                "total_steps": 0,
+            }
+        agg[sig]["instance_count"] += 1
+        agg[sig]["total_steps"] += trace["step_count"]
+    variants = list(agg.values())
+    variants.sort(key=lambda v: -v["instance_count"])
+    return variants
+
+
+def cross_entity_conformance(
+    conn,
+    location_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Check conformance of cross-entity traces against declared handoffs.
+
+    A cross-entity trace conforms if every handoff in the chain has a
+    matching declaration in process_handoff. Non-conforming traces
+    indicate undeclared or ad-hoc handoffs.
+    """
+    declared = set()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT source_entity_type, target_entity_type FROM process_handoff"
+    )
+    for row in cur.fetchall():
+        declared.add((row[0], row[1]))
+
+    traces = cross_entity_traces(conn, location_id=location_id)
+    findings: List[Dict[str, Any]] = []
+    for trace in traces:
+        violations = []
+        for step in trace["steps"]:
+            pair = (step["source_type"], step["target_type"])
+            if pair not in declared:
+                violations.append(
+                    f"undeclared handoff: {pair[0]} -> {pair[1]}"
+                )
+        if violations:
+            findings.append({
+                "chain_key": trace["chain_key"],
+                "entity_types": trace["entity_types"],
+                "step_count": trace["step_count"],
+                "violations": violations,
+            })
+    return findings
+
+
 # --- CLI --------------------------------------------------------------------
 
 def _cmd(args) -> None:
@@ -352,6 +482,12 @@ def _cmd(args) -> None:
         elif args.command == "persist":
             n = persist_variants(conn, args.entity_type)
             out = {"persisted_variants": n}
+        elif args.command == "cross-traces":
+            out = cross_entity_traces(conn, args.location_id)
+        elif args.command == "cross-variants":
+            out = cross_entity_variants(conn, args.location_id)
+        elif args.command == "cross-conformance":
+            out = cross_entity_conformance(conn, args.location_id)
         else:
             out = {}
         print(json.dumps(out, indent=2, default=str))
@@ -362,6 +498,7 @@ def _cmd(args) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Process mining (lifecycle ledger)")
     parser.add_argument("--entity-type", default=None)
+    parser.add_argument("--location-id", default=None)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("discover", "conformance", "cycle-times", "persist"):
         p = sub.add_parser(name)
@@ -370,6 +507,9 @@ def main() -> None:
             p.add_argument("--limit", type=int, default=None)
     tl = sub.add_parser("timeline")
     tl.add_argument("--entity-id", required=True)
+    for name in ("cross-traces", "cross-variants", "cross-conformance"):
+        p = sub.add_parser(name)
+        p.add_argument("--location-id", default=None)
     args = parser.parse_args()
     _cmd(args)
 

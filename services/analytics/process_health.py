@@ -2,8 +2,9 @@
 
 Assembles a single process-health view across the governed publication
 pipeline by combining VSM metrics (WIP, lead time, FTY, bottlenecks),
-process-mining conformance, and optional predictive-breach risk. Registered
-as the `process_health` report type and exposed via a CLI board command.
+process-mining conformance, optional predictive-breach risk, and
+CMMI-inspired maturity assessments. Registered as the `process_health`
+report type and exposed via a CLI board command.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from services.ingestion.base import get_db
 from services.analytics import value_stream, process_mining as pm, predictive_bpm
+from services.analytics.process_gap import assess_maturity
 
 
 DEFAULT_SLA_HOURS = 72.0
@@ -89,6 +91,27 @@ def build_health(
             "sla_target_hours": sla_target_hours,
             "at_risk_by_type": risk,
         }
+
+    # Maturity assessments per process
+    maturity = {}
+    process_keys = [
+        "farm_operations", "harvest_management", "data_publication",
+        "impact_verification", "metric_governance", "work_management",
+        "event_delivery", "stakeholder_feedback", "agent_execution",
+        "reporting",
+    ]
+    for pk in process_keys:
+        try:
+            mat = assess_maturity(conn, pk)
+            maturity[pk] = {
+                "level": mat["level"],
+                "level_name": mat["level_name"],
+                "avg_gap_pct": mat.get("avg_gap_pct"),
+            }
+        except Exception:
+            maturity[pk] = {"level": 1, "level_name": "Initial"}
+    health["maturity"] = maturity
+
     return health
 
 

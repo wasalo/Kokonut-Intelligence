@@ -366,3 +366,120 @@ class FeedbackAutomation:
         ))
 
         return {"applied": True, "adjusted": recommendation in ("increase_threshold", "fine_tune")}
+
+    # --- Process-specific feedback signals ---
+
+    def evaluate_process_health(
+        self, location_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Generate feedback signals based on process health metrics.
+
+        Checks:
+        - Process health conformance drops below threshold
+        - Process cost exceeds target
+        - Process maturity assessment changes
+        - Handoff SLA compliance drops
+        """
+        conn = self._get_conn()
+        signals = []
+
+        # 1. Check conformance
+        try:
+            from services.analytics import process_mining as pm, value_stream
+            for etype in value_stream.INSTRUMENTED_TYPES:
+                traces = pm.get_traces(conn, entity_type=etype)
+                if len(traces) < 5:
+                    continue
+                model = pm.load_model(conn, etype)
+                conforming = 0
+                total = 0
+                for (_e, _id), trace in traces.items():
+                    seq = [t["to_status"] for t in trace]
+                    if seq:
+                        total += 1
+                        is_conf, _ = pm.classify_conformance(seq, model)
+                        if is_conf:
+                            conforming += 1
+                if total > 0:
+                    ratio = conforming / total
+                    if ratio < 0.8:
+                        signals.append({
+                            "signal_type": "process_conformance_low",
+                            "entity_type": etype,
+                            "conformance_ratio": round(ratio, 4),
+                            "priority": "high",
+                            "reason": f"Conformance for {etype} is {ratio:.0%}, below 80% threshold.",
+                            "recommendation": "review_process_violations",
+                        })
+        except Exception:
+            pass
+
+        # 2. Check process cost
+        try:
+            from services.analytics.process_costing import process_cost_per_instance
+            process_keys = [
+                "farm_operations", "harvest_management", "data_publication",
+                "impact_verification", "metric_governance",
+            ]
+            for pk in process_keys:
+                cost = process_cost_per_instance(conn, pk)
+                if cost["total_cost"] > 100:
+                    signals.append({
+                        "signal_type": "process_cost_high",
+                        "process_key": pk,
+                        "total_cost": cost["total_cost"],
+                        "priority": "medium",
+                        "reason": f"Total cost for {pk} is ${cost['total_cost']:.2f}, exceeding $100 threshold.",
+                        "recommendation": "review_cost_structure",
+                    })
+        except Exception:
+            pass
+
+        # 3. Check handoff SLA compliance
+        try:
+            from services.analytics.process_interfaces import handoff_sla_compliance
+            compliance = handoff_sla_compliance(conn)
+            overall = compliance.get("overall", {})
+            if overall.get("compliance_pct") is not None and overall["compliance_pct"] < 90:
+                signals.append({
+                    "signal_type": "handoff_sla_low",
+                    "compliance_pct": overall["compliance_pct"],
+                    "breached_count": overall.get("breached", 0),
+                    "priority": "high",
+                    "reason": f"Handoff SLA compliance is {overall['compliance_pct']:.0f}%, below 90% threshold.",
+                    "recommendation": "review_handoff_bottlenecks",
+                })
+        except Exception:
+            pass
+
+        # 4. Check maturity level
+        try:
+            from services.analytics.process_gap import assess_maturity
+            maturity_signals = []
+            process_keys = [
+                "farm_operations", "harvest_management", "data_publication",
+                "impact_verification", "metric_governance",
+            ]
+            for pk in process_keys:
+                mat = assess_maturity(conn, pk)
+                if mat["level"] <= 1:
+                    maturity_signals.append({
+                        "process_key": pk,
+                        "level": mat["level"],
+                        "level_name": mat["level_name"],
+                    })
+            if maturity_signals:
+                signals.append({
+                    "signal_type": "process_maturity_low",
+                    "processes": maturity_signals,
+                    "priority": "medium",
+                    "reason": f"{len(maturity_signals)} processes at maturity level 1 (Initial).",
+                    "recommendation": "define_workflow_specs_and_targets",
+                })
+        except Exception:
+            pass
+
+        return {
+            "signals_generated": len(signals),
+            "signals": signals,
+        }
