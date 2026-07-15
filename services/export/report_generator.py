@@ -3062,6 +3062,36 @@ def generate_value_stream_formal(conn, location_id=None, period_start=None, peri
     }
 
 
+def generate_technology_roadmap(conn, location_id=None, period_start=None, period_end=None):
+    """Generate an executive technology roadmap report."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_technology_roadmap_overview ORDER BY name")
+        roadmaps = [dict(row) for row in cur.fetchall()]
+        for roadmap in roadmaps:
+            cur.execute(
+                "SELECT id AS requirement_id, title, need_type, priority, target_value, unit, target_date, status "
+                "FROM technology_roadmap_requirement WHERE roadmap_id = %s ORDER BY priority DESC, title",
+                (roadmap["roadmap_id"],),
+            )
+            roadmap["requirements"] = [dict(row) for row in cur.fetchall()]
+            cur.execute(
+                "SELECT alt.id, alt.name, alt.recommendation, alt.maturity_status, alt.confidence, "
+                "alt.expected_maturity_date, alt.estimated_cost, td.name AS driver_name, ta.name AS area_name "
+                "FROM technology_alternative alt JOIN technology_driver td ON td.id = alt.driver_id "
+                "JOIN technology_area ta ON ta.id = td.area_id WHERE ta.roadmap_id = %s "
+                "ORDER BY alt.recommendation, alt.expected_maturity_date NULLS LAST, alt.name",
+                (roadmap["roadmap_id"],),
+            )
+            roadmap["alternatives"] = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "technology_roadmap",
+        "location_id": location_id,
+        "roadmap_count": len(roadmaps),
+        "roadmaps": roadmaps,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # PESTEL Assessment report
 # ---------------------------------------------------------------------------
@@ -3232,7 +3262,8 @@ REPORT_GENERATORS = {
     "strategy_execution": generate_strategy_execution,
     "capability_assessment": generate_capability_assessment,
     "value_stream_formal": generate_value_stream_formal,
-     "pestel_assessment": generate_pestel_assessment,
+    "technology_roadmap": generate_technology_roadmap,
+    "pestel_assessment": generate_pestel_assessment,
      "regional_readiness": generate_regional_readiness,
      "publics_market_landscape": generate_publics_market_landscape,
      "env_scan_report": generate_env_scan_report,

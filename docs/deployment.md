@@ -333,7 +333,7 @@ python3 -m services.migration dry-run
 python3 -m services.migration migrate
 ```
 
-Take and test a backup before `migrate`, review the dry-run list, and run only one migration process. The runner uses `ON_ERROR_STOP`, a PostgreSQL advisory lock, deterministic schema-before-seed ordering, and checksums that reject modification of an applied migration. Add a new migration instead of editing an applied file. Because repository SQL may contain its own transaction control, a failed file can be partially committed; inspect database state and `schema_migration` before retrying. `status` and `dry-run` create or reconcile the tracking table, so they are not strictly read-only database operations.
+Take and test a backup before `migrate`, review the dry-run list, and run only one migration process. The runner uses `ON_ERROR_STOP`, a PostgreSQL advisory lock, deterministic schema-before-seed ordering, and checksums that reject modification of an applied migration. Add a new migration instead of editing an applied file. Because repository SQL may contain its own transaction control, a failed file can be partially committed; inspect database state and `schema_migration` before retrying. `status` and `dry-run` create or reconcile the tracking table, so they are not strictly read-only database operations. `scripts/seed.sh` uses the runner for PostgreSQL schemas and then applies the curated pilot/reference seed phase; use `KOKONUT_RUN_CURATED_SEEDS=false` only when intentionally skipping that data phase.
 
 ### Backup
 
