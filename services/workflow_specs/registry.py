@@ -31,4 +31,7 @@ def load_builtin_specs() -> None:
         carbon_retirement, event_bus, work_item, budget, objective, project,
         data_stream_post, ai_summary, impact_claim, report_snapshot,
         stakeholder_feedback, farm_activity, harvest_event, metric_value,
+        traceability_batch, insurance_claim, pest_intervention,
+        emergency_incident, cooperative_order, extension_enrollment,
+        market_order,
     )
