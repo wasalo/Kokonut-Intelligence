@@ -2935,8 +2935,41 @@ def generate_data_stream_summary(conn, location_id: str, period_start: str = Non
     }
 
 
+def generate_business_model_canvas(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a Business Model Canvas report for a location."""
+    import psycopg2
+    import psycopg2.extras
+    from services.analytics.business_model_canvas import get, list_canvas, compute_health
+
+    canvases = list_canvas(conn, location_id=location_id)
+    canvas_data = []
+    for c in canvases:
+        full = get(conn, str(c["id"]))
+        if full:
+            canvas_data.append(full)
+
+    # Get latest health score
+    health = None
+    if canvas_data:
+        try:
+            health = compute_health(conn, str(canvas_data[0]["id"]))
+        except Exception:
+            health = None
+
+    return {
+        "report_type": "business_model_canvas",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "canvas_count": len(canvas_data),
+        "canvases": canvas_data,
+        "health_summary": health,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
-# Snapshot storage
+# REPORT_GENERATORS dictionary
 # ---------------------------------------------------------------------------
 
 REPORT_GENERATORS = {
@@ -3000,6 +3033,7 @@ REPORT_GENERATORS = {
      "value_stream_map": generate_value_stream_map,
      "business_plan": generate_business_plan,
      "process_health": generate_process_health,
+     "business_model_canvas": generate_business_model_canvas,
 }
 
 

@@ -849,8 +849,39 @@
 - SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
 - SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`
 - SWOT suggest: `python3 -m services.analytics.swot suggest --location-id UUID` (or `--org-id UUID`)
+- BMC create: `python3 -m services.analytics.business_model_canvas create --location-id UUID [--canvas-name NAME] [--fiscal-year YEAR]`
+- BMC list: `python3 -m services.analytics.business_model_canvas list --location-id UUID`
+- BMC get: `python3 -m services.analytics.business_model_canvas get --canvas-id UUID`
+- BMC update-block: `python3 -m services.analytics.business_model_canvas update-block --canvas-id UUID --block key_partners --items '[{"name":"P1"}]'`
+- BMC version: `python3 -m services.analytics.business_model_canvas version --canvas-id UUID`
+- BMC suggest: `python3 -m services.analytics.business_model_canvas suggest --location-id UUID`
+- BMC health: `python3 -m services.analytics.business_model_canvas health --canvas-id UUID`
+- Revenue stream create: `python3 -m services.analytics.revenue_model create-stream --location-id UUID --stream-name NAME --stream-type TYPE`
+- Revenue stream list: `python3 -m services.analytics.revenue_model list-streams --location-id UUID`
+- Pricing create: `python3 -m services.analytics.revenue_model create-pricing --location-id UUID --product-name NAME --pricing-type TYPE --base-price PRICE`
+- Pricing list: `python3 -m services.analytics.revenue_model list-pricing --location-id UUID`
+- Cost structure create: `python3 -m services.analytics.revenue_model create-cost --location-id UUID --cost-category NAME --cost-type fixed|variable|semi_variable --amount AMOUNT`
+- Cost structure list: `python3 -m services.analytics.revenue_model list-costs --location-id UUID`
+- Break-even: `python3 -m services.analytics.revenue_model break-even --location-id UUID --fixed-costs 10000 --variable-cost 2 --price 5`
+- Break-even list: `python3 -m services.analytics.revenue_model list-break-even --location-id UUID`
+- Sensitivity: `python3 -m services.analytics.revenue_model sensitivity --break-even-id UUID`
+- Revenue forecast: `python3 -m services.analytics.revenue_model forecast --location-id UUID --periods 12`
+- Channel config: `python3 -m services.analytics.channel_orchestration create-channel --location-id UUID --channel-name NAME --channel-type sms|whatsapp|mobile_app|email`
+- Channel list: `python3 -m services.analytics.channel_orchestration list-channels --location-id UUID`
+- Channel preference: `python3 -m services.analytics.channel_orchestration set-preference --location-id UUID --segment-type farmer --channel-type sms --priority 10 --is-primary`
+- Delivery plan: `python3 -m services.analytics.channel_orchestration delivery-plan --location-id UUID --segment-type farmer`
+- Fallback rule: `python3 -m services.analytics.channel_orchestration create-fallback --location-id UUID --rule-name NAME --primary-channel sms --fallback-channels whatsapp voice_call`
+- Log interaction: `python3 -m services.analytics.channel_orchestration log-interaction --location-id UUID --customer-type farmer --customer-id UUID --interaction-type message_sent`
+- Compute health: `python3 -m services.analytics.channel_orchestration compute-health --location-id UUID --customer-type farmer --customer-id UUID`
+- Health list: `python3 -m services.analytics.channel_orchestration list-health --location-id UUID`
+- Partner lifecycle create: `python3 -m services.analytics.partner_lifecycle create --partner-id UUID --stage prospect`
+- Partner lifecycle advance: `python3 -m services.analytics.partner_lifecycle advance --lifecycle-id UUID --stage active`
+- Partner lifecycle list: `python3 -m services.analytics.partner_lifecycle list --location-id UUID`
+- Partner evaluate: `python3 -m services.analytics.partner_lifecycle evaluate --lifecycle-id UUID --partner-id UUID --evaluation-type quarterly --technical 80 --financial 70`
+- Partner scorecard: `python3 -m services.analytics.partner_lifecycle scorecard --lifecycle-id UUID --partner-id UUID --period-start 2026-01-01 --period-end 2026-03-31 --quality 88`
 - Business plan generate: `python3 -m services.export.business_plan --location-id UUID` (or `--org-id UUID`)
 - Business-plan tests: `python3 -m pytest tests/test_business_plan.py tests/test_swot.py tests/test_reference_class.py -v`
+- BMC tests: `python3 -m pytest tests/test_business_model_canvas.py tests/test_revenue_model.py tests/test_channel_health.py tests/test_partner_lifecycle.py -v`
 
 ## Development Notes
 
