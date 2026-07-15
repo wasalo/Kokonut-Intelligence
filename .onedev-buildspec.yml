@@ -48,6 +48,7 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
         export PG_HOST=localhost PG_PORT=5432 CH_HOST=localhost CH_PORT=8123
+        export KOKONUT_METRICS_EXECUTION=host
         ./scripts/ci-check.sh
     useTTY: false
     condition: SUCCESSFUL
