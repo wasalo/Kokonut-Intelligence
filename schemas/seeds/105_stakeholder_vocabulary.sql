@@ -40,6 +40,37 @@ ON CONFLICT (id) DO UPDATE SET
     evidence = EXCLUDED.evidence,
     notes = EXCLUDED.notes;
 
+INSERT INTO stakeholder_consent (
+    id, party_id, event_type, data_category, purpose, scope_type, scope_id,
+    recipient_type, consent_method, legal_basis, consent_version, effective_at,
+    evidence, source_system, source_record_id, metadata
+) VALUES (
+    'a0000000-0000-0000-0000-000000001090',
+    'a0000000-0000-0000-0000-000000001001',
+    'grant', 'stakeholder_feedback', 'public_summary', 'location',
+    'a0000000-0000-0000-0000-000000000001', 'system', 'system_migration',
+    'consent', '1.0', '2026-03-01 00:00:00+00',
+    '[{"source":"canonical_pilot","basis":"operator-approved public summary"}]'::jsonb,
+    'pilot_seed', 'adelphi-feedback-public-summary-consent-2026-03',
+    '{"scope":"public_summary","raw_feedback":"private"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+    party_id = EXCLUDED.party_id,
+    event_type = EXCLUDED.event_type,
+    data_category = EXCLUDED.data_category,
+    purpose = EXCLUDED.purpose,
+    scope_type = EXCLUDED.scope_type,
+    scope_id = EXCLUDED.scope_id,
+    recipient_type = EXCLUDED.recipient_type,
+    consent_method = EXCLUDED.consent_method,
+    legal_basis = EXCLUDED.legal_basis,
+    consent_version = EXCLUDED.consent_version,
+    effective_at = EXCLUDED.effective_at,
+    evidence = EXCLUDED.evidence,
+    source_system = EXCLUDED.source_system,
+    source_record_id = EXCLUDED.source_record_id,
+    metadata = EXCLUDED.metadata;
+
 INSERT INTO stakeholder_interest
     (id, party_id, interest_type, title, description, legitimacy, priority, scope_type, scope_id, status, evidence)
 VALUES
