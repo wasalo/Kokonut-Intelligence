@@ -42,6 +42,7 @@ def test_builtin_specs_validate_and_have_invariants():
         "cooperative_order",
         "extension_enrollment",
         "market_order",
+        "coordination_alliance",
     }
     for spec in list_specs():
         validate(spec)
@@ -213,3 +214,25 @@ def test_market_order_spec_matches_trade_fulfillment_lifecycle():
     delivered = next(step for step in spec.steps if step.current_state == "delivered")
     cancelled = next(step for step in spec.steps if step.current_state == "cancelled")
     assert delivered.terminal and cancelled.terminal
+
+
+def test_coordination_alliance_covers_governance_lifecycle_and_human_gates():
+    from services.workflow_specs.coordination_alliance import COORDINATION_ALLIANCE
+
+    transitions = _transitions(COORDINATION_ALLIANCE)
+    for state in ("consultation", "due_diligence", "approval", "activation", "review", "suspension", "renewal"):
+        assert any(current == state for current, _, _ in transitions)
+    assert ("consultation", "due_diligence", "consulted") in transitions
+    assert ("due_diligence", "approval", "due_diligence_complete") in transitions
+    assert ("approval", "activation", "approve") in transitions
+    assert ("activation", "review", "activate") in transitions
+    assert ("review", "suspension", "suspend") in transitions
+    assert ("review", "renewal", "renew") in transitions
+    assert ("renewal", "consultation", "renew") in transitions
+    assert any(step.current_state == "termination" and step.terminal for step in COORDINATION_ALLIANCE.steps)
+    approval = next(step for step in COORDINATION_ALLIANCE.steps if step.current_state == "approval")
+    activation = next(step for step in COORDINATION_ALLIANCE.steps if step.current_state == "activation")
+    review = next(step for step in COORDINATION_ALLIANCE.steps if step.current_state == "review")
+    assert approval.human_approval
+    assert activation.human_approval and activation.high_risk and activation.external_side_effect
+    assert review.human_approval

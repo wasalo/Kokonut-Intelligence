@@ -28,11 +28,14 @@ def build_parser(parser: argparse.ArgumentParser) -> None:
     create.add_argument("--scope-id")
     create.add_argument("--strategy-id")
     create.add_argument("--value-stream-id")
+    create.add_argument("--stakeholder-decision-id")
+    create.add_argument("--cooperative-proposal-id")
     create.add_argument("--steward-party-id")
     create.add_argument("--created-by-party-id")
     create.set_defaults(func=lambda a: _out(create_alliance(
         a.name, a.purpose, coordination_type=a.coordination_type, scope_type=a.scope_type,
         scope_id=a.scope_id, strategy_map_id=a.strategy_id, value_stream_id=a.value_stream_id,
+        stakeholder_decision_id=a.stakeholder_decision_id, cooperative_proposal_id=a.cooperative_proposal_id,
         steward_party_id=a.steward_party_id, created_by_party_id=a.created_by_party_id)))
 
     listing = sub.add_parser("list", help="List alliances")

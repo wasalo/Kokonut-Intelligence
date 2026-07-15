@@ -42,6 +42,14 @@ def test_coordination_round_trip():
         assert approved["status"] == "approved"
         active = activate_alliance(alliance["id"], "a0000000-0000-0000-0000-000000001000")
         assert active["status"] == "active"
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT from_status, to_status FROM lifecycle_transition "
+                "WHERE entity_type = 'coordination_alliance' AND entity_id = %s::uuid "
+                "ORDER BY transitioned_at",
+                (alliance["id"],),
+            )
+            assert cur.fetchall()[-2:] == [("draft", "approved"), ("approved", "active")]
 
         participant = add_participant(
             alliance["id"], "a0000000-0000-0000-0000-000000001001",
