@@ -14,13 +14,13 @@ import psycopg2.extras
 
 _ENTITY_LOC = """
     SELECT 'data_stream_post' AS et, id, location_id FROM data_stream_post WHERE location_id = %(loc)s
-    UNION ALL SELECT 'ai_summary', id, location_id FROM ai_summary WHERE location_id = %(loc)s
+    UNION ALL SELECT 'ai_summary', id, subject_id FROM ai_summary WHERE subject_type = 'location' AND subject_id = %(loc)s
     UNION ALL SELECT 'impact_claim', id, location_id FROM impact_claim WHERE location_id = %(loc)s
     UNION ALL SELECT 'report_snapshot', id, location_id FROM report_snapshot WHERE location_id = %(loc)s
     UNION ALL SELECT 'stakeholder_feedback', id, location_id FROM stakeholder_feedback WHERE location_id = %(loc)s
     UNION ALL SELECT 'farm_activity', id, location_id FROM farm_activity WHERE location_id = %(loc)s
     UNION ALL SELECT 'harvest_event', id, location_id FROM harvest_event WHERE location_id = %(loc)s
-    UNION ALL SELECT 'agent_task', id, location_id FROM agent_task WHERE location_id = %(loc)s
+    UNION ALL SELECT 'agent_task', id, subject_id FROM agent_task WHERE subject_type = 'location' AND subject_id = %(loc)s
 """
 
 

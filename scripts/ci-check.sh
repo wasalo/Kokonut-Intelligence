@@ -26,7 +26,7 @@ check() {
     else
         echo "  ✗ $name"
         if [ -n "$output" ]; then
-            echo "    $output" | head -15
+            echo "    $output" | head -30
         fi
         FAIL=$((FAIL + 1))
     fi
