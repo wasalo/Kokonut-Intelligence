@@ -176,6 +176,13 @@ def schema_completeness_checks() -> List[Tuple[str, bool]]:
         "delphi_study", "delphi_panel_member", "delphi_item",
         # Guilds
         "colony_instance", "kokonut_guild", "guild_contribution",
+        # Coordination governance and learning
+        "coordination_alliance", "coordination_participant", "coordination_objective",
+        "coordination_contribution", "coordination_benefit", "coordination_risk",
+        "coordination_knowledge_exchange", "coordination_review", "coordination_learning_link",
+        "coordination_metric_observation", "coordination_conflict_declaration",
+        "coordination_benefit_harm_analysis", "coordination_minority_view",
+        "coordination_appeal", "coordination_remedy",
     ]
     values = ",".join(f"('{t}')" for t in critical_tables)
     sql = f"SELECT 'table:' || v, to_regclass('public.' || v) IS NOT NULL FROM (VALUES {values}) AS vs(v)"
@@ -231,6 +238,8 @@ def seed_data_checks() -> List[Tuple[str, bool]]:
          count_check("kokonut_guild", 6, "status = 'active'")),
         ("seed:guild_contribution published >= 3",
          count_check("guild_contribution", 3, "review_status = 'published'")),
+        ("seed:draft Adelphi coordination example",
+         "EXISTS (SELECT 1 FROM coordination_alliance WHERE id = 'a0000000-0000-0000-0000-000000002000' AND status = 'draft')"),
     ]
     sql = _batch(checks)
     return run_sql(sql)
@@ -311,6 +320,10 @@ def view_integrity_checks() -> List[Tuple[str, bool]]:
          to_regclass_check("v_current_vision_mission")),
         ("view:v_value_stream_performance exists",
          to_regclass_check("v_value_stream_performance")),
+        ("view:v_coordination_cockpit_internal exists",
+         to_regclass_check("v_coordination_cockpit_internal")),
+        ("view:v_public_coordination_alliance exists",
+         to_regclass_check("v_public_coordination_alliance")),
     ]
     sql = _batch(checks)
     return run_sql(sql)

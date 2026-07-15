@@ -1,6 +1,7 @@
 """Tests for coordination accounting and learning integration."""
 
 import pytest
+import uuid
 
 from services.agents.safety import assess_agent_action
 from services.analytics.capability_map import create_capability
@@ -15,7 +16,10 @@ from services.analytics.coordination_accounting import (
     record_metric_observation,
     review_risk,
 )
-from services.analytics.coordination_strategy import review_and_renew
+from services.analytics.coordination_strategy import (
+    declare_conflict, record_benefit_harm_analysis, review_and_renew,
+    review_benefit_harm_analysis, review_conflict_declaration,
+)
 from services.ingestion.base import get_db
 
 
@@ -29,8 +33,12 @@ def _db():
 def test_accounting_and_learning_round_trip():
     conn = _db()
     alliance = create_alliance("Accounting test alliance", "Test reciprocal coordination evidence")
-    capability = create_capability("Coordination accounting test capability", guild_key="test_coordination_accounting")
+    capability = create_capability(f"Coordination accounting test capability {uuid.uuid4()}", guild_key="test_coordination_accounting")
     try:
+        declaration = declare_conflict(alliance["id"], "a0000000-0000-0000-0000-000000001000", "no_conflict", "No conflict declared")
+        review_conflict_declaration(declaration["id"], "a0000000-0000-0000-0000-000000001000")
+        analysis = record_benefit_harm_analysis(alliance["id"], "benefit", "Benefits and harms reviewed")
+        review_benefit_harm_analysis(analysis["id"], "a0000000-0000-0000-0000-000000001000")
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE coordination_alliance SET status = 'active', approved_by_party_id = %s::uuid, approved_at = NOW() WHERE id = %s::uuid",
@@ -86,6 +94,7 @@ def test_accounting_and_learning_round_trip():
             cur.execute("SELECT status FROM coordination_alliance WHERE id = %s::uuid", (alliance["id"],))
             assert cur.fetchone()[0] == "proposed"
     finally:
+        conn.rollback()
         with conn.cursor() as cur:
             cur.execute("DELETE FROM coordination_alliance WHERE id = %s::uuid", (alliance["id"],))
             cur.execute("DELETE FROM business_capability WHERE id = %s::uuid", (capability["id"],))
