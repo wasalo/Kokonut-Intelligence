@@ -66,17 +66,24 @@ def submit_decision(conn, decision_id: str) -> Optional[Dict[str, Any]]:
         return result
 
 
-def approve_decision(conn, decision_id: str, approved_by_party_id: str) -> Optional[Dict[str, Any]]:
+def approve_decision(conn, decision_id: str, approved_by_party_id: str, *, approval_role: str = "stakeholder_reviewer", approval_evidence: Optional[List[Any]] = None) -> Optional[Dict[str, Any]]:
     if not approved_by_party_id:
         raise ValueError("a human approving party is required")
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("""SELECT COUNT(*) AS unresolved_harm_count
+                       FROM stakeholder_decision_tradeoff
+                       WHERE decision_id = %s::uuid AND direction IN ('harm', 'risk') AND NOT accepted""", (decision_id,))
+        if cur.fetchone()["unresolved_harm_count"]:
+            raise ValueError("stakeholder decision has unresolved material harm")
         cur.execute(
             """UPDATE stakeholder_decision
                SET status = 'approved', approval_status = 'approved',
                    approved_by_party_id = %s::uuid, approved_at = NOW(), updated_at = NOW()
+                   , approval_actor_type = 'human', approval_role = %s,
+                   approval_evidence = %s::jsonb, material_harm_review_status = 'clear'
                WHERE id = %s::uuid AND status = 'submitted' AND approval_status = 'pending'
                RETURNING *""",
-            (approved_by_party_id, decision_id),
+            (approved_by_party_id, approval_role, json.dumps(approval_evidence or []), decision_id),
         )
         result = _row(cur.fetchone())
         conn.commit()
@@ -169,6 +176,21 @@ def add_tradeoff(conn, decision_id: str, description: str, direction: str, *,
                VALUES (%s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s::jsonb) RETURNING *""",
             (decision_id, interest_id, party_id, direction, description, severity, accepted, mitigation,
              json.dumps(evidence or [])),
+        )
+        result = _row(cur.fetchone())
+        conn.commit()
+        return result
+
+
+def resolve_tradeoff(conn, tradeoff_id: str, *, accepted: bool, mitigation: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    if not accepted and not (mitigation or '').strip():
+        raise ValueError('unaccepted trade-offs require a mitigation or remain unresolved')
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """UPDATE stakeholder_decision_tradeoff
+               SET accepted = %s, mitigation = COALESCE(%s, mitigation)
+               WHERE id = %s::uuid RETURNING *""",
+            (accepted, mitigation, tradeoff_id),
         )
         result = _row(cur.fetchone())
         conn.commit()

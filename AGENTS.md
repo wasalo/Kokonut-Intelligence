@@ -983,6 +983,9 @@ All work follows a 3-step branch → PR → merge flow:
 - Stakeholder consent list: `python3 -m services.analytics.cli_consent list --party-id PARTY_UUID`
 - Stakeholder consent withdraw: `python3 -m services.analytics.cli_consent withdraw CONSENT_EVENT_UUID --reason "Purpose changed"`
 - Stakeholder consent tests: `python3 -m pytest tests/test_stakeholder_consent.py -v`
+- Stakeholder identity propose: `python3 -m services.analytics.cli_stakeholder_identity propose SOURCE_SYSTEM SOURCE_TYPE SOURCE_ID PARTY_UUID PARTY_TYPE --confidence 0.9`
+- Stakeholder identity review: `python3 -m services.analytics.cli_stakeholder_identity review CASE_UUID REVIEWER_PARTY_UUID "Reviewed source evidence"`
+- Stakeholder identity queue: `python3 -m services.analytics.cli_stakeholder_identity queue`
 - Stakeholder engagement create plan: `python3 -m services.analytics.cli_stakeholder_engagement create-plan "Plan" --stakeholder-party-id PARTY_UUID`
 - Stakeholder engagement list plans: `python3 -m services.analytics.cli_stakeholder_engagement list-plans`
 - Stakeholder engagement add objective: `python3 -m services.analytics.cli_stakeholder_engagement add-objective PLAN_UUID "Objective" "Desired outcome"`

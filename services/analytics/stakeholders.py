@@ -156,6 +156,8 @@ def link_parties(
     confidence: Optional[float] = None,
     evidence: Optional[List[Any]] = None,
     notes: str = "",
+    accountable_party_id: Optional[str] = None,
+    responsibility_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     if scope_type not in SCOPE_TYPES:
         raise ValueError(f"scope_type must be one of {SCOPE_TYPES}")
@@ -165,11 +167,12 @@ def link_parties(
         cur.execute(
             """INSERT INTO party_relationship
                (from_party_id, to_party_id, relationship_type, scope_type, scope_id,
-                legitimacy, status, confidence, evidence, notes)
-               VALUES (%s::uuid, %s::uuid, %s, %s, %s::uuid, %s, %s, %s, %s::jsonb, %s)
+                legitimacy, status, confidence, evidence, notes, accountable_party_id, responsibility_id)
+               VALUES (%s::uuid, %s::uuid, %s, %s, %s::uuid, %s, %s, %s, %s::jsonb, %s, %s::uuid, %s::uuid)
                RETURNING *""",
             (from_party_id, to_party_id, relationship_type, scope_type, scope_id,
-             legitimacy, status, confidence, json.dumps(evidence or []), notes),
+             legitimacy, status, confidence, json.dumps(evidence or []), notes,
+             accountable_party_id, responsibility_id),
         )
         result = _row(cur.fetchone())
         conn.commit()

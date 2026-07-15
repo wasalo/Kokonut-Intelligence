@@ -69,22 +69,24 @@ def create_listing(
     cur = conn.cursor()
     listing_id = str(uuid.uuid4())
     harvest_date = harvest_date or date.today()
+    listing_metadata = dict(metadata or {})
+    listing_metadata.setdefault("harvest_date", harvest_date.isoformat())
+    title = listing_metadata.pop("title", None) or f"{crop_name} listing"
 
     cur.execute(
         """
         INSERT INTO market_listing
-            (id, location_id, crop_id, quantity, unit, price_per_unit,
-             quality_grade, harvest_date, description, images, status,
+            (id, location_id, crop_id, title, quantity, unit, price_per_unit,
+             quality_grade, description, image_urls, status, published_at,
              metadata, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb,
-                'published', %s::jsonb, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                'published', %s, %s::jsonb, %s)
         RETURNING id
         """,
         (
-            listing_id, location_id, crop_id, quantity, unit,
-            price_per_unit, quality_grade, harvest_date,
-            description, json.dumps(images or []),
-            json.dumps(metadata or {}),
+            listing_id, location_id, crop_id, title, quantity, unit,
+            price_per_unit, quality_grade, description, images or [],
+            datetime.now(timezone.utc), json.dumps(listing_metadata),
             datetime.now(timezone.utc),
         ),
     )
@@ -121,15 +123,18 @@ def update_listing(
 
     allowed_fields = {
         "status", "price_per_unit", "quantity", "quality_grade",
-        "description", "images", "metadata",
+        "description", "images", "image_urls", "metadata",
     }
     set_clauses = []
     params = []
     for key, value in updates.items():
         if key not in allowed_fields:
             continue
-        if key in ("images", "metadata"):
-            set_clauses.append(f"{key} = %s::jsonb")
+        if key in ("images", "image_urls"):
+            set_clauses.append("image_urls = %s")
+            params.append(value or [])
+        elif key == "metadata":
+            set_clauses.append("metadata = %s::jsonb")
             params.append(json.dumps(value))
         else:
             set_clauses.append(f"{key} = %s")
@@ -169,8 +174,8 @@ def get_listing(conn, listing_id: str) -> dict:
     cur.execute(
         """
         SELECT ml.id, ml.location_id, c.name AS crop_name, ml.quantity, ml.unit,
-               ml.price_per_unit, ml.quality_grade, ml.harvest_date,
-               ml.description, ml.images, ml.status, ml.metadata,
+               ml.price_per_unit, ml.quality_grade, ml.available_from AS harvest_date,
+               ml.description, ml.image_urls AS images, ml.status, ml.metadata,
                ml.created_at, ml.updated_at
         FROM market_listing ml
         LEFT JOIN crop c ON c.id = ml.crop_id
@@ -223,7 +228,7 @@ def list_active_listings(
     cur.execute(
         f"""
         SELECT ml.id, ml.location_id, c.name AS crop_name, ml.quantity, ml.unit,
-               ml.price_per_unit, ml.quality_grade, ml.harvest_date, ml.created_at
+               ml.price_per_unit, ml.quality_grade, ml.available_from AS harvest_date, ml.created_at
         FROM market_listing ml
         LEFT JOIN crop c ON c.id = ml.crop_id
         WHERE {where}
@@ -267,6 +272,7 @@ def create_buyer_profile(
     preferences: dict = None,
     contact_info: dict = None,
     metadata: dict = None,
+    party_id: str = None,
 ) -> dict:
     """Register a buyer on the marketplace."""
     cur = conn.cursor()
@@ -277,17 +283,17 @@ def create_buyer_profile(
     cur.execute(
         """
         INSERT INTO buyer_profile
-            (id, name, buyer_type, address, contact_name, contact_email,
-             contact_phone, crops_of_interest, metadata, status, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, 'active', %s)
+             (id, party_id, name, buyer_type, address, contact_name, contact_email,
+              contact_phone, crops_of_interest, metadata, status, created_at)
+         VALUES (%s, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'active', %s)
         RETURNING id
         """,
         (
-            buyer_id, name, buyer_type, location,
+            buyer_id, party_id, name, buyer_type, location,
             contact_info.get("name"),
             contact_info.get("email"),
             contact_info.get("phone"),
-            json.dumps(preferences.get("crops", preferences)),
+             preferences.get("crops", preferences) if isinstance(preferences.get("crops", preferences), list) else list(preferences.get("crops", preferences).keys()) if isinstance(preferences.get("crops", preferences), dict) else [str(preferences.get("crops", preferences))],
             json.dumps(metadata or {}),
             datetime.now(timezone.utc),
         ),
@@ -561,16 +567,17 @@ def track_shipment(
 
     cur.execute(
         """
-        INSERT INTO shipment
-            (id, location_id, origin_name, carrier_name, estimated_arrival,
-             status, notes, metadata, created_at)
-        VALUES (%s, %s, %s, %s, %s, 'created', %s, %s::jsonb, %s)
+        INSERT INTO logistics_tracking
+            (id, order_id, carrier_name, tracking_number, estimated_arrival,
+             current_location, temperature_min, temperature_max,
+             humidity_min, humidity_max, status, metadata, created_at, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', %s::jsonb, %s, %s)
         RETURNING id
         """,
         (
-            tracking_id, None, location, carrier, estimated_arrival,
-            None, json.dumps(shipment_meta),
-            datetime.now(timezone.utc),
+            tracking_id, order_id, carrier, tracking_number, estimated_arrival,
+            location, temperature, temperature, humidity, humidity,
+            json.dumps(shipment_meta), datetime.now(timezone.utc), datetime.now(timezone.utc),
         ),
     )
     row = cur.fetchone()
@@ -749,7 +756,7 @@ def evaluate_listing(conn, listing_id: str) -> dict:
     cur.execute(
         """
         SELECT ml.id, c.name AS crop_name, ml.quantity, ml.unit, ml.price_per_unit,
-               ml.quality_grade, ml.harvest_date, ml.location_id
+               ml.quality_grade, ml.available_from AS harvest_date, ml.location_id
         FROM market_listing ml
         LEFT JOIN crop c ON c.id = ml.crop_id
         WHERE ml.id = %s
@@ -919,6 +926,7 @@ def main():
     cb.add_argument("--location")
     cb.add_argument("--preferences", default="{}")
     cb.add_argument("--contact-info", default="{}")
+    cb.add_argument("--party-id")
     cb.add_argument("--json", action="store_true")
 
     # record-price
@@ -1032,6 +1040,7 @@ def main():
                 db, args.name, args.buyer_type, args.location,
                 preferences=json.loads(args.preferences),
                 contact_info=json.loads(args.contact_info),
+                party_id=args.party_id,
             )
             output = json.dumps(result, indent=2, default=str) if args.json else _format_buyer(result)
             print(output)

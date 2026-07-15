@@ -32,6 +32,7 @@ APPROVED_CHECKSUM_REPAIRS = {
     "schema:086_abundance_estimates.sql": "705e09e5a7683cb66c56a57173cd6b83fc59396ba4d81a4b8f84398eb6f287d0",
     "schema:100_data_stream.sql": "7fc1fb607359cf29a7d2398daadf3608e193d7b927186a76421cace6e2811b70",
     "schema:182_process_mining.sql": "32084e5b1be5168a58bf0634625a6c201b8855cf7a6d5736634e3c9406ce3cbb",
+    "schema:214_stakeholder_compatibility_views.sql": "75221cfbf771cff335571377a817e9bbb5195d3db5dfb2b213dc61842972ff5c",
     "seed:046_ecological_modeling.sql": "220f6fe668d63a997f7ef4dbc01f773ee8e9d3755c9ab0872d3acb1fef7a9f3d",
 }
 

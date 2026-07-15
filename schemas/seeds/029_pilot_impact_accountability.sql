@@ -6,7 +6,7 @@ INSERT INTO stakeholder_feedback (
     id, location_id, farm_id, feedback_type, stakeholder_group, stakeholder_name,
     feedback_date, feedback_text, language, sentiment, themes, suggested_improvements,
     consent_given, consent_scope, consent_notes, is_public, public_summary,
-    evidence_maturity, status, source_system, source_id, source_raw
+    evidence_maturity, status, source_system, source_id, source_raw, party_id
 ) VALUES
 (
     'a0000000-0000-0000-0000-000000000900',
@@ -30,7 +30,8 @@ INSERT INTO stakeholder_feedback (
     'published',
     'pilot_seed',
     'adelphi-feedback-operator-2026-03',
-    '{"record_type":"stakeholder_feedback","privacy":"public_summary_private_raw"}'::jsonb
+    '{"record_type":"stakeholder_feedback","privacy":"public_summary_private_raw"}'::jsonb,
+    'a0000000-0000-0000-0000-000000001001'
 ),
 (
     'a0000000-0000-0000-0000-000000000901',
@@ -54,7 +55,8 @@ INSERT INTO stakeholder_feedback (
     'verified',
     'pilot_seed',
     'adelphi-feedback-resident-2026-03',
-    '{"record_type":"stakeholder_feedback","privacy":"private"}'::jsonb
+    '{"record_type":"stakeholder_feedback","privacy":"private"}'::jsonb,
+    NULL
 )
 ON CONFLICT (id) DO UPDATE SET
     feedback_text = EXCLUDED.feedback_text,
@@ -71,6 +73,7 @@ ON CONFLICT (id) DO UPDATE SET
     source_system = EXCLUDED.source_system,
     source_id = EXCLUDED.source_id,
     source_raw = EXCLUDED.source_raw,
+    party_id = EXCLUDED.party_id,
     updated_at = NOW();
 
 INSERT INTO stakeholder_feedback_review (

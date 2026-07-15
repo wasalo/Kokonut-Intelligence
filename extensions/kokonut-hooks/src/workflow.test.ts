@@ -7,11 +7,12 @@ import {
   consumePendingTransition,
   LIFECYCLE_COLLECTIONS,
 } from './workflow.js';
+import { enforceStakeholderGovernanceSafety } from './agent-safety.js';
 import { roleNameToSlug } from './roles.js';
 import { normalizeFeedbackPayload, validateStakeholderFeedback } from './feedback.js';
 import { isValidMetricProposalTransition } from './metric-proposal.js';
 import { validateImpactClaim } from './impact-claim.js';
-import { enforceAgentTaskSafety, prepareAgentActionLog } from './agent-safety.js';
+import { enforceAgentTaskSafety, enforceAiSummarySafety, prepareAgentActionLog } from './agent-safety.js';
 
 describe('roleNameToSlug', () => {
   it('normalizes Directus role display names', () => {
@@ -132,12 +133,46 @@ describe('impact claim workflow', () => {
 
 describe('agent safety workflow', () => {
   it('blocks agent tasks from direct publish', () => {
-    expect(() => enforceAgentTaskSafety({ initiator_type: 'agent', review_status: 'published' })).toThrow(/Agent tasks/);
+    expect(() => enforceAgentTaskSafety(
+      { initiator_type: 'human', review_status: 'published' },
+      { accountability: { role: 'agent_write' } },
+    )).toThrow(/Agent tasks/);
+  });
+
+  it('does not trust the payload initiator type', () => {
+    expect(() => enforceAgentTaskSafety({ initiator_type: 'agent', review_status: 'published' })).not.toThrow();
+  });
+
+  it('uses accountability to restrict agent AI summaries', () => {
+    expect(() => enforceAiSummarySafety(
+      { created_by: 'human', status: 'published' },
+      { accountability: { role: 'agent_write' } },
+    )).toThrow(/AI summaries/);
+  });
+
+  it('does not trust payload creator fields for AI summary safety', () => {
+    expect(() => enforceAiSummarySafety({ created_by: 'agent', status: 'published' })).not.toThrow();
   });
 
   it('marks high-risk action logs for approval', () => {
     const payload = prepareAgentActionLog({ action: 'publish' });
     expect(payload.high_risk).toBe(true);
     expect(payload.requires_human_approval).toBe(true);
+  });
+
+  it('blocks agents from human-governed stakeholder writes', () => {
+    expect(() => enforceStakeholderGovernanceSafety(
+      'stakeholder_decision',
+      { status: 'draft' },
+      { accountability: { role: 'agent_write' } },
+    )).toThrow(/human-governed stakeholder collection/);
+  });
+
+  it('allows human stakeholder writes', () => {
+    expect(() => enforceStakeholderGovernanceSafety(
+      'stakeholder_decision',
+      { status: 'draft' },
+      { accountability: { role: 'manager' } },
+    )).not.toThrow();
   });
 });

@@ -34,6 +34,37 @@ GOVERNED_COLLECTIONS = {
     "impact_claim",
     "metric_proposal",
     "stakeholder_outcome",
+    "party",
+    "party_identifier",
+    "party_relationship",
+    "party_resolution_case",
+    "stakeholder_interest",
+    "stakeholder_consent",
+    "stakeholder_engagement_plan",
+    "stakeholder_engagement_objective",
+    "stakeholder_touchpoint",
+    "stakeholder_commitment",
+    "stakeholder_engagement_outcome",
+    "stakeholder_participation",
+    "stakeholder_minority_view",
+    "stakeholder_grievance_case",
+    "grievance_remedy",
+    "stakeholder_decision",
+    "stakeholder_decision_participant",
+    "stakeholder_decision_tradeoff",
+    "stakeholder_decision_evidence",
+    "stakeholder_decision_outcome",
+    "buyer_verification",
+    "market_dispute",
+    "market_dispute_event",
+    "cooperative_distribution_decision",
+    "party_trust_evidence",
+    "party_trust_snapshot",
+    "relationship_risk_indicator",
+    "stewardship_proxy_authority",
+    "ecological_threshold",
+    "nature_stewardship_obligation",
+    "future_generation_principle",
     "cultural_context_record",
     "wellbeing_metric_observation",
     "participatory_action_record",
@@ -123,6 +154,22 @@ GOVERNED_COLLECTIONS = {
     "delphi_expert_calibration",
 }
 
+STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
+    "party_resolution_case",
+    "stakeholder_consent",
+    "stakeholder_grievance_case",
+    "grievance_remedy",
+    "stakeholder_decision",
+    "stakeholder_decision_evidence",
+    "buyer_verification",
+    "market_dispute",
+    "cooperative_distribution_decision",
+    "party_trust_evidence",
+    "stewardship_proxy_authority",
+    "nature_stewardship_obligation",
+    "future_generation_principle",
+}
+
 
 @dataclass(frozen=True)
 class SafetyDecision:
@@ -144,6 +191,9 @@ def assess_agent_action(action: str, collection: str, payload: Optional[dict[str
     """Assess whether an agent action is allowed before writing."""
     payload = payload or {}
     high_risk = action in HIGH_RISK_ACTIONS
+
+    if collection in STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS and action not in {"read", "list", "query"}:
+        return SafetyDecision(False, True, True, f"agents cannot write human-governed stakeholder collection {collection}")
 
     if collection == "agent_task":
         review_status = payload.get("review_status")

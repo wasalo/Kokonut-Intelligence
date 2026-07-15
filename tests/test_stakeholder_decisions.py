@@ -16,7 +16,12 @@ def _db():
 def test_decision_requires_human_approval_before_execution():
     conn = _db()
     decision_id = None
+    approver_id = "a0000000-0000-0000-0000-000000009903"
     try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM party WHERE id = %s::uuid", (approver_id,))
+            cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Decision Reviewer')", (approver_id,))
+        conn.commit()
         created = decisions.create_decision(
             conn,
             "Protect minimum water access",
@@ -33,10 +38,15 @@ def test_decision_requires_human_approval_before_execution():
             conn, decision_id, party_id="a0000000-0000-0000-0000-000000001001",
             stakeholder_role="affected", participation_status="participated", consent_checked=True,
         )
-        decisions.add_tradeoff(
+        tradeoff = decisions.add_tradeoff(
             conn, decision_id, "Household access could be harmed", "harm", severity=8,
             mitigation="Protect minimum access first",
         )
+        with pytest.raises(ValueError, match="unresolved material harm"):
+            decisions.approve_decision(
+                conn, decision_id, approver_id
+            )
+        decisions.resolve_tradeoff(conn, tradeoff["id"], accepted=True)
         decisions.add_evidence(
             conn, decision_id, "metric", "Verified soil moisture trend", evidence_role="supporting",
             evidence_maturity=4, verified=True,
@@ -44,19 +54,20 @@ def test_decision_requires_human_approval_before_execution():
         decisions.record_outcome(conn, decision_id, "harm", "No material access disruption observed", outcome_status="verified")
 
         approved = decisions.approve_decision(
-            conn, decision_id, "a0000000-0000-0000-0000-000000001002"
+            conn, decision_id, approver_id
         )
         assert approved["approval_status"] == "approved"
 
         lineage = decisions.get_decision(conn, decision_id)
         assert lineage["participant_count"] == 1
-        assert lineage["unresolved_harm_count"] == 1
+        assert lineage["unresolved_harm_count"] == 0
         assert lineage["verified_evidence_count"] == 1
         assert lineage["outcome_count"] == 1
     finally:
         if decision_id:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM stakeholder_decision WHERE id = %s::uuid", (decision_id,))
+                cur.execute("DELETE FROM party WHERE id = %s::uuid", (approver_id,))
             conn.commit()
         conn.close()
 

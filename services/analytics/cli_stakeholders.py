@@ -66,10 +66,13 @@ def main():
     relationship.add_argument("--status", default="proposed")
     relationship.add_argument("--confidence", type=float)
     relationship.add_argument("--notes", default="")
+    relationship.add_argument("--accountable-party-id")
+    relationship.add_argument("--responsibility-id")
     relationship.set_defaults(func=lambda conn, a: link_parties(
         conn, a.from_party_id, a.to_party_id, a.relationship_type,
         scope_type=a.scope_type, scope_id=a.scope_id, legitimacy=a.legitimacy,
-        status=a.status, confidence=a.confidence, notes=a.notes,
+         status=a.status, confidence=a.confidence, notes=a.notes,
+         accountable_party_id=a.accountable_party_id, responsibility_id=a.responsibility_id,
     ))
 
     interest = sub.add_parser("interest")
