@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 
 from ..common.db import PG_DB, PG_USER
@@ -17,6 +18,22 @@ PROJECT_DIR = Path(__file__).parent.parent.parent
 SCHEMA_DIR = PROJECT_DIR / "schemas" / "postgres"
 SEED_DIR = PROJECT_DIR / "schemas" / "seeds"
 ADVISORY_LOCK_KEY = 777_204_681
+
+# Historical post-apply edits that were merged before checksum enforcement was
+# consistently used. Repairs are only permitted for this explicit inventory;
+# new drift must be fixed with a new migration.
+APPROVED_CHECKSUM_REPAIRS = {
+    "schema:046_ecological_modeling.sql": "01dfc20ab0b3c2ae9c74faa3763866aa5c250deccef377f13f4128cd9c16c5ab",
+    "schema:051_gap_closures.sql": "dcf5faf820dd4803119d418bbdbfa65edbfc61497d8417848d7fa99bb2d7c5f4",
+    "schema:057_tree_tracking.sql": "e87318464ba890f4da3ab19a8ffbfe939bf03943993817213f7bfc7f412a016b",
+    "schema:058_spatial_export.sql": "2a70fefcbbcd25a28dc15fe9ed27ae863366e5a3d6ba8ad3dd72493f4bf905f4",
+    "schema:070_financial_enhancements.sql": "85301081479ceda6932d1a430f2ed0ccddf1b6aa404726545094b0a0b9060f94",
+    "schema:085_capacity_utilization.sql": "bddb08229767af58d6b128d5669387faa711173407e988bc2e49cd37ac45a67f",
+    "schema:086_abundance_estimates.sql": "705e09e5a7683cb66c56a57173cd6b83fc59396ba4d81a4b8f84398eb6f287d0",
+    "schema:100_data_stream.sql": "7fc1fb607359cf29a7d2398daadf3608e193d7b927186a76421cace6e2811b70",
+    "schema:182_process_mining.sql": "32084e5b1be5168a58bf0634625a6c201b8855cf7a6d5736634e3c9406ce3cbb",
+    "seed:046_ecological_modeling.sql": "220f6fe668d63a997f7ef4dbc01f773ee8e9d3755c9ab0872d3acb1fef7a9f3d",
+}
 
 
 class MigrationError(RuntimeError):
@@ -48,11 +65,14 @@ def _compute_checksum(filepath: Path) -> str:
     return hashlib.sha256(filepath.read_bytes()).hexdigest()
 
 
-def _discover_files() -> list[dict]:
+def _discover_files(*, include_seeds: bool = True) -> list[dict]:
     """Return deterministic schema-first migrations with immutable file IDs."""
     files = []
     seen_ids: set[str] = set()
-    for directory, kind in ((SCHEMA_DIR, "schema"), (SEED_DIR, "seed")):
+    directories = [(SCHEMA_DIR, "schema")]
+    if include_seeds:
+        directories.append((SEED_DIR, "seed"))
+    for directory, kind in directories:
         for path in sorted(directory.glob("*.sql"), key=lambda item: item.name):
             if not path.stem.split("_", 1)[0].isdigit():
                 continue
@@ -88,6 +108,16 @@ ALTER TABLE schema_migration ALTER COLUMN version TYPE VARCHAR(512);
 ALTER TABLE schema_migration ADD COLUMN IF NOT EXISTS migration_id VARCHAR(512);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_schema_migration_id
     ON schema_migration (migration_id) WHERE migration_id IS NOT NULL;
+CREATE TABLE IF NOT EXISTS schema_migration_repair (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    migration_id VARCHAR(512) NOT NULL,
+    old_checksum VARCHAR(64) NOT NULL,
+    new_checksum VARCHAR(64) NOT NULL,
+    reason TEXT NOT NULL,
+    repaired_by VARCHAR(100) NOT NULL,
+    repaired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (migration_id, old_checksum, new_checksum)
+);
 """)
 
 
@@ -138,6 +168,105 @@ def _validate_applied(files: list[dict], applied: dict[str, dict]) -> None:
             raise MigrationError(f"applied migration was modified: {file_info['id']}")
 
 
+def _validate_repair_schema(migration_id: str) -> None:
+    """Validate the live schema before repairing the known historical drift."""
+    if migration_id not in APPROVED_CHECKSUM_REPAIRS:
+        raise MigrationError(f"no approved checksum repair exists for {migration_id}")
+    if migration_id == "seed:046_ecological_modeling.sql":
+        result = _psql("""
+SELECT EXISTS (
+    SELECT 1 FROM farm_zone
+    WHERE id = 'a0000000-0000-0000-0000-000000000700'
+);
+""")
+        if result.stdout.strip().lower() != "t":
+            raise MigrationError("schema validation failed: Adelphi syntropic zone is required")
+        return
+    if migration_id != "schema:046_ecological_modeling.sql":
+        return
+    result = _psql("""
+SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'ecological_interaction'
+      AND column_name = 'evidence_maturity'
+) AND EXISTS (
+    SELECT 1
+    FROM pg_indexes
+    WHERE schemaname = 'public'
+      AND tablename = 'ecological_interaction'
+      AND indexname = 'idx_eco_interaction_maturity'
+);
+""")
+    if result.stdout.strip().lower() != "t":
+        raise MigrationError(
+            "schema validation failed: ecological_interaction evidence_maturity column and index are required"
+        )
+
+
+def repair_checksum(
+    migration_id: str,
+    expected_old_checksum: str,
+    reason: str,
+    repaired_by: str,
+) -> str:
+    """Repair one explicitly approved historical checksum after live validation."""
+    files = _discover_files()
+    file_info = next((item for item in files if item["id"] == migration_id), None)
+    if not file_info:
+        raise MigrationError(f"migration not found: {migration_id}")
+    if expected_old_checksum == file_info["checksum"]:
+        raise MigrationError("old and current checksums are identical; no repair is needed")
+    if APPROVED_CHECKSUM_REPAIRS.get(migration_id) != expected_old_checksum:
+        raise MigrationError(f"checksum repair is not approved for {migration_id}")
+    if not reason.strip() or not repaired_by.strip():
+        raise MigrationError("repair reason and operator are required")
+
+    _ensure_tracking_table()
+    _validate_repair_schema(migration_id)
+    current = _psql(
+        """
+SELECT checksum || E'\t' || status
+FROM schema_migration
+WHERE migration_id = :'migration_id';
+""",
+        {"migration_id": migration_id},
+    ).stdout.strip()
+    if current != f"{expected_old_checksum}\tapplied":
+        raise MigrationError(
+            f"tracking row does not match expected applied checksum for {migration_id}"
+        )
+
+    repair_id = str(uuid.uuid4())
+    _psql(
+        """
+BEGIN;
+SELECT pg_advisory_lock(777204681);
+INSERT INTO schema_migration_repair
+    (id, migration_id, old_checksum, new_checksum, reason, repaired_by)
+VALUES
+    (:'repair_id'::uuid, :'migration_id', :'old_checksum', :'new_checksum', :'reason', :'repaired_by');
+UPDATE schema_migration
+SET checksum = :'new_checksum'
+WHERE migration_id = :'migration_id'
+  AND checksum = :'old_checksum'
+  AND status = 'applied';
+SELECT pg_advisory_unlock(777204681);
+COMMIT;
+""",
+        {
+            "repair_id": repair_id,
+            "migration_id": migration_id,
+            "old_checksum": expected_old_checksum,
+            "new_checksum": file_info["checksum"],
+            "reason": reason,
+            "repaired_by": repaired_by,
+        },
+    )
+    return repair_id
+
+
 def _apply_files(files: list[dict]) -> None:
     """Apply and track a batch while one PostgreSQL session holds the advisory lock.
 
@@ -174,8 +303,8 @@ ON CONFLICT (migration_id) WHERE migration_id IS NOT NULL DO UPDATE SET
     _psql("\n".join(script), variables)
 
 
-def _load_state() -> tuple[list[dict], dict[str, dict]]:
-    files = _discover_files()
+def _load_state(*, include_seeds: bool = True) -> tuple[list[dict], dict[str, dict]]:
+    files = _discover_files(include_seeds=include_seeds)
     _ensure_tracking_table()
     _reconcile_legacy(files)
     applied = _get_applied()
@@ -197,8 +326,8 @@ def cmd_status() -> None:
     print(f"\n{len(files)} total, {done} applied, {len(files) - done} pending")
 
 
-def cmd_migrate(dry_run: bool = False) -> None:
-    files, applied = _load_state()
+def cmd_migrate(dry_run: bool = False, schemas_only: bool = False) -> None:
+    files, applied = _load_state(include_seeds=not schemas_only)
     pending = [
         item for item in files
         if applied.get(item["id"], {}).get("status") != "applied"
@@ -219,13 +348,40 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Kokonut migration runner")
-    parser.add_argument("command", choices=("status", "migrate", "dry-run"))
+    parser.add_argument("command", choices=("status", "migrate", "dry-run", "repair"))
+    parser.add_argument("--migration-id", help="Migration ID for an audited checksum repair")
+    parser.add_argument("--expected-old-checksum", help="Checksum currently recorded in the database")
+    parser.add_argument("--reason", help="Reason for the exceptional repair")
+    parser.add_argument("--repaired-by", help="Operator performing the repair")
+    parser.add_argument("--confirm", action="store_true", help="Confirm the audited checksum repair")
+    parser.add_argument(
+        "--schemas-only",
+        action="store_true",
+        help="Apply only PostgreSQL schema migrations, excluding seed data",
+    )
     args = parser.parse_args()
     try:
         if args.command == "status":
             cmd_status()
+        elif args.command == "repair":
+            if not args.confirm:
+                raise MigrationError("checksum repair requires --confirm")
+            missing = [
+                name for name, value in (
+                    ("--migration-id", args.migration_id),
+                    ("--expected-old-checksum", args.expected_old_checksum),
+                    ("--reason", args.reason),
+                    ("--repaired-by", args.repaired_by),
+                ) if not value
+            ]
+            if missing:
+                raise MigrationError(f"repair requires: {', '.join(missing)}")
+            repair_id = repair_checksum(
+                args.migration_id, args.expected_old_checksum, args.reason, args.repaired_by
+            )
+            print(f"Checksum repair recorded: {repair_id}")
         else:
-            cmd_migrate(dry_run=args.command == "dry-run")
+            cmd_migrate(dry_run=args.command == "dry-run", schemas_only=args.schemas_only)
     except MigrationError as exc:
         logger.error("Migration failed: %s", exc)
         raise SystemExit(1) from exc

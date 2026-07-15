@@ -6,6 +6,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_DIR"
 
 echo "=== Kokonut Intelligence Platform — Seed Data ==="
 echo ""
@@ -44,19 +45,12 @@ echo "Waiting for PostgreSQL..."
 wait_for_postgres
 echo "PostgreSQL is ready."
 
-# Apply schema files
+# Apply PostgreSQL schema and numbered seed migrations through the checksum-
+# tracked runner. Keep this as the only default PostgreSQL application path.
 echo ""
-echo "Applying schema files..."
-
-SCHEMA_DIR="$PROJECT_DIR/schemas/postgres"
-for schema_file in "$SCHEMA_DIR"/*.sql; do
-    filename=$(basename "$schema_file")
-    echo "  Applying: $filename"
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$schema_file"
-done
-
-echo ""
-echo "Schema applied successfully."
+echo "Applying PostgreSQL schema migrations..."
+python3 -m services.migration migrate --schemas-only
+echo "PostgreSQL schema migrations applied successfully."
 
 # Apply ClickHouse schemas
 echo ""
@@ -83,6 +77,10 @@ if [ -f "$PERMISSIONS_FILE" ] && docker compose -f "$COMPOSE_FILE" exec -T "$DB_
 else
     echo "Directus not running or no permissions file — skipping."
 fi
+
+# Curated pilot/reference seeds remain separate from schema migrations until
+# every historical seed has passed clean-bootstrap and dependency validation.
+if [ "${KOKONUT_RUN_CURATED_SEEDS:-true}" = "true" ]; then
 
 # Seed expense categories
 echo ""
@@ -203,6 +201,14 @@ echo ""
 echo "Seeding Business Architecture capability and value-stream definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/091_business_architecture.sql"
 echo "Business Architecture definitions seeded."
+
+# Seed Technology and Capability Roadmap reference data
+echo ""
+echo "Seeding Technology and Capability Roadmap definitions..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/092_technology_roadmap.sql"
+echo "Technology and Capability Roadmap definitions seeded."
+
+fi
 
 echo ""
 echo "=== Seed Complete ==="

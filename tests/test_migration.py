@@ -32,6 +32,12 @@ def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path,
         "seed:001_seed.sql",
     ]
 
+    schema_files = cli._discover_files(include_seeds=False)
+    assert [item["id"] for item in schema_files] == [
+        "schema:002_first.sql",
+        "schema:010_second.sql",
+    ]
+
 
 def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
     directory = tmp_path / "sql"
@@ -128,3 +134,53 @@ def test_modified_applied_migration_is_rejected():
 
     with pytest.raises(cli.MigrationError, match="was modified"):
         cli._validate_applied(files, applied)
+
+
+def test_checksum_repair_requires_approved_migration(monkeypatch):
+    monkeypatch.setattr(cli, "_discover_files", lambda: [])
+
+    with pytest.raises(cli.MigrationError, match="migration not found"):
+        cli.repair_checksum("schema:001_example.sql", "old", "reason", "operator")
+
+
+def test_checksum_repair_rejects_unapproved_historical_checksum(monkeypatch):
+    monkeypatch.setattr(
+        cli,
+        "_discover_files",
+        lambda: [{"id": "schema:046_ecological_modeling.sql", "checksum": "b" * 64}],
+    )
+
+    with pytest.raises(cli.MigrationError, match="not approved"):
+        cli.repair_checksum("schema:046_ecological_modeling.sql", "a" * 64, "reason", "operator")
+
+
+def test_checksum_repair_validates_state_and_records_audit(monkeypatch):
+    old = cli.APPROVED_CHECKSUM_REPAIRS["schema:046_ecological_modeling.sql"]
+    new = "b" * 64
+    calls = []
+    monkeypatch.setattr(
+        cli,
+        "_discover_files",
+        lambda: [{"id": "schema:046_ecological_modeling.sql", "checksum": new}],
+    )
+    monkeypatch.setattr(cli, "_ensure_tracking_table", lambda: calls.append("ensure"))
+    monkeypatch.setattr(cli, "_validate_repair_schema", lambda migration_id: calls.append(migration_id))
+
+    def fake_psql(sql, variables=None):
+        calls.append((sql, variables))
+        if sql.lstrip().startswith("SELECT checksum"):
+            return subprocess.CompletedProcess([], 0, f"{old}\tapplied\n", "")
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+    repair_id = cli.repair_checksum(
+        "schema:046_ecological_modeling.sql", old, "repair historical drift", "operator"
+    )
+
+    assert repair_id
+    assert calls[0:2] == ["ensure", "schema:046_ecological_modeling.sql"]
+    repair_sql = next(
+        entry[0] for entry in calls
+        if isinstance(entry, tuple) and "schema_migration_repair" in entry[0]
+    )
+    assert "UPDATE schema_migration" in repair_sql
