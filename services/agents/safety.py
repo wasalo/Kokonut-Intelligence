@@ -170,6 +170,21 @@ GOVERNED_COLLECTIONS = {
     "threat_probability_forecast",
     "threat_forecast_resolution",
     "delphi_expert_calibration",
+    "governance_circle",
+    "governance_role",
+    "governance_role_accountability",
+    "governance_role_domain",
+    "governance_role_policy",
+    "governance_role_assignment",
+    "governance_tension",
+    "governance_tension_link",
+    "governance_tension_event",
+    "governance_proposal",
+    "governance_proposal_objection",
+    "governance_proposal_review",
+    "governance_tactical_session",
+    "governance_tactical_item",
+    "governance_circle_link",
 }
 
 STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
@@ -204,6 +219,18 @@ STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
     "stewardship_proxy_authority",
     "nature_stewardship_obligation",
     "future_generation_principle",
+    "governance_circle",
+    "governance_role",
+    "governance_role_accountability",
+    "governance_role_domain",
+    "governance_role_policy",
+    "governance_role_assignment",
+    "governance_tension_link",
+    "governance_tension_event",
+    "governance_proposal_objection",
+    "governance_proposal_review",
+    "governance_tactical_session",
+    "governance_circle_link",
 }
 
 
@@ -230,6 +257,16 @@ def assess_agent_action(action: str, collection: str, payload: Optional[dict[str
 
     if collection == "coordination_alliance" and action == "create" and payload.get("status", "draft") == "draft":
         return SafetyDecision(True, False, False, "agents may create draft coordination alliance options only")
+
+    draftable = {
+        "governance_tension": action == "create" and payload.get("status", "draft") == "draft",
+        "governance_proposal": action == "create" and payload.get("status", "draft") == "draft",
+        "governance_tactical_item": action == "create" and payload.get("status", "open") == "open",
+    }
+    if collection in draftable and draftable[collection]:
+        return SafetyDecision(True, False, False, f"agents may create draft {collection} records only")
+    if collection in {"governance_tension", "governance_proposal", "governance_tactical_item"} and action not in {"read", "list", "query"}:
+        return SafetyDecision(False, True, True, f"agents cannot modify governed {collection} records beyond draft creation")
 
     if collection in STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS and action not in {"read", "list", "query"}:
         return SafetyDecision(False, True, True, f"agents cannot write human-governed stakeholder collection {collection}")

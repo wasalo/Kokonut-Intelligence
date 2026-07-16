@@ -43,6 +43,21 @@ export const STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = new Set([
   'stewardship_proxy_authority',
   'nature_stewardship_obligation',
   'future_generation_principle',
+  'governance_circle',
+  'governance_role',
+  'governance_role_accountability',
+  'governance_role_domain',
+  'governance_role_policy',
+  'governance_role_assignment',
+  'governance_tension',
+  'governance_tension_link',
+  'governance_tension_event',
+  'governance_proposal',
+  'governance_proposal_objection',
+  'governance_proposal_review',
+  'governance_tactical_session',
+  'governance_tactical_item',
+  'governance_circle_link',
 ]);
 
 export function isHighRiskAgentAction(action: string | undefined): boolean {
@@ -88,6 +103,15 @@ export function enforceStakeholderGovernanceSafety(
   meta?: Record<string, any>
 ): Record<string, any> {
   if (collection === 'coordination_alliance' && isAgentActor(meta) && payload.status === 'draft') {
+    return payload;
+  }
+  if (isAgentActor(meta) && collection === 'governance_tension' && (!payload.action || payload.action === 'create') && payload.status === 'draft') {
+    return payload;
+  }
+  if (isAgentActor(meta) && collection === 'governance_proposal' && (!payload.action || payload.action === 'create') && payload.status === 'draft') {
+    return payload;
+  }
+  if (isAgentActor(meta) && collection === 'governance_tactical_item' && (!payload.action || payload.action === 'create') && (!payload.status || payload.status === 'open')) {
     return payload;
   }
   if (isAgentActor(meta) && STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS.has(collection)) {

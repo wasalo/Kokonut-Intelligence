@@ -175,4 +175,17 @@ describe('agent safety workflow', () => {
       { accountability: { role: 'manager' } },
     )).not.toThrow();
   });
+
+  it('allows agents to draft governance tensions and proposals only', () => {
+    expect(() => enforceStakeholderGovernanceSafety(
+      'governance_tension',
+      { status: 'draft', action: 'create' },
+      { accountability: { role: 'agent_write' } },
+    )).not.toThrow();
+    expect(() => enforceStakeholderGovernanceSafety(
+      'governance_proposal',
+      { status: 'approved', action: 'update' },
+      { accountability: { role: 'agent_write' } },
+    )).toThrow(/human-governed stakeholder collection/);
+  });
 });
