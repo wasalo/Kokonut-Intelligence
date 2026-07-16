@@ -38,7 +38,7 @@ Analytics Layer
 | EAS Attestations | `eas_indexer.py` | 15 minutes | Automatic |
 | RPC Indexer | `rpc_indexer.py` | 30 minutes | Automatic |
 | Gnosis Indexer | `gnosis_indexer.py` | 2 hours | Automatic |
-| Climate Data | `climate_data.py` | Weekly | Automatic (placeholder) |
+| Climate Data | `climate_data.py` + `gee_climate.py` | Weekly | Automatic via GEE |
 
 ## Data Freshness Monitoring
 
@@ -102,7 +102,7 @@ python3 -m services.ingestion.climate_data --all --location-id UUID
 | Table | Source | Purpose |
 |-------|--------|---------|
 | `worldclim_climate` | WorldClim v2 | 19 bioclimatic variables (1970-2000 baseline) |
-| `ncep_weather_summary` | NCEP CFS | Short-term climate covariates |
+| `ncep_weather_summary` | ERA5 Land via GEE | Short-term climate covariates |
 | `modis_lst_summary` | MODIS MOD11A2 | Land surface temperature |
 | `smap_soil_moisture` | SMAP L3 | Surface soil moisture |
 | `sentinel1_sar_summary` | Sentinel-1 GRD | SAR backscatter (all-weather) |
