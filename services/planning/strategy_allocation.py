@@ -169,3 +169,73 @@ def select_feasible_portfolio(conn, strategy_plan_id: str, *, budget_limit: Opti
         row = _clean(cur.fetchone())
         conn.commit()
         return row
+
+
+def approve_portfolio_selection(conn, selection_id: str, approved_by_party_id: str) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""UPDATE strategy_portfolio_selection
+            SET status = 'approved', approved_by_party_id = %s::uuid, approved_at = NOW()
+            WHERE id = %s::uuid AND status = 'recommended' RETURNING *""", (approved_by_party_id, selection_id))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            raise ValueError("only recommended portfolio selections can be approved")
+        conn.commit()
+        return _clean(row)
+
+
+def execute_portfolio_selection(conn, selection_id: str, *, executed_by_party_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Reserve selected budget/capacity and create draft work plus submitted demand."""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""SELECT s.*, p.scope_type, p.scope_id, p.planning_horizon_start, p.planning_horizon_end
+            FROM strategy_portfolio_selection s
+            JOIN strategy_plan p ON p.id = s.strategy_plan_id
+            WHERE s.id = %s::uuid FOR UPDATE""", (selection_id,))
+        selection = cur.fetchone()
+        if not selection or selection["status"] != "approved":
+            conn.rollback()
+            raise ValueError("only approved portfolio selections can be executed")
+        cur.execute("""SELECT sic.* FROM strategy_investment_case sic
+            WHERE sic.id = ANY(%s::uuid[]) ORDER BY sic.id FOR UPDATE""", (selection["selected_investment_ids"],))
+        investments = cur.fetchall()
+        if len(investments) != len(selection["selected_investment_ids"]):
+            conn.rollback()
+            raise ValueError("portfolio contains a missing investment case")
+        cur.execute("SELECT investment_id FROM strategy_portfolio_execution WHERE selection_id = %s::uuid", (selection_id,))
+        existing = {str(row["investment_id"]) for row in cur.fetchall()}
+        results = []
+        for investment in investments:
+            investment_id = str(investment["id"])
+            if investment_id in existing:
+                continue
+            if selection["scope_type"] == "organization":
+                organization_id = str(selection["scope_id"])
+                demand_scope_type, demand_scope_id = "internal", organization_id
+            else:
+                cur.execute("SELECT organization_id FROM location WHERE id = %s::uuid", (selection["scope_id"],))
+                location = cur.fetchone()
+                if not location or not location["organization_id"]:
+                    conn.rollback()
+                    raise ValueError("location strategy requires an owning organization")
+                organization_id = str(location["organization_id"])
+                demand_scope_type, demand_scope_id = "adelphi", str(selection["scope_id"])
+            cur.execute("""INSERT INTO work_item
+                (organization_id, title, description, status, priority, created_by_type, created_by_id,
+                 location_id, objective_id)
+                VALUES (%s::uuid, %s, %s, 'draft', 'high', 'system', %s::uuid, %s::uuid, %s::uuid)
+                RETURNING id""", (organization_id, investment["name"], investment["description"] or investment["expected_benefit"], executed_by_party_id, investment["location_id"] or (selection["scope_id"] if selection["scope_type"] == "location" else None), investment["objective_id"]))
+            work_item_id = str(cur.fetchone()["id"])
+            cur.execute("""INSERT INTO operating_demand_signal
+                (scope_type, scope_id, work_type, period_start, period_end, required_hours,
+                 priority, source, source_ref, description, status, created_by_party_id)
+                VALUES (%s, %s::uuid, 'strategic_initiative', %s, %s, %s, 'high', 'planning', %s::uuid, %s, 'submitted', %s::uuid)
+                RETURNING id""", (demand_scope_type, demand_scope_id, selection["planning_horizon_start"], selection["planning_horizon_end"], investment["required_capacity_hours"] or 0, investment_id, investment["name"], executed_by_party_id))
+            demand_signal_id = str(cur.fetchone()["id"])
+            cur.execute("""INSERT INTO strategy_portfolio_execution
+                (selection_id, investment_id, work_item_id, demand_signal_id, reserved_budget,
+                 reserved_capacity_hours, created_by_party_id)
+                VALUES (%s::uuid, %s::uuid, %s::uuid, %s::uuid, %s, %s, %s::uuid)
+                RETURNING *""", (selection_id, investment_id, work_item_id, demand_signal_id, investment["estimated_cost"] or investment["minimum_viable_funding"] or 0, investment["required_capacity_hours"] or 0, executed_by_party_id))
+            results.append(_clean(cur.fetchone()))
+        conn.commit()
+        return results
