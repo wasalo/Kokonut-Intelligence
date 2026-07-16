@@ -126,6 +126,13 @@ def test_market_sizing_empty() -> None:
     assert result["total_tam_usd"] == 0
 
 
+def test_market_sizing_sums_som_value_not_penetration() -> None:
+    row = ("estimate-1", "Maize", "Local market", "regional", 1000, 600, 250, 12.5, 4.0, 8.0, "survey", "moderate")
+    result = compute_market_sizing(_MockConn(rows=[row]), "test-location")
+    assert result["total_som_usd"] == 250
+    assert result["estimates"][0]["som_value"] == 250
+
+
 def test_demand_trends_no_data() -> None:
     result = compute_demand_trends(_MockConn(rows=[]), "test-location")
     assert result["total_crops_analyzed"] == 0

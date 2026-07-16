@@ -24,6 +24,10 @@ def process_material_signals(conn, *, due_in_days: int = 7) -> List[Dict[str, An
         signals = cur.fetchall()
         created = []
         for signal in signals:
+            cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"competitive-signal:{signal['id']}",))
+            cur.execute("SELECT id FROM competitive_signal_trigger WHERE signal_id = %s::uuid", (signal["id"],))
+            if cur.fetchone():
+                continue
             cur.execute("""INSERT INTO strategy_review_task
                 (strategy_plan_id, review_type, due_at, evidence)
                 VALUES (%s::uuid, 'competitive_change', %s, %s::jsonb) RETURNING *""", (signal["strategy_plan_id"], due_at, '{"source":"competitive_signal"}'))
