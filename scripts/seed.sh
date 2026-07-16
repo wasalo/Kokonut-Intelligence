@@ -229,6 +229,11 @@ echo "Seeding draft Adelphi coordination example..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/108_coordination_example.sql"
 echo "Draft Adelphi coordination example seeded."
 
+# Seed the Adelphi role-and-circle governance pilot.
+echo "Seeding Adelphi role-and-circle governance pilot..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/109_adelphi_governance_roles.sql"
+echo "Adelphi role-and-circle governance pilot seeded."
+
 fi
 
 echo ""
