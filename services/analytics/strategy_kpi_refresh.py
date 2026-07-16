@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from psycopg2.extras import RealDictCursor
@@ -49,9 +50,29 @@ def refresh_objective_kpis(conn, objective_id: str) -> List[Dict[str, Any]]:
                 variance_status = %s, refreshed_at = NOW(), updated_at = NOW()
                 WHERE id = %s::uuid RETURNING *""", (value, source_status, measured["computed_at"] if measured else None, measured["id"] if measured else None, variance_status, kpi["id"]))
             updated = cur.fetchone()
+            review_task_id = None
+            if variance_status == "breach" and kpi["variance_status"] != "breach":
+                cur.execute("""SELECT sm.strategy_plan_id FROM strategy_map sm
+                    WHERE sm.objective_id = %s::uuid AND sm.strategy_plan_id IS NOT NULL
+                    ORDER BY sm.updated_at DESC LIMIT 1""", (objective_id,))
+                plan = cur.fetchone()
+                if plan:
+                    cur.execute("""SELECT id FROM strategy_review_task
+                        WHERE strategy_plan_id = %s::uuid AND review_type = 'kpi_breach'
+                          AND status IN ('pending', 'in_progress', 'overdue')
+                          AND evidence ->> 'objective_kpi_id' = %s
+                        LIMIT 1""", (plan["strategy_plan_id"], str(kpi["id"])))
+                    open_task = cur.fetchone()
+                    if open_task:
+                        review_task_id = open_task["id"]
+                    else:
+                        cur.execute("""INSERT INTO strategy_review_task
+                            (strategy_plan_id, review_type, due_at, evidence)
+                            VALUES (%s::uuid, 'kpi_breach', %s, %s::jsonb) RETURNING id""", (plan["strategy_plan_id"], datetime.now(timezone.utc) + timedelta(days=7), '{"source":"verified_metric","objective_kpi_id":"' + str(kpi["id"]) + '"}'))
+                        review_task_id = cur.fetchone()["id"]
             cur.execute("""INSERT INTO strategy_kpi_refresh_log
-                (objective_kpi_id, metric_value_id, previous_value, refreshed_value, variance_status, source_status)
-                VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s) RETURNING *""", (kpi["id"], measured["id"] if measured else None, previous, value, variance_status, source_status))
+                (objective_kpi_id, metric_value_id, previous_value, refreshed_value, variance_status, source_status, review_task_id)
+                VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s::uuid) RETURNING *""", (kpi["id"], measured["id"] if measured else None, previous, value, variance_status, source_status, review_task_id))
             results.append(_clean(updated))
         conn.commit()
         return results

@@ -88,8 +88,8 @@ def approve_strategy_plan(conn, plan_id: str, approved_by_party_id: str) -> Dict
         if not row:
             conn.rollback()
             raise ValueError("only submitted strategy plans can be approved")
-        conn.commit()
         _record_transition(conn, plan_id, "submitted", "approved", approved_by_party_id, "Strategy plan approved after integrity gates")
+        conn.commit()
         return _clean(row)
 
 
@@ -104,8 +104,8 @@ def activate_strategy_plan(conn, plan_id: str) -> Dict[str, Any]:
             WHERE scope_type = %s AND scope_id = %s AND status = 'active'""", (plan["scope_type"], plan["scope_id"]))
         cur.execute("UPDATE strategy_plan SET status = 'active', updated_at = NOW() WHERE id = %s::uuid RETURNING *", (plan_id,))
         row = _clean(cur.fetchone())
-        conn.commit()
         _record_transition(conn, plan_id, "approved", "active", None, "Strategy plan activated")
+        conn.commit()
         return row
 
 
@@ -146,8 +146,8 @@ def _transition(conn, plan_id: str, status: str) -> Dict[str, Any]:
         if not row:
             conn.rollback()
             raise ValueError("only draft strategy plans can be submitted")
-        conn.commit()
         _record_transition(conn, plan_id, "draft", status, None, "Strategy plan submitted")
+        conn.commit()
         return _clean(row)
 
 
@@ -156,4 +156,3 @@ def _record_transition(conn, plan_id: str, from_status: str, to_status: str, act
         cur.execute("""INSERT INTO strategy_plan_transition
             (strategy_plan_id, from_status, to_status, actor_party_id, reason)
             VALUES (%s::uuid, %s, %s, %s::uuid, %s)""", (plan_id, from_status, to_status, actor_party_id, reason))
-    conn.commit()
