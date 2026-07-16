@@ -68,6 +68,8 @@ def run_checks(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
         for investment in cur.fetchall():
             if not investment["objective_id"] and not investment["initiative_id"]:
                 add("investment_requires_strategy_link", "strategy_investment_case", investment["id"], "high", "Investment case is not linked to an objective or initiative.", "Link the investment to a strategic objective or initiative.")
+            if investment["risk_evidence_status"] == "missing":
+                add("investment_requires_risk_evidence", "strategy_investment_case", investment["id"], "high", "Investment case has no CRISP risk evidence.", "Link a CRISP assessment and mitigation record before allocation.")
 
         conn.commit()
         return findings
