@@ -131,6 +131,7 @@ def _strategy(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[s
     from services.analytics.strategy_execution import dashboard
     from services.analytics.strategy_kernel import list_strategy_plans
     from services.analytics.strategy_coherence import list_findings
+    from services.analytics.competitive_report import report as competitive_report
 
     scope_type = "location" if location_id else "organization"
     scope_id = location_id or org_id
@@ -139,6 +140,7 @@ def _strategy(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[s
     out = {"scope_type": scope_type, "plans": plans, "active_plan_count": len(active), "execution": dashboard(conn, scope_type=scope_type, scope_id=scope_id)}
     if active:
         out["coherence_findings"] = list_findings(conn, str(active[0]["id"]))
+        out["competitive_position"] = competitive_report(conn, str(active[0]["id"]))
     return out
 
 
