@@ -44,6 +44,10 @@ def run_checks(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
         cur.execute("SELECT COUNT(*) AS count FROM strategy_allocation_policy WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
         if cur.fetchone()["count"] == 0:
             add("plan_requires_allocation_policy", "strategy_plan", strategy_plan_id, "high", "Strategy plan has no resource-allocation policy.", "Define composite allocation weights before approval.")
+        if plan["status"] == "active":
+            cur.execute("SELECT COUNT(*) AS count FROM strategy_position WHERE strategy_plan_id = %s::uuid AND status = 'approved'", (strategy_plan_id,))
+            if cur.fetchone()["count"] == 0:
+                add("active_plan_requires_external_position", "strategy_plan", strategy_plan_id, "high", "Active strategy plan has no approved external position.", "Document and approve the target position and value proposition.")
 
         cur.execute("SELECT * FROM strategy_map WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
         entries = cur.fetchall()
@@ -70,6 +74,13 @@ def run_checks(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
                 add("investment_requires_strategy_link", "strategy_investment_case", investment["id"], "high", "Investment case is not linked to an objective or initiative.", "Link the investment to a strategic objective or initiative.")
             if investment["risk_evidence_status"] == "missing":
                 add("investment_requires_risk_evidence", "strategy_investment_case", investment["id"], "high", "Investment case has no CRISP risk evidence.", "Link a CRISP assessment and mitigation record before allocation.")
+
+        cur.execute("SELECT * FROM v_strategy_advantage_fit WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
+        for advantage in cur.fetchall():
+            if advantage["fit_status"] == "unlinked":
+                add("advantage_requires_operating_fit", "strategy_advantage", advantage["advantage_id"], "high", "Claimed advantage has no capability, value-chain, choice, or investment link.", "Link the advantage to the operating model and funding path.")
+            elif advantage["fit_status"] == "partial":
+                add("advantage_has_partial_operating_fit", "strategy_advantage", advantage["advantage_id"], "medium", "Claimed advantage has incomplete capability or investment support.", "Complete both capability and funded-investment links.")
 
         conn.commit()
         return findings

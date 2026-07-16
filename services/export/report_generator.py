@@ -3018,13 +3018,21 @@ def generate_strategy_execution(conn, location_id=None, period_start=None, perio
     """Generate a strategy execution report (Balanced Scorecard and kernel)."""
     from ..analytics.strategy_execution import dashboard
     from ..analytics.strategy_map import get_perspective_summary
+    from ..analytics.competitive_report import health as competitive_health
     execution = dashboard(conn, scope_type="location", scope_id=location_id) if location_id else dashboard(conn)
     perspectives = get_perspective_summary()
+    external_health = []
+    for row in execution:
+        try:
+            external_health.append(competitive_health(conn, str(row["strategy_plan_id"])))
+        except Exception:
+            continue
     return {
         "report_type": "strategy_execution",
         "location_id": location_id,
         "perspectives": perspectives,
         "entries": execution,
+        "external_position_health": external_health,
         "total_entries": len(execution),
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
