@@ -55,6 +55,15 @@ def submit_strategy_plan(conn, plan_id: str) -> Dict[str, Any]:
 
 def approve_strategy_plan(conn, plan_id: str, approved_by_party_id: str) -> Dict[str, Any]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT approval_mode FROM strategy_plan WHERE id = %s::uuid", (plan_id,))
+        plan_route = cur.fetchone()
+        if not plan_route:
+            conn.rollback()
+            raise ValueError("strategy plan not found")
+        from services.analytics.strategy_governance import approval_route_satisfied
+        if not approval_route_satisfied(conn, plan_id, plan_route["approval_mode"]):
+            conn.rollback()
+            raise ValueError("strategy approval route is not satisfied")
         cur.execute("""UPDATE strategy_plan
             SET status = 'approved', approved_by_party_id = %s::uuid, approved_at = NOW(), updated_at = NOW()
             WHERE id = %s::uuid AND status = 'submitted' RETURNING *""", (approved_by_party_id, plan_id))

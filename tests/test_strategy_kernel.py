@@ -5,6 +5,7 @@ import uuid
 import pytest
 
 from services.analytics import strategy_kernel
+from services.analytics import strategy_governance
 from services.ingestion.base import get_db
 
 
@@ -27,6 +28,10 @@ def test_strategy_plan_lifecycle_and_versioning():
         plan = strategy_kernel.create_strategy_plan(conn, "organization", org_id, "Regenerative growth", "2026-01-01", "2028-12-31", PARTY_ID, diagnosis_summary="Demand is growing faster than capacity.", guiding_policy="Build capability before scaling.", approval_mode="governance_circle")
         assert plan["version"] == 1 and plan["visibility"] == "private"
         strategy_kernel.submit_strategy_plan(conn, str(plan["id"]))
+        link = strategy_governance.add_link(conn, str(plan["id"]), "governance_circle", str(uuid.uuid4()), "approval", required=True)
+        with conn.cursor() as cur:
+            cur.execute("UPDATE strategy_governance_link SET status = 'approved' WHERE id = %s::uuid", (link["id"],))
+        conn.commit()
         strategy_kernel.approve_strategy_plan(conn, str(plan["id"]), PARTY_ID)
         active = strategy_kernel.activate_strategy_plan(conn, str(plan["id"]))
         assert active["status"] == "active"

@@ -3015,9 +3015,10 @@ def generate_capability_dashboard(conn, location_id=None, period_start=None, per
 
 
 def generate_strategy_execution(conn, location_id=None, period_start=None, period_end=None):
-    """Generate a strategy execution report (Balanced Scorecard)."""
-    from ..analytics.strategy_map import get_execution_dashboard, get_perspective_summary
-    execution = get_execution_dashboard()
+    """Generate a strategy execution report (Balanced Scorecard and kernel)."""
+    from ..analytics.strategy_execution import dashboard
+    from ..analytics.strategy_map import get_perspective_summary
+    execution = dashboard(conn, scope_type="location", scope_id=location_id) if location_id else dashboard(conn)
     perspectives = get_perspective_summary()
     return {
         "report_type": "strategy_execution",
