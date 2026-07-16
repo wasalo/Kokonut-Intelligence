@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import itertools
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -105,3 +106,66 @@ def recommend_investments(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
         rows = [_clean(row) for row in cur.fetchall()]
         conn.commit()
         return rows
+
+
+def optimize_candidates(candidates: List[Dict[str, Any]], budget_limit: Optional[float] = None, capacity_limit: Optional[float] = None) -> Dict[str, Any]:
+    """Select the highest-scoring feasible subset, including dependencies."""
+    candidates = [dict(candidate) for candidate in candidates if candidate.get("status") in ("scored", "recommended", "approved")]
+    by_id = {str(candidate["id"]): candidate for candidate in candidates}
+    best = (0.0, (), 0.0, 0.0)
+    for size in range(len(candidates) + 1):
+        for subset in itertools.combinations(candidates, size):
+            selected = {str(candidate["id"]) for candidate in subset}
+            changed = True
+            while changed:
+                changed = False
+                for candidate_id in list(selected):
+                    for dependency in by_id.get(candidate_id, {}).get("dependencies", []) or []:
+                        dependency = str(dependency)
+                        if dependency not in by_id:
+                            selected = set()
+                            changed = False
+                            break
+                        if dependency not in selected:
+                            selected.add(dependency)
+                            changed = True
+                    if not selected:
+                        break
+            if not selected:
+                continue
+            selected_rows = [by_id[candidate_id] for candidate_id in selected]
+            cost = sum(float(row.get("estimated_cost") or row.get("minimum_viable_funding") or 0) for row in selected_rows)
+            capacity = sum(float(row.get("required_capacity_hours") or 0) for row in selected_rows)
+            score = sum(float(row.get("composite_score") or 0) for row in selected_rows)
+            if budget_limit is not None and cost > budget_limit:
+                continue
+            if capacity_limit is not None and capacity > capacity_limit:
+                continue
+            if score > best[0]:
+                best = (score, tuple(sorted(selected)), cost, capacity)
+    selected_ids = list(best[1])
+    all_ids = {str(candidate["id"]) for candidate in candidates}
+    return {
+        "selected_ids": selected_ids,
+        "deferred_ids": sorted(all_ids - set(selected_ids)),
+        "objective_score": round(best[0], 2),
+        "used_budget": round(best[2], 2),
+        "used_capacity_hours": round(best[3], 2),
+    }
+
+
+def select_feasible_portfolio(conn, strategy_plan_id: str, *, budget_limit: Optional[float] = None, capacity_limit_hours: Optional[float] = None, created_by_party_id: Optional[str] = None) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT * FROM strategy_investment_case WHERE strategy_plan_id = %s::uuid AND status IN ('scored', 'recommended', 'approved')", (strategy_plan_id,))
+        candidates = [dict(row) for row in cur.fetchall()]
+        result = optimize_candidates(candidates, budget_limit, capacity_limit_hours)
+        selected = set(result["selected_ids"])
+        cur.execute("""INSERT INTO strategy_portfolio_selection
+            (strategy_plan_id, budget_limit, capacity_limit_hours, selected_investment_ids,
+             deferred_investment_ids, objective_score, used_budget, used_capacity_hours,
+             constraint_explanations, created_by_party_id)
+            VALUES (%s::uuid, %s, %s, %s::uuid[], %s::uuid[], %s, %s, %s, %s::jsonb, %s::uuid)
+            RETURNING *""", (strategy_plan_id, budget_limit, capacity_limit_hours, result["selected_ids"], result["deferred_ids"], result["objective_score"], result["used_budget"], result["used_capacity_hours"], json.dumps([]), created_by_party_id))
+        row = _clean(cur.fetchone())
+        conn.commit()
+        return row
