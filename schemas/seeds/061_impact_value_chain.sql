@@ -84,7 +84,7 @@ INSERT INTO farm_task (
  150.00, 'pilot_seed', 'adelphi-task-nursery-prep', '{"record_type":"farm_task","privacy":"public_summary"}'::jsonb),
 ('a0000000-0000-0000-0000-000000000631',
  'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000010', 'a0000000-0000-0000-0000-000000000021', NULL, 'a0000000-0000-0000-0000-000000000063',
- 'Conduct monthly biodiversity survey', 'Survey species in agroforestry corridor using transect method', 'monitoring',
+  'Conduct monthly biodiversity survey', 'Survey species in agroforestry corridor using transect method', 'other',
  '2026-07-15', '2026-07-15', 1, 'medium', 'pending',
  50.00, 'pilot_seed', 'adelphi-task-biodiversity', '{"record_type":"farm_task","privacy":"public_summary"}'::jsonb),
 ('a0000000-0000-0000-0000-000000000632',

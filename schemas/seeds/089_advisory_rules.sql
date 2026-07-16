@@ -1,215 +1,45 @@
-DO $$
-BEGIN
-    -- ============================================================
-    -- Advisory Rules (8 default rules)
-    -- ============================================================
+-- 089_advisory_rules.sql — Default advisory rules
 
-    -- 1. Soil Moisture Low
-    INSERT INTO advisory_rule (
-        id, location_id, name, description, rule_type,
-        metric_source, threshold_value, threshold_operator,
-        severity, recommendation_template, action_category,
-        notification_channels
-    ) VALUES (
-        '00000000-0000-0000-0000-000000000089',
-        NULL,
-        'Soil Moisture Low',
-        'Alert when soil moisture drops below 30% of field capacity',
-        'threshold',
-        'soil_moisture',
-        30,
-        '<',
-        'warning',
-        'Soil moisture is critically low. Consider irrigation within 24 hours. Current reading: {current_value}%. Recommended: {recommended_action}.',
-        'irrigation',
-        '["sms", "dashboard"]'
-    ) ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        threshold_value = EXCLUDED.threshold_value,
-        recommendation_template = EXCLUDED.recommendation_template,
-        updated_at = NOW();
-
-    -- 2. Soil Moisture Critical
-    INSERT INTO advisory_rule (
-        id, location_id, name, description, rule_type,
-        metric_source, threshold_value, threshold_operator,
-        severity, recommendation_template, action_category,
-        notification_channels
-    ) VALUES (
-        '00000000-0000-0000-0000-000000000090',
-        NULL,
-        'Soil Moisture Critical',
-        'Alert when soil moisture drops below 15% of field capacity',
-        'threshold',
-        'soil_moisture',
-        15,
-        '<',
-        'critical',
-        'URGENT: Soil moisture critically low at {current_value}%. Immediate irrigation required. Potential crop stress imminent.',
-        'irrigation',
-        '["sms", "dashboard", "email"]'
-    ) ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        threshold_value = EXCLUDED.threshold_value,
-        recommendation_template = EXCLUDED.recommendation_template,
-        updated_at = NOW();
-
-    -- 3. Heat Stress
-    INSERT INTO advisory_rule (
-        id, location_id, name, description, rule_type,
-        metric_source, threshold_value, threshold_operator,
-        severity, recommendation_template, action_category,
-        notification_channels
-    ) VALUES (
-        '00000000-0000-0000-0000-000000000091',
-        NULL,
-        'Heat Stress',
-        'Alert when temperature exceeds 35°C',
-        'threshold',
-        'air_temperature',
-        35,
-        '>',
-        'warning',
-        'Temperature at {current_value}°C exceeds heat stress threshold. Consider shade structures or misting. Monitor crop condition.',
-        'heat_management',
-        '["sms", "dashboard"]'
-    ) ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        threshold_value = EXCLUDED.threshold_value,
-        recommendation_template = EXCLUDED.recommendation_template,
-        updated_at = NOW();
-
-    -- 4. Nitrogen Deficiency
-    INSERT INTO advisory_rule (
-        id, location_id, name, description, rule_type,
-        metric_source, threshold_value, threshold_operator,
-        severity, recommendation_template, action_category,
-        notification_channels
-    ) VALUES (
-        '00000000-0000-0000-0000-000000000092',
-        NULL,
-        'Nitrogen Deficiency',
-        'Alert when NDVI indicates nitrogen stress (NDVI < 0.4)',
-        'threshold',
-        'ndvi',
-        0.4,
-        '<',
-        'warning',
-        'NDVI at {current_value} suggests nitrogen deficiency. Consider foliar application or soil amendment. Field zone: {zone_id}.',
-        'fertilization',
-        '["dashboard"]'
-    ) ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        threshold_value = EXCLUDED.threshold_value,
-        recommendation_template = EXCLUDED.recommendation_template,
-        updated_at = NOW();
-
-    -- 5. Pest Alert
-    INSERT INTO advisory_rule (
-        id, location_id, name, description, rule_type,
-        metric_source, threshold_value, threshold_operator,
-        severity, recommendation_template, action_category,
-        notification_channels
-    ) VALUES (
-        '00000000-0000-0000-0000-000000000093',
-        NULL,
-        'Pest Alert',
-        'Alert when pest probability exceeds 0.7',
-        'threshold',
-        'pest_probability',
-        0.7,
-        '>',
-        'critical',
-        'Pest probability at {current_value}. Immediate scouting recommended. Check adjacent fields. Consider organic pest control measures.',
-        'pest_management',
-        '["sms", "dashboard", "email"]'
-    ) ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        threshold_value = EXCLUDED.threshold_value,
-        recommendation_template = EXCLUDED.recommendation_template,
-        updated_at = NOW();
-
-    -- 6. Harvest Readiness
-    INSERT INTO advisory_rule (
-        id, location_id, name, description, rule_type,
-        metric_source, threshold_value, threshold_operator,
-        severity, recommendation_template, action_category,
-        notification_channels
-    ) VALUES (
-        '00000000-0000-0000-0000-000000000094',
-        NULL,
-        'Harvest Readiness',
-        'Alert when crop maturity score reaches 0.9',
-        'threshold',
-        'crop_maturity_score',
-        0.9,
-        '>',
-        'info',
-        'Crop at {current_value}% maturity. Harvest window opening within 3-5 days. Prepare equipment and labor.',
-        'harvest',
-        '["dashboard"]'
-    ) ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        threshold_value = EXCLUDED.threshold_value,
-        recommendation_template = EXCLUDED.recommendation_template,
-        updated_at = NOW();
-
-    -- 7. Frost Warning
-    INSERT INTO advisory_rule (
-        id, location_id, name, description, rule_type,
-        metric_source, threshold_value, threshold_operator,
-        severity, recommendation_template, action_category,
-        notification_channels
-    ) VALUES (
-        '00000000-0000-0000-0000-000000000095',
-        NULL,
-        'Frost Warning',
-        'Alert when temperature drops below 2°C',
-        'threshold',
-        'air_temperature',
-        2,
-        '<',
-        'critical',
-        'FROST WARNING: Temperature at {current_value}°C. Protect vulnerable crops. Consider row covers or irrigation.',
-        'frost_protection',
-        '["sms", "dashboard", "email"]'
-    ) ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        threshold_value = EXCLUDED.threshold_value,
-        recommendation_template = EXCLUDED.recommendation_template,
-        updated_at = NOW();
-
-    -- 8. Spray Window
-    INSERT INTO advisory_rule (
-        id, location_id, name, description, rule_type,
-        metric_source, threshold_value, threshold_operator,
-        severity, recommendation_template, action_category,
-        notification_channels
-    ) VALUES (
-        '00000000-0000-0000-0000-000000000096',
-        NULL,
-        'Spray Window Open',
-        'Alert when wind speed < 15 km/h and humidity 40-80% for 4+ hours',
-        'composite',
-        'wind_speed',
-        15,
-        '<',
-        'info',
-        'Optimal spray window detected: {current_value} km/h wind. Duration: {window_hours}h. Temp: {temp}°C, Humidity: {humidity}%. Consider application.',
-        'spray_application',
-        '["sms", "dashboard"]'
-    ) ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        description = EXCLUDED.description,
-        threshold_value = EXCLUDED.threshold_value,
-        recommendation_template = EXCLUDED.recommendation_template,
-        updated_at = NOW();
-
-END $$;
+INSERT INTO advisory_rule (
+    id, name, rule_type, domain, priority, conditions,
+    recommendation_template, severity, auto_generate, requires_approval,
+    cooldown_hours, max_per_day, status
+) VALUES
+('00000000-0000-0000-0000-000000000089', 'Soil Moisture Low', 'threshold', 'irrigation', 70,
+ '{"metric":"soil_moisture","operator":"lt","threshold":30}'::jsonb,
+ 'Soil moisture is critically low. Consider irrigation within 24 hours. Current reading: {current_value}%.', 'warning', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000090', 'Soil Moisture Critical', 'threshold', 'irrigation', 90,
+ '{"metric":"soil_moisture","operator":"lt","threshold":15}'::jsonb,
+ 'URGENT: Soil moisture is critically low at {current_value}%. Immediate irrigation review is required.', 'critical', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000091', 'Heat Stress', 'threshold', 'crop_protection', 70,
+ '{"metric":"air_temperature","operator":"gt","threshold":35}'::jsonb,
+ 'Temperature at {current_value}C exceeds the heat-stress threshold. Consider shade or misting.', 'warning', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000092', 'Nitrogen Deficiency', 'threshold', 'fertilization', 60,
+ '{"metric":"ndvi","operator":"lt","threshold":0.4}'::jsonb,
+ 'NDVI at {current_value} suggests nitrogen deficiency. Review organic amendment options.', 'warning', TRUE, TRUE, 48, 3, 'active'),
+('00000000-0000-0000-0000-000000000093', 'Pest Alert', 'threshold', 'pest_management', 90,
+ '{"metric":"pest_probability","operator":"gt","threshold":0.7}'::jsonb,
+ 'Pest probability is {current_value}. Immediate scouting and IPM review are recommended.', 'critical', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000094', 'Harvest Readiness', 'threshold', 'harvest', 50,
+ '{"metric":"crop_maturity_score","operator":"gt","threshold":0.9}'::jsonb,
+ 'Crop maturity is {current_value}%. Prepare the harvest window, equipment, and labor.', 'info', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000095', 'Frost Warning', 'threshold', 'crop_protection', 90,
+ '{"metric":"air_temperature","operator":"lt","threshold":2}'::jsonb,
+ 'Frost warning: temperature is {current_value}C. Protect vulnerable crops and review covers.', 'critical', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000096', 'Spray Window Open', 'composite', 'crop_protection', 50,
+ '{"metric":"wind_speed","operator":"lt","threshold":15,"humidity_min":40,"humidity_max":80}'::jsonb,
+ 'An optimal spray window is available at {current_value} km/h wind. Review the application safely.', 'info', TRUE, TRUE, 24, 5, 'active')
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    rule_type = EXCLUDED.rule_type,
+    domain = EXCLUDED.domain,
+    priority = EXCLUDED.priority,
+    conditions = EXCLUDED.conditions,
+    recommendation_template = EXCLUDED.recommendation_template,
+    severity = EXCLUDED.severity,
+    auto_generate = EXCLUDED.auto_generate,
+    requires_approval = EXCLUDED.requires_approval,
+    cooldown_hours = EXCLUDED.cooldown_hours,
+    max_per_day = EXCLUDED.max_per_day,
+    status = EXCLUDED.status,
+    updated_at = NOW();

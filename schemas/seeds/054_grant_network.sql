@@ -54,7 +54,7 @@ INSERT INTO grant_application_history (
  '2026-01-15', 'submitted', '2026-Q1', 2,
  TRUE, 50000.00, NULL, 'USD',
  'Scale syntropic model to 3 new sites, publish ecological evidence, train 50 community members',
- '{"carbon_sequestration": "5.6 tCO2e/ha projected", "species_count": 45 target", "soil_carbon_delta": "+0.8 t/ha target"}'::jsonb,
+  '{"carbon_sequestration": "5.6 tCO2e/ha projected", "species_count": 45, "soil_carbon_delta": "+0.8 t/ha target"}'::jsonb,
  ARRAY['Kokonut Collective', 'Regional Cooperatives', 'University Research Partners'],
  'Caribbean',
  'Returning applicant. Proposal builds on Adelphi pilot success. Demonstrates replication readiness.',

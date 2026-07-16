@@ -41,7 +41,7 @@ INSERT INTO organic_certification_record (
  500.00,
  'Preparing initial IFOAM certification for production and nursery zones. Biofactory zone pending organic input verification.',
  '["https://docs.example.com/adelphi-organic-plan.pdf"]'::jsonb,
- 'published', 'pilot_seed', 'adelphi-organic-cert-ifoam',
+  'pilot_seed', 'adelphi-organic-cert-ifoam',
  '{"record_type":"organic_certification_record","privacy":"public_summary","record_type":"organic_certification"}'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     status = EXCLUDED.status,
@@ -149,6 +149,27 @@ ON CONFLICT (id) DO UPDATE SET
     updated_at = NOW();
 
 -- Adelphi pilot: harvest handling records (organic segregated)
+-- The Adelphi coconut cycle has no legacy harvest row; create its canonical
+-- harvest event before linking organic handling records to it.
+INSERT INTO harvest_event (
+    id, crop_cycle_id, plot_id, location_id, harvest_date, quantity, unit,
+    quality_grade, destination, loss_amount, loss_unit, loss_reason, status,
+    source_system, source_id, source_raw
+) VALUES (
+    'c0000000-0000-0000-0000-000000000013',
+    'a0000000-0000-0000-0000-000000000043',
+    'a0000000-0000-0000-0000-000000000021',
+    'a0000000-0000-0000-0000-000000000001',
+    '2025-12-01', 0.42, 'tonnes', 'A', 'storage', 0.08, 'tonnes',
+    'Harvest handling loss during coconut establishment', 'published',
+    'pilot_seed', 'adelphi-harvest-coconut-2025',
+    '{"record_type":"harvest_event","privacy":"public_summary"}'::jsonb
+)
+ON CONFLICT (id) DO UPDATE SET
+    source_system = EXCLUDED.source_system,
+    source_id = EXCLUDED.source_id,
+    source_raw = EXCLUDED.source_raw;
+
 INSERT INTO harvest_handling_record (
     id, location_id, harvest_event_id, handling_date, handling_type,
     organic_segregated, equipment_cleaned, contamination_risk,
@@ -158,7 +179,7 @@ INSERT INTO harvest_handling_record (
 ) VALUES
 ('a0000000-0000-0000-0000-000000005550',
  'a0000000-0000-0000-0000-000000000001',
- 'a0000000-0000-0000-0000-000000000052',
+  'c0000000-0000-0000-0000-000000000013',
  '2025-12-01', 'cleaning',
  TRUE, TRUE, 'low',
  FALSE, 'Dedicated organic drying rack in shaded area',
@@ -169,7 +190,7 @@ INSERT INTO harvest_handling_record (
  '{"record_type":"harvest_handling_record","privacy":"public_summary"}'::jsonb),
 ('a0000000-0000-0000-0000-000000005551',
  'a0000000-0000-0000-0000-000000000001',
- 'a0000000-0000-0000-0000-000000000052',
+  'c0000000-0000-0000-0000-000000000013',
  '2025-12-02', 'storage',
  TRUE, TRUE, 'low',
  TRUE, 'Temperature-controlled organic storage unit (18-22°C)',
@@ -258,19 +279,15 @@ ON CONFLICT (id) DO UPDATE SET
 
 -- Adelphi pilot: EAS compliance attestation (Celo)
 INSERT INTO attestation_record (
-    id, location_id, attestation_type, schema_uid, attester_address,
-    subject_type, subject_id, chain, tx_hash,
-    attestation_data, status, source_system, source_id, source_raw
+    id, attestation_uid, schema_id, claim_type, subject_id, subject_type,
+    claim_data, status, chain, tx_hash, attested_at
 ) VALUES
 ('a0000000-0000-0000-0000-000000005580',
- 'a0000000-0000-0000-0000-000000000001',
- 'organic', '01e4...',
- '0x1234567890abcdef1234567890abcdef12345678',
- 'location', 'a0000000-0000-0000-0000-000000000001',
- 'celo', '0xabcdef...',
+ '0xac00000000000000000000000000000000000000000000000000000000005580',
+ 'a0000000-0000-0000-0000-0000000001e4', 'compliance',
+ 'a0000000-0000-0000-0000-000000000001', 'location',
  '{"framework": "IFOAM", "requirement": "transition_year_2", "compliant": true, "evidenceHash": "ipfs://Qm...", "notes": "Year 2 of 3 transition. On track for 2027 certification."}'::jsonb,
- 'published', 'pilot_seed', 'adelphi-eas-compliance-organic',
- '{"record_type":"attestation_record","privacy":"public_summary"}'::jsonb)
+ 'published', 'celo', '0xabcdef0000000000000000000000000000000000000000000000000000000000',
+ '2026-03-15 10:00:00+00')
 ON CONFLICT (id) DO UPDATE SET
-    attestation_data = EXCLUDED.attestation_data,
-    updated_at = NOW();
+    claim_data = EXCLUDED.claim_data;
