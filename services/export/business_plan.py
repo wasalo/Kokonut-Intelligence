@@ -127,6 +127,21 @@ def _swot(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[str, 
     return {"suggested": suggest(conn, org_id, location_id)}
 
 
+def _strategy(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[str, Any]:
+    from services.analytics.strategy_execution import dashboard
+    from services.analytics.strategy_kernel import list_strategy_plans
+    from services.analytics.strategy_coherence import list_findings
+
+    scope_type = "location" if location_id else "organization"
+    scope_id = location_id or org_id
+    plans = list_strategy_plans(conn, scope_type=scope_type, scope_id=scope_id)
+    active = [plan for plan in plans if plan["status"] == "active"]
+    out = {"scope_type": scope_type, "plans": plans, "active_plan_count": len(active), "execution": dashboard(conn, scope_type=scope_type, scope_id=scope_id)}
+    if active:
+        out["coherence_findings"] = list_findings(conn, str(active[0]["id"]))
+    return out
+
+
 def generate_business_plan(
     conn, location_id: Optional[str] = None, org_id: Optional[str] = None, **kwargs
 ) -> Dict[str, Any]:
@@ -150,6 +165,7 @@ def generate_business_plan(
         "financial_plan": _section(conn, lambda: _financial(conn, org_id, location_id)),
         "operational_flow": _section(conn, lambda: _flow(conn, org_id, location_id)),
         "swot": _section(conn, lambda: _swot(conn, org_id, location_id)),
+        "strategy_kernel": _section(conn, lambda: _strategy(conn, org_id, location_id)),
     }
     plan["executive_summary"] = _summarize(plan)
     conn.autocommit = prev_autocommit
