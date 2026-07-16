@@ -34,7 +34,13 @@ def test_strategy_plan_lifecycle_and_versioning():
         strategy_allocation.create_policy(conn, str(plan["id"]))
         assert plan["version"] == 1 and plan["visibility"] == "private"
         strategy_kernel.submit_strategy_plan(conn, str(plan["id"]))
-        link = strategy_governance.add_link(conn, str(plan["id"]), "governance_circle", str(uuid.uuid4()), "approval", required=True)
+        circle_id = str(uuid.uuid4())
+        with conn.cursor() as cur:
+            cur.execute("""INSERT INTO governance_circle
+                (id, circle_key, name, purpose, scope_type, scope_id, status)
+                VALUES (%s::uuid, %s, 'Strategy Circle', 'Approve strategy plans', 'organization', %s::uuid, 'draft')""", (circle_id, f"strategy-circle-{uuid.uuid4().hex[:8]}", org_id))
+        conn.commit()
+        link = strategy_governance.add_link(conn, str(plan["id"]), "governance_circle", circle_id, "approval", required=True)
         with conn.cursor() as cur:
             cur.execute("UPDATE strategy_governance_link SET status = 'approved' WHERE id = %s::uuid", (link["id"],))
         conn.commit()
@@ -50,6 +56,7 @@ def test_strategy_plan_lifecycle_and_versioning():
         conn.rollback()
         with conn.cursor() as cur:
             cur.execute("DELETE FROM strategy_plan WHERE scope_id = %s::uuid", (org_id,))
+            cur.execute("DELETE FROM governance_circle WHERE scope_id = %s::uuid", (org_id,))
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
             if org_id:
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
