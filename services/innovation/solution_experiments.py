@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import uuid
 from typing import Any, Dict, Optional
 
@@ -76,7 +77,50 @@ def record_observation(conn, experiment_id: str, metric_key: str, value: Optiona
 
 
 def complete_experiment(conn, experiment_id: str) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT decision FROM solution_experiment_analysis_run WHERE experiment_id = %s::uuid ORDER BY created_at DESC LIMIT 1", (experiment_id,))
+        analysis = cur.fetchone()
+        if not analysis or analysis["decision"] == "continue":
+            conn.rollback()
+            raise ValueError("experiment requires a terminal sequential analysis decision")
     return _transition(conn, experiment_id, "completed", "active")
+
+
+def analyze_sequentially(conn, experiment_id: str, metric_key: str, *, minimum_sample: int = 2, benefit_threshold: float = 0.0, posterior_threshold: float = 0.9, safety_event_limit: Optional[int] = None, analysis_version: str = "sequential-v1") -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""SELECT arm, value, adverse_event FROM solution_experiment_observation
+            WHERE experiment_id = %s::uuid AND metric_key = %s AND value IS NOT NULL""", (experiment_id, metric_key))
+        rows = cur.fetchall()
+        baseline = [float(row["value"]) for row in rows if row["arm"] == "baseline"]
+        treatment = [float(row["value"]) for row in rows if row["arm"] == "treatment"]
+        adverse = sum(1 for row in rows if row["adverse_event"])
+        if len(baseline) < minimum_sample or len(treatment) < minimum_sample:
+            decision, reason, posterior, effect, se, lower, upper = "insufficient_data", "minimum sample has not been reached", None, None, None, None, None
+        else:
+            baseline_mean = sum(baseline) / len(baseline)
+            treatment_mean = sum(treatment) / len(treatment)
+            effect = treatment_mean - baseline_mean
+            variance = (sum((x - baseline_mean) ** 2 for x in baseline) / max(len(baseline) - 1, 1) / len(baseline)) + (sum((x - treatment_mean) ** 2 for x in treatment) / max(len(treatment) - 1, 1) / len(treatment))
+            se = math.sqrt(max(variance, 1e-12))
+            z = effect / se
+            posterior = 0.5 * (1 + math.erf(z / math.sqrt(2)))
+            lower, upper = effect - 1.96 * se, effect + 1.96 * se
+            if safety_event_limit is not None and adverse > safety_event_limit:
+                decision, reason = "safety_stop", "adverse-event limit exceeded"
+            elif posterior >= posterior_threshold and effect > benefit_threshold:
+                decision, reason = "benefit", "posterior benefit probability reached threshold"
+            elif posterior <= (1 - posterior_threshold) and effect <= benefit_threshold:
+                decision, reason = "futility", "posterior benefit probability is below futility threshold"
+            else:
+                decision, reason = "continue", "evidence remains in the continuation region"
+        cur.execute("""INSERT INTO solution_experiment_analysis_run
+            (experiment_id, metric_key, baseline_count, treatment_count, baseline_mean, treatment_mean,
+             effect_estimate, standard_error, lower_bound, upper_bound, posterior_probability_benefit,
+             adverse_event_count, decision, stopping_reason, analysis_version)
+            VALUES (%s::uuid, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING *""", (experiment_id, metric_key, len(baseline), len(treatment), sum(baseline) / len(baseline) if baseline else None, sum(treatment) / len(treatment) if treatment else None, effect, se, lower, upper, posterior, adverse, decision, reason, analysis_version))
+        result = _clean(cur.fetchone())
+        conn.commit()
+        return result
 
 
 def review_result(conn, experiment_id: str, outcome: str, reviewed_by_party_id: str, *, primary_results: Optional[dict[str, Any]] = None, secondary_results: Optional[dict[str, Any]] = None, limitations: Optional[str] = None, evidence: Optional[list[Any]] = None) -> Dict[str, Any]:

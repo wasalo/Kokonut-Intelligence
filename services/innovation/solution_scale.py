@@ -29,6 +29,19 @@ def evaluate_gate(conn, gate_id: str, passed: bool, measured_value: str, evidenc
     if not evidence_refs:
         raise ValueError("scale gate evaluation requires evidence")
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT comparison_operator, threshold_numeric FROM solution_scale_gate WHERE id = %s::uuid", (gate_id,))
+        contract = cur.fetchone()
+        if not contract:
+            conn.rollback()
+            raise ValueError("scale gate not found")
+        if contract["comparison_operator"] and contract["threshold_numeric"] is not None:
+            try:
+                observed_value = float(measured_value)
+                threshold = float(contract["threshold_numeric"])
+            except (TypeError, ValueError):
+                conn.rollback()
+                raise ValueError("typed scale gate requires a numeric measured value")
+            passed = {"lt": observed_value < threshold, "lte": observed_value <= threshold, "eq": observed_value == threshold, "gte": observed_value >= threshold, "gt": observed_value > threshold}[contract["comparison_operator"]]
         cur.execute("""UPDATE solution_scale_gate SET status = %s, measured_value = %s,
             evidence_refs = %s::jsonb, approved_by_party_id = %s::uuid, approved_at = NOW()
             WHERE id = %s::uuid RETURNING *""", ("passed" if passed else "failed", measured_value, json.dumps(evidence_refs), approved_by_party_id, gate_id))

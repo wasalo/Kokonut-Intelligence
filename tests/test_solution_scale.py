@@ -24,7 +24,7 @@ def test_scale_requires_evidence_and_learning_can_be_applied():
         conn.commit()
         solution = solution_lifecycle.create_solution(conn, f"scale-{uuid.uuid4().hex[:8]}", "Validated practice", "practice", "A recurring problem", owner_party_id=PARTY_ID)
         solution_id = str(solution["id"])
-        gate = solution_scale.create_gate(conn, solution_id, "organization", str(uuid.uuid4()), "replicability", "Replicate in a distinct context")
+        gate = solution_scale.create_gate(conn, solution_id, "organization", str(uuid.uuid4()), "replicability", "Replicate in a distinct context", threshold="1",)
         with pytest.raises(ValueError, match="evidence"):
             solution_scale.evaluate_gate(conn, str(gate["id"]), True, "pass", [], PARTY_ID)
         evaluated = solution_scale.evaluate_gate(conn, str(gate["id"]), True, "pass", [{"replication":"reviewed"}], PARTY_ID)
