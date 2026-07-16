@@ -33,6 +33,13 @@ def create_strategy_plan(
     if not name.strip():
         raise ValueError("name is required")
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (f"strategy-plan:{scope_type}:{scope_id}",))
+        if supersedes_plan_id:
+            cur.execute("SELECT scope_type, scope_id FROM strategy_plan WHERE id = %s::uuid", (supersedes_plan_id,))
+            predecessor = cur.fetchone()
+            if not predecessor or predecessor["scope_type"] != scope_type or str(predecessor["scope_id"]) != str(scope_id):
+                conn.rollback()
+                raise ValueError("superseded strategy plan must use the same scope")
         cur.execute("""SELECT COALESCE(MAX(version), 0) + 1 AS next_version
             FROM strategy_plan WHERE scope_type = %s AND scope_id = %s::uuid""", (scope_type, scope_id))
         version = cur.fetchone()["next_version"]
@@ -61,6 +68,11 @@ def approve_strategy_plan(conn, plan_id: str, approved_by_party_id: str) -> Dict
             conn.rollback()
             raise ValueError("strategy plan not found")
         from services.analytics.strategy_governance import approval_route_satisfied
+        from services.analytics.strategy_coherence import run_checks, list_findings
+        run_checks(conn, plan_id)
+        if any(finding["severity"] == "critical" for finding in list_findings(conn, plan_id)):
+            conn.rollback()
+            raise ValueError("strategy plan has unresolved critical coherence findings")
         if not approval_route_satisfied(conn, plan_id, plan_route["approval_mode"]):
             conn.rollback()
             raise ValueError("strategy approval route is not satisfied")
@@ -72,6 +84,7 @@ def approve_strategy_plan(conn, plan_id: str, approved_by_party_id: str) -> Dict
             conn.rollback()
             raise ValueError("only submitted strategy plans can be approved")
         conn.commit()
+        _record_transition(conn, plan_id, "submitted", "approved", approved_by_party_id, "Strategy plan approved after integrity gates")
         return _clean(row)
 
 
@@ -87,6 +100,7 @@ def activate_strategy_plan(conn, plan_id: str) -> Dict[str, Any]:
         cur.execute("UPDATE strategy_plan SET status = 'active', updated_at = NOW() WHERE id = %s::uuid RETURNING *", (plan_id,))
         row = _clean(cur.fetchone())
         conn.commit()
+        _record_transition(conn, plan_id, "approved", "active", None, "Strategy plan activated")
         return row
 
 
@@ -128,4 +142,13 @@ def _transition(conn, plan_id: str, status: str) -> Dict[str, Any]:
             conn.rollback()
             raise ValueError("only draft strategy plans can be submitted")
         conn.commit()
+        _record_transition(conn, plan_id, "draft", status, None, "Strategy plan submitted")
         return _clean(row)
+
+
+def _record_transition(conn, plan_id: str, from_status: str, to_status: str, actor_party_id: Optional[str], reason: str) -> None:
+    with conn.cursor() as cur:
+        cur.execute("""INSERT INTO strategy_plan_transition
+            (strategy_plan_id, from_status, to_status, actor_party_id, reason)
+            VALUES (%s::uuid, %s, %s, %s::uuid, %s)""", (plan_id, from_status, to_status, actor_party_id, reason))
+    conn.commit()

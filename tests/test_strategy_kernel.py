@@ -6,6 +6,8 @@ import pytest
 
 from services.analytics import strategy_kernel
 from services.analytics import strategy_governance
+from services.analytics import strategy_choices
+from services.planning import strategy_allocation
 from services.ingestion.base import get_db
 
 
@@ -26,6 +28,10 @@ def test_strategy_plan_lifecycle_and_versioning():
             cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Strategy Reviewer')", (PARTY_ID,))
         conn.commit()
         plan = strategy_kernel.create_strategy_plan(conn, "organization", org_id, "Regenerative growth", "2026-01-01", "2028-12-31", PARTY_ID, diagnosis_summary="Demand is growing faster than capacity.", guiding_policy="Build capability before scaling.", approval_mode="governance_circle")
+        choice = strategy_choices.create_choice(conn, str(plan["id"]), "how_to_win", "Build trusted evidence infrastructure", created_by_party_id=PARTY_ID)
+        strategy_choices.submit_choice(conn, str(choice["id"]))
+        strategy_choices.approve_choice(conn, str(choice["id"]), PARTY_ID)
+        strategy_allocation.create_policy(conn, str(plan["id"]))
         assert plan["version"] == 1 and plan["visibility"] == "private"
         strategy_kernel.submit_strategy_plan(conn, str(plan["id"]))
         link = strategy_governance.add_link(conn, str(plan["id"]), "governance_circle", str(uuid.uuid4()), "approval", required=True)
@@ -35,6 +41,9 @@ def test_strategy_plan_lifecycle_and_versioning():
         strategy_kernel.approve_strategy_plan(conn, str(plan["id"]), PARTY_ID)
         active = strategy_kernel.activate_strategy_plan(conn, str(plan["id"]))
         assert active["status"] == "active"
+        with conn.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM strategy_plan_transition WHERE strategy_plan_id = %s::uuid", (plan["id"],))
+            assert cur.fetchone()[0] == 3
         version_two = strategy_kernel.create_strategy_plan(conn, "organization", org_id, "Regenerative growth revision", "2026-01-01", "2028-12-31", PARTY_ID, supersedes_plan_id=str(plan["id"]))
         assert version_two["version"] == 2
     finally:
