@@ -1,0 +1,122 @@
+"""Versioned strategy kernel for organization and location scopes."""
+
+from __future__ import annotations
+
+import uuid
+from typing import Any, Dict, List, Optional
+
+from psycopg2.extras import RealDictCursor
+
+
+SCOPES = ("organization", "location")
+STATUSES = ("draft", "submitted", "approved", "active", "superseded", "retired")
+APPROVAL_MODES = ("governance_circle", "stakeholder_decision", "dual")
+
+
+def _clean(row):
+    return {key: str(value) if isinstance(value, uuid.UUID) else value for key, value in dict(row).items()}
+
+
+def create_strategy_plan(
+    conn, scope_type: str, scope_id: str, name: str,
+    planning_horizon_start: str, planning_horizon_end: str, created_by_party_id: Optional[str] = None,
+    *, diagnosis_summary: str = "", guiding_policy: str = "", theory_of_change: Optional[str] = None,
+    uncertainty_summary: Optional[str] = None, approval_mode: str = "governance_circle",
+    visibility: str = "private", supersedes_plan_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    if scope_type not in SCOPES:
+        raise ValueError(f"scope_type must be one of {SCOPES}")
+    if approval_mode not in APPROVAL_MODES:
+        raise ValueError(f"approval_mode must be one of {APPROVAL_MODES}")
+    if visibility not in ("private", "limited", "public"):
+        raise ValueError("invalid visibility")
+    if not name.strip():
+        raise ValueError("name is required")
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""SELECT COALESCE(MAX(version), 0) + 1 AS next_version
+            FROM strategy_plan WHERE scope_type = %s AND scope_id = %s::uuid""", (scope_type, scope_id))
+        version = cur.fetchone()["next_version"]
+        cur.execute("""INSERT INTO strategy_plan
+            (scope_type, scope_id, name, version, planning_horizon_start, planning_horizon_end,
+             diagnosis_summary, guiding_policy, theory_of_change, uncertainty_summary,
+             approval_mode, visibility, supersedes_plan_id, created_by_party_id)
+            VALUES (%s, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::uuid, %s::uuid)
+            RETURNING *""", (scope_type, scope_id, name, version, planning_horizon_start, planning_horizon_end,
+                              diagnosis_summary, guiding_policy, theory_of_change, uncertainty_summary,
+                              approval_mode, visibility, supersedes_plan_id, created_by_party_id))
+        row = _clean(cur.fetchone())
+        conn.commit()
+        return row
+
+
+def submit_strategy_plan(conn, plan_id: str) -> Dict[str, Any]:
+    return _transition(conn, plan_id, "submitted")
+
+
+def approve_strategy_plan(conn, plan_id: str, approved_by_party_id: str) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""UPDATE strategy_plan
+            SET status = 'approved', approved_by_party_id = %s::uuid, approved_at = NOW(), updated_at = NOW()
+            WHERE id = %s::uuid AND status = 'submitted' RETURNING *""", (approved_by_party_id, plan_id))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            raise ValueError("only submitted strategy plans can be approved")
+        conn.commit()
+        return _clean(row)
+
+
+def activate_strategy_plan(conn, plan_id: str) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT * FROM strategy_plan WHERE id = %s::uuid FOR UPDATE", (plan_id,))
+        plan = cur.fetchone()
+        if not plan or plan["status"] != "approved":
+            conn.rollback()
+            raise ValueError("only approved strategy plans can be activated")
+        cur.execute("""UPDATE strategy_plan SET status = 'superseded', updated_at = NOW()
+            WHERE scope_type = %s AND scope_id = %s AND status = 'active'""", (plan["scope_type"], plan["scope_id"]))
+        cur.execute("UPDATE strategy_plan SET status = 'active', updated_at = NOW() WHERE id = %s::uuid RETURNING *", (plan_id,))
+        row = _clean(cur.fetchone())
+        conn.commit()
+        return row
+
+
+def list_strategy_plans(conn, *, scope_type: Optional[str] = None, scope_id: Optional[str] = None, status: Optional[str] = None) -> List[Dict[str, Any]]:
+    clauses = []
+    params: List[Any] = []
+    if scope_type:
+        clauses.append("scope_type = %s")
+        params.append(scope_type)
+    if scope_id:
+        clauses.append("scope_id = %s::uuid")
+        params.append(scope_id)
+    if status:
+        clauses.append("status = %s")
+        params.append(status)
+    where = " WHERE " + " AND ".join(clauses) if clauses else ""
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(f"SELECT * FROM strategy_plan{where} ORDER BY scope_type, scope_id, version DESC", params)
+        return [_clean(row) for row in cur.fetchall()]
+
+
+def attach_strategy_entry(conn, strategy_plan_id: str, strategy_map_id: str) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""UPDATE strategy_map SET strategy_plan_id = %s::uuid, updated_at = NOW()
+            WHERE id = %s::uuid RETURNING *""", (strategy_plan_id, strategy_map_id))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            raise ValueError("strategy map entry not found")
+        conn.commit()
+        return _clean(row)
+
+
+def _transition(conn, plan_id: str, status: str) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("UPDATE strategy_plan SET status = %s, updated_at = NOW() WHERE id = %s::uuid AND status = 'draft' RETURNING *", (status, plan_id))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            raise ValueError("only draft strategy plans can be submitted")
+        conn.commit()
+        return _clean(row)
