@@ -28,7 +28,7 @@ def test_advantage_assessment_computes_defensibility():
             cur.execute("INSERT INTO strategy_plan (scope_type, scope_id, name, planning_horizon_start, planning_horizon_end, diagnosis_summary, guiding_policy) VALUES ('organization', %s::uuid, 'Advantage plan', '2026-01-01', '2026-12-31', 'Need advantage', 'Build trust') RETURNING id", (org_id,))
             plan_id = str(cur.fetchone()[0])
         conn.commit()
-        advantage = advantage_assessment.create_advantage(conn, plan_id, "Verified evidence network", "Trusted local evidence is hard to replicate", valuable_score=90, rare_score=80, inimitable_score=75, organized_score=85, switching_cost_score=80, network_effect_score=70, evidence_advantage_score=95, ecological_score=85, social_score=80, governance_trust_score=90, owner_party_id=PARTY_ID)
+        advantage = advantage_assessment.create_advantage(conn, plan_id, "Verified evidence network", "Trusted local evidence is hard to replicate", evidence=[{"source":"independent_assessment","confidence":"high"}], valuable_score=90, rare_score=80, inimitable_score=75, organized_score=85, switching_cost_score=80, network_effect_score=70, evidence_advantage_score=95, ecological_score=85, social_score=80, governance_trust_score=90, owner_party_id=PARTY_ID)
         advantage_id = str(advantage["id"])
         assessed = advantage_assessment.assess_advantage(conn, advantage_id, PARTY_ID, imitation_risk="low", capture_risk="medium")
         assert assessed["status"] == "verified"
