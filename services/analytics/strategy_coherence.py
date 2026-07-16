@@ -44,6 +44,14 @@ def run_checks(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
         cur.execute("SELECT COUNT(*) AS count FROM strategy_allocation_policy WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
         if cur.fetchone()["count"] == 0:
             add("plan_requires_allocation_policy", "strategy_plan", strategy_plan_id, "high", "Strategy plan has no resource-allocation policy.", "Define composite allocation weights before approval.")
+        cur.execute("SELECT COUNT(*) AS count FROM strategy_map WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
+        if cur.fetchone()["count"] == 0:
+            add("plan_requires_executable_objective", "strategy_plan", strategy_plan_id, "critical", "Strategy plan has no strategy-map objective.", "Add at least one accountable strategic objective.")
+        cur.execute("""SELECT COUNT(*) AS count FROM strategy_initiative si
+            JOIN strategy_map sm ON sm.id = si.strategy_map_id
+            WHERE sm.strategy_plan_id = %s::uuid""", (strategy_plan_id,))
+        if cur.fetchone()["count"] == 0:
+            add("plan_requires_initiative", "strategy_plan", strategy_plan_id, "critical", "Strategy plan has no execution initiative.", "Create at least one dated initiative linked to an objective.")
         if plan["status"] == "active":
             cur.execute("SELECT COUNT(*) AS count FROM strategy_position WHERE strategy_plan_id = %s::uuid AND status = 'approved'", (strategy_plan_id,))
             if cur.fetchone()["count"] == 0:

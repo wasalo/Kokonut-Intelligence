@@ -74,9 +74,10 @@ def approve_strategy_plan(conn, plan_id: str, approved_by_party_id: str) -> Dict
         from services.analytics.strategy_governance import approval_route_satisfied
         from services.analytics.strategy_coherence import run_checks, list_findings
         run_checks(conn, plan_id)
-        if any(finding["severity"] == "critical" for finding in list_findings(conn, plan_id)):
+        blocking = [finding for finding in list_findings(conn, plan_id) if finding["severity"] in ("critical", "high")]
+        if blocking:
             conn.rollback()
-            raise ValueError("strategy plan has unresolved critical coherence findings")
+            raise ValueError("strategy plan has unresolved blocking coherence findings")
         if not approval_route_satisfied(conn, plan_id, plan_route["approval_mode"]):
             conn.rollback()
             raise ValueError("strategy approval route is not satisfied")
