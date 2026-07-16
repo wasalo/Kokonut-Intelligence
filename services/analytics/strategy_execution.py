@@ -74,3 +74,49 @@ def record_benefit(conn, strategy_plan_id: str, name: str, benefit_type: str, *,
         row = _clean(cur.fetchone())
         conn.commit()
         return row
+
+
+def compare_snapshots(conn, strategy_plan_id: str) -> Dict[str, Any]:
+    snapshots = list_snapshots(conn, strategy_plan_id)
+    if len(snapshots) < 2:
+        return {"strategy_plan_id": strategy_plan_id, "available": False, "reason": "at least two snapshots are required"}
+    current = snapshots[0]["summary"]
+    previous = snapshots[1]["summary"]
+    numeric_keys = ("objective_count", "measured_objective_count", "initiative_count", "completed_initiative_count", "average_initiative_completion_pct", "investment_case_count", "recommended_investment_count", "average_investment_score", "open_coherence_finding_count", "critical_coherence_finding_count", "benefit_count", "benefit_risk_count")
+    changes = {key: {"previous": previous.get(key), "current": current.get(key), "delta": float(current[key]) - float(previous[key])} for key in numeric_keys if current.get(key) is not None and previous.get(key) is not None}
+    return {"strategy_plan_id": strategy_plan_id, "available": True, "current_snapshot_id": snapshots[0]["id"], "previous_snapshot_id": snapshots[1]["id"], "changes": changes}
+
+
+def create_review_task(conn, strategy_plan_id: str, due_at: str, review_type: str = "scheduled", *, assigned_to_party_id: Optional[str] = None) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""INSERT INTO strategy_review_task
+            (strategy_plan_id, review_type, due_at, assigned_to_party_id)
+            VALUES (%s::uuid, %s, %s, %s::uuid) RETURNING *""", (strategy_plan_id, review_type, due_at, assigned_to_party_id))
+        row = _clean(cur.fetchone())
+        conn.commit()
+        return row
+
+
+def list_due_reviews(conn) -> List[Dict[str, Any]]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""UPDATE strategy_review_task SET status = 'overdue', updated_at = NOW()
+            WHERE status = 'pending' AND due_at < NOW()""")
+        cur.execute("SELECT * FROM strategy_review_task WHERE status IN ('pending', 'overdue') ORDER BY due_at")
+        rows = [_clean(row) for row in cur.fetchall()]
+        conn.commit()
+        return rows
+
+
+def complete_review_task(conn, task_id: str, completed_by_party_id: str, decision: str, *, decision_note: str = "", evidence: Optional[List[Any]] = None) -> Dict[str, Any]:
+    if decision not in ("continue", "adapt", "stop", "replace", "scale", "defer", "investigate"):
+        raise ValueError("invalid strategy review decision")
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""UPDATE strategy_review_task SET status = 'completed', decision = %s,
+            decision_note = %s, evidence = %s::jsonb, completed_at = NOW(), completed_by_party_id = %s::uuid,
+            updated_at = NOW() WHERE id = %s::uuid AND status IN ('pending', 'in_progress', 'overdue') RETURNING *""", (decision, decision_note, json.dumps(evidence or []), completed_by_party_id, task_id))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            raise ValueError("review task not found or already completed")
+        conn.commit()
+        return _clean(row)
