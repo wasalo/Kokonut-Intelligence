@@ -180,21 +180,30 @@ class PolicyEngine:
 
         now = datetime.now(timezone.utc)
 
-        # Load the decision
-        cur.execute("SELECT * FROM decision_log WHERE id = %s", (decision_id,))
+        # Claim the decision before performing any side effect.
+        cur.execute("""UPDATE decision_log
+            SET status = 'executing', updated_at = %s
+            WHERE id = %s AND status IN ('pending', 'approved')
+              AND approval_status = 'approved'
+            RETURNING *""", (now, decision_id))
         row = cur.fetchone()
         if row is None:
+            conn.rollback()
             cur.close()
-            return {"error": "Decision not found"}
+            return {"error": "Decision not found, already executing, or not approved"}
 
         decision = dict(row)
-
-        if decision["approval_status"] != "approved":
+        if decision.get("approval_status") != "approved":
+            conn.rollback()
             cur.close()
             return {"error": "Decision must be approved before execution"}
-
-        # Execute based on action_type
-        result = self._execute_action(cur, decision)
+        try:
+            # Execute based on action_type.
+            result = self._execute_action(cur, decision)
+        except Exception as exc:
+            conn.rollback()
+            cur.close()
+            return {"success": False, "error": str(exc)}
 
         # Update decision status
         status = "executed" if result.get("success") else "failed"
@@ -349,7 +358,7 @@ class PolicyEngine:
             # For event-triggered policies, check if the assessment
             # contains a matching signal
             has_signal = any(
-                s.get("key", "").startswith(trigger_event)
+                (s.get("signal_key") or s.get("key") or "").startswith(trigger_event)
                 for s in assessment.get("signals", [])
             )
             if not has_signal:
