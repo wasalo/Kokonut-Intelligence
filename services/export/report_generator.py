@@ -3366,6 +3366,36 @@ def generate_coordination_cockpit(conn, location_id=None, period_start=None, per
     }
 
 
+def generate_governance_coordination_health(conn, location_id=None, period_start=None, period_end=None):
+    """Generate internal governance health and public-safe throughput output."""
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_governance_cockpit_internal")
+        internal = dict(cur.fetchone())
+        cur.execute("SELECT * FROM v_governance_cockpit_public")
+        public = dict(cur.fetchone())
+        cur.execute("SELECT * FROM v_governance_tension_health ORDER BY severity DESC, urgency DESC")
+        tensions = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_governance_proposal_lineage ORDER BY approved_at DESC NULLS LAST, proposal_id")
+        proposals = [dict(row) for row in cur.fetchall()]
+        cur.execute("SELECT * FROM v_governance_circle_links ORDER BY term_end NULLS LAST")
+        links = [dict(row) for row in cur.fetchall()]
+    return {
+        "report_type": "governance_coordination_health",
+        "location_id": location_id,
+        "internal": internal,
+        "public_safe": public,
+        "tensions": tensions,
+        "proposals": proposals,
+        "circle_links": links,
+        "limitations": [
+            "Internal records include unresolved governance risks and are not public evidence.",
+            "Public output is aggregate throughput and does not establish stakeholder satisfaction or impact.",
+            "Role and circle activity does not replace human approval or existing treasury and Guild governance.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # PESTEL Assessment report
 # ---------------------------------------------------------------------------
@@ -3548,6 +3578,7 @@ REPORT_GENERATORS = {
      "stakeholder_value_streams": generate_stakeholder_value_streams,
       "stakeholder_cockpit": generate_stakeholder_cockpit,
       "coordination_cockpit": generate_coordination_cockpit,
+     "governance_coordination_health": generate_governance_coordination_health,
     "pestel_assessment": generate_pestel_assessment,
      "regional_readiness": generate_regional_readiness,
      "publics_market_landscape": generate_publics_market_landscape,

@@ -43,6 +43,14 @@ def test_builtin_specs_validate_and_have_invariants():
         "extension_enrollment",
         "market_order",
         "coordination_alliance",
+        "governance_circle",
+        "governance_role",
+        "governance_role_assignment",
+        "governance_tension",
+        "governance_proposal",
+        "governance_tactical_session",
+        "governance_tactical_item",
+        "governance_circle_link",
     }
     for spec in list_specs():
         validate(spec)
