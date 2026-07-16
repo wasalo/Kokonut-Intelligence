@@ -7,6 +7,7 @@ import pytest
 from services.analytics import strategy_kernel
 from services.analytics import strategy_governance
 from services.analytics import strategy_choices
+from services.analytics import strategy_foresight
 from services.planning import strategy_allocation
 from services.ingestion.base import get_db
 
@@ -38,6 +39,10 @@ def test_strategy_plan_lifecycle_and_versioning():
         strategy_choices.submit_choice(conn, str(choice["id"]))
         strategy_choices.approve_choice(conn, str(choice["id"]), PARTY_ID)
         strategy_allocation.create_policy(conn, str(plan["id"]))
+        frame = strategy_foresight.create_frame(conn, str(plan["id"]), "How should evidence capability evolve?", "Which capability should be funded first?", "Organization and its evidence systems", "2026-01-01", "2028-12-31")
+        strategy_foresight.add_driver(conn, str(frame["id"]), "critical_uncertainty", "Adoption uncertainty", "Farmer and partner adoption may vary materially.")
+        strategy_foresight.link_input(conn, str(frame["id"]), "external_document", "scan", source_ref="https://example.test/adoption")
+        strategy_foresight.submit_frame(conn, str(frame["id"]))
         strategy_id = str(uuid.uuid4())
         with conn.cursor() as cur:
             cur.execute("""INSERT INTO strategy_map

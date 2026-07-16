@@ -38,6 +38,20 @@ def run_checks(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
         if not plan["guiding_policy"].strip():
             add("plan_requires_guiding_policy", "strategy_plan", strategy_plan_id, "critical", "Strategy plan has no guiding policy.", "Record the policy that translates diagnosis into a coherent approach.")
 
+        cur.execute("SELECT id, status FROM strategy_foresight_frame WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
+        frame = cur.fetchone()
+        if not frame:
+            add("plan_requires_foresight_frame", "strategy_plan", strategy_plan_id, "high", "Strategy plan has no decision-focused foresight frame.", "Define the focal question, decision question, system boundary, and planning horizon.")
+        elif frame["status"] not in ("submitted", "approved"):
+            add("foresight_frame_requires_submission", "strategy_foresight_frame", frame["id"], "high", "Foresight frame has not been submitted for strategy review.", "Submit the foresight frame before strategy approval.")
+        else:
+            cur.execute("SELECT COUNT(*) AS count FROM strategy_foresight_driver WHERE frame_id = %s::uuid AND driver_type IN ('critical_uncertainty', 'wildcard') AND status <> 'retired'", (frame["id"],))
+            if cur.fetchone()["count"] == 0:
+                add("foresight_requires_uncertainty", "strategy_foresight_frame", frame["id"], "high", "Foresight frame has no critical uncertainty or wildcard.", "Record at least one material uncertainty or discontinuity.")
+            cur.execute("SELECT COUNT(*) AS count FROM strategy_foresight_input WHERE frame_id = %s::uuid", (frame["id"],))
+            if cur.fetchone()["count"] == 0:
+                add("foresight_requires_inputs", "strategy_foresight_frame", frame["id"], "high", "Foresight frame has no linked scan, scenario, consultation, or evidence input.", "Link at least one relevant foresight input.")
+
         cur.execute("SELECT COUNT(*) AS count FROM strategy_choice WHERE strategy_plan_id = %s::uuid AND status = 'approved'", (strategy_plan_id,))
         if cur.fetchone()["count"] == 0:
             add("plan_requires_approved_choice", "strategy_plan", strategy_plan_id, "critical", "Strategy plan has no approved strategic choice.", "Approve at least one strategic choice.")
