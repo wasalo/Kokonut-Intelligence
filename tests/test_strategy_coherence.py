@@ -29,8 +29,8 @@ def test_coherence_finds_missing_kernel_fields():
         rules = {finding["rule_key"] for finding in findings}
         assert "plan_requires_diagnosis" in rules
         assert "plan_requires_guiding_policy" in rules
-        assert {"plan_requires_diagnosis", "plan_requires_guiding_policy", "plan_requires_approved_choice", "plan_requires_allocation_policy"} == rules
-        assert len(strategy_coherence.list_findings(conn, plan_id)) == 4
+        assert {"plan_requires_diagnosis", "plan_requires_guiding_policy", "plan_requires_foresight_frame", "plan_requires_approved_choice", "plan_requires_allocation_policy", "plan_requires_executable_objective", "plan_requires_initiative"} == rules
+        assert len(strategy_coherence.list_findings(conn, plan_id)) == 7
     finally:
         conn.rollback()
         with conn.cursor() as cur:

@@ -23,6 +23,8 @@ def create_strategy_plan(
     *, diagnosis_summary: str = "", guiding_policy: str = "", theory_of_change: Optional[str] = None,
     uncertainty_summary: Optional[str] = None, approval_mode: str = "governance_circle",
     visibility: str = "private", supersedes_plan_id: Optional[str] = None,
+    parent_strategy_plan_id: Optional[str] = None, cascade_mode: str = "independent",
+    cascade_rationale: Optional[str] = None,
 ) -> Dict[str, Any]:
     if scope_type not in SCOPES:
         raise ValueError(f"scope_type must be one of {SCOPES}")
@@ -45,12 +47,14 @@ def create_strategy_plan(
         version = cur.fetchone()["next_version"]
         cur.execute("""INSERT INTO strategy_plan
             (scope_type, scope_id, name, version, planning_horizon_start, planning_horizon_end,
-             diagnosis_summary, guiding_policy, theory_of_change, uncertainty_summary,
-             approval_mode, visibility, supersedes_plan_id, created_by_party_id)
-            VALUES (%s, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::uuid, %s::uuid)
+            diagnosis_summary, guiding_policy, theory_of_change, uncertainty_summary,
+            approval_mode, visibility, supersedes_plan_id, created_by_party_id,
+            parent_strategy_plan_id, cascade_mode, cascade_rationale)
+            VALUES (%s, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::uuid, %s::uuid, %s::uuid, %s, %s)
             RETURNING *""", (scope_type, scope_id, name, version, planning_horizon_start, planning_horizon_end,
                               diagnosis_summary, guiding_policy, theory_of_change, uncertainty_summary,
-                              approval_mode, visibility, supersedes_plan_id, created_by_party_id))
+                              approval_mode, visibility, supersedes_plan_id, created_by_party_id,
+                              parent_strategy_plan_id, cascade_mode, cascade_rationale))
         row = _clean(cur.fetchone())
         conn.commit()
         return row
@@ -70,9 +74,10 @@ def approve_strategy_plan(conn, plan_id: str, approved_by_party_id: str) -> Dict
         from services.analytics.strategy_governance import approval_route_satisfied
         from services.analytics.strategy_coherence import run_checks, list_findings
         run_checks(conn, plan_id)
-        if any(finding["severity"] == "critical" for finding in list_findings(conn, plan_id)):
+        blocking = [finding for finding in list_findings(conn, plan_id) if finding["severity"] in ("critical", "high")]
+        if blocking:
             conn.rollback()
-            raise ValueError("strategy plan has unresolved critical coherence findings")
+            raise ValueError("strategy plan has unresolved blocking coherence findings")
         if not approval_route_satisfied(conn, plan_id, plan_route["approval_mode"]):
             conn.rollback()
             raise ValueError("strategy approval route is not satisfied")
@@ -83,8 +88,8 @@ def approve_strategy_plan(conn, plan_id: str, approved_by_party_id: str) -> Dict
         if not row:
             conn.rollback()
             raise ValueError("only submitted strategy plans can be approved")
-        conn.commit()
         _record_transition(conn, plan_id, "submitted", "approved", approved_by_party_id, "Strategy plan approved after integrity gates")
+        conn.commit()
         return _clean(row)
 
 
@@ -99,8 +104,8 @@ def activate_strategy_plan(conn, plan_id: str) -> Dict[str, Any]:
             WHERE scope_type = %s AND scope_id = %s AND status = 'active'""", (plan["scope_type"], plan["scope_id"]))
         cur.execute("UPDATE strategy_plan SET status = 'active', updated_at = NOW() WHERE id = %s::uuid RETURNING *", (plan_id,))
         row = _clean(cur.fetchone())
-        conn.commit()
         _record_transition(conn, plan_id, "approved", "active", None, "Strategy plan activated")
+        conn.commit()
         return row
 
 
@@ -141,8 +146,8 @@ def _transition(conn, plan_id: str, status: str) -> Dict[str, Any]:
         if not row:
             conn.rollback()
             raise ValueError("only draft strategy plans can be submitted")
-        conn.commit()
         _record_transition(conn, plan_id, "draft", status, None, "Strategy plan submitted")
+        conn.commit()
         return _clean(row)
 
 
@@ -151,4 +156,3 @@ def _record_transition(conn, plan_id: str, from_status: str, to_status: str, act
         cur.execute("""INSERT INTO strategy_plan_transition
             (strategy_plan_id, from_status, to_status, actor_party_id, reason)
             VALUES (%s::uuid, %s, %s, %s::uuid, %s)""", (plan_id, from_status, to_status, actor_party_id, reason))
-    conn.commit()
