@@ -38,6 +38,13 @@ def run_checks(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
         if not plan["guiding_policy"].strip():
             add("plan_requires_guiding_policy", "strategy_plan", strategy_plan_id, "critical", "Strategy plan has no guiding policy.", "Record the policy that translates diagnosis into a coherent approach.")
 
+        cur.execute("SELECT COUNT(*) AS count FROM strategy_choice WHERE strategy_plan_id = %s::uuid AND status = 'approved'", (strategy_plan_id,))
+        if cur.fetchone()["count"] == 0:
+            add("plan_requires_approved_choice", "strategy_plan", strategy_plan_id, "critical", "Strategy plan has no approved strategic choice.", "Approve at least one strategic choice.")
+        cur.execute("SELECT COUNT(*) AS count FROM strategy_allocation_policy WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
+        if cur.fetchone()["count"] == 0:
+            add("plan_requires_allocation_policy", "strategy_plan", strategy_plan_id, "high", "Strategy plan has no resource-allocation policy.", "Define composite allocation weights before approval.")
+
         cur.execute("SELECT * FROM strategy_map WHERE strategy_plan_id = %s::uuid", (strategy_plan_id,))
         entries = cur.fetchall()
         for entry in entries:
@@ -61,6 +68,8 @@ def run_checks(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
         for investment in cur.fetchall():
             if not investment["objective_id"] and not investment["initiative_id"]:
                 add("investment_requires_strategy_link", "strategy_investment_case", investment["id"], "high", "Investment case is not linked to an objective or initiative.", "Link the investment to a strategic objective or initiative.")
+            if investment["risk_evidence_status"] == "missing":
+                add("investment_requires_risk_evidence", "strategy_investment_case", investment["id"], "high", "Investment case has no CRISP risk evidence.", "Link a CRISP assessment and mitigation record before allocation.")
 
         conn.commit()
         return findings

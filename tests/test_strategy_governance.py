@@ -21,3 +21,8 @@ def test_dual_route_requires_both_approval_types():
 def test_invalid_route_is_rejected():
     with pytest.raises(ValueError, match="approval mode"):
         strategy_governance.approval_route_satisfied(None, str(uuid.uuid4()), "invalid")
+
+
+def test_invalid_record_type_is_rejected():
+    with pytest.raises(ValueError, match="record type"):
+        strategy_governance.validate_link(None, str(uuid.uuid4()), "unknown", str(uuid.uuid4()))

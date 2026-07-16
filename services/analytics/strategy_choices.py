@@ -77,3 +77,14 @@ def approve_choice(conn, choice_id: str, approved_by_party_id: str) -> Dict[str,
             raise ValueError("only submitted choices can be approved")
         conn.commit()
         return _clean(row)
+
+
+def submit_choice(conn, choice_id: str) -> Dict[str, Any]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("UPDATE strategy_choice SET status = 'submitted', updated_at = NOW() WHERE id = %s::uuid AND status = 'draft' RETURNING *", (choice_id,))
+        row = cur.fetchone()
+        if not row:
+            conn.rollback()
+            raise ValueError("only draft choices can be submitted")
+        conn.commit()
+        return _clean(row)
