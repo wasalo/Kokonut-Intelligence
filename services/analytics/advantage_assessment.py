@@ -55,3 +55,37 @@ def list_advantages(conn, strategy_plan_id: str, *, status: Optional[str] = None
         else:
             cur.execute("SELECT * FROM strategy_advantage WHERE strategy_plan_id = %s::uuid ORDER BY defensibility_score DESC NULLS LAST", (strategy_plan_id,))
         return [_clean(row) for row in cur.fetchall()]
+
+
+def link_advantage(conn, advantage_id: str, entity_type: str, entity_id: str, relationship: str, *, strength: float = 50, rationale: Optional[str] = None, evidence: Optional[List[Any]] = None) -> Dict[str, Any]:
+    if entity_type not in ("capability", "process", "service", "value_stream", "strategy_choice", "investment"):
+        raise ValueError("invalid advantage link entity type")
+    if relationship not in ("required", "supports", "evidence", "funded_by"):
+        raise ValueError("invalid advantage link relationship")
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        if entity_type == "capability":
+            cur.execute("SELECT 1 FROM business_capability WHERE id = %s::uuid", (entity_id,))
+        elif entity_type == "strategy_choice":
+            cur.execute("SELECT 1 FROM strategy_choice WHERE id = %s::uuid", (entity_id,))
+        elif entity_type == "investment":
+            cur.execute("SELECT 1 FROM strategy_investment_case WHERE id = %s::uuid", (entity_id,))
+        else:
+            cur.execute("SELECT 1")
+        if not cur.fetchone():
+            conn.rollback()
+            raise ValueError("linked advantage entity not found")
+        cur.execute("""INSERT INTO strategy_advantage_link
+            (advantage_id, entity_type, entity_id, relationship, strength, rationale, evidence)
+            VALUES (%s::uuid, %s, %s::uuid, %s, %s, %s, %s::jsonb)
+            ON CONFLICT (advantage_id, entity_type, entity_id, relationship) DO UPDATE SET
+              strength = EXCLUDED.strength, rationale = EXCLUDED.rationale, evidence = EXCLUDED.evidence
+            RETURNING *""", (advantage_id, entity_type, entity_id, relationship, strength, rationale, json.dumps(evidence or [])))
+        row = _clean(cur.fetchone())
+        conn.commit()
+        return row
+
+
+def fit_dashboard(conn, strategy_plan_id: str) -> List[Dict[str, Any]]:
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT * FROM v_strategy_advantage_fit WHERE strategy_plan_id = %s::uuid ORDER BY defensibility_score DESC NULLS LAST", (strategy_plan_id,))
+        return [_clean(row) for row in cur.fetchall()]
