@@ -97,7 +97,7 @@ INSERT INTO pest_biology_reference (
     -- Nematodes
     ('root_knot_nematode', 'Meloidogyne incognita', 'Root-Knot Nematode', 'nematode',
      15.0, 35.0, NULL,
-     '[{"name":"juvenile","dd_start":0,"dd_end":NULL},{"name":"adult","dd_start":NULL,"dd_end":NULL}]',
+     '[{"name":"juvenile","dd_start":0,"dd_end":null},{"name":"adult","dd_start":null,"dd_end":null}]',
      '["tomato","beans","maize","cucurbits","vegetables"]',
      '[{"name":"Pasteuria penetrans","type":"pathogen","effectiveness":"moderate"},{"name":"Purpureocillium lilacinum","type":"pathogen","effectiveness":"low"}]',
      'Root galling reduces nutrient and water uptake; stunting, yellowing, wilting',
@@ -106,7 +106,7 @@ INSERT INTO pest_biology_reference (
     -- Fungal diseases
     ('late_blight', 'Phytophthora infestans', 'Late Blight', 'fungal',
      7.0, 30.0, NULL,
-     '[{"name":"infection","dd_start":0,"dd_end":NULL},{"name":"sporulation","dd_start":NULL,"dd_end":NULL}]',
+     '[{"name":"infection","dd_start":0,"dd_end":null},{"name":"sporulation","dd_start":null,"dd_end":null}]',
      '["tomato","potato"]',
      '[{"name":"Bacillus subtilis","type":"antagonist","effectiveness":"moderate"},{"name":"Trichoderma spp.","type":"antagonist","effectiveness":"moderate"}]',
      'Rapid leaf lesions, stem lesions, and fruit rot; can destroy entire crop in days under favorable conditions',
@@ -114,7 +114,7 @@ INSERT INTO pest_biology_reference (
 
     ('powdery_mildew', 'Erysiphe cichoracearum', 'Powdery Mildew', 'fungal',
      10.0, 35.0, NULL,
-     '[{"name":"infection","dd_start":0,"dd_end":NULL}]',
+     '[{"name":"infection","dd_start":0,"dd_end":null}]',
      '["cucurbits","tomato","beans","maize"]',
      '[{"name":"Ampelomyces quisqualis","type":"hyperparasite","effectiveness":"moderate"},{"name":"Bacillus pumilus","type":"antagonist","effectiveness":"moderate"}]',
      'White powdery leaf spots reduce photosynthesis; premature leaf drop',
@@ -122,7 +122,7 @@ INSERT INTO pest_biology_reference (
 
     ('rust_puccinia', 'Puccinia spp.', 'Rust', 'fungal',
      8.0, 30.0, NULL,
-     '[{"name":"infection","dd_start":0,"dd_end":NULL},{"name":"sporulation","dd_start":NULL,"dd_end":NULL}]',
+     '[{"name":"infection","dd_start":0,"dd_end":null},{"name":"sporulation","dd_start":null,"dd_end":null}]',
      '["maize","beans","coffee","wheat"]',
      '[{"name":"Ampelomyces quisqualis","type":"hyperparasite","effectiveness":"low"}]',
      'Pustules on leaves and stems reduce yield; severe infections cause premature death',
@@ -130,7 +130,7 @@ INSERT INTO pest_biology_reference (
 
     ('bacterial_wilt', 'Erwinia tracheiphila', 'Bacterial Wilt', 'bacterial',
      15.0, 35.0, NULL,
-     '[{"name":"incubation","dd_start":0,"dd_end":NULL}]',
+     '[{"name":"incubation","dd_start":0,"dd_end":null}]',
      '["cucurbits","banana","tomato"]',
      '[{"name":"Bacteriophages","type":"antagonist","effectiveness":"low"}]',
      'Bacteria block xylem causing rapid wilting; often fatal',
@@ -138,7 +138,7 @@ INSERT INTO pest_biology_reference (
 
     ('cassava_mosaic', 'Cassava Mosaic Virus', 'Cassava Mosaic Disease', 'viral',
      15.0, 35.0, NULL,
-     '[{"name":"incubation","dd_start":0,"dd_end":NULL}]',
+     '[{"name":"incubation","dd_start":0,"dd_end":null}]',
      '["cassava"]',
      '[{"name":"None (vector control only)","type":"none","effectiveness":"none"}]',
      'Mosaic pattern on leaves reduces photosynthesis; severe stunting and yield loss',
@@ -147,7 +147,7 @@ INSERT INTO pest_biology_reference (
     -- Weeds
     ('striga', 'Striga hermonthica', 'Witchweed', 'weed',
      18.0, 38.0, NULL,
-     '[{"name":"germination","dd_start":0,"dd_end":NULL},{"name":"attachment","dd_start":NULL,"dd_end":NULL}]',
+     '[{"name":"germination","dd_start":0,"dd_end":null},{"name":"attachment","dd_start":null,"dd_end":null}]',
      '["maize","sorghum","millet","rice"]',
      '[{"name":"Fusarium oxysporum","type":"pathogen","effectiveness":"moderate"},{"name":"Striga-specific herbicides","type":"chemical","effectiveness":"high"}]',
      'Parasitic weed attaches to roots causing stunting, yellowing, and severe yield loss',
@@ -155,7 +155,7 @@ INSERT INTO pest_biology_reference (
 
     ('parthenium', 'Parthenium hysterophorus', 'Parthenium Weed', 'weed',
      10.0, 40.0, NULL,
-     '[{"name":"germination","dd_start":0,"dd_end":NULL},{"name":"flowering","dd_start":NULL,"dd_end":NULL}]',
+     '[{"name":"germination","dd_start":0,"dd_end":null},{"name":"flowering","dd_start":null,"dd_end":null}]',
      '["maize","sorghum","cotton","vegetables"]',
      '[{"name":"Zygogramma bicolorata","type":"predator","effectiveness":"high"},{"name":"Prospalangia spp.","type":"parasitoid","effectiveness":"moderate"}]',
      'Aggressive invasive weed competing for nutrients, water, and light; allelopathic to crops',
@@ -163,7 +163,7 @@ INSERT INTO pest_biology_reference (
 
     -- Rodents
     ('field_rats', 'Rattus rattus', 'Black Rat', 'rodent',
-     NULL, NULL, NULL,
+     10.0, 35.0, NULL,
      '[]',
      '["maize","rice","cassava","stored grain"]',
      '[{"name":"Owls (Tyto alba)","type":"predator","effectiveness":"high"},{"name":"Mongooses","type":"predator","effectiveness":"moderate"}]',
@@ -189,7 +189,7 @@ INSERT INTO pest_biology_reference (
 
     ('termites', 'Macrotermes spp.', 'Termites', 'insect',
      15.0, 40.0, NULL,
-     '[{"name":"nymph","dd_start":0,"dd_end":NULL},{"name":"adult","dd_start":NULL,"dd_end":NULL}]',
+     '[{"name":"nymph","dd_start":0,"dd_end":null},{"name":"adult","dd_start":null,"dd_end":null}]',
      '["maize","sorghum","cassava","sugarcane","fruit_trees"]',
      '[{"name":"Entomopathogenic fungi (Metarhizium)","type":"pathogen","effectiveness":"moderate"}]',
      'Build mounds and feed on plant material; can cause complete crop loss in severe infestations',
@@ -213,7 +213,7 @@ INSERT INTO pest_biology_reference (
 
     ('maize_chlorotic_mottle', 'Maize Chlorotic Mottle Virus', 'Maize Chlorotic Mottle Virus', 'viral',
      15.0, 35.0, NULL,
-     '[{"name":"incubation","dd_start":0,"dd_end":NULL}]',
+     '[{"name":"incubation","dd_start":0,"dd_end":null}]',
      '["maize"]',
      '[{"name":"None (vector control only)","type":"none","effectiveness":"none"}]',
      'Chlorotic mottle on leaves; combined with Maize Lethal Necrosis causes 100% yield loss',
@@ -221,7 +221,7 @@ INSERT INTO pest_biology_reference (
 
     ('banana_xanthomonas', 'Xanthomonas campestris pv. musacearum', 'Xanthomonas Wilt', 'bacterial',
      18.0, 35.0, NULL,
-     '[{"name":"incubation","dd_start":0,"dd_end":NULL}]',
+     '[{"name":"incubation","dd_start":0,"dd_end":null}]',
      '["banana","enset"]',
      '[{"name":"None (sanitation only)","type":"none","effectiveness":"none"}]',
      'Wilting, yellowing, and rapid plant death; spread by contaminated tools and insects',
@@ -229,7 +229,7 @@ INSERT INTO pest_biology_reference (
 
     ('maize_streak', 'Maize Streak Virus', 'Maize Streak Disease', 'viral',
      12.0, 35.0, NULL,
-     '[{"name":"incubation","dd_start":0,"dd_end":NULL}]',
+     '[{"name":"incubation","dd_start":0,"dd_end":null}]',
      '["maize","sorghum","millet"]',
      '[{"name":"None (vector control only)","type":"none","effectiveness":"none"}]',
      'Chlorotic streaks on leaves reduce photosynthesis; severe infections cause stunting',

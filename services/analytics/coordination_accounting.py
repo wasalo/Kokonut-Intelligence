@@ -21,6 +21,85 @@ def record_contribution(*args, **kwargs) -> Dict[str, Any]:
     return add_contribution(*args, **kwargs)
 
 
+def assess_contribution_balance(alliance_id: str) -> Dict[str, Any]:
+    """Flag materially unequal delivered contributions without assigning reputation."""
+    with _conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT cp.party_id, COALESCE(SUM(cc.committed_value), 0) AS value,
+                      COUNT(*) AS record_count
+               FROM coordination_participant cp
+               LEFT JOIN coordination_contribution cc
+                 ON cc.participant_id = cp.id AND cc.status = 'delivered'
+               WHERE cp.alliance_id = %s::uuid AND cp.status IN ('active', 'paused', 'exited')
+               GROUP BY cp.party_id
+               ORDER BY value DESC""",
+            (alliance_id,),
+        )
+        rows = [dict(row) for row in cur.fetchall()]
+    values = [float(row["value"]) for row in rows]
+    positive = [value for value in values if value > 0]
+    ratio = (max(positive) / min(positive)) if positive and min(positive) else None
+    warning = bool(ratio is not None and ratio > 2) or any(value == 0 for value in values)
+    return {
+        "alliance_id": alliance_id,
+        "warning": warning,
+        "ratio": round(ratio, 4) if ratio is not None else None,
+        "threshold": 2.0,
+        "participants": rows,
+        "interpretation": "This is a review warning about contribution balance, not a reputation or ownership score.",
+    }
+
+
+def record_partner_event(
+    alliance_id: str,
+    event_type: str,
+    description: str,
+    *,
+    participant_id: Optional[str] = None,
+    severity: Optional[str] = None,
+    created_by_party_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    if event_type not in {"failure", "recovery", "substitution"}:
+        raise ValueError("invalid partner event type")
+    with _conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """INSERT INTO coordination_partner_event
+               (alliance_id, participant_id, event_type, description, severity, created_by_party_id)
+               VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s::uuid) RETURNING *""",
+            (alliance_id, participant_id, event_type, description, severity, created_by_party_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return _row(row) or {}
+
+
+def record_market_performance(
+    alliance_id: str,
+    outcome: str,
+    notes: str,
+    *,
+    market_order_id: Optional[str] = None,
+    performance_value: Optional[float] = None,
+    performance_unit: Optional[str] = None,
+    observed_by_party_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    if outcome not in {"on_time", "late", "fulfilled", "disputed", "cancelled"}:
+        raise ValueError("invalid market outcome")
+    if not notes.strip():
+        raise ValueError("market performance notes are required")
+    with _conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """INSERT INTO coordination_market_observation
+               (alliance_id, market_order_id, outcome, performance_value, performance_unit,
+                notes, observed_by_party_id)
+               VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s::uuid) RETURNING *""",
+            (alliance_id, market_order_id, outcome, performance_value, performance_unit, notes, observed_by_party_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        return _row(row) or {}
+
+
 def approve_benefit_distribution(
     benefit_id: str,
     approved_by_party_id: str,
@@ -193,6 +272,10 @@ def explain_coordination_health(alliance_id: str) -> Dict[str, Any]:
         contributions = dict(cur.fetchone())
         cur.execute("SELECT COUNT(*) AS delivered FROM coordination_contribution WHERE alliance_id = %s::uuid AND status = 'delivered' GROUP BY participant_id", (alliance_id,))
         contribution_distribution = [int(row["delivered"]) for row in cur.fetchall()]
+        cur.execute("SELECT COUNT(*) AS failures FROM coordination_partner_event WHERE alliance_id = %s::uuid AND event_type = 'failure' AND resolved_at IS NULL", (alliance_id,))
+        partner_failures = int(cur.fetchone()["failures"] or 0)
+        cur.execute("SELECT COUNT(*) AS total, COUNT(*) FILTER (WHERE outcome IN ('on_time', 'fulfilled')) AS successful FROM coordination_market_observation WHERE alliance_id = %s::uuid", (alliance_id,))
+        market_performance = dict(cur.fetchone())
         cur.execute("SELECT baseline_value, current_value FROM coordination_learning_link WHERE alliance_id = %s::uuid AND link_type = 'stakeholder_outcome' AND status = 'verified' AND baseline_value IS NOT NULL AND current_value IS NOT NULL", (alliance_id,))
         outcome_changes = [(float(row["baseline_value"]), float(row["current_value"])) for row in cur.fetchall()]
         cur.execute("SELECT EXTRACT(EPOCH FROM (MIN(lt.transitioned_at) - ca.created_at)) / 86400.0 AS days FROM coordination_alliance ca JOIN lifecycle_transition lt ON lt.entity_id = ca.id AND lt.entity_type = 'coordination_alliance' AND lt.to_status IN ('active', 'activation') WHERE ca.id = %s::uuid GROUP BY ca.created_at", (alliance_id,))
@@ -225,6 +308,8 @@ def explain_coordination_health(alliance_id: str) -> Dict[str, Any]:
             "stakeholder_outcome_improvement": _metric(sum(outcome_improvements) / len(outcome_improvements) if outcome_improvements else None, "percent", "Mean relative change from verified stakeholder-outcome baseline to current value across linked outcome records."),
             "dependency_concentration": _metric(dependency_hhi, "hhi", "Herfindahl-Hirschman concentration of delivered contribution records by participant; higher values indicate more concentration."),
             "partner_substitution_resilience": _metric((active_count / participant_total * 100) if participant_total else None, "percent", "Active participants divided by all recorded participants; this is a structural resilience signal, not a partner score.", active_count, participant_total),
+            "partner_failure_count": _metric(partner_failures, "events", "Unresolved partner failure events recorded for the alliance; this is a review signal, not a partner score."),
+            "market_performance_success_rate": _metric((int(market_performance["successful"] or 0) / int(market_performance["total"]) * 100) if market_performance["total"] else None, "percent", "On-time or fulfilled market observations divided by all recorded market observations.", int(market_performance["successful"] or 0), int(market_performance["total"] or 0)),
         },
     }
 

@@ -64,6 +64,7 @@ def create_alliance(
     work_item_id: Optional[str] = None,
     proxy_authority_id: Optional[str] = None,
     review_due_at: Optional[str] = None,
+    approval_quorum_required: int = 1,
     created_by_party_id: Optional[str] = None,
     evidence: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
@@ -75,6 +76,7 @@ def create_alliance(
         "cooperative_proposal_id": cooperative_proposal_id,
         "market_cycle": market_cycle, "work_item_id": work_item_id,
         "proxy_authority_id": proxy_authority_id, "review_due_at": review_due_at,
+        "approval_quorum_required": approval_quorum_required,
         "created_by_party_id": created_by_party_id, "evidence": evidence or [],
     })
 
@@ -101,11 +103,31 @@ def approve_alliance(alliance_id: str, approved_by_party_id: str, approval_basis
     with _conn() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(
+                """INSERT INTO coordination_approval (alliance_id, party_id, basis)
+                   VALUES (%s::uuid, %s::uuid, %s)
+                   ON CONFLICT (alliance_id, party_id) DO UPDATE
+                   SET approval_status = 'approved', basis = EXCLUDED.basis,
+                       created_at = NOW()""",
+                (alliance_id, approved_by_party_id, approval_basis),
+            )
+            cur.execute(
                 "UPDATE coordination_alliance SET status = 'approved', approved_by_party_id = %s::uuid, "
-                "approved_at = NOW(), approval_basis = %s WHERE id = %s::uuid RETURNING *",
+                "approved_at = NOW(), approval_basis = %s "
+                "WHERE id = %s::uuid AND status IN ('draft', 'proposed') "
+                "AND (SELECT COUNT(*) FROM coordination_approval WHERE alliance_id = coordination_alliance.id AND approval_status = 'approved') >= approval_quorum_required "
+                "RETURNING *",
                 (approved_by_party_id, approval_basis, alliance_id),
             )
             row = cur.fetchone()
+            if not row:
+                cur.execute("SELECT * FROM coordination_alliance WHERE id = %s::uuid", (alliance_id,))
+                row = cur.fetchone()
+                if row and row["status"] == "draft":
+                    cur.execute(
+                        "UPDATE coordination_alliance SET status = 'proposed' WHERE id = %s::uuid RETURNING *",
+                        (alliance_id,),
+                    )
+                    row = cur.fetchone()
             conn.commit()
             if not row:
                 raise ValueError("alliance not found")
@@ -161,21 +183,92 @@ def add_objective(alliance_id: str, title: str, description: str, objective_type
 
 
 def add_contribution(alliance_id: str, participant_id: str, contribution_type: str, description: str, *,
-                     committed_value: Optional[float] = None, value_unit: Optional[str] = None) -> Dict[str, Any]:
-    return _insert("coordination_contribution", {
+                     committed_value: Optional[float] = None, value_unit: Optional[str] = None,
+                     idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    values = {
         "alliance_id": alliance_id, "participant_id": participant_id,
         "contribution_type": contribution_type, "description": description,
         "committed_value": committed_value, "value_unit": value_unit,
-    })
+        "idempotency_key": idempotency_key,
+    }
+    return _insert_idempotent("coordination_contribution", values)
 
 
 def add_benefit(alliance_id: str, description: str, benefit_type: str, *, participant_id: Optional[str] = None,
-                expected_value: Optional[float] = None, value_unit: Optional[str] = None) -> Dict[str, Any]:
-    return _insert("coordination_benefit", {
+                expected_value: Optional[float] = None, value_unit: Optional[str] = None,
+                idempotency_key: Optional[str] = None) -> Dict[str, Any]:
+    values = {
         "alliance_id": alliance_id, "participant_id": participant_id,
         "benefit_type": benefit_type, "description": description,
         "expected_value": expected_value, "value_unit": value_unit,
-    })
+        "idempotency_key": idempotency_key,
+    }
+    return _insert_idempotent("coordination_benefit", values)
+
+
+def _insert_idempotent(table: str, values: Dict[str, Any]) -> Dict[str, Any]:
+    """Insert a coordination record once when a caller supplies an idempotency key."""
+    record_id = str(uuid_mod.uuid4())
+    values = {"id": record_id, **values}
+    columns = list(values)
+    placeholders = ["%s::jsonb" if column in {"evidence", "metadata"} else "%s" for column in columns]
+    params = [json.dumps(values[column]) if column in {"evidence", "metadata"} else values[column] for column in columns]
+    if values.get("idempotency_key") is None:
+        return _insert(table, {key: value for key, value in values.items() if key != "id"})
+    with _conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join(placeholders)}) "
+            "ON CONFLICT (alliance_id, idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING "
+            "RETURNING *",
+            params,
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.execute(
+                f"SELECT * FROM {table} WHERE alliance_id = %s::uuid AND idempotency_key = %s",
+                (values["alliance_id"], values["idempotency_key"]),
+            )
+            row = cur.fetchone()
+        conn.commit()
+        return _row(row) or {}
+
+
+def configure_fast_pilot(alliance_id: str, rollback_plan: str, reversible_until: str) -> Dict[str, Any]:
+    if not rollback_plan.strip() or not reversible_until:
+        raise ValueError("rollback_plan and reversible_until are required")
+    with _conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """UPDATE coordination_alliance
+               SET metadata = metadata || jsonb_build_object(
+                   'reversible_pilot', jsonb_build_object('rollback_plan', %s)),
+                   reversible_until = %s::timestamptz
+               WHERE id = %s::uuid AND market_cycle = 'fast'
+               RETURNING *""",
+            (rollback_plan, reversible_until, alliance_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("only fast-cycle alliances can be configured as reversible pilots")
+        return _row(row) or {}
+
+
+def link_shared_procurement(alliance_id: str, procurement_order_id: str) -> Dict[str, Any]:
+    with _conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT status FROM collective_market_order WHERE id = %s::uuid", (procurement_order_id,))
+        order = cur.fetchone()
+        if not order or order["status"] in {"completed", "cancelled"}:
+            raise ValueError("shared procurement order must exist and remain open")
+        cur.execute(
+            """UPDATE coordination_alliance SET shared_procurement_order_id = %s::uuid
+               WHERE id = %s::uuid AND market_cycle = 'standard' RETURNING *""",
+            (procurement_order_id, alliance_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("shared procurement is only available for standard-cycle alliances")
+        return _row(row) or {}
 
 
 def add_risk(alliance_id: str, risk_type: str, description: str, *, likelihood: Optional[float] = None,

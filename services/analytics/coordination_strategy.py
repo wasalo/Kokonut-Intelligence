@@ -147,16 +147,60 @@ def propose_remedy(
     })
 
 
-def publish_alliance(alliance_id: str, published_by_party_id: str, public_summary: str, limitations: str) -> Dict[str, Any]:
+def approve_remedy(remedy_id: str, approved_by_party_id: str) -> Dict[str, Any]:
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """UPDATE coordination_remedy SET status = 'approved', approved_by_party_id = %s::uuid,
+               approved_at = NOW() WHERE id = %s::uuid AND status = 'proposed'
+               RETURNING id, status""",
+            (approved_by_party_id, remedy_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("remedy not found or already transitioned")
+        return {"id": str(row[0]), "status": row[1]}
+
+
+def complete_remedy(remedy_id: str, completed_by_party_id: str, evidence: str) -> Dict[str, Any]:
+    if not evidence.strip():
+        raise ValueError("remedy completion evidence is required")
+    with _conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            """UPDATE coordination_remedy
+               SET status = 'completed', completed_by_party_id = %s::uuid,
+                   completed_at = NOW(), evidence = evidence || %s::jsonb
+               WHERE id = %s::uuid AND status IN ('approved', 'in_progress')
+               RETURNING id, status""",
+            (completed_by_party_id, json.dumps([{"type": "completion", "evidence": evidence}]), remedy_id),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        if not row:
+            raise ValueError("remedy must be approved or in progress before completion")
+        return {"id": str(row[0]), "status": row[1]}
+
+
+def publish_alliance(
+    alliance_id: str,
+    published_by_party_id: str,
+    public_summary: str,
+    limitations: str,
+    public_evidence: Optional[List[Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
     if not public_summary.strip() or not limitations.strip():
         raise ValueError("public summary and limitations are required")
+    evidence = public_evidence or []
+    if not any(item.get("verified") is True or item.get("status") in {"verified", "published"} for item in evidence):
+        raise ValueError("at least one verified public evidence item is required")
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(
             """UPDATE coordination_alliance
                SET publication_status = 'published', published_by_party_id = %s::uuid,
-                   published_at = NOW(), public_summary = %s, public_limitations = %s
+                   published_at = NOW(), public_summary = %s, public_evidence = %s::jsonb,
+                   public_limitations = %s
                WHERE id = %s::uuid RETURNING id, publication_status""",
-            (published_by_party_id, public_summary, limitations, alliance_id),
+            (published_by_party_id, public_summary, json.dumps(evidence), limitations, alliance_id),
         )
         row = cur.fetchone()
         conn.commit()
@@ -211,6 +255,21 @@ def review_and_renew(
         raise ValueError("invalid coordination review recommendation")
     with _conn() as conn, conn.cursor() as cur:
         cur.execute(
+            "SELECT COUNT(*) FROM coordination_partner_event WHERE alliance_id = %s::uuid AND event_type = 'failure' AND resolved_at IS NULL",
+            (alliance_id,),
+        )
+        unresolved_failures = cur.fetchone()[0]
+        cur.execute(
+            "SELECT COUNT(*) FROM coordination_market_observation WHERE alliance_id = %s::uuid AND outcome IN ('disputed', 'cancelled', 'late')",
+            (alliance_id,),
+        )
+        adverse_market_events = cur.fetchone()[0]
+        review_findings = findings
+        if unresolved_failures:
+            review_findings += "\nUnresolved partner failure events require substitution or remediation review."
+        if adverse_market_events:
+            review_findings += "\nAdverse market performance requires renewal safeguards."
+        cur.execute(
             """INSERT INTO coordination_review
                (alliance_id, period_start, period_end, reviewer_party_id,
                 participation_summary, benefit_summary, harm_and_risk_summary,
@@ -219,7 +278,7 @@ def review_and_renew(
                RETURNING id""",
             (alliance_id, period_start, period_end, reviewer_party_id,
              participation_summary, benefit_summary, harm_and_risk_summary,
-             findings, recommendation),
+             review_findings, recommendation),
         )
         review_id = cur.fetchone()[0]
         if recommendation in {"continue", "amend"}:
@@ -239,7 +298,7 @@ __all__ = [
     "activate_alliance", "activate_participant", "add_objective", "approve_alliance",
     "create_coordination_alliance", "explain_coordination_health", "get_coordination_health",
     "declare_conflict", "file_appeal", "link_learning_target", "list_alliances",
-    "manage_participant", "preserve_minority_view", "propose_remedy",
+    "manage_participant", "preserve_minority_view", "propose_remedy", "approve_remedy", "complete_remedy",
     "publish_alliance", "record_benefit_harm_analysis", "review_benefit_harm_analysis",
     "review_conflict_declaration", "review_and_renew", "suspend_alliance", "terminate_alliance",
 ]

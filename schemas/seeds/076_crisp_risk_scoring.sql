@@ -35,9 +35,4 @@ INSERT INTO farm_impact_mapping (location_id, framework_key, dimension_key, sdg_
 ('a0000000-0000-0000-0000-000000000001', 'crisp', 'crisp_evidence', NULL, NULL, NULL,
  'Evidence quality risk is reduced by source lineage, payload hashes, CIDs, and Celo attestation metadata.',
  'mrv_event + attestation_request', 'verified', '2025-2026', 'published', '{}'::jsonb)
-ON CONFLICT (location_id, framework_key, dimension_key) DO UPDATE SET
-    claim = EXCLUDED.claim,
-    evidence_path = EXCLUDED.evidence_path,
-    evidence_maturity = EXCLUDED.evidence_maturity,
-    status = EXCLUDED.status,
-    updated_at = NOW();
+ON CONFLICT DO NOTHING;

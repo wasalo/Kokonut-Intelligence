@@ -36,13 +36,15 @@ def build_parser(parser: argparse.ArgumentParser) -> None:
     create.add_argument("--work-item-id")
     create.add_argument("--proxy-authority-id")
     create.add_argument("--review-due-at")
+    create.add_argument("--approval-quorum", type=int, default=1)
     create.set_defaults(func=lambda a: _out(create_alliance(
         a.name, a.purpose, coordination_type=a.coordination_type, scope_type=a.scope_type,
         scope_id=a.scope_id, strategy_map_id=a.strategy_id, value_stream_id=a.value_stream_id,
         stakeholder_decision_id=a.stakeholder_decision_id, cooperative_proposal_id=a.cooperative_proposal_id,
         steward_party_id=a.steward_party_id, created_by_party_id=a.created_by_party_id,
         market_cycle=a.market_cycle, work_item_id=a.work_item_id,
-        proxy_authority_id=a.proxy_authority_id, review_due_at=a.review_due_at)))
+        proxy_authority_id=a.proxy_authority_id, review_due_at=a.review_due_at,
+         approval_quorum_required=a.approval_quorum)))
 
     listing = sub.add_parser("list", help="List alliances")
     listing.add_argument("--status")

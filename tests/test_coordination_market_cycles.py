@@ -2,7 +2,7 @@
 
 import pytest
 
-from services.analytics.coordination import create_alliance, list_alliances
+from services.analytics.coordination import configure_fast_pilot, create_alliance, list_alliances
 from services.ingestion.base import get_db
 
 
@@ -23,3 +23,16 @@ def test_alliance_types_preserve_legal_distinctions():
     for alliance_type in ("joint_venture", "equity_alliance", "nonequity_alliance"):
         assert alliance_type in schema
     assert "ownership" in schema.lower()
+
+
+def test_fast_cycle_requires_explicit_reversible_pilot_controls():
+    conn = get_db()
+    alliance = create_alliance("Fast pilot test", "Test reversible pilot", market_cycle="fast")
+    try:
+        configured = configure_fast_pilot(alliance["id"], "Restore prior procurement route", "2030-01-01T00:00:00Z")
+        assert configured["reversible_until"].startswith("2030-01-01")
+        assert configured["metadata"]["reversible_pilot"]["rollback_plan"] == "Restore prior procurement route"
+    finally:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM coordination_alliance WHERE id = %s::uuid", (alliance["id"],))
+        conn.commit()

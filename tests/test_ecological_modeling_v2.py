@@ -128,6 +128,18 @@ def test_v2_seed_has_adelphi_pilot_data() -> None:
     assert "pest_dynamics" in text
 
 
+def test_adelphi_ecological_seeds_use_canonical_plot_and_zone_ids() -> None:
+    for seed_path in (
+        Path("schemas/seeds/047_ecological_modeling_v2.sql"),
+        Path("schemas/seeds/050_remaining_gaps.sql"),
+        Path("schemas/seeds/052_final_gaps.sql"),
+    ):
+        text = seed_path.read_text()
+        assert "a0000000-0000-0000-0000-000000000015" not in text
+    assert "a0000000-0000-0000-0000-000000000020" in Path("schemas/seeds/047_ecological_modeling_v2.sql").read_text()
+    assert "a0000000-0000-0000-0000-000000000700" in Path("schemas/seeds/047_ecological_modeling_v2.sql").read_text()
+
+
 # ---------------------------------------------------------------------------
 # Phase 1: Analytics tests
 # ---------------------------------------------------------------------------

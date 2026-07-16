@@ -182,7 +182,8 @@ def schema_completeness_checks() -> List[Tuple[str, bool]]:
         "coordination_knowledge_exchange", "coordination_review", "coordination_learning_link",
         "coordination_metric_observation", "coordination_conflict_declaration",
         "coordination_benefit_harm_analysis", "coordination_minority_view",
-        "coordination_appeal", "coordination_remedy",
+        "coordination_appeal", "coordination_remedy", "coordination_approval",
+        "coordination_partner_event", "coordination_market_observation",
     ]
     values = ",".join(f"('{t}')" for t in critical_tables)
     sql = f"SELECT 'table:' || v, to_regclass('public.' || v) IS NOT NULL FROM (VALUES {values}) AS vs(v)"
