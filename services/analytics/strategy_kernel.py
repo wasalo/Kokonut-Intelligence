@@ -23,6 +23,8 @@ def create_strategy_plan(
     *, diagnosis_summary: str = "", guiding_policy: str = "", theory_of_change: Optional[str] = None,
     uncertainty_summary: Optional[str] = None, approval_mode: str = "governance_circle",
     visibility: str = "private", supersedes_plan_id: Optional[str] = None,
+    parent_strategy_plan_id: Optional[str] = None, cascade_mode: str = "independent",
+    cascade_rationale: Optional[str] = None,
 ) -> Dict[str, Any]:
     if scope_type not in SCOPES:
         raise ValueError(f"scope_type must be one of {SCOPES}")
@@ -45,12 +47,14 @@ def create_strategy_plan(
         version = cur.fetchone()["next_version"]
         cur.execute("""INSERT INTO strategy_plan
             (scope_type, scope_id, name, version, planning_horizon_start, planning_horizon_end,
-             diagnosis_summary, guiding_policy, theory_of_change, uncertainty_summary,
-             approval_mode, visibility, supersedes_plan_id, created_by_party_id)
-            VALUES (%s, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::uuid, %s::uuid)
+            diagnosis_summary, guiding_policy, theory_of_change, uncertainty_summary,
+            approval_mode, visibility, supersedes_plan_id, created_by_party_id,
+            parent_strategy_plan_id, cascade_mode, cascade_rationale)
+            VALUES (%s, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::uuid, %s::uuid, %s::uuid, %s, %s)
             RETURNING *""", (scope_type, scope_id, name, version, planning_horizon_start, planning_horizon_end,
                               diagnosis_summary, guiding_policy, theory_of_change, uncertainty_summary,
-                              approval_mode, visibility, supersedes_plan_id, created_by_party_id))
+                              approval_mode, visibility, supersedes_plan_id, created_by_party_id,
+                              parent_strategy_plan_id, cascade_mode, cascade_rationale))
         row = _clean(cur.fetchone())
         conn.commit()
         return row
