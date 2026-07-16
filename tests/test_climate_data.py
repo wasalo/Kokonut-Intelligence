@@ -104,13 +104,19 @@ def test_freshness_has_alert_channels() -> None:
     assert "email" in content or "ALERT_SMTP" in content
 
 
-def test_climate_data_inserts_all_tables() -> None:
-    content = Path("services/ingestion/climate_data.py").read_text()
-    assert "worldclim_climate" in content
-    assert "ncep_weather_summary" in content
-    assert "modis_lst_summary" in content
-    assert "smap_soil_moisture" in content
-    assert "sentinel1_sar_summary" in content
+def test_climate_data_pipeline_targets_all_tables() -> None:
+    entrypoint = Path("services/ingestion/climate_data.py").read_text()
+    gee_fetchers = Path("services/ingestion/gee_climate.py").read_text()
+
+    assert "worldclim_climate" in entrypoint
+    assert "return fetch_era5_land" in entrypoint
+    assert "return fetch_modis_lst" in entrypoint
+    assert "return fetch_smap_moisture" in entrypoint
+    assert "return fetch_sentinel1_sar" in entrypoint
+    assert "ncep_weather_summary" in gee_fetchers
+    assert "modis_lst_summary" in gee_fetchers
+    assert "smap_soil_moisture" in gee_fetchers
+    assert "sentinel1_sar_summary" in gee_fetchers
 
 
 def test_rs_job_schema_has_provider_constraint() -> None:
