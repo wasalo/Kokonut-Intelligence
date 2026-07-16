@@ -67,11 +67,23 @@ def cockpit(conn, organization_id: str) -> Dict[str, Any]:
         if plan_ids:
             cur.execute(
                 """
-                SELECT plan_id, category, period, planned_amount, actual_amount,
-                       currency, status
-                FROM budget_line
-                WHERE plan_id = ANY(%s)
-                ORDER BY plan_id, category, period
+                SELECT bl.plan_id, bl.category, bl.location_id,
+                       fp.period_start, fp.period_end,
+                       bl.amount AS planned_amount,
+                       COALESCE(SUM(ee.amount), 0) AS actual_amount,
+                       fp.currency, fp.status
+                FROM budget_line bl
+                JOIN financial_plan fp ON fp.id = bl.plan_id
+                LEFT JOIN expense_event ee
+                  ON ee.status = 'verified'
+                 AND ee.category = bl.category
+                 AND ee.expense_date BETWEEN fp.period_start AND fp.period_end
+                 AND (bl.location_id IS NULL OR ee.location_id = bl.location_id)
+                WHERE bl.plan_id = ANY(%s)
+                GROUP BY bl.plan_id, bl.category, bl.location_id,
+                         fp.period_start, fp.period_end, bl.amount,
+                         fp.currency, fp.status
+                ORDER BY bl.plan_id, bl.category, fp.period_start
                 """,
                 (plan_ids,),
             )
