@@ -4,6 +4,7 @@ import pytest
 
 from services.agents.safety import assess_agent_action
 from services.analytics import governance_cockpit
+from services.export.report_generator import REPORT_GENERATORS, generate_governance_coordination_health
 from services.ingestion.base import get_db
 from services.workflow_specs.registry import get_spec, load_builtin_specs
 
@@ -53,5 +54,9 @@ def test_adelphi_adjacent_circles_and_cockpit_exist():
         assert internal["active_circle_count"] >= 4
         assert public["active_circle_count"] >= 4
         assert "privacy_limitation" in public
+        assert "governance_coordination_health" in REPORT_GENERATORS
+        report = generate_governance_coordination_health(conn)
+        assert report["report_type"] == "governance_coordination_health"
+        assert "public_safe" in report
     finally:
         conn.close()
