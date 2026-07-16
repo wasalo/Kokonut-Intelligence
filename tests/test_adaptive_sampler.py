@@ -150,7 +150,7 @@ class TestAdaptiveSampler:
     def test_check_stability_returns_true_when_no_anomalies(self):
         """check_stability() returns True when no anomalies in threshold period."""
         sampler, mock_conn, mock_cursor = self._make_sampler()
-        mock_cursor.fetchone.return_value = {"anomaly_count": 0}
+        mock_cursor.fetchone.return_value = {"anomaly_count": 0, "observation_count": 10}
 
         result = sampler.check_stability(
             sensor_device_id="sensor-001",
@@ -164,7 +164,7 @@ class TestAdaptiveSampler:
     def test_check_stability_returns_false_when_anomalies(self):
         """check_stability() returns False when anomalies detected."""
         sampler, mock_conn, mock_cursor = self._make_sampler()
-        mock_cursor.fetchone.return_value = {"anomaly_count": 3}
+        mock_cursor.fetchone.return_value = {"anomaly_count": 3, "observation_count": 10}
 
         result = sampler.check_stability(
             sensor_device_id="sensor-001",

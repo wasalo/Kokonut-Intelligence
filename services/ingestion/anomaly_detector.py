@@ -805,12 +805,12 @@ def run_baseline_check():
             if not recent_readings:
                 continue
 
-            values = [float(r[1]) for r in recent_readings]
+            values = [float(r[2]) for r in recent_readings]
             avg_value = sum(values) / len(values)
             deviation = abs(avg_value - baseline_value) / abs(baseline_value)
 
             if deviation > DEVIATION_THRESHOLD:
-                sensor_id = str(recent_readings[0][0])
+                sensor_id = str(recent_readings[0][1])
                 direction = "above" if avg_value > baseline_value else "below"
 
                 with db.cursor() as cur:

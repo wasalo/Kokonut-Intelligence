@@ -287,21 +287,26 @@ class AdaptiveSampler:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         cur.execute("""
-            SELECT COUNT(*) as anomaly_count
-            FROM sensor_alert sa
-            JOIN sensor_device sd ON sd.id = sa.sensor_device_id
-            WHERE sd.id = %s AND sd.sensor_type = %s
-            AND sa.created_at > NOW() - INTERVAL '%s days'
-        """, (sensor_device_id, sensor_type, stable_threshold_days))
+            SELECT
+                (SELECT COUNT(*) FROM sensor_alert sa
+                 JOIN sensor_device sd ON sd.id = sa.sensor_device_id
+                 WHERE sd.id = %s AND sd.sensor_type = %s
+                   AND sa.created_at > NOW() - INTERVAL '%s days') AS anomaly_count,
+                (SELECT COUNT(*) FROM sensor_reading sr
+                 WHERE sr.sensor_id = %s
+                   AND sr.created_at > NOW() - INTERVAL '%s days') AS observation_count
+        """, (sensor_device_id, sensor_type, stable_threshold_days, sensor_device_id, stable_threshold_days))
 
         row = cur.fetchone()
         anomaly_count = row["anomaly_count"] if row else 0
+        observation_count = row.get("observation_count", 0) if row else 0
 
         cur.close()
 
         return {
-            "stable": anomaly_count == 0,
+            "stable": anomaly_count == 0 and observation_count > 0,
             "anomaly_count": anomaly_count,
+            "observation_count": observation_count,
             "threshold_days": stable_threshold_days,
         }
 

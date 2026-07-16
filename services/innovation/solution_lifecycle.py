@@ -66,6 +66,18 @@ def approve_gate(conn, gate_id: str, approved_by_party_id: str) -> Dict[str, Any
         return _clean(row)
 
 
+def evaluate_gate(conn, gate_id: str, passed: bool, evaluated_by_party_id: str, *, observed: Optional[dict[str, Any]] = None, evidence: Optional[list[Any]] = None) -> Dict[str, Any]:
+    if not evidence:
+        raise ValueError("solution gate evaluation requires evidence")
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("""INSERT INTO solution_gate_evaluation
+            (gate_id, passed, observed, evidence, evaluated_by_party_id)
+            VALUES (%s::uuid, %s, %s::jsonb, %s::jsonb, %s::uuid) RETURNING *""", (gate_id, passed, json.dumps(observed or {}), json.dumps(evidence), evaluated_by_party_id))
+        row = _clean(cur.fetchone())
+        conn.commit()
+        return row
+
+
 def transition(conn, solution_id: str, to_stage: str, actor_party_id: Optional[str] = None, *, approved_by_party_id: Optional[str] = None, rationale: str, evidence: Optional[list[Any]] = None, rollback_plan: Optional[str] = None) -> Dict[str, Any]:
     if to_stage not in STAGES:
         raise ValueError("invalid solution stage")
@@ -76,7 +88,10 @@ def transition(conn, solution_id: str, to_stage: str, actor_party_id: Optional[s
             conn.rollback()
             raise ValueError("solution not found")
         from_stage = solution["current_stage"]
-        cur.execute("SELECT * FROM solution_stage_gate WHERE solution_id = %s::uuid AND from_stage = %s AND to_stage = %s AND status = 'approved'", (solution_id, from_stage, to_stage))
+        cur.execute("""SELECT g.* FROM solution_stage_gate g
+            WHERE g.solution_id = %s::uuid AND g.from_stage = %s AND g.to_stage = %s AND g.status = 'approved'
+              AND (SELECT COUNT(*) FROM solution_gate_evaluation e WHERE e.gate_id = g.id AND e.passed = TRUE) >= g.minimum_evaluation_count
+            ORDER BY g.approved_at DESC LIMIT 1""", (solution_id, from_stage, to_stage))
         gate = cur.fetchone()
         if to_stage in PROMOTION_GATES and (not gate or not approved_by_party_id):
             conn.rollback()
