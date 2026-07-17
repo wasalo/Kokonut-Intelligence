@@ -32,8 +32,10 @@ check() {
     fi
 }
 
-# 1. Python imports
+# 1. Python runtime and imports
 echo "[1/8] Python import validation..."
+check "Supported Python runtime" "python3 $SCRIPT_DIR/check-python-runtime.py"
+check "FastAPI dependencies" "python3 -c 'import fastapi; from fastapi.testclient import TestClient; print(fastapi.__version__)'"
 check "Import services.ingestion.base" "python3 -c 'import services.ingestion.base'"
 check "Import services.forecast.engine" "python3 -c 'import services.forecast.engine'"
 check "Import services.forecast.cli" "python3 -c 'import services.forecast.cli'"

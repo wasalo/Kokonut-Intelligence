@@ -41,7 +41,7 @@ def create_scan(
         cur.execute(
             """INSERT INTO env_scan (location_id, title, scan_type, created_by)
                VALUES (%s, %s, %s, %s)
-               RETURN id, location_id, title, scan_type, current_step, status, created_at""",
+               RETURNING id, location_id, title, scan_type, current_step, status, created_at""",
             (location_id, title, scan_type, created_by),
         )
         scan = dict(cur.fetchone())
@@ -97,7 +97,7 @@ def update_step(
         cur.execute(
             f"""UPDATE env_scan_step SET {', '.join(updates)}
                 WHERE scan_id = %s AND step_number = %s
-                RETURN id, step_name, status, findings""",
+                RETURNING id, step_name, status, findings""",
             params,
         )
         row = cur.fetchone()
@@ -172,7 +172,7 @@ def complete_scan(conn, scan_id: str) -> Dict[str, Any]:
         cur.execute(
             """UPDATE env_scan SET status = 'completed', completed_steps = 5,
                updated_at = now() WHERE id = %s
-               RETURN id, title, status""",
+               RETURNING id, title, status""",
             (scan_id,),
         )
         row = cur.fetchone()

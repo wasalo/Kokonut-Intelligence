@@ -47,9 +47,12 @@ jobs:
         . .venv/bin/activate
         pip install --upgrade pip
         pip install -r requirements.txt
+        python scripts/check-python-runtime.py
+        python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
         export PG_HOST=localhost PG_PORT=5432 CH_HOST=localhost CH_PORT=8123
         export KOKONUT_METRICS_EXECUTION=host
         ./scripts/ci-check.sh
+        ./scripts/verify-full-test-suite.sh
     useTTY: false
     condition: SUCCESSFUL
     optional: false

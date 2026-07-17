@@ -15,6 +15,8 @@ import subprocess
 import sys
 from typing import List, Tuple
 
+import pytest
+
 
 PILOT_LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
 
@@ -443,7 +445,7 @@ def all_checks() -> List[Tuple[str, bool]]:
     return results
 
 
-def test_platform_done() -> List[Tuple[str, bool]]:
+def run_platform_done() -> List[Tuple[str, bool]]:
     if not database_running():
         print("  ⚠ Database service not running — skipping platform verifier")
         return []
@@ -460,9 +462,21 @@ def test_platform_done() -> List[Tuple[str, bool]]:
         print("\nFailed checks:")
         for name in failures:
             print(f"  - {name}")
-        sys.exit(1)
-    print("\n  All platform checks passed ✓")
+    else:
+        print("\n  All platform checks passed ✓")
+    return results
+
+
+def test_platform_done() -> None:
+    if not database_running():
+        pytest.skip("Database service not running")
+
+    results = run_platform_done()
+    failures = [name for name, ok in results if not ok]
+    assert not failures, f"Platform checks failed: {', '.join(failures)}"
 
 
 if __name__ == "__main__":
-    test_platform_done()
+    results = run_platform_done()
+    if results and any(not ok for _, ok in results):
+        sys.exit(1)

@@ -10,7 +10,7 @@ from services.export import business_plan as bp
 def _db():
     try:
         return get_db()
-    except Exception as exc:  # pragma: no cover - depends on environment
+    except psycopg2.OperationalError as exc:  # pragma: no cover - depends on environment
         pytest.skip(f"no database available: {exc}")
 
 
@@ -39,8 +39,6 @@ def test_generate_location_grain():
                     "financial_plan", "operational_flow", "swot",
                     "executive_summary"):
             assert key in plan
-    except psycopg2.ProgrammingError:
-        pytest.skip("business-plan source tables not present (migration not applied)")
     finally:
         conn.close()
 
@@ -54,7 +52,5 @@ def test_generate_org_grain():
         plan = bp.generate_business_plan(conn, org_id=org)
         assert plan["meta"]["grain"] == "organization"
         assert "executive_summary" in plan
-    except psycopg2.ProgrammingError:
-        pytest.skip("business-plan source tables not present (migration not applied)")
     finally:
         conn.close()

@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import psycopg2
 
 SCHEMA = Path("schemas/postgres/205_publics_market_segmentation.sql")
 
@@ -14,7 +15,7 @@ def _db():
     try:
         from services.ingestion.base import get_db
         return get_db()
-    except Exception as exc:
+    except psycopg2.OperationalError as exc:
         pytest.skip(f"no database available: {exc}")
 
 
@@ -141,9 +142,6 @@ def test_add_and_list_publics():
         assert created["influence_score"] == 8.0
         rows = publics.list_publics(conn, loc)
         assert any(str(r["id"]) == str(created["id"]) for r in rows)
-    except Exception:
-        conn.rollback()
-        pytest.skip("stakeholder_public table not present")
     finally:
         conn.close()
 
@@ -162,9 +160,6 @@ def test_create_segment():
         assert created["name"] == "Organic Buyers"
         rows = publics.list_segments(conn, loc)
         assert any(str(r["id"]) == str(created["id"]) for r in rows)
-    except Exception:
-        conn.rollback()
-        pytest.skip("market_segment table not present")
     finally:
         conn.close()
 
@@ -181,9 +176,6 @@ def test_suggest_returns_dict():
         assert "segments" in result
         assert isinstance(result["publics"], list)
         assert isinstance(result["segments"], list)
-    except Exception:
-        conn.rollback()
-        pytest.skip("suggest failed")
     finally:
         conn.close()
 

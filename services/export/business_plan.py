@@ -152,26 +152,32 @@ def generate_business_plan(
     # Read-only analysis: autocommit keeps a failed query from poisoning
     # later sections (no aborted-transaction propagation).
     prev_autocommit = conn.autocommit
+    if not prev_autocommit:
+        # psycopg2 cannot change session settings while a caller-owned read
+        # transaction is open (for example after selecting the scope id).
+        conn.rollback()
     conn.autocommit = True
-    grain = "location" if location_id else "organization"
+    try:
+        grain = "location" if location_id else "organization"
 
-    plan = {
-        "meta": {
-            "grain": grain,
-            "org_id": org_id,
-            "location_id": location_id,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-        },
-        "market_analysis": _section(conn, lambda: _market(conn, org_id, location_id)),
-        "management_governance": _section(conn, lambda: _management(conn, org_id, location_id)),
-        "financial_plan": _section(conn, lambda: _financial(conn, org_id, location_id)),
-        "operational_flow": _section(conn, lambda: _flow(conn, org_id, location_id)),
-        "swot": _section(conn, lambda: _swot(conn, org_id, location_id)),
-        "strategy_kernel": _section(conn, lambda: _strategy(conn, org_id, location_id)),
-    }
-    plan["executive_summary"] = _summarize(plan)
-    conn.autocommit = prev_autocommit
-    return plan
+        plan = {
+            "meta": {
+                "grain": grain,
+                "org_id": org_id,
+                "location_id": location_id,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            "market_analysis": _section(conn, lambda: _market(conn, org_id, location_id)),
+            "management_governance": _section(conn, lambda: _management(conn, org_id, location_id)),
+            "financial_plan": _section(conn, lambda: _financial(conn, org_id, location_id)),
+            "operational_flow": _section(conn, lambda: _flow(conn, org_id, location_id)),
+            "swot": _section(conn, lambda: _swot(conn, org_id, location_id)),
+            "strategy_kernel": _section(conn, lambda: _strategy(conn, org_id, location_id)),
+        }
+        plan["executive_summary"] = _summarize(plan)
+        return plan
+    finally:
+        conn.autocommit = prev_autocommit
 
 
 def _summarize(plan: Dict[str, Any]) -> str:

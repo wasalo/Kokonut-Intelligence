@@ -2,10 +2,12 @@
 
 import json
 import uuid
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import psycopg2
 
 SCHEMA = Path("schemas/postgres/204_regional_readiness.sql")
 
@@ -14,7 +16,7 @@ def _db():
     try:
         from services.ingestion.base import get_db
         return get_db()
-    except Exception as exc:
+    except psycopg2.OperationalError as exc:
         pytest.skip(f"no database available: {exc}")
 
 
@@ -23,6 +25,11 @@ def _location(conn):
         cur.execute("SELECT id FROM location LIMIT 1")
         row = cur.fetchone()
     return str(row[0]) if row else None
+
+
+def _period():
+    start = date(2090, 1, 1) + timedelta(days=uuid.uuid4().int % 30000)
+    return start.isoformat(), (start + timedelta(days=180)).isoformat()
 
 
 # --- Module shape ---
@@ -207,14 +214,12 @@ def test_create_and_list_assessments():
         pytest.skip("no location row available")
     try:
         from services.analytics import regional_readiness
-        created = regional_readiness.create_assessment(conn, loc, "Test Regional", "2026-01-01", "2026-06-30")
+        period_start, period_end = _period()
+        created = regional_readiness.create_assessment(conn, loc, "Test Regional", period_start, period_end)
         assert created["title"] == "Test Regional"
         assert created["status"] == "draft"
         rows = regional_readiness.list_assessments(conn, loc)
         assert any(str(r["id"]) == str(created["id"]) for r in rows)
-    except Exception:
-        conn.rollback()
-        pytest.skip("regional_assessment table not present")
     finally:
         conn.close()
 
@@ -226,15 +231,16 @@ def test_compute_composite():
         pytest.skip("no location row available")
     try:
         from services.analytics import regional_readiness
-        assessment = regional_readiness.create_assessment(conn, loc, "Compute Test", "2026-01-01", "2026-06-30")
+        period_start, period_end = _period()
+        assessment = regional_readiness.create_assessment(conn, loc, "Compute Test", period_start, period_end)
         result = regional_readiness.compute_composite(conn, assessment["id"])
         assert "composite_score" in result
         assert "rating" in result
         assert result["rating"] in ("A+", "A", "B", "C", "D")
         assert len(result["dimensions"]) == 6
-    except Exception:
-        conn.rollback()
-        pytest.skip("compute failed (tables not present)")
+        # The second computation exercises the migration-backed upsert key.
+        second = regional_readiness.compute_composite(conn, assessment["id"])
+        assert len(second["dimensions"]) == 6
     finally:
         conn.close()
 
@@ -254,9 +260,6 @@ def test_gather_evidence_returns_all_keys():
         assert "natural_capital" in evidence
         assert "policy_environment" in evidence
         assert "human_capital" in evidence
-    except Exception:
-        conn.rollback()
-        pytest.skip("evidence gathering failed")
     finally:
         conn.close()
 
