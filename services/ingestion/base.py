@@ -10,6 +10,7 @@ import json
 import random
 import time
 import functools
+import re
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -26,6 +27,8 @@ from .config import (
 )
 
 logger = get_logger("ingestion.base")
+
+_CH_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 # Transient exception types that warrant retry
 TRANSIENT_EXCEPTIONS = (
@@ -60,6 +63,61 @@ def get_clickhouse():
         )
     except ImportError:
         return None
+
+
+def _validate_ch_identifiers(table: str, columns: list[str]) -> None:
+    """Allow only static ClickHouse identifiers in generated SQL."""
+    if not _CH_IDENTIFIER_RE.fullmatch(table) or any(
+        not _CH_IDENTIFIER_RE.fullmatch(column) for column in columns
+    ):
+        raise ValueError("Invalid ClickHouse table or column identifier")
+
+
+def insert_clickhouse_rows(table: str, columns: list[str], rows: list[list]) -> bool:
+    """Insert rows through clickhouse-connect and always release the client."""
+    if not rows:
+        return True
+    _validate_ch_identifiers(table, columns)
+    client = get_clickhouse()
+    if client is None:
+        logger.warning("ClickHouse client unavailable — skipping %s insert", table)
+        return False
+    try:
+        client.insert(table, rows, column_names=columns)
+        return True
+    finally:
+        close = getattr(client, "close", None)
+        if close:
+            close()
+
+
+def post_clickhouse_rows(table: str, columns: list[str], rows: list[list]) -> bool:
+    """Insert HTTP rows as JSONEachRow; values are never interpolated into SQL."""
+    if not rows:
+        return True
+    _validate_ch_identifiers(table, columns)
+    import requests
+    from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+
+    query = f"INSERT INTO {table} ({', '.join(columns)}) FORMAT JSONEachRow"
+    payload = "\n".join(
+        json.dumps(dict(zip(columns, row)), default=str) for row in rows
+    )
+    response = None
+    try:
+        response = requests.post(
+            f"http://{CH_HOST}:{CH_PORT}",
+            params={"query": query},
+            data=payload.encode("utf-8"),
+            auth=(CH_USER, CH_PASSWORD),
+            headers={"Content-Type": "application/x-ndjson"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        return True
+    finally:
+        if response is not None:
+            response.close()
 
 
 def hash_payload(data: Any) -> str:

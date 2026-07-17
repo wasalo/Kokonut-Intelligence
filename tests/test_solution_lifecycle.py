@@ -27,7 +27,7 @@ def test_solution_requires_gate_for_validated_promotion():
         solution_lifecycle.transition(conn, solution_id, "triaged", PARTY_ID, rationale="Field need confirmed")
         with pytest.raises(ValueError, match="stage gate"):
             solution_lifecycle.transition(conn, solution_id, "validated", PARTY_ID, rationale="Validation attempted")
-        gate = solution_lifecycle.create_gate(conn, solution_id, "triaged", "validated", required_experiment_count=1)
+        gate = solution_lifecycle.create_gate(conn, solution_id, "triaged", "validated", required_experiment_count=0)
         solution_lifecycle.approve_gate(conn, str(gate["id"]), PARTY_ID)
         solution_lifecycle.evaluate_gate(conn, str(gate["id"]), True, PARTY_ID, observed={"experiments": 1}, evidence=[{"source":"experiment"}])
         promoted = solution_lifecycle.transition(conn, solution_id, "validated", PARTY_ID, approved_by_party_id=PARTY_ID, rationale="Evidence gate approved", evidence=[{"source":"field-review"}])

@@ -60,32 +60,46 @@ class FeedbackController:
         Returns:
             The outcome record ID.
         """
+        if outcome_type not in {
+            "effective", "partially_effective", "ineffective", "no_effect",
+            "counterproductive", "unknown",
+        }:
+            raise ValueError(f"Unsupported outcome_type: {outcome_type}")
+        if confidence not in {"high", "moderate", "low", "insufficient_evidence"}:
+            raise ValueError(f"Unsupported confidence: {confidence}")
+        if measurement_period_hours < 0:
+            raise ValueError("measurement_period_hours must be non-negative")
+
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         outcome_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
 
-        cur.execute("""
-            INSERT INTO action_outcome (
-                id, action_type, action_source, action_source_id,
+        try:
+            cur.execute("""
+                INSERT INTO action_outcome (
+                    id, action_type, action_source, action_source_id,
+                    location_id, correlation_id, decision_id,
+                    outcome_type, outcome_evidence, measured_delta,
+                    measurement_period_hours, measured_at, measured_by,
+                    confidence, feedback_applied, metadata
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'system', %s, FALSE, '{}')
+            """, (
+                outcome_id, action_type, action_source, action_source_id,
                 location_id, correlation_id, decision_id,
-                outcome_type, outcome_evidence, measured_delta,
-                measurement_period_hours, measured_at, measured_by,
-                confidence, feedback_applied, metadata
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'system', %s, FALSE, '{}')
-        """, (
-            outcome_id, action_type, action_source, action_source_id,
-            location_id, correlation_id, decision_id,
-            outcome_type,
-            psycopg2.extras.Json(outcome_evidence or {}),
-            psycopg2.extras.Json(measured_delta or {}),
-            measurement_period_hours, now, confidence,
-        ))
-
-        conn.commit()
-        cur.close()
-        return outcome_id
+                outcome_type,
+                psycopg2.extras.Json(outcome_evidence or {}),
+                psycopg2.extras.Json(measured_delta or {}),
+                measurement_period_hours, now, confidence,
+            ))
+            conn.commit()
+            return outcome_id
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
 
     def evaluate_outcomes(
         self,
@@ -104,7 +118,14 @@ class FeedbackController:
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        conditions = ["ao.feedback_applied = FALSE"]
+        if since_hours < 0:
+            raise ValueError("since_hours must be non-negative")
+
+        conditions = [
+            "ao.feedback_applied = FALSE",
+            "NOT EXISTS (SELECT 1 FROM feedback_loop fl "
+            "WHERE fl.source_outcome_id = ao.id)",
+        ]
         params = []
 
         if location_id:
@@ -123,9 +144,9 @@ class FeedbackController:
             LEFT JOIN decision_log dl ON dl.id = ao.decision_id
             LEFT JOIN decision_policy dp ON dp.id = dl.policy_id
             WHERE {where_clause}
-            AND ao.measured_at > NOW() - INTERVAL '{since_hours} hours'
+            AND ao.measured_at > NOW() - (%s * INTERVAL '1 hour')
             ORDER BY ao.measured_at DESC
-        """, params)
+        """, params + [since_hours])
 
         outcomes = [dict(r) for r in cur.fetchall()]
         cur.close()
@@ -149,7 +170,7 @@ class FeedbackController:
         new_value: Any,
         adjustment_reason: str,
         adjustment_magnitude: float = 0.0,
-        applied_by: str = "system",
+        applied_by: Optional[str] = None,
     ) -> str:
         """Apply adaptive feedback based on an outcome.
 
@@ -168,43 +189,85 @@ class FeedbackController:
         Returns:
             The feedback loop record ID.
         """
+        if not applied_by or applied_by == "system":
+            raise ValueError("Feedback application requires an explicit human approver")
+        if target_entity != "adaptive_threshold" or target_field != "current_value":
+            raise ValueError("Unsupported feedback target; refusing a no-op mutation")
+        if target_entity_id is None or not isinstance(new_value, dict):
+            raise ValueError("A threshold ID and JSON object new_value are required")
+
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         feedback_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
 
-        # Get current value
-        previous_value = self._get_current_value(
-            cur, target_entity, target_entity_id, target_field
-        )
+        try:
+            previous_value = self._get_current_value(
+                cur, target_entity, target_entity_id, target_field
+            )
+            if previous_value is None:
+                raise ValueError("Feedback target does not exist")
 
-        cur.execute("""
-            INSERT INTO feedback_loop (
-                id, loop_type, source_outcome_id, target_entity,
-                target_entity_id, target_field, previous_value,
-                new_value, adjustment_reason, adjustment_magnitude,
-                status, applied_at, applied_by, created_at, updated_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'applied', %s, %s, %s, %s)
-        """, (
-            feedback_id, feedback_type, outcome_id, target_entity,
-            target_entity_id, target_field,
-            psycopg2.extras.Json(previous_value) if previous_value else None,
-            psycopg2.extras.Json(new_value),
-            adjustment_reason, adjustment_magnitude,
-            now, applied_by, now, now,
-        ))
+            cur.execute("""
+                UPDATE adaptive_threshold
+                SET current_value = %s, last_adjusted_at = %s,
+                    adjustment_count = adjustment_count + 1, updated_at = %s
+                WHERE id = %s
+            """, (psycopg2.extras.Json(new_value), now, now, target_entity_id))
+            if cur.rowcount != 1:
+                raise ValueError("Feedback target disappeared before mutation")
 
-        # Mark outcome as feedback applied
-        cur.execute("""
-            UPDATE action_outcome
-            SET feedback_applied = TRUE, feedback_applied_at = %s
-            WHERE id = %s
-        """, (now, outcome_id))
+            cur.execute("""
+                SELECT id FROM feedback_loop
+                WHERE source_outcome_id = %s AND status = 'proposed'
+                FOR UPDATE
+            """, (outcome_id,))
+            proposal = cur.fetchone()
+            if proposal and proposal.get("id"):
+                cur.execute("""
+                    UPDATE feedback_loop
+                    SET target_entity_id = %s, previous_value = %s,
+                        new_value = %s, adjustment_reason = %s,
+                        adjustment_magnitude = %s, status = 'applied',
+                        applied_at = %s, applied_by = %s, updated_at = %s
+                    WHERE id = %s
+                """, (
+                    target_entity_id, psycopg2.extras.Json(previous_value),
+                    psycopg2.extras.Json(new_value), adjustment_reason,
+                    adjustment_magnitude, now, applied_by, now, proposal["id"],
+                ))
+            else:
+                cur.execute("""
+                    INSERT INTO feedback_loop (
+                        id, loop_type, source_outcome_id, target_entity,
+                        target_entity_id, target_field, previous_value,
+                        new_value, adjustment_reason, adjustment_magnitude,
+                        status, applied_at, applied_by, created_at, updated_at
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'applied', %s, %s, %s, %s)
+                """, (
+                    feedback_id, feedback_type, outcome_id, target_entity,
+                    target_entity_id, target_field,
+                    psycopg2.extras.Json(previous_value), psycopg2.extras.Json(new_value),
+                    adjustment_reason, adjustment_magnitude,
+                    now, applied_by, now, now,
+                ))
 
-        conn.commit()
-        cur.close()
-        return feedback_id
+            cur.execute("""
+                UPDATE action_outcome
+                SET feedback_applied = TRUE, feedback_applied_at = %s
+                WHERE id = %s AND feedback_applied = FALSE
+            """, (now, outcome_id))
+            if cur.rowcount != 1:
+                raise ValueError("Outcome does not exist or feedback was already applied")
+
+            conn.commit()
+            return feedback_id
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            cur.close()
 
     def list_adaptive_thresholds(
         self,
@@ -351,7 +414,7 @@ class FeedbackController:
                 (target_entity_id,),
             )
             row = cur.fetchone()
-            return dict(row) if row else None
+            return dict(row).get(target_field) if row else None
 
         return None
 

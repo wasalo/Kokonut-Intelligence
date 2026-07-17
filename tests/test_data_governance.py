@@ -24,6 +24,7 @@ from services.analytics.data_governance import (
     create_sharing_agreement,
     get_sharing_agreements,
     set_retention_policy,
+    enforce_retention_policies,
     get_governance_summary,
 )
 
@@ -239,7 +240,8 @@ class TestFulfillPortability(unittest.TestCase):
     def test_fulfill_portability_updates_status(self):
         result = fulfill_portability(
             self.conn, "req-001", file_path="/tmp/export.csv",
-            record_count=150,
+            record_count=150, owner_id="F001", fulfilled_by="operator-1",
+            authorization_ref="AUTH-001",
         )
         self.assertEqual(result["request_id"], "req-001")
         self.assertEqual(result["status"], "ready")
@@ -250,6 +252,24 @@ class TestFulfillPortability(unittest.TestCase):
         self.mock_cursor.fetchone.return_value = None
         result = fulfill_portability(self.conn, "bad-id")
         self.assertIn("error", result)
+
+    def test_fulfill_portability_requires_authorization_context(self):
+        result = fulfill_portability(self.conn, "req-001")
+        self.assertIn("authorization", result["error"])
+
+
+class TestPortabilityAuthorization(unittest.TestCase):
+    def test_non_owner_request_requires_authorization_reference(self):
+        conn = MagicMock()
+        result = request_portability(conn, "F001", requested_by="operator-1")
+        self.assertIn("authorization", result["error"])
+        conn.cursor.assert_not_called()
+
+    def test_non_owner_listing_is_rejected(self):
+        conn = MagicMock()
+        result = get_portability_requests(conn, "F001", actor_id="operator-1")
+        self.assertIn("owner", result["error"])
+        conn.cursor.assert_not_called()
 
 
 class TestGetPortabilityRequests(unittest.TestCase):
@@ -274,14 +294,14 @@ class TestGetPortabilityRequests(unittest.TestCase):
              datetime(2026, 7, 1, tzinfo=timezone.utc),
              None, None, "/tmp/export.csv", 150, 1024, ["findable", "accessible"]),
         ]
-        result = get_portability_requests(self.conn, "F001")
+        result = get_portability_requests(self.conn, "F001", actor_id="F001")
         self.assertEqual(result["farmer_id"], "F001")
         self.assertEqual(result["total"], 1)
         self.assertEqual(result["requests"][0]["status"], "ready")
 
     def test_get_portability_requests_empty(self):
         self.mock_cursor.fetchall.return_value = []
-        result = get_portability_requests(self.conn, "F999")
+        result = get_portability_requests(self.conn, "F999", actor_id="F999")
         self.assertEqual(result["total"], 0)
 
 
@@ -368,6 +388,24 @@ class TestSetRetentionPolicy(unittest.TestCase):
         set_retention_policy(self.conn, "soil", 2555)
         self.conn.commit.assert_called_once()
         self.mock_cursor.close.assert_called_once()
+
+
+class TestRetentionSweep(unittest.TestCase):
+    def test_sweep_records_legal_hold_as_skipped(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [
+            ("pol-001", "soil", "soil_sample", None, 2555, "soft_delete", True, True, "active"),
+        ]
+
+        result = enforce_retention_policies(conn, "operator-1")
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["policies"][0]["status"], "skipped")
+        self.assertEqual(result["policies"][0]["affected"], 0)
+        conn.commit.assert_called_once()
+        self.assertTrue(any("data_retention_enforcement_log" in call.args[0] for call in cursor.execute.call_args_list))
 
 
 class TestGetGovernanceSummary(unittest.TestCase):

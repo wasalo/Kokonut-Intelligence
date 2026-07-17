@@ -3,6 +3,7 @@
 from pathlib import Path
 
 SCHEMA = Path("schemas/postgres/077_telemetry_infrastructure.sql")
+SEED = Path("schemas/seeds/077_telemetry_infrastructure.sql")
 
 
 def test_schema_file_exists() -> None:
@@ -64,7 +65,7 @@ def test_determine_status_boundary_stale_critical() -> None:
 
 
 def test_freshness_config_defaults() -> None:
-    content = SCHEMA.read_text()
+    content = SEED.read_text()
     # Check that default SLAs are seeded
     assert "weather" in content
     assert "sensors" in content

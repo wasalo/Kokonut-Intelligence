@@ -10,8 +10,8 @@ unknown route -------------------------------> protected by default
 ## Run And Check
 
 ```bash
-python3 -m services.gateway --serve --port 8099
-python3 -m services.gateway --health
+python3 -m services.gateway.cli --serve --port 8099
+python3 -m services.gateway.cli --health
 curl http://localhost:8099/health
 ```
 

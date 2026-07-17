@@ -34,7 +34,7 @@ def create_revenue_stream(
                 location_id, stream_name, stream_type, product_service,
                 description, currency, estimated_annual_usd, created_by
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id, stream_name, stream_type, status
+            RETURNING id, stream_name, stream_type, is_active
             """,
             (
                 location_id, stream_name, stream_type, product_service,

@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ..common.logging import get_logger
-from .base import log_ingestion, hash_payload
+from .base import log_ingestion, hash_payload, post_clickhouse_rows
 
 logger = get_logger("ingestion.gee_remote_sensing")
 
@@ -232,6 +232,7 @@ def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
         "observation_date": now.strftime("%Y-%m-%d"),
         "source": "sentinel-2",
         "source_system": "gee_api",
+        "source_id": f"{job.get('id')}:{now.strftime('%Y-%m-%d')}",
         "cloud_cover_pct": cloud_max,
         **bands,
         **indices,
@@ -248,18 +249,19 @@ def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
 
     # Insert into ClickHouse
     record["id"] = pg_id
-    _insert_ch(record)
+    if not record.get("_duplicate"):
+        _insert_ch(record)
 
     log_ingestion(
         source_system="gee_api",
         source_table="sentinel2",
-        source_id=f"median_composite_{image_count}_images",
+        source_id=record["source_id"],
         target_table="remote_sensing_observation",
         target_id=pg_id,
         operation="insert",
         payload_hash=hash_payload(record),
         status="success",
-        rows_affected=1,
+        rows_affected=0 if record.get("_duplicate") else 1,
     )
 
     return {"status": "success", "observations": 1, "pg_id": pg_id, "bands": len(bands), "indices": len(indices)}
@@ -284,9 +286,10 @@ def _insert_pg(conn, record: dict) -> str:
              satvi, bsi, nbr2, ndti, lswi,
              brightness_index, tc_brightness, tc_greenness, tc_wetness,
              band_blue, band_green, band_red, band_nir, band_swir1, band_swir2,
-             cloud_cover_pct, source_system, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-        RETURNING id
+         cloud_cover_pct, source_system, source_id, metadata)
+         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+         ON CONFLICT (source_system, source_id) WHERE source_id IS NOT NULL DO NOTHING
+         RETURNING id
         """,
         (
             record.get("plot_id"), record.get("location_id"),
@@ -305,10 +308,20 @@ def _insert_pg(conn, record: dict) -> str:
             record.get("band_swir1"), record.get("band_swir2"),
             record.get("cloud_cover_pct"),
             record.get("source_system", "gee_api"),
+            record.get("source_id"),
             record.get("metadata", "{}"),
         ),
     )
-    record_id = str(cur.fetchone()[0])
+    row = cur.fetchone()
+    if row:
+        record_id = str(row[0])
+    else:
+        record["_duplicate"] = True
+        cur.execute(
+            "SELECT id FROM remote_sensing_observation WHERE source_system = %s AND source_id = %s",
+            (record.get("source_system", "gee_api"), record["source_id"]),
+        )
+        record_id = str(cur.fetchone()[0])
     conn.commit()
     cur.close()
     return record_id
@@ -316,61 +329,20 @@ def _insert_pg(conn, record: dict) -> str:
 
 def _insert_ch(record: dict) -> None:
     """Insert observation into ClickHouse."""
-    import requests as req
-    from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
-
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-    ts = f"{record['observation_date']} 00:00:00.000"
     source_system = record.get("source_system", "gee_api")
-
-    query = f"""INSERT INTO remote_sensing_events
-        (timestamp, observation_id, location_id, plot_id, source,
-         ndvi, ndre, evi, savi, canopy_cover_pct, ndwi, cloud_cover_pct,
-         msavi, satvi, bsi, nbr2, ndti, lswi,
-         brightness_index, tc_brightness, tc_greenness, tc_wetness,
-         band_blue, band_green, band_red, band_nir, band_swir1, band_swir2,
-         source_system, metadata)
-        VALUES (
-            '{ts}',
-            '{record.get("id", "")}',
-            '{record.get("location_id", "")}',
-            '{record.get("plot_id") or ""}',
-            '{record.get("source", "sentinel-2")}',
-            {_ch_num(record.get("ndvi"))},
-            {_ch_num(record.get("ndre"))},
-            {_ch_num(record.get("evi"))},
-            {_ch_num(record.get("savi"))},
-            {_ch_num(record.get("canopy_cover_pct"))},
-            {_ch_num(record.get("ndwi"))},
-            {_ch_num(record.get("cloud_cover_pct"))},
-            {_ch_num(record.get("msavi"))},
-            {_ch_num(record.get("satvi"))},
-            {_ch_num(record.get("bsi"))},
-            {_ch_num(record.get("nbr2"))},
-            {_ch_num(record.get("ndti"))},
-            {_ch_num(record.get("lswi"))},
-            {_ch_num(record.get("brightness_index"))},
-            {_ch_num(record.get("tc_brightness"))},
-            {_ch_num(record.get("tc_greenness"))},
-            {_ch_num(record.get("tc_wetness"))},
-            {_ch_num(record.get("band_blue"))},
-            {_ch_num(record.get("band_green"))},
-            {_ch_num(record.get("band_red"))},
-            {_ch_num(record.get("band_nir"))},
-            {_ch_num(record.get("band_swir1"))},
-            {_ch_num(record.get("band_swir2"))},
-            '{source_system}',
-            map()
-        )"""
+    columns = ["timestamp", "observation_id", "location_id", "plot_id", "source",
+               "ndvi", "ndre", "evi", "savi", "canopy_cover_pct", "ndwi", "cloud_cover_pct",
+               "msavi", "satvi", "bsi", "nbr2", "ndti", "lswi", "brightness_index",
+               "tc_brightness", "tc_greenness", "tc_wetness", "band_blue", "band_green",
+               "band_red", "band_nir", "band_swir1", "band_swir2", "source_system", "metadata"]
+    values = [f"{record['observation_date']} 00:00:00.000", record.get("id", ""),
+              record.get("location_id", ""), record.get("plot_id") or "",
+              record.get("source", "sentinel-2")]
+    values += [record.get(name) for name in columns[5:28]]
+    values += [source_system, {}]
 
     try:
-        resp = req.post(
-            ch_url, data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
-        )
-        resp.raise_for_status()
+        post_clickhouse_rows("remote_sensing_events", columns, [values])
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 

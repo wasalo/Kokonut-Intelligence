@@ -180,7 +180,7 @@ class TestProcessHierarchy:
 class TestNewWorkflowSpecs:
     """Validate that the 8 new workflow specs are well-formed."""
 
-    def test_all_21_specs_present(self):
+    def test_all_builtin_specs_present(self):
         from services.workflow_specs.registry import list_specs
         specs = {s.id for s in list_specs()}
         expected = {
@@ -191,7 +191,10 @@ class TestNewWorkflowSpecs:
             "harvest_event", "metric_value",
             "traceability_batch", "insurance_claim", "pest_intervention",
             "emergency_incident", "cooperative_order", "extension_enrollment",
-            "market_order",
+            "market_order", "coordination_alliance", "governance_circle",
+            "governance_circle_link", "governance_proposal", "governance_role",
+            "governance_role_assignment", "governance_tactical_item",
+            "governance_tactical_session", "governance_tension",
         }
         assert specs == expected
 
@@ -208,7 +211,7 @@ class TestNewWorkflowSpecs:
             "report_snapshot", "stakeholder_feedback", "farm_activity",
             "harvest_event", "traceability_batch", "insurance_claim",
             "pest_intervention", "emergency_incident", "cooperative_order",
-            "extension_enrollment", "market_order",
+            "extension_enrollment",
         }
         for spec in list_specs():
             if spec.id in standard_ids:
@@ -228,7 +231,7 @@ class TestNewWorkflowSpecs:
             "report_snapshot", "stakeholder_feedback", "farm_activity",
             "harvest_event", "traceability_batch", "insurance_claim",
             "pest_intervention", "emergency_incident", "cooperative_order",
-            "extension_enrollment", "market_order",
+            "extension_enrollment",
         }
         for spec in list_specs():
             if spec.id in standard_ids:

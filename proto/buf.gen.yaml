@@ -4,7 +4,7 @@ plugins:
     out: sdk/python/generated
   - remote: buf.build/grpc/python
     out: sdk/python/generated
-  - remote: buf.build/protocolbuffers/typescript
+  - remote: buf.build/bufbuild/es
     out: sdk/typescript/generated
-  - remote: buf.build/grpc/typescript
+  - remote: buf.build/grpc/node
     out: sdk/typescript/generated

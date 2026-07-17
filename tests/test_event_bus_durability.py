@@ -2,7 +2,21 @@
 
 from unittest.mock import MagicMock, patch
 
-from services.events.bus import EventBus
+from services.events.bus import EventBus, resolve_handler
+
+
+REGISTERED_HANDLERS = (
+    ("services.ingestion.anomaly_detector", "handle_sensor_reading"),
+    ("services.events.handlers", "handle_stale_data"),
+    ("services.cache.events", "handle_metric_computed"),
+    ("services.cache.events", "handle_crisp_scored"),
+    ("services.events.handlers", "handle_alert_notification"),
+)
+
+
+def test_every_registered_handler_resolves_to_a_callable():
+    for module_path, function_name in REGISTERED_HANDLERS:
+        assert callable(resolve_handler(module_path, function_name))
 
 
 def _connection(fetchall=None, fetchone=None):

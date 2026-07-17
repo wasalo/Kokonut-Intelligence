@@ -72,3 +72,8 @@ def handle_alert_notification(event_type: str, payload: dict) -> None:
             logger.info("Directus notification sent")
         except Exception:
             logger.exception("Failed to send Directus notification")
+
+
+def handle_stale_data(event_type: str, payload: dict) -> None:
+    """Adapt stale-data events to the standard alert notification handler."""
+    handle_alert_notification(event_type, payload)

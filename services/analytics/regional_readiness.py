@@ -424,7 +424,7 @@ def create_assessment(
             """INSERT INTO regional_assessment
                (location_id, title, period_start, period_end, created_by)
                VALUES (%s, %s, %s, %s, %s)
-               RETURN id, location_id, title, period_start::text, period_end::text,
+                RETURNING id, location_id, title, period_start::text, period_end::text,
                       methodology_version, status, created_at""",
             (location_id, title, period_start, period_end, created_by),
         )

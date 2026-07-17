@@ -18,6 +18,7 @@ def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path,
     seeds = tmp_path / "seeds"
     schemas.mkdir()
     seeds.mkdir()
+    _sql_file(schemas / "000_extensions.sql")
     _sql_file(schemas / "010_second.sql")
     _sql_file(schemas / "002_first.sql")
     _sql_file(seeds / "001_seed.sql")
@@ -27,6 +28,7 @@ def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path,
     files = cli._discover_files()
 
     assert [item["id"] for item in files] == [
+        "schema:000_extensions.sql",
         "schema:002_first.sql",
         "schema:010_second.sql",
         "seed:001_seed.sql",
@@ -34,6 +36,7 @@ def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path,
 
     schema_files = cli._discover_files(include_seeds=False)
     assert [item["id"] for item in schema_files] == [
+        "schema:000_extensions.sql",
         "schema:002_first.sql",
         "schema:010_second.sql",
     ]
@@ -53,6 +56,31 @@ def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
 
     with pytest.raises(cli.MigrationError, match="duplicate migration ID"):
         cli._discover_files()
+
+
+def test_source_validation_rejects_duplicate_versions(tmp_path):
+    first = _sql_file(tmp_path / "001_first.sql")
+    second = _sql_file(tmp_path / "001_second.sql")
+    files = [
+        {"id": "schema:001_first.sql", "kind": "schema", "version": "001", "path": first},
+        {"id": "schema:001_second.sql", "kind": "schema", "version": "001", "path": second},
+    ]
+
+    with pytest.raises(cli.MigrationError, match="duplicate migration version"):
+        cli._validate_sources(files)
+
+
+def test_source_validation_rejects_database_switch(tmp_path):
+    migration = _sql_file(tmp_path / "001_connect.sql", "\\connect another_db;")
+    files = [{
+        "id": "schema:001_connect.sql",
+        "kind": "schema",
+        "version": "001",
+        "path": migration,
+    }]
+
+    with pytest.raises(cli.MigrationError, match="cannot change databases"):
+        cli._validate_sources(files)
 
 
 def test_psql_raises_on_query_failure(monkeypatch):
@@ -94,13 +122,13 @@ def test_legacy_reconciliation_requires_exact_version_and_name(monkeypatch):
     cli._reconcile_legacy([file_info])
 
     sql, variables = calls[0]
-    assert "migration_id IS NULL" in sql
-    assert "version = :'legacy_version'" in sql
-    assert "name = :'name'" in sql
+    assert "tracked.migration_id IS NULL" in sql
+    assert "tracked.version = candidates.legacy_version" in sql
+    assert "tracked.name = candidates.name" in sql
     assert variables == {
-        "migration_id": "schema:008_governance.sql",
-        "legacy_version": "008",
-        "name": "008_governance",
+        "migration_id_0": "schema:008_governance.sql",
+        "legacy_version_0": "008",
+        "name_0": "008_governance",
     }
 
 
@@ -122,6 +150,8 @@ def test_apply_batch_holds_lock_and_tracks_after_sql(tmp_path, monkeypatch):
 
     sql = captured["sql"]
     assert sql.index("pg_advisory_lock") < sql.index("CREATE TABLE example")
+    assert "\\gset migration_0_" in sql
+    assert "\\if :migration_0_migration_applied" in sql
     assert sql.index("CREATE TABLE example") < sql.index("INSERT INTO schema_migration")
     assert sql.index("INSERT INTO schema_migration") < sql.index("pg_advisory_unlock")
     assert "o'hare" not in sql

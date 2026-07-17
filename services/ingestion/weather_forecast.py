@@ -19,7 +19,7 @@ from datetime import datetime, timezone, date
 import requests
 
 from ..common.logging import get_logger
-from .base import get_db, get_clickhouse, log_ingestion, hash_payload, retry
+from .base import get_db, insert_clickhouse_rows, log_ingestion, hash_payload, retry
 from .config import OPENWEATHERMAP_API_KEY
 
 logger = get_logger("ingestion.weather_forecast")
@@ -148,11 +148,6 @@ def insert_forecasts(db, records: list[dict], source_raw: dict = None) -> int:
 
 def insert_forecasts_clickhouse(records: list[dict]) -> None:
     """Insert forecast records into ClickHouse weather_events table."""
-    client = get_clickhouse()
-    if client is None:
-        logger.warning("ClickHouse client unavailable — skipping weather_events insert")
-        return
-
     rows = []
     for rec in records:
         meta = rec.get("metadata", "{}")
@@ -183,14 +178,14 @@ def insert_forecasts_clickhouse(records: list[dict]) -> None:
         return
 
     try:
-        client.insert(
+        insert_clickhouse_rows(
             "weather_events",
-            rows,
-            column_names=[
+            [
                 "timestamp", "location_id", "source", "temperature_c",
                 "precipitation_mm", "humidity_pct", "wind_speed_kmh",
                 "solar_radiation_wm2", "cloud_cover_pct", "metadata",
             ],
+            rows,
         )
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)

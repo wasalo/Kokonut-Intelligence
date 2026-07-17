@@ -22,7 +22,7 @@ from web3 import Web3
 
 from ..common.logging import get_logger
 from .base import (
-    get_db, get_clickhouse, log_ingestion, hash_payload, retry,
+    get_db, insert_clickhouse_rows, log_ingestion, hash_payload, retry,
     update_indexer_status, get_last_synced_block, now_utc,
 )
 from .config import CHAIN_RPC_MAP
@@ -141,11 +141,6 @@ def insert_activity(db, record: dict) -> str:
 
 def insert_activity_clickhouse(records: list[dict]) -> None:
     """Insert wallet activity into ClickHouse wallet_events table."""
-    client = get_clickhouse()
-    if client is None:
-        logger.warning("ClickHouse client unavailable — skipping wallet_events insert")
-        return
-
     rows = []
     for rec in records:
         timestamp = rec.get("block_timestamp", "")
@@ -175,13 +170,13 @@ def insert_activity_clickhouse(records: list[dict]) -> None:
         return
 
     try:
-        client.insert(
+        insert_clickhouse_rows(
             "wallet_events",
-            rows,
-            column_names=[
+            [
                 "timestamp", "wallet_address", "chain", "tx_hash",
                 "block_number", "event_type", "value", "token", "status", "metadata",
             ],
+            rows,
         )
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)

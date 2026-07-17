@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import psycopg2
 
 SCHEMA = Path("schemas/postgres/206_env_scanning.sql")
 
@@ -14,7 +15,7 @@ def _db():
     try:
         from services.ingestion.base import get_db
         return get_db()
-    except Exception as exc:
+    except psycopg2.OperationalError as exc:
         pytest.skip(f"no database available: {exc}")
 
 
@@ -164,9 +165,6 @@ def test_create_scan_with_steps():
         assert len(full["steps"]) == 5
         assert full["steps"][0]["step_name"] == "identify"
         assert full["steps"][4]["step_name"] == "decide"
-    except Exception:
-        conn.rollback()
-        pytest.skip("env_scan tables not present")
     finally:
         conn.close()
 
@@ -184,9 +182,6 @@ def test_update_step_and_progress():
         updated = env_scanning.get_scan(conn, scan["id"])
         assert updated["completed_steps"] == 1
         assert updated["status"] == "in_progress"
-    except Exception:
-        conn.rollback()
-        pytest.skip("env_scan tables not present")
     finally:
         conn.close()
 
@@ -202,9 +197,6 @@ def test_list_scans():
         scans = env_scanning.list_scans(conn, loc)
         assert isinstance(scans, list)
         assert len(scans) >= 1
-    except Exception:
-        conn.rollback()
-        pytest.skip("env_scan tables not present")
     finally:
         conn.close()
 
@@ -223,9 +215,6 @@ def test_auto_populate():
         assert "step_3" in result
         assert "step_4" in result
         assert "step_5" in result
-    except Exception:
-        conn.rollback()
-        pytest.skip("auto_populate failed")
     finally:
         conn.close()
 

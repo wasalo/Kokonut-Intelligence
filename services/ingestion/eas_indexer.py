@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 import requests
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, retry
+from .base import get_db, log_ingestion, hash_payload, retry, post_clickhouse_rows
 from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 logger = get_logger("ingestion.eas")
@@ -155,8 +155,6 @@ def insert_attestation(db, att: dict, chain: str) -> str:
 
 def insert_clickhouse(chain: str, att: dict, status: str) -> None:
     """Insert attestation into ClickHouse."""
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
     attestation_uid = att.get("id", "")
     schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
     attester = att.get("attester", "")
@@ -167,36 +165,14 @@ def insert_clickhouse(chain: str, att: dict, status: str) -> None:
         int(att.get("time", 0)), tz=timezone.utc
     ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-    def _str(val):
-        if val is None:
-            return "''"
-        return f"'{str(val).replace(chr(39), chr(39)+chr(39))}'"
-
-    query = f"""INSERT INTO attestation_events
-        (timestamp, attestation_uid, schema_uid, chain, attester, recipient,
-         subject_type, status, revoked, metadata)
-        VALUES (
-            '{block_ts}',
-            {_str(attestation_uid)},
-            {_str(schema_uid)},
-            {_str(chain)},
-            {_str(attester)},
-            {_str(recipient)},
-            'wallet',
-            {_str(status)},
-            {revoked},
-            map()
-        )"""
-
     try:
-        resp = requests.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        post_clickhouse_rows(
+            "attestation_events",
+            ["timestamp", "attestation_uid", "schema_uid", "chain", "attester", "recipient",
+             "subject_type", "status", "revoked", "metadata"],
+            [[block_ts, attestation_uid, schema_uid, chain, attester, recipient,
+              "wallet", status, att.get("revoked", False), {}]],
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 

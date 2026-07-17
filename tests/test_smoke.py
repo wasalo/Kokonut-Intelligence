@@ -63,7 +63,7 @@ MODULES = [
 ]
 
 
-def test_imports():
+def run_imports():
     errors = []
     for mod in MODULES:
         try:
@@ -75,7 +75,12 @@ def test_imports():
     return errors
 
 
-def test_cli_parsers():
+def test_imports() -> None:
+    errors = run_imports()
+    assert not errors, f"Import checks failed: {errors}"
+
+
+def run_cli_parsers():
     """Verify CLI modules have valid argparse parsers."""
     import importlib
 
@@ -112,6 +117,11 @@ def test_cli_parsers():
     return errors
 
 
+def test_cli_parsers() -> None:
+    errors = run_cli_parsers()
+    assert not errors, f"CLI parser checks failed: {errors}"
+
+
 def test_remote_sensing_bbox_parse():
     """Remote sensing CSV parser keeps bbox from raw row fields."""
     from services.ingestion.remote_sensing import parse_row
@@ -142,10 +152,10 @@ def test_exporter_defaults_governed_filters():
 if __name__ == "__main__":
     print("=== Kokonut Intelligence — Smoke Test ===")
     print("\n1. Python imports:")
-    import_errors = test_imports()
+    import_errors = run_imports()
 
     print("\n2. CLI parsers:")
-    cli_errors = test_cli_parsers()
+    cli_errors = run_cli_parsers()
 
     print("\n3. Remote sensing parser:")
     parser_errors = []

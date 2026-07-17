@@ -19,6 +19,10 @@ from services.scheduler.resources import ResourcePool
 logger = get_logger("scheduler.engine")
 
 
+class SchedulerLeaseLostError(RuntimeError):
+    """Raised when a worker no longer owns the run it is completing."""
+
+
 class SchedulerEngine:
     """Core scheduler that tick-checks and dispatches tasks."""
 
@@ -205,6 +209,9 @@ class SchedulerEngine:
             self._complete_task(task_id, run_id, "timeout", duration_ms, "Task timed out")
             return False
 
+        except SchedulerLeaseLostError:
+            raise
+
         except Exception as exc:
             duration_ms = int((time.monotonic() - start_time) * 1000)
             self._complete_task(
@@ -232,10 +239,15 @@ class SchedulerEngine:
                 UPDATE task_run
                 SET status = %s, completed_at = %s, duration_ms = %s,
                     error_message = %s, stdout = %s
-                WHERE id = %s
+                WHERE id = %s AND worker_id = %s AND status = 'running'
                 """,
-                (status, now, duration_ms, error, stdout, run_id),
+                (status, now, duration_ms, error, stdout, run_id, self._worker_id),
             )
+            if cur.rowcount != 1:
+                self._conn.rollback()
+                raise SchedulerLeaseLostError(
+                    f"Run {run_id} is no longer owned by worker {self._worker_id}"
+                )
 
             cur.execute("SELECT attempt_count, max_retries, retry_delay_seconds FROM task_run JOIN scheduled_task ON scheduled_task.id = task_run.task_id WHERE task_run.id = %s", (run_id,))
             attempt, max_retries, retry_delay = cur.fetchone()
@@ -248,9 +260,15 @@ class SchedulerEngine:
                     SET last_status = %s, last_duration_ms = %s,
                         consecutive_failures = 0, retry_attempt = 0, retry_at = NULL,
                         lease_owner = NULL, lease_expires_at = NULL, updated_at = %s
-                    WHERE id = %s
+                    WHERE id = %s AND lease_owner = %s AND lease_expires_at > %s
+                      AND EXISTS (
+                          SELECT 1 FROM task_run tr
+                          WHERE tr.id = %s AND tr.task_id = scheduled_task.id
+                            AND tr.worker_id = %s AND tr.status = %s
+                      )
                     """,
-                    (status, duration_ms, now, task_id),
+                    (status, duration_ms, now, task_id, self._worker_id, now,
+                     run_id, self._worker_id, status),
                 )
             else:
                 retry_at = (
@@ -264,9 +282,20 @@ class SchedulerEngine:
                         retry_attempt = %s, retry_at = %s,
                         lease_owner = NULL, lease_expires_at = NULL,
                         updated_at = %s
-                    WHERE id = %s
+                    WHERE id = %s AND lease_owner = %s AND lease_expires_at > %s
+                      AND EXISTS (
+                          SELECT 1 FROM task_run tr
+                          WHERE tr.id = %s AND tr.task_id = scheduled_task.id
+                            AND tr.worker_id = %s AND tr.status = %s
+                      )
                     """,
-                    (status, duration_ms, attempt if retry_at else 0, retry_at, now, task_id),
+                    (status, duration_ms, attempt if retry_at else 0, retry_at, now,
+                     task_id, self._worker_id, now, run_id, self._worker_id, status),
+                )
+            if cur.rowcount != 1:
+                self._conn.rollback()
+                raise SchedulerLeaseLostError(
+                    f"Lease for task {task_id} was lost by worker {self._worker_id}"
                 )
 
             # Publish event

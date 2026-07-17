@@ -11,6 +11,7 @@ from psycopg2.extras import RealDictCursor
 
 STAGES = ("discovered", "triaged", "framed", "experiment_ready", "testing", "validated", "investment_ready", "funded", "pilot_active", "adoption_ready", "adopting", "scaled", "maintained", "paused", "superseded", "retired", "failed")
 PROMOTION_GATES = {"validated", "funded", "adoption_ready", "scaled"}
+ADOPTION_PROGRAM_READY = ("enablement_ready", "launch", "onboarding", "active", "assessed", "expand")
 
 
 def _clean(row):
@@ -91,11 +92,76 @@ def transition(conn, solution_id: str, to_stage: str, actor_party_id: Optional[s
         cur.execute("""SELECT g.* FROM solution_stage_gate g
             WHERE g.solution_id = %s::uuid AND g.from_stage = %s AND g.to_stage = %s AND g.status = 'approved'
               AND (SELECT COUNT(*) FROM solution_gate_evaluation e WHERE e.gate_id = g.id AND e.passed = TRUE) >= g.minimum_evaluation_count
+              AND (SELECT e.passed FROM solution_gate_evaluation e WHERE e.gate_id = g.id ORDER BY e.evaluated_at DESC LIMIT 1) = TRUE
             ORDER BY g.approved_at DESC LIMIT 1""", (solution_id, from_stage, to_stage))
         gate = cur.fetchone()
-        if to_stage in PROMOTION_GATES and (not gate or not approved_by_party_id):
+        if to_stage in PROMOTION_GATES and (not gate or (gate["requires_human_approval"] and not approved_by_party_id)):
             conn.rollback()
             raise ValueError("approved stage gate and human approver are required for promotion")
+        if to_stage in PROMOTION_GATES:
+            if gate["requires_human_approval"] and approved_by_party_id != str(gate["approved_by_party_id"]):
+                conn.rollback()
+                raise ValueError("promotion approver must be the approved stage-gate approver")
+            if gate["required_evidence_maturity"] is not None and (
+                solution["evidence_maturity"] is None
+                or solution["evidence_maturity"] < gate["required_evidence_maturity"]
+            ):
+                conn.rollback()
+                raise ValueError("required evidence maturity has not been reached")
+            if gate["required_experiment_count"]:
+                cur.execute("""SELECT COUNT(*) AS count FROM solution_experiment_result r
+                    JOIN solution_experiment e ON e.id = r.experiment_id
+                    WHERE e.solution_id = %s::uuid AND r.outcome = 'validated'""", (solution_id,))
+                if cur.fetchone()["count"] < gate["required_experiment_count"]:
+                    conn.rollback()
+                    raise ValueError("required validated experiment count has not been reached")
+
+        if to_stage in ("adoption_ready", "adopting"):
+            cur.execute("""SELECT EXISTS (
+                SELECT 1 FROM solution_adoption_program p
+                JOIN solution_adopter_readiness r ON r.solution_id = p.solution_id
+                    AND r.adopter_scope_type = p.target_scope_type AND r.adopter_scope_id = p.target_scope_id
+                JOIN solution_configuration c ON c.solution_id = p.solution_id
+                    AND c.scope_type = p.target_scope_type AND c.scope_id = p.target_scope_id
+                WHERE p.solution_id = %s::uuid
+                  AND p.status IN %s AND r.readiness_status = 'ready'
+                  AND c.approval_status = 'approved' AND c.approved_by_party_id IS NOT NULL
+                  AND r.assessed_by_party_id IS NOT NULL
+            ) AS ready""", (solution_id, ADOPTION_PROGRAM_READY))
+            if not cur.fetchone()["ready"]:
+                conn.rollback()
+                raise ValueError("approved adoption configuration and adopter readiness are required")
+
+        if to_stage == "scaled":
+            cur.execute("""SELECT COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE status IN ('passed', 'waived')) AS satisfied,
+                COUNT(*) FILTER (WHERE status IN ('passed', 'waived') AND approved_by_party_id IS NULL) AS unapproved_satisfied
+            FROM solution_scale_gate WHERE solution_id = %s::uuid""", (solution_id,))
+            scale = cur.fetchone()
+            if not scale["total"] or scale["satisfied"] != scale["total"] or scale["unapproved_satisfied"]:
+                conn.rollback()
+                raise ValueError("all scale gates must be satisfied before scaling")
+
+        if to_stage == "funded":
+            cur.execute("""SELECT EXISTS (
+                SELECT 1 FROM solution_funding_case c
+                WHERE c.solution_id = %s::uuid AND c.decision_status = 'approved'
+                  AND c.approved_by_party_id IS NOT NULL
+            ) AS approved""", (solution_id,))
+            if not cur.fetchone()["approved"]:
+                conn.rollback()
+                raise ValueError("an approved funding case is required before funding")
+
+        if to_stage == "retired":
+            cur.execute("""SELECT EXISTS (
+                SELECT 1 FROM solution_retirement r
+                WHERE r.solution_id = %s::uuid AND r.status IN ('approved', 'migration', 'sunset', 'completed')
+                  AND r.approved_by_party_id IS NOT NULL
+                  AND jsonb_array_length(r.evidence_refs) > 0
+            ) AS approved""", (solution_id,))
+            if not cur.fetchone()["approved"]:
+                conn.rollback()
+                raise ValueError("an approved, evidenced retirement plan is required")
         cur.execute("UPDATE solution SET current_stage = %s, status = CASE WHEN %s IN ('retired', 'superseded') THEN %s ELSE status END, retired_at = CASE WHEN %s = 'retired' THEN NOW() ELSE retired_at END, updated_at = NOW() WHERE id = %s::uuid RETURNING *", (to_stage, to_stage, to_stage, to_stage, solution_id))
         updated = cur.fetchone()
         cur.execute("""INSERT INTO solution_lifecycle_event

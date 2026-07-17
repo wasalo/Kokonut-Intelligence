@@ -32,6 +32,8 @@ class FeedbackAutomation:
         self, location_id: Optional[str] = None, since_hours: int = 168
     ) -> Dict[str, Any]:
         """Evaluate recent outcomes and generate feedback signals."""
+        if since_hours < 0:
+            raise ValueError("since_hours must be non-negative")
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         start_time = time.time()
@@ -49,7 +51,11 @@ class FeedbackAutomation:
 
         try:
             # Find unprocessed outcomes
-            conditions = ["ao.feedback_applied = FALSE"]
+            conditions = [
+                "ao.feedback_applied = FALSE",
+                "NOT EXISTS (SELECT 1 FROM feedback_loop fl "
+                "WHERE fl.source_outcome_id = ao.id)",
+            ]
             params: list = []
 
             if location_id:
@@ -63,9 +69,9 @@ class FeedbackAutomation:
                 FROM action_outcome ao
                 LEFT JOIN decision_log dl ON dl.id = ao.decision_id
                 WHERE {where_clause}
-                  AND ao.measured_at > NOW() - INTERVAL '{since_hours} hours'
-                ORDER BY ao.measured_at DESC
-            """, params)
+                  AND ao.measured_at > NOW() - (%s * INTERVAL '1 hour')
+                  ORDER BY ao.measured_at DESC
+            """, params + [since_hours])
             outcomes = [dict(r) for r in cur.fetchall()]
 
             signals = []
@@ -137,6 +143,7 @@ class FeedbackAutomation:
 
             # Apply feedback from generated signals
             applied_count = 0
+            proposed_count = 0
             adjusted_count = 0
 
             if eval_result["signals"]:
@@ -146,8 +153,8 @@ class FeedbackAutomation:
 
                     # Apply the feedback
                     apply_result = self._apply_signal(cur, signal)
-                    if apply_result.get("applied"):
-                        applied_count += 1
+                    if apply_result.get("proposed"):
+                        proposed_count += 1
                     if apply_result.get("adjusted"):
                         adjusted_count += 1
 
@@ -181,6 +188,7 @@ class FeedbackAutomation:
                 "outcomes_evaluated": eval_result["outcomes_evaluated"],
                 "signals_generated": eval_result["signals_generated"],
                 "feedback_loops_applied": applied_count,
+                "feedback_loops_proposed": proposed_count,
                 "thresholds_adjusted": adjusted_count,
                 "dry_run": self._dry_run,
                 "duration_ms": round(duration_ms, 2),
@@ -232,6 +240,12 @@ class FeedbackAutomation:
         auto_apply: bool = False,
     ) -> Dict[str, Any]:
         """Configure automation parameters for a location."""
+        if auto_apply:
+            raise ValueError(
+                "Automatic feedback application is disabled; human approval is required"
+            )
+        if eval_interval_hours <= 0 or max_adjustments < 0:
+            raise ValueError("Invalid feedback automation limits")
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -357,15 +371,25 @@ class FeedbackAutomation:
                 new_value, adjustment_reason, adjustment_magnitude,
                 status, created_at, updated_at
             ) VALUES (%s, 'threshold_adjustment', %s, 'adaptive_threshold',
-                      'current_value', '{}', %s, %s, 'proposed', %s, %s)
+                      'current_value', %s, %s, %s, 'proposed', %s, %s)
+            ON CONFLICT DO NOTHING
         """, (
             feedback_id, outcome_id,
+            psycopg2.extras.Json({
+                "recommendation": recommendation,
+                "action_type": action_type,
+                "location_id": location_id,
+            }),
             signal.get("reason", "automated feedback"),
             adjustment_magnitude,
             now, now,
         ))
 
-        return {"applied": True, "adjusted": recommendation in ("increase_threshold", "fine_tune")}
+        return {
+            "proposed": cur.rowcount == 1,
+            "applied": False,
+            "adjusted": False,
+        }
 
     # --- Process-specific feedback signals ---
 

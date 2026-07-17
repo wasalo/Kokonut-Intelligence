@@ -36,9 +36,9 @@ def example_farm_record() -> dict[str, Any]:
         "forecasted_budget": 85000,
         "land_size": 120000,
         "project_location": {
-            "coordinates": "-0.100000,34.750000",
-            "region": "Kisumu County",
-            "country": "Kenya",
+            "coordinates": "18.521000,-69.987000",
+            "region": "Monte Plata",
+            "country": "Dominican Republic",
         },
         "source_of_funding": "Kokonut DAO pilot allocation",
         "revenue_streams": ["maize", "cassava", "beans", "bioinputs"],

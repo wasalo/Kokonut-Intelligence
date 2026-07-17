@@ -38,6 +38,32 @@ def _query_active_jobs(conn) -> List[Dict[str, Any]]:
     return rows
 
 
+def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
+    """Claim due jobs atomically so concurrent workers do not fetch twice."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("""
+        WITH due AS (
+            SELECT id
+            FROM remote_sensing_job
+            WHERE status = 'active'
+              AND (next_run_at IS NULL OR next_run_at <= NOW())
+            ORDER BY next_run_at NULLS FIRST
+            FOR UPDATE SKIP LOCKED
+        )
+        UPDATE remote_sensing_job j
+        SET last_run_at = NOW(),
+            next_run_at = NOW() + (j.cadence_days * INTERVAL '1 day'),
+            updated_at = NOW()
+        FROM due
+        WHERE j.id = due.id
+        RETURNING j.*
+    """)
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    conn.commit()
+    return rows
+
+
 def _query_job(conn, job_id: str) -> Optional[Dict[str, Any]]:
     """Query a specific job."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -197,7 +223,7 @@ def fetch_job(conn, job: Dict[str, Any]) -> Dict[str, Any]:
 
 def run_due_jobs(conn) -> Dict[str, Any]:
     """Run all due remote sensing fetch jobs."""
-    jobs = _query_active_jobs(conn)
+    jobs = _claim_due_jobs(conn)
     if not jobs:
         return {"status": "no_jobs_due", "executed": 0}
 

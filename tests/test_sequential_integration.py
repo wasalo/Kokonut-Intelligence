@@ -11,6 +11,18 @@ from services.ingestion.base import get_db
 PARTY_ID = "b0000000-0000-0000-0000-000000002713"
 
 
+def test_solution_gate_rejects_unlinked_or_invalid_evidence_before_database_access():
+    with pytest.raises(ValueError, match="applied evidence"):
+        sequential_integration.evaluate_solution_gate_from_hypothesis(
+            None, "gate", "hypothesis", "reviewer", minimum_posterior=0.8, evidence=[{}]
+        )
+    with pytest.raises(ValueError, match="minimum posterior"):
+        sequential_integration.evaluate_solution_gate_from_hypothesis(
+            None, "gate", "hypothesis", "reviewer", minimum_posterior=1.1,
+            evidence=[{"evidence_event_id": str(uuid.uuid4())}]
+        )
+
+
 def test_posterior_can_create_strategy_review_task():
     try:
         conn = get_db()

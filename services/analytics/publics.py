@@ -46,7 +46,7 @@ def add_public(
                (location_id, public_type, name, description, influence_score,
                 interest_score, stance, evidence_source, created_by)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-               RETURN id, public_type, name, influence_score, interest_score, stance, status, created_at""",
+                RETURNING id, public_type, name, influence_score, interest_score, stance, status, created_at""",
             (
                 location_id, public_type, name, description, influence_score,
                 interest_score, stance, json.dumps(evidence_source or {}), created_by,
@@ -87,7 +87,7 @@ def update_stance(conn, public_id: str, stance: str, notes: str = "") -> Dict[st
             """UPDATE stakeholder_public
                SET stance = %s, stance_notes = %s, updated_at = now()
                WHERE id = %s
-               RETURN id, name, stance, stance_notes""",
+               RETURNING id, name, stance, stance_notes""",
             (stance, notes, public_id),
         )
         row = cur.fetchone()
@@ -127,7 +127,7 @@ def create_segment(
                 pricing_range, channel_preferences, size_estimate, size_unit,
                 evidence_source, created_by)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-               RETURN id, segment_type, name, size_estimate, status, created_at""",
+                RETURNING id, segment_type, name, size_estimate, status, created_at""",
             (
                 location_id, segment_type, name, description, demand_pattern,
                 json.dumps(pricing_range or {}), json.dumps(channel_preferences or []),
@@ -182,7 +182,7 @@ def update_segment(conn, segment_id: str, **kwargs) -> Dict[str, Any]:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             f"""UPDATE market_segment SET {', '.join(set_parts)}, updated_at = now()
-                WHERE id = %s RETURN id, name, segment_type""",
+                WHERE id = %s RETURNING id, name, segment_type""",
             params,
         )
         row = cur.fetchone()

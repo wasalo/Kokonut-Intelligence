@@ -88,6 +88,13 @@ def release_tranche(conn, tranche_id: str, amount: float, released_by_party_id: 
         if float(amount) > float(tranche["amount"]):
             conn.rollback()
             raise ValueError("release exceeds tranche amount")
+        conditions = tranche["milestone_conditions"] or {}
+        evidence = [item for item in milestone_evidence if isinstance(item, dict)]
+        missing = [key for key, value in conditions.items()
+                   if not any(item.get(key) == value for item in evidence)]
+        if missing:
+            conn.rollback()
+            raise ValueError("milestone conditions are not satisfied: " + ", ".join(missing))
         cur.execute("""INSERT INTO solution_funding_release
             (tranche_id, amount, milestone_evidence, released_by_party_id)
             VALUES (%s::uuid, %s, %s::jsonb, %s::uuid) RETURNING *""", (tranche_id, amount, json.dumps(milestone_evidence), released_by_party_id))

@@ -6,11 +6,11 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "generate": "buf generate proto --template proto/buf.gen.yaml"
+    "generate": "cd ../.. && npx --yes @bufbuild/buf generate --config proto/buf.yaml --template proto/buf.gen.yaml"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.12.0",
-    "google-protobuf": "^3.29.0"
+    "google-protobuf": "^3.21.4"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

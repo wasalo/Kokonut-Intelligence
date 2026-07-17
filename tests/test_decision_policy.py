@@ -97,6 +97,75 @@ class TestPolicyEngine:
         assert "error" in result
         assert "approved" in result["error"]
 
+    @staticmethod
+    def _approved_decision(action_type):
+        return {
+            "id": str(uuid.uuid4()),
+            "approval_status": "approved",
+            "action_type": action_type,
+            "action_config": {},
+            "location_id": "test-loc",
+        }
+
+    def test_execute_simulated_action_is_not_successful(self):
+        """Built-in advisory handlers cannot claim a successful execution."""
+        engine, _, mock_cursor = self._make_engine()
+        mock_cursor.fetchone.return_value = self._approved_decision(
+            "send_alert_notification"
+        )
+
+        result = engine.execute(decision_id="decision-1")
+
+        assert result["success"] is False
+        assert result["status"] == "simulated"
+        assert "adapter" in result["error"]
+
+    def test_execute_unsupported_action_fails_closed(self):
+        engine, _, mock_cursor = self._make_engine()
+        mock_cursor.fetchone.return_value = self._approved_decision("delete_everything")
+
+        result = engine.execute(decision_id="decision-1")
+
+        assert result == {
+            "success": False,
+            "status": "unsupported",
+            "error": "Unsupported action type: delete_everything",
+            "message": "Execution denied because no action adapter is registered",
+            "action": "delete_everything",
+        }
+
+    def test_execute_adapter_requires_explicit_authorization(self):
+        adapter = MagicMock(return_value={"success": True, "message": "sent"})
+        engine, _, mock_cursor = self._make_engine()
+        engine._action_adapters = {"send_alert_notification": adapter}
+        mock_cursor.fetchone.return_value = self._approved_decision(
+            "send_alert_notification"
+        )
+
+        result = engine.execute(decision_id="decision-1")
+
+        assert result["success"] is False
+        assert result["status"] == "unauthorized"
+        adapter.assert_not_called()
+
+    def test_execute_authorized_adapter_is_successful(self):
+        adapter = MagicMock(return_value={"success": True, "message": "sent"})
+        engine, _, mock_cursor = self._make_engine()
+        engine._action_adapters = {"send_alert_notification": adapter}
+        engine._authorized_action_types = {"send_alert_notification"}
+        decision = self._approved_decision("send_alert_notification")
+        mock_cursor.fetchone.return_value = decision
+
+        result = engine.execute(decision_id=decision["id"], executed_by="operator")
+
+        assert result == {
+            "success": True,
+            "message": "sent",
+            "status": "executed",
+            "action": "send_alert_notification",
+        }
+        adapter.assert_called_once_with(mock_cursor, decision)
+
     def test_list_pending_returns_empty_when_no_pending(self):
         """list_pending() returns empty list when no pending decisions."""
         engine, mock_conn, mock_cursor = self._make_engine()

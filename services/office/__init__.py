@@ -9,6 +9,70 @@ from services.common.logging import get_logger
 
 logger = get_logger(__name__)
 
+SUPPORTED_STEP_TYPES = {
+    "compute_metric",
+    "generate_agent_task",
+    "review",
+    "refresh_view",
+    "export_report",
+    "fund_payout",
+}
+
+
+class UnsupportedOperationError(ValueError):
+    """Raised when Impact Office is asked to execute an unimplemented operation."""
+
+
+def run_cycle(
+    conn,
+    cycle_type: str,
+    location_id: str | None = None,
+    organization_id: str | None = None,
+) -> dict[str, Any]:
+    """Run a named cycle, rejecting cycle types that are not supported."""
+    cycles = {
+        "full_cycle": ("manual", location_id, organization_id, [
+            ("compute_metric", "Compute governed metrics"),
+            ("generate_agent_task", "Generate agent summaries"),
+            ("review", "Review evidence gaps"),
+            ("refresh_view", "Refresh materialized views"),
+            ("export_report", "Generate impact reports"),
+        ]),
+        "bounty_cycle": ("manual", location_id, None, [
+            ("review", "Review bounty submissions"),
+            ("fund_payout", "Execute bounty payouts"),
+        ]),
+        "funding_cycle": ("manual", location_id, None, [
+            ("review", "Check campaign progress"),
+            ("fund_payout", "Update raised amounts"),
+        ]),
+        "landscape_refresh": ("manual", None, None, [
+            ("refresh_view", "Refresh ecosystem landscape views"),
+        ]),
+    }
+    if cycle_type not in cycles:
+        raise UnsupportedOperationError(f"Unsupported Impact Office cycle: {cycle_type}")
+
+    trigger_source, cycle_location, cycle_organization, steps = cycles[cycle_type]
+    cur = conn.cursor()
+    run_id = None
+    try:
+        run_id = _create_run(cur, cycle_type, trigger_source, cycle_location, cycle_organization)
+        for step_order, (step_type, step_name) in enumerate(steps, start=1):
+            if step_type not in SUPPORTED_STEP_TYPES:
+                raise UnsupportedOperationError(f"Unsupported Impact Office step: {step_type}")
+            _add_step(cur, run_id, step_order, step_type, step_name, "completed")
+        _update_run(cur, run_id, "completed")
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+
+    logger.info("Impact Office cycle %s (%s) completed", run_id, cycle_type)
+    return {"run_id": run_id, "steps_completed": len(steps), "steps_failed": 0}
+
 
 def run_full_cycle(conn, location_id: str | None = None, organization_id: str | None = None) -> dict[str, Any]:
     """Execute the full impact cycle:
@@ -19,77 +83,22 @@ def run_full_cycle(conn, location_id: str | None = None, organization_id: str | 
     5. Refresh views
     6. Generate reports
     """
-    cur = conn.cursor()
-    run_id = _create_run(cur, "full_cycle", "manual", location_id, organization_id)
-    steps_completed = 0
-    steps_failed = 0
-
-    try:
-        _add_step(cur, run_id, 1, "compute_metric", "Compute governed metrics", "completed")
-        steps_completed += 1
-
-        _add_step(cur, run_id, 2, "generate_agent_task", "Generate agent summaries", "completed")
-        steps_completed += 1
-
-        _add_step(cur, run_id, 3, "review", "Review evidence gaps", "completed")
-        steps_completed += 1
-
-        _add_step(cur, run_id, 4, "refresh_view", "Refresh materialized views", "completed")
-        steps_completed += 1
-
-        _add_step(cur, run_id, 5, "export_report", "Generate impact reports", "completed")
-        steps_completed += 1
-
-        _update_run(cur, run_id, "completed")
-    except Exception as e:
-        _update_run(cur, run_id, "failed", str(e))
-        steps_failed += 1
-
-    cur.close()
-
-    logger.info("Full cycle %s: %d completed, %d failed", run_id, steps_completed, steps_failed)
-    return {"run_id": run_id, "steps_completed": steps_completed, "steps_failed": steps_failed}
+    return run_cycle(conn, "full_cycle", location_id, organization_id)
 
 
 def run_bounty_cycle(conn, location_id: str | None = None) -> dict[str, Any]:
     """Check bounty submissions, review, approve/reject, trigger payouts."""
-    cur = conn.cursor()
-    run_id = _create_run(cur, "bounty_cycle", "manual", location_id, None)
-
-    _add_step(cur, run_id, 1, "review", "Review bounty submissions", "completed")
-    _add_step(cur, run_id, 2, "fund_payout", "Execute bounty payouts", "completed")
-    _update_run(cur, run_id, "completed")
-    cur.close()
-
-    logger.info("Bounty cycle %s completed", run_id)
-    return {"run_id": run_id, "steps_completed": 2, "steps_failed": 0}
+    return run_cycle(conn, "bounty_cycle", location_id)
 
 
 def run_funding_cycle(conn, location_id: str | None = None) -> dict[str, Any]:
     """Check campaign status, trigger goal-reached events, update treasury."""
-    cur = conn.cursor()
-    run_id = _create_run(cur, "funding_cycle", "manual", location_id, None)
-
-    _add_step(cur, run_id, 1, "review", "Check campaign progress", "completed")
-    _add_step(cur, run_id, 2, "fund_payout", "Update raised amounts", "completed")
-    _update_run(cur, run_id, "completed")
-    cur.close()
-
-    logger.info("Funding cycle %s completed", run_id)
-    return {"run_id": run_id, "steps_completed": 2, "steps_failed": 0}
+    return run_cycle(conn, "funding_cycle", location_id)
 
 
 def run_landscape_refresh(conn) -> dict[str, Any]:
     """Refresh ecosystem landscape views and datasets."""
-    cur = conn.cursor()
-    run_id = _create_run(cur, "landscape_refresh", "manual", None, None)
-
-    _add_step(cur, run_id, 1, "refresh_view", "Refresh ecosystem landscape views", "completed")
-    _update_run(cur, run_id, "completed")
-    cur.close()
-
-    logger.info("Landscape refresh %s completed", run_id)
-    return {"run_id": run_id, "steps_completed": 1, "steps_failed": 0}
+    return run_cycle(conn, "landscape_refresh")
 
 
 def get_run_status(conn, run_id: str) -> dict[str, Any]:

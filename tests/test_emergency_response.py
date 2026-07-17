@@ -9,6 +9,7 @@ from services.analytics.emergency_response import (
 )
 
 SCHEMA = Path("schemas/postgres/056_emergency_response.sql")
+P0_MIGRATION = Path("schemas/postgres/298_consent_privacy_p0.sql")
 SEED = Path("schemas/seeds/056_emergency_response.sql")
 
 
@@ -24,6 +25,13 @@ def test_schema_defines_table() -> None:
 def test_schema_defines_view() -> None:
     text = SCHEMA.read_text()
     assert "CREATE OR REPLACE VIEW v_public_emergency_incidents" in text
+
+
+def test_public_view_requires_resolved_public_safe_record() -> None:
+    text = P0_MIGRATION.read_text()
+    assert "e.status = 'resolved'" in text
+    assert "e.metadata->>'privacy' = 'public_summary'" in text
+    assert "fr.status IN ('verified', 'published')" in text
 
 
 def test_schema_has_check_constraints() -> None:

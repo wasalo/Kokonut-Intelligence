@@ -12,7 +12,7 @@ from services.analytics import revenue_model
 def _db():
     try:
         return get_db()
-    except Exception as exc:  # pragma: no cover - depends on environment
+    except psycopg2.OperationalError as exc:  # pragma: no cover - depends on environment
         pytest.skip(f"no database available: {exc}")
 
 
@@ -48,10 +48,9 @@ def test_create_and_list_revenue_stream():
         )
         assert created["stream_name"] == "Maize Sales"
         assert created["stream_type"] == "one_time"
+        assert created["is_active"] is True
         streams = revenue_model.list_revenue_streams(conn, loc)
         assert any(str(r["id"]) == str(created["id"]) for r in streams)
-    except psycopg2.ProgrammingError:
-        pytest.skip("revenue_stream_definition table not present (migration not applied)")
     finally:
         conn.close()
 
@@ -70,8 +69,6 @@ def test_create_and_list_pricing():
         assert created["base_price"] == 0.50
         models = revenue_model.list_pricing_models(conn, loc)
         assert any(str(r["id"]) == str(created["id"]) for r in models)
-    except psycopg2.ProgrammingError:
-        pytest.skip("pricing_model table not present (migration not applied)")
     finally:
         conn.close()
 
@@ -90,8 +87,6 @@ def test_create_and_list_cost_structure():
         assert created["cost_type"] == "fixed"
         costs = revenue_model.list_cost_structures(conn, loc)
         assert any(str(r["id"]) == str(created["id"]) for r in costs)
-    except psycopg2.ProgrammingError:
-        pytest.skip("cost_structure table not present (migration not applied)")
     finally:
         conn.close()
 
@@ -108,8 +103,6 @@ def test_create_cost_driver():
         )
         assert created["driver_name"] == "Fuel Price"
         assert created["sensitivity_pct"] == 15
-    except psycopg2.ProgrammingError:
-        pytest.skip("cost_driver table not present (migration not applied)")
     finally:
         conn.close()
 
@@ -128,8 +121,6 @@ def test_break_even_analysis():
         assert float(result["break_even_units"]) == 3333.33
         assert float(result["break_even_revenue"]) == 16666.67
         assert float(result["contribution_margin"]) == 60.0
-    except psycopg2.ProgrammingError:
-        pytest.skip("break_even_analysis table not present (migration not applied)")
     finally:
         conn.close()
 
@@ -142,8 +133,6 @@ def test_break_even_invalid_price():
     try:
         with pytest.raises(ValueError, match="price_per_unit must be > 0"):
             revenue_model.create_break_even(conn, loc, 10000, 2.0, 0)
-    except psycopg2.ProgrammingError:
-        pytest.skip("break_even_analysis table not present (migration not applied)")
     finally:
         conn.close()
 
@@ -156,8 +145,6 @@ def test_break_even_negative_margin():
     try:
         with pytest.raises(ValueError, match="positive contribution margin"):
             revenue_model.create_break_even(conn, loc, 10000, 5.0, 3.0)
-    except psycopg2.ProgrammingError:
-        pytest.skip("break_even_analysis table not present (migration not applied)")
     finally:
         conn.close()
 
@@ -176,8 +163,6 @@ def test_sensitivity_analysis():
         s = result["scenarios"][0]
         assert "price_change_pct" in s
         assert "break_even_units" in s
-    except psycopg2.ProgrammingError:
-        pytest.skip("break_even_analysis table not present (migration not applied)")
     finally:
         conn.close()
 
@@ -195,7 +180,5 @@ def test_revenue_forecast():
         assert forecast["periods"] == 6
         assert len(forecast["monthly_projections"]) == 6
         assert forecast["total_forecast"] > 0
-    except psycopg2.ProgrammingError:
-        pytest.skip("revenue_stream_definition table not present (migration not applied)")
     finally:
         conn.close()

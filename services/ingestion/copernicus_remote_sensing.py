@@ -22,7 +22,7 @@ from typing import Any, Dict, Optional
 import requests
 
 from ..common.logging import get_logger
-from .base import log_ingestion, hash_payload
+from .base import log_ingestion, hash_payload, post_clickhouse_rows
 
 logger = get_logger("ingestion.copernicus_remote_sensing")
 
@@ -157,6 +157,7 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
             "observation_date": now.strftime("%Y-%m-%d"),
             "source": "sentinel-2",
             "source_system": "copernicus_api",
+            "source_id": product_id,
             "cloud_cover_pct": float(cloud_cover) if cloud_cover else None,
             "metadata": json.dumps({
                 "product_id": product_id,
@@ -169,7 +170,8 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
 
         pg_id = _insert_pg(conn, record)
         record["id"] = pg_id
-        _insert_ch(record)
+        if not record.get("_duplicate"):
+            _insert_ch(record)
 
         log_ingestion(
             source_system="copernicus_api",
@@ -180,7 +182,7 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
             operation="insert",
             payload_hash=hash_payload(record),
             status="success",
-            rows_affected=1,
+            rows_affected=0 if record.get("_duplicate") else 1,
         )
         observations += 1
 
@@ -200,54 +202,48 @@ def _insert_pg(conn, record: dict) -> str:
         """
         INSERT INTO remote_sensing_observation
             (plot_id, location_id, observation_date, source,
-             cloud_cover_pct, source_system, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
-        RETURNING id
+             cloud_cover_pct, source_system, source_id, metadata)
+         VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+         ON CONFLICT (source_system, source_id) WHERE source_id IS NOT NULL DO NOTHING
+         RETURNING id
         """,
         (
             record.get("plot_id"), record.get("location_id"),
             record["observation_date"], record.get("source", "sentinel-2"),
             record.get("cloud_cover_pct"),
             record.get("source_system", "copernicus_api"),
+            record.get("source_id"),
             record.get("metadata", "{}"),
         ),
     )
-    record_id = str(cur.fetchone()[0])
+    row = cur.fetchone()
+    if row:
+        record_id = str(row[0])
+    else:
+        record["_duplicate"] = True
+        cur.execute(
+            "SELECT id FROM remote_sensing_observation WHERE source_system = %s AND source_id = %s",
+            (record.get("source_system", "copernicus_api"), record["source_id"]),
+        )
+        record_id = str(cur.fetchone()[0])
     conn.commit()
     cur.close()
     return record_id
 
 
 def _insert_ch(record: dict) -> None:
-    import requests as req
-    from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
-
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-    ts = f"{record['observation_date']} 00:00:00.000"
     source_system = record.get("source_system", "copernicus_api")
 
-    query = f"""INSERT INTO remote_sensing_events
-        (timestamp, observation_id, location_id, plot_id, source,
-         cloud_cover_pct, source_system, metadata)
-        VALUES (
-            '{ts}',
-            '{record.get("id", "")}',
-            '{record.get("location_id", "")}',
-            '{record.get("plot_id") or ""}',
-            '{record.get("source", "sentinel-2")}',
-            {_ch_num(record.get("cloud_cover_pct"))},
-            '{source_system}',
-            map()
-        )"""
-
     try:
-        resp = req.post(
-            ch_url, data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        post_clickhouse_rows(
+            "remote_sensing_events",
+            ["timestamp", "observation_id", "location_id", "plot_id", "source",
+             "cloud_cover_pct", "source_system", "metadata"],
+            [[f"{record['observation_date']} 00:00:00.000", record.get("id", ""),
+              record.get("location_id", ""), record.get("plot_id") or "",
+              record.get("source", "sentinel-2"), record.get("cloud_cover_pct"),
+              source_system, {}]],
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 

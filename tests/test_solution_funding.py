@@ -32,7 +32,9 @@ def test_funding_release_requires_milestone_evidence():
         solution_funding.approve_tranche(conn, str(tranche["id"]), PARTY_ID)
         with pytest.raises(ValueError, match="evidence"):
             solution_funding.release_tranche(conn, str(tranche["id"]), 1000, PARTY_ID, [])
-        release = solution_funding.release_tranche(conn, str(tranche["id"]), 1000, PARTY_ID, [{"metric":"water_reliability","value":90}])
+        with pytest.raises(ValueError, match="milestone conditions"):
+            solution_funding.release_tranche(conn, str(tranche["id"]), 1000, PARTY_ID, [{"metric":"water_reliability","value":90}])
+        release = solution_funding.release_tranche(conn, str(tranche["id"]), 1000, PARTY_ID, [{"success_metric":"water_reliability", "metric":"water_reliability","value":90}])
         assert float(release["amount"]) == 1000
     finally:
         conn.rollback()

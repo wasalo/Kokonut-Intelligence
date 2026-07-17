@@ -5,8 +5,8 @@ Formula: COUNT(DISTINCT wallet_id) WHERE active_in_current AND active_in_prior
 Definition: Wallet active across defined periods
 """
 
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -21,7 +21,7 @@ def compute_wallet_retention(
 
     # Default to last 60 days split into two 30-day windows
     if not period_end:
-        period_end = datetime.utcnow().strftime("%Y-%m-%d")
+        period_end = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if not period_start:
         end_dt = datetime.strptime(period_end, "%Y-%m-%d")
         period_start = (end_dt - timedelta(days=60)).strftime("%Y-%m-%d")

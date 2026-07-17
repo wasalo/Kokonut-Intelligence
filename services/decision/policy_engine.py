@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -18,8 +18,17 @@ import psycopg2.extras
 class PolicyEngine:
     """Evaluates decision policies and produces action recommendations."""
 
-    def __init__(self, conn=None):
+    def __init__(
+        self,
+        conn=None,
+        action_adapters: Optional[Dict[str, Callable[..., Dict[str, Any]]]] = None,
+        authorized_action_types: Optional[Iterable[str]] = None,
+    ):
         self._conn = conn
+        # Adapters are opt-in. The built-in handlers below are advisory
+        # simulations and must never be treated as executed side effects.
+        self._action_adapters = action_adapters or {}
+        self._authorized_action_types = set(authorized_action_types or ())
 
     def _get_conn(self):
         if self._conn is None:
@@ -198,12 +207,14 @@ class PolicyEngine:
             cur.close()
             return {"error": "Decision must be approved before execution"}
         try:
-            # Execute based on action_type.
+            # Execute based on action_type. Unsupported, unauthorized, and
+            # simulated actions return structured failures so they are also
+            # recorded in the decision audit trail.
             result = self._execute_action(cur, decision)
         except Exception as exc:
             conn.rollback()
             cur.close()
-            return {"success": False, "error": str(exc)}
+            return {"success": False, "status": "failed", "error": str(exc)}
 
         # Update decision status
         status = "executed" if result.get("success") else "failed"
@@ -452,35 +463,54 @@ class PolicyEngine:
         action_config = decision.get("action_config", {})
         location_id = decision.get("location_id")
 
-        if action_type == "create_intervention_draft":
-            return self._create_intervention_draft(cur, location_id, action_config)
+        adapter = self._action_adapters.get(action_type)
+        if adapter is not None:
+            if action_type not in self._authorized_action_types:
+                return {
+                    "success": False,
+                    "status": "unauthorized",
+                    "error": f"Action adapter is not authorized: {action_type}",
+                    "action": action_type,
+                }
+            result = adapter(cur, decision)
+            if not isinstance(result, dict):
+                return {
+                    "success": False,
+                    "status": "failed",
+                    "error": f"Action adapter returned an invalid result: {action_type}",
+                    "action": action_type,
+                }
+            if result.get("success"):
+                return {**result, "status": "executed", "action": action_type}
+            return {**result, "status": result.get("status", "failed"), "action": action_type}
 
-        elif action_type == "send_alert_notification":
-            return self._send_alert_notification(cur, location_id, action_config)
+        simulated_handlers = {
+            "create_intervention_draft": self._create_intervention_draft,
+            "send_alert_notification": self._send_alert_notification,
+            "adjust_sampling_rate": self._adjust_sampling_rate,
+            "trigger_reassessment": self._trigger_reassessment,
+            "create_data_stream_post": self._create_data_stream_post,
+        }
+        if action_type in simulated_handlers:
+            return simulated_handlers[action_type](cur, location_id, action_config)
 
-        elif action_type == "adjust_sampling_rate":
-            return self._adjust_sampling_rate(cur, location_id, action_config)
-
-        elif action_type == "trigger_reassessment":
-            return self._trigger_reassessment(cur, location_id, action_config)
-
-        elif action_type == "create_data_stream_post":
-            return self._create_data_stream_post(cur, location_id, action_config)
-
-        else:
-            return {
-                "success": False,
-                "error": f"Unknown action type: {action_type}",
-                "message": f"Action type '{action_type}' is not implemented",
-            }
+        return {
+            "success": False,
+            "status": "unsupported",
+            "error": f"Unsupported action type: {action_type}",
+            "message": "Execution denied because no action adapter is registered",
+            "action": action_type,
+        }
 
     def _create_intervention_draft(
         self, cur, location_id: str, config: Dict
     ) -> Dict[str, Any]:
         """Create a draft intervention record."""
         return {
-            "success": True,
-            "message": "Intervention draft created (simulated)",
+            "success": False,
+            "status": "simulated",
+            "error": "Action type 'create_intervention_draft' has no execution adapter; advisory simulation only",
+            "message": "Approved advisory action was not executed",
             "action": "create_intervention_draft",
             "location_id": location_id,
             "config": config,
@@ -491,8 +521,10 @@ class PolicyEngine:
     ) -> Dict[str, Any]:
         """Send an alert notification."""
         return {
-            "success": True,
-            "message": "Alert notification sent (simulated)",
+            "success": False,
+            "status": "simulated",
+            "error": "Action type 'send_alert_notification' has no execution adapter; advisory simulation only",
+            "message": "Approved advisory action was not executed",
             "action": "send_alert_notification",
             "location_id": location_id,
             "config": config,
@@ -503,8 +535,10 @@ class PolicyEngine:
     ) -> Dict[str, Any]:
         """Adjust sensor sampling rate."""
         return {
-            "success": True,
-            "message": "Sampling rate adjusted (simulated)",
+            "success": False,
+            "status": "simulated",
+            "error": "Action type 'adjust_sampling_rate' has no execution adapter; advisory simulation only",
+            "message": "Approved advisory action was not executed",
             "action": "adjust_sampling_rate",
             "location_id": location_id,
             "config": config,
@@ -515,8 +549,10 @@ class PolicyEngine:
     ) -> Dict[str, Any]:
         """Trigger a situation reassessment."""
         return {
-            "success": True,
-            "message": "Reassessment triggered (simulated)",
+            "success": False,
+            "status": "simulated",
+            "error": "Action type 'trigger_reassessment' has no execution adapter; advisory simulation only",
+            "message": "Approved advisory action was not executed",
             "action": "trigger_reassessment",
             "location_id": location_id,
             "config": config,
@@ -527,8 +563,10 @@ class PolicyEngine:
     ) -> Dict[str, Any]:
         """Create a data stream post."""
         return {
-            "success": True,
-            "message": "Data stream post created (simulated)",
+            "success": False,
+            "status": "simulated",
+            "error": "Action type 'create_data_stream_post' has no execution adapter; advisory simulation only",
+            "message": "Approved advisory action was not executed",
             "action": "create_data_stream_post",
             "location_id": location_id,
             "config": config,
