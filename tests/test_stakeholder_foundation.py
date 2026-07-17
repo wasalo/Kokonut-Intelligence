@@ -19,6 +19,9 @@ def test_party_relationship_interest_and_salience_lifecycle():
     party_id = None
     other_party_id = None
     try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id FROM location ORDER BY id LIMIT 1")
+            location_id = cur.fetchone()[0]
         party = stakeholders.create_party(
             conn, "community", "Test stakeholder community", privacy_level="limited"
         )
@@ -34,7 +37,7 @@ def test_party_relationship_interest_and_salience_lifecycle():
         )
         interest = stakeholders.add_interest(
             conn, party_id, "need", "Accessible participation", priority=5,
-            legitimacy="normative", scope_type="location",
+            legitimacy="normative", scope_type="location", scope_id=str(location_id),
         )
         assessment = stakeholders.assess_salience(
             conn, party_id, interest_id=interest["id"], power=2,
@@ -50,6 +53,7 @@ def test_party_relationship_interest_and_salience_lifecycle():
         assert detail["interests"][0]["id"] == interest["id"]
         assert float(assessment["advisory_score"]) > 6
     finally:
+        conn.rollback()
         if party_id:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid)", (party_id, other_party_id))

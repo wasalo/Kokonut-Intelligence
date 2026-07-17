@@ -35,6 +35,15 @@ def _row(row: Any) -> Optional[Dict[str, Any]]:
     return {key: _value(value) for key, value in dict(row).items()} if row else None
 
 
+def _validate_scope(scope_type: str, scope_id: Optional[str]) -> None:
+    if scope_type not in SCOPE_TYPES:
+        raise ValueError(f"scope_type must be one of {SCOPE_TYPES}")
+    if scope_type == "network" and scope_id is not None:
+        raise ValueError("network scope must not have scope_id")
+    if scope_type != "network" and scope_id is None:
+        raise ValueError(f"{scope_type} scope requires scope_id")
+
+
 def create_party(
     conn,
     party_type: str,
@@ -159,8 +168,7 @@ def link_parties(
     accountable_party_id: Optional[str] = None,
     responsibility_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    if scope_type not in SCOPE_TYPES:
-        raise ValueError(f"scope_type must be one of {SCOPE_TYPES}")
+    _validate_scope(scope_type, scope_id)
     if legitimacy not in RELATIONSHIP_LEGITIMACY:
         raise ValueError(f"legitimacy must be one of {RELATIONSHIP_LEGITIMACY}")
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -196,8 +204,7 @@ def add_interest(
         raise ValueError(f"interest_type must be one of {INTEREST_TYPES}")
     if legitimacy not in RELATIONSHIP_LEGITIMACY:
         raise ValueError(f"legitimacy must be one of {RELATIONSHIP_LEGITIMACY}")
-    if scope_type not in SCOPE_TYPES:
-        raise ValueError(f"scope_type must be one of {SCOPE_TYPES}")
+    _validate_scope(scope_type, scope_id)
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             """INSERT INTO stakeholder_interest
