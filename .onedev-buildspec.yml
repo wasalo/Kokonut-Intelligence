@@ -58,6 +58,10 @@ jobs:
         pip install -r requirements.txt
         python scripts/check-python-runtime.py
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
+        # The SDK generation/build steps require Node.js and npm on the host.
+        apt-get install -y -qq nodejs npm >/dev/null
+        node --version
+        npm --version
         export PG_HOST=localhost PG_PORT=5432 CH_HOST=localhost CH_PORT=8123
         export KOKONUT_METRICS_EXECUTION=host
         (cd sdk/typescript && npm install --no-audit --no-fund && npm run generate && npm run build)
