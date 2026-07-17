@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from decimal import Decimal
 from typing import Any
 
 from web3 import Web3
@@ -27,7 +28,10 @@ def candidate_award_payload(candidate: dict[str, Any], event_id: uuid.UUID, calc
         calculation_version_hash,
     )
     evidence_hash = candidate["evidence_hash"]
-    amount = int(candidate.get("reward_amount") or 0)
+    raw_amount = Decimal(str(candidate.get("reward_amount") or 0))
+    if raw_amount != raw_amount.to_integral_value():
+        raise ValueError("KGP reward_amount must be an integer point value")
+    amount = int(raw_amount)
     if not evidence_hash or amount <= 0:
         raise ValueError("A KGP candidate requires evidence_hash and a positive reward_amount")
     return {
@@ -79,7 +83,7 @@ def create_award_event(
              event_type, settlement_method, settlement_status, review_status,
              amount, epoch, evidence_hash, evidence_cid, ledger_record_hash,
              calculation_version, award_id, task_id, evidence_review_id)
-        VALUES (%s, %s, %s, %s, %s, 'award', %s, 'pending', 'verified',
+        VALUES (%s, %s, %s, %s, %s, 'award', %s, 'pending', 'submitted',
                 %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (award_id) DO NOTHING
         RETURNING id
@@ -93,11 +97,53 @@ def create_award_event(
         ),
     )
     row = cursor.fetchone()
+    persisted_event_id = row[0] if row and not isinstance(row, dict) else (row["id"] if row else None)
     if row is None:
-        cursor.execute("SELECT id FROM guild_reputation_event WHERE award_id = %s", (payload["award_id"],))
+        cursor.execute(
+            """
+            SELECT id, guild_id, contributor_wallet, domain_id, amount, epoch,
+                   evidence_hash, ledger_record_hash, calculation_version
+            FROM guild_reputation_event
+            WHERE award_id = %s
+            """,
+            (payload["award_id"],),
+        )
         row = cursor.fetchone()
-    payload["event_id"] = row[0] if row else event_id
+        if not row:
+            raise RuntimeError("KGP award conflict row disappeared")
+        existing = dict(row) if isinstance(row, dict) else {
+            "id": row[0], "guild_id": row[1], "contributor_wallet": row[2],
+            "domain_id": row[3], "amount": row[4], "epoch": row[5],
+            "evidence_hash": row[6], "ledger_record_hash": row[7],
+            "calculation_version": row[8],
+        }
+        expected = {
+            "guild_id": candidate["guild_id"], "contributor_wallet": candidate["contributor_wallet"],
+            "domain_id": candidate["domain_id"], "amount": payload["amount"], "epoch": epoch,
+            "evidence_hash": payload["evidence_hash"], "ledger_record_hash": payload["ledger_record_hash"],
+            "calculation_version": payload["calculation_version"],
+        }
+        for field, value in expected.items():
+            if str(existing[field]).lower() != str(value).lower():
+                raise ValueError(f"Immutable KGP award conflict for {field}")
+        persisted_event_id = existing["id"]
+    payload["event_id"] = persisted_event_id or event_id
     return payload
+
+
+def verify_award_event(cursor, event_id: str, reviewer_id: str) -> None:
+    """Apply the human review transition required before KGP settlement."""
+    cursor.execute(
+        """
+        UPDATE guild_reputation_event
+        SET review_status = 'verified', reviewed_by = %s, reviewed_at = NOW(), updated_at = NOW()
+        WHERE id = %s AND review_status IN ('submitted', 'draft')
+        RETURNING id
+        """,
+        (reviewer_id, event_id),
+    )
+    if cursor.fetchone() is None:
+        raise ValueError("KGP event is not pending human verification")
 
 
 def canonical_balance(cursor, guild_id: str, domain_id: int, wallet: str) -> int:
