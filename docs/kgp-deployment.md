@@ -25,7 +25,7 @@ KGP_PAUSER
 KGP_UPGRADER
 ```
 
-`KGP_URI` is optional and defaults to `ipfs://kokonut-kgp/{id}.json`.
+`KGP_URI` is optional and defaults to `ipfs://kokonut-kgp/{id}.json`. `KGP_UPGRADER` must be a deployed `KokonutGuildUpgradeTimelock` contract on Gnosis and Chiado.
 
 The deployer only broadcasts the deployment. Production role addresses should be multisigs, governance-controlled accounts, or dedicated rotated service keys. The deployer must not retain `UPGRADER_ROLE` unless explicitly approved.
 
@@ -61,15 +61,17 @@ forge script script/DeployKokonutGuildPoints.s.sol:DeployKokonutGuildPoints \
 
 ## Upgrade
 
-The upgrade key must have `UPGRADER_ROLE` on the proxy. Every upgrade requires a storage compatibility test and governance approval.
+Production upgrades are queued and executed through `KokonutGuildUpgradeTimelock`. The timelock address must hold `UPGRADER_ROLE`; the proposer and executor keys are separate operational authorities. Every upgrade requires a storage compatibility test, governance approval, and the configured delay.
 
 ```bash
 cd contracts
-forge script script/UpgradeKokonutGuildPoints.s.sol:UpgradeKokonutGuildPoints \
-  --rpc-url $GNOSIS_RPC_URL --broadcast --verify
+forge script script/QueueKokonutGuildPointsUpgrade.s.sol:QueueKokonutGuildPointsUpgrade \
+  --rpc-url $GNOSIS_RPC_URL --broadcast
+forge script script/ExecuteKokonutGuildPointsUpgrade.s.sol:ExecuteKokonutGuildPointsUpgrade \
+  --rpc-url $GNOSIS_RPC_URL --broadcast
 ```
 
-Never upgrade the proxy by calling the implementation directly. The proxy address is the permanent public KGP address.
+`UpgradeKokonutGuildPoints.s.sol` is retained for controlled local/test use only. Never use it with a production EOA upgrader. Never upgrade the proxy by calling the implementation directly; the proxy address is the permanent public KGP address.
 
 ## Guild Protocol Deployment
 

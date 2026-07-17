@@ -25,6 +25,7 @@ contract DeployKokonutGuildPoints is Script {
         address reverser = vm.envAddress("KGP_REVERSER");
         address pauser = vm.envAddress("KGP_PAUSER");
         address upgrader = vm.envAddress("KGP_UPGRADER");
+        require(upgrader.code.length > 0, "KGP upgrader must be a timelock contract");
         string memory uri = vm.envOr("KGP_URI", string("ipfs://kokonut-kgp/{id}.json"));
 
         vm.startBroadcast(deployerKey);
