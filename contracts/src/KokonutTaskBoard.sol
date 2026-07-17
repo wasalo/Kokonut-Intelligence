@@ -103,7 +103,10 @@ contract KokonutTaskBoard is AccessControl {
 
     function assignTask(uint256 taskId, address contributor) external onlyRole(TASK_ADMIN_ROLE) {
         Task storage task = _task(taskId);
-        if (task.status != TaskStatus.Open || contributor == address(0) || block.timestamp > task.deadline) {
+        if (
+            task.status != TaskStatus.Open || contributor == address(0) || block.timestamp > task.deadline
+                || !domains.isActiveDomain(task.domainId)
+        ) {
             revert TaskNotAssignable(taskId);
         }
         task.contributor = contributor;
@@ -113,7 +116,10 @@ contract KokonutTaskBoard is AccessControl {
 
     function submitEvidence(uint256 taskId, bytes32 evidenceHash) external {
         Task storage task = _task(taskId);
-        if (task.status != TaskStatus.Assigned || task.contributor != msg.sender || evidenceHash == bytes32(0)) {
+        if (
+            task.status != TaskStatus.Assigned || task.contributor != msg.sender || evidenceHash == bytes32(0)
+                || block.timestamp > task.deadline || !domains.isActiveDomain(task.domainId)
+        ) {
             revert UnauthorizedContributor();
         }
         task.submittedEvidenceHash = evidenceHash;
@@ -150,6 +156,14 @@ contract KokonutTaskBoard is AccessControl {
         if (task.status != TaskStatus.Submitted && task.status != TaskStatus.Accepted) revert InvalidStatus(taskId);
         task.status = TaskStatus.Disputed;
         emit TaskStatusUpdated(taskId, TaskStatus.Disputed, reviewId);
+    }
+
+    function markReviewRevoked(uint256 taskId, bytes32 reviewId) external {
+        if (msg.sender != evidenceReview) revert OnlyEvidenceReview();
+        Task storage task = _task(taskId);
+        if (task.status == TaskStatus.Paid || task.status == TaskStatus.Cancelled) revert InvalidStatus(taskId);
+        task.status = TaskStatus.Rejected;
+        emit TaskStatusUpdated(taskId, TaskStatus.Rejected, reviewId);
     }
 
     function markPaid(uint256 taskId, bytes32 paymentReference) external onlyRole(TASK_ADMIN_ROLE) {

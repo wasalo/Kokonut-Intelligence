@@ -48,12 +48,18 @@ contract DeployKokonutGuildProtocol is Script {
 
         tasks.setEvidenceReview(address(reviews));
         tasks.grantRole(tasks.TASK_ADMIN_ROLE(), address(governance));
+        domains.grantRole(domains.DOMAIN_ADMIN_ROLE(), address(governance));
         reviews.grantRole(reviews.REVIEWER_ROLE(), reviewer);
         governance.grantRole(governance.PROPOSER_ROLE(), proposer);
         governance.grantRole(governance.OBJECTOR_ROLE(), objector);
         governance.grantRole(governance.EXECUTOR_ROLE(), executor);
         governance.setTargetAllowed(address(tasks), true);
         governance.setTargetAllowed(address(domains), true);
+        governance.setTargetSelectorAllowed(address(tasks), tasks.cancelTask.selector, true);
+        governance.setTargetSelectorAllowed(address(tasks), tasks.markPaid.selector, true);
+        governance.setTargetSelectorAllowed(address(domains), domains.setStatus.selector, true);
+        governance.setGuildScopedTarget(address(tasks), true);
+        governance.setGuildScopedTarget(address(domains), true);
         vm.stopBroadcast();
 
         console.log("Guild registry:", address(registry));

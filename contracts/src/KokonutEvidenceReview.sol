@@ -120,7 +120,10 @@ contract KokonutEvidenceReview is AccessControl {
     function revokeReview(bytes32 reviewId, bytes32 reasonHash) external onlyRole(DEFAULT_ADMIN_ROLE) {
         Review storage review = _review(reviewId);
         if (review.status == ReviewStatus.Revoked) revert ReviewNotDisputable(reviewId);
+        KokonutTaskBoard.Task memory task = tasks.getTask(review.taskId);
+        if (task.status == KokonutTaskBoard.TaskStatus.Paid) revert ReviewNotDisputable(reviewId);
         review.status = ReviewStatus.Revoked;
+        tasks.markReviewRevoked(review.taskId, reviewId);
         emit EvidenceRevoked(reviewId, reasonHash);
     }
 

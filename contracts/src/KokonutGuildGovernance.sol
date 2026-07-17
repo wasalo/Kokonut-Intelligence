@@ -3,6 +3,8 @@ pragma solidity ^0.8.27;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {KokonutGuildDomain} from "./KokonutGuildDomain.sol";
+import {KokonutTaskBoard} from "./KokonutTaskBoard.sol";
 
 /// @title Kokonut Guild Governance
 /// @notice Lazy-consensus motions for allowlisted operational Guild actions.
@@ -38,6 +40,8 @@ contract KokonutGuildGovernance is AccessControl {
     uint256 public nextMotionId = 1;
     mapping(uint256 motionId => Motion motion) private _motions;
     mapping(address target => bool allowed) public allowedTargets;
+    mapping(address target => mapping(bytes4 selector => bool allowed)) public allowedSelectors;
+    mapping(address target => bool guildScopedTarget) public guildScopedTargets;
 
     error InvalidMotion();
     error TargetNotAllowed(address target);
@@ -48,6 +52,8 @@ contract KokonutGuildGovernance is AccessControl {
     error ValueNotAllowed();
 
     event TargetPermissionUpdated(address indexed target, bool allowed);
+    event TargetSelectorPermissionUpdated(address indexed target, bytes4 indexed selector, bool allowed);
+    event GuildScopedTargetUpdated(address indexed target, bool guildScoped);
     event MotionCreated(
         uint256 indexed motionId,
         bytes32 indexed guildId,
@@ -74,12 +80,31 @@ contract KokonutGuildGovernance is AccessControl {
         emit TargetPermissionUpdated(target, allowed);
     }
 
+    function setTargetSelectorAllowed(address target, bytes4 selector, bool allowed)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        if (target == address(0) || !allowedTargets[target]) revert InvalidMotion();
+        allowedSelectors[target][selector] = allowed;
+        emit TargetSelectorPermissionUpdated(target, selector, allowed);
+    }
+
+    function setGuildScopedTarget(address target, bool scoped) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (target == address(0) || !allowedTargets[target]) revert InvalidMotion();
+        guildScopedTargets[target] = scoped;
+        emit GuildScopedTargetUpdated(target, scoped);
+    }
+
     function createMotion(bytes32 guildId, address target, bytes calldata data, uint64 objectionDeadline)
         external
         onlyRole(PROPOSER_ROLE)
         returns (uint256 motionId)
     {
-        if (guildId == bytes32(0) || !allowedTargets[target] || objectionDeadline <= block.timestamp) {
+        if (
+            guildId == bytes32(0) || !allowedTargets[target] || objectionDeadline <= block.timestamp || data.length < 4
+                || !allowedSelectors[target][_selector(data)]
+                || (guildScopedTargets[target] && !_matchesGuild(target, data, guildId))
+        ) {
             revert InvalidMotion();
         }
         motionId = nextMotionId++;
@@ -138,5 +163,25 @@ contract KokonutGuildGovernance is AccessControl {
     function _motion(uint256 motionId) internal view returns (Motion storage motion) {
         motion = _motions[motionId];
         if (motion.motionId == 0) revert InvalidMotion();
+    }
+
+    function _selector(bytes calldata data) internal pure returns (bytes4 selector) {
+        assembly {
+            selector := calldataload(data.offset)
+        }
+    }
+
+    function _matchesGuild(address target, bytes calldata data, bytes32 guildId) internal view returns (bool) {
+        bytes4 selector = _selector(data);
+        if (target == address(0)) return false;
+        if (selector == KokonutTaskBoard.cancelTask.selector || selector == KokonutTaskBoard.markPaid.selector) {
+            (uint256 taskId,) = abi.decode(data[4:], (uint256, bytes32));
+            return KokonutTaskBoard(target).getTask(taskId).guildId == guildId;
+        }
+        if (selector == KokonutGuildDomain.setStatus.selector) {
+            (uint256 domainId,) = abi.decode(data[4:], (uint256, KokonutGuildDomain.DomainStatus));
+            return KokonutGuildDomain(target).getDomain(domainId).guildId == guildId;
+        }
+        return false;
     }
 }

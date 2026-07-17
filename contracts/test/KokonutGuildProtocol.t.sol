@@ -33,7 +33,11 @@ contract KokonutGuildProtocolTest is Test {
         domainId = domains.createDomain(guildId, 0, "MRV", "ipfs://mrv");
         tasks.setEvidenceReview(address(reviews));
         tasks.grantRole(tasks.TASK_ADMIN_ROLE(), address(governance));
+        domains.grantRole(domains.DOMAIN_ADMIN_ROLE(), address(governance));
         governance.setTargetAllowed(address(tasks), true);
+        governance.setTargetSelectorAllowed(address(tasks), tasks.cancelTask.selector, true);
+        governance.setTargetSelectorAllowed(address(tasks), tasks.markPaid.selector, true);
+        governance.setGuildScopedTarget(address(tasks), true);
         vm.stopPrank();
     }
 
@@ -79,6 +83,42 @@ contract KokonutGuildProtocolTest is Test {
         assertEq(uint8(tasks.getTask(taskId).status), uint8(KokonutTaskBoard.TaskStatus.Accepted));
     }
 
+    function test_guild_pause_blocks_existing_domain_task_activity() public {
+        uint256 taskId = _createAssignedTask();
+        vm.prank(admin);
+        registry.setStatus(guildId, KokonutGuildRegistry.GuildStatus.Paused);
+
+        vm.prank(contributor);
+        vm.expectRevert(KokonutTaskBoard.UnauthorizedContributor.selector);
+        tasks.submitEvidence(taskId, keccak256("late-evidence"));
+    }
+
+    function test_late_evidence_submission_is_rejected() public {
+        uint256 taskId = _createAssignedTask();
+        vm.warp(block.timestamp + 8 days);
+        vm.prank(contributor);
+        vm.expectRevert(KokonutTaskBoard.UnauthorizedContributor.selector);
+        tasks.submitEvidence(taskId, keccak256("late-evidence"));
+    }
+
+    function test_revoking_review_prevents_payment() public {
+        uint256 taskId = _createAssignedTask();
+        bytes32 evidenceHash = keccak256("revoked-evidence");
+        vm.prank(contributor);
+        tasks.submitEvidence(taskId, evidenceHash);
+        bytes32 reviewId = keccak256("review-revoke");
+        vm.prank(admin);
+        reviews.reviewEvidence(
+            reviewId, taskId, KokonutEvidenceReview.ReviewDecision.Accepted, evidenceHash, keccak256("notes")
+        );
+        vm.prank(admin);
+        reviews.revokeReview(reviewId, keccak256("invalidated"));
+
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(KokonutTaskBoard.InvalidStatus.selector, taskId));
+        tasks.markPaid(taskId, keccak256("payment"));
+    }
+
     function test_governance_motion_executes_only_after_unopposed_window() public {
         uint256 taskId = _createAssignedTask();
         bytes memory action = abi.encodeCall(KokonutTaskBoard.cancelTask, (taskId, keccak256("governance")));
@@ -114,6 +154,30 @@ contract KokonutGuildProtocolTest is Test {
 
         assertEq(uint8(governance.getMotion(motionId).status), uint8(KokonutGuildGovernance.MotionStatus.Rejected));
         assertEq(uint8(tasks.getTask(taskId).status), uint8(KokonutTaskBoard.TaskStatus.Assigned));
+    }
+
+    function test_governance_rejects_cross_guild_task_motion() public {
+        bytes32 otherGuildId = keccak256("impact");
+        vm.prank(admin);
+        registry.createGuild(otherGuildId, keccak256("impact-key"), "Impact Guild", "ipfs://impact", admin);
+        uint256 otherDomainId;
+        vm.prank(admin);
+        otherDomainId = domains.createDomain(otherGuildId, 0, "MRV", "ipfs://impact-mrv");
+        uint256 otherTaskId;
+        vm.prank(admin);
+        otherTaskId = tasks.createTask(
+            otherDomainId,
+            keccak256("other-task"),
+            "ipfs://other-task",
+            0,
+            address(0),
+            uint64(block.timestamp + 7 days),
+            keccak256("evidence")
+        );
+        bytes memory action = abi.encodeCall(KokonutTaskBoard.cancelTask, (otherTaskId, keccak256("cross-guild")));
+        vm.prank(admin);
+        vm.expectRevert(KokonutGuildGovernance.InvalidMotion.selector);
+        governance.createMotion(guildId, address(tasks), action, uint64(block.timestamp + 1 days));
     }
 
     function _createAssignedTask() internal returns (uint256 taskId) {

@@ -77,7 +77,8 @@ contract KokonutGuildDomain is AccessControl {
     }
 
     function isActiveDomain(uint256 domainId) external view returns (bool) {
-        return _domains[domainId].status == DomainStatus.Active;
+        Domain storage domain = _domains[domainId];
+        return domain.status == DomainStatus.Active && registry.isActiveGuild(domain.guildId);
     }
 
     function guildIdOf(uint256 domainId) external view returns (bytes32) {
@@ -86,7 +87,8 @@ contract KokonutGuildDomain is AccessControl {
 
     function isDomainSteward(uint256 domainId, address account) external view returns (bool) {
         Domain storage domain = _domains[domainId];
-        return domain.status == DomainStatus.Active && registry.isGuildSteward(domain.guildId, account);
+        return domain.status == DomainStatus.Active && registry.isActiveGuild(domain.guildId)
+            && registry.isGuildSteward(domain.guildId, account);
     }
 
     function _domain(uint256 domainId) internal view returns (Domain storage domain) {
