@@ -83,6 +83,8 @@ forge script script/DeployKokonutGuildProtocol.s.sol:DeployKokonutGuildProtocol 
 
 The deployment creates and wires the registry, domain registry, task board, evidence review, and operational governance contracts. It does not connect to or move funds from the Moloch treasury.
 
+For Chiado and Gnosis, `GUILD_PROTOCOL_DEPLOYER_PRIVATE_KEY` is a temporary bootstrap key. The script deploys with that key, wires the contracts, grants the configured production roles, verifies the handoff, and revokes bootstrap administration. Set distinct production values for `GUILD_PROTOCOL_ADMIN`, `GUILD_PROTOCOL_GUILD_ADMIN`, `GUILD_PROTOCOL_DOMAIN_ADMIN`, `GUILD_PROTOCOL_TASK_ADMIN`, `GUILD_PROTOCOL_REVIEWER`, `GUILD_PROTOCOL_PROPOSER`, `GUILD_PROTOCOL_OBJECTOR`, and `GUILD_PROTOCOL_EXECUTOR`; do not rely on the local-development defaults.
+
 For local Anvil smoke testing:
 
 ```bash

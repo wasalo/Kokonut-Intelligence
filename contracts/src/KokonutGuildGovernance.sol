@@ -12,6 +12,8 @@ import {KokonutTaskBoard} from "./KokonutTaskBoard.sol";
 contract KokonutGuildGovernance is AccessControl {
     using Address for address;
 
+    uint256 public constant MAX_CALLDATA_BYTES = 256;
+
     bytes32 public constant PROPOSER_ROLE = keccak256("PROPOSER_ROLE");
     bytes32 public constant OBJECTOR_ROLE = keccak256("OBJECTOR_ROLE");
     bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
@@ -101,8 +103,8 @@ contract KokonutGuildGovernance is AccessControl {
         returns (uint256 motionId)
     {
         if (
-            guildId == bytes32(0) || !allowedTargets[target] || objectionDeadline <= block.timestamp || data.length < 4
-                || !allowedSelectors[target][_selector(data)]
+            guildId == bytes32(0) || !allowedTargets[target] || data.length > MAX_CALLDATA_BYTES
+                || objectionDeadline <= block.timestamp || data.length < 4 || !allowedSelectors[target][_selector(data)]
                 || (guildScopedTargets[target] && !_matchesGuild(target, data, guildId))
         ) {
             revert InvalidMotion();
