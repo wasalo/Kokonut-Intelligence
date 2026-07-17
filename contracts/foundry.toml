@@ -9,3 +9,5 @@ optimizer_runs = 200
 [rpc_endpoints]
 celo = "${CELO_RPC_URL}"
 alfajores = "${CELO_ALFAJORES_RPC_URL}"
+gnosis = "${GNOSIS_RPC_URL}"
+chiado = "${CHIADO_RPC_URL}"
