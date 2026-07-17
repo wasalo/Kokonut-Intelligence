@@ -22,8 +22,29 @@ EVENT_SIGNATURES = {
     "KGP_Awarded": "KGP_Awarded(bytes32,bytes32,address,uint256,uint256,uint256,bytes32,bytes32,bytes32)",
     "KGPClaimed": "KGPClaimed(bytes32,address,uint256)",
     "KGPReversed": "KGPReversed(bytes32,bytes32,bytes32,address,uint256,uint256,bytes32,bytes32,bytes32)",
+    "GuildCreated": "GuildCreated(bytes32,bytes32,string,address)",
+    "GuildMetadataUpdated": "GuildMetadataUpdated(bytes32,string)",
+    "GuildStewardUpdated": "GuildStewardUpdated(bytes32,address)",
+    "GuildStatusUpdated": "GuildStatusUpdated(bytes32,uint8)",
+    "DomainCreated": "DomainCreated(uint256,bytes32,uint256,string,address)",
+    "DomainMetadataUpdated": "DomainMetadataUpdated(uint256,string)",
+    "DomainStatusUpdated": "DomainStatusUpdated(uint256,uint8)",
+    "TaskCreated": "TaskCreated(uint256,bytes32,uint256,bytes32)",
+    "TaskAssigned": "TaskAssigned(uint256,address)",
+    "TaskEvidenceSubmitted": "TaskEvidenceSubmitted(uint256,address,bytes32)",
+    "TaskStatusUpdated": "TaskStatusUpdated(uint256,uint8,bytes32)",
+    "EvidenceReviewed": "EvidenceReviewed(bytes32,uint256,address,uint8,bytes32,bytes32)",
+    "EvidenceDisputed": "EvidenceDisputed(bytes32,address,bytes32)",
+    "EvidenceDisputeResolved": "EvidenceDisputeResolved(bytes32,bool,bytes32)",
+    "EvidenceRevoked": "EvidenceRevoked(bytes32,bytes32)",
+    "TargetPermissionUpdated": "TargetPermissionUpdated(address,bool)",
+    "MotionCreated": "MotionCreated(uint256,bytes32,address,address,bytes32,uint64)",
+    "MotionObjected": "MotionObjected(uint256,address,bytes32)",
+    "MotionFinalized": "MotionFinalized(uint256,uint8)",
+    "MotionExecuted": "MotionExecuted(uint256,bytes)",
 }
 EVENT_TOPICS = {"0x" + Web3.keccak(text=value).hex().removeprefix("0x"): name for name, value in EVENT_SIGNATURES.items()}
+KGP_EVENT_NAMES = {"KGP_Awarded", "KGPClaimed", "KGPReversed"}
 
 
 def _hex(value: Any) -> str:
@@ -57,7 +78,7 @@ def decode_log(log: dict[str, Any]) -> dict[str, Any]:
         decoded.update({"guild_id": _hex(topics[2]), "contributor_wallet": _topic_address(topics[3])})
     elif event_name == "KGPClaimed":
         decoded["contributor_wallet"] = _topic_address(topics[2])
-    else:
+    elif event_name == "KGPReversed":
         decoded.update(
             {
                 "reversal_id": _hex(topics[1]),
@@ -169,19 +190,22 @@ class KGPIndexer:
                     "payload": decoded,
                 }
                 if insert_chain_event(cursor, event):
-                    projected = _project_event(cursor, self.deployment_id, log, decoded)
-                    if projected:
+                    if decoded["event_name"] not in KGP_EVENT_NAMES:
                         _mark_processed(cursor, self.deployment_id, event["transaction_hash"], event["log_index"])
                     else:
-                        cursor.execute(
-                            """
-                            UPDATE kgp_chain_event
-                            SET processing_status = 'dead_letter',
-                                processing_error = 'No canonical PostgreSQL ledger record matched the chain event'
-                            WHERE deployment_id = %s AND transaction_hash = %s AND log_index = %s
-                            """,
-                            (self.deployment_id, event["transaction_hash"], event["log_index"]),
-                        )
+                        projected = _project_event(cursor, self.deployment_id, log, decoded)
+                        if projected:
+                            _mark_processed(cursor, self.deployment_id, event["transaction_hash"], event["log_index"])
+                        else:
+                            cursor.execute(
+                                """
+                                UPDATE kgp_chain_event
+                                SET processing_status = 'dead_letter',
+                                    processing_error = 'No canonical PostgreSQL ledger record matched the chain event'
+                                WHERE deployment_id = %s AND transaction_hash = %s AND log_index = %s
+                                """,
+                                (self.deployment_id, event["transaction_hash"], event["log_index"]),
+                            )
                     processed += 1
 
             block_hash = _hex(self.w3.eth.get_block(end).hash)
