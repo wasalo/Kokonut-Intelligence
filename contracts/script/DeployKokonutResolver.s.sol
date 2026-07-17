@@ -21,16 +21,17 @@ contract DeployKokonutResolver is Script {
         address deployer = vm.addr(deployerKey);
         address easAddress = vm.envOr("EAS_ADDRESS", CELO_EAS);
 
-        address[] memory initialAttesters = new address[](2);
-        initialAttesters[0] = deployer;
-        initialAttesters[1] = KOKONUT_MULTISIG;
+        address[] memory initialAttesters = new address[](1);
+        initialAttesters[0] = KOKONUT_MULTISIG;
 
         vm.startBroadcast(deployerKey);
-        resolver = new KokonutResolver(IEAS(easAddress), deployer, initialAttesters);
+        resolver = new KokonutResolver(IEAS(easAddress), KOKONUT_MULTISIG, initialAttesters);
         vm.stopBroadcast();
 
+        require(resolver.owner() == KOKONUT_MULTISIG, "Resolver ownership handoff failed");
+
         console.log("KokonutResolver deployed at:", address(resolver));
-        console.log("Owner:", deployer);
+        console.log("Owner:", KOKONUT_MULTISIG);
         console.log("EAS:", easAddress);
         console.log("Allowed attesters:");
         console.log("  - Deployer:", deployer);

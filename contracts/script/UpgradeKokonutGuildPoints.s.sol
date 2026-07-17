@@ -16,11 +16,14 @@ contract UpgradeKokonutGuildPoints is Script {
 
         uint256 upgraderKey = vm.envUint("KGP_UPGRADER_PRIVATE_KEY");
         address proxyAddress = vm.envAddress("KGP_PROXY");
+        require(proxyAddress.code.length > 0, "KGP proxy has no deployed code");
 
         vm.startBroadcast(upgraderKey);
         KokonutGuildPoints newImplementation = new KokonutGuildPoints();
         KokonutGuildPoints(proxyAddress).upgradeToAndCall(address(newImplementation), "");
         vm.stopBroadcast();
+
+        require(proxyAddress.code.length > 0, "KGP proxy code missing after upgrade");
 
         implementation = address(newImplementation);
         console.log("KokonutGuildPoints proxy:", proxyAddress);
