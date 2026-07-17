@@ -94,10 +94,10 @@ class ActionOutcomeTracker:
         cur.execute("""
             SELECT md.metric_key, mv.value
             FROM metric_value mv
-            JOIN metric_definition md ON md.id = mv.metric_definition_id
+            JOIN metric_definition md ON md.id = mv.metric_id
             WHERE mv.location_id = %s
             AND mv.verified = TRUE
-            AND mv.computed_at > NOW() - INTERVAL '%s hours'
+            AND mv.computed_at > NOW() - (%s * INTERVAL '1 hour')
             ORDER BY mv.computed_at DESC
             LIMIT 50
         """, (location_id, window_hours))
@@ -121,10 +121,10 @@ class ActionOutcomeTracker:
         cur.execute("""
             SELECT md.metric_key, mv.value
             FROM metric_value mv
-            JOIN metric_definition md ON md.id = mv.metric_definition_id
+            JOIN metric_definition md ON md.id = mv.metric_id
             WHERE mv.location_id = %s
             AND mv.verified = TRUE
-            AND mv.computed_at <= NOW() - INTERVAL '%s hours'
+            AND mv.computed_at <= NOW() - (%s * INTERVAL '1 hour')
             ORDER BY mv.computed_at DESC
             LIMIT 50
         """, (location_id, lookback_hours))

@@ -23,8 +23,7 @@ import time
 from datetime import datetime, timezone
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
-from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .base import get_db, log_ingestion, hash_payload, post_clickhouse_rows
 
 logger = get_logger("ingestion.remote_sensing")
 
@@ -90,8 +89,10 @@ def insert_observation(db, record: dict) -> str:
             INSERT INTO remote_sensing_observation
                 (plot_id, location_id, observation_date, source,
                  ndvi, ndre, evi, savi, canopy_cover_pct, ndwi,
-                 cloud_cover_pct, bbox, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                 cloud_cover_pct, bbox, metadata, source_system, source_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
+            ON CONFLICT (source_system, source_id) WHERE source_id IS NOT NULL
+            DO NOTHING
             RETURNING id
             """,
             (
@@ -102,7 +103,16 @@ def insert_observation(db, record: dict) -> str:
                 record.get("canopy_cover_pct"), record.get("ndwi"),
                 record.get("cloud_cover_pct"), record.get("bbox"),
                 json.dumps(record.get("metadata", {})),
+                record.get("source_system", "csv_upload"), record.get("source_id"),
             ),
+        )
+        row = cur.fetchone()
+        if row:
+            return str(row[0])
+        record["_duplicate"] = True
+        cur.execute(
+            "SELECT id FROM remote_sensing_observation WHERE source_system = %s AND source_id = %s",
+            (record.get("source_system", "csv_upload"), record["source_id"]),
         )
         return str(cur.fetchone()[0])
 
@@ -136,9 +146,6 @@ def _validate_number(value) -> str:
 
 def insert_clickhouse(record: dict) -> None:
     """Insert remote sensing observation into ClickHouse."""
-    import requests as req
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
     ts = record.get("observation_date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     if isinstance(ts, str) and len(ts) == 10:
         ts = ts + " 00:00:00.000"
@@ -151,54 +158,21 @@ def insert_clickhouse(record: dict) -> None:
         source = _validate_source(record.get("source"))
         source_system = record.get("source_system", "csv_upload")
 
-        query = f"""INSERT INTO remote_sensing_events
-            (timestamp, observation_id, location_id, plot_id, source,
-             ndvi, ndre, evi, savi, canopy_cover_pct, ndwi, cloud_cover_pct,
-             msavi, satvi, bsi, nbr2, ndti, lswi,
-             brightness_index, tc_brightness, tc_greenness, tc_wetness,
-             band_blue, band_green, band_red, band_nir, band_swir1, band_swir2,
-             source_system, metadata)
-            VALUES (
-                {timestamp},
-                {observation_id},
-                {location_uuid},
-                {plot_uuid},
-                {source},
-                {_validate_number(record.get('ndvi'))},
-                {_validate_number(record.get('ndre'))},
-                {_validate_number(record.get('evi'))},
-                {_validate_number(record.get('savi'))},
-                {_validate_number(record.get('canopy_cover_pct'))},
-                {_validate_number(record.get('ndwi'))},
-                {_validate_number(record.get('cloud_cover_pct'))},
-                {_validate_number(record.get('msavi'))},
-                {_validate_number(record.get('satvi'))},
-                {_validate_number(record.get('bsi'))},
-                {_validate_number(record.get('nbr2'))},
-                {_validate_number(record.get('ndti'))},
-                {_validate_number(record.get('lswi'))},
-                {_validate_number(record.get('brightness_index'))},
-                {_validate_number(record.get('tc_brightness'))},
-                {_validate_number(record.get('tc_greenness'))},
-                {_validate_number(record.get('tc_wetness'))},
-                {_validate_number(record.get('band_blue'))},
-                {_validate_number(record.get('band_green'))},
-                {_validate_number(record.get('band_red'))},
-                {_validate_number(record.get('band_nir'))},
-                {_validate_number(record.get('band_swir1'))},
-                {_validate_number(record.get('band_swir2'))},
-                '{source_system}',
-                map()
-            )"""
-
-        resp = req.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        post_clickhouse_rows(
+            "remote_sensing_events",
+            ["timestamp", "observation_id", "location_id", "plot_id", "source",
+             "ndvi", "ndre", "evi", "savi", "canopy_cover_pct", "ndwi", "cloud_cover_pct",
+             "msavi", "satvi", "bsi", "nbr2", "ndti", "lswi", "brightness_index",
+             "tc_brightness", "tc_greenness", "tc_wetness", "band_blue", "band_green",
+             "band_red", "band_nir", "band_swir1", "band_swir2", "source_system", "metadata"],
+            [[str(ts), record.get("id"), record.get("location_id"), record.get("plot_id"),
+              record.get("source") or "manual"] +
+             [record.get(name) for name in ["ndvi", "ndre", "evi", "savi", "canopy_cover_pct",
+              "ndwi", "cloud_cover_pct", "msavi", "satvi", "bsi", "nbr2", "ndti", "lswi",
+              "brightness_index", "tc_brightness", "tc_greenness", "tc_wetness", "band_blue",
+              "band_green", "band_red", "band_nir", "band_swir1", "band_swir2"]] +
+             [source_system, {}]],
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 
@@ -208,72 +182,77 @@ def run(file_path: str, location_id: str = None):
     db = get_db()
     success = 0
     errors = 0
+    try:
+        # If no location_id provided, build lookup from plot → farm → location
+        plot_location_map = {}
+        if not location_id:
+            with db.cursor() as cur:
+                cur.execute("""
+                    SELECT p.id, f.location_id
+                    FROM plot p
+                    JOIN farm f ON p.farm_id = f.id
+                    WHERE f.location_id IS NOT NULL
+                """)
+                for row in cur.fetchall():
+                    plot_location_map[str(row[0])] = str(row[1])
 
-    # If no location_id provided, build lookup from plot → farm → location
-    plot_location_map = {}
-    if not location_id:
-        with db.cursor() as cur:
-            cur.execute("""
-                SELECT p.id, f.location_id
-                FROM plot p
-                JOIN farm f ON p.farm_id = f.id
-                WHERE f.location_id IS NOT NULL
-            """)
-            for row in cur.fetchall():
-                plot_location_map[str(row[0])] = str(row[1])
+        with open(file_path, "r") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
 
-    with open(file_path, "r") as f:
-        reader = csv.DictReader(f)
-        rows = list(reader)
+        logger.info("Processing %d rows from %s...", len(rows), file_path)
 
-    logger.info("Processing %d rows from %s...", len(rows), file_path)
+        for i, row in enumerate(rows):
+            validation_errors = validate_row(row)
+            if validation_errors:
+                errors += 1
+                logger.warning("  ✗ Row %d: %s", i + 1, ', '.join(validation_errors))
+                continue
 
-    for i, row in enumerate(rows):
-        validation_errors = validate_row(row)
-        if validation_errors:
-            errors += 1
-            logger.warning("  ✗ Row %d: %s", i + 1, ', '.join(validation_errors))
-            continue
+            try:
+                record = parse_row(row, location_id or plot_location_map.get(row.get("plot_id", "")))
+                record["source_system"] = "csv_upload"
+                record["source_id"] = hash_payload({"row": row, "location_id": record.get("location_id")})
+                pg_id = insert_observation(db, record)
+                record["id"] = pg_id
 
-        try:
-            record = parse_row(row, location_id or plot_location_map.get(row.get("plot_id", "")))
-            pg_id = insert_observation(db, record)
-            record["id"] = pg_id
+                # Dual-write to ClickHouse
+                if not record.get("_duplicate"):
+                    insert_clickhouse(record)
 
-            # Dual-write to ClickHouse
-            insert_clickhouse(record)
+                log_ingestion(
+                    source_system="csv_upload",
+                    source_table="remote_sensing_csv",
+                    source_id=record["source_id"],
+                    target_table="remote_sensing_observation",
+                    target_id=pg_id,
+                    operation="insert",
+                    payload_hash=hash_payload(row),
+                    status="success",
+                    rows_affected=1,
+                )
+                success += 1
 
-            log_ingestion(
-                source_system="csv_upload",
-                source_table="remote_sensing_csv",
-                source_id=f"row_{i + 1}",
-                target_table="remote_sensing_observation",
-                target_id=pg_id,
-                operation="insert",
-                payload_hash=hash_payload(row),
-                status="success",
-                rows_affected=1,
-            )
-            success += 1
+            except Exception as e:
+                db.rollback()
+                errors += 1
+                log_ingestion(
+                    source_system="csv_upload",
+                    source_table="remote_sensing_csv",
+                    source_id=hash_payload({"row": row, "location_id": location_id}),
+                    target_table="remote_sensing_observation",
+                    target_id=None,
+                    operation="insert",
+                    payload_hash=hash_payload(row),
+                    status="failed",
+                    error_message=str(e),
+                )
+                logger.error("  ✗ Row %d: %s", i + 1, e)
 
-        except Exception as e:
-            errors += 1
-            log_ingestion(
-                source_system="csv_upload",
-                source_table="remote_sensing_csv",
-                source_id=f"row_{i + 1}",
-                target_table="remote_sensing_observation",
-                target_id=None,
-                operation="insert",
-                payload_hash=hash_payload(row),
-                status="failed",
-                error_message=str(e),
-            )
-            logger.error("  ✗ Row %d: %s", i + 1, e)
-
-    db.commit()
-    db.close()
-    logger.info("Done: %d success, %d errors", success, errors)
+        db.commit()
+        logger.info("Done: %d success, %d errors", success, errors)
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":

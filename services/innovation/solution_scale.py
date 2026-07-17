@@ -87,6 +87,20 @@ def propose_retirement(conn, solution_id: str, retirement_type: str, trigger_rea
 
 def approve_retirement(conn, retirement_id: str, approved_by_party_id: str) -> Dict[str, Any]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute("SELECT evidence_refs, retirement_type, migration_plan, replacement_solution_id FROM solution_retirement WHERE id = %s::uuid FOR UPDATE", (retirement_id,))
+        retirement = cur.fetchone()
+        if not retirement:
+            conn.rollback()
+            raise ValueError("retirement not found")
+        if not retirement["evidence_refs"]:
+            conn.rollback()
+            raise ValueError("retirement approval requires evidence")
+        if retirement["retirement_type"] == "superseded" and not retirement["replacement_solution_id"]:
+            conn.rollback()
+            raise ValueError("superseded retirement requires a replacement solution")
+        if not retirement["migration_plan"]:
+            conn.rollback()
+            raise ValueError("retirement approval requires a migration plan")
         cur.execute("""UPDATE solution_retirement SET status = 'approved', approved_by_party_id = %s::uuid, approved_at = NOW()
             WHERE id = %s::uuid AND status IN ('proposed', 'impact_review') RETURNING *""", (approved_by_party_id, retirement_id))
         row = cur.fetchone()

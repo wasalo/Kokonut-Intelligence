@@ -48,6 +48,14 @@ def _get_event_bus(conn=None):
         _event_bus = EventBus(conn=conn)
     return _event_bus
 
+
+def handle_sensor_reading(event_type: str, payload: dict) -> None:
+    """Run anomaly checks for a sensor-reading event."""
+    sensor_id = payload.get("sensor_id") or payload.get("sensor_device_id")
+    if not sensor_id:
+        raise ValueError("sensor-reading events require sensor_id")
+    run_check(sensor_id=str(sensor_id))
+
 logger = get_logger("ingestion.anomaly")
 
 # Email notification config

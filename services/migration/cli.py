@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import subprocess
 import sys
 import uuid
@@ -33,6 +34,7 @@ APPROVED_CHECKSUM_REPAIRS = {
     "schema:100_data_stream.sql": "7fc1fb607359cf29a7d2398daadf3608e193d7b927186a76421cace6e2811b70",
     "schema:182_process_mining.sql": "32084e5b1be5168a58bf0634625a6c201b8855cf7a6d5736634e3c9406ce3cbb",
     "schema:214_stakeholder_compatibility_views.sql": "75221cfbf771cff335571377a817e9bbb5195d3db5dfb2b213dc61842972ff5c",
+    "schema:298_consent_privacy_p0.sql": "d6b7aa4f5317ec65756461b08233530e243cf3531a43c3faba51d867ef05cd12",
     "seed:046_ecological_modeling.sql": "220f6fe668d63a997f7ef4dbc01f773ee8e9d3755c9ab0872d3acb1fef7a9f3d",
     "seed:029_pilot_impact_accountability.sql": "688934bec47685f3d353283e8202e8ac887d392fe46ec24fb3c694e34b5a9fe7",
 }
@@ -93,6 +95,39 @@ def _discover_files(*, include_seeds: bool = True) -> list[dict]:
     return files
 
 
+def _validate_sources(files: list[dict]) -> None:
+    """Reject ambiguous migration sources before any database work starts."""
+    versions: set[tuple[str, str]] = set()
+    for file_info in files:
+        version_key = (file_info["kind"], file_info["version"])
+        # Seeds historically use several independent 000 files. Schema
+        # migrations, however, must have one unambiguous numeric version.
+        if file_info["kind"] == "schema" and version_key in versions:
+            raise MigrationError(
+                "duplicate migration version discovered: "
+                f"{file_info['kind']}:{file_info['version']}"
+            )
+        versions.add(version_key)
+
+        sql = file_info["path"].read_text()
+        if "\x00" in sql:
+            raise MigrationError(f"migration contains a NUL byte: {file_info['id']}")
+        if re.search(r"(?im)^\s*\\connect\b", sql):
+            raise MigrationError(
+                f"migration cannot change databases with \\connect: {file_info['id']}"
+            )
+
+
+def _migration_is_applied_sql(migration_id_variable: str, index: int) -> str:
+    """Return a psql conditional that rechecks state while the lock is held."""
+    return (
+        "SELECT EXISTS ("
+        "SELECT 1 FROM schema_migration "
+        f"WHERE migration_id = :'{migration_id_variable}' AND status = 'applied'"
+        f") AS migration_applied \\gset migration_{index}_"
+    )
+
+
 def _ensure_tracking_table() -> None:
     """Create or upgrade tracking without treating legacy numeric IDs as new IDs."""
     _psql("""
@@ -125,21 +160,30 @@ CREATE TABLE IF NOT EXISTS schema_migration_repair (
 
 def _reconcile_legacy(files: list[dict]) -> None:
     """Assign new IDs only where an old numeric row has the exact filename stem."""
-    for file_info in files:
-        _psql(
-            """
-UPDATE schema_migration
-SET migration_id = :'migration_id'
-WHERE migration_id IS NULL
-  AND version = :'legacy_version'
-  AND name = :'name';
-""",
-            {
-                "migration_id": file_info["id"],
-                "legacy_version": file_info["version"],
-                "name": file_info["name"],
-            },
+    if not files:
+        return
+    values = []
+    variables = {}
+    for index, file_info in enumerate(files):
+        values.append(
+            f"(:'migration_id_{index}', :'legacy_version_{index}', :'name_{index}')"
         )
+        variables.update({
+            f"migration_id_{index}": file_info["id"],
+            f"legacy_version_{index}": file_info["version"],
+            f"name_{index}": file_info["name"],
+        })
+    _psql(
+        f"""
+UPDATE schema_migration tracked
+SET migration_id = candidates.migration_id
+FROM (VALUES {', '.join(values)}) AS candidates(migration_id, legacy_version, name)
+WHERE tracked.migration_id IS NULL
+  AND tracked.version = candidates.legacy_version
+  AND tracked.name = candidates.name;
+""",
+        variables,
+    )
 
 
 def _get_applied() -> dict[str, dict]:
@@ -275,10 +319,15 @@ def _apply_files(files: list[dict]) -> None:
     Repository migrations may contain transaction control, so migration SQL and its
     tracking insert cannot universally share a transaction. ON_ERROR_STOP makes any
     boundary failure loud; operators may need to inspect a partially committed file.
+    Each migration is rechecked inside this same locked session so concurrent runners
+    cannot execute a migration that another runner has already applied.
     """
     script = [f"SELECT pg_advisory_lock({ADVISORY_LOCK_KEY});"]
     for index, file_info in enumerate(files):
         script.extend([
+            _migration_is_applied_sql(f"migration_id_{index}", index),
+            f"\\if :migration_{index}_migration_applied",
+            "\\else",
             file_info["path"].read_text(),
             """
 INSERT INTO schema_migration
@@ -292,6 +341,7 @@ ON CONFLICT (migration_id) WHERE migration_id IS NOT NULL DO UPDATE SET
     execution_time_ms = EXCLUDED.execution_time_ms,
     applied_at = NOW();
 """ % (index, index, index, index, index),
+            "\\endif",
         ])
     script.append(f"SELECT pg_advisory_unlock({ADVISORY_LOCK_KEY});")
     variables = {}
@@ -307,6 +357,7 @@ ON CONFLICT (migration_id) WHERE migration_id IS NOT NULL DO UPDATE SET
 
 def _load_state(*, include_seeds: bool = True) -> tuple[list[dict], dict[str, dict]]:
     files = _discover_files(include_seeds=include_seeds)
+    _validate_sources(files)
     _ensure_tracking_table()
     _reconcile_legacy(files)
     applied = _get_applied()
@@ -346,11 +397,20 @@ def cmd_migrate(dry_run: bool = False, schemas_only: bool = False) -> None:
     print(f"\n{'Would apply' if dry_run else 'Applied'}: {len(pending)}, Failed: 0")
 
 
+def cmd_validate(schemas_only: bool = False) -> None:
+    """Validate migration source ordering and syntax boundaries without applying SQL."""
+    files = _discover_files(include_seeds=not schemas_only)
+    _validate_sources(files)
+    print(f"Validated {len(files)} migration source files.")
+
+
 def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Kokonut migration runner")
-    parser.add_argument("command", choices=("status", "migrate", "dry-run", "repair"))
+    parser.add_argument(
+        "command", choices=("status", "migrate", "dry-run", "validate", "repair")
+    )
     parser.add_argument("--migration-id", help="Migration ID for an audited checksum repair")
     parser.add_argument("--expected-old-checksum", help="Checksum currently recorded in the database")
     parser.add_argument("--reason", help="Reason for the exceptional repair")
@@ -365,6 +425,8 @@ def main() -> None:
     try:
         if args.command == "status":
             cmd_status()
+        elif args.command == "validate":
+            cmd_validate(schemas_only=args.schemas_only)
         elif args.command == "repair":
             if not args.confirm:
                 raise MigrationError("checksum repair requires --confirm")

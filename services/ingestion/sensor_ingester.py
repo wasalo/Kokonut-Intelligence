@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 import requests
 
 from ..common.logging import get_logger
-from .base import get_db, get_clickhouse, log_ingestion, hash_payload, retry
+from .base import get_db, insert_clickhouse_rows, log_ingestion, hash_payload, retry
 
 # Lazy event bus — initialized on first publish to avoid import-time side effects
 _event_bus = None
@@ -138,6 +138,7 @@ def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
                    value: float, quality: str = "good", metadata: dict = None) -> str:
     """Insert a sensor reading into PostgreSQL. Returns record ID."""
     sensor_id, name, slug, sensor_type_id, sensor_type, location_id, plot_id, status, protocol = sensor_info
+    reading_time = reading_time or "00:00:00"
 
     with db.cursor() as cur:
         cur.execute(
@@ -148,6 +149,7 @@ def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
             VALUES (%s, %s, %s, %s, %s, %s, %s,
                     (SELECT unit FROM sensor_type WHERE id = %s),
                     %s, %s::jsonb)
+            ON CONFLICT (sensor_id, reading_date, reading_time) DO NOTHING
             RETURNING id
             """,
             (
@@ -157,7 +159,13 @@ def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
             ),
         )
         row = cur.fetchone()
-        return str(row[0]) if row else None
+        if row:
+            return str(row[0])
+        cur.execute(
+            "SELECT id FROM sensor_reading WHERE sensor_id = %s AND reading_date = %s AND reading_time = %s",
+            (str(sensor_id), reading_date, reading_time),
+        )
+        return str(cur.fetchone()[0])
 
 
 def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time: str,
@@ -174,14 +182,13 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
 
     unit = sensor_type if _UNIT_RE.match(sensor_type) else "unknown"
 
-    client = get_clickhouse()
-    if client is None:
-        logger.warning("ClickHouse client unavailable — skipping sensor_readings insert")
-        return
-
     try:
-        client.insert(
+        insert_clickhouse_rows(
             "sensor_readings",
+            [
+                "timestamp", "sensor_id", "sensor_type", "location_id",
+                "plot_id", "value", "unit", "quality", "metadata",
+            ],
             [[
                 ts,
                 str(sensor_id),
@@ -193,10 +200,6 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
                 quality,
                 {},
             ]],
-            column_names=[
-                "timestamp", "sensor_id", "sensor_type", "location_id",
-                "plot_id", "value", "unit", "quality", "metadata",
-            ],
         )
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
@@ -288,6 +291,7 @@ def run_csv(file_path: str):
                 success += 1
 
             except Exception as e:
+                db.rollback()
                 errors += 1
                 log_ingestion(
                     source_system="csv_upload",
@@ -305,6 +309,8 @@ def run_csv(file_path: str):
         db.commit()
         logger.info("Done: %d success, %d warnings, %d errors", success, warnings, errors)
     finally:
+        global _event_bus
+        _event_bus = None
         db.close()
 
 
@@ -371,14 +377,18 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
         name = sensor_info[1]
         logger.info("✓ %s: %.2f (%s) at %s %s", name, value, sensor_type, reading_date, reading_time)
     finally:
+        global _event_bus
+        _event_bus = None
         db.close()
 
 
 def list_sensors():
     """List all registered sensors."""
     db = get_db()
-    sensors = get_active_sensors(db)
-    db.close()
+    try:
+        sensors = get_active_sensors(db)
+    finally:
+        db.close()
 
     if not sensors:
         logger.info("No active sensors found.")

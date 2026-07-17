@@ -41,14 +41,30 @@ def evaluate_hypothesis(conn, hypothesis_id: str, *, action_threshold: float, co
 
 
 def evaluate_solution_gate_from_hypothesis(conn, gate_id: str, hypothesis_id: str, evaluated_by_party_id: str, *, minimum_posterior: float, evidence: list[Any]) -> Dict[str, Any]:
-    if not evidence:
-        raise ValueError("gate evaluation requires evidence")
+    if not 0 < float(minimum_posterior) <= 1:
+        raise ValueError("minimum posterior must be greater than zero and at most one")
+    if not evidence or any(not isinstance(item, dict) or not item.get("evidence_event_id") for item in evidence):
+        raise ValueError("gate evaluation requires applied evidence event references")
+    event_ids = [item["evidence_event_id"] for item in evidence]
+    if len(event_ids) != len(set(event_ids)):
+        raise ValueError("gate evidence references must be unique")
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT posterior_probability FROM decision_posterior_update WHERE hypothesis_id = %s::uuid ORDER BY created_at DESC LIMIT 1", (hypothesis_id,))
-        posterior = cur.fetchone()
-        if not posterior:
+        cur.execute("""SELECT e.id FROM decision_evidence_event e
+            JOIN decision_posterior_update p ON p.evidence_event_id = e.id
+            WHERE e.hypothesis_id = %s::uuid AND e.id = ANY(%s::uuid[])
+              AND e.quality_status NOT IN ('rejected', 'stale')""", (hypothesis_id, event_ids))
+        if len(cur.fetchall()) != len(set(event_ids)):
             conn.rollback()
-            raise ValueError("hypothesis has no posterior update")
+            raise ValueError("gate evidence must be valid, non-stale, and applied")
+        cur.execute("""SELECT p.posterior_probability, p.id, t.action FROM (
+                SELECT * FROM decision_posterior_update
+                WHERE hypothesis_id = %s::uuid ORDER BY created_at DESC LIMIT 1
+            ) p JOIN decision_threshold_evaluation t ON t.posterior_update_id = p.id
+            ORDER BY t.evaluated_at DESC LIMIT 1""", (hypothesis_id,))
+        posterior = cur.fetchone()
+        if not posterior or posterior["action"] not in ("act", "escalate"):
+            conn.rollback()
+            raise ValueError("hypothesis has no non-stopping threshold decision")
         passed = float(posterior["posterior_probability"]) >= minimum_posterior
     from services.innovation.solution_lifecycle import evaluate_gate
     return evaluate_gate(conn, gate_id, passed, evaluated_by_party_id, observed={"posterior_probability": float(posterior["posterior_probability"]), "minimum_posterior": minimum_posterior}, evidence=evidence)

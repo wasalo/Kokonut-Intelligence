@@ -29,7 +29,7 @@ from web3 import Web3
 
 from ..common.logging import get_logger
 from .base import (
-    get_db, log_ingestion, hash_payload, retry,
+    get_db, log_ingestion, hash_payload, retry, post_clickhouse_rows,
     update_indexer_status, get_last_synced_block, now_utc,
 )
 from .config import (
@@ -367,9 +367,6 @@ def insert_dlego_usage(db, record: dict) -> Optional[str]:
 
 def insert_dlego_clickhouse(record: dict) -> None:
     """Insert digital lego usage event into ClickHouse dlego_events table."""
-    import requests as req
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
     usage_date = record.get("usage_date", "")
     if hasattr(usage_date, "strftime"):
         ch_timestamp = usage_date.strftime("%Y-%m-%d 00:00:00.000")
@@ -388,45 +385,21 @@ def insert_dlego_clickhouse(record: dict) -> None:
     if action_type:
         _validate_ch_value(action_type, _STR_RE, "action_type")
 
-    def _safe(val):
-        if val is None:
-            return "NULL"
-        return str(val)
-
-    query = f"""INSERT INTO dlego_events
-        (timestamp, wallet_id, protocol_id, location_id, action_type,
-         amount, token, chain, tx_hash, metadata)
-        VALUES (
-            '{ch_timestamp}',
-            '{_safe(record.get('wallet_id', ''))}',
-            '{record.get('protocol_id', '')}',
-            '{_safe(record.get('location_id', ''))}',
-            '{action_type}',
-            {_safe(record.get('amount'))},
-            '{record.get('token', '')}',
-            '{chain}',
-            '{tx_hash}',
-            map()
-        )"""
-
     try:
-        resp = req.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        post_clickhouse_rows(
+            "dlego_events",
+            ["timestamp", "wallet_id", "protocol_id", "location_id", "action_type",
+             "amount", "token", "chain", "tx_hash", "metadata"],
+            [[ch_timestamp, record.get("wallet_id", ""), record.get("protocol_id", ""),
+              record.get("location_id", ""), action_type, record.get("amount"),
+              record.get("token", ""), chain, tx_hash, {}]],
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse dlego insert failed: %s", e)
 
 
 def insert_activity_clickhouse(record: dict) -> None:
     """Insert governance event into ClickHouse wallet_events table."""
-    import requests as req
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
     timestamp = record.get("block_timestamp", "")
     if isinstance(timestamp, datetime):
         ch_timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
@@ -449,31 +422,16 @@ def insert_activity_clickhouse(record: dict) -> None:
     if event_type:
         _validate_ch_value(event_type, _STR_RE, "event_type")
 
-    query = f"""INSERT INTO wallet_events
-        (timestamp, wallet_address, chain, tx_hash, block_number,
-         event_type, value, token, status, metadata)
-        VALUES (
-            '{ch_timestamp}',
-            '{record.get("metadata", {}).get("proposer", record.get("metadata", {}).get("member_address", ""))}',
-            '{chain}',
-            '{tx_hash}',
-            {record.get("block_number", 0)},
-            '{event_type}',
-            {record.get("amount", 0)},
-            '{record.get("token", "")}',
-            'success',
-            map()
-        )"""
-
     try:
-        resp = req.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        metadata = record.get("metadata", {})
+        post_clickhouse_rows(
+            "wallet_events",
+            ["timestamp", "wallet_address", "chain", "tx_hash", "block_number",
+             "event_type", "value", "token", "status", "metadata"],
+            [[ch_timestamp, metadata.get("proposer", metadata.get("member_address", "")),
+              chain, tx_hash, record.get("block_number", 0), event_type,
+              record.get("amount", 0), record.get("token", ""), "success", {}]],
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 

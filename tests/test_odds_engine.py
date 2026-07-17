@@ -16,6 +16,22 @@ def test_odds_update_and_last_success_strategy():
     assert odds_engine.utility_threshold(true_positive_benefit=100, false_positive_cost=10, false_negative_cost=50, action_cost=5) == 0.1
 
 
+@pytest.mark.parametrize("values", [(0.2, 0, 0.2), (0.2, 1.1, 0.2), (0.2, 0.8, float("nan"))])
+def test_posterior_rejects_invalid_probability_inputs(values):
+    with pytest.raises(ValueError):
+        odds_engine.update_posterior(*values)
+
+
+def test_action_evaluation_rejects_invalid_continuation_region():
+    with pytest.raises(ValueError, match="continue threshold"):
+        odds_engine.evaluate_action(0.5, action_threshold=0.6, continue_threshold=0.7)
+
+
+def test_utility_threshold_rejects_negative_costs():
+    with pytest.raises(ValueError, match="non-negative"):
+        odds_engine.utility_threshold(true_positive_benefit=100, false_positive_cost=-1, false_negative_cost=50)
+
+
 def test_database_posterior_rejects_dependent_evidence():
     try:
         conn = get_db()

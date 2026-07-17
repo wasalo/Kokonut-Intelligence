@@ -4,6 +4,7 @@ import hashlib
 import json
 import uuid
 from unittest.mock import MagicMock, patch
+from pathlib import Path
 
 import pytest
 
@@ -359,6 +360,11 @@ class TestConstraints:
     def test_valid_statuses(self):
         from services.data_stream.post import VALID_STATUSES
         assert VALID_STATUSES == {"draft", "submitted", "verified", "published", "rejected"}
+
+    def test_public_views_require_explicit_public_safe_metadata(self):
+        schema = (Path(__file__).resolve().parents[1] / "schemas/postgres/298_consent_privacy_p0.sql").read_text()
+        assert "dsp.visibility = 'public'" in schema
+        assert "dsp.metadata->>'privacy' = 'public_summary'" in schema
 
 
 # ---------------------------------------------------------------------------

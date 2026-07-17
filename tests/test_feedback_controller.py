@@ -70,6 +70,7 @@ class TestFeedbackController:
         """apply_feedback() inserts into feedback_loop table."""
         controller, mock_conn, mock_cursor = self._make_controller()
         mock_cursor.fetchone.return_value = {"current_value": '{"sensitivity": 1.0}'}
+        mock_cursor.rowcount = 1
 
         feedback_id = controller.apply_feedback(
             outcome_id=str(uuid.uuid4()),
@@ -80,11 +81,39 @@ class TestFeedbackController:
             new_value={"sensitivity": 1.2},
             adjustment_reason="ineffective action detected",
             adjustment_magnitude=0.2,
+            applied_by="reviewer-1",
         )
 
         assert feedback_id is not None
         calls = [str(c) for c in mock_cursor.execute.call_args_list]
         assert any("feedback_loop" in c for c in calls)
+
+    def test_apply_feedback_requires_human_approver(self):
+        controller, _, _ = self._make_controller()
+
+        with pytest.raises(ValueError, match="human approver"):
+            controller.apply_feedback(
+                outcome_id=str(uuid.uuid4()),
+                feedback_type="threshold_adjustment",
+                target_entity="adaptive_threshold",
+                target_entity_id=str(uuid.uuid4()),
+                target_field="current_value",
+                new_value={"sensitivity": 1.2},
+                adjustment_reason="reviewed",
+            )
+
+    def test_record_outcome_rolls_back_on_insert_failure(self):
+        controller, mock_conn, mock_cursor = self._make_controller()
+        mock_cursor.execute.side_effect = RuntimeError("database unavailable")
+
+        with pytest.raises(RuntimeError):
+            controller.record_outcome(
+                action_type="alert",
+                action_source="agent",
+                location_id="test-loc",
+            )
+
+        mock_conn.rollback.assert_called_once()
 
     def test_list_adaptive_thresholds_returns_empty_when_none(self):
         """list_adaptive_thresholds() returns empty list when none exist."""

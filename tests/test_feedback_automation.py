@@ -60,6 +60,17 @@ class TestFeedbackAutomation:
         assert result["outcomes_evaluated"] == 1
         assert result["signals_generated"] >= 1
 
+    def test_run_evaluation_uses_parameterized_window_and_deduplicates(self):
+        automation, _, mock_cursor = self._make_automation()
+        mock_cursor.fetchall.return_value = []
+
+        automation.run_evaluation("test-loc", since_hours=12)
+
+        query, params = mock_cursor.execute.call_args_list[1].args
+        assert "NOT EXISTS" in query
+        assert "INTERVAL '1 hour'" in query
+        assert params[-1] == 12
+
     def test_run_full_cycle_dry_run(self):
         automation, _, mock_cursor = self._make_automation(dry_run=True)
         mock_cursor.fetchall.return_value = []
@@ -84,7 +95,14 @@ class TestFeedbackAutomation:
         result = automation.run_full_cycle("test-loc")
 
         assert result["status"] == "completed"
-        assert result["feedback_loops_applied"] >= 0
+        assert result["feedback_loops_applied"] == 0
+        assert result["feedback_loops_proposed"] >= 0
+
+    def test_configure_rejects_automatic_application(self):
+        automation, _, _ = self._make_automation()
+
+        with pytest.raises(ValueError, match="human approval"):
+            automation.configure("test-loc", auto_apply=True)
 
     def test_get_automation_log_returns_list(self):
         automation, _, mock_cursor = self._make_automation()

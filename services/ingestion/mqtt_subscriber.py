@@ -217,34 +217,15 @@ class MQTTSensorSubscriber:
 
     def _insert_ch(self, reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp):
         """Insert reading into ClickHouse."""
-        import requests as req
-        from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
-
-        ts = timestamp.strftime("%Y-%m-%d %H:%M:%S.000")
-        ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
-        query = f"""INSERT INTO sensor_readings
-            (timestamp, sensor_id, sensor_type, location_id, plot_id, value, unit, quality, metadata)
-            VALUES (
-                '{ts}',
-                '{sensor_id}',
-                '{sensor_type}',
-                '{location_id}',
-                '{plot_id or ''}',
-                {float(value)},
-                '{unit or ''}',
-                'good',
-                map()
-            )"""
-
         try:
-            resp = req.post(
-                ch_url, data=query.encode("utf-8"),
-                auth=(CH_USER, CH_PASSWORD),
-                headers={"Content-Type": "text/plain"},
-                timeout=10,
+            from .base import post_clickhouse_rows
+            post_clickhouse_rows(
+                "sensor_readings",
+                ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
+                 "value", "unit", "quality", "metadata"],
+                [[timestamp, str(sensor_id), str(sensor_type), str(location_id),
+                  str(plot_id or ""), float(value), str(unit or ""), "good", {}]],
             )
-            resp.raise_for_status()
         except Exception as e:
             logger.warning("ClickHouse insert failed: %s", e)
 

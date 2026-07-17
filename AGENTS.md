@@ -89,30 +89,30 @@ All work follows a 3-step branch → PR → merge flow:
 - Scheduler worker: `python3 -m services.scheduler.worker --tick-interval 30`
 - Scheduler status: `python3 -m services.scheduler.cli --status`
 - Scheduler list runs: `python3 -m services.scheduler.cli --list-runs`
-- Driver list: `python3 -m services.drivers --list`
-- Driver list (by type): `python3 -m services.drivers --list --type weather`
-- Driver instances: `python3 -m services.drivers --list-instances`
-- Driver install: `python3 -m services.drivers --install --driver NAME --instance-name NAME --config '{}'`
-- Driver test: `python3 -m services.drivers --test --driver NAME`
-- Driver test instance: `python3 -m services.drivers --test-instance --instance-id UUID`
+- Driver list: `python3 -m services.drivers.cli --list`
+- Driver list (by type): `python3 -m services.drivers.cli --list --type weather`
+- Driver instances: `python3 -m services.drivers.cli --list-instances`
+- Driver install: `python3 -m services.drivers.cli --install --driver NAME --instance-name NAME --config '{}'`
+- Driver test: `python3 -m services.drivers.cli --test --driver NAME`
+- Driver test instance: `python3 -m services.drivers.cli --test-instance --instance-id UUID`
 - Feature flags: `python3 -c "from services.core.features import list_features; print(list_features())"`
 - Health check: `python3 -c "from services.core.health import overall_health; import json; print(json.dumps(overall_health(), indent=2))"`
-- Stream ingest: `python3 -m services.stream --run`
-- Stream stats: `python3 -m services.stream --stats`
-- Stream windows: `python3 -m services.stream --windows --sensor UUID --metric soil_moisture`
-- Stream alerts: `python3 -m services.stream --alerts`
-- Security issue token: `python3 -m services.security --issue --holder NAME --capabilities '[{"resource":"harvest_event","action":"write"}]'`
-- Security verify token: `python3 -m services.security --verify --token TOKEN --resource harvest_event --action write`
-- Security audit log: `python3 -m services.security --audit [--caller NAME] [--status denied]`
-- Federation register: `python3 -m services.federation --register --name NAME --url URL`
-- Federation list nodes: `python3 -m services.federation --list-nodes`
-- Federation share: `python3 -m services.federation --share --node NAME --data-type TYPE --data '{}'`
-- Federation query: `python3 -m services.federation --query --type TYPE`
-- Sandbox create: `python3 -m services.sandbox --create --location-id UUID`
-- Sandbox run: `python3 -m services.sandbox --run --env-id UUID --module PATH`
-- Sandbox list: `python3 -m services.sandbox --list`
-- Gateway serve: `python3 -m services.gateway --serve --port 8099`
-- Gateway health: `python3 -m services.gateway --health`
+- Stream ingest: `python3 -m services.stream.cli --run`
+- Stream stats: `python3 -m services.stream.cli --stats`
+- Stream windows: `python3 -m services.stream.cli --windows --sensor UUID --metric soil_moisture`
+- Stream alerts: `python3 -m services.stream.cli --alerts`
+- Security issue token: `python3 -m services.security.cli --issue --holder NAME --capabilities '[{"resource":"harvest_event","action":"write"}]'`
+- Security verify token: `python3 -m services.security.cli --verify --token TOKEN --resource harvest_event --action write`
+- Security audit log: `python3 -m services.security.cli --audit [--caller NAME] [--status denied]`
+- Federation register: `python3 -m services.federation.cli --register --name NAME --url URL`
+- Federation list nodes: `python3 -m services.federation.cli --list-nodes`
+- Federation share: `python3 -m services.federation.cli --share --node NAME --data-type TYPE --data '{}'`
+- Federation query: `python3 -m services.federation.cli --query --type TYPE`
+- Sandbox create: `python3 -m services.sandbox.cli --create --location-id UUID`
+- Sandbox run: `python3 -m services.sandbox.cli --run --env-id UUID --module PATH`
+- Sandbox list: `python3 -m services.sandbox.cli --list`
+- Gateway serve: `python3 -m services.gateway.cli --serve --port 8099`
+- Gateway health: `python3 -m services.gateway.cli --health`
 - NDVI trends: `python3 -m services.analytics --ndvi-trends --location-id UUID`
 - Water resilience: `python3 -m services.analytics --water-resilience --location-id UUID`
 - Crop diversity: `python3 -m services.analytics --crop-diversity --location-id UUID`
@@ -440,7 +440,7 @@ All work follows a 3-step branch → PR → merge flow:
 - Crop rotation tests: `python3 -m tests.test_crop_rotation`
 - Nutrient budget create: `python3 -m services.analytics.nutrient_budget create-budget --location-id UUID --season 2026S1 --crop maize --area 2.5`
 - Nutrient budget record input: `python3 -m services.analytics.nutrient_budget record-input --budget-id UUID --type fertilizer --product "Urea 46-0-0" --n 50 --p 0 --k 0`
-- Nutrient budget record removal: `python3 -m services.analytics.nutrient-budget record-removal --budget-id UUID --crop maize --yield 2500 --n 37.5 --p 12.5 --k 25.0`
+- Nutrient budget record removal: `python3 -m services.analytics.nutrient_budget record-removal --budget-id UUID --crop maize --yield 2500 --n 37.5 --p 12.5 --k 25.0`
 - Nutrient budget balance: `python3 -m services.analytics.nutrient_budget balance --location-id UUID`
 - Nutrient budget input summary: `python3 -m services.analytics.nutrient_budget input-summary --budget-id UUID`
 - Nutrient budget soil test: `python3 -m services.analytics.nutrient_budget record-soil-test --location-id UUID --plot-id UUID --ph 6.2 --om 3.5 --n 25 --p 18 --k 120`
@@ -616,10 +616,7 @@ All work follows a 3-step branch → PR → merge flow:
 - Migration status: `python3 -m services.migration status`
 - Migration apply: `python3 -m services.migration migrate`
 - Migration dry-run: `python3 -m services.migration dry-run`
-- Situation assess: `python3 -m services.orientation.assess --location-id UUID`
-- Situation latest: `python3 -m services.orientation.assess --latest --location-id UUID`
-- OODA cycle stats: `python3 -m services.orientation.cycles --stats --location-id UUID`
-- OODA cycle list: `python3 -m services.orientation.cycles --list --location-id UUID`
+- Situation assessment and OODA cycle tracking are library APIs in `services.orientation.assess` and `services.orientation.cycle_tracker`; no `python -m` CLI entry point is currently provided.
 - Decision policy list: `python3 -m services.decision.policies --list`
 - Decision evaluate: `python3 -m services.decision.policies --evaluate --location-id UUID`
 - Decision pending: `python3 -m services.decision.policies --pending --location-id UUID`
@@ -725,14 +722,14 @@ All work follows a 3-step branch → PR → merge flow:
 - Trend dashboard: `python3 -m services.trends.dashboard --location-id UUID`
 - Trend dashboard alerts: `python3 -m services.trends.dashboard --location-id UUID --alerts`
 - Trend tests: `python3 -m pytest tests/test_trend_estimator.py tests/test_trend_smoothing.py tests/test_trend_change_points.py tests/test_trend_forecasting.py -v`
-- Geostatistics variogram: `python3 -m services.geostatistics variogram --location-id UUID --property soil_carbon`
-- Geostatistics kriging: `python3 -m services.geostatistics kriging --location-id UUID --property soil_carbon --method ordinary --resolution 10`
-- Geostatistics simulation: `python3 -m services.geostatistics simulate --location-id UUID --property soil_carbon --realizations 100`
-- Geostatistics autocorrelation: `python3 -m services.geostatistics autocorrelation --location-id UUID --property soil_carbon --weights queen`
-- Geostatistics cross-validate: `python3 -m services.geostatistics cross-validate --location-id UUID --property soil_carbon --strategy spatial_block --block-size 200`
-- Geostatistics sensor design: `python3 -m services.geostatistics sensor-design --location-id UUID --property soil_moisture`
-- Geostatistics residual kriging: `python3 -m services.geostatistics residual-kriging --location-id UUID`
-- Geostatistics spatial CV SOC: `python3 -m services.geostatistics spatial-cv-soc --location-id UUID --block-size 200`
+- Geostatistics variogram: `python3 -m services.geostatistics.cli variogram --location-id UUID --property soil_carbon`
+- Geostatistics kriging: `python3 -m services.geostatistics.cli kriging --location-id UUID --property soil_carbon --method ordinary --resolution 10`
+- Geostatistics simulation: `python3 -m services.geostatistics.cli simulate --location-id UUID --property soil_carbon --realizations 100`
+- Geostatistics autocorrelation: `python3 -m services.geostatistics.cli autocorrelation --location-id UUID --property soil_carbon --weights queen`
+- Geostatistics cross-validate: `python3 -m services.geostatistics.cli cross-validate --location-id UUID --property soil_carbon --strategy spatial_block --block-size 200`
+- Geostatistics sensor design: `python3 -m services.geostatistics.cli sensor-design --location-id UUID --property soil_moisture`
+- Geostatistics residual kriging: `python3 -m services.geostatistics.cli residual-kriging --location-id UUID`
+- Geostatistics spatial CV SOC: `python3 -m services.geostatistics.cli spatial-cv-soc --location-id UUID --block-size 200`
 - Geostatistics tests: `python3 -m tests.test_geostatistics`
 - Weather forecast tests: `python3 -m tests.test_weather_forecast`
 - Evapotranspiration tests: `python3 -m tests.test_evapotranspiration`
@@ -862,7 +859,7 @@ All work follows a 3-step branch → PR → merge flow:
 - Process model sync tests: `python3 -m pytest tests/test_process_model_sync.py -v`
 - Per-entity-type BPM state-model tests: `python3 -m pytest tests/test_bpm_state_models.py -v`
 
-**BPM per-entity-type models.** The canonical 5-state `process_model` (draft→submitted→verified→published, rejected terminal) is now generalized per `entity_type` (186). Tables with their own state machine are mined/monitored/predicted/escalated with the same engine: `work_item` (from `services/workflow_specs/work_item.py`, kept in sync via `process_model_sync`), `market_order` (pending→confirmed→shipped→delivered, with a `CHECK` constraint), and `metric_value` (verified boolean mapped to draft/verified). `credit_retirement` already uses the 5-state vocabulary and only needed a trigger. `process_model_sync` keeps spec-driven models in sync; `market_order`/`metric_value` are seeded explicitly in 186.
+**BPM per-entity-type models.** The canonical 5-state `process_model` (draft→submitted→verified→published, rejected terminal) is generalized per `entity_type` by the process-model migrations. Tables with their own state machine are mined/monitored/predicted/escalated with the same engine: `work_item` (from `services/workflow_specs/work_item.py`, kept in sync via `process_model_sync`), `market_order` (pending→confirmed→shipped→delivered, with a `CHECK` constraint), and `metric_value` (verified boolean mapped to draft/verified). `credit_retirement` already uses the 5-state vocabulary and only needed a trigger. `process_model_sync` keeps spec-driven models in sync; the state transition triggers and market-order cleanup are applied by migrations 187 and 211.
 - SWOT create: `python3 -m services.analytics.swot create --location-id UUID [--strengths s1 s2] [--threats t1]`
 - SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
 - SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`

@@ -10,7 +10,7 @@ If a local Compose override exposes Directus directly, `http://localhost:8055` c
 
 ### Authentication
 
-Directus endpoints use Directus access tokens and permissions. Gateway credentials (`x-api-key` and `x-capability-token`) are a separate security boundary and are not interchangeable with Directus bearer tokens. The gateway is started separately with `python3 -m services.gateway --serve`; base Caddy does not route to it.
+Directus endpoints use Directus access tokens and permissions. Gateway credentials (`x-api-key` and `x-capability-token`) are a separate security boundary and are not interchangeable with Directus bearer tokens. The gateway is started separately with `python3 -m services.gateway.cli --serve`; base Caddy does not route to it.
 
 ```bash
 # Login

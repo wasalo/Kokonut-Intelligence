@@ -29,3 +29,17 @@ def test_evidence_ledger_preserves_dependence_and_likelihood_inputs():
                 cur.execute("DELETE FROM decision_hypothesis WHERE id = %s::uuid", (hypothesis_id,))
             conn.commit()
         conn.close()
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"likelihood_hypothesis": 0.8},
+    {"likelihood_hypothesis": 1.1, "likelihood_alternative": 0.2},
+    {"likelihood_hypothesis": 0.8, "likelihood_alternative": 0.2, "dependence_group": " "},
+    {"quality_status": "invalid"},
+])
+def test_record_evidence_rejects_incomplete_or_invalid_inputs(kwargs):
+    with pytest.raises(ValueError):
+        sequential_evidence.record_evidence(
+            None, "not-a-real-hypothesis", "sensor", "signal",
+            "2026-07-01T00:00:00+00:00", source_ref="source", **kwargs
+        )

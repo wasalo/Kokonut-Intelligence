@@ -37,7 +37,7 @@ The Kokonut Intelligence Platform is a governed, open-source data operating syst
 
 ## Data Lifecycle
 
-Every important record follows four states:
+Governed records generally follow four states. Domain-specific workflows, such as market-order fulfillment and metric verification, use their own documented state vocabulary or mapping.
 
 ```
 Draft → Submitted → Verified → Published
@@ -68,7 +68,7 @@ Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus sna
 | Kokonut gateway | HTTP REST | API key or capability token | Optional policy-aware routes under `/api`; separate process, not the Directus API |
 | Helper CLIs | Python modules | Local process auth | Registry validation, local CID prep, attestation request prep, agent manifest prep |
 
-The gateway is an optional service started with `python3 -m services.gateway --serve`. Its `/health`, `/`, `/docs`, and `/openapi.json` discovery routes are public; route policies determine whether other gateway routes are public, and protected routes require `x-api-key` or `x-capability-token`. A Directus bearer token is not gateway authentication. Base Caddy configuration routes to Directus and Metabase, not to the gateway.
+The gateway is an optional service started with `python3 -m services.gateway.cli --serve`. Its `/health`, `/`, `/docs`, and `/openapi.json` discovery routes are public; route policies determine whether other gateway routes are public, and protected routes require `x-api-key` or `x-capability-token`. A Directus bearer token is not gateway authentication. Base Caddy configuration routes to Directus and Metabase, not to the gateway.
 
 ## Security Model
 

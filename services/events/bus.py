@@ -15,10 +15,18 @@ from services.common.logging import get_logger
 logger = get_logger("events.bus")
 
 
+def resolve_handler(module_path: str, function_name: str):
+    """Resolve a configured handler and reject non-callable attributes."""
+    handler = getattr(importlib.import_module(module_path), function_name, None)
+    if not callable(handler):
+        raise TypeError(f"Event handler is not callable: {module_path}.{function_name}")
+    return handler
+
+
 def _handler_process(result_queue, module_path, function_name, event_type, payload):
     """Invoke a handler in an isolated process so its deadline is enforceable."""
     try:
-        handler = getattr(importlib.import_module(module_path), function_name)
+        handler = resolve_handler(module_path, function_name)
         handler(event_type, payload)
         result_queue.put((True, None))
     except BaseException as exc:  # Child must report all handler failures.

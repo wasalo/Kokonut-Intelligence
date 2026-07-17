@@ -288,30 +288,16 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                         )
                         pg_id = cur.fetchone()[0]
 
-                    # Insert into ClickHouse
-                    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-                    ts_str = f"{reading_date} {reading_time}"
-
-                    # Validate interpolated values
-                    _validate_ch_value(ts_str, _TS_RE, "timestamp")
-                    _validate_ch_value(str(sensor_id), _UUID_RE, "sensor_id")
-                    _validate_ch_value(stype, _SENSOR_TYPE_RE, "sensor_type")
-                    _validate_ch_value(str(loc_id), _UUID_RE, "location_id")
-
-                    ch_query = f"""INSERT INTO sensor_readings
-                        (timestamp, sensor_id, sensor_type, location_id, plot_id,
-                         value, unit, quality, metadata)
-                        VALUES (
-                            '{ts_str}', '{sensor_id}', '{stype}', '{loc_id}',
-                            '{str(plot_id) if plot_id else ''}',
-                            {value}, 'mock_unit', 'good', map()
-                        )"""
+                    # Insert into ClickHouse without placing values in SQL text.
                     try:
-                        import requests as req
-                        resp = req.post(ch_url, data=ch_query.encode("utf-8"),
-                                        auth=(CH_USER, CH_PASSWORD),
-                                        headers={"Content-Type": "text/plain"}, timeout=10)
-                        resp.raise_for_status()
+                        from .base import post_clickhouse_rows
+                        post_clickhouse_rows(
+                            "sensor_readings",
+                            ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
+                             "value", "unit", "quality", "metadata"],
+                            [[f"{reading_date} {reading_time}", str(sensor_id), stype,
+                              str(loc_id), str(plot_id or ""), value, "mock_unit", "good", {}]],
+                        )
                     except Exception:
                         pass
 

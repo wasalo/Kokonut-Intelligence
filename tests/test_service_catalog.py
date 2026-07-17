@@ -79,17 +79,16 @@ class TestServiceRegistry:
 # --- Workflow Spec Tests (no DB required) ---
 
 class TestWorkflowSpecs:
-    """Validate that the 21 workflow specs are well-formed."""
+    """Validate that all registered workflow specs are well-formed."""
 
-    def test_all_21_specs_present(self):
+    def test_all_builtin_specs_present(self):
         from services.workflow_specs.registry import load_builtin_specs, list_specs
         load_builtin_specs()
         specs = {s.id for s in list_specs()}
-        assert len(specs) == 21
+        assert len(specs) == 30
         new_specs = {
             "traceability_batch", "insurance_claim", "pest_intervention",
             "emergency_incident", "cooperative_order", "extension_enrollment",
-            "market_order",
         }
         assert new_specs.issubset(specs)
 
@@ -99,7 +98,6 @@ class TestWorkflowSpecs:
         new_ids = {
             "traceability_batch", "insurance_claim", "pest_intervention",
             "emergency_incident", "cooperative_order", "extension_enrollment",
-            "market_order",
         }
         for spec in list_specs():
             if spec.id in new_ids:
@@ -112,7 +110,6 @@ class TestWorkflowSpecs:
         new_ids = {
             "traceability_batch", "insurance_claim", "pest_intervention",
             "emergency_incident", "cooperative_order", "extension_enrollment",
-            "market_order",
         }
         for spec in list_specs():
             if spec.id in new_ids:

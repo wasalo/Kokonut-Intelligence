@@ -48,6 +48,8 @@ check "Import services.metrics.engine" "python3 -c 'import services.metrics.engi
 check "Import services.metrics.calculators" "python3 -c 'import services.metrics.calculators'"
 check "Import services.common.logging" "python3 -c 'import services.common.logging'"
 check "Import services.migration.cli" "python3 -c 'import services.migration.cli'"
+check "Migration source validation" "python3 -m services.migration validate"
+check "Clean PostgreSQL bootstrap" "bash $SCRIPT_DIR/verify-clean-bootstrap.sh"
 check "Import services.registry.cids_export" "python3 -c 'import services.registry.cids_export'"
 check "Import services.agents.safety" "python3 -c 'import services.agents.safety'"
 check "Import services.agents.tasks" "python3 -c 'import services.agents.tasks'"

@@ -388,8 +388,12 @@ def request_portability(
     date_range_start: date = None,
     date_range_end: date = None,
     metadata: dict = None,
+    authorization_ref: str = None,
 ) -> dict:
     """Request data export (FAIR portability)."""
+    requester = requested_by or farmer_id
+    if requester != farmer_id and not authorization_ref:
+        return {"error": "authorization required for portability request", "farmer_id": farmer_id}
     cur = conn.cursor()
     request_id = str(uuid.uuid4())
 
@@ -398,17 +402,18 @@ def request_portability(
             """
             INSERT INTO data_portability_request
                 (id, farmer_id, location_id, requested_by,
-                 data_categories, format, include_metadata,
-                 date_range_start, date_range_end, scope, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                  data_categories, format, include_metadata,
+                  date_range_start, date_range_end, scope, authorization_ref, metadata)
+             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
             RETURNING id, requested_at
             """,
             (
                 request_id, farmer_id, location_id,
-                requested_by or farmer_id,
+                requester,
                 data_categories or [], format_type, include_metadata,
                 date_range_start, date_range_end, scope,
-                json.dumps(metadata or {}),
+                authorization_ref,
+                json.dumps({**(metadata or {}), "authorization_ref": authorization_ref}),
             ),
         )
         row = cur.fetchone()
@@ -434,26 +439,34 @@ def fulfill_portability(
     output_hash: str = None,
     output_size_bytes: int = None,
     record_count: int = 0,
+    owner_id: str = None,
+    fulfilled_by: str = None,
+    authorization_ref: str = None,
 ) -> dict:
     """Mark a portability request as fulfilled."""
+    if not owner_id or not fulfilled_by or not authorization_ref:
+        return {"error": "owner, fulfiller, and authorization reference are required", "request_id": request_id}
     cur = conn.cursor()
 
     try:
         cur.execute(
             """
             UPDATE data_portability_request
-            SET status = 'ready',
+             SET status = 'ready',
                 processed_at = NOW(),
                 ready_at = NOW(),
                 output_url = %s,
                 output_hash = %s,
                 output_size_bytes = %s,
-                record_count = %s,
-                updated_at = NOW()
-            WHERE id = %s AND status IN ('pending', 'processing')
-            RETURNING id, farmer_id, format, ready_at
+                 record_count = %s,
+                 fulfilled_by = %s,
+                 fulfillment_authorization_ref = %s,
+                 updated_at = NOW()
+             WHERE id = %s AND farmer_id = %s AND status IN ('pending', 'processing')
+             RETURNING id, farmer_id, format, ready_at
             """,
-            (file_path, output_hash, output_size_bytes, record_count, request_id),
+            (file_path, output_hash, output_size_bytes, record_count, fulfilled_by,
+             authorization_ref, request_id, owner_id),
         )
         row = cur.fetchone()
         conn.commit()
@@ -474,8 +487,10 @@ def fulfill_portability(
         cur.close()
 
 
-def get_portability_requests(conn, farmer_id: str) -> dict:
+def get_portability_requests(conn, farmer_id: str, actor_id: str = None) -> dict:
     """List portability requests for a farmer."""
+    if not actor_id or actor_id != farmer_id:
+        return {"error": "only the data owner may list portability requests", "farmer_id": farmer_id}
     cur = conn.cursor()
 
     try:
@@ -678,6 +693,86 @@ def set_retention_policy(
             "status": "active",
             "created_at": row[1].isoformat() if row else None,
         }
+    finally:
+        cur.close()
+
+
+def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
+    """Execute a governed retention sweep for configured entity tables.
+
+    ``entity_type`` is deliberately treated as a table identifier only after
+    checking it against PostgreSQL metadata. Policies without a target table,
+    legal holds, paused policies, and ``none`` actions are recorded as skipped.
+    """
+    cur = conn.cursor()
+    results = []
+    try:
+        cur.execute("""
+            SELECT id, data_category, entity_type, location_id, retention_days,
+                   deletion_method, legal_hold, auto_enforce, enforcement_status
+            FROM data_retention_policy
+            WHERE status = 'active'
+            ORDER BY priority DESC, created_at
+        """)
+        policies = cur.fetchall()
+        for policy_id, category, entity_type, location_id, days, method, legal_hold, auto_enforce, enforcement_status in policies:
+            status, candidates, affected, error = "skipped", 0, 0, None
+            if not auto_enforce or enforcement_status != "active" or legal_hold or method == "none":
+                status = "skipped"
+            elif not entity_type:
+                status, error = "error", "policy has no entity_type"
+            else:
+                cur.execute("""
+                    SELECT EXISTS (
+                        SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+                        WHERE n.nspname = 'public' AND c.relname = %s AND c.relkind IN ('r', 'p')
+                    )
+                """, (entity_type,))
+                if not cur.fetchone()[0]:
+                    status, error = "error", "configured entity table does not exist"
+                else:
+                    # Only tables with the standard governance columns are executable.
+                    cur.execute("""
+                        SELECT COUNT(*) FILTER (WHERE created_at < NOW() - make_interval(days => %s))
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public' AND table_name = %s AND column_name = 'created_at'
+                    """, (days, entity_type))
+                    has_created_at = cur.fetchone()[0] == 1
+                    if not has_created_at:
+                        status, error = "error", "entity table lacks created_at"
+                    else:
+                        quoted = '"' + entity_type.replace('"', '""') + '"'
+                        where = f"created_at < NOW() - make_interval(days => %s)"
+                        params = [days]
+                        if location_id:
+                            where += " AND location_id = %s"
+                            params.append(location_id)
+                        cur.execute(f"SELECT COUNT(*) FROM {quoted} WHERE {where}", params)
+                        candidates = cur.fetchone()[0]
+                        if not dry_run and method == "soft_delete":
+                            cur.execute("""
+                                SELECT EXISTS (SELECT 1 FROM information_schema.columns
+                                WHERE table_schema = 'public' AND table_name = %s AND column_name = 'deleted_at')
+                            """, (entity_type,))
+                            if cur.fetchone()[0]:
+                                cur.execute(f"UPDATE {quoted} SET deleted_at = NOW() WHERE {where} AND deleted_at IS NULL", params)
+                                affected = cur.rowcount
+                                status = "completed"
+                            else:
+                                status, error = "error", "soft_delete requires deleted_at"
+                        else:
+                            status = "dry_run" if dry_run else "error"
+                            if not dry_run:
+                                error = f"unsupported executable deletion method: {method}"
+            cur.execute("""
+                INSERT INTO data_retention_enforcement_log
+                    (policy_id, actor, dry_run, status, candidates, affected, error)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (policy_id, actor, dry_run, status, candidates, affected, error))
+            cur.execute("UPDATE data_retention_policy SET last_enforced_at = NOW(), updated_at = NOW() WHERE id = %s", (policy_id,))
+            results.append({"policy_id": str(policy_id), "status": status, "candidates": candidates, "affected": affected, "error": error})
+        conn.commit()
+        return {"actor": actor, "dry_run": dry_run, "policies": results, "total": len(results)}
     finally:
         cur.close()
 
@@ -891,6 +986,8 @@ def main():
     rp.add_argument("--scope", default="all", choices=["all", "location", "category", "filtered"])
     rp.add_argument("--data-categories", help="Comma-separated categories")
     rp.add_argument("--location-id")
+    rp.add_argument("--requested-by")
+    rp.add_argument("--authorization-ref")
     rp.add_argument("--include-metadata", action="store_true", default=True)
     rp.add_argument("--json", action="store_true")
 
@@ -901,11 +998,15 @@ def main():
     fp.add_argument("--output-hash")
     fp.add_argument("--output-size", type=int)
     fp.add_argument("--record-count", type=int, default=0)
+    fp.add_argument("--owner-id", required=True)
+    fp.add_argument("--fulfilled-by", required=True)
+    fp.add_argument("--authorization-ref", required=True)
     fp.add_argument("--json", action="store_true")
 
     # portability-requests
     pr = sub.add_parser("portability-requests", help="List portability requests")
     pr.add_argument("--farmer-id", required=True)
+    pr.add_argument("--actor-id", required=True)
     pr.add_argument("--json", action="store_true")
 
     # create-agreement
@@ -936,6 +1037,11 @@ def main():
     sr.add_argument("--location-id")
     sr.add_argument("--policy-owner")
     sr.add_argument("--json", action="store_true")
+
+    es = sub.add_parser("enforce-retention", help="Run governed retention sweep")
+    es.add_argument("--actor", required=True)
+    es.add_argument("--dry-run", action="store_true")
+    es.add_argument("--json", action="store_true")
 
     # governance-summary
     gs = sub.add_parser("governance-summary", help="Aggregated governance metrics")
@@ -997,6 +1103,8 @@ def main():
                 db, args.farmer_id, format_type=args.format_type,
                 scope=args.scope, data_categories=cats,
                 location_id=args.location_id,
+                requested_by=args.requested_by,
+                authorization_ref=args.authorization_ref,
                 include_metadata=args.include_metadata,
             )
             print(json.dumps(result, indent=2, default=str))
@@ -1007,11 +1115,14 @@ def main():
                 output_hash=args.output_hash,
                 output_size_bytes=args.output_size,
                 record_count=args.record_count,
+                owner_id=args.owner_id,
+                fulfilled_by=args.fulfilled_by,
+                authorization_ref=args.authorization_ref,
             )
             print(json.dumps(result, indent=2, default=str))
 
         elif args.command == "portability-requests":
-            result = get_portability_requests(db, args.farmer_id)
+            result = get_portability_requests(db, args.farmer_id, actor_id=args.actor_id)
             print(json.dumps(result, indent=2, default=str))
 
         elif args.command == "create-agreement":
@@ -1038,6 +1149,10 @@ def main():
 
         elif args.command == "governance-summary":
             result = get_governance_summary(db, args.location_id)
+            print(json.dumps(result, indent=2, default=str))
+
+        elif args.command == "enforce-retention":
+            result = enforce_retention_policies(db, args.actor, dry_run=args.dry_run)
             print(json.dumps(result, indent=2, default=str))
 
     finally:
