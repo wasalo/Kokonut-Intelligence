@@ -14,7 +14,7 @@ def test_raster_metadata_has_one_owner_and_explicit_compatibility_path():
     for path in SCHEMA_DIR.glob("*.sql"):
         if re.search(r"CREATE TABLE IF NOT EXISTS raster_metadata\s*\(", path.read_text()):
             definitions.append(path.name)
-    assert definitions == ["059_drone_raster_integration.sql", "115_geospatial_enhancement.sql"]
+    assert sorted(definitions) == ["059_drone_raster_integration.sql", "115_geospatial_enhancement.sql"]
     compatibility = (SCHEMA_DIR / "115_geospatial_enhancement.sql").read_text()
     assert "CREATE TABLE IF NOT EXISTS raster_metadata" in compatibility
     cleanup = (SCHEMA_DIR / "304_phase5_source_of_truth_cleanup.sql").read_text()
