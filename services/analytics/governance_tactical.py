@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
-
 
 SESSION_TYPES = ("weekly_review", "stakeholder_health", "relationship_review", "risk_triage", "governance_followup")
 ITEM_STATUSES = ("open", "in_progress", "disposed", "cancelled")
@@ -130,7 +129,7 @@ def dispose_item(conn, item_id: str, disposition_type: str, disposition_summary:
     return _update_item(
         conn, item_id, "disposed", disposition_type=disposition_type,
         disposition_summary=disposition_summary, disposed_by_party_id=disposed_by_party_id,
-        disposed_at=datetime.utcnow(),
+        disposed_at=datetime.now(timezone.utc),
     )
 
 

@@ -52,9 +52,9 @@ jobs:
           METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
           EOF
 
-      - name: Start PostgreSQL and ClickHouse
+      - name: Start databases and Directus
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache directus
           for i in $(seq 1 30); do
             if docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -U kokonut -d kokonut_intelligence >/dev/null 2>&1 && \
                docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T clickhouse clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --query "SELECT 1" >/dev/null 2>&1; then
@@ -68,6 +68,28 @@ jobs:
             fi
             sleep 5
           done
+          for i in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8055/server/ping >/dev/null; then
+              echo "Directus ready."
+              break
+            fi
+            if [ "$i" -eq 60 ]; then
+              docker compose -f docker-compose.yml -f docker-compose.ci.yml logs directus
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Seed database and pilot fixtures
+        run: |
+          ./scripts/seed.sh
+          ./scripts/seed-pilot.sh
+
+      - name: Generate TypeScript SDK
+        run: |
+          cd sdk/typescript
+          npm install --no-audit --no-fund
+          npm run generate
 
       - name: Run ruff linter
         run: ruff check services/ tests/

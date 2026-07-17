@@ -30,17 +30,26 @@ jobs:
         fi
         docker --version; docker compose version
         # Ephemeral .env from OneDev job secrets (read by compose and load_dotenv).
-        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=ci-placeholder-secret\nADMIN_PASSWORD=ci-admin-password\nADMIN_EMAIL=ci@@kokonut.network\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
-        # Start databases on the host (CI override publishes to 127.0.0.1).
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse
+        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nREDIS_PASSWORD=ci-redis-password\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=ci-placeholder-secret\nADMIN_PASSWORD=ci-admin-password\nADMIN_EMAIL=ci@@kokonut.network\nPUBLIC_URL=http://localhost:8055\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
+        # Start the services required by database-backed and Directus tests.
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache directus
         # Wait for PostgreSQL to accept connections.
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break
           sleep 1
         done
         docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
+        for i in $(seq 1 60); do
+          curl --fail --silent http://127.0.0.1:8055/server/ping >/dev/null && break
+          if [ "$i" -eq 60 ]; then
+            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs directus
+            exit 1
+          fi
+          sleep 2
+        done
         rm -f .env.sops
         ./scripts/seed.sh
+        ./scripts/seed-pilot.sh
         # Isolate Python deps (host Python 3.11+).
         apt-get update -qq && apt-get install -y -qq python3-venv python3-dev libpq-dev gcc >/dev/null 2>&1 || true
         python3 -m venv .venv
@@ -51,6 +60,7 @@ jobs:
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
         export PG_HOST=localhost PG_PORT=5432 CH_HOST=localhost CH_PORT=8123
         export KOKONUT_METRICS_EXECUTION=host
+        (cd sdk/typescript && npm install --no-audit --no-fund && npm run generate)
         ./scripts/ci-check.sh
         ./scripts/verify-full-test-suite.sh
     useTTY: false

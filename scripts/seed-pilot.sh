@@ -82,6 +82,17 @@ for seed_file in \
     fi
 done
 
+# Pilot/reference files whose names do not use the *_pilot_*.sql convention.
+for seed_file in \
+    "$SEED_DIR/057_tree_tracking.sql" \
+    "$SEED_DIR/098_multi_farm.sql"; do
+    if [ -f "$seed_file" ]; then
+        filename=$(basename "$seed_file")
+        echo "  Applying: $filename"
+        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+    fi
+done
+
 echo ""
 echo "=== Pilot Farm Data Loaded ==="
 echo ""

@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2.extras
-
 
 PROPOSAL_TYPES = (
     "create_role", "amend_role", "retire_role", "change_domain", "change_policy",
@@ -227,7 +226,7 @@ def record_review(conn, proposal_id: str, reviewer_party_id: str, review_type: s
 
 
 def approve_proposal(conn, proposal_id: str, approved_by_party_id: str) -> Dict[str, Any]:
-    return _set_status(conn, proposal_id, "approved", approved_by_party_id=approved_by_party_id, approved_at=datetime.utcnow())
+    return _set_status(conn, proposal_id, "approved", approved_by_party_id=approved_by_party_id, approved_at=datetime.now(timezone.utc))
 
 
 def implement_proposal(conn, proposal_id: str, work_item_id: str, implementation_summary: str) -> Dict[str, Any]:

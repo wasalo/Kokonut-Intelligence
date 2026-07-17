@@ -30,6 +30,11 @@ uploads/
 node_modules/
 dist/
 *.tsbuildinfo
+/sdk/typescript/generated/
+
+# Generated protobuf clients
+/sdk/python/generated/*
+!/sdk/python/generated/__init__.py
 
 # Python
 __pycache__/
