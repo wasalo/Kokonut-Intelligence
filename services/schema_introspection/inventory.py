@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import defaultdict
 from typing import Any, Iterable, Mapping
@@ -42,6 +43,8 @@ def build_inventory(
     foreign_keys: Iterable[Mapping[str, Any]],
     unique_constraints: Iterable[Mapping[str, Any]],
     indexes: Iterable[Mapping[str, Any]],
+    views: Iterable[Mapping[str, Any]] = (),
+    exclusion_constraints: Iterable[Mapping[str, Any]] = (),
 ) -> dict[str, Any]:
     """Build a deterministic JSON-compatible schema inventory from catalog rows."""
     columns_list = sorted(
@@ -49,6 +52,10 @@ def build_inventory(
         key=lambda row: (str(row.get("table_name")), int(row.get("ordinal_position") or 0)),
     )
     table_names = sorted(str(row["table_name"]) for row in tables)
+    primary_key_tables = {str(row["table_name"]) for row in primary_keys}
+    columns_by_table: dict[str, set[str]] = defaultdict(set)
+    for row in columns_list:
+        columns_by_table[str(row["table_name"])].add(str(row["column_name"]))
     column_inventory = []
     for row in columns_list:
         column_inventory.append({
@@ -57,13 +64,59 @@ def build_inventory(
             "type": _column_type(row),
             "nullable": str(row.get("is_nullable", "YES")).upper() == "YES",
         })
+    indexes_list = [dict(row) for row in indexes]
+    exclusion_list = [dict(row) for row in exclusion_constraints]
+
+    def supports_index(table_name: str, column_name: str) -> bool:
+        for index in indexes_list:
+            if str(index.get("table_name")) != table_name:
+                continue
+            definition = str(index.get("indexdef") or "").lower()
+            column = column_name.lower()
+            if re.search(rf"\(\s*{re.escape(column)}\b", definition):
+                return True
+            if re.search(rf",\s*{re.escape(column)}\b", definition):
+                return True
+        return False
+
+    foreign_keys_list = [dict(row) for row in foreign_keys]
+    fks_without_indexes = [
+        {"table_name": row["table_name"], "column_name": row["column_name"], "constraint_name": row["constraint_name"]}
+        for row in foreign_keys_list
+        if not supports_index(str(row["table_name"]), str(row["column_name"]))
+    ]
+    lifecycle_missing = [
+        table for table, names in sorted(columns_by_table.items())
+        if "status" in names and ("created_at" not in names or "updated_at" not in names)
+    ]
+    temporal_candidates = [
+        table for table, names in sorted(columns_by_table.items())
+        if {"valid_from", "valid_until"}.issubset(names)
+        or {"effective_from", "effective_until"}.issubset(names)
+    ]
+    exclusion_tables = {str(row["table_name"]) for row in exclusion_list}
+    temporal_without_exclusion = [table for table in temporal_candidates if table not in exclusion_tables]
+    suspicious_views = []
+    for view in views:
+        definition = str(view.get("definition") or "")
+        if len(re.findall(r"\bJOIN\b", definition, flags=re.IGNORECASE)) >= 2 and re.search(
+            r"\bCOUNT\s*\(", definition, flags=re.IGNORECASE
+        ):
+            suspicious_views.append(str(view["view_name"]))
+
     return {
         "tables": table_names,
+        "tables_without_primary_keys": [table for table in table_names if table not in primary_key_tables],
         "primary_keys": sorted((dict(row) for row in primary_keys), key=lambda row: tuple(str(value) for value in row.values())),
-        "foreign_keys": sorted((dict(row) for row in foreign_keys), key=lambda row: tuple(str(value) for value in row.values())),
+        "foreign_keys": sorted(foreign_keys_list, key=lambda row: tuple(str(value) for value in row.values())),
+        "foreign_keys_without_indexes": sorted(fks_without_indexes, key=lambda row: tuple(str(value) for value in row.values())),
         "unique_constraints": sorted((dict(row) for row in unique_constraints), key=lambda row: tuple(str(value) for value in row.values())),
-        "indexes": sorted((dict(row) for row in indexes), key=lambda row: tuple(str(value) for value in row.values())),
+        "indexes": sorted(indexes_list, key=lambda row: tuple(str(value) for value in row.values())),
+        "exclusion_constraints": sorted(exclusion_list, key=lambda row: tuple(str(value) for value in row.values())),
         "columns": column_inventory,
+        "lifecycle_tables_missing_governance": lifecycle_missing,
+        "temporal_tables_without_overlap_protection": temporal_without_exclusion,
+        "suspicious_views": sorted(suspicious_views),
         "polymorphic_references": _polymorphic_columns(columns_list),
         "relationship_shaped_columns": [
             row for row in column_inventory
@@ -135,12 +188,41 @@ def inventory(conn) -> dict[str, Any]:
         WHERE schemaname = 'public'
         ORDER BY tablename, indexname
     """)
-    return build_inventory(tables, columns, primary_keys, foreign_keys, unique_constraints, indexes)
+    views = _rows(conn, """
+        SELECT viewname AS view_name, definition
+        FROM pg_views
+        WHERE schemaname = 'public'
+        ORDER BY viewname
+    """)
+    exclusion_constraints = _rows(conn, """
+        SELECT cls.relname AS table_name, con.conname AS constraint_name
+        FROM pg_constraint con
+        JOIN pg_class cls ON cls.oid = con.conrelid
+        JOIN pg_namespace nsp ON nsp.oid = cls.relnamespace
+        WHERE nsp.nspname = 'public' AND con.contype = 'x'
+        ORDER BY cls.relname, con.conname
+    """)
+    return build_inventory(
+        tables, columns, primary_keys, foreign_keys, unique_constraints, indexes,
+        views, exclusion_constraints,
+    )
 
 
 def inventory_as_markdown(report: Mapping[str, Any]) -> str:
     """Render the inventory as concise, reviewable Markdown."""
     lines = ["# PostgreSQL ER Inventory", "", f"Tables: {len(report['tables'])}", ""]
+    lines.extend(["## Structural Risks", ""])
+    lines.extend(f"- Tables without primary keys: `{table}`" for table in report["tables_without_primary_keys"])
+    lines.extend(
+        f"- Foreign key without supporting index: `{item['table_name']}.{item['column_name']}`"
+        for item in report["foreign_keys_without_indexes"]
+    )
+    lines.extend(f"- Lifecycle table missing timestamps: `{table}`" for table in report["lifecycle_tables_missing_governance"])
+    lines.extend(
+        f"- Temporal table without exclusion protection: `{table}`"
+        for table in report["temporal_tables_without_overlap_protection"]
+    )
+    lines.extend(f"- Possible fan-trap view: `{view}`" for view in report["suspicious_views"])
     lines.extend(["## Polymorphic References", ""])
     if report["polymorphic_references"]:
         lines.extend(
@@ -177,6 +259,15 @@ def risk_findings(report: Mapping[str, Any]) -> list[str]:
         f"{item['table_name']}.{item['column_name']} ({item['type']})"
         for item in report["relationship_shaped_columns"]
     )
+    findings.extend(f"table without primary key: {table}" for table in report.get("tables_without_primary_keys", []))
+    findings.extend(
+        "foreign key without supporting index: "
+        f"{item['table_name']}.{item['column_name']}"
+        for item in report.get("foreign_keys_without_indexes", [])
+    )
+    findings.extend(f"lifecycle table missing governance timestamps: {table}" for table in report.get("lifecycle_tables_missing_governance", []))
+    findings.extend(f"temporal table without overlap protection: {table}" for table in report.get("temporal_tables_without_overlap_protection", []))
+    findings.extend(f"possible fan-trap view: {view}" for view in report.get("suspicious_views", []))
     return findings
 
 

@@ -16,6 +16,8 @@ def _inventory():
         foreign_keys=[{"table_name": "plot", "column_name": "farmer_id", "referenced_table": "farmer", "referenced_column": "id", "delete_rule": "CASCADE", "constraint_name": "plot_farmer_fkey"}],
         unique_constraints=[],
         indexes=[],
+        views=[],
+        exclusion_constraints=[],
     )
 
 
@@ -24,6 +26,7 @@ def test_inventory_detects_polymorphic_and_relationship_shaped_columns():
     assert report["tables"] == ["farmer", "plot"]
     assert report["polymorphic_references"] == [{"table_name": "plot", "type_column": "owner_type", "id_column": "owner_id"}]
     assert report["relationship_shaped_columns"][0]["column_name"] == "primary_crop_ids"
+    assert report["tables_without_primary_keys"] == ["plot"]
 
 
 def test_markdown_inventory_is_deterministic_and_reviewable():
