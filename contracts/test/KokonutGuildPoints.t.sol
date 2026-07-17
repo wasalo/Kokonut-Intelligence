@@ -66,6 +66,10 @@ contract KokonutGuildPointsTest is Test {
         vm.prank(contributor);
         vm.expectRevert(KokonutGuildPoints.NonTransferable.selector);
         points.setApprovalForAll(address(0x202), true);
+
+        vm.prank(contributor);
+        vm.expectRevert(KokonutGuildPoints.NonTransferable.selector);
+        points.safeBatchTransferFrom(contributor, address(0x201), new uint256[](1), new uint256[](1), "");
     }
 
     function test_claim_voucher_mints_once_to_signed_contributor() public {
@@ -180,6 +184,23 @@ contract KokonutGuildPointsTest is Test {
         points.upgradeToAndCall(address(implementation), "");
         assertEq(KokonutGuildPointsV2(address(points)).version(), 2);
         assertEq(points.balanceOf(contributor, domainId), 11);
+    }
+
+    function test_upgrade_preserves_reversal_state_and_roles() public {
+        bytes32 awardId = _award(100);
+        vm.prank(reverser);
+        bytes32 reversalId = keccak256("upgrade-reversal");
+        points.reverseAward(reversalId, awardId, 25, keccak256("reason"), ledgerRecordHash, calculationVersion);
+
+        KokonutGuildPointsV2 implementation = new KokonutGuildPointsV2();
+        vm.prank(upgrader);
+        points.upgradeToAndCall(address(implementation), "");
+
+        assertEq(points.balanceOf(contributor, domainId), 75);
+        assertEq(points.getAward(awardId).outstanding, 75);
+        assertTrue(points.settledReversals(reversalId));
+        assertTrue(points.hasRole(points.AWARDER_ROLE(), awarder));
+        assertTrue(points.hasRole(points.UPGRADER_ROLE(), upgrader));
     }
 
     function _award(uint256 amount) internal returns (bytes32 awardId) {

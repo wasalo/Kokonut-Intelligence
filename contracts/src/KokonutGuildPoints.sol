@@ -215,6 +215,7 @@ contract KokonutGuildPoints is
 
     function setURI(string calldata newURI) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setURI(newURI);
+        emit URI(newURI, 0);
         emit URIUpdated(newURI);
     }
 
