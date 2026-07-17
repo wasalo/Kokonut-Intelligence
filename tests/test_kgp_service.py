@@ -18,6 +18,7 @@ def test_compute_award_id_matches_solidity_abi_encode():
             [bytes.fromhex(guild_id[2:]), 4, wallet, bytes.fromhex(ledger_event_id[2:]), bytes.fromhex(calculation_version[2:])],
         )
     ).hex()
+    expected = "0x" + expected.removeprefix("0x")
     assert compute_award_id(guild_id, 4, wallet, ledger_event_id, calculation_version) == expected
 
 

@@ -13,6 +13,10 @@ ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 BYTES32_RE = re.compile(r"^0x[0-9a-fA-F]{64}$")
 
 
+def _keccak_hex(value: bytes) -> str:
+    return "0x" + Web3.keccak(value).hex().removeprefix("0x")
+
+
 def _address(value: str) -> str:
     if not ADDRESS_RE.fullmatch(value):
         raise ValueError(f"Invalid wallet address: {value}")
@@ -23,6 +27,13 @@ def _bytes32(value: str, name: str) -> bytes:
     if not BYTES32_RE.fullmatch(value):
         raise ValueError(f"Invalid {name}: {value}")
     return bytes.fromhex(value[2:])
+
+
+def hash_bytes32(value: str) -> str:
+    """Represent a text or bytes32 value in the contract's bytes32 format."""
+    if BYTES32_RE.fullmatch(value):
+        return value.lower()
+    return _keccak_hex(value.encode())
 
 
 def compute_award_id(
@@ -45,7 +56,7 @@ def compute_award_id(
             _bytes32(calculation_version, "calculation_version"),
         ],
     )
-    return Web3.keccak(encoded).hex()
+    return _keccak_hex(encoded)
 
 
 def build_claim_voucher(
