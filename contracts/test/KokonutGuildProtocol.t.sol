@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {KokonutEvidenceReview} from "../src/KokonutEvidenceReview.sol";
@@ -60,6 +60,12 @@ contract KokonutGuildProtocolTest is Test {
         assertEq(task.contributor, contributor);
         assertEq(uint8(task.status), uint8(KokonutTaskBoard.TaskStatus.Accepted));
         assertEq(uint8(reviews.getReview(reviewId).status), uint8(KokonutEvidenceReview.ReviewStatus.Accepted));
+    }
+
+    function test_unregistered_guild_cannot_create_domain() public {
+        vm.prank(admin);
+        vm.expectRevert(KokonutGuildDomain.InvalidDomain.selector);
+        domains.createDomain(keccak256("unregistered"), 0, "Invalid", "ipfs://invalid");
     }
 
     function test_review_can_be_disputed_and_resolved() public {
@@ -154,6 +160,23 @@ contract KokonutGuildProtocolTest is Test {
 
         assertEq(uint8(governance.getMotion(motionId).status), uint8(KokonutGuildGovernance.MotionStatus.Rejected));
         assertEq(uint8(tasks.getTask(taskId).status), uint8(KokonutTaskBoard.TaskStatus.Assigned));
+    }
+
+    function test_governance_rechecks_selector_permission_before_execution() public {
+        uint256 taskId = _createAssignedTask();
+        bytes memory action = abi.encodeCall(KokonutTaskBoard.cancelTask, (taskId, keccak256("governance")));
+
+        vm.prank(admin);
+        uint256 motionId = governance.createMotion(guildId, address(tasks), action, uint64(block.timestamp + 1 days));
+        vm.warp(block.timestamp + 1 days + 1);
+        vm.prank(admin);
+        governance.finalizeMotion(motionId);
+
+        vm.prank(admin);
+        governance.setTargetSelectorAllowed(address(tasks), tasks.cancelTask.selector, false);
+        vm.prank(admin);
+        vm.expectRevert(abi.encodeWithSelector(KokonutGuildGovernance.TargetNotAllowed.selector, address(tasks)));
+        governance.executeMotion(motionId);
     }
 
     function test_governance_rejects_cross_guild_task_motion() public {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.34;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -34,7 +34,10 @@ contract KokonutGuildUpgradeTimelock is AccessControl {
     event UpgradeExecuted(bytes32 indexed upgradeId);
 
     constructor(address admin, address proposer, address executor, uint256 delay) {
-        if (admin == address(0) || proposer == address(0) || executor == address(0) || delay == 0) {
+        if (
+            admin == address(0) || proposer == address(0) || executor == address(0) || delay == 0 || admin == proposer
+                || admin == executor || proposer == executor
+        ) {
             revert InvalidUpgrade();
         }
         minDelay = delay;

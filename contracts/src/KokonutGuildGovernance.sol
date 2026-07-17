@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.34;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -152,7 +152,12 @@ contract KokonutGuildGovernance is AccessControl {
     function executeMotion(uint256 motionId) external onlyRole(EXECUTOR_ROLE) {
         Motion storage motion = _motion(motionId);
         if (motion.status != MotionStatus.Passed) revert MotionNotPassed(motionId);
-        if (!allowedTargets[motion.target]) revert TargetNotAllowed(motion.target);
+        if (!allowedTargets[motion.target] || !allowedSelectors[motion.target][_selectorMemory(motion.data)]) {
+            revert TargetNotAllowed(motion.target);
+        }
+        if (guildScopedTargets[motion.target] && !_matchesGuild(motion.target, motion.data, motion.guildId)) {
+            revert InvalidMotion();
+        }
         motion.status = MotionStatus.Executed;
         bytes memory returnData = motion.target.functionCall(motion.data);
         emit MotionExecuted(motionId, returnData);
@@ -173,17 +178,31 @@ contract KokonutGuildGovernance is AccessControl {
         }
     }
 
-    function _matchesGuild(address target, bytes calldata data, bytes32 guildId) internal view returns (bool) {
-        bytes4 selector = _selector(data);
+    function _selectorMemory(bytes memory data) internal pure returns (bytes4 selector) {
+        assembly {
+            selector := mload(add(data, 32))
+        }
+    }
+
+    function _matchesGuild(address target, bytes memory data, bytes32 guildId) internal view returns (bool) {
+        bytes4 selector = _selectorMemory(data);
+        bytes memory arguments = _arguments(data);
         if (target == address(0)) return false;
         if (selector == KokonutTaskBoard.cancelTask.selector || selector == KokonutTaskBoard.markPaid.selector) {
-            (uint256 taskId,) = abi.decode(data[4:], (uint256, bytes32));
+            (uint256 taskId,) = abi.decode(arguments, (uint256, bytes32));
             return KokonutTaskBoard(target).getTask(taskId).guildId == guildId;
         }
         if (selector == KokonutGuildDomain.setStatus.selector) {
-            (uint256 domainId,) = abi.decode(data[4:], (uint256, KokonutGuildDomain.DomainStatus));
+            (uint256 domainId,) = abi.decode(arguments, (uint256, KokonutGuildDomain.DomainStatus));
             return KokonutGuildDomain(target).getDomain(domainId).guildId == guildId;
         }
         return false;
+    }
+
+    function _arguments(bytes memory data) internal pure returns (bytes memory arguments) {
+        arguments = new bytes(data.length - 4);
+        for (uint256 i; i < arguments.length; ++i) {
+            arguments[i] = data[i + 4];
+        }
     }
 }

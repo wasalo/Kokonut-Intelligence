@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.34;
 
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -45,5 +45,10 @@ contract KokonutGuildUpgradeTimelockTest is Test {
         vm.prank(executor);
         timelock.executeUpgrade(id);
         assertEq(KokonutGuildPointsV2Harness(address(points)).version(), 2);
+    }
+
+    function test_roles_must_be_distinct() public {
+        vm.expectRevert(KokonutGuildUpgradeTimelock.InvalidUpgrade.selector);
+        new KokonutGuildUpgradeTimelock(admin, admin, executor, DELAY);
     }
 }

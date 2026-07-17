@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.34;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
@@ -94,7 +94,8 @@ contract KokonutGuildRegistry is AccessControl, Pausable {
     }
 
     function isActiveGuild(bytes32 guildId) external view returns (bool) {
-        return _guilds[guildId].status == GuildStatus.Active;
+        Guild storage guild = _guilds[guildId];
+        return guild.guildId != bytes32(0) && guild.status == GuildStatus.Active;
     }
 
     function isGuildSteward(bytes32 guildId, address account) external view returns (bool) {

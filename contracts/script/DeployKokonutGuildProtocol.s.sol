@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.34;
 
 import {Script, console} from "forge-std/Script.sol";
 import {KokonutEvidenceReview} from "../src/KokonutEvidenceReview.sol";
@@ -10,7 +10,7 @@ import {KokonutTaskBoard} from "../src/KokonutTaskBoard.sol";
 
 /// @title DeployKokonutGuildProtocol
 /// @notice Deploys and wires the operational Guild protocol contracts.
-/// @dev Required: GUILD_PROTOCOL_DEPLOYER_PRIVATE_KEY and GUILD_PROTOCOL_ADMIN.
+/// @dev Required: GUILD_PROTOCOL_BOOTSTRAP and GUILD_PROTOCOL_ADMIN.
 ///      Optional role addresses default to GUILD_PROTOCOL_ADMIN and should be
 ///      replaced with dedicated service/governance accounts before production.
 contract DeployKokonutGuildProtocol is Script {
@@ -19,7 +19,6 @@ contract DeployKokonutGuildProtocol is Script {
     uint256 private constant CHIADO_CHAIN_ID = 10200;
 
     struct Config {
-        uint256 deployerKey;
         address admin;
         address bootstrap;
         address guildAdmin;
@@ -56,7 +55,9 @@ contract DeployKokonutGuildProtocol is Script {
         Config memory config = _readConfig();
         Protocol memory protocol;
 
-        vm.startBroadcast(config.deployerKey);
+        vm.startBroadcast();
+        (, address broadcaster,) = vm.readCallers();
+        require(broadcaster == config.bootstrap, "Bootstrap does not match broadcast sender");
         protocol.registry = new KokonutGuildRegistry(config.bootstrap);
         protocol.domains = new KokonutGuildDomain(config.bootstrap, protocol.registry);
         protocol.tasks = new KokonutTaskBoard(config.bootstrap, protocol.domains);
@@ -85,18 +86,30 @@ contract DeployKokonutGuildProtocol is Script {
         console.log("Executor:", config.executor);
     }
 
-    function _readConfig() internal returns (Config memory config) {
-        config.deployerKey = vm.envUint("GUILD_PROTOCOL_DEPLOYER_PRIVATE_KEY");
+    function _readConfig() internal view returns (Config memory config) {
         config.admin = vm.envAddress("GUILD_PROTOCOL_ADMIN");
-        config.bootstrap = vm.addr(config.deployerKey);
-        config.guildAdmin = vm.envOr("GUILD_PROTOCOL_GUILD_ADMIN", config.admin);
-        config.domainAdmin = vm.envOr("GUILD_PROTOCOL_DOMAIN_ADMIN", config.admin);
-        config.taskAdmin = vm.envOr("GUILD_PROTOCOL_TASK_ADMIN", config.admin);
-        config.reviewer = vm.envOr("GUILD_PROTOCOL_REVIEWER", config.admin);
-        config.proposer = vm.envOr("GUILD_PROTOCOL_PROPOSER", config.admin);
-        config.objector = vm.envOr("GUILD_PROTOCOL_OBJECTOR", config.admin);
-        config.executor = vm.envOr("GUILD_PROTOCOL_EXECUTOR", config.admin);
-        require(config.admin != address(0) && config.bootstrap != address(0), "Invalid protocol authority");
+        config.bootstrap = vm.envAddress("GUILD_PROTOCOL_BOOTSTRAP");
+        if (block.chainid == ANVIL_CHAIN_ID) {
+            config.guildAdmin = vm.envOr("GUILD_PROTOCOL_GUILD_ADMIN", config.admin);
+            config.domainAdmin = vm.envOr("GUILD_PROTOCOL_DOMAIN_ADMIN", config.admin);
+            config.taskAdmin = vm.envOr("GUILD_PROTOCOL_TASK_ADMIN", config.admin);
+            config.reviewer = vm.envOr("GUILD_PROTOCOL_REVIEWER", config.admin);
+            config.proposer = vm.envOr("GUILD_PROTOCOL_PROPOSER", config.admin);
+            config.objector = vm.envOr("GUILD_PROTOCOL_OBJECTOR", config.admin);
+            config.executor = vm.envOr("GUILD_PROTOCOL_EXECUTOR", config.admin);
+        } else {
+            config.guildAdmin = vm.envAddress("GUILD_PROTOCOL_GUILD_ADMIN");
+            config.domainAdmin = vm.envAddress("GUILD_PROTOCOL_DOMAIN_ADMIN");
+            config.taskAdmin = vm.envAddress("GUILD_PROTOCOL_TASK_ADMIN");
+            config.reviewer = vm.envAddress("GUILD_PROTOCOL_REVIEWER");
+            config.proposer = vm.envAddress("GUILD_PROTOCOL_PROPOSER");
+            config.objector = vm.envAddress("GUILD_PROTOCOL_OBJECTOR");
+            config.executor = vm.envAddress("GUILD_PROTOCOL_EXECUTOR");
+        }
+        require(
+            config.admin != address(0) && config.bootstrap != address(0) && config.bootstrap != config.admin,
+            "Invalid protocol authority"
+        );
     }
 
     function _wire(Protocol memory p, Config memory c) internal {
