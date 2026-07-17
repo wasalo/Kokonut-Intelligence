@@ -15,6 +15,7 @@ def test_current_kyc_and_role_cardinality_is_explicit():
 
 def test_metric_semantic_uniqueness_and_temporal_checks_exist():
     assert "uq_metric_value_semantic_current" in SQL
+    assert "WHERE verified = TRUE" in SQL
     assert "chk_kyc_expiry_after_creation" in SQL
     assert "chk_board_term_order" in SQL
     assert "chk_forecast_version_positive" in SQL

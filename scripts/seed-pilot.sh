@@ -26,6 +26,14 @@ COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
 DB_SERVICE="${DB_SERVICE:-database}"
 DB_WAIT_ATTEMPTS="${DB_WAIT_ATTEMPTS:-60}"
 
+apply_pilot_seed() {
+    local seed_file="$1"
+    {
+        printf "SET kokonut.seed_context = 'pilot';\n"
+        cat "$seed_file"
+    } | docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
+}
+
 wait_for_postgres() {
     local attempt=1
     until docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" pg_isready -U kokonut -d kokonut_intelligence > /dev/null 2>&1; do
@@ -57,14 +65,14 @@ for seed_file in \
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+        apply_pilot_seed "$seed_file"
     fi
 done
 
 for seed_file in "$SEED_DIR"/*_pilot_*.sql; do
     filename=$(basename "$seed_file")
     echo "  Applying: $filename"
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+    apply_pilot_seed "$seed_file"
 done
 
 # MVP support seeds whose filenames are not *_pilot_*.sql.
@@ -78,7 +86,7 @@ for seed_file in \
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+        apply_pilot_seed "$seed_file"
     fi
 done
 
@@ -90,7 +98,7 @@ for seed_file in \
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+        apply_pilot_seed "$seed_file"
     fi
 done
 

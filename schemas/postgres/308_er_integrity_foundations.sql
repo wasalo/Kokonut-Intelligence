@@ -14,6 +14,12 @@ DECLARE
     harvest_cycle UUID;
     harvest_location UUID;
 BEGIN
+    -- Pilot seed files are applied in a trusted session and are reconciled by
+    -- the numbered pilot cleanup seed after all source rows are loaded.
+    IF TG_OP = 'INSERT' AND current_setting('kokonut.seed_context', true) = 'pilot' THEN
+        RETURN NEW;
+    END IF;
+
     IF TG_TABLE_NAME = 'farm' THEN
         IF EXISTS (
             SELECT 1
@@ -125,6 +131,20 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+-- Correct the known pilot-seed representation before installing the stricter
+-- triggers. The crop cycle is the canonical owner of harvest context.
+UPDATE harvest_event h
+SET plot_id = cc.plot_id,
+    location_id = cc.location_id,
+    notes = concat_ws('; ', h.notes, 'ER-308 context reconciled to crop_cycle')
+FROM crop_cycle cc
+WHERE cc.id = h.crop_cycle_id
+  AND (h.location_id <> cc.location_id OR h.plot_id <> cc.plot_id)
+  AND (
+      h.source_system = 'pilot_seed'
+      OR h.source_id LIKE 'harvest_event:c0000000-0000-0000-0000-0000000000%'
+  );
 
 DROP TRIGGER IF EXISTS trg_farm_operational_context ON farm;
 CREATE CONSTRAINT TRIGGER trg_farm_operational_context

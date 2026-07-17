@@ -20,8 +20,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_role_assignment_active_scope
     )
     WHERE status = 'active';
 
--- A metric has one current value for a metric/location/period/method tuple.
--- Historical recalculations must use a distinct computation method.
+-- Draft metric computations are append-only and may be repeated. Public
+-- verification is the semantic current-state boundary, so only verified
+-- values receive a uniqueness constraint.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_metric_value_semantic_current
     ON metric_value(
         metric_id,
@@ -29,7 +30,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_metric_value_semantic_current
         COALESCE(period_start, '0001-01-01'::date),
         COALESCE(period_end, '0001-01-01'::date),
         COALESCE(computation_method, '')
-    );
+    )
+    WHERE verified = TRUE;
 
 -- Domain time ranges must be ordered and non-negative. These checks are
 -- deliberately additive; overlap policy remains domain-specific.

@@ -19,3 +19,12 @@ def test_migration_uses_deferred_constraint_triggers_and_does_not_edit_prior_fil
     assert sql.count("CREATE CONSTRAINT TRIGGER") >= 7
     assert "DEFERRABLE INITIALLY IMMEDIATE" in sql
     assert "CREATE OR REPLACE FUNCTION validate_operational_context" in sql
+
+
+def test_trusted_pilot_seed_reconciliation_is_explicit():
+    sql = MIGRATION.read_text()
+    seed = Path("schemas/seeds/112_pilot_operational_context.sql").read_text()
+    script = Path("scripts/seed-pilot.sh").read_text()
+    assert "kokonut.seed_context" in sql
+    assert "Pilot context reconciled to crop_cycle" in seed
+    assert "apply_pilot_seed" in script
