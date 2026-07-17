@@ -3,7 +3,7 @@
 from eth_abi import encode
 from web3 import Web3
 
-from services.guilds.indexer import EVENT_TOPICS
+from services.guilds.indexer import EVENT_TOPICS, decode_log
 from services.guilds.kgp import build_claim_voucher, claim_typed_data, compute_award_id
 
 
@@ -46,3 +46,18 @@ def test_claim_payload_and_typed_data_are_stable():
 def test_kgp_event_topics_are_unique_and_complete():
     assert set(EVENT_TOPICS.values()) == {"KGP_Awarded", "KGPClaimed", "KGPReversed"}
     assert len(EVENT_TOPICS) == 3
+
+
+def test_award_event_decoder_preserves_indexed_identity():
+    award_id = "0x" + "11" * 32
+    guild_id = "0x" + "22" * 32
+    contributor = "0x" + "00" * 19 + "a1"
+    topic = next(topic for topic, name in EVENT_TOPICS.items() if name == "KGP_Awarded")
+    decoded = decode_log({
+        "topics": [topic, award_id, guild_id, contributor],
+        "data": "0x" + "00" * 32,
+    })
+    assert decoded["event_name"] == "KGP_Awarded"
+    assert decoded["award_id"] == award_id
+    assert decoded["guild_id"] == guild_id
+    assert decoded["contributor_wallet"].lower() == contributor.lower()

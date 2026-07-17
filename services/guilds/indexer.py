@@ -23,10 +23,12 @@ EVENT_SIGNATURES = {
     "KGPClaimed": "KGPClaimed(bytes32,address,uint256)",
     "KGPReversed": "KGPReversed(bytes32,bytes32,bytes32,address,uint256,uint256,bytes32,bytes32,bytes32)",
 }
-EVENT_TOPICS = {Web3.keccak(text=value).hex(): name for name, value in EVENT_SIGNATURES.items()}
+EVENT_TOPICS = {"0x" + Web3.keccak(text=value).hex().removeprefix("0x"): name for name, value in EVENT_SIGNATURES.items()}
 
 
 def _hex(value: Any) -> str:
+    if isinstance(value, str):
+        return value if value.startswith("0x") else "0x" + value
     if isinstance(value, bytes):
         return "0x" + value.hex()
     return Web3.to_hex(value)

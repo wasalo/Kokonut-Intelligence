@@ -70,3 +70,25 @@ forge script script/UpgradeKokonutGuildPoints.s.sol:UpgradeKokonutGuildPoints \
 ```
 
 Never upgrade the proxy by calling the implementation directly. The proxy address is the permanent public KGP address.
+
+## Guild Protocol Deployment
+
+The operational Guild contracts are deployed and wired separately from KGP:
+
+```bash
+cd contracts
+forge script script/DeployKokonutGuildProtocol.s.sol:DeployKokonutGuildProtocol \
+  --rpc-url $CHIADO_RPC_URL --broadcast --verify
+```
+
+The deployment creates and wires the registry, domain registry, task board, evidence review, and operational governance contracts. It does not connect to or move funds from the Moloch treasury.
+
+For local Anvil smoke testing:
+
+```bash
+anvil
+GUILD_PROTOCOL_DEPLOYER_PRIVATE_KEY=<anvil-key> \
+GUILD_PROTOCOL_ADMIN=<admin-address> \
+forge script script/DeployKokonutGuildProtocol.s.sol:DeployKokonutGuildProtocol \
+  --rpc-url http://127.0.0.1:8545 --broadcast
+```
