@@ -136,7 +136,19 @@ def insert_chain_event(cursor, event: dict[str, Any]) -> bool:
             (deployment_id, chain_id, block_number, block_hash, transaction_hash,
              log_index, contract_address, event_signature, event_name, payload)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (deployment_id, transaction_hash, log_index) DO NOTHING
+        ON CONFLICT (deployment_id, transaction_hash, log_index) DO UPDATE SET
+            block_number = EXCLUDED.block_number,
+            block_hash = EXCLUDED.block_hash,
+            contract_address = EXCLUDED.contract_address,
+            event_signature = EXCLUDED.event_signature,
+            event_name = EXCLUDED.event_name,
+            payload = EXCLUDED.payload,
+            is_canonical = TRUE,
+            orphaned_at = NULL,
+            processing_status = 'pending',
+            processing_error = NULL,
+            processed_at = NULL
+        WHERE kgp_chain_event.is_canonical = FALSE
         RETURNING id
         """,
         (

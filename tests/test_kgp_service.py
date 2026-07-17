@@ -53,11 +53,16 @@ def test_award_event_decoder_preserves_indexed_identity():
     guild_id = "0x" + "22" * 32
     contributor = "0x" + "00" * 19 + "a1"
     topic = next(topic for topic, name in EVENT_TOPICS.items() if name == "KGP_Awarded")
+    data = encode(
+        ["uint256", "uint256", "uint256", "bytes32", "bytes32", "bytes32"],
+        [1, 25, 3, bytes.fromhex("33" * 32), bytes.fromhex("44" * 32), bytes.fromhex("55" * 32)],
+    )
     decoded = decode_log({
         "topics": [topic, award_id, guild_id, contributor],
-        "data": "0x" + "00" * 32,
+        "data": "0x" + data.hex(),
     })
     assert decoded["event_name"] == "KGP_Awarded"
     assert decoded["award_id"] == award_id
     assert decoded["guild_id"] == guild_id
     assert decoded["contributor_wallet"].lower() == contributor.lower()
+    assert decoded["amount"] == 25

@@ -21,6 +21,16 @@ ALTER TABLE guild_domain
     CHECK ((deployment_id IS NULL AND onchain_domain_id IS NULL)
         OR (deployment_id IS NOT NULL AND onchain_domain_id IS NOT NULL));
 
+ALTER TABLE kokonut_guild
+    ADD COLUMN IF NOT EXISTS onchain_guild_id VARCHAR(66),
+    ADD COLUMN IF NOT EXISTS onchain_guild_key VARCHAR(66);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_kokonut_guild_onchain_id
+    ON kokonut_guild(onchain_guild_id)
+    WHERE onchain_guild_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_kokonut_guild_onchain_key
+    ON kokonut_guild(onchain_guild_key)
+    WHERE onchain_guild_key IS NOT NULL;
+
 ALTER TABLE guild_task
     DROP CONSTRAINT IF EXISTS chk_guild_task_chain_identity;
 ALTER TABLE guild_task
