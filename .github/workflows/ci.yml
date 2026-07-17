@@ -90,6 +90,7 @@ jobs:
           cd sdk/typescript
           npm install --no-audit --no-fund
           npm run generate
+          npm run build
 
       - name: Run ruff linter
         run: ruff check services/ tests/

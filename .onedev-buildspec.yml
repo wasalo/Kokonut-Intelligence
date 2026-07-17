@@ -60,7 +60,7 @@ jobs:
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
         export PG_HOST=localhost PG_PORT=5432 CH_HOST=localhost CH_PORT=8123
         export KOKONUT_METRICS_EXECUTION=host
-        (cd sdk/typescript && npm install --no-audit --no-fund && npm run generate)
+        (cd sdk/typescript && npm install --no-audit --no-fund && npm run generate && npm run build)
         ./scripts/ci-check.sh
         ./scripts/verify-full-test-suite.sh
     useTTY: false
