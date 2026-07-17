@@ -43,11 +43,16 @@ The read-only inventory command exposes physical-model risks:
 ```bash
 python3 -m services.schema_introspection --format json
 python3 -m services.schema_introspection --format markdown
+./scripts/check-er-model.sh
 ```
 
 The report detects tables, keys, foreign keys, delete actions, polymorphic
 `*_type`/`*_id` pairs, and relationship-shaped arrays or JSON columns. It is a
 review aid, not a replacement for the canonical migrations.
+
+For controlled CI adoption, `--fail-on-risk` is available. It should be enabled
+only after each existing risk is either normalized or recorded in an explicit
+retirement inventory.
 
 ## Change Workflow
 

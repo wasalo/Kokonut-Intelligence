@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from collections import defaultdict
 from typing import Any, Iterable, Mapping
 
@@ -164,9 +165,25 @@ def inventory_as_markdown(report: Mapping[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def risk_findings(report: Mapping[str, Any]) -> list[str]:
+    """Return actionable ER risks discovered by the physical inventory."""
+    findings = [
+        "polymorphic reference: "
+        f"{item['table_name']}.{item['type_column']} + {item['id_column']}"
+        for item in report["polymorphic_references"]
+    ]
+    findings.extend(
+        "relationship-shaped column: "
+        f"{item['table_name']}.{item['column_name']} ({item['type']})"
+        for item in report["relationship_shaped_columns"]
+    )
+    return findings
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Inspect PostgreSQL ER relationships without changing data")
     parser.add_argument("--format", choices=("json", "markdown"), default="json")
+    parser.add_argument("--fail-on-risk", action="store_true", help="exit non-zero when ER risk patterns are found")
     args = parser.parse_args()
     conn = get_db()
     try:
@@ -177,6 +194,10 @@ def main() -> None:
         print(inventory_as_markdown(report), end="")
     else:
         print(json.dumps(report, indent=2, default=str, sort_keys=True))
+    if args.fail_on_risk and risk_findings(report):
+        for finding in risk_findings(report):
+            print(f"ER risk: {finding}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

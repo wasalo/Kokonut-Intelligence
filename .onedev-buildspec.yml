@@ -64,6 +64,7 @@ jobs:
         npm --version
         export PG_HOST=localhost PG_PORT=5432 CH_HOST=localhost CH_PORT=8123
         export KOKONUT_METRICS_EXECUTION=host
+        ./scripts/check-er-model.sh
         (cd sdk/typescript && npm install --no-audit --no-fund && npm run generate && npm run build)
         ./scripts/ci-check.sh
         ./scripts/verify-full-test-suite.sh

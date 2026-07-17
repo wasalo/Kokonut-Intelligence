@@ -21,8 +21,14 @@ BEGIN
             JOIN plot p ON p.id = cc.plot_id
             WHERE p.farm_id = NEW.id
               AND cc.location_id <> NEW.location_id
+        ) OR EXISTS (
+            SELECT 1
+            FROM farm_activity fa
+            JOIN plot p ON p.id = fa.plot_id
+            WHERE p.farm_id = NEW.id
+              AND fa.location_id <> NEW.location_id
         ) THEN
-            RAISE EXCEPTION 'farm % location change would invalidate crop-cycle ownership', NEW.id;
+            RAISE EXCEPTION 'farm % location change would invalidate operational ownership', NEW.id;
         END IF;
         RETURN NEW;
     END IF;
@@ -37,8 +43,12 @@ BEGIN
         IF EXISTS (
             SELECT 1 FROM crop_cycle cc
             WHERE cc.plot_id = NEW.id AND cc.location_id <> expected_location
+        ) OR EXISTS (
+            SELECT 1
+            FROM farm_activity fa
+            WHERE fa.plot_id = NEW.id AND fa.location_id <> expected_location
         ) THEN
-            RAISE EXCEPTION 'plot % change would invalidate crop-cycle ownership', NEW.id;
+            RAISE EXCEPTION 'plot % change would invalidate operational ownership', NEW.id;
         END IF;
         RETURN NEW;
     END IF;
@@ -53,6 +63,14 @@ BEGIN
         END IF;
         IF NEW.location_id <> expected_location THEN
             RAISE EXCEPTION 'crop cycle % location does not match its plot', NEW.id;
+        END IF;
+        IF EXISTS (
+            SELECT 1
+            FROM harvest_event h
+            WHERE h.crop_cycle_id = NEW.id
+              AND (h.location_id <> NEW.location_id OR h.plot_id <> NEW.plot_id)
+        ) THEN
+            RAISE EXCEPTION 'crop cycle % change would invalidate harvest ownership', NEW.id;
         END IF;
         RETURN NEW;
     END IF;
