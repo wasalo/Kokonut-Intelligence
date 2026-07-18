@@ -54,22 +54,7 @@ INSERT INTO stakeholder_consent (
     'pilot_seed', 'adelphi-feedback-public-summary-consent-2026-03',
     '{"scope":"public_summary","raw_feedback":"private"}'::jsonb
 )
-ON CONFLICT (id) DO UPDATE SET
-    party_id = EXCLUDED.party_id,
-    event_type = EXCLUDED.event_type,
-    data_category = EXCLUDED.data_category,
-    purpose = EXCLUDED.purpose,
-    scope_type = EXCLUDED.scope_type,
-    scope_id = EXCLUDED.scope_id,
-    recipient_type = EXCLUDED.recipient_type,
-    consent_method = EXCLUDED.consent_method,
-    legal_basis = EXCLUDED.legal_basis,
-    consent_version = EXCLUDED.consent_version,
-    effective_at = EXCLUDED.effective_at,
-    evidence = EXCLUDED.evidence,
-    source_system = EXCLUDED.source_system,
-    source_record_id = EXCLUDED.source_record_id,
-    metadata = EXCLUDED.metadata;
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO stakeholder_interest
     (id, party_id, interest_type, title, description, legitimacy, priority, scope_type, scope_id, status, evidence)

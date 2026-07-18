@@ -235,7 +235,11 @@ export function isRoleAuthorized(
 ): boolean {
   const key = `${collection}:${newStatus}`;
   const allowedRoles = ROLE_ROUTING[key];
-  if (!allowedRoles) return true; // No role restriction
+  if (!allowedRoles) {
+    // Initial submission is the only intentionally broad transition. Every
+    // other transition must have an explicit routing rule.
+    return newStatus === 'submitted' && userRoles.length > 0;
+  }
 
   return userRoles.some((role) => allowedRoles.includes(role));
 }
