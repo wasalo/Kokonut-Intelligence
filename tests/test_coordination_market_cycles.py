@@ -7,7 +7,10 @@ from services.ingestion.base import get_db
 
 
 def test_slow_fast_and_standard_cycles_are_distinct():
-    conn = get_db()
+    try:
+        conn = get_db()
+    except Exception as exc:
+        pytest.skip(f"no database available: {exc}")
     alliances = [create_alliance(f"Cycle test {cycle}", "Cycle classification", market_cycle=cycle) for cycle in ("slow", "standard", "fast")]
     try:
         rows = {row["market_cycle"] for row in list_alliances() if row["id"] in {item["id"] for item in alliances}}
@@ -26,7 +29,10 @@ def test_alliance_types_preserve_legal_distinctions():
 
 
 def test_fast_cycle_requires_explicit_reversible_pilot_controls():
-    conn = get_db()
+    try:
+        conn = get_db()
+    except Exception as exc:
+        pytest.skip(f"no database available: {exc}")
     alliance = create_alliance("Fast pilot test", "Test reversible pilot", market_cycle="fast")
     try:
         configured = configure_fast_pilot(alliance["id"], "Restore prior procurement route", "2030-01-01T00:00:00Z")
