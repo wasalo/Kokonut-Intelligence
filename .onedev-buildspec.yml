@@ -58,6 +58,11 @@ jobs:
           sleep 1
         done
         docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
+        echo "=== [step] Applying init SQL (kokonut schema) ==="
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+          exec -T database sh -c 'cat /tmp/init.sql | psql -v ON_ERROR_STOP=1 -d kokonut_intelligence'
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+          exec -T database sh -c 'cat /tmp/extensions.sql | psql -v ON_ERROR_STOP=1 -d kokonut_intelligence'
         echo "=== [step] Waiting for Directus ==="
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml \
