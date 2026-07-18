@@ -22,6 +22,7 @@ jobs:
       commands: |
         set -euo pipefail
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+        echo "=== [step] Installing Docker CLI ==="
         # Install Docker CLI inside the container (socket is mounted from host).
         apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
         install -m 0755 -d /etc/apt/keyrings
@@ -30,6 +31,7 @@ jobs:
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
         apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin >/dev/null
         docker --version; docker compose version
+        echo "=== [step] Writing CI .env ==="
         # PR builds use disposable test credentials, never deployment secrets.
         umask 077
         trap 'rm -f .env' EXIT
@@ -43,17 +45,20 @@ jobs:
         PUBLIC_URL=http://localhost:8055
         METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
         EOF
+        echo "=== [step] Starting services ==="
         # Remove stale volumes from prior builds so PostgreSQL reinitializes.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
         # Start the services required by database-backed and Directus tests.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache directus
         docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
+        echo "=== [step] Waiting for PostgreSQL ==="
         # Wait for PostgreSQL to accept connections.
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break
           sleep 1
         done
         docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
+        echo "=== [step] Applying init SQL ==="
         # Init SQL bind mounts fail in DinD (host filesystem differs from build container).
         # Run the scripts manually now that PostgreSQL is accepting connections.
         echo "Applying init.sql..."
@@ -64,17 +69,21 @@ jobs:
         cat ./config/postgres/extensions.sql \
           | docker compose -f docker-compose.yml -f docker-compose.ci.yml \
             exec -T database psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
-        for i in $(seq 1 60); do
-          curl --fail --silent http://127.0.0.1:8055/server/ping >/dev/null && break
-          if [ "$i" -eq 60 ]; then
+        echo "=== [step] Waiting for Directus ==="
+        for i in $(seq 1 30); do
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+            exec -T directus wget --spider -q http://localhost:8055/server/ping 2>/dev/null && break
+          if [ "$i" -eq 30 ]; then
             docker compose -f docker-compose.yml -f docker-compose.ci.yml logs directus
             exit 1
           fi
           sleep 2
         done
+        echo "=== [step] Seeding database ==="
         rm -f .env.sops
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
+        echo "=== [step] Installing Python deps ==="
         # Isolate Python deps (host Python 3.11+).
         apt-get update -qq && apt-get install -y -qq openssl python3-venv python3-dev libpq-dev gcc >/dev/null
         python3 -m venv .venv
@@ -83,6 +92,7 @@ jobs:
         pip install -r requirements.txt
         python scripts/check-python-runtime.py
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
+        echo "=== [step] Building SDK ==="
         # The SDK generation/build steps require Node.js and npm.
         apt-get install -y -qq nodejs npm >/dev/null
         node --version
@@ -91,13 +101,17 @@ jobs:
         export KOKONUT_METRICS_EXECUTION=host
         ./scripts/check-er-model.sh
         (cd sdk/typescript && npm install --no-audit --no-fund && npm run generate && npm run build)
+        echo "=== [step] Running CI checks ==="
         ./scripts/ci-check.sh
+        echo "=== [step] Running test suite ==="
         ./scripts/verify-full-test-suite.sh
+        echo "=== [step] Static analysis ==="
         # Static analysis gate (F-15)
         pip install slither-analyzer semgrep
         curl -L https://github.com/Cyfrin/aderyn/releases/latest/download/aderyn-x86_64-unknown-linux-gnu.tar.gz | tar xz -C /usr/local/bin
         slither contracts --filter-paths "lib/|node_modules/" --json /tmp/slither-results.json || true
         aderyn contracts --output /tmp/aderyn-report.md || true
+        echo "=== [step] Done ==="
         echo "Static analysis complete"
     useTTY: false
     condition: SUCCESSFUL
