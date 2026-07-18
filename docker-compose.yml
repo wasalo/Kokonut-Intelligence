@@ -4,8 +4,6 @@ services:
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ./config/postgres/extensions.sql:/docker-entrypoint-initdb.d/02-extensions.sql:ro
     environment:
       POSTGRES_USER: kokonut
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

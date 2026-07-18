@@ -58,17 +58,6 @@ jobs:
           sleep 1
         done
         docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
-        echo "=== [step] Applying init SQL ==="
-        # Init SQL bind mounts fail in DinD (host filesystem differs from build container).
-        # Run the scripts manually now that PostgreSQL is accepting connections.
-        echo "Applying init.sql..."
-        cat ./config/postgres/init.sql \
-          | docker compose -f docker-compose.yml -f docker-compose.ci.yml \
-            exec -T database psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
-        echo "Applying extensions.sql..."
-        cat ./config/postgres/extensions.sql \
-          | docker compose -f docker-compose.yml -f docker-compose.ci.yml \
-            exec -T database psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
         echo "=== [step] Waiting for Directus ==="
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml \
