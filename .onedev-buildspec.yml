@@ -38,7 +38,7 @@ jobs:
         CLICKHOUSE_PASSWORD=ci-placeholder
         REDIS_PASSWORD=ci-placeholder
         DIRECTUS_SECRET=ci-secret
-        ADMIN_EMAIL=ci@kokonut.network
+        ADMIN_EMAIL=ci@@kokonut.network
         ADMIN_PASSWORD=ci-password
         PUBLIC_URL=http://localhost:8055
         METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
