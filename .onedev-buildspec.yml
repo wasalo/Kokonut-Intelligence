@@ -49,7 +49,7 @@ jobs:
         # Remove stale volumes from prior builds so PostgreSQL reinitializes.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
         # Start the services required by database-backed and Directus tests.
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache directus
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache
         docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
         echo "=== [step] Waiting for PostgreSQL ==="
         # Wait for PostgreSQL to accept connections.
@@ -67,9 +67,9 @@ jobs:
           -c "CREATE SCHEMA IF NOT EXISTS kokonut" \
           -c "GRANT USAGE ON SCHEMA kokonut TO kokonut" \
           -c "GRANT ALL ON SCHEMA public TO kokonut" \
-          -c "ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut" \
-          -c "CREATE DATABASE metabase OWNER kokonut" \
-          -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements"
+          -c "ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut"
+        echo "=== [step] Starting Directus ==="
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d directus
         echo "=== [step] Waiting for Directus ==="
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml \
