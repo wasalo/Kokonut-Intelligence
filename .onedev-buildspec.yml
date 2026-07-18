@@ -14,6 +14,7 @@ jobs:
   - type: CommandStep
     name: command
     image: ubuntu:24.04
+    runAs: "0:0"
     interpreter:
       type: PosixInterpreter
       shell: bash
