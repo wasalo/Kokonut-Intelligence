@@ -16,7 +16,7 @@ jobs:
     # PRs execute repository-controlled scripts. Keep the build inside the
     # OneDev build container rather than on the agent host.
     runInContainer: true
-    runAs: root
+    runAs: "0:0"
     image: ubuntu:24.04
     interpreter:
       type: PosixInterpreter
