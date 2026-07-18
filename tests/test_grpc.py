@@ -128,7 +128,7 @@ class TestSDKStructure:
     def test_typescript_sdk_dir(self):
         from pathlib import Path
         assert Path("sdk/typescript").exists()
-        assert Path("sdk/typescript/generated").exists()
+        assert Path("sdk/typescript/src").exists()
         assert Path("sdk/typescript/package.json").exists()
         assert Path("sdk/typescript/tsconfig.json").exists()
 

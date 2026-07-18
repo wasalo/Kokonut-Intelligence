@@ -92,8 +92,11 @@ def withdraw_consent(
     conn,
     consent_id: str,
     reason: str = None,
+    actor_id: str = None,
 ) -> dict:
     """Withdraw an existing consent grant."""
+    if not actor_id:
+        return {"error": "actor authorization is required", "consent_id": consent_id}
     cur = conn.cursor()
 
     try:
@@ -104,10 +107,12 @@ def withdraw_consent(
                 withdrawn_at = NOW(),
                 withdrawal_reason = %s,
                 updated_at = NOW()
-            WHERE id = %s AND status = 'granted'
+            WHERE id = %s
+              AND status != 'withdrawn'
+              AND (%s IS NULL OR farmer_id = %s)
             RETURNING id, farmer_id, data_category, consent_scope, withdrawn_at
             """,
-            (reason, consent_id),
+            (reason, consent_id, actor_id, actor_id),
         )
         row = cur.fetchone()
         conn.commit()
@@ -148,7 +153,7 @@ def get_consent_status(conn, farmer_id: str) -> dict:
                     ELSE NULL
                 END AS days_until_expiry
             FROM farmer_consent
-            WHERE farmer_id = %s AND status != 'withdrawn'
+            WHERE farmer_id = %s
             ORDER BY data_category, consent_scope, created_at DESC
             """,
             (farmer_id,),
@@ -196,12 +201,12 @@ def check_consent(
             """
             SELECT id, status, granted_at, expires_at, consent_method,
                 CASE
+                    WHEN granted_at > NOW() THEN 'pending'
                     WHEN expires_at IS NOT NULL AND expires_at < NOW() THEN 'expired'
                     ELSE status
                 END AS effective_status
             FROM farmer_consent
             WHERE farmer_id = %s AND data_category = %s AND consent_scope = %s
-              AND status != 'withdrawn'
             ORDER BY created_at DESC
             LIMIT 1
             """,
@@ -218,7 +223,7 @@ def check_consent(
                 "consented": False,
             }
 
-        consented = row[4] == "granted"
+        consented = row[5] == "granted"
 
         return {
             "farmer_id": farmer_id,
@@ -228,7 +233,7 @@ def check_consent(
             "consented": consented,
             "consent_id": str(row[0]),
             "status": row[1],
-            "effective_status": row[4],
+            "effective_status": row[5],
             "granted_at": row[2].isoformat() if row[2] else None,
             "expires_at": row[3].isoformat() if row[3] else None,
         }
@@ -443,12 +448,53 @@ def fulfill_portability(
     fulfilled_by: str = None,
     authorization_ref: str = None,
 ) -> dict:
-    """Mark a portability request as fulfilled."""
+    """Mark a portability request as fulfilled.
+
+    Authorization: fulfilled_by must be either the data owner or a system
+    actor that has a verified authorization_ref.  Self-fulfillment
+    (fulfilled_by == owner_id) is always allowed.
+    """
     if not owner_id or not fulfilled_by or not authorization_ref:
         return {"error": "owner, fulfiller, and authorization reference are required", "request_id": request_id}
+
     cur = conn.cursor()
 
     try:
+        # Authorization check: fulfiller must be the owner or have a
+        # verified authorization record.
+        if fulfilled_by != owner_id:
+            cur.execute(
+                """
+                SELECT id FROM data_portability_request
+                WHERE id = %s AND farmer_id = %s
+                  AND authorization_ref = %s
+                  AND status IN ('pending', 'processing')
+                """,
+                (request_id, owner_id, authorization_ref),
+            )
+            if not cur.fetchone():
+                logger.warning(
+                    "Unauthorized portability fulfillment attempt: fulfiller=%s owner=%s ref=%s",
+                    fulfilled_by, owner_id, authorization_ref,
+                )
+                conn.commit()
+                return {
+                    "error": "Fulfiller is not authorized: must be the data owner or hold a verified authorization reference",
+                    "request_id": request_id,
+                }
+
+            # Log the authorized third-party fulfillment
+            cur.execute(
+                """
+                INSERT INTO access_audit_log
+                    (accessor_id, data_category, resource_type, resource_id,
+                     access_type, purpose, accessor_type, consent_id, status)
+                VALUES (%s, 'portability_export', 'data_portability_request', %s,
+                        'write', 'portability_fulfillment', 'system', NULL, 'allowed')
+                """,
+                (fulfilled_by, request_id),
+            )
+
         cur.execute(
             """
             UPDATE data_portability_request
@@ -939,6 +985,7 @@ def main():
     wc = sub.add_parser("withdraw-consent", help="Withdraw consent")
     wc.add_argument("--consent-id", required=True)
     wc.add_argument("--reason")
+    wc.add_argument("--actor-id", required=True)
     wc.add_argument("--json", action="store_true")
 
     # consent-status
@@ -1070,7 +1117,7 @@ def main():
             print(json.dumps(result, indent=2, default=str))
 
         elif args.command == "withdraw-consent":
-            result = withdraw_consent(db, args.consent_id, reason=args.reason)
+            result = withdraw_consent(db, args.consent_id, reason=args.reason, actor_id=args.actor_id)
             print(json.dumps(result, indent=2, default=str))
 
         elif args.command == "consent-status":

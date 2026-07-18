@@ -3,6 +3,7 @@
 from pathlib import Path
 
 SCHEMA = Path("schemas/postgres/063_statement_of_work.sql")
+FIX_MIGRATION = Path("schemas/postgres/320_consent_lifecycle_public_gates.sql")
 SEED = Path("schemas/seeds/063_statement_of_work.sql")
 
 
@@ -20,6 +21,12 @@ def test_schema_defines_views() -> None:
     text = SCHEMA.read_text()
     for view in ["v_public_statement_of_work", "v_public_sow_deliverables", "v_public_sow_payment_schedule"]:
         assert f"CREATE OR REPLACE VIEW {view}" in text, f"Missing view: {view}"
+
+
+def test_public_views_require_a_verified_registry_record() -> None:
+    text = FIX_MIGRATION.read_text()
+    assert "AND (fr.id IS NULL OR fr.status IN ('verified', 'published'))" not in text
+    assert "EXISTS (SELECT 1 FROM farm_registry_record" in text
 
 
 def test_schema_has_check_constraints() -> None:

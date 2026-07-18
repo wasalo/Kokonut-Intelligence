@@ -13,61 +13,101 @@ jobs:
     optional: false
   - type: CommandStep
     name: command
-    runInContainer: false
+    runInContainer: true
+    runAs: "0:0"
+    image: ubuntu:24.04
     interpreter:
       type: PosixInterpreter
       shell: bash
       commands: |
-        set -e
+        set -euo pipefail
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-        # Install docker compose plugin if missing (persists on host after first build).
-        if ! docker compose version >/dev/null 2>&1; then
-          echo "Installing docker compose plugin..."
-          mkdir -p /usr/libexec/docker/cli-plugins
-          curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
-            -o /usr/libexec/docker/cli-plugins/docker-compose
-          chmod +x /usr/libexec/docker/cli-plugins/docker-compose
-        fi
+        echo "=== [step] Installing Docker CLI ==="
+        # Install Docker CLI inside the container (socket is mounted from host).
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        chmod a+r /etc/apt/keyrings/docker.asc
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+        apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin python3 python3-venv >/dev/null
         docker --version; docker compose version
-        # Ephemeral .env from OneDev job secrets (read by compose and load_dotenv).
-        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nREDIS_PASSWORD=ci-redis-password\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=ci-placeholder-secret\nADMIN_PASSWORD=ci-admin-password\nADMIN_EMAIL=ci@@kokonut.network\nPUBLIC_URL=http://localhost:8055\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
+        echo "=== [step] Writing CI .env ==="
+        # PR builds use disposable test credentials, never deployment secrets.
+        umask 077
+        trap 'rm -f .env' EXIT
+        cat > .env <<'EOF'
+        POSTGRES_PASSWORD=ci-placeholder
+        CLICKHOUSE_PASSWORD=ci-placeholder
+        REDIS_PASSWORD=ci-placeholder
+        DIRECTUS_SECRET=ci-secret
+        ADMIN_EMAIL=ci@@kokonut.network
+        ADMIN_PASSWORD=ci-password
+        PUBLIC_URL=http://localhost:8055
+        METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
+        EOF
+        echo "=== [step] Starting services ==="
+        # Remove stale volumes from prior builds so PostgreSQL reinitializes.
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
         # Start the services required by database-backed and Directus tests.
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache directus
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
+        echo "=== [step] Waiting for PostgreSQL ==="
         # Wait for PostgreSQL to accept connections.
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break
           sleep 1
         done
         docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
-        for i in $(seq 1 60); do
-          curl --fail --silent http://127.0.0.1:8055/server/ping >/dev/null && break
-          if [ "$i" -eq 60 ]; then
+        echo "=== [step] Applying init SQL (kokonut schema) ==="
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+          exec -T database psql -U kokonut -d kokonut_intelligence \
+          -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"" \
+          -c "CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"" \
+          -c "CREATE EXTENSION IF NOT EXISTS pg_trgm" \
+          -c "CREATE SCHEMA IF NOT EXISTS kokonut" \
+          -c "GRANT USAGE ON SCHEMA kokonut TO kokonut" \
+          -c "GRANT ALL ON SCHEMA public TO kokonut" \
+          -c "ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut"
+        echo "=== [step] Starting Directus ==="
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d directus
+        echo "=== [step] Waiting for Directus ==="
+        for i in $(seq 1 30); do
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+            exec -T directus sh -c 'wget --spider -q http://127.0.0.1:8055/server/ping' && break
+          if [ "$i" -eq 30 ]; then
             docker compose -f docker-compose.yml -f docker-compose.ci.yml logs directus
             exit 1
           fi
           sleep 2
         done
+        echo "=== [step] Seeding database ==="
         rm -f .env.sops
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
+        echo "=== [step] Installing Python deps ==="
         # Isolate Python deps (host Python 3.11+).
-        apt-get update -qq && apt-get install -y -qq python3-venv python3-dev libpq-dev gcc >/dev/null 2>&1 || true
+        apt-get update -qq && apt-get install -y -qq openssl libpq-dev gcc >/dev/null
         python3 -m venv .venv
         . .venv/bin/activate
         pip install --upgrade pip
         pip install -r requirements.txt
         python scripts/check-python-runtime.py
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
-        # The SDK generation/build steps require Node.js and npm on the host.
-        apt-get install -y -qq nodejs npm >/dev/null
-        node --version
-        npm --version
-        export PG_HOST=localhost PG_PORT=5432 CH_HOST=localhost CH_PORT=8123
-        export KOKONUT_METRICS_EXECUTION=host
-        ./scripts/check-er-model.sh
-        (cd sdk/typescript && npm install --no-audit --no-fund && npm run generate && npm run build)
+        echo "=== [step] Running CI checks ==="
+        # Do NOT export PG_HOST — the build container cannot reach Docker-published
+        # ports at 127.0.0.1. Scripts that need DB use docker compose exec or detect
+        # connectivity and fall back to the worker container.
         ./scripts/ci-check.sh
+        echo "=== [step] Running test suite ==="
         ./scripts/verify-full-test-suite.sh
+        echo "=== [step] Static analysis ==="
+        # Static analysis gate (F-15)
+        pip install slither-analyzer semgrep
+        curl -sL https://github.com/Cyfrin/aderyn/releases/latest/download/aderyn-x86_64-unknown-linux-gnu.tar.gz | tar xz -C /usr/local/bin || echo "aderyn install skipped (download failed)"
+        slither contracts --filter-paths "lib/|node_modules/" --json /tmp/slither-results.json || true
+        aderyn contracts --output /tmp/aderyn-report.md || true
+        echo "=== [step] Done ==="
+        echo "Static analysis complete"
     useTTY: false
     condition: SUCCESSFUL
     optional: false

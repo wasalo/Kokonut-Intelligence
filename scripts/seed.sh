@@ -45,6 +45,16 @@ echo "Waiting for PostgreSQL..."
 wait_for_postgres
 echo "PostgreSQL is ready."
 
+# Apply init.sql and extensions.sql (bind mounts removed from docker-compose.yml
+# to fix DinD failures where the source paths resolve to executor host directories).
+echo ""
+echo "Applying init.sql..."
+cat "$PROJECT_DIR/config/postgres/init.sql" \
+  | docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
+echo "Applying extensions.sql..."
+cat "$PROJECT_DIR/config/postgres/extensions.sql" \
+  | docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
+
 # Apply PostgreSQL schema and numbered seed migrations through the checksum-
 # tracked runner. Keep this as the only default PostgreSQL application path.
 echo ""
@@ -195,12 +205,6 @@ echo ""
 echo "Seeding Bio Factory Operations definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/044_bio_factory_operations.sql"
 echo "Bio Factory Operations definitions seeded."
-
-# Seed CRISP risk dimension reference data
-echo ""
-echo "Seeding CRISP risk dimensions..."
-docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/076_crisp_risk_scoring.sql"
-echo "CRISP risk dimensions seeded."
 
 # Seed audience-specific pitch templates
 echo ""

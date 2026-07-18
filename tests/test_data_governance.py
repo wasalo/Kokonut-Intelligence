@@ -74,7 +74,7 @@ class TestWithdrawConsent(unittest.TestCase):
 
     def test_withdraw_consent_updates_status(self):
         result = withdraw_consent(
-            self.conn, "consent-001", reason="No longer needed",
+            self.conn, "consent-001", reason="No longer needed", actor_id="F001",
         )
         self.assertEqual(result["consent_id"], "consent-001")
         self.assertEqual(result["status"], "withdrawn")
@@ -82,8 +82,17 @@ class TestWithdrawConsent(unittest.TestCase):
 
     def test_withdraw_consent_not_found(self):
         self.mock_cursor.fetchone.return_value = None
-        result = withdraw_consent(self.conn, "bad-id")
+        result = withdraw_consent(self.conn, "bad-id", actor_id="F001")
         self.assertIn("error", result)
+
+    def test_withdraw_consent_requires_actor(self):
+        result = withdraw_consent(self.conn, "consent-001")
+        self.assertIn("authorization", result["error"])
+
+    def test_withdraw_consent_can_be_bound_to_actor(self):
+        withdraw_consent(self.conn, "consent-001", reason="No longer needed", actor_id="F001")
+        query_args = self.mock_cursor.execute.call_args[0][1]
+        self.assertEqual(query_args[-2:], ("F001", "F001"))
 
 
 class TestGetConsentStatus(unittest.TestCase):
@@ -124,7 +133,6 @@ class TestCheckConsent(unittest.TestCase):
         self.conn.cursor.return_value = self.mock_cursor
 
     def test_check_consent_verifies_consent(self):
-        # row[4] is consent_method; the code checks row[4] == "granted"
         self.mock_cursor.fetchone.return_value = (
             "consent-001", "granted", datetime(2026, 1, 1, tzinfo=timezone.utc),
             None, "granted", "granted",
@@ -133,6 +141,15 @@ class TestCheckConsent(unittest.TestCase):
         self.assertTrue(result["consent_exists"])
         self.assertTrue(result["consented"])
         self.assertEqual(result["consent_id"], "consent-001")
+
+    def test_check_consent_uses_effective_status_not_method(self):
+        self.mock_cursor.fetchone.return_value = (
+            "consent-001", "granted", datetime(2026, 1, 1, tzinfo=timezone.utc),
+            None, "digital_form", "withdrawn",
+        )
+        result = check_consent(self.conn, "F001", "soil", "collection")
+        self.assertFalse(result["consented"])
+        self.assertEqual(result["effective_status"], "withdrawn")
 
     def test_check_consent_not_found(self):
         self.mock_cursor.fetchone.return_value = None

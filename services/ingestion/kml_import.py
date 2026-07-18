@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 from typing import Any
 
 from services.common.logging import get_logger

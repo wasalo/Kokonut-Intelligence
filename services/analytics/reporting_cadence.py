@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 import subprocess
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -207,8 +208,9 @@ def trigger_auto_generation(conn, cadence_id: str) -> Dict[str, Any]:
 
     # Execute report generator
     try:
+        cmd_parts = shlex.split(command)
         result = subprocess.run(
-            command, shell=True, capture_output=True, text=True, timeout=300,
+            cmd_parts, shell=False, capture_output=True, text=True, timeout=300,
         )
         success = result.returncode == 0
 

@@ -30,6 +30,17 @@ logger = get_logger("ingestion.http_sensor_receiver")
 app = None
 
 
+def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
+    """Verify an HMAC-SHA256 signature for the exact request body."""
+    if not payload or not signature or not secret:
+        return False
+    provided = signature.strip()
+    if provided.lower().startswith("sha256="):
+        provided = provided[7:]
+    expected = hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, provided)
+
+
 def _get_app():
     """Create FastAPI app lazily."""
     global app
@@ -37,7 +48,7 @@ def _get_app():
         return app
 
     try:
-        from fastapi import FastAPI, HTTPException, Header, Depends
+        from fastapi import FastAPI, HTTPException, Header, Request
         from fastapi.responses import JSONResponse
         from pydantic import BaseModel, Field
     except ImportError:
@@ -59,13 +70,6 @@ def _get_app():
 
     class BatchReadings(BaseModel):
         readings: List[SensorReading]
-
-    def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
-        """Verify HMAC-SHA256 signature."""
-        expected = hmac.new(
-            secret.encode("utf-8"), payload, hashlib.sha256
-        ).hexdigest()
-        return hmac.compare_digest(expected, signature)
 
     def _get_device_secret(device_id: str) -> Optional[str]:
         """Get shared secret for a device from metadata."""
@@ -157,15 +161,20 @@ def _get_app():
             db.close()
 
     @app.post("/api/v1/sensors/{device_id}/readings")
-    async def receive_reading(device_id: str, reading: SensorReading, x_signature: Optional[str] = Header(None)):
+    async def receive_reading(
+        device_id: str,
+        reading: SensorReading,
+        request: Request,
+        x_signature: Optional[str] = Header(None),
+    ):
         """Receive a single sensor reading."""
-        reading.device_id = device_id
-
-        # Verify signature if configured
         secret = _get_device_secret(device_id)
-        if secret and x_signature:
-            # Signature verification would happen here
-            pass
+        if not secret or not x_signature or not _verify_signature(
+            await request.body(), x_signature, secret
+        ):
+            raise HTTPException(status_code=401, detail="Invalid or missing signature")
+
+        reading.device_id = device_id
 
         result = _process_reading(reading)
         if result["status"] == "error":
@@ -173,8 +182,19 @@ def _get_app():
         return result
 
     @app.post("/api/v1/sensors/{device_id}/readings/batch")
-    async def receive_batch(device_id: str, batch: BatchReadings, x_signature: Optional[str] = Header(None)):
+    async def receive_batch(
+        device_id: str,
+        batch: BatchReadings,
+        request: Request,
+        x_signature: Optional[str] = Header(None),
+    ):
         """Receive multiple sensor readings."""
+        secret = _get_device_secret(device_id)
+        if not secret or not x_signature or not _verify_signature(
+            await request.body(), x_signature, secret
+        ):
+            raise HTTPException(status_code=401, detail="Invalid or missing signature")
+
         results = []
         for reading in batch.readings:
             reading.device_id = device_id

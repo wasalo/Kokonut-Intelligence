@@ -26,12 +26,12 @@ ON CONFLICT (identifier_type, identifier_value, source_system) DO UPDATE SET
     evidence = EXCLUDED.evidence;
 
 INSERT INTO party_relationship
-    (id, from_party_id, to_party_id, relationship_type, scope_type, legitimacy, status, confidence, evidence, notes)
+    (id, from_party_id, to_party_id, relationship_type, scope_type, scope_id, legitimacy, status, confidence, evidence, notes)
 VALUES
-    ('a0000000-0000-0000-0000-000000001020', 'a0000000-0000-0000-0000-000000001000', 'a0000000-0000-0000-0000-000000001001', 'stewards', 'network', 'derivative', 'active', 1.0, '[{"source":"canonical_platform"}]'::jsonb, 'Kokonut Network stewards the shared platform supporting the pilot.'),
-    ('a0000000-0000-0000-0000-000000001021', 'a0000000-0000-0000-0000-000000001002', 'a0000000-0000-0000-0000-000000001001', 'affected_by', 'location', 'normative', 'active', 0.8, '[{"source":"stakeholder_mapping"}]'::jsonb, 'Community interests are represented without treating the community as a single voice.'),
-    ('a0000000-0000-0000-0000-000000001022', 'a0000000-0000-0000-0000-000000001003', 'a0000000-0000-0000-0000-000000001001', 'depends_on', 'location', 'proxy', 'active', 0.9, '[{"source":"ecological_modeling"}]'::jsonb, 'Living systems are represented through ecological evidence and stewardship proxies.'),
-    ('a0000000-0000-0000-0000-000000001023', 'a0000000-0000-0000-0000-000000001004', 'a0000000-0000-0000-0000-000000001001', 'holds_interest_in', 'location', 'proxy', 'active', 0.9, '[{"source":"stakeholder_theory"}]'::jsonb, 'Long-term effects are reviewed through governed ecological and social targets.')
+    ('a0000000-0000-0000-0000-000000001020', 'a0000000-0000-0000-0000-000000001000', 'a0000000-0000-0000-0000-000000001001', 'stewards', 'network', NULL, 'derivative', 'active', 1.0, '[{"source":"canonical_platform"}]'::jsonb, 'Kokonut Network stewards the shared platform supporting the pilot.'),
+    ('a0000000-0000-0000-0000-000000001021', 'a0000000-0000-0000-0000-000000001002', 'a0000000-0000-0000-0000-000000001001', 'affected_by', 'network', NULL, 'normative', 'active', 0.8, '[{"source":"stakeholder_mapping"}]'::jsonb, 'Community interests are represented without treating the community as a single voice.'),
+    ('a0000000-0000-0000-0000-000000001022', 'a0000000-0000-0000-0000-000000001003', 'a0000000-0000-0000-0000-000000001001', 'depends_on', 'network', NULL, 'proxy', 'active', 0.9, '[{"source":"ecological_modeling"}]'::jsonb, 'Living systems are represented through ecological evidence and stewardship proxies.'),
+    ('a0000000-0000-0000-0000-000000001023', 'a0000000-0000-0000-0000-000000001004', 'a0000000-0000-0000-0000-000000001001', 'holds_interest_in', 'network', NULL, 'proxy', 'active', 0.9, '[{"source":"stakeholder_theory"}]'::jsonb, 'Long-term effects are reviewed through governed ecological and social targets.')
 ON CONFLICT (id) DO UPDATE SET
     relationship_type = EXCLUDED.relationship_type,
     legitimacy = EXCLUDED.legitimacy,
@@ -74,8 +74,8 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO stakeholder_interest
     (id, party_id, interest_type, title, description, legitimacy, priority, scope_type, scope_id, status, evidence)
 VALUES
-    ('a0000000-0000-0000-0000-000000001030', 'a0000000-0000-0000-0000-000000001002', 'need', 'Participate in decisions affecting the pilot', 'Community stakeholders need accessible, safe channels to influence decisions that affect local livelihoods and wellbeing.', 'normative', 5, 'location', 'a0000000-0000-0000-0000-000000000001', 'validated', '[{"source":"stakeholder_mapping"}]'::jsonb),
-    ('a0000000-0000-0000-0000-000000001031', 'a0000000-0000-0000-0000-000000001003', 'stewardship', 'Maintain ecological integrity', 'Living systems require monitoring and decisions that protect soil, water, biodiversity, and regenerative capacity.', 'proxy', 5, 'location', 'a0000000-0000-0000-0000-000000000001', 'validated', '[{"source":"ecological_modeling"}]'::jsonb),
+    ('a0000000-0000-0000-0000-000000001030', 'a0000000-0000-0000-0000-000000001002', 'need', 'Participate in decisions affecting the pilot', 'Community stakeholders need accessible, safe channels to influence decisions that affect local livelihoods and wellbeing.', 'normative', 5, 'network', NULL, 'validated', '[{"source":"stakeholder_mapping"}]'::jsonb),
+    ('a0000000-0000-0000-0000-000000001031', 'a0000000-0000-0000-0000-000000001003', 'stewardship', 'Maintain ecological integrity', 'Living systems require monitoring and decisions that protect soil, water, biodiversity, and regenerative capacity.', 'proxy', 5, 'network', NULL, 'validated', '[{"source":"ecological_modeling"}]'::jsonb),
     ('a0000000-0000-0000-0000-000000001032', 'a0000000-0000-0000-0000-000000001004', 'obligation', 'Protect long-term options', 'Future generations require decisions that preserve ecological, social, and economic options beyond the current planning horizon.', 'proxy', 5, 'network', NULL, 'validated', '[{"source":"stakeholder_theory"}]'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,

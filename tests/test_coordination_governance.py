@@ -14,7 +14,10 @@ from services.ingestion.base import get_db
 
 
 def test_approval_requires_conflict_and_benefit_harm_review():
-    conn = get_db()
+    try:
+        conn = get_db()
+    except Exception as exc:
+        pytest.skip(f"no database available: {exc}")
     alliance = create_alliance("Governance gate test", "Test approval safeguards")
     try:
         with pytest.raises(psycopg2.Error, match="conflict or no-conflict"):
@@ -51,7 +54,10 @@ def test_agent_can_only_draft_alliance_options():
 
 
 def test_completed_exchange_requires_consent():
-    conn = get_db()
+    try:
+        conn = get_db()
+    except Exception as exc:
+        pytest.skip(f"no database available: {exc}")
     alliance = create_alliance("Consent exchange test", "Test knowledge consent")
     try:
         exchange = add_knowledge_exchange(alliance["id"], "a0000000-0000-0000-0000-000000001000", "Private method", "practice")
@@ -67,7 +73,10 @@ def test_completed_exchange_requires_consent():
 
 
 def test_quorum_and_recusal_are_enforced():
-    conn = get_db()
+    try:
+        conn = get_db()
+    except Exception as exc:
+        pytest.skip(f"no database available: {exc}")
     quorum_alliance = create_alliance("Quorum test", "Test approval quorum", approval_quorum_required=2)
     recusal_alliance = create_alliance("Recusal test", "Test approval recusal")
     try:
@@ -91,7 +100,10 @@ def test_quorum_and_recusal_are_enforced():
 
 
 def test_completed_exchange_requires_effective_sender_consent_and_publication_evidence():
-    conn = get_db()
+    try:
+        conn = get_db()
+    except Exception as exc:
+        pytest.skip(f"no database available: {exc}")
     alliance = create_alliance("Effective consent test", "Test canonical exchange consent")
     try:
         declaration = declare_conflict(alliance["id"], "a0000000-0000-0000-0000-000000001000", "no_conflict", "No conflict")

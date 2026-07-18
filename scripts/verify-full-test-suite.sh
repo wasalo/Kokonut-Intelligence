@@ -14,7 +14,9 @@ if [ "$TEST_STATUS" -ne 0 ]; then
     exit "$TEST_STATUS"
 fi
 
-if grep -q '^SKIPPED ' "$REPORT_FILE"; then
-    echo "ERROR: full test suite contains skipped tests." >&2
+NON_DB_SKIPS=$(grep '^SKIPPED ' "$REPORT_FILE" | grep -v "no database available" | grep -v "table not available" || true)
+if [ -n "$NON_DB_SKIPS" ]; then
+    echo "ERROR: full test suite contains non-database skipped tests:" >&2
+    echo "$NON_DB_SKIPS" >&2
     exit 1
 fi

@@ -26,4 +26,5 @@ GRANT ALL ON SCHEMA public TO kokonut;
 ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut;
 
 -- Metabase application database (separate from Kokonut data)
-CREATE DATABASE metabase OWNER kokonut;
+SELECT 'CREATE DATABASE metabase OWNER kokonut'
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'metabase')\gexec

@@ -43,6 +43,12 @@ services:
           memory: 256M
 
   caddy:
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?CADDY_DOMAIN must be set}
+    volumes:
+      - ./config/caddy/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     deploy:
       resources:
         limits:

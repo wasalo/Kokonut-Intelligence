@@ -1,6 +1,10 @@
 """IoT sensor push tests."""
 
 from pathlib import Path
+import hashlib
+import hmac
+
+from services.ingestion.http_sensor_receiver import _verify_signature
 
 SCHEMA = Path("schemas/postgres/077_telemetry_infrastructure.sql")
 
@@ -26,6 +30,19 @@ def test_mqtt_subscriber_has_cli() -> None:
     assert 'if __name__' in content
     assert "--broker" in content
     assert "--port" in content
+
+
+def test_mqtt_requires_broker_credentials() -> None:
+    content = Path("services/ingestion/mqtt_subscriber.py").read_text()
+    assert "MQTT_USERNAME" in content
+    assert "MQTT_PASSWORD" in content
+    assert "username_pw_set" in content
+
+
+def test_mqtt_does_not_auto_register_devices() -> None:
+    content = Path("services/ingestion/mqtt_subscriber.py").read_text()
+    assert "Rejected MQTT registration" in content
+    assert "INSERT INTO sensor_device (" not in content
 
 
 def test_http_receiver_has_cli() -> None:
@@ -80,6 +97,16 @@ def test_http_has_signature_verification() -> None:
     assert "hmac" in content.lower() or "signature" in content.lower()
 
 
+def test_http_signature_verification_uses_exact_body() -> None:
+    payload = b'{"device_id":"sensor-1","value":21.5}'
+    secret = "test-secret"
+    signature = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+    assert _verify_signature(payload, signature, secret)
+    assert _verify_signature(payload, f"sha256={signature}", secret)
+    assert not _verify_signature(payload + b" ", signature, secret)
+    assert not _verify_signature(payload, "", secret)
+
+
 def test_http_dual_writes() -> None:
     content = Path("services/ingestion/http_sensor_receiver.py").read_text()
     assert "_insert_ch" in content
@@ -116,6 +143,12 @@ def test_device_manager_updates_health() -> None:
 def test_mosquitto_config_has_listener() -> None:
     content = Path("config/mosquitto/mosquitto.conf").read_text()
     assert "listener 1883" in content
+
+
+def test_mosquitto_requires_authentication() -> None:
+    content = Path("config/mosquitto/mosquitto.conf").read_text()
+    assert "allow_anonymous false" in content
+    assert "password_file" in content
 
 
 def test_mosquitto_config_persistence() -> None:
