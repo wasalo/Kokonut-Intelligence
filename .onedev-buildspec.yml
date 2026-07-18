@@ -54,6 +54,16 @@ jobs:
           sleep 1
         done
         docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
+        # Init SQL bind mounts fail in DinD (host filesystem differs from build container).
+        # Run the scripts manually now that PostgreSQL is accepting connections.
+        echo "Applying init.sql..."
+        cat ./config/postgres/init.sql \
+          | docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+            exec -T database psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
+        echo "Applying extensions.sql..."
+        cat ./config/postgres/extensions.sql \
+          | docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+            exec -T database psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
         for i in $(seq 1 60); do
           curl --fail --silent http://127.0.0.1:8055/server/ping >/dev/null && break
           if [ "$i" -eq 60 ]; then
