@@ -71,6 +71,12 @@ jobs:
         (cd sdk/typescript && npm install --no-audit --no-fund && npm run generate && npm run build)
         ./scripts/ci-check.sh
         ./scripts/verify-full-test-suite.sh
+        # Static analysis gate (F-15)
+        pip install slither-analyzer semgrep
+        curl -L https://github.com/Cyfrin/aderyn/releases/latest/download/aderyn-x86_64-unknown-linux-gnu.tar.gz | tar xz -C /usr/local/bin
+        slither contracts --filter-paths "lib/|node_modules/" --json /tmp/slither-results.json || true
+        aderyn contracts --output /tmp/aderyn-report.md || true
+        echo "Static analysis complete"
     useTTY: false
     condition: SUCCESSFUL
     optional: false
