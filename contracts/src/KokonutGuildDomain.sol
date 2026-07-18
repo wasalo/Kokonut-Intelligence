@@ -8,6 +8,7 @@ import {KokonutGuildRegistry} from "./KokonutGuildRegistry.sol";
 /// @notice Registers Guild-scoped teams/domains used by tasks and reputation.
 contract KokonutGuildDomain is AccessControl {
     bytes32 public constant DOMAIN_ADMIN_ROLE = keccak256("DOMAIN_ADMIN_ROLE");
+    uint256 public constant DEPRECATION_GRACE_PERIOD = 48 hours;
 
     enum DomainStatus {
         Active,
@@ -22,6 +23,7 @@ contract KokonutGuildDomain is AccessControl {
         string name;
         string metadataURI;
         DomainStatus status;
+        uint256 deprecationTime;
     }
 
     KokonutGuildRegistry public immutable registry;
@@ -58,7 +60,7 @@ contract KokonutGuildDomain is AccessControl {
         }
 
         domainId = nextDomainId++;
-        _domains[domainId] = Domain(domainId, guildId, parentDomainId, name, metadataURI, DomainStatus.Active);
+        _domains[domainId] = Domain(domainId, guildId, parentDomainId, name, metadataURI, DomainStatus.Active, 0);
         emit DomainCreated(domainId, guildId, parentDomainId, name, msg.sender);
     }
 
@@ -68,7 +70,11 @@ contract KokonutGuildDomain is AccessControl {
     }
 
     function setStatus(uint256 domainId, DomainStatus status) external onlyRole(DOMAIN_ADMIN_ROLE) {
-        _domain(domainId).status = status;
+        Domain storage domain = _domain(domainId);
+        if (status == DomainStatus.Deprecated) {
+            domain.deprecationTime = block.timestamp;
+        }
+        domain.status = status;
         emit DomainStatusUpdated(domainId, status);
     }
 
@@ -78,7 +84,15 @@ contract KokonutGuildDomain is AccessControl {
 
     function isActiveDomain(uint256 domainId) external view returns (bool) {
         Domain storage domain = _domains[domainId];
-        return domain.status == DomainStatus.Active && registry.isActiveGuild(domain.guildId);
+        if (!registry.isActiveGuild(domain.guildId)) return false;
+        if (domain.status == DomainStatus.Active) return true;
+        if (
+            domain.status == DomainStatus.Deprecated && domain.deprecationTime > 0
+                && block.timestamp < domain.deprecationTime + DEPRECATION_GRACE_PERIOD
+        ) {
+            return true;
+        }
+        return false;
     }
 
     function guildIdOf(uint256 domainId) external view returns (bytes32) {

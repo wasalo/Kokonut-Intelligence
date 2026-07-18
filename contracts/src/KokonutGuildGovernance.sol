@@ -3,16 +3,18 @@ pragma solidity ^0.8.34;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {KokonutGuildDomain} from "./KokonutGuildDomain.sol";
 import {KokonutTaskBoard} from "./KokonutTaskBoard.sol";
 
 /// @title Kokonut Guild Governance
 /// @notice Lazy-consensus motions for allowlisted operational Guild actions.
 /// @dev This contract cannot move ETH or execute unallowlisted treasury calls.
-contract KokonutGuildGovernance is AccessControl {
+contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
     using Address for address;
 
     uint256 public constant MAX_CALLDATA_BYTES = 256;
+    uint256 public constant MIN_OBJECTION_WINDOW = 1 days;
 
     bytes32 public constant PROPOSER_ROLE = keccak256("PROPOSER_ROLE");
     bytes32 public constant OBJECTOR_ROLE = keccak256("OBJECTOR_ROLE");
@@ -104,7 +106,8 @@ contract KokonutGuildGovernance is AccessControl {
     {
         if (
             guildId == bytes32(0) || !allowedTargets[target] || data.length > MAX_CALLDATA_BYTES
-                || objectionDeadline <= block.timestamp || data.length < 4 || !allowedSelectors[target][_selector(data)]
+                || objectionDeadline <= block.timestamp || (objectionDeadline - block.timestamp) < MIN_OBJECTION_WINDOW
+                || data.length < 4 || !allowedSelectors[target][_selector(data)]
                 || (guildScopedTargets[target] && !_matchesGuild(target, data, guildId))
         ) {
             revert InvalidMotion();
@@ -149,7 +152,7 @@ contract KokonutGuildGovernance is AccessControl {
         emit MotionFinalized(motionId, MotionStatus.Cancelled);
     }
 
-    function executeMotion(uint256 motionId) external onlyRole(EXECUTOR_ROLE) {
+    function executeMotion(uint256 motionId) external onlyRole(EXECUTOR_ROLE) nonReentrant {
         Motion storage motion = _motion(motionId);
         if (motion.status != MotionStatus.Passed) revert MotionNotPassed(motionId);
         if (!allowedTargets[motion.target] || !allowedSelectors[motion.target][_selectorMemory(motion.data)]) {

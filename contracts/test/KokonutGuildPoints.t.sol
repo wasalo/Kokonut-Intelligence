@@ -94,7 +94,8 @@ contract KokonutGuildPointsTest is Test {
             ledgerRecordHash: ledgerRecordHash,
             calculationVersion: calculationVersion,
             nonce: 7,
-            deadline: uint48(block.timestamp + 1 days)
+            deadline: uint48(block.timestamp + 1 days),
+            chainId: block.chainid
         });
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, points.claimDigest(voucher));
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -122,7 +123,8 @@ contract KokonutGuildPointsTest is Test {
             ledgerRecordHash: ledgerRecordHash,
             calculationVersion: calculationVersion,
             nonce: 8,
-            deadline: uint48(block.timestamp)
+            deadline: uint48(block.timestamp),
+            chainId: block.chainid
         });
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerKey, points.claimDigest(voucher));
 

@@ -29,6 +29,7 @@ contract KokonutGuildUpgradeTimelock is AccessControl {
     error InvalidUpgrade();
     error UpgradeNotReady(bytes32 upgradeId, uint256 eta);
     error UpgradeUnavailable(bytes32 upgradeId);
+    error Unauthorized();
 
     event UpgradeQueued(bytes32 indexed upgradeId, address indexed proxy, address indexed implementation, uint256 eta);
     event UpgradeCancelled(bytes32 indexed upgradeId);
@@ -81,6 +82,7 @@ contract KokonutGuildUpgradeTimelock is AccessControl {
     }
 
     function getUpgrade(bytes32 upgradeId) external view returns (Upgrade memory) {
+        if (!hasRole(PROPOSER_ROLE, msg.sender) && !hasRole(EXECUTOR_ROLE, msg.sender)) revert Unauthorized();
         return _upgrade(upgradeId);
     }
 

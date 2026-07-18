@@ -8,6 +8,8 @@ import {KokonutTaskBoard} from "./KokonutTaskBoard.sol";
 /// @notice Records review decisions and dispute outcomes for submitted tasks.
 contract KokonutEvidenceReview is AccessControl {
     bytes32 public constant REVIEWER_ROLE = keccak256("REVIEWER_ROLE");
+    uint256 public constant MAX_DISPUTES_PER_REVIEW = 3;
+    uint256 public constant DISPUTE_COOLDOWN = 24 hours;
 
     enum ReviewDecision {
         Accepted,
@@ -31,6 +33,8 @@ contract KokonutEvidenceReview is AccessControl {
         bytes32 resolutionHash;
         ReviewDecision decision;
         ReviewStatus status;
+        uint256 disputeCount;
+        uint256 lastResolvedAt;
     }
 
     KokonutTaskBoard public immutable tasks;
@@ -86,7 +90,9 @@ contract KokonutEvidenceReview is AccessControl {
             bytes32(0),
             bytes32(0),
             decision,
-            decision == ReviewDecision.Accepted ? ReviewStatus.Accepted : ReviewStatus.Rejected
+            decision == ReviewDecision.Accepted ? ReviewStatus.Accepted : ReviewStatus.Rejected,
+            0,
+            0
         );
         reviewIdByTask[taskId] = reviewId;
         if (decision == ReviewDecision.Accepted) tasks.markAccepted(taskId, reviewId);
@@ -101,8 +107,13 @@ contract KokonutEvidenceReview is AccessControl {
         if (review.status != ReviewStatus.Accepted && review.status != ReviewStatus.Rejected) {
             revert ReviewNotDisputable(reviewId);
         }
+        if (review.disputeCount >= MAX_DISPUTES_PER_REVIEW) revert ReviewNotDisputable(reviewId);
+        if (review.lastResolvedAt > 0 && block.timestamp < review.lastResolvedAt + DISPUTE_COOLDOWN) {
+            revert ReviewNotDisputable(reviewId);
+        }
         review.status = ReviewStatus.Disputed;
         review.disputeReasonHash = reasonHash;
+        review.disputeCount++;
         tasks.markDisputed(review.taskId, reviewId);
         emit EvidenceDisputed(reviewId, msg.sender, reasonHash);
     }
@@ -112,6 +123,7 @@ contract KokonutEvidenceReview is AccessControl {
         if (review.status != ReviewStatus.Disputed) revert ReviewNotDisputable(reviewId);
         review.resolutionHash = resolutionHash;
         review.status = accepted ? ReviewStatus.Accepted : ReviewStatus.Rejected;
+        review.lastResolvedAt = block.timestamp;
         if (accepted) tasks.markAccepted(review.taskId, reviewId);
         else tasks.markRejected(review.taskId, reviewId);
         emit EvidenceDisputeResolved(reviewId, accepted, resolutionHash);

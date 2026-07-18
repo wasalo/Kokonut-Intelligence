@@ -29,7 +29,7 @@ contract KokonutGuildPoints is
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
 
     bytes32 public constant CLAIM_VOUCHER_TYPEHASH = keccak256(
-        "ClaimVoucher(bytes32 awardId,bytes32 guildId,address contributor,uint256 domainId,uint256 amount,uint256 epoch,bytes32 evidenceHash,bytes32 ledgerRecordHash,bytes32 calculationVersion,uint256 nonce,uint48 deadline)"
+        "ClaimVoucher(bytes32 awardId,bytes32 guildId,address contributor,uint256 domainId,uint256 amount,uint256 epoch,bytes32 evidenceHash,bytes32 ledgerRecordHash,bytes32 calculationVersion,uint256 nonce,uint48 deadline,uint256 chainId)"
     );
 
     error ZeroAddress();
@@ -46,6 +46,7 @@ contract KokonutGuildPoints is
     error NonTransferable();
     error InvalidDomainIdentity();
     error DomainRegistryAlreadySet();
+    error ChainIdMismatch();
 
     struct AwardRecord {
         bytes32 guildId;
@@ -71,6 +72,7 @@ contract KokonutGuildPoints is
         bytes32 calculationVersion;
         uint256 nonce;
         uint48 deadline;
+        uint256 chainId;
     }
 
     mapping(bytes32 awardId => AwardRecord record) private _awards;
@@ -167,6 +169,7 @@ contract KokonutGuildPoints is
         if (usedClaimNonces[voucher.contributor][voucher.nonce]) {
             revert ClaimNonceUsed(voucher.contributor, voucher.nonce);
         }
+        if (voucher.chainId != block.chainid) revert ChainIdMismatch();
 
         address signer = ECDSA.recover(claimDigest(voucher), signature);
         if (!hasRole(CLAIM_SIGNER_ROLE, signer)) revert InvalidClaimSigner(signer);
@@ -193,7 +196,7 @@ contract KokonutGuildPoints is
         bytes32 reasonHash,
         bytes32 ledgerRecordHash,
         bytes32 calculationVersion
-    ) external onlyRole(REVERSER_ROLE) whenNotPaused {
+    ) external onlyRole(REVERSER_ROLE) {
         if (settledReversals[reversalId]) revert ReversalAlreadySettled(reversalId);
 
         AwardRecord storage record = _awards[awardId];
@@ -255,7 +258,8 @@ contract KokonutGuildPoints is
                     voucher.ledgerRecordHash,
                     voucher.calculationVersion,
                     voucher.nonce,
-                    voucher.deadline
+                    voucher.deadline,
+                    voucher.chainId
                 )
             )
         );
