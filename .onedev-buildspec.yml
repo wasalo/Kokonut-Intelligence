@@ -72,7 +72,7 @@ jobs:
         echo "=== [step] Waiting for Directus ==="
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml \
-            exec -T directus wget --spider -q http://localhost:8055/server/ping 2>/dev/null && break
+            exec -T directus sh -c 'wget --spider -q http://127.0.0.1:8055/server/ping' && break
           if [ "$i" -eq 30 ]; then
             docker compose -f docker-compose.yml -f docker-compose.ci.yml logs directus
             exit 1
