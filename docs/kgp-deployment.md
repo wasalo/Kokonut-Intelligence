@@ -23,9 +23,12 @@ KGP_CLAIM_SIGNER
 KGP_REVERSER
 KGP_PAUSER
 KGP_UPGRADER
+KGP_DOMAIN_REGISTRY
 ```
 
-`KGP_URI` is optional and defaults to `ipfs://kokonut-kgp/{id}.json`. `KGP_UPGRADER` must be a deployed `KokonutGuildUpgradeTimelock` contract on Gnosis and Chiado.
+`KGP_URI` is optional and defaults to `ipfs://kokonut-kgp/{id}.json`. `KGP_UPGRADER` must be a deployed `KokonutGuildUpgradeTimelock` contract on Gnosis and Chiado, and `KGP_DOMAIN_REGISTRY` must be the deployed Guild domain registry.
+
+Deploy `KokonutGuildUpgradeTimelock` with the KGP proxy as its approved proxy argument. The constructor arguments are `admin`, `proposer`, `executor`, `delay`, and `KGP_PROXY`; the resulting timelock address is then supplied as `KGP_UPGRADER`.
 
 The deployer is selected with Foundry's `--account`/`--sender` options and must match `KGP_DEPLOYER`. Production role addresses should be multisigs, governance-controlled accounts, or dedicated rotated service keys. The deployment script rejects a deployer/role collision and requires the timelock contract as `UPGRADER_ROLE`.
 
@@ -61,7 +64,7 @@ forge script script/DeployKokonutGuildPoints.s.sol:DeployKokonutGuildPoints \
 
 ## Upgrade
 
-Production upgrades are queued and executed through `KokonutGuildUpgradeTimelock`. The timelock address must hold `UPGRADER_ROLE`; the proposer and executor are separate Foundry accounts. Set `KGP_IMPLEMENTATION` to an already deployed implementation, then run each script with the appropriate `--account`/`--sender`. Every upgrade requires a storage compatibility test, governance approval, and the configured delay.
+Production upgrades are queued and executed through `KokonutGuildUpgradeTimelock`, which is bound to the approved KGP proxy at deployment. The timelock address must hold `UPGRADER_ROLE`; the proposer and executor are separate Foundry accounts. Set `KGP_IMPLEMENTATION` to an already deployed implementation, then run each script with the appropriate `--account`/`--sender`. For the first upgrade from a pre-domain-registry implementation, omit `KGP_UPGRADE_DATA` and provide `KGP_DOMAIN_REGISTRY`; the queue script atomically calls `reinitializeDomainRegistry`. For later upgrades, provide reviewed calldata in `KGP_UPGRADE_DATA`. Every upgrade requires a storage compatibility test, governance approval, and the configured delay.
 
 ```bash
 cd contracts

@@ -8,6 +8,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {KokonutGuildDomain} from "./KokonutGuildDomain.sol";
 
 /// @title Kokonut Guild Points
 /// @notice Non-transferable, domain-scoped reputation points.
@@ -43,6 +44,8 @@ contract KokonutGuildPoints is
     error ClaimNonceUsed(address contributor, uint256 nonce);
     error InvalidClaimSigner(address signer);
     error NonTransferable();
+    error InvalidDomainIdentity();
+    error DomainRegistryAlreadySet();
 
     struct AwardRecord {
         bytes32 guildId;
@@ -73,6 +76,7 @@ contract KokonutGuildPoints is
     mapping(bytes32 awardId => AwardRecord record) private _awards;
     mapping(bytes32 reversalId => bool settled) public settledReversals;
     mapping(address contributor => mapping(uint256 nonce => bool used)) public usedClaimNonces;
+    KokonutGuildDomain public domainRegistry;
 
     event KGP_Awarded(
         bytes32 indexed awardId,
@@ -110,11 +114,12 @@ contract KokonutGuildPoints is
         address reverser,
         address pauser,
         address upgrader,
+        KokonutGuildDomain domains,
         string calldata initialURI
     ) external initializer {
         if (
             admin == address(0) || awarder == address(0) || claimSigner == address(0) || reverser == address(0)
-                || pauser == address(0) || upgrader == address(0)
+                || pauser == address(0) || upgrader == address(0) || address(domains) == address(0)
         ) {
             revert ZeroAddress();
         }
@@ -124,12 +129,20 @@ contract KokonutGuildPoints is
         __EIP712_init("Kokonut Guild Points", "1");
         __Pausable_init();
 
+        _setRoleAdmin(UPGRADER_ROLE, UPGRADER_ROLE);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(AWARDER_ROLE, awarder);
         _grantRole(CLAIM_SIGNER_ROLE, claimSigner);
         _grantRole(REVERSER_ROLE, reverser);
         _grantRole(PAUSER_ROLE, pauser);
         _grantRole(UPGRADER_ROLE, upgrader);
+        domainRegistry = domains;
+    }
+
+    function reinitializeDomainRegistry(KokonutGuildDomain domains) external reinitializer(2) onlyRole(UPGRADER_ROLE) {
+        if (address(domains) == address(0)) revert ZeroAddress();
+        if (address(domainRegistry) != address(0)) revert DomainRegistryAlreadySet();
+        domainRegistry = domains;
     }
 
     function award(
@@ -301,6 +314,9 @@ contract KokonutGuildPoints is
         if (_awards[awardId].contributor != address(0)) revert AwardAlreadySettled(awardId);
         if (contributor == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
+        if (!domainRegistry.isActiveDomain(domainId) || domainRegistry.guildIdOf(domainId) != guildId) {
+            revert InvalidDomainIdentity();
+        }
 
         _awards[awardId] = AwardRecord({
             guildId: guildId,

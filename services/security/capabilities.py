@@ -89,16 +89,21 @@ class CapabilityManager:
         action: str,
         location_id: str | None = None,
     ) -> dict | None:
-        """Verify a token has the requested capability. Returns capability match or None."""
+        """Verify a token has the requested capability. Returns capability match or None.
+
+        Uses an atomic UPDATE ... RETURNING to prevent TOCTOU races on
+        max_usage: the usage_count is incremented only when the token is
+        still valid and the limit has not been reached.
+        """
         token_hash = self._hash_token(token)
         conn = self._get_conn()
 
         try:
             with conn.cursor() as cur:
+                # Step 1: fetch token metadata (read-only)
                 cur.execute(
                     """
-                    SELECT id, holder, capabilities, expires_at, max_usage,
-                           usage_count, revoked
+                    SELECT id, holder, capabilities, expires_at, max_usage, revoked
                     FROM capability_token
                     WHERE token_hash = %s
                     """,
@@ -108,7 +113,7 @@ class CapabilityManager:
                 if not row:
                     return None
 
-                token_id, holder, capabilities, expires_at, max_usage, usage_count, revoked = row
+                token_id, holder, capabilities, expires_at, max_usage, revoked = row
 
                 # Check revoked
                 if revoked:
@@ -120,36 +125,49 @@ class CapabilityManager:
                     logger.warning("Expired token used: holder=%s", holder)
                     return None
 
-                # Check usage limit
-                if max_usage and usage_count >= max_usage:
-                    logger.warning("Token usage limit reached: holder=%s", holder)
-                    return None
-
                 # Check capabilities
                 caps = capabilities if isinstance(capabilities, list) else json.loads(capabilities)
+                matched_cap = None
                 for cap in caps:
                     if cap.get("resource") != resource:
                         continue
                     if cap.get("action") != action:
                         continue
-                    # Check location constraint
                     if location_id and cap.get("location_id") and cap["location_id"] != location_id:
                         continue
-                    # Check additional constraints
-                    constraints = cap.get("constraints", {})
-                    if constraints:
-                        # Constraints are checked by the caller based on the record
-                        pass
+                    matched_cap = cap
+                    break
 
-                    # Increment usage count
+                if matched_cap is None:
+                    return None
+
+                # Step 2: atomic increment only when usage limit allows
+                if max_usage:
+                    cur.execute(
+                        """
+                        UPDATE capability_token
+                        SET usage_count = usage_count + 1
+                        WHERE id = %s
+                          AND NOT revoked
+                          AND expires_at > NOW()
+                          AND usage_count < max_usage
+                        RETURNING id
+                        """,
+                        (token_id,),
+                    )
+                    if not cur.fetchone():
+                        logger.warning("Token usage limit reached or token became invalid: holder=%s", holder)
+                        conn.commit()
+                        return None
+                else:
                     cur.execute(
                         "UPDATE capability_token SET usage_count = usage_count + 1 WHERE id = %s",
                         (token_id,),
                     )
-                    conn.commit()
+                conn.commit()
 
-                    logger.info("Token verified: holder=%s resource=%s action=%s", holder, resource, action)
-                    return {"holder": holder, "capability": cap, "token_id": str(token_id)}
+                logger.info("Token verified: holder=%s resource=%s action=%s", holder, resource, action)
+                return {"holder": holder, "capability": matched_cap, "token_id": str(token_id)}
 
             return None
         except Exception:

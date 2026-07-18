@@ -23,11 +23,11 @@ services:
   cache:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme}
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
     networks:
       - databases
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-changeme}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?REDIS_PASSWORD must be set}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -65,7 +65,7 @@ services:
       CACHE_ENABLED: "true"
       CACHE_AUTO_PURGE: "true"
       CACHE_STORE: "redis"
-      REDIS: "redis://:${REDIS_PASSWORD:-changeme}@cache:6379"
+      REDIS: "redis://:${REDIS_PASSWORD:?REDIS_PASSWORD must be set}@cache:6379"
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8055}
@@ -159,13 +159,13 @@ services:
       dockerfile: Dockerfile.grpc
     restart: unless-stopped
     ports:
-      - "50051:50051"
+      - "127.0.0.1:50051:50051"
     environment:
       - PG_HOST=database
       - PG_PORT=5432
       - PG_DB=kokonut_intelligence
       - PG_USER=kokonut
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       - GRPC_PORT=50051
       - GRPC_MAX_WORKERS=10
       - KOKONUT_ENV=${KOKONUT_ENV:-dev}

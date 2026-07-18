@@ -4,6 +4,8 @@ pragma solidity ^0.8.34;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {KokonutGuildPoints} from "../src/KokonutGuildPoints.sol";
+import {KokonutGuildDomain} from "../src/KokonutGuildDomain.sol";
+import {KokonutGuildRegistry} from "../src/KokonutGuildRegistry.sol";
 
 contract KokonutGuildPointsV2 is KokonutGuildPoints {
     function version() external pure returns (uint256) {
@@ -13,6 +15,7 @@ contract KokonutGuildPointsV2 is KokonutGuildPoints {
 
 contract KokonutGuildPointsTest is Test {
     KokonutGuildPoints internal points;
+    KokonutGuildDomain internal domains;
     address internal admin = address(0x100);
     address internal awarder = address(0x101);
     address internal signer;
@@ -30,9 +33,16 @@ contract KokonutGuildPointsTest is Test {
 
     function setUp() public {
         signer = vm.addr(signerKey);
+        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin);
+        domains = new KokonutGuildDomain(admin, registry);
+        vm.startPrank(admin);
+        registry.createGuild(guildId, keccak256("technology-key"), "Technology", "ipfs://technology", admin);
+        domains.createDomain(guildId, 0, "MRV", "ipfs://mrv");
+        vm.stopPrank();
         KokonutGuildPoints implementation = new KokonutGuildPoints();
         bytes memory initialization = abi.encodeCall(
-            KokonutGuildPoints.initialize, (admin, awarder, signer, reverser, pauser, upgrader, "ipfs://kgp/{id}.json")
+            KokonutGuildPoints.initialize,
+            (admin, awarder, signer, reverser, pauser, upgrader, domains, "ipfs://kgp/{id}.json")
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initialization);
         points = KokonutGuildPoints(address(proxy));
@@ -186,6 +196,18 @@ contract KokonutGuildPointsTest is Test {
         assertEq(points.balanceOf(contributor, domainId), 11);
     }
 
+    function test_admin_cannot_grant_or_use_upgrade_role() public {
+        bytes32 upgraderRole = points.UPGRADER_ROLE();
+        vm.prank(admin);
+        vm.expectRevert();
+        points.grantRole(upgraderRole, admin);
+
+        KokonutGuildPointsV2 implementation = new KokonutGuildPointsV2();
+        vm.prank(admin);
+        vm.expectRevert();
+        points.upgradeToAndCall(address(implementation), "");
+    }
+
     function test_upgrade_preserves_reversal_state_and_roles() public {
         bytes32 awardId = _award(100);
         vm.prank(reverser);
@@ -201,6 +223,26 @@ contract KokonutGuildPointsTest is Test {
         assertTrue(points.settledReversals(reversalId));
         assertTrue(points.hasRole(points.AWARDER_ROLE(), awarder));
         assertTrue(points.hasRole(points.UPGRADER_ROLE(), upgrader));
+    }
+
+    function test_domain_registry_migration_is_one_time_and_upgrade_compatible() public {
+        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin);
+        KokonutGuildDomain replacement = new KokonutGuildDomain(admin, registry);
+        vm.startPrank(admin);
+        registry.createGuild(guildId, keccak256("replacement-key"), "Replacement", "ipfs://replacement", admin);
+        replacement.createDomain(guildId, 0, "Replacement MRV", "ipfs://replacement-mrv");
+        vm.stopPrank();
+
+        KokonutGuildPointsV2 implementation = new KokonutGuildPointsV2();
+        bytes memory migration = abi.encodeCall(KokonutGuildPoints.reinitializeDomainRegistry, (replacement));
+        vm.store(address(points), bytes32(uint256(3)), bytes32(0));
+        vm.prank(upgrader);
+        points.upgradeToAndCall(address(implementation), migration);
+        assertEq(address(points.domainRegistry()), address(replacement));
+
+        vm.prank(upgrader);
+        vm.expectRevert();
+        points.reinitializeDomainRegistry(replacement);
     }
 
     function _award(uint256 amount) internal returns (bytes32 awardId) {

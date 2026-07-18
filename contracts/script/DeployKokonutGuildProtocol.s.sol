@@ -110,6 +110,12 @@ contract DeployKokonutGuildProtocol is Script {
             config.admin != address(0) && config.bootstrap != address(0) && config.bootstrap != config.admin,
             "Invalid protocol authority"
         );
+        require(
+            config.guildAdmin != address(0) && config.domainAdmin != address(0) && config.taskAdmin != address(0)
+                && config.reviewer != address(0) && config.proposer != address(0) && config.objector != address(0)
+                && config.executor != address(0),
+            "Invalid operational role"
+        );
     }
 
     function _wire(Protocol memory p, Config memory c) internal {

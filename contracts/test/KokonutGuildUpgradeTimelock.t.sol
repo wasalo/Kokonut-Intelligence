@@ -6,9 +6,12 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 import {KokonutGuildPoints} from "../src/KokonutGuildPoints.sol";
 import {KokonutGuildPointsV2Harness} from "./KokonutGuildPointsV2Harness.sol";
 import {KokonutGuildUpgradeTimelock} from "../src/KokonutGuildUpgradeTimelock.sol";
+import {KokonutGuildDomain} from "../src/KokonutGuildDomain.sol";
+import {KokonutGuildRegistry} from "../src/KokonutGuildRegistry.sol";
 
 contract KokonutGuildUpgradeTimelockTest is Test {
     KokonutGuildPoints internal points;
+    KokonutGuildDomain internal domains;
     KokonutGuildUpgradeTimelock internal timelock;
     address internal admin = address(0x100);
     address internal proposer = address(0x101);
@@ -16,11 +19,18 @@ contract KokonutGuildUpgradeTimelockTest is Test {
     uint256 internal constant DELAY = 2 days;
 
     function setUp() public {
+        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin);
+        domains = new KokonutGuildDomain(admin, registry);
+        vm.startPrank(admin);
+        registry.createGuild(bytes32("timelock"), bytes32("timelock-key"), "Timelock", "ipfs://timelock", admin);
+        domains.createDomain(bytes32("timelock"), 0, "Operations", "ipfs://operations");
+        vm.stopPrank();
         KokonutGuildPoints implementation = new KokonutGuildPoints();
-        bytes memory init =
-            abi.encodeCall(KokonutGuildPoints.initialize, (admin, admin, admin, admin, admin, admin, "ipfs://kgp"));
+        bytes memory init = abi.encodeCall(
+            KokonutGuildPoints.initialize, (admin, admin, admin, admin, admin, admin, domains, "ipfs://kgp")
+        );
         points = KokonutGuildPoints(address(new ERC1967Proxy(address(implementation), init)));
-        timelock = new KokonutGuildUpgradeTimelock(admin, proposer, executor, DELAY);
+        timelock = new KokonutGuildUpgradeTimelock(admin, proposer, executor, DELAY, address(points));
         bytes32 upgraderRole = points.UPGRADER_ROLE();
         vm.prank(admin);
         points.grantRole(upgraderRole, address(timelock));
@@ -49,6 +59,14 @@ contract KokonutGuildUpgradeTimelockTest is Test {
 
     function test_roles_must_be_distinct() public {
         vm.expectRevert(KokonutGuildUpgradeTimelock.InvalidUpgrade.selector);
-        new KokonutGuildUpgradeTimelock(admin, admin, executor, DELAY);
+        new KokonutGuildUpgradeTimelock(admin, admin, executor, DELAY, address(points));
+    }
+
+    function test_rejects_unapproved_proxy() public {
+        KokonutGuildPointsV2Harness implementation = new KokonutGuildPointsV2Harness();
+        KokonutGuildPointsV2Harness wrongProxy = new KokonutGuildPointsV2Harness();
+        vm.prank(proposer);
+        vm.expectRevert(KokonutGuildUpgradeTimelock.InvalidUpgrade.selector);
+        timelock.queueUpgrade(address(wrongProxy), address(implementation), "");
     }
 }

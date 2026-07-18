@@ -13,6 +13,7 @@ contract KokonutGuildUpgradeTimelock is AccessControl {
     bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
 
     uint256 public immutable minDelay;
+    address public immutable approvedProxy;
 
     struct Upgrade {
         address proxy;
@@ -33,14 +34,15 @@ contract KokonutGuildUpgradeTimelock is AccessControl {
     event UpgradeCancelled(bytes32 indexed upgradeId);
     event UpgradeExecuted(bytes32 indexed upgradeId);
 
-    constructor(address admin, address proposer, address executor, uint256 delay) {
+    constructor(address admin, address proposer, address executor, uint256 delay, address proxy) {
         if (
             admin == address(0) || proposer == address(0) || executor == address(0) || delay == 0 || admin == proposer
-                || admin == executor || proposer == executor
+                || admin == executor || proposer == executor || proxy.code.length == 0
         ) {
             revert InvalidUpgrade();
         }
         minDelay = delay;
+        approvedProxy = proxy;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(PROPOSER_ROLE, proposer);
         _grantRole(EXECUTOR_ROLE, executor);
@@ -51,7 +53,7 @@ contract KokonutGuildUpgradeTimelock is AccessControl {
         onlyRole(PROPOSER_ROLE)
         returns (bytes32 upgradeId)
     {
-        if (proxy.code.length == 0 || implementation.code.length == 0) revert InvalidUpgrade();
+        if (proxy != approvedProxy || implementation.code.length == 0) revert InvalidUpgrade();
         upgradeId = keccak256(abi.encode(proxy, implementation, data, block.timestamp));
         if (_upgrades[upgradeId].eta != 0) revert InvalidUpgrade();
         uint256 eta = block.timestamp + minDelay;

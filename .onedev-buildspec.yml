@@ -13,24 +13,27 @@ jobs:
     optional: false
   - type: CommandStep
     name: command
-    runInContainer: false
+    # PRs execute repository-controlled scripts. Keep the build inside the
+    # OneDev build container rather than on the agent host.
+    runInContainer: true
+    image: ubuntu:24.04
     interpreter:
       type: PosixInterpreter
       shell: bash
       commands: |
-        set -e
+        set -euo pipefail
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-        # Install docker compose plugin if missing (persists on host after first build).
-        if ! docker compose version >/dev/null 2>&1; then
-          echo "Installing docker compose plugin..."
-          mkdir -p /usr/libexec/docker/cli-plugins
-          curl -sSL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" \
-            -o /usr/libexec/docker/cli-plugins/docker-compose
-          chmod +x /usr/libexec/docker/cli-plugins/docker-compose
-        fi
+        # The isolated runner must provide Docker; never install unverified
+        # binaries or modify the build agent from a PR.
+        command -v docker >/dev/null
+        docker compose version >/dev/null
         docker --version; docker compose version
-        # Ephemeral .env from OneDev job secrets (read by compose and load_dotenv).
-        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nREDIS_PASSWORD=ci-redis-password\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=ci-placeholder-secret\nADMIN_PASSWORD=ci-admin-password\nADMIN_EMAIL=ci@@kokonut.network\nPUBLIC_URL=http://localhost:8055\n' '@secrets:postgres-password@' '@secrets:clickhouse-password@' '@secrets:metabase-embedding-secret@' > .env
+        # PR builds use disposable test credentials, never deployment secrets.
+        umask 077
+        trap 'rm -f .env' EXIT
+        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nREDIS_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=%s\nADMIN_PASSWORD=%s\nADMIN_EMAIL=ci@kokonut.network\nPUBLIC_URL=http://localhost:8055\n' \
+          "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" \
+          "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" "$(openssl rand -hex 24)" > .env
         # Start the services required by database-backed and Directus tests.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache directus
         # Wait for PostgreSQL to accept connections.
@@ -51,7 +54,7 @@ jobs:
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
         # Isolate Python deps (host Python 3.11+).
-        apt-get update -qq && apt-get install -y -qq python3-venv python3-dev libpq-dev gcc >/dev/null 2>&1 || true
+        apt-get update -qq && apt-get install -y -qq openssl python3-venv python3-dev libpq-dev gcc >/dev/null
         python3 -m venv .venv
         . .venv/bin/activate
         pip install --upgrade pip

@@ -31,6 +31,10 @@ describe('isValidTransition', () => {
     expect(isValidTransition('expense_event', 'draft', 'published')).toBe(false);
   });
 
+  it('rejects unknown collections instead of failing open', () => {
+    expect(isValidTransition('unknown_collection', 'draft', 'published')).toBe(false);
+  });
+
   it('allows rejected → draft rework', () => {
     expect(isValidTransition('mrv_claim', 'rejected', 'draft')).toBe(true);
   });

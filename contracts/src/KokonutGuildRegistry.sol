@@ -99,7 +99,8 @@ contract KokonutGuildRegistry is AccessControl, Pausable {
     }
 
     function isGuildSteward(bytes32 guildId, address account) external view returns (bool) {
-        return _guilds[guildId].steward == account && _guilds[guildId].status == GuildStatus.Active;
+        Guild storage guild = _guilds[guildId];
+        return guild.guildId != bytes32(0) && guild.steward == account && guild.status == GuildStatus.Active;
     }
 
     function _guild(bytes32 guildId) internal view returns (Guild storage guild) {

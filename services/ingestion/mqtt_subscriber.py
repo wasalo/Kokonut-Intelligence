@@ -1,7 +1,7 @@
 """MQTT subscriber for IoT sensor data.
 
-Subscribes to MQTT topics for real-time sensor readings,
-auto-registers unknown devices, and writes to PostgreSQL + ClickHouse.
+Subscribes to MQTT topics for real-time sensor readings from pre-registered
+devices and writes to PostgreSQL + ClickHouse.
 
 Requires:
     - paho-mqtt package
@@ -36,14 +36,24 @@ DEVICE_TOPIC = "sensors/+/+/register"  # sensors/{location_id}/{sensor_type}/reg
 DEFAULT_BROKER = os.environ.get("MQTT_BROKER_HOST", "localhost")
 DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
 DEFAULT_KEEPALIVE = 60
+DEFAULT_USERNAME = os.environ.get("MQTT_USERNAME", "")
+DEFAULT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
 
 
 class MQTTSensorSubscriber:
     """MQTT subscriber that receives sensor readings and writes to DB."""
 
-    def __init__(self, broker: str = DEFAULT_BROKER, port: int = DEFAULT_PORT):
+    def __init__(
+        self,
+        broker: str = DEFAULT_BROKER,
+        port: int = DEFAULT_PORT,
+        username: str = DEFAULT_USERNAME,
+        password: str = DEFAULT_PASSWORD,
+    ):
         self.broker = broker
         self.port = port
+        self.username = username
+        self.password = password
         self.client = None
         self._running = False
         self._db = None
@@ -89,46 +99,8 @@ class MQTTSensorSubscriber:
             logger.warning("Registration missing device_id")
             return
 
-        self._connect_db()
-        cur = self._db.cursor()
-
-        # Check if device exists
-        cur.execute("SELECT id FROM sensor_device WHERE slug = %s", (device_id,))
-        if cur.fetchone():
-            logger.info("Device %s already registered", device_id)
-            cur.close()
-            return
-
-        # Auto-register device
-        sensor_type_name = data.get("sensor_type", "air_temperature")
-        location_id = data.get("location_id")
-
-        # Get or create sensor type
-        cur.execute("SELECT id FROM sensor_type WHERE name = %s", (sensor_type_name,))
-        row = cur.fetchone()
-        if not row:
-            logger.warning("Unknown sensor type: %s", sensor_type_name)
-            cur.close()
-            return
-        sensor_type_id = str(row[0])
-
-        # Insert device
-        cur.execute("""
-            INSERT INTO sensor_device (name, slug, sensor_type_id, location_id, protocol, status, metadata)
-            VALUES (%s, %s, %s, %s, 'mqtt', 'active', %s)
-            ON CONFLICT (slug) DO UPDATE SET status = 'active', updated_at = NOW()
-            RETURNING id
-        """, (
-            data.get("name", f"MQTT Device {device_id}"),
-            device_id,
-            sensor_type_id,
-            location_id,
-            json.dumps(data),
-        ))
-        device_db_id = str(cur.fetchone()[0])
-        self._db.commit()
-        cur.close()
-        logger.info("Auto-registered MQTT device: %s (id=%s)", device_id, device_db_id[:8])
+        # Registration is controlled through device_manager, not an unauthenticated topic.
+        logger.warning("Rejected MQTT registration request for device: %s", device_id)
 
     def _handle_reading(self, payload: bytes):
         """Handle incoming sensor reading."""
@@ -155,7 +127,7 @@ class MQTTSensorSubscriber:
             SELECT sd.id, sd.location_id, sd.plot_id, st.name AS sensor_type
             FROM sensor_device sd
             JOIN sensor_type st ON st.id = sd.sensor_type_id
-            WHERE sd.slug = %s
+            WHERE sd.slug = %s AND sd.status = 'active'
         """, (device_id,))
         row = cur.fetchone()
         if not row:
@@ -237,8 +209,13 @@ class MQTTSensorSubscriber:
             logger.error("paho-mqtt not installed. Run: pip install paho-mqtt")
             sys.exit(1)
 
+        if not self.username or not self.password:
+            logger.error("MQTT_USERNAME and MQTT_PASSWORD are required")
+            return
+
         self._running = True
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        self.client.username_pw_set(self.username, self.password)
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
 

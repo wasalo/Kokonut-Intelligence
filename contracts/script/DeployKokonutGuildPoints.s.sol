@@ -4,12 +4,13 @@ pragma solidity ^0.8.34;
 import {Script, console} from "forge-std/Script.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {KokonutGuildPoints} from "../src/KokonutGuildPoints.sol";
+import {KokonutGuildDomain} from "../src/KokonutGuildDomain.sol";
 
 /// @title DeployKokonutGuildPoints
 /// @notice Deploys the KGP implementation and UUPS proxy on Gnosis or Chiado.
 /// @dev Required environment variables:
 ///   KGP_DEPLOYER, KGP_ADMIN, KGP_AWARDER, KGP_CLAIM_SIGNER,
-///   KGP_REVERSER, KGP_PAUSER, KGP_UPGRADER.
+///   KGP_REVERSER, KGP_PAUSER, KGP_UPGRADER, KGP_DOMAIN_REGISTRY.
 ///   Optional: KGP_URI (defaults to an immutable metadata placeholder).
 contract DeployKokonutGuildPoints is Script {
     uint256 private constant GNOSIS_CHAIN_ID = 100;
@@ -25,7 +26,10 @@ contract DeployKokonutGuildPoints is Script {
         address reverser = vm.envAddress("KGP_REVERSER");
         address pauser = vm.envAddress("KGP_PAUSER");
         address upgrader = vm.envAddress("KGP_UPGRADER");
+        KokonutGuildDomain domains = KokonutGuildDomain(vm.envAddress("KGP_DOMAIN_REGISTRY"));
         require(upgrader.code.length > 0, "KGP upgrader must be a timelock contract");
+        require(address(domains).code.length > 0, "KGP domain registry has no code");
+        require(address(domains.registry()).code.length > 0, "KGP Guild registry has no code");
         require(
             deployer != address(0) && deployer != admin && deployer != awarder && deployer != claimSigner
                 && deployer != reverser && deployer != pauser && deployer != upgrader,
@@ -38,7 +42,7 @@ contract DeployKokonutGuildPoints is Script {
         require(broadcaster == deployer, "Deployer does not match broadcast sender");
         KokonutGuildPoints implementation = new KokonutGuildPoints();
         bytes memory initialization = abi.encodeCall(
-            KokonutGuildPoints.initialize, (admin, awarder, claimSigner, reverser, pauser, upgrader, uri)
+            KokonutGuildPoints.initialize, (admin, awarder, claimSigner, reverser, pauser, upgrader, domains, uri)
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initialization);
         vm.stopBroadcast();
