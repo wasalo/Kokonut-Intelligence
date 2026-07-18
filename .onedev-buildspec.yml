@@ -33,11 +33,18 @@ jobs:
         # PR builds use disposable test credentials, never deployment secrets.
         umask 077
         trap 'rm -f .env' EXIT
-        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nREDIS_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=%s\nADMIN_PASSWORD=%s\nADMIN_EMAIL=ci@@kokonut.network\nPUBLIC_URL=http://localhost:8055\n' \
-          "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" \
-          "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" "$(openssl rand -hex 24)" > .env
+        cat > .env <<'EOF'
+        POSTGRES_PASSWORD=ci-placeholder
+        CLICKHOUSE_PASSWORD=ci-placeholder
+        REDIS_PASSWORD=ci-placeholder
+        DIRECTUS_SECRET=ci-secret
+        ADMIN_EMAIL=ci@kokonut.network
+        ADMIN_PASSWORD=ci-password
+        PUBLIC_URL=http://localhost:8055
+        METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
+        EOF
         # Start the services required by database-backed and Directus tests.
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --volumes database clickhouse cache directus
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache directus
         # Wait for PostgreSQL to accept connections.
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break
