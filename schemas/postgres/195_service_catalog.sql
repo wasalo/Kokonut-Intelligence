@@ -198,7 +198,8 @@ ON CONFLICT DO NOTHING;
 INSERT INTO data_quality_rule (entity_type, dimension, rule_type, rule_config, severity, active)
 VALUES
     ('harvest_event', 'consistency', 'referential', '{"field": "plot_id", "references_table": "farm_zone", "references_field": "id"}'::jsonb, 'critical', TRUE),
-    ('traceability_batch', 'consistency', 'referential', '{"field": "location_id", "references_table": "location", "references_field": "id"}'::jsonb, 'critical', TRUE)
+    ('traceability_batch', 'consistency', 'referential', '{"field": "location_id", "references_table": "location", "references_field": "id"}'::jsonb, 'critical', TRUE),
+    ('farm_activity', 'consistency', 'referential', '{"field": "location_id", "references_table": "location", "references_field": "id"}'::jsonb, 'critical', TRUE)
 ON CONFLICT DO NOTHING;
 
 -- Trigger for updated_at on service_registry
