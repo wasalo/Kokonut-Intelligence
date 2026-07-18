@@ -47,6 +47,7 @@ jobs:
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
         # Start the services required by database-backed and Directus tests.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache directus
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
         # Wait for PostgreSQL to accept connections.
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break

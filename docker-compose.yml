@@ -17,8 +17,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_interval: 5s
-      start_period: 30s
 
   cache:
     image: redis:7-alpine
