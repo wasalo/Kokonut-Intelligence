@@ -123,6 +123,30 @@ contract KokonutGuildProtocolTest is Test {
         vm.prank(admin);
         vm.expectRevert(abi.encodeWithSelector(KokonutTaskBoard.InvalidStatus.selector, taskId));
         tasks.markPaid(taskId, keccak256("payment"));
+
+        vm.prank(admin);
+        reviews.reviewEvidence(
+            keccak256("review-replacement"),
+            taskId,
+            KokonutEvidenceReview.ReviewDecision.Rejected,
+            evidenceHash,
+            keccak256("replacement-notes")
+        );
+        assertEq(uint8(tasks.getTask(taskId).status), uint8(KokonutTaskBoard.TaskStatus.Rejected));
+    }
+
+    function test_review_and_payment_deadlines_are_enforced() public {
+        uint256 taskId = _createAssignedTask();
+        bytes32 evidenceHash = keccak256("deadline-evidence");
+        vm.prank(contributor);
+        tasks.submitEvidence(taskId, evidenceHash);
+
+        vm.warp(block.timestamp + 7 days + tasks.REVIEW_GRACE_PERIOD() + 1);
+        vm.prank(admin);
+        vm.expectRevert(KokonutEvidenceReview.InvalidReview.selector);
+        reviews.reviewEvidence(
+            keccak256("late-review"), taskId, KokonutEvidenceReview.ReviewDecision.Accepted, evidenceHash, bytes32(0)
+        );
     }
 
     function test_governance_motion_executes_only_after_unopposed_window() public {

@@ -14,6 +14,7 @@ contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
     using Address for address;
 
     uint256 public constant MAX_CALLDATA_BYTES = 256;
+    uint256 public constant MAX_RETURN_DATA_BYTES = 4096;
     uint256 public constant MIN_OBJECTION_WINDOW = 1 days;
 
     bytes32 public constant PROPOSER_ROLE = keccak256("PROPOSER_ROLE");
@@ -163,6 +164,7 @@ contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
         }
         motion.status = MotionStatus.Executed;
         bytes memory returnData = motion.target.functionCall(motion.data);
+        if (returnData.length > MAX_RETURN_DATA_BYTES) revert InvalidMotion();
         emit MotionExecuted(motionId, returnData);
     }
 

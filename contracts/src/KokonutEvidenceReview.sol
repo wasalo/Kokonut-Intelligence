@@ -78,7 +78,12 @@ contract KokonutEvidenceReview is AccessControl {
         if (reviewIdByTask[taskId] != bytes32(0)) revert InvalidReview();
 
         KokonutTaskBoard.Task memory task = tasks.getTask(taskId);
-        if (task.status != KokonutTaskBoard.TaskStatus.Submitted) revert InvalidReview();
+        if (
+            task.status != KokonutTaskBoard.TaskStatus.Submitted
+                || block.timestamp > task.deadline + tasks.REVIEW_GRACE_PERIOD()
+        ) {
+            revert InvalidReview();
+        }
         if (task.submittedEvidenceHash != evidenceHash) revert InvalidReview();
 
         _reviews[reviewId] = Review(
@@ -107,6 +112,7 @@ contract KokonutEvidenceReview is AccessControl {
         if (review.status != ReviewStatus.Accepted && review.status != ReviewStatus.Rejected) {
             revert ReviewNotDisputable(reviewId);
         }
+        if (block.timestamp > task.deadline + tasks.REVIEW_GRACE_PERIOD()) revert ReviewNotDisputable(reviewId);
         if (review.disputeCount >= MAX_DISPUTES_PER_REVIEW) revert ReviewNotDisputable(reviewId);
         if (review.lastResolvedAt > 0 && block.timestamp < review.lastResolvedAt + DISPUTE_COOLDOWN) {
             revert ReviewNotDisputable(reviewId);
@@ -135,6 +141,7 @@ contract KokonutEvidenceReview is AccessControl {
         KokonutTaskBoard.Task memory task = tasks.getTask(review.taskId);
         if (task.status == KokonutTaskBoard.TaskStatus.Paid) revert ReviewNotDisputable(reviewId);
         review.status = ReviewStatus.Revoked;
+        reviewIdByTask[review.taskId] = bytes32(0);
         tasks.markReviewRevoked(review.taskId, reviewId);
         emit EvidenceRevoked(reviewId, reasonHash);
     }

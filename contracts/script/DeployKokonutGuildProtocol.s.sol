@@ -116,6 +116,15 @@ contract DeployKokonutGuildProtocol is Script {
                 && config.executor != address(0),
             "Invalid operational role"
         );
+        if (block.chainid != ANVIL_CHAIN_ID) {
+            require(
+                config.admin != config.guildAdmin && config.admin != config.domainAdmin
+                    && config.admin != config.taskAdmin && config.admin != config.reviewer
+                    && config.admin != config.proposer && config.admin != config.objector
+                    && config.admin != config.executor,
+                "Admin must be separate from operational roles"
+            );
+        }
         require(
             config.bootstrap != config.guildAdmin && config.bootstrap != config.domainAdmin
                 && config.bootstrap != config.taskAdmin && config.bootstrap != config.reviewer

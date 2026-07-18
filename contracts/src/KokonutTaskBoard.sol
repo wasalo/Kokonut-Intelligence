@@ -8,6 +8,7 @@ import {KokonutGuildDomain} from "./KokonutGuildDomain.sol";
 /// @notice Tracks operational Guild tasks without moving treasury funds.
 contract KokonutTaskBoard is AccessControl {
     bytes32 public constant TASK_ADMIN_ROLE = keccak256("TASK_ADMIN_ROLE");
+    uint256 public constant REVIEW_GRACE_PERIOD = 7 days;
 
     enum TaskStatus {
         Open,
@@ -127,6 +128,10 @@ contract KokonutTaskBoard is AccessControl {
         emit TaskEvidenceSubmitted(taskId, msg.sender, evidenceHash);
     }
 
+    function reviewDeadline(uint256 taskId) external view returns (uint256) {
+        return _task(taskId).deadline + REVIEW_GRACE_PERIOD;
+    }
+
     function cancelTask(uint256 taskId, bytes32 reasonHash) external onlyRole(TASK_ADMIN_ROLE) {
         Task storage task = _task(taskId);
         if (task.status == TaskStatus.Accepted || task.status == TaskStatus.Paid) revert InvalidStatus(taskId);
@@ -162,13 +167,15 @@ contract KokonutTaskBoard is AccessControl {
         if (msg.sender != evidenceReview) revert OnlyEvidenceReview();
         Task storage task = _task(taskId);
         if (task.status == TaskStatus.Paid || task.status == TaskStatus.Cancelled) revert InvalidStatus(taskId);
-        task.status = TaskStatus.Rejected;
-        emit TaskStatusUpdated(taskId, TaskStatus.Rejected, reviewId);
+        task.status = TaskStatus.Submitted;
+        emit TaskStatusUpdated(taskId, TaskStatus.Submitted, reviewId);
     }
 
     function markPaid(uint256 taskId, bytes32 paymentReference) external onlyRole(TASK_ADMIN_ROLE) {
         Task storage task = _task(taskId);
-        if (task.status != TaskStatus.Accepted) revert InvalidStatus(taskId);
+        if (task.status != TaskStatus.Accepted || block.timestamp > task.deadline + REVIEW_GRACE_PERIOD) {
+            revert InvalidStatus(taskId);
+        }
         task.status = TaskStatus.Paid;
         emit TaskStatusUpdated(taskId, TaskStatus.Paid, paymentReference);
     }

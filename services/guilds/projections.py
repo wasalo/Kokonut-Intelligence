@@ -30,7 +30,7 @@ def _task_uuid(cursor, deployment_id: str, onchain_task_id: int):
     return row[0] if row else None
 
 
-def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) -> bool:
+def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any], source_chain_event_id: str | None = None) -> bool:
     """Project a decoded protocol event, returning false when identity is unresolved."""
     name = event["event_name"]
     tx_hash = event["transaction_hash"]
@@ -39,10 +39,12 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
         cursor.execute(
             """
             UPDATE kokonut_guild
-            SET onchain_guild_id = %s, onchain_guild_key = %s, updated_at = NOW()
+            SET onchain_guild_id = %s, onchain_guild_key = %s,
+                chain_projection = TRUE, source_chain_event_id = %s,
+                orphaned_at = NULL, updated_at = NOW()
             WHERE onchain_guild_key = %s OR guild_key = %s
             """,
-            (event["guild_id"], event["guild_key"], event["guild_key"], event.get("guild_key_name", "")),
+            (event["guild_id"], event["guild_key"], source_chain_event_id, event["guild_key"], event.get("guild_key_name", "")),
         )
         return cursor.rowcount == 1
 
@@ -61,6 +63,7 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
             "status": "active",
             "lifecycle_status": "submitted",
         })
+        _mark_source(cursor, deployment_id, event, source_chain_event_id)
         return True
     if name in {"DomainMetadataUpdated", "DomainStatusUpdated"}:
         domain_uuid = _domain_uuid(cursor, deployment_id, event["domain_id"])
@@ -70,6 +73,7 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
             cursor.execute("UPDATE guild_domain SET metadata_uri = %s, updated_at = NOW() WHERE id = %s", (event["metadata_uri"], domain_uuid))
         else:
             cursor.execute("UPDATE guild_domain SET status = %s, updated_at = NOW() WHERE id = %s", (_status(event["status"], ("active", "paused", "deprecated")), domain_uuid))
+        _mark_source(cursor, deployment_id, event, source_chain_event_id)
         return True
     if name == "TaskCreated":
         domain_uuid = _domain_uuid(cursor, deployment_id, event["domain_id"])
@@ -85,6 +89,7 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
             "transaction_hash": tx_hash,
             "block_number": block_number,
         })
+        _mark_source(cursor, deployment_id, event, source_chain_event_id)
         return True
     if name in {"TaskAssigned", "TaskEvidenceSubmitted", "TaskStatusUpdated"}:
         task_uuid = _task_uuid(cursor, deployment_id, event["task_id"])
@@ -96,6 +101,7 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
             cursor.execute("UPDATE guild_task SET contributor_wallet = %s, submitted_evidence_hash = %s, task_status = 'submitted', updated_at = NOW() WHERE id = %s", (event["contributor_wallet"], event["evidence_hash"], task_uuid))
         else:
             cursor.execute("UPDATE guild_task SET task_status = %s, updated_at = NOW() WHERE id = %s", (_status(event["status"], ("open", "assigned", "submitted", "accepted", "rejected", "disputed", "cancelled", "paid")), task_uuid))
+        _mark_source(cursor, deployment_id, event, source_chain_event_id)
         return True
     if name in {"EvidenceReviewed", "EvidenceDisputed", "EvidenceDisputeResolved", "EvidenceRevoked"}:
         task_uuid = _task_uuid(cursor, deployment_id, event.get("task_id", 0)) if event.get("task_id") else None
@@ -119,12 +125,17 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
                 """
                 INSERT INTO guild_evidence_review_event
                     (task_id, deployment_id, event_type, onchain_event_id, reviewer_wallet,
-                     evidence_hash, transaction_hash, block_number, log_index, payload)
-                VALUES (%s, %s, 'reviewed', %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (deployment_id, transaction_hash, log_index) DO NOTHING
+                     evidence_hash, transaction_hash, block_number, log_index, payload, is_canonical)
+                VALUES (%s, %s, 'reviewed', %s, %s, %s, %s, %s, %s, %s, TRUE)
+                ON CONFLICT (deployment_id, transaction_hash, log_index) DO UPDATE SET
+                    task_id = EXCLUDED.task_id, event_type = EXCLUDED.event_type,
+                    onchain_event_id = EXCLUDED.onchain_event_id,
+                    reviewer_wallet = EXCLUDED.reviewer_wallet, evidence_hash = EXCLUDED.evidence_hash,
+                    payload = EXCLUDED.payload, is_canonical = TRUE, orphaned_at = NULL
                 """,
                 (task_uuid, deployment_id, event["review_id"], event["reviewer_wallet"], event["evidence_hash"], tx_hash, block_number, event.get("log_index"), json.dumps(event)),
             )
+            _mark_source(cursor, deployment_id, event, source_chain_event_id)
             return True
         cursor.execute("SELECT id FROM guild_evidence_review WHERE onchain_review_id = %s", (event["review_id"],))
         row = cursor.fetchone()
@@ -146,10 +157,15 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
                  reason_hash, resolution_hash, transaction_hash, block_number, log_index, payload)
             SELECT id, task_id, %s, %s, %s, %s, %s, %s, %s, %s, %s
             FROM guild_evidence_review WHERE id = %s
-            ON CONFLICT (deployment_id, transaction_hash, log_index) DO NOTHING
+            ON CONFLICT (deployment_id, transaction_hash, log_index) DO UPDATE SET
+                review_id = EXCLUDED.review_id, task_id = EXCLUDED.task_id,
+                event_type = EXCLUDED.event_type, reason_hash = EXCLUDED.reason_hash,
+                resolution_hash = EXCLUDED.resolution_hash, payload = EXCLUDED.payload,
+                is_canonical = TRUE, orphaned_at = NULL
             """,
             (deployment_id, event_type, event["review_id"], event.get("reason_hash"), event.get("resolution_hash"), tx_hash, block_number, event.get("log_index"), json.dumps(event), row[0]),
         )
+        _mark_source(cursor, deployment_id, event, source_chain_event_id)
         return True
     if name == "MotionCreated":
         if not guild_uuid:
@@ -167,6 +183,7 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
             """,
             (guild_uuid, deployment_id, event["motion_id"], f"Guild motion {event['motion_id']}", event["target"], event["data_hash"], event["objection_deadline"], tx_hash, block_number),
         )
+        _mark_source(cursor, deployment_id, event, source_chain_event_id)
         return True
     if name in {"MotionObjected", "MotionFinalized", "MotionExecuted"}:
         cursor.execute("SELECT id FROM guild_motion WHERE deployment_id = %s AND onchain_motion_id = %s", (deployment_id, event["motion_id"]))
@@ -179,8 +196,70 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any]) ->
             cursor.execute("UPDATE guild_motion SET motion_status = %s, updated_at = NOW() WHERE id = %s", (_status(event["status"], ("open", "passed", "rejected", "executed", "cancelled")), row[0]))
         else:
             cursor.execute("UPDATE guild_motion SET motion_status = 'executed', updated_at = NOW() WHERE id = %s", (row[0],))
+        _mark_source(cursor, deployment_id, event, source_chain_event_id)
         return True
     return False
+
+
+def _mark_source(cursor, deployment_id: str, event: dict[str, Any], source_chain_event_id: str | None) -> None:
+    if not source_chain_event_id:
+        return
+    name = event["event_name"]
+    if name.startswith("Domain"):
+        cursor.execute(
+            "UPDATE guild_domain SET chain_projection = TRUE, source_chain_event_id = %s, orphaned_at = NULL WHERE deployment_id = %s AND onchain_domain_id = %s",
+            (source_chain_event_id, deployment_id, event["domain_id"]),
+        )
+    elif name.startswith("Task"):
+        cursor.execute(
+            "UPDATE guild_task SET chain_projection = TRUE, source_chain_event_id = %s, orphaned_at = NULL WHERE deployment_id = %s AND onchain_task_id = %s",
+            (source_chain_event_id, deployment_id, event["task_id"]),
+        )
+    elif name.startswith("Evidence"):
+        cursor.execute(
+            "UPDATE guild_evidence_review SET chain_projection = TRUE, source_chain_event_id = %s, orphaned_at = NULL WHERE deployment_id = %s AND onchain_review_id = %s",
+            (source_chain_event_id, deployment_id, event["review_id"]),
+        )
+    elif name.startswith("Motion"):
+        cursor.execute(
+            "UPDATE guild_motion SET chain_projection = TRUE, source_chain_event_id = %s, orphaned_at = NULL WHERE deployment_id = %s AND onchain_motion_id = %s",
+            (source_chain_event_id, deployment_id, event["motion_id"]),
+        )
+
+
+def reset_chain_projections(cursor, deployment_id: str) -> None:
+    """Remove chain-owned materialized state before deterministic replay."""
+    cursor.execute(
+        """
+        UPDATE guild_evidence_review_event
+        SET is_canonical = FALSE, orphaned_at = NOW()
+        WHERE deployment_id = %s AND is_canonical = TRUE
+          AND EXISTS (
+              SELECT 1
+              FROM kgp_chain_event ce
+              WHERE ce.deployment_id = guild_evidence_review_event.deployment_id
+                AND ce.transaction_hash = guild_evidence_review_event.transaction_hash
+                AND ce.log_index = guild_evidence_review_event.log_index
+                AND ce.is_canonical = FALSE
+          )
+        """,
+        (deployment_id,),
+    )
+    cursor.execute("DELETE FROM guild_evidence_review WHERE deployment_id = %s AND chain_projection = TRUE", (deployment_id,))
+    cursor.execute("DELETE FROM guild_task WHERE deployment_id = %s AND chain_projection = TRUE", (deployment_id,))
+    cursor.execute("DELETE FROM guild_domain WHERE deployment_id = %s AND chain_projection = TRUE", (deployment_id,))
+    cursor.execute("DELETE FROM guild_motion WHERE deployment_id = %s AND chain_projection = TRUE", (deployment_id,))
+    cursor.execute(
+        """
+        UPDATE kokonut_guild
+        SET onchain_guild_id = NULL, onchain_guild_key = NULL,
+            chain_projection = FALSE, source_chain_event_id = NULL, orphaned_at = NOW()
+        WHERE source_chain_event_id IN (
+            SELECT id FROM kgp_chain_event WHERE deployment_id = %s AND is_canonical = FALSE
+        )
+        """,
+        (deployment_id,),
+    )
 
 
 def _status(value: int, values: tuple[str, ...]) -> str:

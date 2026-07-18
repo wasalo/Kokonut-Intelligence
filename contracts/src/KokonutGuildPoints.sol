@@ -239,6 +239,16 @@ contract KokonutGuildPoints is
         return _awards[awardId];
     }
 
+    /// @notice Returns the implementation stored by the ERC-1967 proxy.
+    /// @dev When called through the proxy, this reads proxy storage and lets
+    ///      the upgrade timelock reject stale queued upgrades.
+    function implementation() external view returns (address current) {
+        bytes32 slot = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+        assembly {
+            current := sload(slot)
+        }
+    }
+
     function isAwardSettled(bytes32 awardId) external view returns (bool) {
         return _awards[awardId].contributor != address(0);
     }
