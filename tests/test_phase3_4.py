@@ -197,6 +197,16 @@ class TestAnalysisEnvironment:
 
         assert "executor is not configured" in result["error"]
 
+    def test_run_never_allows_unisolated_opt_in(self, monkeypatch):
+        from services.sandbox.environment import AnalysisEnvironment
+
+        monkeypatch.setenv("KOKONUT_ENV", "development")
+        monkeypatch.setenv("KOKONUT_ALLOW_UNISOLATED_SANDBOX", "true")
+        env = AnalysisEnvironment(conn=MagicMock())
+        result = env.run(str(uuid.uuid4()), "services.metrics.engine")
+
+        assert "direct process execution is disabled" in result["error"]
+
     def test_create_env(self):
         from services.sandbox.environment import AnalysisEnvironment
 

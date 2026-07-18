@@ -82,3 +82,6 @@ backups/
 schemas/directus/snapshots/
 migrations/baserow_to_postgres/config.json
 PRD.md
+# MQTT TLS material is provisioned outside Git.
+config/mosquitto/certs/*
+!config/mosquitto/certs/README.md

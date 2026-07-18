@@ -64,7 +64,8 @@ def test_device_manager_has_cli() -> None:
 def test_mqtt_subscribes_to_topics() -> None:
     content = Path("services/ingestion/mqtt_subscriber.py").read_text()
     assert "sensors/+/+/readings" in content
-    assert "sensors/+/+/register" in content
+    assert "client.subscribe(SENSOR_TOPIC)" in content
+    assert "client.subscribe(DEVICE_TOPIC)" not in content
 
 
 def test_mqtt_handles_registration() -> None:
@@ -168,13 +169,27 @@ def test_device_manager_updates_health() -> None:
 
 def test_mosquitto_config_has_listener() -> None:
     content = Path("config/mosquitto/mosquitto.conf").read_text()
-    assert "listener 1883" in content
+    assert "listener 8883" in content
+    assert "listener 1883" not in content
 
 
 def test_mosquitto_requires_authentication() -> None:
     content = Path("config/mosquitto/mosquitto.conf").read_text()
     assert "allow_anonymous false" in content
     assert "password_file" in content
+    assert "require_certificate true" in content
+    assert "acl_file" in content
+
+
+def test_http_identity_is_bound_to_path() -> None:
+    content = Path("services/ingestion/http_sensor_receiver.py").read_text()
+    assert "Payload device does not match URL device" in content
+
+
+def test_mqtt_requires_tls_certificates() -> None:
+    content = Path("services/ingestion/mqtt_subscriber.py").read_text()
+    assert "tls_set" in content
+    assert "MQTT_CA_CERT" in content
 
 
 def test_mosquitto_config_persistence() -> None:

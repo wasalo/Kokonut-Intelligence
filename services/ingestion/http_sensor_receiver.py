@@ -174,6 +174,8 @@ def _get_app():
         ):
             raise HTTPException(status_code=401, detail="Invalid or missing signature")
 
+        if reading.device_id != device_id:
+            raise HTTPException(status_code=400, detail="Payload device does not match URL device")
         reading.device_id = device_id
 
         result = _process_reading(reading)
@@ -197,6 +199,8 @@ def _get_app():
 
         results = []
         for reading in batch.readings:
+            if reading.device_id != device_id:
+                raise HTTPException(status_code=400, detail="Payload device does not match URL device")
             reading.device_id = device_id
             result = _process_reading(reading)
             results.append(result)

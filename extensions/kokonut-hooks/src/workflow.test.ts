@@ -6,6 +6,7 @@ import {
   stashPendingTransition,
   consumePendingTransition,
   LIFECYCLE_COLLECTIONS,
+  handleWorkflowTransition,
 } from './workflow.js';
 import { enforceStakeholderGovernanceSafety } from './agent-safety.js';
 import { roleNameToSlug } from './roles.js';
@@ -105,6 +106,34 @@ describe('stakeholder feedback workflow', () => {
 
   it('blocks public feedback without consent', () => {
     expect(() => validateStakeholderFeedback({ is_public: true, status: 'published' })).toThrow(/consent/);
+  });
+
+  it('fails closed when the review lookup context is unavailable', async () => {
+    await expect(
+      handleWorkflowTransition(
+        'stakeholder_feedback',
+        { status: 'verified' },
+        { id: 'feedback-1', status: 'submitted' },
+        ['manager'],
+      ),
+    ).rejects.toThrow(/review period/);
+  });
+
+  it('rejects invalid feedback submission dates', async () => {
+    const db = () => ({
+      where: () => ({
+        first: async (field: string) => field === 'status' ? { status: 'submitted' } : { submitted_at: 'invalid' },
+      }),
+    });
+    await expect(
+      handleWorkflowTransition(
+        'stakeholder_feedback',
+        { status: 'verified' },
+        { id: 'feedback-2' },
+        ['manager'],
+        db,
+      ),
+    ).rejects.toThrow(/valid date/);
   });
 });
 

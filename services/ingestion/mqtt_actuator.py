@@ -19,7 +19,12 @@ from ..common.logging import get_logger
 logger = get_logger("ingestion.mqtt_actuator")
 
 DEFAULT_BROKER = os.environ.get("MQTT_BROKER_HOST", "localhost")
-DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
+DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "8883"))
+DEFAULT_USERNAME = os.environ.get("MQTT_USERNAME", "")
+DEFAULT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
+DEFAULT_CA_CERT = os.environ.get("MQTT_CA_CERT", "/mosquitto/certs/ca.crt")
+DEFAULT_CLIENT_CERT = os.environ.get("MQTT_CLIENT_CERT", "/mosquitto/certs/actuator.crt")
+DEFAULT_CLIENT_KEY = os.environ.get("MQTT_CLIENT_KEY", "/mosquitto/certs/actuator.key")
 
 # Topic patterns for actuator commands
 ACTUATOR_TOPIC = "actuators/{location_id}/{actuator_type}/commands"
@@ -180,6 +185,11 @@ def publish_to_mqtt(
 
     try:
         client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        if not DEFAULT_USERNAME or not DEFAULT_PASSWORD:
+            logger.error("MQTT_USERNAME and MQTT_PASSWORD are required")
+            return False
+        client.username_pw_set(DEFAULT_USERNAME, DEFAULT_PASSWORD)
+        client.tls_set(ca_certs=DEFAULT_CA_CERT, certfile=DEFAULT_CLIENT_CERT, keyfile=DEFAULT_CLIENT_KEY)
         client.connect(broker, port, 60)
         result = client.publish(topic, payload, qos=1)
         client.disconnect()
