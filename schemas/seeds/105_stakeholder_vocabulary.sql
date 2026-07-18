@@ -74,8 +74,8 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO stakeholder_interest
     (id, party_id, interest_type, title, description, legitimacy, priority, scope_type, scope_id, status, evidence)
 VALUES
-    ('a0000000-0000-0000-0000-000000001030', 'a0000000-0000-0000-0000-000000001002', 'need', 'Participate in decisions affecting the pilot', 'Community stakeholders need accessible, safe channels to influence decisions that affect local livelihoods and wellbeing.', 'normative', 5, 'location', 'a0000000-0000-0000-0000-000000000001', 'validated', '[{"source":"stakeholder_mapping"}]'::jsonb),
-    ('a0000000-0000-0000-0000-000000001031', 'a0000000-0000-0000-0000-000000001003', 'stewardship', 'Maintain ecological integrity', 'Living systems require monitoring and decisions that protect soil, water, biodiversity, and regenerative capacity.', 'proxy', 5, 'location', 'a0000000-0000-0000-0000-000000000001', 'validated', '[{"source":"ecological_modeling"}]'::jsonb),
+    ('a0000000-0000-0000-0000-000000001030', 'a0000000-0000-0000-0000-000000001002', 'need', 'Participate in decisions affecting the pilot', 'Community stakeholders need accessible, safe channels to influence decisions that affect local livelihoods and wellbeing.', 'normative', 5, 'network', NULL, 'validated', '[{"source":"stakeholder_mapping"}]'::jsonb),
+    ('a0000000-0000-0000-0000-000000001031', 'a0000000-0000-0000-0000-000000001003', 'stewardship', 'Maintain ecological integrity', 'Living systems require monitoring and decisions that protect soil, water, biodiversity, and regenerative capacity.', 'proxy', 5, 'network', NULL, 'validated', '[{"source":"ecological_modeling"}]'::jsonb),
     ('a0000000-0000-0000-0000-000000001032', 'a0000000-0000-0000-0000-000000001004', 'obligation', 'Protect long-term options', 'Future generations require decisions that preserve ecological, social, and economic options beyond the current planning horizon.', 'proxy', 5, 'network', NULL, 'validated', '[{"source":"stakeholder_theory"}]'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,
