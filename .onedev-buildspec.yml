@@ -31,7 +31,7 @@ jobs:
         # PR builds use disposable test credentials, never deployment secrets.
         umask 077
         trap 'rm -f .env' EXIT
-        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nREDIS_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=%s\nADMIN_PASSWORD=%s\nADMIN_EMAIL=ci@kokonut.network\nPUBLIC_URL=http://localhost:8055\n' \
+        printf 'POSTGRES_PASSWORD=%s\nCLICKHOUSE_PASSWORD=%s\nREDIS_PASSWORD=%s\nMETABASE_EMBEDDING_SECRET_KEY=%s\nDIRECTUS_SECRET=%s\nADMIN_PASSWORD=%s\nADMIN_EMAIL=ci@@kokonut.network\nPUBLIC_URL=http://localhost:8055\n' \
           "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" "$(openssl rand -hex 24)" \
           "$(openssl rand -hex 32)" "$(openssl rand -hex 32)" "$(openssl rand -hex 24)" > .env
         # Start the services required by database-backed and Directus tests.
