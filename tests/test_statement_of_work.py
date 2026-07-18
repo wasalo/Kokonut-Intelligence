@@ -4,6 +4,7 @@ from pathlib import Path
 
 SCHEMA = Path("schemas/postgres/063_statement_of_work.sql")
 FIX_MIGRATION = Path("schemas/postgres/320_consent_lifecycle_public_gates.sql")
+FINANCIAL_GATES_MIGRATION = Path("schemas/postgres/321_public_financial_governance.sql")
 SEED = Path("schemas/seeds/063_statement_of_work.sql")
 
 
@@ -27,6 +28,35 @@ def test_public_views_require_a_verified_registry_record() -> None:
     text = FIX_MIGRATION.read_text()
     assert "AND (fr.id IS NULL OR fr.status IN ('verified', 'published'))" not in text
     assert "EXISTS (SELECT 1 FROM farm_registry_record" in text
+
+
+def test_public_cross_farm_portfolio_uses_governed_revenue_only() -> None:
+    text = FINANCIAL_GATES_MIGRATION.read_text()
+    assert "re.status IN ('verified', 'published')" in text
+    assert "fr.status IN ('verified', 'published')" in text
+    assert "cfp.*" not in text
+
+
+def test_public_cross_farm_portfolio_preserves_view_column_contract() -> None:
+    text = FINANCIAL_GATES_MIGRATION.read_text()
+    for column in [
+        "cfp.id",
+        "cfp.portfolio_name",
+        "cfp.total_farm_count",
+        "cfp.total_area_m2",
+        "cfp.total_trees",
+        "cfp.total_revenue_usd",
+        "cfp.total_carbon_sequestered",
+        "cfp.avg_regen_score",
+        "cfp.avg_ebf_score",
+        "cfp.regions_covered",
+        "cfp.last_computed_at",
+        "cfp.metadata",
+        "cfp.created_at",
+        "cfp.updated_at",
+    ]:
+        assert column in text, f"View column contract missing: {column}"
+    assert "COUNT(DISTINCT f.id)::INTEGER" not in text
 
 
 def test_schema_has_check_constraints() -> None:

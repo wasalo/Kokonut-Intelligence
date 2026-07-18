@@ -116,6 +116,13 @@ contract DeployKokonutGuildProtocol is Script {
                 && config.executor != address(0),
             "Invalid operational role"
         );
+        require(
+            config.bootstrap != config.guildAdmin && config.bootstrap != config.domainAdmin
+                && config.bootstrap != config.taskAdmin && config.bootstrap != config.reviewer
+                && config.bootstrap != config.proposer && config.bootstrap != config.objector
+                && config.bootstrap != config.executor,
+            "Bootstrap overlaps operational role"
+        );
     }
 
     function _wire(Protocol memory p, Config memory c) internal {
@@ -171,10 +178,20 @@ contract DeployKokonutGuildProtocol is Script {
             require(
                 !p.registry.hasRole(p.registry.DEFAULT_ADMIN_ROLE(), c.bootstrap), "Bootstrap registry admin remains"
             );
+            require(!p.registry.hasRole(p.registry.GUILD_ADMIN_ROLE(), c.bootstrap), "Bootstrap guild admin remains");
+            require(!p.domains.hasRole(p.domains.DEFAULT_ADMIN_ROLE(), c.bootstrap), "Bootstrap domain admin remains");
+            require(!p.domains.hasRole(p.domains.DOMAIN_ADMIN_ROLE(), c.bootstrap), "Bootstrap domain role remains");
+            require(!p.tasks.hasRole(p.tasks.DEFAULT_ADMIN_ROLE(), c.bootstrap), "Bootstrap task admin remains");
+            require(!p.tasks.hasRole(p.tasks.TASK_ADMIN_ROLE(), c.bootstrap), "Bootstrap task role remains");
+            require(!p.reviews.hasRole(p.reviews.DEFAULT_ADMIN_ROLE(), c.bootstrap), "Bootstrap review admin remains");
+            require(!p.reviews.hasRole(p.reviews.REVIEWER_ROLE(), c.bootstrap), "Bootstrap reviewer remains");
             require(
                 !p.governance.hasRole(p.governance.DEFAULT_ADMIN_ROLE(), c.bootstrap),
                 "Bootstrap governance admin remains"
             );
+            require(!p.governance.hasRole(p.governance.PROPOSER_ROLE(), c.bootstrap), "Bootstrap proposer remains");
+            require(!p.governance.hasRole(p.governance.OBJECTOR_ROLE(), c.bootstrap), "Bootstrap objector remains");
+            require(!p.governance.hasRole(p.governance.EXECUTOR_ROLE(), c.bootstrap), "Bootstrap executor remains");
         }
     }
 }

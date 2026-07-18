@@ -3,12 +3,37 @@
 from __future__ import annotations
 
 import json
+import ipaddress
 import os
+import socket
 from typing import Any
+from urllib.parse import urlparse
 
 from services.common.logging import get_logger
 
 logger = get_logger("ingestion.harvest_manager")
+
+
+def _validate_external_url(source_url: str) -> None:
+    """Reject non-HTTPS and network-local URLs before fetching source data."""
+    parsed = urlparse(source_url)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("source_url must be an HTTPS URL without embedded credentials")
+
+    hostname = parsed.hostname.rstrip(".").lower()
+    if hostname in {"localhost", "localhost.localdomain"}:
+        raise ValueError("source_url cannot target localhost")
+
+    try:
+        addresses = {
+            ipaddress.ip_address(info[4][0])
+            for info in socket.getaddrinfo(hostname, parsed.port or 443, type=socket.SOCK_STREAM)
+        }
+    except (OSError, ValueError) as exc:
+        raise ValueError("source_url hostname could not be resolved safely") from exc
+
+    if any(address.is_private or address.is_loopback or address.is_link_local or address.is_reserved for address in addresses):
+        raise ValueError("source_url cannot target a private or local network")
 
 
 def harvest_from_url(conn, location_id: str, source_url: str,
@@ -17,8 +42,11 @@ def harvest_from_url(conn, location_id: str, source_url: str,
     log_id = _create_log(conn, location_id, source_url, source_format, source_system)
 
     try:
+        _validate_external_url(source_url)
         import requests
-        response = requests.get(source_url, timeout=30)
+        response = requests.get(source_url, timeout=30, allow_redirects=False)
+        if 300 <= response.status_code < 400:
+            raise ValueError("source_url redirects are not allowed")
         response.raise_for_status()
 
         if source_format == "json":

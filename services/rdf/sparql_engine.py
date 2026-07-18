@@ -11,6 +11,7 @@ logger = get_logger("rdf.sparql_engine")
 
 DEFAULT_LIMIT = 1000
 MAX_LIMIT = 1000
+MAX_QUERY_LENGTH = 10000
 _TERM = r'(?:\?[A-Za-z_][\w-]*|<[^<>\s]+>|"(?:[^"\\]|\\.)*")'
 _QUERY = re.compile(
     rf"^\s*SELECT\s+(?P<select>\?[A-Za-z_][\w-]*(?:\s+\?[A-Za-z_][\w-]*)*)"
@@ -35,6 +36,8 @@ def _parse_term(token: str) -> tuple[str, bool, str]:
 
 def parse_select_query(query: str) -> dict:
     """Parse the intentionally small SELECT/WHERE basic graph pattern subset."""
+    if not isinstance(query, str) or len(query) > MAX_QUERY_LENGTH:
+        raise ValueError("SPARQL query is too long")
     match = _QUERY.fullmatch(query)
     if not match:
         raise ValueError("Only SELECT variables WHERE { basic triple patterns } [LIMIT n] is supported")

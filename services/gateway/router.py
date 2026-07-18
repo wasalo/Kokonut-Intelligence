@@ -76,6 +76,13 @@ async def list_locations():
 async def get_location(location_id: str):
     """Proxy to Directus single location endpoint."""
     import os, urllib.request
+    from uuid import UUID
+
+    try:
+        UUID(location_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
+
     directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
         req = urllib.request.Request(f"{directus_url}/items/location/{location_id}")
@@ -88,14 +95,39 @@ async def get_location(location_id: str):
 
 @router.get("/metrics/{location_id}")
 async def get_metrics(location_id: str):
-    """Get computed metrics for a location."""
-    from services.metrics.engine import compute_all
+    """Get verified public metrics for a location without creating records."""
     from services.ingestion.base import get_db
 
     conn = get_db()
     try:
-        result = compute_all(conn, location_id)
-        return JSONResponse(content=result)
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT metric_key, display_name, unit, latest_value, computed_at
+            FROM v_public_metric_summary
+            WHERE location_id = %s
+            ORDER BY metric_key
+            """,
+            (location_id,),
+        )
+        rows = cur.fetchall()
+        cur.close()
+        return JSONResponse(
+            content={
+                "location_id": location_id,
+                "computed": [
+                    {
+                        "metric_key": row[0],
+                        "display_name": row[1],
+                        "unit": row[2],
+                        "value": row[3],
+                        "computed_at": row[4].isoformat() if row[4] else None,
+                    }
+                    for row in rows
+                ],
+                "total_computed": len(rows),
+            }
+        )
     except Exception as exc:
         return _internal_error(exc)
     finally:

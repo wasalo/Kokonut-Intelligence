@@ -5,6 +5,7 @@ import hashlib
 import hmac
 
 from services.ingestion.http_sensor_receiver import _verify_signature
+from services.ingestion.mqtt_subscriber import _verify_reading_signature
 
 SCHEMA = Path("schemas/postgres/077_telemetry_infrastructure.sql")
 
@@ -105,6 +106,31 @@ def test_http_signature_verification_uses_exact_body() -> None:
     assert _verify_signature(payload, f"sha256={signature}", secret)
     assert not _verify_signature(payload + b" ", signature, secret)
     assert not _verify_signature(payload, "", secret)
+
+
+def test_mqtt_signature_binds_topic_and_payload() -> None:
+    data = {"device_id": "sensor-1", "value": 21.5, "unit": "C"}
+    secret = "test-secret"
+    import json
+
+    canonical = json.dumps(
+        {
+            "location_id": "location-1",
+            "sensor_type": "air_temperature",
+            "payload": data,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    signature = hmac.new(secret.encode(), canonical, hashlib.sha256).hexdigest()
+    signed = {**data, "signature": signature}
+
+    assert _verify_reading_signature(
+        signed, signature, secret, "location-1", "air_temperature"
+    )
+    assert not _verify_reading_signature(
+        signed, signature, secret, "location-2", "air_temperature"
+    )
 
 
 def test_http_dual_writes() -> None:

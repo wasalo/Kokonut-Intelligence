@@ -59,8 +59,8 @@ def _get_token() -> Optional[str]:
             token = resp.json().get("access_token")
             if token:
                 return token
-        except Exception as e:
-            logger.warning("Copernicus password auth failed: %s", e)
+        except Exception:
+            logger.warning("Copernicus password authentication failed")
 
     # Method 2: Client Credentials
     if client_id and client_secret:
@@ -76,8 +76,8 @@ def _get_token() -> Optional[str]:
             )
             resp.raise_for_status()
             return resp.json().get("access_token")
-        except Exception as e:
-            logger.error("Copernicus client_credentials auth failed: %s", e)
+        except Exception:
+            logger.error("Copernicus client-credential authentication failed")
 
     logger.error("No Copernicus credentials configured. Set COPERNICUS_EMAIL/PASSWORD or COPERNICUS_CLIENT_ID/SECRET")
     return None

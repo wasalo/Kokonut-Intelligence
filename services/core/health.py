@@ -46,9 +46,10 @@ def _check_postgres() -> HealthStatus:
         db.close()
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("database", True, True, "PostgreSQL connected", latency)
-    except Exception as exc:
+    except Exception:
+        logger.exception("PostgreSQL health check failed")
         latency = int((time.monotonic() - start) * 1000)
-        return HealthStatus("database", False, True, f"PostgreSQL failed: {exc}", latency)
+        return HealthStatus("database", False, True, "PostgreSQL unavailable", latency)
 
 
 def _check_clickhouse() -> HealthStatus:
@@ -63,9 +64,10 @@ def _check_clickhouse() -> HealthStatus:
         client.ping()
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("clickhouse", True, False, "ClickHouse connected", latency)
-    except Exception as exc:
+    except Exception:
+        logger.exception("ClickHouse health check failed")
         latency = int((time.monotonic() - start) * 1000)
-        return HealthStatus("clickhouse", False, False, f"ClickHouse failed: {exc}", latency)
+        return HealthStatus("clickhouse", False, False, "ClickHouse unavailable", latency)
 
 
 def _check_directus() -> HealthStatus:
@@ -80,9 +82,10 @@ def _check_directus() -> HealthStatus:
         resp = urllib.request.urlopen(req, timeout=5)
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("directus", True, True, "Directus responding", latency)
-    except Exception as exc:
+    except Exception:
+        logger.exception("Directus health check failed")
         latency = int((time.monotonic() - start) * 1000)
-        return HealthStatus("directus", False, True, f"Directus failed: {exc}", latency)
+        return HealthStatus("directus", False, True, "Directus unavailable", latency)
 
 
 def _check_port(host: str, port: int, service_name: str, critical: bool = False) -> HealthStatus:

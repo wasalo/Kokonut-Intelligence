@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from xml.etree import ElementTree as ET
+from defusedxml import ElementTree as ET
 
 from .model import StrategyDocument
 

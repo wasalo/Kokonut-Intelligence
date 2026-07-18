@@ -48,6 +48,19 @@ class SchedulerDurabilityTests(TestCase):
         self.assertFalse(result)
         self.assertEqual(engine._complete_task.call_args.args[2], "failed")
 
+    def test_execute_rejects_unregistered_module_before_spawn(self):
+        engine = object.__new__(SchedulerEngine)
+        engine._complete_task = Mock()
+
+        with patch("services.scheduler.engine.subprocess.run") as run:
+            result = engine._execute_task(
+                "run", "task", "untrusted", "os", ["--help"], 30, None
+            )
+
+        self.assertFalse(result)
+        run.assert_not_called()
+        self.assertEqual(engine._complete_task.call_args.args[2], "failed")
+
     def test_completion_rejects_run_not_owned_by_worker(self):
         engine = object.__new__(SchedulerEngine)
         engine._worker_id = "worker-a"

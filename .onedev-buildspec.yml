@@ -14,7 +14,6 @@ jobs:
   - type: CommandStep
     name: command
     runInContainer: true
-    runAs: "0:0"
     image: ubuntu:24.04
     interpreter:
       type: PosixInterpreter
@@ -24,7 +23,7 @@ jobs:
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
         echo "=== [step] Installing Docker CLI ==="
         # Install Docker CLI inside the container (socket is mounted from host).
-        apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates git >/dev/null
         install -m 0755 -d /etc/apt/keyrings
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
         chmod a+r /etc/apt/keyrings/docker.asc
@@ -45,6 +44,7 @@ jobs:
         PUBLIC_URL=http://localhost:8055
         METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
         EOF
+        ./scripts/check-tracked-secrets.sh
         echo "=== [step] Starting services ==="
         # Remove stale volumes from prior builds so PostgreSQL reinitializes.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
@@ -108,6 +108,7 @@ jobs:
         aderyn contracts --output /tmp/aderyn-report.md || true
         echo "=== [step] Done ==="
         echo "Static analysis complete"
+    runAs: 0:0
     useTTY: false
     condition: SUCCESSFUL
     optional: false

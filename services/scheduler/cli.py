@@ -123,6 +123,7 @@ def cmd_run_now(args):
     import sys as _sys
 
     from services.ingestion.base import get_db
+    from services.security.execution_allowlist import validate_scheduled_module
 
     conn = get_db()
     try:
@@ -137,6 +138,7 @@ def cmd_run_now(args):
                 return 1
 
             module_path, command_args, timeout = row
+            validate_scheduled_module(module_path)
             print(f"Running {args.task_name} ({module_path})...")
             result = subprocess.run(
                 [_sys.executable, "-m", module_path, *list(command_args or [])],

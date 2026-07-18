@@ -6,6 +6,9 @@ runs simulations to project outcomes over time.
 
 from __future__ import annotations
 
+import ast
+import operator
+import math
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
@@ -348,16 +351,48 @@ class StockFlowSimulator:
                 for name, value in stocks.items():
                     inner = inner.replace(name, str(value))
                 try:
-                    val = eval(inner)  # noqa: S307
+                    val = self._safe_numeric_eval(inner)
                     return max(0, float(val)) * multiplier
                 except Exception:
                     return 0.0
 
-        # Simple numeric evaluation with Python eval (safe for math expressions)
+        # Evaluate only a small arithmetic grammar; model expressions are data.
         try:
-            return float(eval(expr))  # noqa: S307
+            return float(self._safe_numeric_eval(expr))
         except Exception:
             return 0.0
+
+    @staticmethod
+    def _safe_numeric_eval(expr: str) -> float:
+        """Evaluate arithmetic without executing Python code."""
+        operators = {
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+        }
+
+        def visit(node: ast.AST) -> float:
+            if isinstance(node, ast.Expression):
+                return visit(node.body)
+            if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+                value = float(node.value)
+                if not math.isfinite(value):
+                    raise ValueError("non-finite numeric literal")
+                return value
+            if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+                value = visit(node.operand)
+                return value if isinstance(node.op, ast.UAdd) else -value
+            if isinstance(node, ast.BinOp) and type(node.op) in operators:
+                left = visit(node.left)
+                right = visit(node.right)
+                value = operators[type(node.op)](left, right)
+                if not math.isfinite(value):
+                    raise ValueError("non-finite arithmetic result")
+                return value
+            raise ValueError("unsupported expression")
+
+        return visit(ast.parse(expr, mode="eval"))
 
     def _compute_summary(
         self, trajectory: List[Dict], config: Dict

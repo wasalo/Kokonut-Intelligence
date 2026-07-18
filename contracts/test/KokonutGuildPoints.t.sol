@@ -198,6 +198,18 @@ contract KokonutGuildPointsTest is Test {
         assertEq(points.balanceOf(contributor, domainId), 11);
     }
 
+    function test_pause_blocks_reversals() public {
+        bytes32 awardId = _award(100);
+        vm.prank(pauser);
+        points.pause();
+
+        vm.prank(reverser);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        points.reverseAward(
+            keccak256("paused-reversal"), awardId, 1, keccak256("reason"), ledgerRecordHash, calculationVersion
+        );
+    }
+
     function test_admin_cannot_grant_or_use_upgrade_role() public {
         bytes32 upgraderRole = points.UPGRADER_ROLE();
         vm.prank(admin);

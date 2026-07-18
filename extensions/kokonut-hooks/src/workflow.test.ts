@@ -74,6 +74,10 @@ describe('isRoleAuthorized', () => {
   it('passes when no role restriction exists', () => {
     expect(isRoleAuthorized('expense_event', 'submitted', ['field_worker'])).toBe(true);
   });
+
+  it('fails closed for unrouted non-initial transitions', () => {
+    expect(isRoleAuthorized('credit_class', 'deprecated', ['admin'])).toBe(false);
+  });
 });
 
 describe('getValidNextStatuses', () => {
