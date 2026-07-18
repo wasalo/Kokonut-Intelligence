@@ -196,12 +196,6 @@ echo "Seeding Bio Factory Operations definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/044_bio_factory_operations.sql"
 echo "Bio Factory Operations definitions seeded."
 
-# Seed CRISP risk dimension reference data
-echo ""
-echo "Seeding CRISP risk dimensions..."
-docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/076_crisp_risk_scoring.sql"
-echo "CRISP risk dimensions seeded."
-
 # Seed audience-specific pitch templates
 echo ""
 echo "Seeding pitch templates..."
