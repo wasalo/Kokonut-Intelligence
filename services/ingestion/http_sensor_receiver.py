@@ -155,8 +155,8 @@ def _get_app():
             return {"status": "success", "reading_id": reading_id}
 
         except Exception as e:
-            logger.error("Error processing reading: %s", e)
-            return {"status": "error", "message": str(e)}
+            logger.exception("Error processing reading: %s", e)
+            return {"status": "error", "message": "Unable to process sensor reading"}
         finally:
             db.close()
 

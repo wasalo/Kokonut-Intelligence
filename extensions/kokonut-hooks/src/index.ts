@@ -43,6 +43,7 @@ import {
   enforceStakeholderGovernanceSafety,
   prepareAgentActionLog,
 } from './agent-safety.js';
+import { validateTenantReferences } from './tenant-validation.js';
 
 /** Collections with only workflow enforcement (no create-time validation). */
 const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
@@ -63,6 +64,16 @@ const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
 
 export default defineHook(({ filter, action, schedule }, { database }) => {
   setDb(database);
+
+  for (const collection of [
+    'farm_activity', 'harvest_event', 'expense_event', 'sales_event',
+    'loss_event', 'labor_event', 'field_note', 'stakeholder_feedback',
+    'metric_proposal', 'mrv_claim',
+  ]) {
+    filter(`${collection}.create`, async (payload: Record<string, any>) => {
+      return await validateTenantReferences(database, collection, payload);
+    });
+  }
 
   function getUserId(meta: Record<string, any>): string | undefined {
     const accountability = meta?.accountability;

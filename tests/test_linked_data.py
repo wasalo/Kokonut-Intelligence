@@ -377,6 +377,8 @@ class TestSPARQLEngine:
     def test_parse_is_strict_and_bounds_limit(self):
         from services.rdf.sparql_engine import parse_select_query
         assert parse_select_query("SELECT ?s WHERE { ?s <urn:p> \"v\" . } LIMIT 99999")["limit"] == 1000
+        with pytest.raises(ValueError, match="too long"):
+            parse_select_query("SELECT ?s WHERE { ?s ?p ?o . }" + (" " * 10000))
         with pytest.raises(ValueError, match="Only SELECT"):
             parse_select_query("ASK WHERE { ?s ?p ?o }")
         with pytest.raises(ValueError, match="Malformed"):

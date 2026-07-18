@@ -76,6 +76,13 @@ async def list_locations():
 async def get_location(location_id: str):
     """Proxy to Directus single location endpoint."""
     import os, urllib.request
+    from uuid import UUID
+
+    try:
+        UUID(location_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
+
     directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
         req = urllib.request.Request(f"{directus_url}/items/location/{location_id}")

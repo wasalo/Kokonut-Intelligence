@@ -11,12 +11,14 @@ from queue import Empty
 from typing import Any
 
 from services.common.logging import get_logger
+from services.security.execution_allowlist import validate_event_handler
 
 logger = get_logger("events.bus")
 
 
 def resolve_handler(module_path: str, function_name: str):
     """Resolve a configured handler and reject non-callable attributes."""
+    validate_event_handler(module_path, function_name)
     handler = getattr(importlib.import_module(module_path), function_name, None)
     if not callable(handler):
         raise TypeError(f"Event handler is not callable: {module_path}.{function_name}")

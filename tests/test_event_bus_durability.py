@@ -19,6 +19,15 @@ def test_every_registered_handler_resolves_to_a_callable():
         assert callable(resolve_handler(module_path, function_name))
 
 
+def test_unregistered_event_handler_is_rejected_before_import():
+    with patch("services.events.bus.importlib.import_module") as importer:
+        try:
+            resolve_handler("os", "system")
+            assert False, "unregistered handler should fail closed"
+        except ValueError:
+            importer.assert_not_called()
+
+
 def _connection(fetchall=None, fetchone=None):
     conn = MagicMock()
     cursor = MagicMock()

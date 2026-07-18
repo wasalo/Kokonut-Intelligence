@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from services.common.logging import get_logger
 from services.scheduler.parser import next_run_time
 from services.scheduler.resources import ResourcePool
+from services.security.execution_allowlist import validate_scheduled_module
 
 logger = get_logger("scheduler.engine")
 
@@ -183,6 +184,7 @@ class SchedulerEngine:
         """Execute the task as a subprocess and record the result."""
         start_time = time.monotonic()
         try:
+            validate_scheduled_module(module_path)
             result = subprocess.run(
                 [sys.executable, "-m", module_path, *command_args],
                 capture_output=True,
