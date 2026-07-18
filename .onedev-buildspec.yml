@@ -60,7 +60,7 @@ jobs:
         docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
         echo "=== [step] Applying init SQL (kokonut schema) ==="
         docker compose -f docker-compose.yml -f docker-compose.ci.yml \
-          exec -T database psql -U postgres -d kokonut_intelligence \
+          exec -T database psql -U kokonut -d kokonut_intelligence \
           -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"" \
           -c "CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"" \
           -c "CREATE EXTENSION IF NOT EXISTS pg_trgm" \
