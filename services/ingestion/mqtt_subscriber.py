@@ -16,6 +16,8 @@ Usage:
 from __future__ import annotations
 
 import json
+import hashlib
+import hmac
 import os
 import signal
 import sys
@@ -38,6 +40,34 @@ DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
 DEFAULT_KEEPALIVE = 60
 DEFAULT_USERNAME = os.environ.get("MQTT_USERNAME", "")
 DEFAULT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
+
+
+def _verify_reading_signature(
+    data: dict,
+    signature: str,
+    secret: str,
+    topic_location_id: str,
+    topic_sensor_type: str,
+) -> bool:
+    """Verify a device HMAC bound to the MQTT topic and payload."""
+    if not signature or not secret:
+        return False
+    signed_data = dict(data)
+    signed_data.pop("signature", None)
+    canonical = json.dumps(
+        {
+            "location_id": topic_location_id,
+            "sensor_type": topic_sensor_type,
+            "payload": signed_data,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    provided = signature.strip()
+    if provided.lower().startswith("sha256="):
+        provided = provided[7:]
+    expected = hmac.new(secret.encode("utf-8"), canonical, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, provided)
 
 
 class MQTTSensorSubscriber:
@@ -80,7 +110,7 @@ class MQTTSensorSubscriber:
             topic_type = topic_parts[3]  # readings or register
 
             if topic_type == "readings":
-                self._handle_reading(msg.payload)
+                self._handle_reading(msg.payload, topic_parts[1], topic_parts[2])
             elif topic_type == "register":
                 self._handle_registration(msg.payload)
         except Exception as e:
@@ -102,7 +132,12 @@ class MQTTSensorSubscriber:
         # Registration is controlled through device_manager, not an unauthenticated topic.
         logger.warning("Rejected MQTT registration request for device: %s", device_id)
 
-    def _handle_reading(self, payload: bytes):
+    def _handle_reading(
+        self,
+        payload: bytes,
+        topic_location_id: str,
+        topic_sensor_type: str,
+    ):
         """Handle incoming sensor reading."""
         try:
             data = json.loads(payload.decode("utf-8"))
@@ -114,6 +149,7 @@ class MQTTSensorSubscriber:
         value = data.get("value")
         unit = data.get("unit")
         timestamp = data.get("timestamp")
+        signature = data.get("signature")
 
         if not device_id or value is None:
             logger.warning("Reading missing device_id or value")
@@ -125,6 +161,7 @@ class MQTTSensorSubscriber:
         # Look up device
         cur.execute("""
             SELECT sd.id, sd.location_id, sd.plot_id, st.name AS sensor_type
+                   , sd.metadata->>'shared_secret' AS shared_secret
             FROM sensor_device sd
             JOIN sensor_type st ON st.id = sd.sensor_type_id
             WHERE sd.slug = %s AND sd.status = 'active'
@@ -139,6 +176,19 @@ class MQTTSensorSubscriber:
         location_id = str(row[1])
         plot_id = str(row[2]) if row[2] else None
         sensor_type = row[3]
+        shared_secret = row[4]
+
+        if str(location_id) != topic_location_id or sensor_type != topic_sensor_type:
+            logger.warning("MQTT topic identity mismatch for device: %s", device_id)
+            cur.close()
+            return
+
+        if not _verify_reading_signature(
+            data, signature, shared_secret, topic_location_id, topic_sensor_type
+        ):
+            logger.warning("Invalid MQTT reading signature for device: %s", device_id)
+            cur.close()
+            return
 
         # Parse timestamp
         if timestamp:

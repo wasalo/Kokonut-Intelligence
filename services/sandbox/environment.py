@@ -143,6 +143,20 @@ class AnalysisEnvironment:
             logger.warning("Rejected unregistered module: %s", module_path)
             return {"error": f"Module not allowed: {module_path}"}
 
+        # A subprocess is not a security boundary: it shares the host
+        # filesystem, kernel, network, and user privileges. Keep the legacy
+        # executor available only for explicitly opted-in development use
+        # until a dedicated restricted worker is configured.
+        environment = os.environ.get("KOKONUT_ENV", "development").lower()
+        allow_unisolated = os.environ.get("KOKONUT_ALLOW_UNISOLATED_SANDBOX") == "true"
+        if environment not in {"development", "dev", "local"} or not allow_unisolated:
+            return {
+                "error": (
+                    "Sandbox executor is not configured. Configure a restricted "
+                    "sandbox worker; direct process execution is disabled."
+                )
+            }
+
         run_id = str(uuid.uuid4())
         conn = self._get_conn()
 

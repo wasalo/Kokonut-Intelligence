@@ -188,6 +188,15 @@ class TestFederationProtocol:
 # ---------------------------------------------------------------------------
 
 class TestAnalysisEnvironment:
+    def test_run_requires_explicit_unisolated_development_opt_in(self, monkeypatch):
+        from services.sandbox.environment import AnalysisEnvironment
+
+        monkeypatch.setenv("KOKONUT_ENV", "production")
+        env = AnalysisEnvironment(conn=MagicMock())
+        result = env.run(str(uuid.uuid4()), "services.metrics.engine")
+
+        assert "executor is not configured" in result["error"]
+
     def test_create_env(self):
         from services.sandbox.environment import AnalysisEnvironment
 

@@ -31,10 +31,10 @@ jobs:
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
         apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin python3 python3-venv >/dev/null
         docker --version; docker compose version
-        echo "=== [step] Writing CI .env ==="
-        # PR builds use disposable test credentials, never deployment secrets.
-        umask 077
-        trap 'rm -f .env' EXIT
+         echo "=== [step] Writing CI .env ==="
+         # PR builds use disposable test credentials, never deployment secrets.
+         umask 077
+         trap 'rm -f .env' EXIT
         cat > .env <<'EOF'
         POSTGRES_PASSWORD=ci-placeholder
         CLICKHOUSE_PASSWORD=ci-placeholder
@@ -43,9 +43,10 @@ jobs:
         ADMIN_EMAIL=ci@@kokonut.network
         ADMIN_PASSWORD=ci-password
         PUBLIC_URL=http://localhost:8055
-        METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
-        EOF
-        echo "=== [step] Starting services ==="
+         METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
+         EOF
+         ./scripts/check-tracked-secrets.sh
+         echo "=== [step] Starting services ==="
         # Remove stale volumes from prior builds so PostgreSQL reinitializes.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
         # Start the services required by database-backed and Directus tests.
