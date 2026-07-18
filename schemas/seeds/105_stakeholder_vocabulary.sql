@@ -26,12 +26,12 @@ ON CONFLICT (identifier_type, identifier_value, source_system) DO UPDATE SET
     evidence = EXCLUDED.evidence;
 
 INSERT INTO party_relationship
-    (id, from_party_id, to_party_id, relationship_type, scope_type, legitimacy, status, confidence, evidence, notes)
+    (id, from_party_id, to_party_id, relationship_type, scope_type, scope_id, legitimacy, status, confidence, evidence, notes)
 VALUES
-    ('a0000000-0000-0000-0000-000000001020', 'a0000000-0000-0000-0000-000000001000', 'a0000000-0000-0000-0000-000000001001', 'stewards', 'network', 'derivative', 'active', 1.0, '[{"source":"canonical_platform"}]'::jsonb, 'Kokonut Network stewards the shared platform supporting the pilot.'),
-    ('a0000000-0000-0000-0000-000000001021', 'a0000000-0000-0000-0000-000000001002', 'a0000000-0000-0000-0000-000000001001', 'affected_by', 'location', 'normative', 'active', 0.8, '[{"source":"stakeholder_mapping"}]'::jsonb, 'Community interests are represented without treating the community as a single voice.'),
-    ('a0000000-0000-0000-0000-000000001022', 'a0000000-0000-0000-0000-000000001003', 'a0000000-0000-0000-0000-000000001001', 'depends_on', 'location', 'proxy', 'active', 0.9, '[{"source":"ecological_modeling"}]'::jsonb, 'Living systems are represented through ecological evidence and stewardship proxies.'),
-    ('a0000000-0000-0000-0000-000000001023', 'a0000000-0000-0000-0000-000000001004', 'a0000000-0000-0000-0000-000000001001', 'holds_interest_in', 'location', 'proxy', 'active', 0.9, '[{"source":"stakeholder_theory"}]'::jsonb, 'Long-term effects are reviewed through governed ecological and social targets.')
+    ('a0000000-0000-0000-0000-000000001020', 'a0000000-0000-0000-0000-000000001000', 'a0000000-0000-0000-0000-000000001001', 'stewards', 'network', NULL, 'derivative', 'active', 1.0, '[{"source":"canonical_platform"}]'::jsonb, 'Kokonut Network stewards the shared platform supporting the pilot.'),
+    ('a0000000-0000-0000-0000-000000001021', 'a0000000-0000-0000-0000-000000001002', 'a0000000-0000-0000-0000-000000001001', 'affected_by', 'location', 'a0000000-0000-0000-0000-000000000001', 'normative', 'active', 0.8, '[{"source":"stakeholder_mapping"}]'::jsonb, 'Community interests are represented without treating the community as a single voice.'),
+    ('a0000000-0000-0000-0000-000000001022', 'a0000000-0000-0000-0000-000000001003', 'a0000000-0000-0000-0000-000000001001', 'depends_on', 'location', 'a0000000-0000-0000-0000-000000000001', 'proxy', 'active', 0.9, '[{"source":"ecological_modeling"}]'::jsonb, 'Living systems are represented through ecological evidence and stewardship proxies.'),
+    ('a0000000-0000-0000-0000-000000001023', 'a0000000-0000-0000-0000-000000001004', 'a0000000-0000-0000-0000-000000001001', 'holds_interest_in', 'location', 'a0000000-0000-0000-0000-000000000001', 'proxy', 'active', 0.9, '[{"source":"stakeholder_theory"}]'::jsonb, 'Long-term effects are reviewed through governed ecological and social targets.')
 ON CONFLICT (id) DO UPDATE SET
     relationship_type = EXCLUDED.relationship_type,
     legitimacy = EXCLUDED.legitimacy,
