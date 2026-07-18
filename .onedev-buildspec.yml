@@ -60,9 +60,16 @@ jobs:
         docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
         echo "=== [step] Applying init SQL (kokonut schema) ==="
         docker compose -f docker-compose.yml -f docker-compose.ci.yml \
-          exec -T database sh -c 'cat /tmp/init.sql | psql -v ON_ERROR_STOP=1 -d kokonut_intelligence'
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
-          exec -T database sh -c 'cat /tmp/extensions.sql | psql -v ON_ERROR_STOP=1 -d kokonut_intelligence'
+          exec -T database psql -U postgres -d kokonut_intelligence \
+          -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"" \
+          -c "CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"" \
+          -c "CREATE EXTENSION IF NOT EXISTS pg_trgm" \
+          -c "CREATE SCHEMA IF NOT EXISTS kokonut" \
+          -c "GRANT USAGE ON SCHEMA kokonut TO kokonut" \
+          -c "GRANT ALL ON SCHEMA public TO kokonut" \
+          -c "ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut" \
+          -c "CREATE DATABASE metabase OWNER kokonut" \
+          -c "CREATE EXTENSION IF NOT EXISTS pg_stat_statements"
         echo "=== [step] Waiting for Directus ==="
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml \
