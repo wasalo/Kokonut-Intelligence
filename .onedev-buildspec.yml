@@ -94,9 +94,9 @@ jobs:
         python scripts/check-python-runtime.py
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
         echo "=== [step] Running CI checks ==="
-        # Export DB connection details for CI (services use docker compose exec internally).
-        export PG_HOST=127.0.0.1 PG_PORT=5432 CH_HOST=127.0.0.1 CH_PORT=8123
-        export KOKONUT_METRICS_EXECUTION=host
+        # Do NOT export PG_HOST — the build container cannot reach Docker-published
+        # ports at 127.0.0.1. Scripts that need DB use docker compose exec or detect
+        # connectivity and fall back to the worker container.
         ./scripts/ci-check.sh
         echo "=== [step] Running test suite ==="
         ./scripts/verify-full-test-suite.sh
