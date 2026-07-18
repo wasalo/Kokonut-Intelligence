@@ -22,8 +22,14 @@ jobs:
       commands: |
         set -euo pipefail
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-        command -v docker >/dev/null
-        docker compose version >/dev/null
+        # Install Docker CLI inside the container (socket is mounted from host).
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates >/dev/null
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        chmod a+r /etc/apt/keyrings/docker.asc
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+        apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin >/dev/null
+        docker --version; docker compose version
         # PR builds use disposable test credentials, never deployment secrets.
         umask 077
         trap 'rm -f .env' EXIT
