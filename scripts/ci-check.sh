@@ -169,7 +169,7 @@ PY
         if command -v docker >/dev/null 2>&1; then
             docker compose -f "$PROJECT_DIR/docker-compose.yml" -f "$PROJECT_DIR/docker-compose.worker.yml" \
                 run --rm --no-deps -T -e KOKONUT_ENV=development \
-                -v "$PROJECT_DIR:/app:ro" \
+                -v "$PROJECT_DIR:/app:ro" -w /app \
                 kokonut-worker python3 -m pytest -p no:cacheprovider "$@" -q || rc=$?
         else
             echo "  ✗ Cannot reach database from host and docker is unavailable — required DB checks cannot run."
