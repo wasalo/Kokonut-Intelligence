@@ -56,6 +56,7 @@ def test_public_cross_farm_portfolio_preserves_view_column_contract() -> None:
         "cfp.updated_at",
     ]:
         assert column in text, f"View column contract missing: {column}"
+    assert "COUNT(DISTINCT f.id)::INTEGER" not in text
 
 
 def test_schema_has_check_constraints() -> None:

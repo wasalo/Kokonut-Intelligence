@@ -20,7 +20,7 @@ SELECT
     cfp.created_at,
     cfp.updated_at,
     (
-        SELECT COUNT(DISTINCT f.id)::INTEGER
+        SELECT COUNT(DISTINCT f.id)
         FROM farm f
         JOIN farm_registry_record fr ON fr.location_id = f.location_id
         WHERE f.status = 'active'
