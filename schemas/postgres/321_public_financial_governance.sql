@@ -5,8 +5,20 @@
 
 CREATE OR REPLACE VIEW v_public_cross_farm_portfolio AS
 SELECT
+    cfp.id,
     cfp.portfolio_name,
+    cfp.total_farm_count,
+    cfp.total_area_m2,
+    cfp.total_trees,
+    cfp.total_revenue_usd,
+    cfp.total_carbon_sequestered,
+    cfp.avg_regen_score,
+    cfp.avg_ebf_score,
+    cfp.regions_covered,
     cfp.last_computed_at,
+    cfp.metadata,
+    cfp.created_at,
+    cfp.updated_at,
     (
         SELECT COUNT(DISTINCT f.id)::INTEGER
         FROM farm f

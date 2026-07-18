@@ -37,6 +37,27 @@ def test_public_cross_farm_portfolio_uses_governed_revenue_only() -> None:
     assert "cfp.*" not in text
 
 
+def test_public_cross_farm_portfolio_preserves_view_column_contract() -> None:
+    text = FINANCIAL_GATES_MIGRATION.read_text()
+    for column in [
+        "cfp.id",
+        "cfp.portfolio_name",
+        "cfp.total_farm_count",
+        "cfp.total_area_m2",
+        "cfp.total_trees",
+        "cfp.total_revenue_usd",
+        "cfp.total_carbon_sequestered",
+        "cfp.avg_regen_score",
+        "cfp.avg_ebf_score",
+        "cfp.regions_covered",
+        "cfp.last_computed_at",
+        "cfp.metadata",
+        "cfp.created_at",
+        "cfp.updated_at",
+    ]:
+        assert column in text, f"View column contract missing: {column}"
+
+
 def test_schema_has_check_constraints() -> None:
     text = SCHEMA.read_text()
     assert "CHECK (status IN ('draft', 'submitted', 'active'" in text
