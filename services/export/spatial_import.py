@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from typing import Any
-from xml.etree.ElementTree import fromstring as xml_fromstring
+from defusedxml.ElementTree import fromstring as xml_fromstring
 
 from services.common.logging import get_logger
 
