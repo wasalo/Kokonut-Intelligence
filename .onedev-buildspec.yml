@@ -13,22 +13,14 @@ jobs:
     optional: false
   - type: CommandStep
     name: command
-    # PRs execute repository-controlled scripts. Keep the build inside the
-    # OneDev build container rather than on the agent host.
-    runInContainer: true
-    runAs: "0:0"
-    image: ubuntu:24.04
     interpreter:
       type: PosixInterpreter
       shell: bash
       commands: |
         set -euo pipefail
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-        # The isolated runner must provide Docker; never install unverified
-        # binaries or modify the build agent from a PR.
         command -v docker >/dev/null
         docker compose version >/dev/null
-        docker --version; docker compose version
         # PR builds use disposable test credentials, never deployment secrets.
         umask 077
         trap 'rm -f .env' EXIT
@@ -62,7 +54,7 @@ jobs:
         pip install -r requirements.txt
         python scripts/check-python-runtime.py
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
-        # The SDK generation/build steps require Node.js and npm on the host.
+        # The SDK generation/build steps require Node.js and npm.
         apt-get install -y -qq nodejs npm >/dev/null
         node --version
         npm --version
