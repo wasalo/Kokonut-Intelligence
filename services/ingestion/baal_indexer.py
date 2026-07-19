@@ -29,7 +29,7 @@ from .config import GNOSIS_RPC_URL, KOKONUT_DAO_CHAIN
 logger = get_logger("ingestion.baal")
 
 INDEXER_TYPE = "baal"
-BLOCK_BATCH = 500
+BLOCK_BATCH = 200_000
 
 # Baal event signature -> decoder key
 EVENT_DECODERS = {
@@ -41,7 +41,6 @@ EVENT_DECODERS = {
     "Ragequit": "ragequit",
     "GovernanceConfigSet": "governance_config_set",
     "ShamanSet": "shaman_set",
-    "DelegateVotesChanged": "delegate_votes_changed",
 }
 
 VOTE_CHOICES = {True: "yes", False: "no"}
@@ -75,6 +74,7 @@ def insert_governance_event(db, record: dict) -> None:
                  proposal_title, vote_choice, amount, token, tx_hash,
                  block_number, block_timestamp, metadata)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (chain, event_type, tx_hash) DO NOTHING
             """,
             (
                 record.get("wallet_id"),
@@ -120,12 +120,27 @@ def _decode_event(event, w3: Web3, protocol_id: str | None) -> dict | None:
         record["wallet_id"] = wallet  # resolved lazily in caller
     if name == "SubmitProposal":
         record["proposal_id"] = str(args.get("proposal", ""))
-        record["proposal_title"] = (args.get("details") or "")[:500]
+        # `details` is a JSON string carrying title/description/contentURI.
+        details_raw = args.get("details") or ""
+        try:
+            details_json = json.loads(details_raw) if isinstance(details_raw, str) else {}
+        except (ValueError, TypeError):
+            details_json = {}
+        record["proposal_title"] = (details_json.get("title") or details_raw)[:500]
+        record["metadata"]["title"] = details_json.get("title")
+        record["metadata"]["description"] = details_json.get("description")
+        record["metadata"]["content_uri"] = details_json.get("contentURI")
+        record["metadata"]["proposal_type"] = details_json.get("proposalType")
+        record["metadata"]["voting_period"] = str(args.get("votingPeriod"))
+        record["metadata"]["self_sponsor"] = str(args.get("selfSponsor"))
+        record["metadata"]["timestamp"] = str(args.get("timestamp"))
     elif name == "SponsorProposal":
         record["proposal_id"] = str(args.get("proposal", ""))
+        record["metadata"]["voting_start"] = str(args.get("votingStart"))
     elif name == "SubmitVote":
         record["proposal_id"] = str(args.get("proposal", ""))
         record["vote_choice"] = VOTE_CHOICES.get(bool(args.get("approved")), "unknown")
+        record["metadata"]["balance"] = str(args.get("balance"))
     elif name == "ProcessProposal":
         record["proposal_id"] = str(args.get("proposal", ""))
         record["metadata"]["passed"] = str(args.get("passed"))
@@ -149,12 +164,6 @@ def _decode_event(event, w3: Web3, protocol_id: str | None) -> dict | None:
         record["metadata"] = {
             "shaman": _checksum(args.get("shaman")),
             "permission": str(args.get("permission")),
-        }
-    elif name == "DelegateVotesChanged":
-        record["metadata"] = {
-            "delegate": _checksum(args.get("delegate")),
-            "previous_balance": str(args.get("previousBalance")),
-            "new_balance": str(args.get("newBalance")),
         }
     return record
 
@@ -207,7 +216,7 @@ def run(from_block: int | None = None, to_block: int | None = None) -> int:
             )
             logger.info("Baal indexed through block %s (%s events)", batch_end, processed)
             cur_block = batch_end + 1
-        update_indexer_status(KOKONUT_DAO_CHAIN, INDEXER_TYPE, end, "success")
+        update_indexer_status(KOKONUT_DAO_CHAIN, INDEXER_TYPE, end, "healthy")
     except Exception as exc:
         db.rollback()
         update_indexer_status(KOKONUT_DAO_CHAIN, INDEXER_TYPE, None, "failed", str(exc))

@@ -152,3 +152,95 @@ def test_baal_live_config_and_member():
     # treasury avatar resolves to the documented Gnosis Safe
     assert cfg.raw["avatar"].lower() == KOKONUT_BAAL_ADDRESSES["treasury"].lower()
     _ = GNOSIS_RPC_URL  # ensure configured
+
+
+def _fake_event_rows():
+    """Sample governance_event rows (event_type, proposal_id, proposal_title,
+    vote_choice, tx_hash, block_number, block_timestamp, metadata)."""
+    return [
+        (
+            "proposal_created", "15",
+            "Grant Request: Finalizing Kokonut Adelphi Infrastructure", None,
+            "0xtxcreate15", 41112294, "2025-07-01 00:00:00+00",
+            {"title": "Grant Request: Finalizing Kokonut Adelphi Infrastructure",
+             "description": "Install irrigation", "content_uri": "https://x/15",
+             "proposal_type": "TRANSFER_ERC20", "voting_period": "432000",
+             "self_sponsor": "True"},
+        ),
+        (
+            "vote_cast", "15", None, "yes", "0xtxvote15a", 41112484,
+            "2025-07-01 01:00:00+00", {"balance": "1000000000000000000"},
+        ),
+        (
+            "vote_cast", "15", None, "yes", "0xtxvote15b", 41112485,
+            "2025-07-01 01:01:00+00", {"balance": "1000000000000000000"},
+        ),
+        (
+            "proposal_processed", "15", None, None, "0xtxproc15", 41251986,
+            "2025-07-10 00:00:00+00", {"passed": "True", "action_failed": "False"},
+        ),
+        (
+            "proposal_created", "16",
+            "Artizen Support Boost & Onboarding Campaign", None,
+            "0xtxcreate16", 46908176, "2026-01-01 00:00:00+00",
+            {"title": "Artizen Support Boost & Onboarding Campaign",
+             "proposal_type": "TRANSFER_ERC20"},
+        ),
+        (
+            "proposal_processed", "16", None, None, "0xtxproc16", 47049611,
+            "2026-01-10 00:00:00+00", {"passed": "True", "action_failed": "False"},
+        ),
+    ]
+
+
+def _fake_db_with_events():
+    """Build a MagicMock DB whose cursor().fetchall() returns the sample rows."""
+    db = MagicMock()
+    cur = MagicMock()
+    cur.fetchall.return_value = _fake_event_rows()
+    cur.__enter__.return_value = cur
+    cur.__exit__.return_value = False
+    db.cursor.return_value = cur
+    db.cursor().__enter__.return_value = cur
+    return db
+
+
+def test_baal_proposals_from_events():
+    w3 = _fake_w3()
+    client = BaalReadClient(w3=w3)
+    db = _fake_db_with_events()
+    proposals = client.proposals_from_events(conn=db)
+    assert len(proposals) == 2
+
+    by_id = {p.proposal_id: p for p in proposals}
+    p15 = by_id["15"]
+    assert p15.lifecycle == ProposalLifecycle.EXECUTED
+    assert p15.passed is True
+    assert p15.yes_votes == 2
+    assert p15.no_votes == 0
+    assert p15.details.startswith("Grant Request")
+    assert p15.raw.get("description") == "Install irrigation"
+    assert p15.raw.get("content_uri") == "https://x/15"
+
+    p16 = by_id["16"]
+    assert p16.lifecycle == ProposalLifecycle.EXECUTED
+    assert p16.passed is True
+
+
+def test_baal_proposals_prefers_events(monkeypatch):
+    """When on-chain decode is unreliable, proposals() uses the event ledger."""
+    w3 = _fake_w3()
+    client = BaalReadClient(w3=w3)
+    _patch_client(monkeypatch, client)
+    # Simulate unreliable on-chain decode: proposals(0) returns garbage zeros.
+    garbage = (0, b"", "0x0", 0, 0, 0, 0, 0, b"", "", 0, 0, 0, 0, 0, False)
+    client._baal.functions.proposals.return_value.call.return_value = garbage
+    client._baal.functions.getProposalFlags.return_value.call.return_value = (
+        False, False, False, False, False,
+    )
+    db = _fake_db_with_events()
+    proposals = client.proposals_from_events(conn=db)
+    # proposals() should prefer the event ledger over the garbage on-chain data
+    result = client.proposals()
+    assert [p.proposal_id for p in result] == ["15", "16"]
+    _ = proposals
