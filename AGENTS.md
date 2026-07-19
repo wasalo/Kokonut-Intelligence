@@ -639,6 +639,8 @@ Commands:
 - Report types (reward calibration): `python3 -m services.export.report_generator --type reward_calibration --location-id UUID`
 - Report types (data stream summary): `python3 -m services.export.report_generator --type data_stream_summary --location-id UUID`
 - Report types (dao proposals): `python3 -m services.export.report_generator --type dao_proposal_history [--location-id UUID]`
+- State of Kokonut (ecosystem report): `python3 -m services.export.report_generator --type state_of_kokonut [--all | --location-id UUID ...] [--period-start YYYY-MM-DD --period-end YYYY-MM-DD]`
+  - Composes existing per-location reports (farm, environmental, financial, social, governance, regenerative) across one, many, or all locations, plus an ecosystem-actor view (Network / DAO / Foundation / Genesis / Seeds) of funding raised, funding sources, and per-project participation. `--all` spans every location; repeat `--location-id` to select several; omit both for the whole ecosystem. Date range filters all sections. Funding data lives in `funding_round` / `project_funding` (seeded pilot, 2021-2024).
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`

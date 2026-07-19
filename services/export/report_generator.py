@@ -49,6 +49,21 @@ def _serialize_rows(rows: list[dict]) -> list[dict]:
     return [{k: _serialize_value(v) for k, v in row.items()} for row in rows]
 
 
+def _looks_like_uuid(value: str) -> bool:
+    """Best-effort check that a value is a single UUID (not 'all' or a list)."""
+    if not value or not isinstance(value, str):
+        return False
+    if "," in value:
+        return False
+    try:
+        import uuid
+
+        uuid.UUID(value)
+        return True
+    except (ValueError, AttributeError, TypeError):
+        return False
+
+
 def build_negative_findings(context: dict) -> list[dict]:
     """Normalize adverse and unresolved signals without claiming causation."""
     findings = []
@@ -89,6 +104,11 @@ def build_negative_findings(context: dict) -> list[dict]:
 
 def fetch_public_interest_context(conn, location_id: str) -> dict:
     """Fetch public-interest context attached to every Green Paper report."""
+    # Network-level reports (e.g. state_of_kokonut with --all, dao_proposal_history)
+    # pass a non-UUID scope. Skip the location-scoped queries in that case.
+    if not location_id or not _looks_like_uuid(location_id):
+        return {}
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     cur.execute(
@@ -1218,6 +1238,193 @@ def generate_dao_proposal_history(conn, location_id: str = None, period_start: s
             "Proposal 0 is a genesis/migrated pre-image with no on-chain SubmitProposal event; it is excluded.",
             "Tallies reflect on-chain cast votes only; off-platform discussion and informal consensus are not captured.",
             "Lifecycle is derived from ProcessProposal/CancelProposal events; a proposal with no terminal event is 'pending' or 'sponsored'.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
+    """Compose per-location reports across one, many, or all locations."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    if location_ids:
+        cur.execute(
+            "SELECT id, name, slug, country, region, status FROM location WHERE id = ANY(%s) ORDER BY name",
+            (list(location_ids),),
+        )
+    else:
+        cur.execute("SELECT id, name, slug, country, region, status FROM location ORDER BY name")
+    locations = [dict(r) for r in cur.fetchall()]
+    cur.close()
+
+    composed = []
+    for loc in locations:
+        loc_id = str(loc["id"])
+        entry = {
+            "location_id": loc_id,
+            "name": loc.get("name"),
+            "slug": loc.get("slug"),
+            "country": loc.get("country"),
+            "region": loc.get("region"),
+            "sections": {},
+        }
+        # Compose existing per-location generators; one failure must not break the composite.
+        for section, fn in (
+            ("farm_summary", generate_farm_summary),
+            ("crop_noi", generate_crop_noi),
+            ("environmental", generate_environmental),
+            ("climate_impact", generate_climate_impact),
+            ("financial_sustainability", generate_financial_sustainability),
+            ("capital_efficiency", generate_capital_efficiency),
+            ("holistic_wellbeing", generate_holistic_wellbeing),
+            ("community_governance", generate_community_governance),
+            ("gnh_alignment", generate_gnh_alignment),
+            ("training_impact", generate_training_impact),
+            ("regenerative_outcomes", generate_regenerative_outcomes),
+        ):
+            try:
+                entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
+            except Exception as exc:  # noqa: BLE001 - keep composite resilient
+                entry["sections"][section] = {"error": f"{type(exc).__name__}: {exc}"}
+        composed.append(entry)
+    return locations, composed
+
+
+def _state_of_kokonut_actors(conn, period_start, period_end):
+    """Ecosystem-actor view: funding raised + participation by actor type."""
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    period_filter = """
+        AND (%s::date IS NULL OR fr.period_start IS NULL OR fr.period_start >= %s::date)
+        AND (%s::date IS NULL OR fr.period_end IS NULL OR fr.period_end <= %s::date)
+    """
+    params = [period_start, period_start, period_end, period_end]
+
+    cur.execute(
+        f"""
+        SELECT fr.actor_type, fr.actor_name,
+               COUNT(*) AS rounds,
+               COALESCE(SUM(fr.raised_amount), 0) AS total_raised,
+               fr.currency
+        FROM funding_round fr
+        WHERE 1=1 {period_filter}
+        GROUP BY fr.actor_type, fr.actor_name, fr.currency
+        ORDER BY fr.actor_type
+        """,
+        params,
+    )
+    by_actor = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        f"""
+        SELECT fr.source_type, COALESCE(SUM(fr.raised_amount), 0) AS total_raised
+        FROM funding_round fr
+        WHERE 1=1 {period_filter}
+        GROUP BY fr.source_type
+        ORDER BY total_raised DESC
+        """,
+        params,
+    )
+    by_source = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        f"""
+        SELECT pf.actor_type, pf.decision_status,
+               COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
+        FROM project_funding pf
+        JOIN funding_round fr ON fr.id = pf.funding_round_id
+        WHERE 1=1 {period_filter}
+        GROUP BY pf.actor_type, pf.decision_status
+        ORDER BY pf.actor_type, pf.decision_status
+        """,
+        params,
+    )
+    participation = [dict(r) for r in cur.fetchall()]
+
+    cur.execute(
+        f"""
+        SELECT fr.round_code, fr.actor_type, fr.actor_name, fr.round_name,
+               fr.raised_amount, fr.currency, fr.source_type, fr.period_start, fr.period_end,
+               fr.location_id
+        FROM funding_round fr
+        WHERE 1=1 {period_filter}
+        ORDER BY fr.period_start, fr.actor_type
+        """,
+        params,
+    )
+    rounds = [dict(r) for r in cur.fetchall()]
+
+    total_raised = sum(float(r.get("total_raised") or 0) for r in by_actor)
+    cur.close()
+    return {
+        "by_actor": _serialize_rows(by_actor),
+        "by_source": _serialize_rows(by_source),
+        "participation": _serialize_rows(participation),
+        "rounds": _serialize_rows(rounds),
+        "total_raised": round(total_raised, 2),
+    }
+
+
+def generate_state_of_kokonut(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a network/ecosystem-level "State of Kokonut" report.
+
+    Aggregates existing per-location generators across one, many, or all
+    locations (selected via ``location_id`` as a comma-separated list or repeated
+    flag) within an optional date range, and adds an ecosystem-actor view
+    (Network / DAO / Foundation / Genesis / Seeds) showing funding raised,
+    funding sources, and per-project participation decisions.
+
+    Read-only; never modifies governed data.
+    """
+    # Normalize location selection: comma-separated list or single id.
+    location_ids = None
+    if location_id and location_id.lower() != "all":
+        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+
+    locations, composed = _state_of_kokonut_locations(conn, location_ids, period_start, period_end)
+    actors = _state_of_kokonut_actors(conn, period_start, period_end)
+
+    # Lightweight ecosystem rollups from composed sections.
+    total_revenue = 0.0
+    total_expenses = 0.0
+    total_harvest = 0.0
+    locations_with_data = 0
+    for entry in composed:
+        fs = entry.get("sections", {}).get("farm_summary")
+        if isinstance(fs, dict) and "financial_summary" in fs:
+            locations_with_data += 1
+            try:
+                total_revenue += float(fs["financial_summary"].get("total_revenue") or 0)
+                total_expenses += float(fs["financial_summary"].get("total_expenses") or 0)
+            except (TypeError, ValueError):
+                pass
+        hs = entry.get("sections", {}).get("farm_summary")
+        if isinstance(hs, dict) and "harvest_summary" in hs:
+            try:
+                total_harvest += float(hs["harvest_summary"].get("total_quantity") or 0)
+            except (TypeError, ValueError):
+                pass
+
+    return {
+        "report_type": "state_of_kokonut",
+        "scope": "all_locations" if location_ids is None else "selected_locations",
+        "selected_location_ids": location_ids,
+        "period_start": period_start,
+        "period_end": period_end,
+        "ecosystem_overview": {
+            "total_locations": len(locations),
+            "locations_with_financial_data": locations_with_data,
+            "total_revenue_usd": round(total_revenue, 2),
+            "total_expenses_usd": round(total_expenses, 2),
+            "net_income_usd": round(total_revenue - total_expenses, 2),
+            "total_harvest_quantity": round(total_harvest, 2),
+        },
+        "actor_view": actors,
+        "locations": composed,
+        "limitations": [
+            "Composite of existing per-location generators; one failing section is isolated and reported as an error rather than breaking the composite.",
+            "Funding raised, funding sources, and actor participation come from the funding_round / project_funding tables (seeded pilot data); they are self-reported and not on-chain verified.",
+            "Ecosystem actors (Network / DAO / Foundation / Genesis / Seeds) are modeled as funding/participation actors, not as separate legal-entity records.",
+            "Multimedia, narrative storytelling, and community-impact stories are out of scope for this structured report.",
+            "Public aggregate views exclude unverified metrics per platform governance.",
         ],
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -3721,7 +3928,8 @@ REPORT_GENERATORS = {
     "pestel_assessment": generate_pestel_assessment,
      "regional_readiness": generate_regional_readiness,
      "publics_market_landscape": generate_publics_market_landscape,
-     "env_scan_report": generate_env_scan_report,
+      "env_scan_report": generate_env_scan_report,
+      "state_of_kokonut": generate_state_of_kokonut,
 }
 
 
@@ -3733,7 +3941,10 @@ def compute_hash(data: dict) -> str:
 
 def store_snapshot(conn, report_data: dict, location_id: str = None, period_start: str = None, period_end: str = None) -> str:
     """Store an unfrozen draft report for independent review."""
-    report_data = attach_public_interest_context(conn, report_data, location_id)
+    # The report_snapshot.location_id column is a UUID; network-level scopes
+    # (e.g. "all" or a comma-joined multi-select) are stored as NULL.
+    storage_location_id = location_id if _looks_like_uuid(location_id) else None
+    report_data = attach_public_interest_context(conn, report_data, storage_location_id)
     snapshot_hash = compute_hash(report_data)
     report_type = report_data.get("report_type", "unknown")
     public_interest = report_data.get("public_interest", {})
@@ -3760,7 +3971,7 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
         (
             f"{report_type}_{datetime.now(timezone.utc).strftime('%Y%m%d')}",
             report_type,
-            location_id,
+            storage_location_id,
             period_start,
             period_end,
             json.dumps(report_data, default=str),
@@ -3848,7 +4059,8 @@ def _check_report_empty(report_data: dict, report_type: str) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Generate Kokonut report snapshots")
     parser.add_argument("--type", choices=list(REPORT_GENERATORS.keys()), help="Report type to generate")
-    parser.add_argument("--location-id", help="Location UUID")
+    parser.add_argument("--location-id", action="append", help="Location UUID (repeatable; or use --all for every location)")
+    parser.add_argument("--all", action="store_true", help="Generate the report across ALL locations")
     parser.add_argument("--period-start", help="Report period start (YYYY-MM-DD)")
     parser.add_argument("--period-end", help="Report period end (YYYY-MM-DD)")
     parser.add_argument("--list", action="store_true", help="List existing snapshots")
@@ -3860,13 +4072,17 @@ def main():
         if not args.type and not args.auto:
             parser.error("--type or --auto is required (or use --list)")
 
-        if not args.location_id and args.type != "dao_proposal_history":
-            parser.error("--location-id is required")
+        # Location requirement: network-level reports (state_of_kokonut, dao_proposal_history)
+        # accept --all or no location; others require at least one --location-id.
+        network_level = args.type in ("state_of_kokonut", "dao_proposal_history")
+        if not args.location_id and not args.all and not network_level:
+            parser.error("--location-id is required (or use --all for network-level reports)")
 
     conn = get_pg()
 
     if args.list:
-        snapshots = list_snapshots(conn, args.location_id)
+        list_loc = args.location_id[0] if args.location_id else None
+        snapshots = list_snapshots(conn, list_loc)
         if not snapshots:
             print("No snapshots found.")
         else:
@@ -3882,9 +4098,25 @@ def main():
         conn.close()
         return
 
+    # Normalize the location argument for single/all/multi selection.
+    if args.all:
+        location_arg = "all"
+        location_label = "ALL locations"
+    elif args.location_id:
+        # args.location_id is a list (action="append"); join for generators that
+        # accept a comma-separated list (state_of_kokonut) or pass the single one.
+        if len(args.location_id) == 1:
+            location_arg = args.location_id[0]
+        else:
+            location_arg = ",".join(args.location_id)
+        location_label = location_arg
+    else:
+        location_arg = None
+        location_label = "network (no location filter)"
+
     if args.auto:
         report_types = list(REPORT_GENERATORS.keys())
-        print(f"Generating all {len(report_types)} report types for location {args.location_id}...")
+        print(f"Generating all {len(report_types)} report types for {location_label}...")
         print()
 
         success = 0
@@ -3895,9 +4127,9 @@ def main():
             print(f"Generating {report_type}...")
             try:
                 generator = REPORT_GENERATORS[report_type]
-                report_data = generator(conn, args.location_id, args.period_start, args.period_end)
+                report_data = generator(conn, location_arg, args.period_start, args.period_end)
                 _check_report_empty(report_data, report_type)
-                snapshot_id = store_snapshot(conn, report_data, args.location_id, args.period_start, args.period_end)
+                snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
                 snapshot_hash = compute_hash(report_data)
                 print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
                 success += 1
@@ -3911,12 +4143,12 @@ def main():
             exit(1)
         return
 
-    print(f"Generating {args.type} report for location {args.location_id}...")
+    print(f"Generating {args.type} report for {location_label}...")
 
     generator = REPORT_GENERATORS[args.type]
-    report_data = generator(conn, args.location_id, args.period_start, args.period_end)
+    report_data = generator(conn, location_arg, args.period_start, args.period_end)
 
-    snapshot_id = store_snapshot(conn, report_data, args.location_id, args.period_start, args.period_end)
+    snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
     snapshot_hash = compute_hash(report_data)
 
     print(f"Snapshot stored: {snapshot_id}")
