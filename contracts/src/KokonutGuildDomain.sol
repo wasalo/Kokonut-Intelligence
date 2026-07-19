@@ -7,6 +7,7 @@ import {KokonutGuildRegistry} from "./KokonutGuildRegistry.sol";
 /// @title Kokonut Guild Domains
 /// @notice Registers Guild-scoped teams/domains used by tasks and reputation.
 contract KokonutGuildDomain is AccessControl {
+    // Deprecation grace periods are wall-clock policy windows; small validator drift is acceptable.
     bytes32 public constant DOMAIN_ADMIN_ROLE = keccak256("DOMAIN_ADMIN_ROLE");
     bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
     uint256 public constant DEPRECATION_GRACE_PERIOD = 48 hours;
@@ -107,6 +108,7 @@ contract KokonutGuildDomain is AccessControl {
         Domain storage domain = _domains[domainId];
         if (!registry.isActiveGuild(domain.guildId)) return false;
         if (domain.status == DomainStatus.Active) return true;
+        // forge-lint: disable-next-line(block-timestamp)
         if (
             domain.status == DomainStatus.Deprecated && domain.deprecationTime > 0
                 && block.timestamp < domain.deprecationTime + DEPRECATION_GRACE_PERIOD

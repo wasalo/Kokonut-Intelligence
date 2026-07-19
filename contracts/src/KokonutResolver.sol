@@ -41,11 +41,11 @@ contract KokonutResolver is SchemaResolver, Ownable {
         return false;
     }
 
-    function onAttest(Attestation calldata attestation, uint256) internal override returns (bool) {
+    function onAttest(Attestation calldata attestation, uint256) internal view override returns (bool) {
         return allowedAttesters[attestation.attester];
     }
 
-    function onRevoke(Attestation calldata attestation, uint256) internal override returns (bool) {
+    function onRevoke(Attestation calldata attestation, uint256) internal view override returns (bool) {
         return allowedAttesters[attestation.attester];
     }
 }

@@ -6,7 +6,11 @@ import {KokonutTaskBoard} from "./KokonutTaskBoard.sol";
 
 /// @title Kokonut Evidence Review
 /// @notice Records review decisions and dispute outcomes for submitted tasks.
+/// @dev `tasks` is an immutable, access-controlled KokonutTaskBoard. Its mark* calls
+///      do not transfer value or invoke callbacks. Review state is updated before
+///      those calls; the integration is covered by the Guild protocol vertical tests.
 contract KokonutEvidenceReview is AccessControl {
+    // Review and dispute deadlines are wall-clock policy windows; small validator drift is acceptable.
     bytes32 public constant REVIEWER_ROLE = keccak256("REVIEWER_ROLE");
     bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
     uint256 public constant MAX_DISPUTES_PER_REVIEW = 3;
@@ -81,6 +85,7 @@ contract KokonutEvidenceReview is AccessControl {
         if (reviewIdByTask[taskId] != bytes32(0)) revert InvalidReview();
 
         KokonutTaskBoard.Task memory task = tasks.getTask(taskId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (
             task.status != KokonutTaskBoard.TaskStatus.Submitted
                 || block.timestamp > task.deadline + tasks.REVIEW_GRACE_PERIOD()
@@ -115,8 +120,10 @@ contract KokonutEvidenceReview is AccessControl {
         if (review.status != ReviewStatus.Accepted && review.status != ReviewStatus.Rejected) {
             revert ReviewNotDisputable(reviewId);
         }
+        // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp > task.deadline + tasks.REVIEW_GRACE_PERIOD()) revert ReviewNotDisputable(reviewId);
         if (review.disputeCount >= MAX_DISPUTES_PER_REVIEW) revert ReviewNotDisputable(reviewId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (review.lastResolvedAt > 0 && block.timestamp < review.lastResolvedAt + DISPUTE_COOLDOWN) {
             revert ReviewNotDisputable(reviewId);
         }

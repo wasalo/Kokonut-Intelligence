@@ -26,7 +26,9 @@ contract KokonutGuildUpgradeTimelockTest is Test {
         vm.startPrank(admin);
         registry.grantRole(registry.GUILD_ADMIN_ROLE(), admin);
         domains.grantRole(domains.DOMAIN_ADMIN_ROLE(), admin);
+        // forge-lint: disable-next-line(unsafe-typecast)
         registry.createGuild(bytes32("timelock"), bytes32("timelock-key"), "Timelock", "ipfs://timelock", admin);
+        // forge-lint: disable-next-line(unsafe-typecast)
         domains.createDomain(bytes32("timelock"), 0, "Operations", "ipfs://operations");
         vm.stopPrank();
         KokonutGuildPoints implementation = new KokonutGuildPoints();

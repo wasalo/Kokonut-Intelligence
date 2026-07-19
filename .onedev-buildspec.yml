@@ -70,24 +70,17 @@ jobs:
           -c "GRANT ALL ON SCHEMA public TO kokonut" \
           -c "ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut"
         echo "=== [step] Starting Directus ==="
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d directus
-        echo "=== [step] Waiting for Directus ==="
-        for i in $(seq 1 30); do
-          docker compose -f docker-compose.yml -f docker-compose.ci.yml \
-            exec -T directus sh -c 'wget --spider -q http://127.0.0.1:8055/server/ping' && break
-          if [ "$i" -eq 30 ]; then
-            docker compose -f docker-compose.yml -f docker-compose.ci.yml logs directus
-            exit 1
-          fi
-          sleep 2
-        done
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait directus
+        echo "Directus is healthy according to its Compose healthcheck."
         echo "=== [step] Seeding database ==="
         rm -f .env.sops
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
         echo "=== [step] Installing Python deps ==="
         # Isolate Python deps (host Python 3.11+).
-        apt-get update -qq && apt-get install -y -qq openssl libpq-dev gcc nodejs npm xz-utils >/dev/null
+        apt-get update -qq && apt-get install -y -qq ca-certificates curl openssl libpq-dev gcc xz-utils >/dev/null
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+        apt-get install -y -qq nodejs >/dev/null
         python3 -m venv .venv
         . .venv/bin/activate
         pip install --upgrade pip
@@ -126,6 +119,10 @@ jobs:
         ./scripts/verify-full-test-suite.sh
         echo "=== [step] Static analysis ==="
         ./scripts/static-analysis.sh
+        echo "=== [step] Unified CLI smoke test ==="
+        python3 -m services.cli --help >/dev/null
+        python3 -m services.cli metrics --help >/dev/null
+        echo "Unified CLI loads and exposes service groups."
         echo "=== [step] Solidity checks ==="
         (cd contracts && forge fmt --check && forge build --sizes && forge test)
         echo "=== [step] Directus hooks checks ==="

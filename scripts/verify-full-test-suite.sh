@@ -6,7 +6,7 @@ REPORT_FILE="$(mktemp)"
 trap 'rm -f "$REPORT_FILE"' EXIT
 
 set +e
-"$PYTHON_BIN" -m pytest -q -rs 2>&1 | tee "$REPORT_FILE"
+"$PYTHON_BIN" -m pytest -q -rs --durations=25 2>&1 | tee "$REPORT_FILE"
 TEST_STATUS=${PIPESTATUS[0]}
 set -e
 

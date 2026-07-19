@@ -7,6 +7,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 /// @title Kokonut Guild Upgrade Timelock
 /// @notice Delays KGP implementation upgrades behind separate proposer/executor roles.
 contract KokonutGuildUpgradeTimelock is AccessControl {
+    // Timelock readiness is a wall-clock policy window; small validator drift is acceptable.
     using Address for address;
 
     bytes32 public constant ERC1967_IMPLEMENTATION_SLOT =
@@ -80,12 +81,15 @@ contract KokonutGuildUpgradeTimelock is AccessControl {
     function executeUpgrade(bytes32 upgradeId) external onlyRole(EXECUTOR_ROLE) {
         Upgrade storage upgrade = _upgrade(upgradeId);
         if (upgrade.executed || upgrade.cancelled) revert UpgradeUnavailable(upgradeId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp < upgrade.eta) revert UpgradeNotReady(upgradeId, upgrade.eta);
         _assertUUPSImplementation(upgrade.implementation);
         if (_proxyImplementation(upgrade.proxy) != upgrade.expectedCurrentImplementation) {
             revert UpgradeCompatibilityFailed();
         }
         upgrade.executed = true;
+        // Address.functionCall reverts on failure; the return bytes are not needed.
+        // slither-disable-next-line unused-return
         upgrade.proxy
             .functionCall(
                 abi.encodeWithSignature("upgradeToAndCall(address,bytes)", upgrade.implementation, upgrade.data)
