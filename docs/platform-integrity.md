@@ -19,7 +19,8 @@ client -> Caddy/gateway -> Directus or application service -> PostgreSQL
 ## Operations
 
 ```bash
-sops exec-env .env.sops docker compose up -d
+source scripts/load-secrets.sh
+docker compose up -d
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 ./scripts/compute-metrics.sh

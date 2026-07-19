@@ -55,9 +55,9 @@ All work follows a 3-step branch → PR → merge flow:
 
 ## Local Commands
 
-- Start services with encrypted secrets: `sops exec-env .env.sops docker compose up -d`
+- Start services with encrypted secrets: `source scripts/load-secrets.sh && docker compose up -d`
 - Start services (plaintext .env fallback): `docker compose up -d`
-- Decrypt secrets to stdout: `sops -d .env.sops`
+- Decrypt secrets to stdout: `sops -d --input-type dotenv --output-type dotenv .env.sops`
 - Edit encrypted secrets: `sops .env.sops`
 - Source secrets into shell: `source scripts/load-secrets.sh`
 - Apply schemas/base seeds: `./scripts/seed.sh`

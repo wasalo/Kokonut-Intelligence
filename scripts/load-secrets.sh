@@ -25,5 +25,13 @@ if ! command -v sops &>/dev/null; then
     return 1 2>/dev/null || exit 1
 fi
 
+# SOPS does not discover the repository-documented macOS key path in every
+# installation. Set it automatically when the local key is present.
+if [ -z "${SOPS_AGE_KEY_FILE:-}" ] && [ -f "$HOME/.config/sops/age/keys.txt" ]; then
+    export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+fi
+
 # Decrypt and export each variable
+set -a
 eval "$(sops -d --input-type dotenv --output-type dotenv "$SOPS_FILE")"
+set +a
