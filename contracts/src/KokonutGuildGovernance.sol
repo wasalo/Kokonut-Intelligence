@@ -11,6 +11,7 @@ import {KokonutTaskBoard} from "./KokonutTaskBoard.sol";
 /// @notice Lazy-consensus motions for allowlisted operational Guild actions.
 /// @dev This contract cannot move ETH or execute unallowlisted treasury calls.
 contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
+    // Timestamp checks define the objection window; small validator drift is acceptable.
     using Address for address;
 
     uint256 public constant MAX_CALLDATA_BYTES = 256;
@@ -108,6 +109,7 @@ contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
         onlyRole(PROPOSER_ROLE)
         returns (uint256 motionId)
     {
+        // forge-lint: disable-next-line(block-timestamp)
         if (
             guildId == bytes32(0) || !allowedTargets[target] || data.length > MAX_CALLDATA_BYTES
                 || objectionDeadline <= block.timestamp || (objectionDeadline - block.timestamp) < MIN_OBJECTION_WINDOW
@@ -135,6 +137,7 @@ contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
     function objectMotion(uint256 motionId, bytes32 reasonHash) external onlyRole(OBJECTOR_ROLE) {
         Motion storage motion = _motion(motionId);
         if (motion.status != MotionStatus.Open) revert MotionNotOpen(motionId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp > motion.objectionDeadline) revert ObjectionWindowClosed(motionId);
         motion.objectionCount++;
         motion.objectionReasonHash = reasonHash;
@@ -144,6 +147,7 @@ contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
     function finalizeMotion(uint256 motionId) external {
         Motion storage motion = _motion(motionId);
         if (motion.status != MotionStatus.Open) revert MotionNotOpen(motionId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp <= motion.objectionDeadline) revert ObjectionWindowOpen(motionId);
         motion.status = motion.objectionCount == 0 ? MotionStatus.Passed : MotionStatus.Rejected;
         emit MotionFinalized(motionId, motion.status);

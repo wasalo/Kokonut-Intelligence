@@ -4,4 +4,6 @@
 # ============================================================
 set -euo pipefail
 
-python3 -m tests.test_platform_done
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+
+"$PYTHON_BIN" -m tests.test_platform_done

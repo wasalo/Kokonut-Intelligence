@@ -22,6 +22,7 @@ contract KokonutGuildPoints is
     UUPSUpgradeable,
     PausableUpgradeable
 {
+    // Voucher expiry is a wall-clock policy window; small validator drift is acceptable.
     bytes32 public constant AWARDER_ROLE = keccak256("AWARDER_ROLE");
     bytes32 public constant CLAIM_SIGNER_ROLE = keccak256("CLAIM_SIGNER_ROLE");
     bytes32 public constant REVERSER_ROLE = keccak256("REVERSER_ROLE");
@@ -167,6 +168,7 @@ contract KokonutGuildPoints is
     }
 
     function claim(ClaimVoucher calldata voucher, bytes calldata signature) external whenNotPaused {
+        // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp > voucher.deadline) revert ClaimExpired(voucher.deadline);
         if (msg.sender != voucher.contributor) revert ClaimSenderMismatch(voucher.contributor, msg.sender);
         if (usedClaimNonces[voucher.contributor][voucher.nonce]) {

@@ -16,6 +16,9 @@
     "test": "vitest run"
   },
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "devDependencies": {
     "@directus/extensions-sdk": "^18.0.1",
     "esbuild": "^0.28.0",

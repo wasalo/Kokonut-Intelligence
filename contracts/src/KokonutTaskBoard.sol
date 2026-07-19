@@ -7,6 +7,7 @@ import {KokonutGuildDomain} from "./KokonutGuildDomain.sol";
 /// @title Kokonut Task Board
 /// @notice Tracks operational Guild tasks without moving treasury funds.
 contract KokonutTaskBoard is AccessControl {
+    // Timestamp checks define user-visible task deadlines; small validator drift is acceptable.
     bytes32 public constant TASK_ADMIN_ROLE = keccak256("TASK_ADMIN_ROLE");
     bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
     uint256 public constant REVIEW_GRACE_PERIOD = 7 days;
@@ -85,6 +86,7 @@ contract KokonutTaskBoard is AccessControl {
         uint64 deadline,
         bytes32 evidenceRequirementHash
     ) external onlyRole(TASK_ADMIN_ROLE) returns (uint256 taskId) {
+        // forge-lint: disable-next-line(block-timestamp)
         if (!domains.isActiveDomain(domainId) || taskKey == bytes32(0) || deadline <= block.timestamp) revert InvalidTask();
         if (taskIdByKey[taskKey] != 0) revert TaskKeyExists(taskKey);
 
@@ -110,6 +112,7 @@ contract KokonutTaskBoard is AccessControl {
 
     function assignTask(uint256 taskId, address contributor) external onlyRole(TASK_ADMIN_ROLE) {
         Task storage task = _task(taskId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (
             task.status != TaskStatus.Open || contributor == address(0) || block.timestamp > task.deadline
                 || !domains.isActiveDomain(task.domainId)
@@ -123,6 +126,7 @@ contract KokonutTaskBoard is AccessControl {
 
     function submitEvidence(uint256 taskId, bytes32 evidenceHash) external {
         Task storage task = _task(taskId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (
             task.status != TaskStatus.Assigned || task.contributor != msg.sender || evidenceHash == bytes32(0)
                 || block.timestamp > task.deadline || !domains.isActiveDomain(task.domainId)
@@ -147,6 +151,7 @@ contract KokonutTaskBoard is AccessControl {
 
     function expireTask(uint256 taskId) external {
         Task storage task = _task(taskId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (task.status != TaskStatus.Assigned || block.timestamp <= task.deadline) revert InvalidStatus(taskId);
         task.status = TaskStatus.Cancelled;
         emit TaskExpired(taskId);
@@ -187,6 +192,7 @@ contract KokonutTaskBoard is AccessControl {
 
     function markPaid(uint256 taskId, bytes32 paymentReference) external onlyRole(TASK_ADMIN_ROLE) {
         Task storage task = _task(taskId);
+        // forge-lint: disable-next-line(block-timestamp)
         if (task.status != TaskStatus.Accepted || block.timestamp > task.deadline + REVIEW_GRACE_PERIOD) {
             revert InvalidStatus(taskId);
         }

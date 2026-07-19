@@ -3,8 +3,10 @@
 set -euo pipefail
 
 CONTRACTS_DIR="contracts"
+ARTIFACT_DIR="${ANALYSIS_ARTIFACT_DIR:-artifacts/static-analysis}"
 EXIT_CODE=0
 export PATH="$HOME/Library/Python/3.9/bin:$HOME/.cargo/bin:$PATH"
+mkdir -p "$ARTIFACT_DIR"
 
 echo "=== Slither (Solidity) ==="
 if ! command -v slither >/dev/null 2>&1; then
@@ -14,6 +16,8 @@ else
     set +e
     slither "$CONTRACTS_DIR" --filter-paths "lib/|node_modules/" \
         --json /tmp/slither-results.json 2>&1 | tee /tmp/slither.log
+    cp /tmp/slither-results.json "$ARTIFACT_DIR/slither-results.json"
+    cp /tmp/slither.log "$ARTIFACT_DIR/slither.log"
     SLITHER_STATUS=${PIPESTATUS[0]}
     set -e
     if [ "$SLITHER_STATUS" -ne 0 ] && [ ! -s /tmp/slither-results.json ]; then
@@ -58,6 +62,8 @@ if ! command -v aderyn >/dev/null 2>&1; then
     EXIT_CODE=1
 else
     aderyn "$CONTRACTS_DIR" --output /tmp/aderyn-report.md 2>&1 | tee /tmp/aderyn.log
+    cp /tmp/aderyn-report.md "$ARTIFACT_DIR/aderyn-report.md"
+    cp /tmp/aderyn.log "$ARTIFACT_DIR/aderyn.log"
     if [ ! -s /tmp/aderyn-report.md ]; then
         echo "FAIL: Aderyn did not produce a report"
         EXIT_CODE=1
@@ -81,27 +87,30 @@ if command -v pysemgrep >/dev/null 2>&1 || command -v semgrep >/dev/null 2>&1; t
         services/ contracts/src/ contracts/script/ 2>&1 | tee /tmp/semgrep.log
     SEMGREP_STATUS=${PIPESTATUS[0]}
     set -e
+    cp /tmp/semgrep.log "$ARTIFACT_DIR/semgrep.log"
     if [ "$SEMGREP_STATUS" -ne 0 ] && [ ! -s /tmp/semgrep-gate.sarif ]; then
         echo "FAIL: Semgrep execution failed"
         EXIT_CODE=1
     fi
     if [ -s /tmp/semgrep-gate.sarif ]; then
+        cp /tmp/semgrep-gate.sarif "$ARTIFACT_DIR/semgrep-gate.sarif"
         set +e
         ERRORS=$(python3 -c '
 import json
 data = json.load(open("/tmp/semgrep-gate.sarif"))
 results = data.get("runs", [{}])[0].get("results", [])
-false_positives = {"python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query"}
+reviewed_exclusions = {"python.sqlalchemy.security.sqlalchemy-execute-raw-query.sqlalchemy-execute-raw-query"}
 our = [r for r in results if any(
     p in r.get("locations", [{}])[0].get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "")
     for p in ("services/", "contracts/src/", "contracts/script/")
-) and r.get("ruleId", "") not in false_positives]
+) and r.get("ruleId", "") not in reviewed_exclusions]
+print(f"Semgrep raw findings: {len(results)}")
 for result in our:
     location = result.get("locations", [{}])[0].get("physicalLocation", {})
     print("  {rule}: {uri}".format(
         rule=result.get("ruleId", "unknown"),
         uri=location.get("artifactLocation", {}).get("uri", "")))
-print(f"Total true-positive findings: {len(our)}")
+print(f"Total policy findings: {len(our)}")
 ' 2>&1)
         PARSE_STATUS=$?
         set -e
@@ -110,7 +119,7 @@ print(f"Total true-positive findings: {len(our)}")
             EXIT_CODE=1
         else
             echo "$ERRORS"
-            if echo "$ERRORS" | grep -q "Total true-positive findings: [1-9]"; then
+            if echo "$ERRORS" | grep -Eq "Total policy findings: [1-9][0-9]*"; then
                 echo "FAIL: Semgrep found error-severity findings"
                 EXIT_CODE=1
             fi
