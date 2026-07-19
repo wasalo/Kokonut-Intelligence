@@ -63,12 +63,6 @@ def test_grant_withdrawal_and_scope_matching():
         assert denied["consented"] is False
         assert denied["effective_status"] == "withdrawn"
     finally:
-        with conn.cursor() as cur:
-            cur.execute(
-                "DELETE FROM stakeholder_consent WHERE party_id = %s::uuid AND data_category = 'social'",
-                (party_id,),
-            )
-        conn.commit()
         conn.close()
 
 
@@ -81,6 +75,7 @@ def test_expired_grant_is_not_effective():
             conn, party_id, "biodiversity", "internal assessment",
             effective_at=now - timedelta(days=2),
             expires_at=now - timedelta(days=1),
+            consent_method="system_migration",
         )
         effective = consent_resolver.check_consent(
             conn, party_id, "biodiversity", "internal assessment"

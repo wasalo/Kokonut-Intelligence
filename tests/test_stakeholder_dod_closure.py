@@ -21,9 +21,17 @@ def _db():
 
 
 def _parties(conn):
+    # Consent history is immutable, so deterministic fixture parties are reused.
     with conn.cursor() as cur:
-        cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid)", (PARTY_ID, REVIEWER_ID))
-        cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Resolution Subject'), (%s::uuid, 'person', 'Resolution Reviewer')", (PARTY_ID, REVIEWER_ID))
+        cur.execute(
+            """INSERT INTO party (id, party_type, display_name)
+               VALUES (%s::uuid, 'person', 'Resolution Subject'),
+                      (%s::uuid, 'person', 'Resolution Reviewer')
+               ON CONFLICT (id) DO UPDATE
+               SET party_type = EXCLUDED.party_type,
+                   display_name = EXCLUDED.display_name""",
+            (PARTY_ID, REVIEWER_ID),
+        )
     conn.commit()
 
 
@@ -52,7 +60,6 @@ def test_identity_resolution_requires_human_review():
         with conn.cursor() as cur:
             cur.execute("DELETE FROM party_resolution_case WHERE source_system = 'dod-test'")
             cur.execute("DELETE FROM party_identifier WHERE source_system = 'dod-test'")
-            cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid)", (PARTY_ID, REVIEWER_ID))
         conn.commit()
         conn.close()
 
@@ -98,8 +105,6 @@ def test_public_feedback_requires_canonical_consent():
         with conn.cursor() as cur:
             if feedback_id:
                 cur.execute("DELETE FROM stakeholder_feedback WHERE id = %s::uuid", (feedback_id,))
-            cur.execute("DELETE FROM stakeholder_consent WHERE party_id = %s::uuid", (PARTY_ID,))
-            cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid)", (PARTY_ID, REVIEWER_ID))
         conn.commit()
         conn.close()
 
@@ -111,7 +116,13 @@ def test_buyer_verification_requires_human_party():
         with conn.cursor() as cur:
             cur.execute("DELETE FROM buyer_profile WHERE id = %s::uuid", (BUYER_ID,))
             cur.execute("INSERT INTO buyer_profile (id, name, buyer_type) VALUES (%s::uuid, 'DoD Buyer', 'aggregator')", (BUYER_ID,))
-            cur.execute("INSERT INTO party (id, party_type, display_name) VALUES ('b0000000-0000-0000-0000-000000009104'::uuid, 'organization', 'Invalid Verifier')")
+            cur.execute(
+                """INSERT INTO party (id, party_type, display_name)
+                   VALUES ('b0000000-0000-0000-0000-000000009104'::uuid, 'organization', 'Invalid Verifier')
+                   ON CONFLICT (id) DO UPDATE
+                   SET party_type = EXCLUDED.party_type,
+                       display_name = EXCLUDED.display_name"""
+            )
         conn.commit()
         with pytest.raises(Exception, match="human verifier"):
             stakeholder_trust.verify_buyer(
@@ -126,7 +137,6 @@ def test_buyer_verification_requires_human_party():
         with conn.cursor() as cur:
             cur.execute("DELETE FROM buyer_verification WHERE buyer_id = %s::uuid", (BUYER_ID,))
             cur.execute("DELETE FROM buyer_profile WHERE id = %s::uuid", (BUYER_ID,))
-            cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid, %s::uuid)", (PARTY_ID, REVIEWER_ID, "b0000000-0000-0000-0000-000000009104"))
         conn.commit()
         conn.close()
 
@@ -170,7 +180,5 @@ def test_cooperative_governance_links_membership_to_party():
         if cooperative_id:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM cooperative WHERE id = %s::uuid", (cooperative_id,))
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid)", (PARTY_ID, REVIEWER_ID))
         conn.commit()
         conn.close()
