@@ -1478,6 +1478,86 @@ def generate_state_of_kokonut_graphs(conn, location_id: str = None, period_start
     }
 
 
+def generate_comprehensive_status(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a single Comprehensive Status Report for a location or network-wide.
+
+    Composes the canonical per-location sections (farm, crop NOI, environmental,
+    climate impact, financial sustainability, capital efficiency, holistic and
+    foundational wellbeing, community governance, GNH alignment, training
+    impact, regenerative outcomes, stakeholder outcomes) into one document for
+    one, many, or all locations. When no location is selected (or ``--all``),
+    the report is network-wide: it nests per-location bundles and adds an
+    ecosystem rollup. Each section is called defensively; one failure is
+    isolated and reported as an error rather than breaking the composite.
+
+    Read-only; never modifies governed data.
+    """
+    location_ids = None
+    if location_id and location_id.lower() != "all":
+        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+
+    # Reuse the per-location composition helper from state_of_kokonut, then
+    # extend the section set with wellbeing/stakeholder outcomes.
+    locations, composed = _state_of_kokonut_locations(conn, location_ids, period_start, period_end)
+
+    extended = []
+    for entry in composed:
+        loc_id = entry["location_id"]
+        for section, fn in (
+            ("foundational_wellbeing", generate_foundational_wellbeing),
+            ("stakeholder_outcomes", generate_stakeholder_outcomes),
+        ):
+            try:
+                entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
+            except Exception as exc:  # noqa: BLE001 - keep composite resilient
+                entry["sections"][section] = {"error": f"{type(exc).__name__}: {exc}"}
+        extended.append(entry)
+
+    # Network-wide rollup from composed financial/environmental summaries.
+    total_revenue = 0.0
+    total_expenses = 0.0
+    total_harvest = 0.0
+    locations_with_data = 0
+    for entry in extended:
+        fs = entry.get("sections", {}).get("farm_summary")
+        if isinstance(fs, dict) and "financial_summary" in fs:
+            locations_with_data += 1
+            try:
+                total_revenue += float(fs["financial_summary"].get("total_revenue") or 0)
+                total_expenses += float(fs["financial_summary"].get("total_expenses") or 0)
+            except (TypeError, ValueError):
+                pass
+        hs = entry.get("sections", {}).get("farm_summary")
+        if isinstance(hs, dict) and "harvest_summary" in hs:
+            try:
+                total_harvest += float(hs["harvest_summary"].get("total_quantity") or 0)
+            except (TypeError, ValueError):
+                pass
+
+    return {
+        "report_type": "comprehensive_status",
+        "scope": "all_locations" if location_ids is None else "selected_locations",
+        "selected_location_ids": location_ids,
+        "period_start": period_start,
+        "period_end": period_end,
+        "ecosystem_overview": {
+            "total_locations": len(locations),
+            "locations_with_financial_data": locations_with_data,
+            "total_revenue_usd": round(total_revenue, 2),
+            "total_expenses_usd": round(total_expenses, 2),
+            "net_income_usd": round(total_revenue - total_expenses, 2),
+            "total_harvest_quantity": round(total_harvest, 2),
+        },
+        "locations": extended,
+        "limitations": [
+            "Composite of existing per-location generators; one failing section is isolated and reported as an error rather than breaking the composite.",
+            "Public aggregate views exclude unverified metrics per platform governance.",
+            "Funding/actor views are covered by the separate state_of_kokonut report; this report focuses on operational status per location and a network rollup.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 def generate_capital_provider_utility(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital-provider utility scenario report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -3979,6 +4059,7 @@ REPORT_GENERATORS = {
       "env_scan_report": generate_env_scan_report,
       "state_of_kokonut": generate_state_of_kokonut,
       "state_of_kokonut_graphs": generate_state_of_kokonut_graphs,
+      "comprehensive_status": generate_comprehensive_status,
 }
 
 
@@ -4123,7 +4204,7 @@ def main():
 
         # Location requirement: network-level reports (state_of_kokonut, dao_proposal_history)
         # accept --all or no location; others require at least one --location-id.
-        network_level = args.type in ("state_of_kokonut", "dao_proposal_history", "state_of_kokonut_graphs")
+        network_level = args.type in ("state_of_kokonut", "dao_proposal_history", "state_of_kokonut_graphs", "comprehensive_status")
         if not args.location_id and not args.all and not network_level:
             parser.error("--location-id is required (or use --all for network-level reports)")
 
