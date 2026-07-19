@@ -75,6 +75,17 @@ for _name, _mod, _help in _MOUNTED:
     mount_argparse(app, _name, _legacy(_mod), _help)
 
 
+# --- Native typer group: DAO governance framework queries (read-only) --------
+try:
+    from services.governance.cli import app as _governance_dao_app
+
+    app.add_typer(_governance_dao_app, name="dao", help="DAO governance framework queries (Baal/Moloch, read-only)")
+except Exception as exc:  # noqa: BLE001 - CLI boundary
+    import sys
+
+    print(f"Error: cannot load services.governance.cli: {exc}", file=sys.stderr)
+
+
 # --- Example native typer group using shared helpers -------------------------
 @app.command()
 def health() -> None:
