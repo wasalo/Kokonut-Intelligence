@@ -79,6 +79,47 @@ def create(
         return dict(row)
 
 
+def create_from_data(
+    conn, location_id: Optional[str] = None, org_id: Optional[str] = None,
+    canvas_name: str = "Primary Canvas (auto)", description: Optional[str] = None,
+    fiscal_year: Optional[int] = None, tags: Optional[List[str]] = None,
+    created_by: Optional[str] = None,
+) -> Dict[str, Any]:
+    """One-click BMC: derive blocks from existing platform data and persist.
+
+    Reads the best-effort suggestions from :func:`suggest` (federation,
+    cooperative, supplier, process_map, sensor/energy/cooperative assets,
+    impact_claim, channels, buyer_segment, revenue_event, expense_event,
+    stakeholder_feedback) and writes a fully-populated draft canvas in a
+    single call. Returns the created canvas plus the data sources used.
+    """
+    if not location_id and not org_id:
+        raise ValueError("provide exactly one of org_id or location_id")
+    suggestion = suggest(conn, location_id) if location_id else {"blocks": {b: [] if b != "cost_structure" else {} for b in BMC_BLOCKS}, "generated_from": []}
+    # suggest() runs several independent read queries; a failure in one can abort
+    # the shared transaction, so clear any aborted-state before the write.
+    try:
+        conn.rollback()
+    except psycopg2.Error:
+        pass
+    canvas = create(
+        conn,
+        location_id=location_id,
+        org_id=org_id,
+        canvas_name=canvas_name,
+        description=description,
+        fiscal_year=fiscal_year,
+        tags=tags or ["auto-generated"],
+        blocks=suggestion["blocks"],
+        created_by=created_by,
+    )
+    return {
+        "canvas": canvas,
+        "generated_from": suggestion["generated_from"],
+        "populated_blocks": [b for b, v in suggestion["blocks"].items() if v],
+    }
+
+
 def list_canvas(
     conn, location_id: Optional[str] = None, org_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
@@ -479,6 +520,13 @@ def _cmd(args) -> None:
                 fiscal_year=args.fiscal_year, tags=args.tags,
                 created_by=args.created_by,
             )
+        elif args.command == "create-from-data":
+            out = create_from_data(
+                conn, location_id=args.location_id, org_id=args.org_id,
+                canvas_name=args.canvas_name, description=args.description,
+                fiscal_year=args.fiscal_year, tags=args.tags,
+                created_by=args.created_by,
+            )
         elif args.command == "list":
             out = list_canvas(conn, location_id=args.location_id, org_id=args.org_id)
         elif args.command == "get":
@@ -516,6 +564,13 @@ def main() -> None:
     c.add_argument("--fiscal-year", type=int, default=None)
     c.add_argument("--tags", nargs="*", default=[])
     c.add_argument("--created-by", default=None)
+
+    cf = sub.add_parser("create-from-data", help="One-click BMC derived from existing platform data")
+    cf.add_argument("--canvas-name", default="Primary Canvas (auto)")
+    cf.add_argument("--description", default=None)
+    cf.add_argument("--fiscal-year", type=int, default=None)
+    cf.add_argument("--tags", nargs="*", default=["auto-generated"])
+    cf.add_argument("--created-by", default=None)
 
     sub.add_parser("list")
 
