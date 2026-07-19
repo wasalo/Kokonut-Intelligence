@@ -25,6 +25,7 @@ from ..analytics.process_health import generate_process_health
 from ..analytics.value_stream import generate_value_stream_map
 from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
 from .business_plan import generate_business_plan
+from .kokonut_graphs import build_all
 
 
 def get_pg():
@@ -1425,6 +1426,53 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
             "Ecosystem actors (Network / DAO / Foundation / Genesis / Seeds) are modeled as funding/participation actors, not as separate legal-entity records.",
             "Multimedia, narrative storytelling, and community-impact stories are out of scope for this structured report.",
             "Public aggregate views exclude unverified metrics per platform governance.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_state_of_kokonut_graphs(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate visual graph descriptors for the State of Kokonut report.
+
+    Builds structured graph descriptors (nodes, edges, layout) and Mermaid text
+    for the ecosystem journey tree, the circular Ikigai framework view (v1 and
+    v2), and -- when a location is selected -- farm development phases and
+    Kokonut Seeds short-cycle crop timelines. Output is JSON + Mermaid only;
+    no charting library is required and nothing is rendered server-side.
+
+    Read-only; never modifies governed data.
+    """
+    descriptors = build_all(conn, location_id=location_id, period_start=period_start, period_end=period_end)
+    graphs = []
+    for desc in descriptors:
+        try:
+            graphs.append({
+                "name": desc.name,
+                "layout": desc.layout,
+                "title": desc.title,
+                "descriptor": desc.to_json(),
+                "mermaid": desc.to_mermaid(),
+            })
+        except Exception as exc:  # isolate a failing graph, mirror state_of_kokonut
+            print(f"  ⚠ graph {desc.name} failed: {exc}")
+            graphs.append({
+                "name": desc.name,
+                "layout": desc.layout,
+                "title": desc.title,
+                "error": str(exc),
+            })
+
+    return {
+        "report_type": "state_of_kokonut_graphs",
+        "scope": "all_locations" if location_id in (None, "all") else "selected_locations",
+        "selected_location_ids": None if location_id in (None, "all") else location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "graphs": graphs,
+        "limitations": [
+            "Graphs are rendered as dependency-free Mermaid text + JSON descriptors; a true radial SVG/chord layout for the circular Ikigai view is a separate follow-up (HTML/SVG) task.",
+            "Funding rounds and DAO proposals drive the ecosystem tree and Ikigai quadrants; these are seeded pilot data, self-reported, not on-chain verified.",
+            "Farm development phases come from farm_zone zone_type; crop timelines come from crop_cycle plant/harvest dates.",
         ],
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -3930,6 +3978,7 @@ REPORT_GENERATORS = {
      "publics_market_landscape": generate_publics_market_landscape,
       "env_scan_report": generate_env_scan_report,
       "state_of_kokonut": generate_state_of_kokonut,
+      "state_of_kokonut_graphs": generate_state_of_kokonut_graphs,
 }
 
 
@@ -4074,7 +4123,7 @@ def main():
 
         # Location requirement: network-level reports (state_of_kokonut, dao_proposal_history)
         # accept --all or no location; others require at least one --location-id.
-        network_level = args.type in ("state_of_kokonut", "dao_proposal_history")
+        network_level = args.type in ("state_of_kokonut", "dao_proposal_history", "state_of_kokonut_graphs")
         if not args.location_id and not args.all and not network_level:
             parser.error("--location-id is required (or use --all for network-level reports)")
 
