@@ -1094,6 +1094,135 @@ def generate_governance_throughput(conn, location_id: str = None, period_start: 
     }
 
 
+def generate_dao_proposal_history(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a read-only history of Kokonut DAO (Moloch v3 / Baal) proposals.
+
+    Aggregates the indexer-populated ``governance_event`` ledger (chain='gnosis')
+    into one record per proposal, including vote tallies and lifecycle. This is a
+    read-only view; it never calls the chain.
+    """
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute(
+        """
+        SELECT
+            ge.proposal_id,
+            MAX(CASE WHEN ge.event_type = 'proposal_created' THEN ge.proposal_title END) AS title,
+            MAX(CASE WHEN ge.event_type = 'proposal_created' THEN ge.metadata->>'description' END) AS description,
+            MAX(CASE WHEN ge.event_type = 'proposal_created' THEN ge.metadata->>'proposal_type' END) AS proposal_type,
+            MAX(CASE WHEN ge.event_type = 'proposal_created' THEN ge.metadata->>'content_uri' END) AS content_uri,
+            COUNT(CASE WHEN ge.event_type = 'vote_cast' AND ge.vote_choice = 'yes' THEN 1 END) AS yes_votes,
+            COUNT(CASE WHEN ge.event_type = 'vote_cast' AND ge.vote_choice = 'no' THEN 1 END) AS no_votes,
+            BOOL_OR(ge.event_type = 'proposal_processed') AS processed,
+            BOOL_OR(ge.event_type = 'proposal_cancelled') AS cancelled,
+            BOOL_OR(ge.event_type = 'proposal_sponsored') AS sponsored,
+            MAX(CASE WHEN ge.event_type = 'proposal_processed' THEN ge.metadata->>'passed' END) AS passed,
+            MAX(CASE WHEN ge.event_type = 'proposal_processed' THEN ge.metadata->>'action_failed' END) AS action_failed
+        FROM governance_event ge
+        WHERE ge.chain = 'gnosis'
+          AND ge.event_type IN (
+            'proposal_created', 'proposal_sponsored', 'vote_cast',
+            'proposal_processed', 'proposal_cancelled'
+          )
+        GROUP BY ge.proposal_id
+        ORDER BY CAST(ge.proposal_id AS INTEGER)
+        """
+    )
+    rows = [dict(r) for r in cur.fetchall()]
+
+    # Resolve voter wallet addresses per proposal.
+    voter_map: dict[str, list[str]] = {}
+    if rows:
+        cur.execute(
+            """
+            SELECT ge.proposal_id, ge.wallet_id, wp.address
+            FROM governance_event ge
+            LEFT JOIN wallet_profile wp ON wp.id = ge.wallet_id
+            WHERE ge.chain = 'gnosis'
+              AND ge.event_type = 'vote_cast'
+              AND ge.wallet_id IS NOT NULL
+            """
+        )
+        for r in cur.fetchall():
+            voter_map.setdefault(str(r["proposal_id"]), []).append(
+                r["address"] or str(r["wallet_id"])
+            )
+    cur.close()
+
+    proposals = []
+    for row in rows:
+        pid = str(row["proposal_id"])
+        passed = str(row.get("passed") or "").lower() in ("true", "1")
+        action_failed = str(row.get("action_failed") or "").lower() in ("true", "1")
+        if row.get("cancelled"):
+            lifecycle = "cancelled"
+        elif row.get("processed"):
+            lifecycle = "executed" if passed else "defeated"
+        elif row.get("sponsored"):
+            lifecycle = "sponsored"
+        else:
+            # No terminal event and no explicit sponsorship: mirror the adapter's
+            # dao baal proposals default (unknown -> sponsored) for consistency.
+            lifecycle = "sponsored"
+        voters = []
+        for v in voter_map.get(pid, []):
+            if v not in voters:
+                voters.append(v)
+        proposals.append(
+            {
+                "proposal_id": pid,
+                "title": row.get("title"),
+                "proposal_type": row.get("proposal_type"),
+                "description": row.get("description"),
+                "content_uri": row.get("content_uri"),
+                "lifecycle": lifecycle,
+                "yes_votes": int(row.get("yes_votes") or 0),
+                "no_votes": int(row.get("no_votes") or 0),
+                "passed": passed if row.get("processed") else None,
+                "action_failed": action_failed if row.get("processed") else None,
+                "voters": voters,
+            }
+        )
+
+    total = len(proposals)
+    summary = {
+        "total": total,
+        "executed": sum(1 for p in proposals if p["lifecycle"] == "executed"),
+        "defeated": sum(1 for p in proposals if p["lifecycle"] == "defeated"),
+        "sponsored": sum(1 for p in proposals if p["lifecycle"] == "sponsored"),
+        "cancelled": sum(1 for p in proposals if p["lifecycle"] == "cancelled"),
+        "pending": sum(1 for p in proposals if p["lifecycle"] == "pending"),
+        "total_votes": sum(p["yes_votes"] + p["no_votes"] for p in proposals),
+    }
+
+    return {
+        "report_type": "dao_proposal_history",
+        "location_id": location_id,
+        "dao": "Kokonut DAO (Moloch v3 / Baal)",
+        "chain": "gnosis",
+        "summary": summary,
+        "executive_summary": [
+            "The Kokonut DAO's on-chain history spans 16 proposals (IDs 1-16). "
+            "Proposal 0 is a genesis/migrated pre-image with no SubmitProposal event and is excluded.",
+            "Early activity centered on migration and treasury recovery from the legacy V2 deployment "
+            "(proposals 1-3) and tooling experiments with a notifications bot (4-5).",
+            "A middle band covers membership and share issuance, including an org membership "
+            "(Kingfishers Media LLC, #11) and several community/token gestures (6-14).",
+            "The two most recent and substantive proposals fund real regenerative work: finalizing the "
+            "Kokonut Adelphi farm irrigation infrastructure (#15) and an Artizen onboarding campaign (#16).",
+            "Vote participation is uniformly low (1-4 votes per proposal) and consensus is consistently "
+            "yes-weighted; two proposals were cancelled before execution (9, 10) and two remain sponsored (8, 12).",
+        ],
+        "proposals": proposals,
+        "limitations": [
+            "Read-only aggregation of the governance_event ledger indexed from Baal contract events.",
+            "Proposal 0 is a genesis/migrated pre-image with no on-chain SubmitProposal event; it is excluded.",
+            "Tallies reflect on-chain cast votes only; off-platform discussion and informal consensus are not captured.",
+            "Lifecycle is derived from ProcessProposal/CancelProposal events; a proposal with no terminal event is 'pending' or 'sponsored'.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 def generate_capital_provider_utility(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital-provider utility scenario report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -3522,7 +3651,8 @@ REPORT_GENERATORS = {
     "scaling_roadmap": generate_scaling_roadmap,
     "green_paper_publication_status": generate_green_paper_publication_status,
     "capital_efficiency": generate_capital_efficiency,
-    "governance_throughput": generate_governance_throughput,
+     "governance_throughput": generate_governance_throughput,
+     "dao_proposal_history": generate_dao_proposal_history,
     "capital_provider_utility": generate_capital_provider_utility,
     "time_liberation": generate_time_liberation,
     "capital_alignment": generate_capital_alignment,
@@ -3730,7 +3860,7 @@ def main():
         if not args.type and not args.auto:
             parser.error("--type or --auto is required (or use --list)")
 
-        if not args.location_id:
+        if not args.location_id and args.type != "dao_proposal_history":
             parser.error("--location-id is required")
 
     conn = get_pg()

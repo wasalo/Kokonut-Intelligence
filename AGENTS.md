@@ -638,6 +638,7 @@ Commands:
 - Report types (token rewards): `python3 -m services.export.report_generator --type token_rewards --location-id UUID`
 - Report types (reward calibration): `python3 -m services.export.report_generator --type reward_calibration --location-id UUID`
 - Report types (data stream summary): `python3 -m services.export.report_generator --type data_stream_summary --location-id UUID`
+- Report types (dao proposals): `python3 -m services.export.report_generator --type dao_proposal_history [--location-id UUID]`
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
