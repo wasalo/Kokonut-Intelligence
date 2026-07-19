@@ -36,6 +36,7 @@ jobs:
         trap 'rm -f .env' EXIT
         cat > .env <<'EOF'
         POSTGRES_PASSWORD=ci-placeholder
+        PG_PASSWORD=ci-placeholder
         CLICKHOUSE_PASSWORD=ci-placeholder
         REDIS_PASSWORD=ci-placeholder
         DIRECTUS_SECRET=ci-secret
@@ -97,17 +98,29 @@ jobs:
         /root/.foundry/bin/foundryup
         export PATH=/root/.foundry/bin:$PATH
         ./scripts/verify-ci-toolchain.sh
-        echo "=== [step] Resolving CI database addresses ==="
+        echo "=== [step] Connecting CI runner to Compose databases ==="
         DB_CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q database)
-        CH_CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q clickhouse)
-        export PG_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$DB_CONTAINER" | cut -d' ' -f1)
-        export CH_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$CH_CONTAINER" | cut -d' ' -f1)
+        DB_NETWORK=$(docker inspect -f '{{range $network, $_ := .NetworkSettings.Networks}}{{println $network}}{{end}}' "$DB_CONTAINER")
+        DB_NETWORK=${DB_NETWORK%%$'\n'*}
+        CI_CONTAINER=$(cat /etc/hostname)
+        if ! docker inspect "$CI_CONTAINER" >/dev/null 2>&1; then
+          echo "Unable to identify the CI runner container ($CI_CONTAINER)."
+          exit 1
+        fi
+        if ! docker network connect "$DB_NETWORK" "$CI_CONTAINER" 2>/dev/null; then
+          if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "$CI_CONTAINER" | grep -q "\"$DB_NETWORK\""; then
+            echo "Unable to attach the CI runner to Compose network $DB_NETWORK."
+            exit 1
+          fi
+        fi
+        export PG_HOST=database
+        export CH_HOST=clickhouse
         export CI_STRICT_DB=1
         python scripts/check-python-runtime.py
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
         echo "=== [step] Running CI checks ==="
-        # Resolve service addresses because the build container cannot use Docker-host
-        # loopback ports directly.
+        # The runner is attached to the Compose network, so service DNS names are
+        # reachable without relying on private container IPs or Docker-host loopback.
         ./scripts/ci-check.sh
         echo "=== [step] Running test suite ==="
         ./scripts/verify-full-test-suite.sh
