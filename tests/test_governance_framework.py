@@ -78,6 +78,12 @@ def _patch_client(monkeypatch, client: BaalReadClient):
     baal.functions.sponsorThreshold.return_value.call.return_value = 1
     baal.functions.minRetentionPercent.return_value.call.return_value = 66
     baal.functions.baalVersion.return_value.call.return_value = "3.0.0"
+    baal.functions.totalShares.return_value.call.return_value = 687 * 10 ** 18
+    baal.functions.totalLoot.return_value.call.return_value = 8 * 10 ** 18
+    baal.functions.proposalCount.return_value.call.return_value = 16
+    baal.functions.sharesToken.return_value.call.return_value = "0xc6b075ac3234a7ac729114b27370b552fa284690"
+    baal.functions.lootToken.return_value.call.return_value = "0x2508a11aee11ad545bae87cd42131c04613b2099"
+    baal.functions.avatar.return_value.call.return_value = "0xeb55b75328a8dffd45bbf34b7e7efc431a179085"
     baal.functions.shamans.return_value.call.return_value = 7
     client._baal = baal
     return client
@@ -106,6 +112,9 @@ def test_baal_read_client_proposal_and_member(monkeypatch):
     assert cfg.voting_period == 86400
     assert cfg.quorum_percent == 25
     assert cfg.min_retention_percent == 66
+    assert cfg.raw["total_shares"] == 687 * 10 ** 18
+    assert cfg.raw["shares_token"] == "0xc6b075ac3234a7ac729114b27370b552fa284690"
+    assert cfg.raw["avatar"] == "0xeb55b75328a8dffd45bbf34b7e7efc431a179085"
 
     assert client.shaman_permission("0x0000000000000000000000000000000000000ABC") == 7
 
@@ -120,3 +129,26 @@ def test_baal_normalizes_token_balance():
     res = client._normalize_token_balance("shares", "0x0000000000000000000000000000000000000ABC")
     assert res["balance"] == str(Decimal(50))
     assert res["decimals"] == 18
+
+
+@pytest.mark.skipif(
+    not __import__("os").environ.get("RUN_LIVE_BAAL_TEST"),
+    reason="set RUN_LIVE_BAAL_TEST=1 and GNOSIS_RPC_URL to hit Gnosis Chain",
+)
+def test_baal_live_config_and_member():
+    """Optional live smoke test against the real Kokonut DAO deployment."""
+    from services.ingestion.config import (
+        GNOSIS_RPC_URL,
+        KOKONUT_BAAL_ADDRESSES,
+    )
+
+    client = get_framework("moloch_v3_baal")
+    cfg = client.config()
+    assert cfg.raw["shares_token"].lower() == KOKONUT_BAAL_ADDRESSES["shares"].lower()
+    assert cfg.raw["loot_token"].lower() == KOKONUT_BAAL_ADDRESSES["loot"].lower()
+    assert int(cfg.raw["total_shares"]) > 0
+    # proposalCount is exposed by this deployment
+    assert int(cfg.raw.get("proposal_count") or 0) >= 1
+    # treasury avatar resolves to the documented Gnosis Safe
+    assert cfg.raw["avatar"].lower() == KOKONUT_BAAL_ADDRESSES["treasury"].lower()
+    _ = GNOSIS_RPC_URL  # ensure configured

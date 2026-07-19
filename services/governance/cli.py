@@ -57,7 +57,23 @@ def baal_group(
     if command == "config":
         print_json(client.config().__dict__)
     elif command == "proposals":
-        print_json([p.__dict__ for p in client.proposals()])
+        proposals = client.proposals()
+        if not proposals:
+            proposal_count = (client.config().raw or {}).get("proposal_count")
+            print_json(
+                {
+                    "proposals": [],
+                    "note": (
+                        "The deployed Baal exposes proposalCount="
+                        f"{proposal_count} but individual proposal structs could "
+                        "not be decoded with the committed Baal ABI. Run the "
+                        "indexer (services.ingestion.baal_indexer) to populate "
+                        "governance_event, then query the DB."
+                    ),
+                }
+            )
+        else:
+            print_json([p.__dict__ for p in proposals])
     elif command == "proposal":
         if not arg:
             raise ValueError("proposal id required")

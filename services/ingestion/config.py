@@ -66,18 +66,18 @@ KOKONUT_MOLOCH_ADDRESSES = {
 }
 
 # Current Kokonut DAO: Moloch v3 (Baal) deployment on Gnosis Chain.
-# Documented addresses from the Kokonut Network ecosystem wiki; the additional
-# linked contracts (Baal core, Shares/Loot ERC20, Zodiac module) are registered
-# as separate wallet_profile rows in schemas/seeds/020_gnosis_chain.sql.
+# Verified live on Gnosis Chain (id 100). The Baal core resolves its own
+# Shares/Loot ERC20 tokens (`sharesToken`/`lootToken`) and treasury avatar
+# (`avatar`), so those addresses are recorded here and in
+# schemas/seeds/020_gnosis_chain.sql. Legacy v2 addresses live in
+# KOKONUT_MOLOCH_ADDRESSES and are not reused here.
 KOKONUT_BAAL_ADDRESSES = {
-    "baal": "0x5DcE1044A7E2E35D6524001796cee47252f18411",
-    "token_manager": "0x8977c56e979f0d8b76afb5ad85549acd2e96422d",
-    "shares": "0x8124Cbb807A7b64123F3dEc3EF64995d8B10d3Eb",
-    "loot": "0x0444AE984b9563C8480244693ED65F25B3C64a4E",
+    "baal": "0x8977c56e979f0d8b76afb5ad85549acd2e96422d",
+    "shares": "0xc6b075ac3234a7ac729114b27370b552fa284690",
+    "loot": "0x2508a11aee11ad545bae87cd42131c04613b2099",
     "treasury": "0xeb55b75328a8dffd45bbf34b7e7efc431a179085",
     "vkkn_token": "0xc6b075ac3234a7ac729114b27370b552fa284690",
     "loot_token": "0x2508a11aee11ad545bae87cd42131c04613b2099",
-    "zodiac": "0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552",
 }
 
 # EAS contract addresses per chain
