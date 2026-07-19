@@ -87,7 +87,9 @@ contract KokonutTaskBoard is AccessControl {
         bytes32 evidenceRequirementHash
     ) external onlyRole(TASK_ADMIN_ROLE) returns (uint256 taskId) {
         // forge-lint: disable-next-line(block-timestamp)
-        if (!domains.isActiveDomain(domainId) || taskKey == bytes32(0) || deadline <= block.timestamp) revert InvalidTask();
+        if (!domains.isActiveDomain(domainId) || taskKey == bytes32(0) || deadline <= block.timestamp) {
+            revert InvalidTask();
+        }
         if (taskIdByKey[taskKey] != 0) revert TaskKeyExists(taskKey);
 
         taskId = nextTaskId++;
