@@ -86,26 +86,37 @@ jobs:
         ./scripts/seed-pilot.sh
         echo "=== [step] Installing Python deps ==="
         # Isolate Python deps (host Python 3.11+).
-        apt-get update -qq && apt-get install -y -qq openssl libpq-dev gcc >/dev/null
+        apt-get update -qq && apt-get install -y -qq openssl libpq-dev gcc nodejs npm xz-utils >/dev/null
         python3 -m venv .venv
         . .venv/bin/activate
         pip install --upgrade pip
         pip install -r requirements.txt
+        pip install slither-analyzer==0.11.5 semgrep==1.170.0
+        npm install --global --no-audit --no-fund @cyfrin/aderyn@0.6.8
+        curl --proto '=https' --tlsv1.2 -LsSf https://foundry.paradigm.xyz | bash
+        /root/.foundry/bin/foundryup
+        export PATH=/root/.foundry/bin:$PATH
+        ./scripts/verify-ci-toolchain.sh
+        echo "=== [step] Resolving CI database addresses ==="
+        DB_CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q database)
+        CH_CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q clickhouse)
+        export PG_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$DB_CONTAINER" | cut -d' ' -f1)
+        export CH_HOST=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$CH_CONTAINER" | cut -d' ' -f1)
+        export CI_STRICT_DB=1
         python scripts/check-python-runtime.py
         python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
         echo "=== [step] Running CI checks ==="
-        # Do NOT export PG_HOST — the build container cannot reach Docker-published
-        # ports at 127.0.0.1. Scripts that need DB use docker compose exec or detect
-        # connectivity and fall back to the worker container.
+        # Resolve service addresses because the build container cannot use Docker-host
+        # loopback ports directly.
         ./scripts/ci-check.sh
         echo "=== [step] Running test suite ==="
         ./scripts/verify-full-test-suite.sh
         echo "=== [step] Static analysis ==="
-        # Static analysis gate (F-15)
-        pip install slither-analyzer semgrep
-        curl -sL https://github.com/Cyfrin/aderyn/releases/latest/download/aderyn-x86_64-unknown-linux-gnu.tar.gz | tar xz -C /usr/local/bin || echo "aderyn install skipped (download failed)"
-        slither contracts --filter-paths "lib/|node_modules/" --json /tmp/slither-results.json || true
-        aderyn contracts --output /tmp/aderyn-report.md || true
+        ./scripts/static-analysis.sh
+        echo "=== [step] Solidity checks ==="
+        (cd contracts && forge fmt --check && forge build --sizes && forge test)
+        echo "=== [step] Directus hooks checks ==="
+        (cd extensions/kokonut-hooks && npm ci --no-audit --no-fund && npm run build && npm test)
         echo "=== [step] Done ==="
         echo "Static analysis complete"
     runAs: 0:0

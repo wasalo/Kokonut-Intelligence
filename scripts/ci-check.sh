@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
+COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
 DB_SERVICE="${DB_SERVICE:-database}"
 
 echo "=== Kokonut Intelligence — CI Check ==="
@@ -103,20 +103,21 @@ check "EBF scoring CLI --help" "python3 -m services.scoring --help"
 check "workflow specs CLI --help" "python3 -m services.workflow_specs --help"
 echo ""
 
-# 3. TypeScript extension build (if node_modules present)
+# 3. TypeScript extension build
 echo "[3/8] TypeScript extension build..."
-if [ -d "$PROJECT_DIR/extensions/kokonut-hooks/node_modules" ]; then
+if ! command -v npm >/dev/null 2>&1; then
+    echo "  ✗ npm is required for the TypeScript extension build"
+    FAIL=$((FAIL + 1))
+else
     cd "$PROJECT_DIR/extensions/kokonut-hooks"
+    check "npm ci" "npm ci --no-audit --no-fund"
     check "npm run build" "npm run build"
     cd "$PROJECT_DIR"
-else
-    echo "  ⚠ node_modules not found — skipping TS build"
 fi
 echo ""
 
 # 4. Seed idempotency and DB integration checks (REQUIRED; never silently skipped)
 echo "[4/8] Seed idempotency check..."
-COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
 ensure_db() {
     if docker compose -f "$COMPOSE_FILE" ps --status running --services 2>/dev/null | grep -qx 'database'; then
         return 0
@@ -149,8 +150,7 @@ fi
 echo ""
 
 # 4b. DB-backed pytest suite (heartland durability + revenue multiplier).
-# Runs on the host when PostgreSQL is reachable; otherwise falls back to the
-# worker container (project mounted read-only) so the check still executes.
+# Requires the configured PostgreSQL endpoint to be reachable from this runner.
 echo "[4b/8] DB-backed pytest suite..."
 run_db_pytest() {
     local rc=0
@@ -166,12 +166,8 @@ PY
     then
         python3 -m pytest "$@" -q || rc=$?
     else
-        # In CI Docker-in-Docker, volume mounts reference the Docker host
-        # filesystem which differs from the build container's filesystem.
-        # Skip DB-backed pytest when neither direct connection nor worker
-        # fallback is viable; these tests validate locally and in the
-        # worker container profile.
-        echo "  ⚠ DB not reachable from build container — skipping (runs locally)"
+        echo "  ✗ DB not reachable from the test runner"
+        rc=1
     fi
     return $rc
 }

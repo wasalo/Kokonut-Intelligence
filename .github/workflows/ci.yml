@@ -20,6 +20,7 @@ jobs:
       PG_PORT: "5432"
       CH_HOST: localhost
       CH_PORT: "8123"
+      CI_STRICT_DB: "1"
       KOKONUT_METRICS_EXECUTION: host
       KOKONUT_ENV: development
     steps:
@@ -30,6 +31,10 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
 
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt && python -m pip install ruff mypy
@@ -161,6 +166,10 @@ jobs:
           persist-credentials: false
           submodules: recursive
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
@@ -172,3 +181,15 @@ jobs:
 
       - name: Run Forge tests
         run: forge test -vvv
+
+      - name: Install static analysis tools
+        run: |
+          cd ..
+          python3 -m pip install --user slither-analyzer==0.11.5 semgrep==1.170.0
+          npm install --global --no-audit --no-fund @cyfrin/aderyn@0.6.8
+
+      - name: Run static analysis gate
+        run: |
+          cd ..
+          ./scripts/verify-ci-toolchain.sh
+          ./scripts/static-analysis.sh
