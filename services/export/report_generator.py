@@ -16,8 +16,7 @@ import argparse
 import hashlib
 import json
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -625,7 +624,6 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
         WHERE location_id = %s
         ORDER BY created_at DESC
     """, (location_id,))
-    scenarios = [dict(r) for r in cur.fetchall()]
 
     # Get all forecast outputs grouped by scenario
     cur.execute("""
@@ -3066,8 +3064,6 @@ def generate_data_stream_summary(conn, location_id: str, period_start: str = Non
 
 def generate_business_model_canvas(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a Business Model Canvas report for a location."""
-    import psycopg2
-    import psycopg2.extras
     from services.analytics.business_model_canvas import get, list_canvas, compute_health
 
     canvases = list_canvas(conn, location_id=location_id)
@@ -3391,9 +3387,11 @@ def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, per
         query = "SELECT * FROM stakeholder_outcome WHERE status IN ('verified', 'published')"
         params = []
         if location_id:
-            query += " AND location_id = %s::uuid"; params.append(location_id)
+            query += " AND location_id = %s::uuid"
+            params.append(location_id)
         query += " ORDER BY created_at DESC"
-        cur.execute(query, params); outcomes = [dict(row) for row in cur.fetchall()]
+        cur.execute(query, params)
+        outcomes = [dict(row) for row in cur.fetchall()]
         cur.execute("SELECT * FROM v_stakeholder_capability_value_stream ORDER BY entity_type, entity_name, party_name")
         architecture = [dict(row) for row in cur.fetchall()]
     return {
