@@ -1,0 +1,306 @@
+[
+  {
+    "anonymous": false,
+    "name": "SetupComplete",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "lootPaused", "type": "bool" },
+      { "indexed": false, "name": "sharesPaused", "type": "bool" },
+      { "indexed": false, "name": "gracePeriod", "type": "uint32" },
+      { "indexed": false, "name": "votingPeriod", "type": "uint32" },
+      { "indexed": false, "name": "proposalOffering", "type": "uint256" },
+      { "indexed": false, "name": "quorumPercent", "type": "uint256" },
+      { "indexed": false, "name": "sponsorThreshold", "type": "uint256" },
+      { "indexed": false, "name": "minRetentionPercent", "type": "uint256" },
+      { "indexed": false, "name": "name", "type": "string" },
+      { "indexed": false, "name": "symbol", "type": "string" },
+      { "indexed": false, "name": "guildTokens", "type": "address[]" },
+      { "indexed": false, "name": "totalShares", "type": "uint256" },
+      { "indexed": false, "name": "totalLoot", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "SubmitProposal",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "proposal", "type": "uint256" },
+      { "indexed": true, "name": "proposalDataHash", "type": "bytes32" },
+      { "indexed": false, "name": "votingPeriod", "type": "uint256" },
+      { "indexed": false, "name": "proposalData", "type": "bytes" },
+      { "indexed": false, "name": "expiration", "type": "uint256" },
+      { "indexed": false, "name": "selfSponsor", "type": "bool" },
+      { "indexed": false, "name": "timestamp", "type": "uint256" },
+      { "indexed": false, "name": "details", "type": "string" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "SponsorProposal",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "member", "type": "address" },
+      { "indexed": true, "name": "proposal", "type": "uint256" },
+      { "indexed": true, "name": "votingStarts", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "CancelProposal",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "proposal", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "SubmitVote",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "member", "type": "address" },
+      { "indexed": false, "name": "balance", "type": "uint256" },
+      { "indexed": true, "name": "proposal", "type": "uint256" },
+      { "indexed": true, "name": "approved", "type": "bool" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "ProcessProposal",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "proposal", "type": "uint256" },
+      { "indexed": false, "name": "passed", "type": "bool" },
+      { "indexed": false, "name": "actionFailed", "type": "bool" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "ProcessingFailed",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "proposal", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "Ragequit",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "member", "type": "address" },
+      { "indexed": false, "name": "to", "type": "address" },
+      { "indexed": true, "name": "lootToBurn", "type": "uint256" },
+      { "indexed": true, "name": "sharesToBurn", "type": "uint256" },
+      { "indexed": false, "name": "tokens", "type": "address[]" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "DelegateChanged",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "delegator", "type": "address" },
+      { "indexed": true, "name": "fromDelegate", "type": "address" },
+      { "indexed": true, "name": "toDelegate", "type": "address" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "DelegateVotesChanged",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "delegate", "type": "address" },
+      { "indexed": false, "name": "previousBalance", "type": "uint256" },
+      { "indexed": false, "name": "newBalance", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "ShamanSet",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "shaman", "type": "address" },
+      { "indexed": false, "name": "permission", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "GuildTokenSet",
+    "type": "event",
+    "inputs": [
+      { "indexed": true, "name": "token", "type": "address" },
+      { "indexed": false, "name": "enabled", "type": "bool" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "GovernanceConfigSet",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "voting", "type": "uint32" },
+      { "indexed": false, "name": "grace", "type": "uint32" },
+      { "indexed": false, "name": "newOffering", "type": "uint256" },
+      { "indexed": false, "name": "quorum", "type": "uint256" },
+      { "indexed": false, "name": "sponsor", "type": "uint256" },
+      { "indexed": false, "name": "minRetention", "type": "uint256" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "SharesPaused",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "paused", "type": "bool" }
+    ]
+  },
+  {
+    "anonymous": false,
+    "name": "LootPaused",
+    "type": "event",
+    "inputs": [
+      { "indexed": false, "name": "paused", "type": "bool" }
+    ]
+  },
+
+  {
+    "inputs": [],
+    "name": "totalShares",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalLoot",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "votingPeriod",
+    "outputs": [{ "name": "", "type": "uint32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "gracePeriod",
+    "outputs": [{ "name": "", "type": "uint32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "proposalOffering",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "quorumPercent",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "sponsorThreshold",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minRetentionPercent",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "baalVersion",
+    "outputs": [{ "name": "", "type": "string" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "proposalId", "type": "uint256" }],
+    "name": "proposals",
+    "outputs": [
+      { "name": "id", "type": "uint256" },
+      { "name": "proposalDataHash", "type": "bytes32" },
+      { "name": "sponsor", "type": "address" },
+      { "name": "sharesRequested", "type": "uint256" },
+      { "name": "lootRequested", "type": "uint256" },
+      { "name": "yesVotes", "type": "uint256" },
+      { "name": "noVotes", "type": "uint256" },
+      { "name": "maxSharesAndLootAtYesVote", "type": "uint256" },
+      { "name": "proposalData", "type": "bytes" },
+      { "name": "details", "type": "string" },
+      { "name": "votingStarts", "type": "uint256" },
+      { "name": "votingEnds", "type": "uint256" },
+      { "name": "graceEnds", "type": "uint256" },
+      { "name": "expiration", "type": "uint256" },
+      { "name": "status", "type": "uint8" },
+      { "name": "selfSponsor", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "proposalId", "type": "uint256" }],
+    "name": "getProposalFlags",
+    "outputs": [
+      { "name": "sponsored", "type": "bool" },
+      { "name": "processed", "type": "bool" },
+      { "name": "cancelled", "type": "bool" },
+      { "name": "actionFailed", "type": "bool" },
+      { "name": "passed", "type": "bool" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "members",
+    "outputs": [{ "name": "", "type": "address[]" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "member", "type": "address" }],
+    "name": "sharesBalance",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "member", "type": "address" }],
+    "name": "lootBalance",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "account", "type": "address" }],
+    "name": "delegates",
+    "outputs": [{ "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "name": "shaman", "type": "address" }],
+    "name": "shamans",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalProposals",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]

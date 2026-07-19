@@ -27,6 +27,24 @@ A single typer-based meta-CLI aggregates all service CLIs. Prefer it for interac
 - The meta-CLI mounts legacy argparse CLIs unchanged. Each subcommand forwards its trailing tokens to the original parser, so the documented `python3 -m services.metrics ...` flags work the same way under `python3 -m services.cli metrics ...`.
 - New commands should use the shared helpers in `services/common/cli.py`: `run()` (clean error + exit code), `print_json()`, and `get_connection()` (context-managed DB). Do not re-implement JSON printing, error wrapping, or raw `conn.close()` blocks.
 
+## Governance Frameworks
+
+Kokonut Intelligence is governance-framework-aware. A pluggable `GovernanceFramework` abstraction (`services/governance/`) lets the platform feel native across DAOs. The first concrete adapter is **Moloch v3 (Baal)** — the framework behind the Kokonut DAO on Gnosis Chain. Future adapters (OpenZeppelin Governor, Aragon, Colony) follow the same contract and register in `services/governance/adapters.py`.
+
+- The integration is **read-first**: adapters expose on-chain state (proposals, votes, member shares/loot, governance config, shamans) but contain no transaction-submitting methods. Any write path (proposal submission, execution, ragequit, shaman calls) is out of scope and must route through a human-approved Agent/Governor flow per `services/agents/safety.py`.
+- Kokonut DAO (Baal) contract addresses live in `services/ingestion/config.py` under `KOKONUT_BAAL_ADDRESSES`; ABIs in `contracts/abis/Baal.json`, `BaalShares.json`, `BaalLoot.json`.
+- The legacy **Moloch v2** Kokonut DAO is preserved: `services/ingestion/gnosis_indexer.py` and `services/guilds/moloch.py` still use `KOKONUT_MOLOCH_ADDRESSES` for historical queries. Do not repoint them at the Baal deployment.
+- Framework registry is mirrored in the DB via the `governance_framework` table (seeded in `schemas/seeds/020_gnosis_chain.sql`); `baal_governance_config` and `baal_shaman` cache indexed on-chain state.
+
+Commands:
+- List configured frameworks: `python3 -m services.governance.cli framework list` (also `python3 -m services.cli dao framework list`)
+- Baal governance config: `python3 -m services.governance.cli baal config`
+- Baal proposals: `python3 -m services.governance.cli baal proposals`
+- Baal proposal by id: `python3 -m services.governance.cli baal proposal 3`
+- Baal member state: `python3 -m services.governance.cli baal member 0xWALLET`
+- Baal shaman permission: `python3 -m services.governance.cli baal shaman 0xSHAMAN`
+- Index Baal events: `python3 -m services.ingestion.baal_indexer [--from-block N] [--to-block N]`
+
 ## Project Shape
 
 - PostgreSQL and Directus are the canonical schema/API layer.
