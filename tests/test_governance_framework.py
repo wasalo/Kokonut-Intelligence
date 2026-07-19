@@ -232,15 +232,20 @@ def test_baal_proposals_prefers_events(monkeypatch):
     w3 = _fake_w3()
     client = BaalReadClient(w3=w3)
     _patch_client(monkeypatch, client)
-    # Simulate unreliable on-chain decode: proposals(0) returns garbage zeros.
+    # Simulate unreliable on-chain decode: proposals(0) returns garbage zeros,
+    # and proposalCount() reports a non-zero total (would normally drive a
+    # per-id on-chain scan that yields nothing useful).
     garbage = (0, b"", "0x0", 0, 0, 0, 0, 0, b"", "", 0, 0, 0, 0, 0, False)
     client._baal.functions.proposals.return_value.call.return_value = garbage
     client._baal.functions.getProposalFlags.return_value.call.return_value = (
         False, False, False, False, False,
     )
-    db = _fake_db_with_events()
-    proposals = client.proposals_from_events(conn=db)
-    # proposals() should prefer the event ledger over the garbage on-chain data
+    fake_events = client.proposals_from_events(conn=_fake_db_with_events())
+    # proposals() must prefer the event ledger over the garbage on-chain data,
+    # without attempting to decode the unreliable on-chain structs.
+    monkeypatch.setattr(client, "proposals_from_events", lambda conn=None: fake_events)
     result = client.proposals()
     assert [p.proposal_id for p in result] == ["15", "16"]
-    _ = proposals
+    # The unreliable on-chain proposal decoder must not have been consulted for
+    # the listing (only the event ledger path was used).
+    client._baal.functions.proposals.assert_not_called()

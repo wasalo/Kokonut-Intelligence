@@ -7,6 +7,12 @@ and the read client from ``services/governance/baal.py``.
 
 Run:
     python3 -m services.ingestion.baal_indexer [--from-block N] [--to-block N]
+
+Note: the Kokonut Baal clone (KOKONUT_BAAL_ADDRESSES["baal"]) emits proposal
+events from block ~29_810_566 (proposal 1). A full history backfill must start
+well before the clone's first *recent* activity (block ~41_112_294, proposal 15);
+use --from-block 29000000 to capture proposals 1-14. Idempotent: re-running
+over the same range is safe (unique index on governance_event).
 """
 
 from __future__ import annotations
