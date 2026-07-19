@@ -206,6 +206,12 @@ echo "Seeding Bio Factory Operations definitions..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/044_bio_factory_operations.sql"
 echo "Bio Factory Operations definitions seeded."
 
+# Seed the organization used by organization-grain reports
+echo ""
+echo "Seeding canonical pilot organization..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/113_pilot_organization.sql"
+echo "Canonical pilot organization seeded."
+
 # Seed audience-specific pitch templates
 echo ""
 echo "Seeding pitch templates..."

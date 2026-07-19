@@ -79,6 +79,8 @@ contract KokonutGuildPoints is
     mapping(bytes32 reversalId => bool settled) public settledReversals;
     mapping(address contributor => mapping(uint256 nonce => bool used)) public usedClaimNonces;
     KokonutGuildDomain public domainRegistry;
+    // Appended after the original state to preserve the UUPS storage layout.
+    uint256 public deploymentChainId;
 
     event KGP_Awarded(
         bytes32 indexed awardId,
@@ -130,6 +132,7 @@ contract KokonutGuildPoints is
         __AccessControl_init();
         __EIP712_init("Kokonut Guild Points", "1");
         __Pausable_init();
+        deploymentChainId = block.chainid;
 
         _setRoleAdmin(UPGRADER_ROLE, UPGRADER_ROLE);
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
@@ -170,6 +173,7 @@ contract KokonutGuildPoints is
             revert ClaimNonceUsed(voucher.contributor, voucher.nonce);
         }
         if (voucher.chainId != block.chainid) revert ChainIdMismatch();
+        if (deploymentChainId != block.chainid) revert ChainIdMismatch();
 
         address signer = ECDSA.recover(claimDigest(voucher), signature);
         if (!hasRole(CLAIM_SIGNER_ROLE, signer)) revert InvalidClaimSigner(signer);
@@ -196,7 +200,7 @@ contract KokonutGuildPoints is
         bytes32 reasonHash,
         bytes32 ledgerRecordHash,
         bytes32 calculationVersion
-    ) external onlyRole(REVERSER_ROLE) whenNotPaused {
+    ) external onlyRole(REVERSER_ROLE) {
         if (settledReversals[reversalId]) revert ReversalAlreadySettled(reversalId);
 
         AwardRecord storage record = _awards[awardId];
@@ -237,6 +241,16 @@ contract KokonutGuildPoints is
 
     function getAward(bytes32 awardId) external view returns (AwardRecord memory) {
         return _awards[awardId];
+    }
+
+    /// @notice Returns the implementation stored by the ERC-1967 proxy.
+    /// @dev When called through the proxy, this reads proxy storage and lets
+    ///      the upgrade timelock reject stale queued upgrades.
+    function implementation() external view returns (address current) {
+        bytes32 slot = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+        assembly {
+            current := sload(slot)
+        }
     }
 
     function isAwardSettled(bytes32 awardId) external view returns (bool) {

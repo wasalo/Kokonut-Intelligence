@@ -301,14 +301,29 @@ export async function handleWorkflowTransition(
   }
 
   // Enforce 7-day review period for stakeholder feedback
-  if (collection === 'stakeholder_feedback' && newStatus === 'verified' && db && recordId) {
-    const record = await db(collection).where('id', recordId).first('submitted_at');
+  if (collection === 'stakeholder_feedback' && newStatus === 'verified') {
+    if (!db || !recordId) {
+      pendingTransitions.delete(transitionKey(collection, recordId || ''));
+      throw new Error('Unable to verify stakeholder feedback review period');
+    }
+
+    let record: { submitted_at?: string } | undefined;
+    try {
+      record = await db(collection).where('id', recordId).first('submitted_at');
+    } catch (error) {
+      pendingTransitions.delete(transitionKey(collection, recordId));
+      throw new Error(`Unable to verify stakeholder feedback review period: ${String(error)}`);
+    }
     if (!record?.submitted_at) {
       pendingTransitions.delete(transitionKey(collection, recordId));
       throw new Error('Stakeholder feedback submitted_at is required before verification');
     }
     const submittedAt = new Date(record.submitted_at);
     const nowDate = new Date();
+    if (Number.isNaN(submittedAt.getTime())) {
+      pendingTransitions.delete(transitionKey(collection, recordId));
+      throw new Error('Stakeholder feedback submitted_at must be a valid date');
+    }
     const diffDays = Math.floor((nowDate.getTime() - submittedAt.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays < 7) {
       pendingTransitions.delete(transitionKey(collection, recordId));

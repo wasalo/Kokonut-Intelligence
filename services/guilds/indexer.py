@@ -14,7 +14,7 @@ from ..common.logging import get_logger
 from ..ingestion.base import get_db
 from ..ingestion.config import GNOSIS_RPC_URL
 from .kgp import insert_chain_event
-from .projections import project_protocol_event
+from .projections import project_protocol_event, reset_chain_projections
 
 logger = get_logger("guilds.kgp_indexer")
 CONFIRMATIONS = int(os.environ.get("KGP_CONFIRMATIONS", "12"))
@@ -174,7 +174,7 @@ def _mark_processed(cursor, deployment_id: str, transaction_hash: str, log_index
     )
 
 
-def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dict[str, Any]) -> bool:
+def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dict[str, Any], source_chain_event_id: str | None = None) -> bool:
     tx_hash = _hex(log["transactionHash"])
     block_number = int(log["blockNumber"])
     log_index = int(log["logIndex"])
@@ -184,6 +184,7 @@ def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dic
             UPDATE guild_reputation_event
             SET settlement_status = 'reconciled', contract_deployment_id = %s,
                 transaction_hash = %s, block_number = %s, log_index = %s,
+                source_chain_event_id = %s, orphaned_at = NULL,
                 settled_at = COALESCE(settled_at, NOW()), updated_at = NOW()
             WHERE award_id = %s
               AND LOWER(contributor_wallet) = LOWER(%s)
@@ -192,7 +193,7 @@ def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dic
               AND calculation_version = %s
             """,
             (
-                deployment_id, tx_hash, block_number, log_index, decoded["award_id"],
+                deployment_id, tx_hash, block_number, log_index, source_chain_event_id, decoded["award_id"],
                 decoded["contributor_wallet"], decoded["domain_id"], decoded["amount"], decoded["epoch"],
                 decoded["evidence_hash"], decoded["ledger_record_hash"], decoded["calculation_version"],
             ),
@@ -202,10 +203,11 @@ def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dic
             """
             UPDATE kgp_claim
             SET claim_status = 'claimed', transaction_hash = %s,
-                block_number = %s, claimed_at = COALESCE(claimed_at, NOW()), updated_at = NOW()
+                block_number = %s, source_chain_event_id = %s, orphaned_at = NULL,
+                claimed_at = COALESCE(claimed_at, NOW()), updated_at = NOW()
             WHERE award_id = %s AND LOWER(contributor_wallet) = LOWER(%s) AND nonce = %s
             """,
-            (tx_hash, block_number, decoded["award_id"], decoded["contributor_wallet"], decoded["nonce"]),
+            (tx_hash, block_number, source_chain_event_id, decoded["award_id"], decoded["contributor_wallet"], decoded["nonce"]),
         )
     else:
         cursor.execute(
@@ -213,6 +215,7 @@ def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dic
             UPDATE guild_reputation_event
             SET settlement_status = 'reconciled', contract_deployment_id = %s,
                 transaction_hash = %s, block_number = %s, log_index = %s,
+                source_chain_event_id = %s, orphaned_at = NULL,
                 settled_at = COALESCE(settled_at, NOW()), updated_at = NOW()
             WHERE reversal_id = %s
               AND LOWER(contributor_wallet) = LOWER(%s)
@@ -221,7 +224,7 @@ def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dic
               AND calculation_version = %s
             """,
             (
-                deployment_id, tx_hash, block_number, log_index, decoded["reversal_id"],
+                deployment_id, tx_hash, block_number, log_index, source_chain_event_id, decoded["reversal_id"],
                 decoded["contributor_wallet"], decoded["domain_id"], decoded["amount"],
                 decoded["reason_hash"], decoded["ledger_record_hash"], decoded["calculation_version"],
             ),
@@ -290,19 +293,24 @@ class KGPIndexer:
                     "payload": decoded,
                 }
                 if insert_chain_event(cursor, event):
+                    cursor.execute(
+                        "SELECT id FROM kgp_chain_event WHERE deployment_id = %s AND transaction_hash = %s AND log_index = %s",
+                        (self.deployment_id, event["transaction_hash"], event["log_index"]),
+                    )
+                    source_chain_event_id = str(cursor.fetchone()[0])
                     if decoded["event_name"] not in KGP_EVENT_NAMES:
                         projected = project_protocol_event(cursor, self.deployment_id, {
                             **decoded,
                             "transaction_hash": event["transaction_hash"],
                             "block_number": event["block_number"],
                             "log_index": event["log_index"],
-                        })
+                        }, source_chain_event_id)
                         if projected:
                             _mark_processed(cursor, self.deployment_id, event["transaction_hash"], event["log_index"])
                         else:
                             self._dead_letter(cursor, event)
                     else:
-                        projected = _project_event(cursor, self.deployment_id, log, decoded)
+                        projected = _project_event(cursor, self.deployment_id, log, decoded, source_chain_event_id)
                         if projected:
                             _mark_processed(cursor, self.deployment_id, event["transaction_hash"], event["log_index"])
                         else:
@@ -346,11 +354,14 @@ class KGPIndexer:
             """,
             (self.deployment_id, rewind),
         )
+        reset_chain_projections(cursor, self.deployment_id)
+        self._replay_canonical_events(cursor)
         cursor.execute(
             """
             UPDATE kgp_claim
             SET claim_status = 'submitted', transaction_hash = NULL,
-                block_number = NULL, claimed_at = NULL, updated_at = NOW()
+                block_number = NULL, source_chain_event_id = NULL,
+                orphaned_at = NOW(), claimed_at = NULL, updated_at = NOW()
             WHERE transaction_hash IN (
                 SELECT transaction_hash FROM kgp_chain_event
                 WHERE deployment_id = %s AND block_number >= %s AND is_canonical = FALSE
@@ -361,8 +372,9 @@ class KGPIndexer:
         cursor.execute(
             """
             UPDATE guild_reputation_event
-            SET settlement_status = 'submitted', contract_deployment_id = NULL,
+                SET settlement_status = 'submitted', contract_deployment_id = NULL,
                 transaction_hash = NULL, block_number = NULL, log_index = NULL,
+                source_chain_event_id = NULL, orphaned_at = NOW(),
                 settled_at = NULL, updated_at = NOW()
             WHERE contract_deployment_id = %s AND block_number >= %s
             """,
@@ -372,11 +384,41 @@ class KGPIndexer:
             """
             UPDATE kgp_indexer_cursor
             SET next_block = %s, confirmed_block = %s, last_block_number = NULL,
-                last_block_hash = NULL, status = 'reorg', updated_at = NOW()
+                last_block_hash = NULL, status = 'active', updated_at = NOW()
             WHERE deployment_id = %s
             """,
             (rewind, max(0, rewind - 1), self.deployment_id),
         )
+
+    def _replay_canonical_events(self, cursor) -> None:
+        cursor.execute(
+            """
+            SELECT id, event_name, payload, transaction_hash, block_number, log_index
+            FROM kgp_chain_event
+            WHERE deployment_id = %s AND is_canonical = TRUE
+            ORDER BY block_number, log_index
+            """,
+            (self.deployment_id,),
+        )
+        for row in cursor.fetchall():
+            event_id, event_name, payload, tx_hash, block_number, log_index = row
+            decoded = payload if isinstance(payload, dict) else json.loads(payload)
+            decoded["event_name"] = event_name
+            decoded["transaction_hash"] = tx_hash
+            decoded["block_number"] = block_number
+            decoded["log_index"] = log_index
+            if event_name in KGP_EVENT_NAMES:
+                projected = _project_event(cursor, self.deployment_id, {
+                    "transactionHash": tx_hash,
+                    "blockNumber": block_number,
+                    "logIndex": log_index,
+                }, decoded, str(event_id))
+            else:
+                projected = project_protocol_event(cursor, self.deployment_id, decoded, str(event_id))
+            cursor.execute(
+                "UPDATE kgp_chain_event SET processing_status = %s, processed_at = CASE WHEN %s THEN NOW() ELSE processed_at END WHERE id = %s",
+                ("processed" if projected else "dead_letter", projected, event_id),
+            )
 
     @staticmethod
     def _dead_letter(cursor, event: dict[str, Any]) -> None:

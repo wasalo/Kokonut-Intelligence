@@ -3,12 +3,8 @@
 from __future__ import annotations
 
 import json
-import os
 import re
-import time
 import uuid
-import subprocess
-import sys
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -37,14 +33,6 @@ _ALLOWED_MODULES: set[str] = {
 
 # Pattern that module paths must match (dotted Python names only).
 _MODULE_PATH_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$")
-
-# Environment variables removed from the child process to prevent leakage.
-_SANITISED_ENV_KEYS = frozenset({
-    "KOKONUT_DB_URL", "KOKONUT_CLICKHOUSE_URL", "KOKONUT_DIRECTUS_TOKEN",
-    "KOKONUT_EAS_PRIVATE_KEY", "KOKONUT_JWT_SECRET", "POSTGRES_PASSWORD",
-    "REDIS_PASSWORD", "KOKONUT_API_KEY", "EAS_PRIVATE_KEY",
-})
-
 
 class AnalysisEnvironment:
     """Isolated computation context per farm."""
@@ -143,82 +131,13 @@ class AnalysisEnvironment:
             logger.warning("Rejected unregistered module: %s", module_path)
             return {"error": f"Module not allowed: {module_path}"}
 
-        # A subprocess is not a security boundary: it shares the host
-        # filesystem, kernel, network, and user privileges. Keep the legacy
-        # executor available only for explicitly opted-in development use
-        # until a dedicated restricted worker is configured.
-        environment = os.environ.get("KOKONUT_ENV", "development").lower()
-        allow_unisolated = os.environ.get("KOKONUT_ALLOW_UNISOLATED_SANDBOX") == "true"
-        if environment not in {"development", "dev", "local"} or not allow_unisolated:
-            return {
-                "error": (
-                    "Sandbox executor is not configured. Configure a restricted "
-                    "sandbox worker; direct process execution is disabled."
-                )
-            }
-
-        run_id = str(uuid.uuid4())
-        conn = self._get_conn()
-
-        # Create run record
-        try:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO analysis_run (id, environment_id, module_path, input_params)
-                    VALUES (%s, %s, %s, %s)
-                    """,
-                    (run_id, env_id, module_path, json.dumps(input_params or {})),
-                )
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            logger.exception("Failed to create analysis run")
-            return {"error": "Failed to create run record"}
-
-        # Build a sanitised environment for the child process.
-        clean_env = {
-            k: v
-            for k, v in os.environ.items()
-            if k not in _SANITISED_ENV_KEYS
-        }
-
-        # Execute in subprocess
-        start_time = time.monotonic()
-        try:
-            result = subprocess.run(
-                [sys.executable, "-m", module_path],
-                capture_output=True,
-                text=True,
-                timeout=timeout_seconds,
-                env=clean_env,
-                cwd="/tmp",
+        logger.error("Sandbox execution requested without a restricted worker: %s", module_path)
+        return {
+            "error": (
+                "Sandbox executor is not configured. Configure a restricted "
+                "worker; direct process execution is disabled."
             )
-            duration_ms = int((time.monotonic() - start_time) * 1000)
-
-            status = "completed" if result.returncode == 0 else "failed"
-            output = result.stdout[-5000:] if result.stdout else None
-            error = result.stderr[-2000:] if result.returncode != 0 else None
-
-            self._complete_run(run_id, status, output, error, duration_ms)
-
-            return {
-                "run_id": run_id,
-                "status": status,
-                "duration_ms": duration_ms,
-                "output": output,
-                "error": error,
-            }
-
-        except subprocess.TimeoutExpired:
-            duration_ms = int((time.monotonic() - start_time) * 1000)
-            self._complete_run(run_id, "timeout", None, "Execution timed out", duration_ms)
-            return {"run_id": run_id, "status": "timeout", "duration_ms": duration_ms, "error": "Timed out"}
-
-        except Exception as exc:
-            duration_ms = int((time.monotonic() - start_time) * 1000)
-            self._complete_run(run_id, "failed", None, str(exc), duration_ms)
-            return {"run_id": run_id, "status": "failed", "duration_ms": duration_ms, "error": str(exc)}
+        }
 
     def _complete_run(self, run_id: str, status: str, output: str | None, error: str | None, duration_ms: int) -> None:
         """Update run record with completion status."""

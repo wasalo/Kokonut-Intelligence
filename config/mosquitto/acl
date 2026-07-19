@@ -1,0 +1,4 @@
+# The subscriber identity is read-only. Device certificate identities must be
+# added here by the device provisioning workflow with exact topic permissions.
+user sensor-ingestion
+topic read sensors/+/+/readings

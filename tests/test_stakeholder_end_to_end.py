@@ -28,8 +28,16 @@ def test_identity_consent_decision_trust_and_cockpit_journey():
     try:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM stakeholder_decision WHERE decision_key = %s", (DECISION_KEY,))
-            cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid)", (SUBJECT_ID, REVIEWER_ID))
-            cur.execute("INSERT INTO party (id, party_type, display_name, privacy_level) VALUES (%s::uuid, 'person', 'E2E Resident', 'public'), (%s::uuid, 'person', 'E2E Reviewer', 'public')", (SUBJECT_ID, REVIEWER_ID))
+            cur.execute(
+                """INSERT INTO party (id, party_type, display_name, privacy_level)
+                   VALUES (%s::uuid, 'person', 'E2E Resident', 'public'),
+                          (%s::uuid, 'person', 'E2E Reviewer', 'public')
+                   ON CONFLICT (id) DO UPDATE
+                   SET party_type = EXCLUDED.party_type,
+                       display_name = EXCLUDED.display_name,
+                       privacy_level = EXCLUDED.privacy_level""",
+                (SUBJECT_ID, REVIEWER_ID),
+            )
         conn.commit()
 
         case = stakeholder_identity_resolution.propose_link(
@@ -102,9 +110,7 @@ def test_identity_consent_decision_trust_and_cockpit_journey():
             if feedback_id:
                 cur.execute("DELETE FROM stakeholder_feedback WHERE id = %s::uuid", (feedback_id,))
             cur.execute("DELETE FROM party_trust_evidence WHERE subject_party_id = %s::uuid", (SUBJECT_ID,))
-            cur.execute("DELETE FROM stakeholder_consent WHERE party_id = %s::uuid", (SUBJECT_ID,))
             cur.execute("DELETE FROM party_resolution_case WHERE source_system = 'dod-e2e'")
             cur.execute("DELETE FROM party_identifier WHERE source_system = 'dod-e2e'")
-            cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid)", (SUBJECT_ID, REVIEWER_ID))
         conn.commit()
         conn.close()

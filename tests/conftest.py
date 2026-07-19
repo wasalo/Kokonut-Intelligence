@@ -14,6 +14,22 @@ import psycopg2.extras
 PROJECT_DIR = Path(__file__).parent.parent
 
 
+def pytest_sessionfinish(session, exitstatus):
+    """Do not allow infrastructure skips to produce a green CI run."""
+    if os.environ.get("CI_STRICT_DB") != "1":
+        return
+
+    terminal_reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    skipped = terminal_reporter.stats.get("skipped", []) if terminal_reporter else []
+    database_skips = [
+        report for report in skipped
+        if any(marker in str(report.longrepr).lower() for marker in ("no database available", "table not available"))
+    ]
+    if database_skips:
+        print(f"\nERROR: {len(database_skips)} database-dependent tests were skipped in strict CI mode")
+        session.exitstatus = 1
+
+
 def database_running() -> bool:
     """Check if the PostgreSQL Docker service is running."""
     try:

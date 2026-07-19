@@ -78,22 +78,23 @@ This re-encrypts the data key to include the new recipient. No secrets need re-t
 ### Decrypt and run docker compose
 
 ```bash
-# Decrypt in memory, inject as env vars for the command
-sops exec-env .env.sops docker compose up -d
+# Decrypt in memory, export env vars, and start Compose
+source scripts/load-secrets.sh
+docker compose up -d
 
-# Run any command with secrets available
-sops exec-env .env.sops docker compose ps
-sops exec-env .env.sops docker compose logs database
+# Run commands with secrets available in the current shell
+docker compose ps
+docker compose logs database
 ```
 
 ### Decrypt to stdout (read secrets)
 
 ```bash
 # View decrypted .env
-sops -d .env.sops
+sops -d --input-type dotenv --output-type dotenv .env.sops
 
 # View a specific variable
-sops -d .env.sops | grep POSTGRES_PASSWORD
+sops -d --input-type dotenv --output-type dotenv .env.sops | grep POSTGRES_PASSWORD
 ```
 
 ### Edit secrets
@@ -106,12 +107,10 @@ sops .env.sops
 ### Run shell scripts with secrets
 
 ```bash
-# Source secrets into current shell
+# Source secrets into current shell before running scripts
 source scripts/load-secrets.sh
-
-# Or use exec-env for any script
-sops exec-env .env.sops ./scripts/seed.sh
-sops exec-env .env.sops ./scripts/backup.sh
+./scripts/seed.sh
+./scripts/backup.sh
 ```
 
 ### Python services
@@ -153,19 +152,10 @@ sops updatekeys .env.sops
 - name: Decrypt secrets
   env:
     SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-  run: sops -d .env.sops > .env
+  run: sops -d --input-type dotenv --output-type dotenv .env.sops > .env
 
 - name: Deploy
   run: docker compose up -d
-```
-
-Or use `exec-env` directly:
-
-```yaml
-- name: Deploy with secrets
-  env:
-    SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
-  run: sops exec-env .env.sops docker compose up -d
 ```
 
 ### Jenkins / GitLab CI
@@ -176,7 +166,7 @@ Store the private key content as a CI secret, write it to a temp file:
 echo "$SOPS_AGE_KEY" > /tmp/age-key.txt
 chmod 600 /tmp/age-key.txt
 export SOPS_AGE_KEY_FILE=/tmp/age-key.txt
-sops -d .env.sops > .env
+sops -d --input-type dotenv --output-type dotenv .env.sops > .env
 ```
 
 ## Production Server Setup
@@ -194,13 +184,15 @@ chmod 600 ~/.config/sops/age/keys.txt
 
 # Share public key with team lead (add to .sops.yaml)
 # Then deploy:
-sops exec-env .env.sops docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+source scripts/load-secrets.sh
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
 
 ### Worker overlay
 
 ```bash
-sops exec-env .env.sops docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d
+source scripts/load-secrets.sh
+docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d
 ```
 
 ### Cron jobs
@@ -210,7 +202,8 @@ sops exec-env .env.sops docker compose -f docker-compose.yml -f docker-compose.w
 # source /path/to/.env && docker compose ...
 
 # New:
-sops exec-env /path/to/.env.sops docker compose ...
+source /path/to/scripts/load-secrets.sh
+docker compose ...
 ```
 
 ## Troubleshooting
@@ -232,17 +225,17 @@ SOPS can't find `.sops.yaml`. Ensure it's in the project root or a parent direct
 
 ### Decrypt works but docker compose doesn't see variables
 
-Ensure you're running `sops exec-env .env.sops docker compose ...` as a single command (not in separate steps).
+Source `scripts/load-secrets.sh` in the shell that launches Docker Compose so the decrypted variables are exported to the child process.
 
 ## Security Model
 
 | Threat | Mitigation |
 |--------|------------|
 | Secret leaked in git | Encrypted values only — useless without private key |
-| `docker inspect` exposes secrets | `exec-env` sets env vars in memory, not in container config |
+| `docker inspect` exposes secrets | `load-secrets.sh` sets env vars in memory, not in container config |
 | Team member leaves | Remove their key from `.sops.yaml`, run `sops updatekeys` |
 | Private key compromised | Generate new key, update `.sops.yaml`, re-encrypt |
-| Accidental `sops -d .env.sops > .env` | Never write plaintext to disk — use `exec-env` |
+| Accidental plaintext file | Prefer `source scripts/load-secrets.sh` for local commands |
 | Editor swap files leak secrets | SOPS edits in memory; warn about editor behavior |
 
 ## Files

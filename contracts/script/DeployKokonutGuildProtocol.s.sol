@@ -21,6 +21,7 @@ contract DeployKokonutGuildProtocol is Script {
     struct Config {
         address admin;
         address bootstrap;
+        address roleAdmin;
         address guildAdmin;
         address domainAdmin;
         address taskAdmin;
@@ -58,11 +59,11 @@ contract DeployKokonutGuildProtocol is Script {
         vm.startBroadcast();
         (, address broadcaster,) = vm.readCallers();
         require(broadcaster == config.bootstrap, "Bootstrap does not match broadcast sender");
-        protocol.registry = new KokonutGuildRegistry(config.bootstrap);
-        protocol.domains = new KokonutGuildDomain(config.bootstrap, protocol.registry);
-        protocol.tasks = new KokonutTaskBoard(config.bootstrap, protocol.domains);
-        protocol.reviews = new KokonutEvidenceReview(config.bootstrap, protocol.tasks);
-        protocol.governance = new KokonutGuildGovernance(config.bootstrap);
+        protocol.registry = new KokonutGuildRegistry(config.bootstrap, config.bootstrap);
+        protocol.domains = new KokonutGuildDomain(config.bootstrap, config.bootstrap, protocol.registry);
+        protocol.tasks = new KokonutTaskBoard(config.bootstrap, config.bootstrap, protocol.domains);
+        protocol.reviews = new KokonutEvidenceReview(config.bootstrap, config.bootstrap, protocol.tasks);
+        protocol.governance = new KokonutGuildGovernance(config.bootstrap, config.bootstrap);
         _wire(protocol, config);
         vm.stopBroadcast();
 
@@ -90,6 +91,7 @@ contract DeployKokonutGuildProtocol is Script {
         config.admin = vm.envAddress("GUILD_PROTOCOL_ADMIN");
         config.bootstrap = vm.envAddress("GUILD_PROTOCOL_BOOTSTRAP");
         if (block.chainid == ANVIL_CHAIN_ID) {
+            config.roleAdmin = vm.envOr("GUILD_PROTOCOL_ROLE_ADMIN", config.admin);
             config.guildAdmin = vm.envOr("GUILD_PROTOCOL_GUILD_ADMIN", config.admin);
             config.domainAdmin = vm.envOr("GUILD_PROTOCOL_DOMAIN_ADMIN", config.admin);
             config.taskAdmin = vm.envOr("GUILD_PROTOCOL_TASK_ADMIN", config.admin);
@@ -98,6 +100,7 @@ contract DeployKokonutGuildProtocol is Script {
             config.objector = vm.envOr("GUILD_PROTOCOL_OBJECTOR", config.admin);
             config.executor = vm.envOr("GUILD_PROTOCOL_EXECUTOR", config.admin);
         } else {
+            config.roleAdmin = vm.envAddress("GUILD_PROTOCOL_ROLE_ADMIN");
             config.guildAdmin = vm.envAddress("GUILD_PROTOCOL_GUILD_ADMIN");
             config.domainAdmin = vm.envAddress("GUILD_PROTOCOL_DOMAIN_ADMIN");
             config.taskAdmin = vm.envAddress("GUILD_PROTOCOL_TASK_ADMIN");
@@ -107,7 +110,8 @@ contract DeployKokonutGuildProtocol is Script {
             config.executor = vm.envAddress("GUILD_PROTOCOL_EXECUTOR");
         }
         require(
-            config.admin != address(0) && config.bootstrap != address(0) && config.bootstrap != config.admin,
+            config.admin != address(0) && config.bootstrap != address(0) && config.roleAdmin != address(0)
+                && config.bootstrap != config.admin,
             "Invalid protocol authority"
         );
         require(
@@ -116,6 +120,16 @@ contract DeployKokonutGuildProtocol is Script {
                 && config.executor != address(0),
             "Invalid operational role"
         );
+        if (block.chainid != ANVIL_CHAIN_ID) {
+            require(
+                config.admin != config.guildAdmin && config.admin != config.domainAdmin
+                    && config.admin != config.taskAdmin && config.admin != config.reviewer
+                    && config.admin != config.proposer && config.admin != config.objector
+                    && config.admin != config.executor && config.admin != config.roleAdmin,
+                "Admin must be separate from operational roles"
+            );
+        }
+        require(config.roleAdmin != config.bootstrap, "Role admin must survive bootstrap handoff");
         require(
             config.bootstrap != config.guildAdmin && config.bootstrap != config.domainAdmin
                 && config.bootstrap != config.taskAdmin && config.bootstrap != config.reviewer
@@ -130,13 +144,18 @@ contract DeployKokonutGuildProtocol is Script {
         p.tasks.grantRole(p.tasks.TASK_ADMIN_ROLE(), address(p.governance));
         p.domains.grantRole(p.domains.DOMAIN_ADMIN_ROLE(), address(p.governance));
         p.registry.grantRole(p.registry.DEFAULT_ADMIN_ROLE(), c.admin);
+        p.registry.grantRole(p.registry.ROLE_ADMIN_ROLE(), c.roleAdmin);
         p.registry.grantRole(p.registry.GUILD_ADMIN_ROLE(), c.guildAdmin);
         p.domains.grantRole(p.domains.DEFAULT_ADMIN_ROLE(), c.admin);
+        p.domains.grantRole(p.domains.ROLE_ADMIN_ROLE(), c.roleAdmin);
         p.domains.grantRole(p.domains.DOMAIN_ADMIN_ROLE(), c.domainAdmin);
         p.tasks.grantRole(p.tasks.DEFAULT_ADMIN_ROLE(), c.admin);
+        p.tasks.grantRole(p.tasks.ROLE_ADMIN_ROLE(), c.roleAdmin);
         p.tasks.grantRole(p.tasks.TASK_ADMIN_ROLE(), c.taskAdmin);
         p.reviews.grantRole(p.reviews.DEFAULT_ADMIN_ROLE(), c.admin);
+        p.reviews.grantRole(p.reviews.ROLE_ADMIN_ROLE(), c.roleAdmin);
         p.governance.grantRole(p.governance.DEFAULT_ADMIN_ROLE(), c.admin);
+        p.governance.grantRole(p.governance.ROLE_ADMIN_ROLE(), c.roleAdmin);
         p.reviews.grantRole(p.reviews.REVIEWER_ROLE(), c.reviewer);
         p.governance.grantRole(p.governance.PROPOSER_ROLE(), c.proposer);
         p.governance.grantRole(p.governance.OBJECTOR_ROLE(), c.objector);
@@ -162,6 +181,11 @@ contract DeployKokonutGuildProtocol is Script {
             p.tasks.revokeRole(p.tasks.DEFAULT_ADMIN_ROLE(), c.bootstrap);
             p.reviews.revokeRole(p.reviews.DEFAULT_ADMIN_ROLE(), c.bootstrap);
             p.governance.revokeRole(p.governance.DEFAULT_ADMIN_ROLE(), c.bootstrap);
+            p.registry.revokeRole(p.registry.ROLE_ADMIN_ROLE(), c.bootstrap);
+            p.domains.revokeRole(p.domains.ROLE_ADMIN_ROLE(), c.bootstrap);
+            p.tasks.revokeRole(p.tasks.ROLE_ADMIN_ROLE(), c.bootstrap);
+            p.reviews.revokeRole(p.reviews.ROLE_ADMIN_ROLE(), c.bootstrap);
+            p.governance.revokeRole(p.governance.ROLE_ADMIN_ROLE(), c.bootstrap);
         }
     }
 

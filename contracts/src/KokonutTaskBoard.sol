@@ -8,6 +8,8 @@ import {KokonutGuildDomain} from "./KokonutGuildDomain.sol";
 /// @notice Tracks operational Guild tasks without moving treasury funds.
 contract KokonutTaskBoard is AccessControl {
     bytes32 public constant TASK_ADMIN_ROLE = keccak256("TASK_ADMIN_ROLE");
+    bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
+    uint256 public constant REVIEW_GRACE_PERIOD = 7 days;
 
     enum TaskStatus {
         Open,
@@ -55,12 +57,17 @@ contract KokonutTaskBoard is AccessControl {
     event TaskEvidenceSubmitted(uint256 indexed taskId, address indexed contributor, bytes32 evidenceHash);
     event TaskStatusUpdated(uint256 indexed taskId, TaskStatus status, bytes32 referenceHash);
     event EvidenceReviewUpdated(address indexed review);
+    event TaskExpired(uint256 indexed taskId);
 
-    constructor(address admin, KokonutGuildDomain guildDomains) {
-        if (admin == address(0) || address(guildDomains) == address(0)) revert InvalidTask();
+    constructor(address admin, address roleAdmin, KokonutGuildDomain guildDomains) {
+        if (admin == address(0) || roleAdmin == address(0) || address(guildDomains) == address(0)) {
+            revert InvalidTask();
+        }
         domains = guildDomains;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(TASK_ADMIN_ROLE, admin);
+        _setRoleAdmin(ROLE_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _setRoleAdmin(TASK_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _grantRole(ROLE_ADMIN_ROLE, roleAdmin);
     }
 
     function setEvidenceReview(address review) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -127,11 +134,23 @@ contract KokonutTaskBoard is AccessControl {
         emit TaskEvidenceSubmitted(taskId, msg.sender, evidenceHash);
     }
 
+    function reviewDeadline(uint256 taskId) external view returns (uint256) {
+        return _task(taskId).deadline + REVIEW_GRACE_PERIOD;
+    }
+
     function cancelTask(uint256 taskId, bytes32 reasonHash) external onlyRole(TASK_ADMIN_ROLE) {
         Task storage task = _task(taskId);
         if (task.status == TaskStatus.Accepted || task.status == TaskStatus.Paid) revert InvalidStatus(taskId);
         task.status = TaskStatus.Cancelled;
         emit TaskStatusUpdated(taskId, TaskStatus.Cancelled, reasonHash);
+    }
+
+    function expireTask(uint256 taskId) external {
+        Task storage task = _task(taskId);
+        if (task.status != TaskStatus.Assigned || block.timestamp <= task.deadline) revert InvalidStatus(taskId);
+        task.status = TaskStatus.Cancelled;
+        emit TaskExpired(taskId);
+        emit TaskStatusUpdated(taskId, TaskStatus.Cancelled, bytes32(0));
     }
 
     function markAccepted(uint256 taskId, bytes32 reviewId) external {
@@ -162,13 +181,15 @@ contract KokonutTaskBoard is AccessControl {
         if (msg.sender != evidenceReview) revert OnlyEvidenceReview();
         Task storage task = _task(taskId);
         if (task.status == TaskStatus.Paid || task.status == TaskStatus.Cancelled) revert InvalidStatus(taskId);
-        task.status = TaskStatus.Rejected;
-        emit TaskStatusUpdated(taskId, TaskStatus.Rejected, reviewId);
+        task.status = TaskStatus.Submitted;
+        emit TaskStatusUpdated(taskId, TaskStatus.Submitted, reviewId);
     }
 
     function markPaid(uint256 taskId, bytes32 paymentReference) external onlyRole(TASK_ADMIN_ROLE) {
         Task storage task = _task(taskId);
-        if (task.status != TaskStatus.Accepted) revert InvalidStatus(taskId);
+        if (task.status != TaskStatus.Accepted || block.timestamp > task.deadline + REVIEW_GRACE_PERIOD) {
+            revert InvalidStatus(taskId);
+        }
         task.status = TaskStatus.Paid;
         emit TaskStatusUpdated(taskId, TaskStatus.Paid, paymentReference);
     }

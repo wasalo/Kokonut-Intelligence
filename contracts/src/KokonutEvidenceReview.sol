@@ -8,6 +8,7 @@ import {KokonutTaskBoard} from "./KokonutTaskBoard.sol";
 /// @notice Records review decisions and dispute outcomes for submitted tasks.
 contract KokonutEvidenceReview is AccessControl {
     bytes32 public constant REVIEWER_ROLE = keccak256("REVIEWER_ROLE");
+    bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
     uint256 public constant MAX_DISPUTES_PER_REVIEW = 3;
     uint256 public constant DISPUTE_COOLDOWN = 24 hours;
 
@@ -59,11 +60,13 @@ contract KokonutEvidenceReview is AccessControl {
     event EvidenceDisputeResolved(bytes32 indexed reviewId, bool accepted, bytes32 resolutionHash);
     event EvidenceRevoked(bytes32 indexed reviewId, bytes32 reasonHash);
 
-    constructor(address admin, KokonutTaskBoard taskBoard) {
-        if (admin == address(0) || address(taskBoard) == address(0)) revert InvalidReview();
+    constructor(address admin, address roleAdmin, KokonutTaskBoard taskBoard) {
+        if (admin == address(0) || roleAdmin == address(0) || address(taskBoard) == address(0)) revert InvalidReview();
         tasks = taskBoard;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(REVIEWER_ROLE, admin);
+        _setRoleAdmin(ROLE_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _setRoleAdmin(REVIEWER_ROLE, ROLE_ADMIN_ROLE);
+        _grantRole(ROLE_ADMIN_ROLE, roleAdmin);
     }
 
     function reviewEvidence(
@@ -78,7 +81,12 @@ contract KokonutEvidenceReview is AccessControl {
         if (reviewIdByTask[taskId] != bytes32(0)) revert InvalidReview();
 
         KokonutTaskBoard.Task memory task = tasks.getTask(taskId);
-        if (task.status != KokonutTaskBoard.TaskStatus.Submitted) revert InvalidReview();
+        if (
+            task.status != KokonutTaskBoard.TaskStatus.Submitted
+                || block.timestamp > task.deadline + tasks.REVIEW_GRACE_PERIOD()
+        ) {
+            revert InvalidReview();
+        }
         if (task.submittedEvidenceHash != evidenceHash) revert InvalidReview();
 
         _reviews[reviewId] = Review(
@@ -107,6 +115,7 @@ contract KokonutEvidenceReview is AccessControl {
         if (review.status != ReviewStatus.Accepted && review.status != ReviewStatus.Rejected) {
             revert ReviewNotDisputable(reviewId);
         }
+        if (block.timestamp > task.deadline + tasks.REVIEW_GRACE_PERIOD()) revert ReviewNotDisputable(reviewId);
         if (review.disputeCount >= MAX_DISPUTES_PER_REVIEW) revert ReviewNotDisputable(reviewId);
         if (review.lastResolvedAt > 0 && block.timestamp < review.lastResolvedAt + DISPUTE_COOLDOWN) {
             revert ReviewNotDisputable(reviewId);
@@ -135,6 +144,7 @@ contract KokonutEvidenceReview is AccessControl {
         KokonutTaskBoard.Task memory task = tasks.getTask(review.taskId);
         if (task.status == KokonutTaskBoard.TaskStatus.Paid) revert ReviewNotDisputable(reviewId);
         review.status = ReviewStatus.Revoked;
+        reviewIdByTask[review.taskId] = bytes32(0);
         tasks.markReviewRevoked(review.taskId, reviewId);
         emit EvidenceRevoked(reviewId, reasonHash);
     }

@@ -6,11 +6,11 @@ devices and writes to PostgreSQL + ClickHouse.
 Requires:
     - paho-mqtt package
     - MQTT_BROKER_HOST env var (default: localhost)
-    - MQTT_BROKER_PORT env var (default: 1883)
+    - MQTT_BROKER_PORT env var (default: 8883)
 
 Usage:
     python3 -m services.ingestion.mqtt_subscriber
-    python3 -m services.ingestion.mqtt_subscriber --broker mqtt.example.com --port 1883
+    python3 -m services.ingestion.mqtt_subscriber --broker mqtt.example.com --port 8883
 """
 
 from __future__ import annotations
@@ -32,14 +32,16 @@ logger = get_logger("ingestion.mqtt_subscriber")
 
 # MQTT topic patterns
 SENSOR_TOPIC = "sensors/+/+/readings"  # sensors/{location_id}/{sensor_type}/readings
-DEVICE_TOPIC = "sensors/+/+/register"  # sensors/{location_id}/{sensor_type}/register
 
 # Default config
 DEFAULT_BROKER = os.environ.get("MQTT_BROKER_HOST", "localhost")
-DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
+DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "8883"))
 DEFAULT_KEEPALIVE = 60
 DEFAULT_USERNAME = os.environ.get("MQTT_USERNAME", "")
 DEFAULT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
+DEFAULT_CA_CERT = os.environ.get("MQTT_CA_CERT", "/mosquitto/certs/ca.crt")
+DEFAULT_CLIENT_CERT = os.environ.get("MQTT_CLIENT_CERT", "/mosquitto/certs/subscriber.crt")
+DEFAULT_CLIENT_KEY = os.environ.get("MQTT_CLIENT_KEY", "/mosquitto/certs/subscriber.key")
 
 
 def _verify_reading_signature(
@@ -79,11 +81,17 @@ class MQTTSensorSubscriber:
         port: int = DEFAULT_PORT,
         username: str = DEFAULT_USERNAME,
         password: str = DEFAULT_PASSWORD,
+        ca_cert: str = DEFAULT_CA_CERT,
+        client_cert: str = DEFAULT_CLIENT_CERT,
+        client_key: str = DEFAULT_CLIENT_KEY,
     ):
         self.broker = broker
         self.port = port
         self.username = username
         self.password = password
+        self.ca_cert = ca_cert
+        self.client_cert = client_cert
+        self.client_key = client_key
         self.client = None
         self._running = False
         self._db = None
@@ -96,8 +104,7 @@ class MQTTSensorSubscriber:
         if rc == 0:
             logger.info("Connected to MQTT broker at %s:%d", self.broker, self.port)
             client.subscribe(SENSOR_TOPIC)
-            client.subscribe(DEVICE_TOPIC)
-            logger.info("Subscribed to topics: %s, %s", SENSOR_TOPIC, DEVICE_TOPIC)
+            logger.info("Subscribed to topic: %s", SENSOR_TOPIC)
         else:
             logger.error("MQTT connection failed with code %d", rc)
 
@@ -111,8 +118,6 @@ class MQTTSensorSubscriber:
 
             if topic_type == "readings":
                 self._handle_reading(msg.payload, topic_parts[1], topic_parts[2])
-            elif topic_type == "register":
-                self._handle_registration(msg.payload)
         except Exception as e:
             logger.error("Error processing MQTT message: %s", e)
 
@@ -266,6 +271,11 @@ class MQTTSensorSubscriber:
         self._running = True
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         self.client.username_pw_set(self.username, self.password)
+        try:
+            self.client.tls_set(ca_certs=self.ca_cert, certfile=self.client_cert, keyfile=self.client_key)
+        except Exception:
+            logger.exception("MQTT TLS configuration failed")
+            return
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
 

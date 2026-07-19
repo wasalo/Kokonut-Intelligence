@@ -33,9 +33,11 @@ contract KokonutGuildPointsTest is Test {
 
     function setUp() public {
         signer = vm.addr(signerKey);
-        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin);
-        domains = new KokonutGuildDomain(admin, registry);
+        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin, admin);
+        domains = new KokonutGuildDomain(admin, admin, registry);
         vm.startPrank(admin);
+        registry.grantRole(registry.GUILD_ADMIN_ROLE(), admin);
+        domains.grantRole(domains.DOMAIN_ADMIN_ROLE(), admin);
         registry.createGuild(guildId, keccak256("technology-key"), "Technology", "ipfs://technology", admin);
         domains.createDomain(guildId, 0, "MRV", "ipfs://mrv");
         vm.stopPrank();
@@ -198,16 +200,16 @@ contract KokonutGuildPointsTest is Test {
         assertEq(points.balanceOf(contributor, domainId), 11);
     }
 
-    function test_pause_blocks_reversals() public {
+    function test_pause_allows_reversals_for_correction() public {
         bytes32 awardId = _award(100);
         vm.prank(pauser);
         points.pause();
 
         vm.prank(reverser);
-        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
         points.reverseAward(
             keccak256("paused-reversal"), awardId, 1, keccak256("reason"), ledgerRecordHash, calculationVersion
         );
+        assertEq(points.domainBalance(contributor, domainId), 99);
     }
 
     function test_admin_cannot_grant_or_use_upgrade_role() public {
@@ -240,9 +242,11 @@ contract KokonutGuildPointsTest is Test {
     }
 
     function test_domain_registry_migration_is_one_time_and_upgrade_compatible() public {
-        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin);
-        KokonutGuildDomain replacement = new KokonutGuildDomain(admin, registry);
+        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin, admin);
+        KokonutGuildDomain replacement = new KokonutGuildDomain(admin, admin, registry);
         vm.startPrank(admin);
+        registry.grantRole(registry.GUILD_ADMIN_ROLE(), admin);
+        replacement.grantRole(replacement.DOMAIN_ADMIN_ROLE(), admin);
         registry.createGuild(guildId, keccak256("replacement-key"), "Replacement", "ipfs://replacement", admin);
         replacement.createDomain(guildId, 0, "Replacement MRV", "ipfs://replacement-mrv");
         vm.stopPrank();

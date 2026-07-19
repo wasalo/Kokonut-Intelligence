@@ -9,6 +9,8 @@ import {KokonutGuildUpgradeTimelock} from "../src/KokonutGuildUpgradeTimelock.so
 import {KokonutGuildDomain} from "../src/KokonutGuildDomain.sol";
 import {KokonutGuildRegistry} from "../src/KokonutGuildRegistry.sol";
 
+contract IncompatibleGuildImplementation {}
+
 contract KokonutGuildUpgradeTimelockTest is Test {
     KokonutGuildPoints internal points;
     KokonutGuildDomain internal domains;
@@ -19,9 +21,11 @@ contract KokonutGuildUpgradeTimelockTest is Test {
     uint256 internal constant DELAY = 2 days;
 
     function setUp() public {
-        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin);
-        domains = new KokonutGuildDomain(admin, registry);
+        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin, admin);
+        domains = new KokonutGuildDomain(admin, admin, registry);
         vm.startPrank(admin);
+        registry.grantRole(registry.GUILD_ADMIN_ROLE(), admin);
+        domains.grantRole(domains.DOMAIN_ADMIN_ROLE(), admin);
         registry.createGuild(bytes32("timelock"), bytes32("timelock-key"), "Timelock", "ipfs://timelock", admin);
         domains.createDomain(bytes32("timelock"), 0, "Operations", "ipfs://operations");
         vm.stopPrank();
@@ -68,5 +72,28 @@ contract KokonutGuildUpgradeTimelockTest is Test {
         vm.prank(proposer);
         vm.expectRevert(KokonutGuildUpgradeTimelock.InvalidUpgrade.selector);
         timelock.queueUpgrade(address(wrongProxy), address(implementation), "");
+    }
+
+    function test_rejects_incompatible_implementation() public {
+        IncompatibleGuildImplementation implementation = new IncompatibleGuildImplementation();
+        vm.prank(proposer);
+        vm.expectRevert(KokonutGuildUpgradeTimelock.UpgradeCompatibilityFailed.selector);
+        timelock.queueUpgrade(address(points), address(implementation), "");
+    }
+
+    function test_rejects_stale_queued_upgrade() public {
+        KokonutGuildPointsV2Harness first = new KokonutGuildPointsV2Harness();
+        KokonutGuildPointsV2Harness second = new KokonutGuildPointsV2Harness();
+        vm.startPrank(proposer);
+        bytes32 firstId = timelock.queueUpgrade(address(points), address(first), "");
+        bytes32 secondId = timelock.queueUpgrade(address(points), address(second), "");
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + DELAY);
+        vm.prank(executor);
+        timelock.executeUpgrade(firstId);
+        vm.prank(executor);
+        vm.expectRevert(KokonutGuildUpgradeTimelock.UpgradeCompatibilityFailed.selector);
+        timelock.executeUpgrade(secondId);
     }
 }
