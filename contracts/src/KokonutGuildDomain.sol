@@ -8,6 +8,7 @@ import {KokonutGuildRegistry} from "./KokonutGuildRegistry.sol";
 /// @notice Registers Guild-scoped teams/domains used by tasks and reputation.
 contract KokonutGuildDomain is AccessControl {
     bytes32 public constant DOMAIN_ADMIN_ROLE = keccak256("DOMAIN_ADMIN_ROLE");
+    bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
     uint256 public constant DEPRECATION_GRACE_PERIOD = 48 hours;
 
     enum DomainStatus {
@@ -29,23 +30,31 @@ contract KokonutGuildDomain is AccessControl {
     KokonutGuildRegistry public immutable registry;
     uint256 public nextDomainId = 1;
     mapping(uint256 domainId => Domain domain) private _domains;
+    mapping(uint256 domainId => bool pendingDeprecation) public deprecationRequested;
 
     error InvalidRegistry();
     error InvalidDomain();
     error UnknownDomain(uint256 domainId);
     error ParentDomainMismatch();
+    error StewardApprovalRequired(uint256 domainId);
+    error NotDomainSteward(uint256 domainId);
 
     event DomainCreated(
         uint256 indexed domainId, bytes32 indexed guildId, uint256 indexed parentDomainId, string name, address creator
     );
     event DomainMetadataUpdated(uint256 indexed domainId, string metadataURI);
     event DomainStatusUpdated(uint256 indexed domainId, DomainStatus status);
+    event DomainDeprecationRequested(uint256 indexed domainId);
 
-    constructor(address admin, KokonutGuildRegistry guildRegistry) {
-        if (admin == address(0) || address(guildRegistry) == address(0)) revert InvalidRegistry();
+    constructor(address admin, address roleAdmin, KokonutGuildRegistry guildRegistry) {
+        if (admin == address(0) || roleAdmin == address(0) || address(guildRegistry) == address(0)) {
+            revert InvalidRegistry();
+        }
         registry = guildRegistry;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(DOMAIN_ADMIN_ROLE, admin);
+        _setRoleAdmin(ROLE_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _setRoleAdmin(DOMAIN_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _grantRole(ROLE_ADMIN_ROLE, roleAdmin);
     }
 
     function createDomain(bytes32 guildId, uint256 parentDomainId, string calldata name, string calldata metadataURI)
@@ -72,10 +81,22 @@ contract KokonutGuildDomain is AccessControl {
     function setStatus(uint256 domainId, DomainStatus status) external onlyRole(DOMAIN_ADMIN_ROLE) {
         Domain storage domain = _domain(domainId);
         if (status == DomainStatus.Deprecated) {
-            domain.deprecationTime = block.timestamp;
+            deprecationRequested[domainId] = true;
+            emit DomainDeprecationRequested(domainId);
+            return;
         }
         domain.status = status;
         emit DomainStatusUpdated(domainId, status);
+    }
+
+    function approveDeprecation(uint256 domainId) external {
+        Domain storage domain = _domain(domainId);
+        if (!deprecationRequested[domainId]) revert StewardApprovalRequired(domainId);
+        if (!registry.isGuildSteward(domain.guildId, msg.sender)) revert NotDomainSteward(domainId);
+        deprecationRequested[domainId] = false;
+        domain.deprecationTime = block.timestamp;
+        domain.status = DomainStatus.Deprecated;
+        emit DomainStatusUpdated(domainId, DomainStatus.Deprecated);
     }
 
     function getDomain(uint256 domainId) external view returns (Domain memory) {

@@ -20,6 +20,7 @@ contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
     bytes32 public constant PROPOSER_ROLE = keccak256("PROPOSER_ROLE");
     bytes32 public constant OBJECTOR_ROLE = keccak256("OBJECTOR_ROLE");
     bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
+    bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
 
     enum MotionStatus {
         Open,
@@ -71,12 +72,14 @@ contract KokonutGuildGovernance is AccessControl, ReentrancyGuard {
     event MotionFinalized(uint256 indexed motionId, MotionStatus status);
     event MotionExecuted(uint256 indexed motionId, bytes returnData);
 
-    constructor(address admin) {
-        if (admin == address(0)) revert InvalidMotion();
+    constructor(address admin, address roleAdmin) {
+        if (admin == address(0) || roleAdmin == address(0)) revert InvalidMotion();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(PROPOSER_ROLE, admin);
-        _grantRole(OBJECTOR_ROLE, admin);
-        _grantRole(EXECUTOR_ROLE, admin);
+        _setRoleAdmin(ROLE_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _setRoleAdmin(PROPOSER_ROLE, ROLE_ADMIN_ROLE);
+        _setRoleAdmin(OBJECTOR_ROLE, ROLE_ADMIN_ROLE);
+        _setRoleAdmin(EXECUTOR_ROLE, ROLE_ADMIN_ROLE);
+        _grantRole(ROLE_ADMIN_ROLE, roleAdmin);
     }
 
     function setTargetAllowed(address target, bool allowed) external onlyRole(DEFAULT_ADMIN_ROLE) {

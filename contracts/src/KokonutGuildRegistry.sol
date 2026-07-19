@@ -8,6 +8,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 /// @notice Registers Guild identities and their steward authority.
 contract KokonutGuildRegistry is AccessControl, Pausable {
     bytes32 public constant GUILD_ADMIN_ROLE = keccak256("GUILD_ADMIN_ROLE");
+    bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
 
     enum GuildStatus {
         Active,
@@ -38,10 +39,12 @@ contract KokonutGuildRegistry is AccessControl, Pausable {
     event GuildStewardUpdated(bytes32 indexed guildId, address indexed steward);
     event GuildStatusUpdated(bytes32 indexed guildId, GuildStatus status);
 
-    constructor(address admin) {
-        if (admin == address(0)) revert InvalidSteward();
+    constructor(address admin, address roleAdmin) {
+        if (admin == address(0) || roleAdmin == address(0)) revert InvalidSteward();
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(GUILD_ADMIN_ROLE, admin);
+        _setRoleAdmin(ROLE_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _setRoleAdmin(GUILD_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _grantRole(ROLE_ADMIN_ROLE, roleAdmin);
     }
 
     function createGuild(

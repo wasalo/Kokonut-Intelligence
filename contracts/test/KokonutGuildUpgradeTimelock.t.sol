@@ -21,9 +21,11 @@ contract KokonutGuildUpgradeTimelockTest is Test {
     uint256 internal constant DELAY = 2 days;
 
     function setUp() public {
-        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin);
-        domains = new KokonutGuildDomain(admin, registry);
+        KokonutGuildRegistry registry = new KokonutGuildRegistry(admin, admin);
+        domains = new KokonutGuildDomain(admin, admin, registry);
         vm.startPrank(admin);
+        registry.grantRole(registry.GUILD_ADMIN_ROLE(), admin);
+        domains.grantRole(domains.DOMAIN_ADMIN_ROLE(), admin);
         registry.createGuild(bytes32("timelock"), bytes32("timelock-key"), "Timelock", "ipfs://timelock", admin);
         domains.createDomain(bytes32("timelock"), 0, "Operations", "ipfs://operations");
         vm.stopPrank();

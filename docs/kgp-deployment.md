@@ -88,7 +88,7 @@ forge script script/DeployKokonutGuildProtocol.s.sol:DeployKokonutGuildProtocol 
 
 The deployment creates and wires the registry, domain registry, task board, evidence review, and operational governance contracts. It does not connect to or move funds from the Moloch treasury.
 
-For Chiado and Gnosis, `GUILD_PROTOCOL_BOOTSTRAP` is the temporary bootstrap address and must differ from `GUILD_PROTOCOL_ADMIN`. Select the broadcaster with Foundry's `--account`/`--sender`; the script wires the contracts, grants the configured production roles, verifies the handoff, and revokes bootstrap administration. Set explicit values for `GUILD_PROTOCOL_ADMIN`, `GUILD_PROTOCOL_GUILD_ADMIN`, `GUILD_PROTOCOL_DOMAIN_ADMIN`, `GUILD_PROTOCOL_TASK_ADMIN`, `GUILD_PROTOCOL_REVIEWER`, `GUILD_PROTOCOL_PROPOSER`, `GUILD_PROTOCOL_OBJECTOR`, and `GUILD_PROTOCOL_EXECUTOR`.
+For Chiado and Gnosis, `GUILD_PROTOCOL_BOOTSTRAP` is the temporary bootstrap address and must differ from `GUILD_PROTOCOL_ADMIN`. `GUILD_PROTOCOL_ROLE_ADMIN` is also required and must be a separate durable authority that administers operational roles; the default admin cannot reacquire those roles. Select the broadcaster with Foundry's `--account`/`--sender`; the script wires the contracts, grants the configured production roles, verifies the handoff, and revokes bootstrap administration. Set explicit values for `GUILD_PROTOCOL_ADMIN`, `GUILD_PROTOCOL_ROLE_ADMIN`, `GUILD_PROTOCOL_GUILD_ADMIN`, `GUILD_PROTOCOL_DOMAIN_ADMIN`, `GUILD_PROTOCOL_TASK_ADMIN`, `GUILD_PROTOCOL_REVIEWER`, `GUILD_PROTOCOL_PROPOSER`, `GUILD_PROTOCOL_OBJECTOR`, and `GUILD_PROTOCOL_EXECUTOR`.
 
 For local Anvil smoke testing:
 
@@ -96,6 +96,7 @@ For local Anvil smoke testing:
 anvil
 GUILD_PROTOCOL_BOOTSTRAP=<anvil-deployer-address> \
 GUILD_PROTOCOL_ADMIN=<admin-address> \
+GUILD_PROTOCOL_ROLE_ADMIN=<role-admin-address> \
 forge script script/DeployKokonutGuildProtocol.s.sol:DeployKokonutGuildProtocol \
   --rpc-url http://127.0.0.1:8545 --account anvil --sender <anvil-deployer-address> --broadcast
 ```

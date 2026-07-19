@@ -8,6 +8,7 @@ import {KokonutTaskBoard} from "./KokonutTaskBoard.sol";
 /// @notice Records review decisions and dispute outcomes for submitted tasks.
 contract KokonutEvidenceReview is AccessControl {
     bytes32 public constant REVIEWER_ROLE = keccak256("REVIEWER_ROLE");
+    bytes32 public constant ROLE_ADMIN_ROLE = keccak256("ROLE_ADMIN_ROLE");
     uint256 public constant MAX_DISPUTES_PER_REVIEW = 3;
     uint256 public constant DISPUTE_COOLDOWN = 24 hours;
 
@@ -59,11 +60,13 @@ contract KokonutEvidenceReview is AccessControl {
     event EvidenceDisputeResolved(bytes32 indexed reviewId, bool accepted, bytes32 resolutionHash);
     event EvidenceRevoked(bytes32 indexed reviewId, bytes32 reasonHash);
 
-    constructor(address admin, KokonutTaskBoard taskBoard) {
-        if (admin == address(0) || address(taskBoard) == address(0)) revert InvalidReview();
+    constructor(address admin, address roleAdmin, KokonutTaskBoard taskBoard) {
+        if (admin == address(0) || roleAdmin == address(0) || address(taskBoard) == address(0)) revert InvalidReview();
         tasks = taskBoard;
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(REVIEWER_ROLE, admin);
+        _setRoleAdmin(ROLE_ADMIN_ROLE, ROLE_ADMIN_ROLE);
+        _setRoleAdmin(REVIEWER_ROLE, ROLE_ADMIN_ROLE);
+        _grantRole(ROLE_ADMIN_ROLE, roleAdmin);
     }
 
     function reviewEvidence(

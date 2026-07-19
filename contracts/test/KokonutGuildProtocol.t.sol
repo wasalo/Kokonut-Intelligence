@@ -22,13 +22,20 @@ contract KokonutGuildProtocolTest is Test {
     uint256 internal domainId;
 
     function setUp() public {
-        registry = new KokonutGuildRegistry(admin);
-        domains = new KokonutGuildDomain(admin, registry);
-        tasks = new KokonutTaskBoard(admin, domains);
-        reviews = new KokonutEvidenceReview(admin, tasks);
-        governance = new KokonutGuildGovernance(admin);
+        registry = new KokonutGuildRegistry(admin, admin);
+        domains = new KokonutGuildDomain(admin, admin, registry);
+        tasks = new KokonutTaskBoard(admin, admin, domains);
+        reviews = new KokonutEvidenceReview(admin, admin, tasks);
+        governance = new KokonutGuildGovernance(admin, admin);
 
         vm.startPrank(admin);
+        registry.grantRole(registry.GUILD_ADMIN_ROLE(), admin);
+        domains.grantRole(domains.DOMAIN_ADMIN_ROLE(), admin);
+        tasks.grantRole(tasks.TASK_ADMIN_ROLE(), admin);
+        reviews.grantRole(reviews.REVIEWER_ROLE(), admin);
+        governance.grantRole(governance.PROPOSER_ROLE(), admin);
+        governance.grantRole(governance.OBJECTOR_ROLE(), admin);
+        governance.grantRole(governance.EXECUTOR_ROLE(), admin);
         registry.createGuild(guildId, guildKey, "Technology Guild", "ipfs://technology", admin);
         domainId = domains.createDomain(guildId, 0, "MRV", "ipfs://mrv");
         tasks.setEvidenceReview(address(reviews));
@@ -66,6 +73,46 @@ contract KokonutGuildProtocolTest is Test {
         vm.prank(admin);
         vm.expectRevert(KokonutGuildDomain.InvalidDomain.selector);
         domains.createDomain(keccak256("unregistered"), 0, "Invalid", "ipfs://invalid");
+    }
+
+    function test_default_admin_cannot_reacquire_operational_roles() public {
+        address roleAdmin = address(0x998);
+        KokonutGuildRegistry isolated = new KokonutGuildRegistry(admin, roleAdmin);
+        bytes32 guildAdminRole = isolated.GUILD_ADMIN_ROLE();
+        bytes32 roleAdminRole = isolated.ROLE_ADMIN_ROLE();
+        assertFalse(isolated.hasRole(roleAdminRole, admin));
+        assertEq(isolated.getRoleAdmin(guildAdminRole), roleAdminRole);
+
+        vm.prank(admin);
+        vm.expectRevert();
+        isolated.grantRole(guildAdminRole, admin);
+
+        vm.prank(roleAdmin);
+        isolated.grantRole(guildAdminRole, admin);
+        assertTrue(isolated.hasRole(guildAdminRole, admin));
+    }
+
+    function test_domain_deprecation_requires_steward_approval() public {
+        vm.prank(admin);
+        domains.setStatus(domainId, KokonutGuildDomain.DomainStatus.Deprecated);
+        assertTrue(domains.deprecationRequested(domainId));
+
+        vm.prank(address(0x999));
+        vm.expectRevert();
+        domains.approveDeprecation(domainId);
+
+        vm.prank(admin);
+        domains.approveDeprecation(domainId);
+        assertEq(uint8(domains.getDomain(domainId).status), uint8(KokonutGuildDomain.DomainStatus.Deprecated));
+    }
+
+    function test_assigned_task_can_be_expired_without_task_admin() public {
+        uint256 taskId = _createAssignedTask();
+        vm.warp(block.timestamp + 7 days + 1);
+
+        vm.prank(address(0x999));
+        tasks.expireTask(taskId);
+        assertEq(uint8(tasks.getTask(taskId).status), uint8(KokonutTaskBoard.TaskStatus.Cancelled));
     }
 
     function test_review_can_be_disputed_and_resolved() public {
