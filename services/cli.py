@@ -9,7 +9,7 @@ CLIs. It is invoked as::
 
 Legacy argparse-based service CLIs are mounted unchanged via
 :func:`services.common.cli.mount_argparse`; their existing
-``python3 -m services.X.cli`` invocations continue to work independently.
+``python3 -m services.metrics.cli`` invocations continue to work independently.
 
 New service groups should be added here as native typer subcommands using the
 shared helpers in :mod:`services.common.cli` (``run``, ``print_json``,

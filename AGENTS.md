@@ -20,11 +20,11 @@ All work follows a 3-step branch → PR → merge flow:
 
 ## Unified CLI
 
-A single typer-based meta-CLI aggregates all service CLIs. Prefer it for interactive use; the per-service `python3 -m services.X.cli` invocations remain fully supported and are documented below.
+A single typer-based meta-CLI aggregates all service CLIs. Prefer it for interactive use; the per-service `python3 -m services.metrics.cli` invocations remain fully supported and are documented below.
 
 - List all service groups: `python3 -m services.cli --help`
 - Run a service command: `python3 -m services.cli metrics --list`
-- The meta-CLI mounts legacy argparse CLIs unchanged. Each subcommand forwards its trailing tokens to the original parser, so the documented `python3 -m services.X ...` flags work the same way under `python3 -m services.cli X ...`.
+- The meta-CLI mounts legacy argparse CLIs unchanged. Each subcommand forwards its trailing tokens to the original parser, so the documented `python3 -m services.metrics ...` flags work the same way under `python3 -m services.cli metrics ...`.
 - New commands should use the shared helpers in `services/common/cli.py`: `run()` (clean error + exit code), `print_json()`, and `get_connection()` (context-managed DB). Do not re-implement JSON printing, error wrapping, or raw `conn.close()` blocks.
 
 ## Project Shape
