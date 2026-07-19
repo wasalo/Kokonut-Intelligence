@@ -260,6 +260,11 @@ echo "Seeding adjacent Adelphi governance circles..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/110_adelphi_governance_circles.sql"
 echo "Adjacent Adelphi governance circles seeded."
 
+# Seed State of Kokonut funding + ecosystem-actor participation (2021-2024 pilot).
+echo "Seeding State of Kokonut funding data..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/114_state_of_kokonut_funding.sql"
+echo "State of Kokonut funding data seeded."
+
 fi
 
 echo ""
