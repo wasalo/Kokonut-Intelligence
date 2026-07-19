@@ -119,6 +119,10 @@ jobs:
         ./scripts/verify-full-test-suite.sh
         echo "=== [step] Static analysis ==="
         ./scripts/static-analysis.sh
+        echo "=== [step] Unified CLI smoke test ==="
+        python3 -m services.cli --help >/dev/null
+        python3 -m services.cli metrics --help >/dev/null
+        echo "Unified CLI loads and exposes service groups."
         echo "=== [step] Solidity checks ==="
         (cd contracts && forge fmt --check && forge build --sizes && forge test)
         echo "=== [step] Directus hooks checks ==="
