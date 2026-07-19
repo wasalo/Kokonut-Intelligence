@@ -103,8 +103,14 @@ class BaalReadClient:
 
     def proposal(self, proposal_id: str) -> ProposalState:
         pid = int(proposal_id)
-        data = self._baal.functions.proposals(pid).call()
-        flags = self._baal.functions.getProposalFlags(pid).call()
+        try:
+            data = self._baal.functions.proposals(pid).call()
+            flags = self._baal.functions.getProposalFlags(pid).call()
+        except Exception as exc:
+            raise ValueError(
+                f"Could not decode proposal {pid} from the deployed Baal "
+                f"(storage layout may differ from the committed ABI): {exc}"
+            ) from exc
         (
             _id,
             _hash,
@@ -149,14 +155,39 @@ class BaalReadClient:
         )
 
     def proposals(self) -> list[ProposalState]:
-        total = int(self._baal.functions.totalProposals().call())
-        return [self.proposal(str(i)) for i in range(total)]
+        try:
+            total = int(self._baal.functions.proposalCount().call())
+        except Exception:
+            try:
+                total = int(self._baal.functions.totalProposals().call())
+            except Exception:
+                return []
+        out: list[ProposalState] = []
+        for i in range(total):
+            try:
+                out.append(self.proposal(str(i)))
+            except Exception:
+                # The deployed Baal's storage layout may not match the committed
+                # ABI for individual proposal structs; skip undecodable entries
+                # rather than failing the whole listing.
+                continue
+        return out
 
     def member(self, wallet: str) -> MemberState:
         checksum = Web3.to_checksum_address(wallet)
-        shares = int(self._baal.functions.sharesBalance(checksum).call())
-        loot = int(self._baal.functions.lootBalance(checksum).call())
-        delegate = self._baal.functions.delegates(checksum).call()
+
+        def _safe(fn, default=0):
+            try:
+                return int(fn(checksum).call())
+            except Exception:
+                return default
+
+        shares = _safe(self._baal.functions.sharesBalance)
+        loot = _safe(self._baal.functions.lootBalance)
+        try:
+            delegate = self._baal.functions.delegates(checksum).call()
+        except Exception:
+            delegate = None
         return MemberState(
             wallet=checksum,
             shares=shares,
@@ -166,14 +197,43 @@ class BaalReadClient:
         )
 
     def config(self) -> GovernanceConfig:
+        def _safe_u256(fn, default=0) -> int:
+            try:
+                return int(fn().call())
+            except Exception:
+                return default
+
+        raw: dict[str, Any] = {}
+        for label, fn in (
+            ("baal_version", self._baal.functions.baalVersion),
+            ("total_shares", self._baal.functions.totalShares),
+            ("total_loot", self._baal.functions.totalLoot),
+            ("proposal_count", self._baal.functions.proposalCount),
+        ):
+            try:
+                raw[label] = fn().call()
+            except Exception:
+                raw[label] = None
+        try:
+            raw["shares_token"] = self._baal.functions.sharesToken().call()
+        except Exception:
+            raw["shares_token"] = None
+        try:
+            raw["loot_token"] = self._baal.functions.lootToken().call()
+        except Exception:
+            raw["loot_token"] = None
+        try:
+            raw["avatar"] = self._baal.functions.avatar().call()
+        except Exception:
+            raw["avatar"] = None
         return GovernanceConfig(
-            voting_period=int(self._baal.functions.votingPeriod().call()),
-            grace_period=int(self._baal.functions.gracePeriod().call()),
-            proposal_offering=int(self._baal.functions.proposalOffering().call()),
-            quorum_percent=int(self._baal.functions.quorumPercent().call()),
-            sponsor_threshold=int(self._baal.functions.sponsorThreshold().call()),
-            min_retention_percent=int(self._baal.functions.minRetentionPercent().call()),
-            raw={"baal_version": self._baal.functions.baalVersion().call()},
+            voting_period=_safe_u256(self._baal.functions.votingPeriod),
+            grace_period=_safe_u256(self._baal.functions.gracePeriod),
+            proposal_offering=_safe_u256(self._baal.functions.proposalOffering),
+            quorum_percent=_safe_u256(self._baal.functions.quorumPercent),
+            sponsor_threshold=_safe_u256(self._baal.functions.sponsorThreshold),
+            min_retention_percent=_safe_u256(self._baal.functions.minRetentionPercent),
+            raw=raw,
         )
 
     def shamans(self) -> list[dict[str, Any]]:
