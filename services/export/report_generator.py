@@ -21,10 +21,9 @@ from typing import Any, Optional
 import psycopg2
 import psycopg2.extras
 
-
-from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
-from ..analytics.value_stream import generate_value_stream_map
 from ..analytics.process_health import generate_process_health
+from ..analytics.value_stream import generate_value_stream_map
+from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
 from .business_plan import generate_business_plan
 
 
@@ -599,6 +598,7 @@ def generate_environmental(conn, location_id: str, period_start: str = None, per
 def generate_revenue_multiplier(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a revenue multiplier opportunity map report."""
     from dataclasses import asdict
+
     from ..revenue_multiplier.analyzer import analyze_location
 
     result = analyze_location(location_id)
@@ -687,13 +687,15 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
 
 def generate_climate_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a climate-impact report for a location and year."""
-    from ..analytics.carbon_balance import (
-        compute_ghg_emissions, compute_tree_carbon,
-        compute_carbon_balance, compute_regenerative_score,
-    )
-
     # Determine reporting year from period_start or current year
     from datetime import datetime as _dt
+
+    from ..analytics.carbon_balance import (
+        compute_carbon_balance,
+        compute_ghg_emissions,
+        compute_regenerative_score,
+        compute_tree_carbon,
+    )
     if period_start:
         reporting_year = int(period_start[:4])
     else:
@@ -3064,7 +3066,7 @@ def generate_data_stream_summary(conn, location_id: str, period_start: str = Non
 
 def generate_business_model_canvas(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a Business Model Canvas report for a location."""
-    from services.analytics.business_model_canvas import get, list_canvas, compute_health
+    from services.analytics.business_model_canvas import compute_health, get, list_canvas
 
     canvases = list_canvas(conn, location_id=location_id)
     canvas_data = []
@@ -3141,9 +3143,9 @@ def generate_capability_dashboard(conn, location_id=None, period_start=None, per
 
 def generate_strategy_execution(conn, location_id=None, period_start=None, period_end=None):
     """Generate a strategy execution report (Balanced Scorecard and kernel)."""
+    from ..analytics.competitive_report import health as competitive_health
     from ..analytics.strategy_execution import dashboard
     from ..analytics.strategy_map import get_perspective_summary
-    from ..analytics.competitive_report import health as competitive_health
     execution = dashboard(conn, scope_type="location", scope_id=location_id) if location_id else dashboard(conn)
     perspectives = get_perspective_summary()
     external_health = []
@@ -3585,7 +3587,7 @@ def generate_regional_readiness(conn, location_id: str, period_start: str = None
 # ---------------------------------------------------------------------------
 
 def generate_publics_market_landscape(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
-    from services.analytics.publics import list_publics, list_segments, influence_interest_matrix
+    from services.analytics.publics import influence_interest_matrix, list_publics, list_segments
     publics = list_publics(conn, location_id)
     segments = list_segments(conn, location_id)
     matrix = influence_interest_matrix(conn, location_id)
