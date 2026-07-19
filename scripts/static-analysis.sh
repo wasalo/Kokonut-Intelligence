@@ -32,7 +32,9 @@ src = [f for f in findings if any(
     for e in f.get("elements", [])
 ) and f.get("impact") in ("High", "Medium") and f.get("check") not in acceptable]
 for finding in src:
-    print(f"  [{finding[\"impact\"]}] {finding[\"check\"]}: {finding[\"description\"][:200]}")
+    print("  [{impact}] {check}: {description}".format(
+        impact=finding["impact"], check=finding["check"],
+        description=finding["description"][:200]))
 print(f"Total actionable High/Medium in src/: {len(src)}")
 ' 2>&1)
     PARSE_STATUS=$?
@@ -96,7 +98,9 @@ our = [r for r in results if any(
 ) and r.get("ruleId", "") not in false_positives]
 for result in our:
     location = result.get("locations", [{}])[0].get("physicalLocation", {})
-    print(f"  {result.get(\"ruleId\", \"unknown\")}: {location.get(\"artifactLocation\", {}).get(\"uri\", \"\")}")
+    print("  {rule}: {uri}".format(
+        rule=result.get("ruleId", "unknown"),
+        uri=location.get("artifactLocation", {}).get("uri", "")))
 print(f"Total true-positive findings: {len(our)}")
 ' 2>&1)
         PARSE_STATUS=$?
