@@ -265,6 +265,10 @@ echo "Seeding State of Kokonut funding data..."
 docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/114_state_of_kokonut_funding.sql"
 echo "State of Kokonut funding data seeded."
 
+echo "Seeding Strategic Reserve data..."
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/schemas/seeds/115_strategic_reserve.sql"
+echo "Strategic Reserve data seeded."
+
 fi
 
 echo ""
