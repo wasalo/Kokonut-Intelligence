@@ -14,18 +14,18 @@ INSERT INTO strategic_reserve (
      (SELECT id FROM location WHERE slug = 'kokonut-adelphi'),
      'Adelphi Commons Reserve',
      'Ring-fenced share of farm net revenue held for community/commons deployment, sourced from the Adelphi commons redistribution policy reserve allocation.',
-     (SELECT COALESCE(reserve_allocation_pct, 0) * 1000 FROM commons_redistribution_policy
-        WHERE location_id = (SELECT id FROM location WHERE slug = 'kokonut-adelphi') LIMIT 1),
-     15000.000000, 'usd', 'percentage',
+      COALESCE((SELECT COALESCE(reserve_allocation_pct, 0) * 1000 FROM commons_redistribution_policy
+         WHERE location_id = (SELECT id FROM location WHERE slug = 'kokonut-adelphi') LIMIT 1), 0),
+      15000.000000, 'usd', 'percentage',
      'farm_net_revenue', 'gte', 0, 'active',
      '{"sourced_from": "commons_redistribution_policy.reserve_allocation_pct", "pilot": true}'::jsonb),
 
     ('SR-NET-FIN-01', 'financial_ringfence', 'network', NULL,
      'Kokonut Network Ring-Fenced Reserve',
      'Network treasury capital held outside ordinary operations, sourced from closed network/DAO funding rounds (pilot seed totals).',
-     (SELECT COALESCE(SUM(raised_amount), 0) FROM funding_round
-        WHERE actor_type IN ('network', 'dao') AND status = 'closed'),
-     600000.000000, 'usd', 'event_driven',
+      COALESCE((SELECT COALESCE(SUM(raised_amount), 0) FROM funding_round
+         WHERE actor_type IN ('network', 'dao') AND status = 'closed'), 0),
+      600000.000000, 'usd', 'event_driven',
      'network_treasury_drawdown', 'gt', 0, 'active',
      '{"sourced_from": "funding_round", "pilot": true}'::jsonb),
 
@@ -41,11 +41,11 @@ INSERT INTO strategic_reserve (
      (SELECT id FROM location WHERE slug = 'kokonut-adelphi'),
      'Adelphi Agro-biodiversity Seed Vault',
      'Distinct crop lines and tree species held in reserve as regenerative insurance (Svalbard/Frozen Ark analog).',
-     (SELECT COALESCE(COUNT(DISTINCT species_name), 0) FROM tree_inventory
-        WHERE location_id = (SELECT id FROM location WHERE slug = 'kokonut-adelphi'))
-     + (SELECT COALESCE(COUNT(DISTINCT crop_id), 0) FROM crop_cycle
-        WHERE location_id = (SELECT id FROM location WHERE slug = 'kokonut-adelphi')),
-     50.000000, 'distinct_lines', 'fixed',
+      COALESCE((SELECT COALESCE(COUNT(DISTINCT species_name), 0) FROM tree_inventory
+         WHERE location_id = (SELECT id FROM location WHERE slug = 'kokonut-adelphi'))
+      + (SELECT COALESCE(COUNT(DISTINCT crop_id), 0) FROM crop_cycle
+         WHERE location_id = (SELECT id FROM location WHERE slug = 'kokonut-adelphi')), 0),
+      50.000000, 'distinct_lines', 'fixed',
      'distinct_species_count', 'lt', 30, 'active',
      '{"sourced_from": "tree_inventory + crop_cycle", "pilot_target": true}'::jsonb),
 
