@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PATTERN='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"[[:space:]]*:[[:space:]]*"-----BEGIN|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|xox[baprs]-[0-9A-Za-z-]{20,}'
+PATTERN='-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|"private_key"[[:space:]]*:[[:space:]]*"-----BEGIN|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{20,}|xox[baprs]-[0-9A-Za-z-]{20,}|0x[0-9a-fA-F]{64}|sk-[A-Za-z0-9]{20,}|(api[_-]?key|secret|token|passwd|password)[[:space:]]*[:=][[:space:]]*['\''"][A-Za-z0-9/+_=-]{16,}['\''"]'
 
 set +e
 matches=$(git grep -IlE -e "$PATTERN" -- . ':!*.md' ':!*.adoc')

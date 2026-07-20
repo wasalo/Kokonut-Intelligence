@@ -98,7 +98,10 @@ contract KokonutGuildUpgradeTimelock is AccessControl {
     }
 
     function getUpgrade(bytes32 upgradeId) external view returns (Upgrade memory) {
-        if (!hasRole(PROPOSER_ROLE, msg.sender) && !hasRole(EXECUTOR_ROLE, msg.sender)) revert Unauthorized();
+        if (
+            !hasRole(PROPOSER_ROLE, msg.sender) && !hasRole(EXECUTOR_ROLE, msg.sender)
+                && !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)
+        ) revert Unauthorized();
         return _upgrade(upgradeId);
     }
 

@@ -172,7 +172,7 @@ describe('agent safety workflow', () => {
   it('blocks agent tasks from direct publish', () => {
     expect(() => enforceAgentTaskSafety(
       { initiator_type: 'human', review_status: 'published' },
-      { accountability: { role: 'agent_write' } },
+      ['agent_write'],
     )).toThrow(/Agent tasks/);
   });
 
@@ -180,10 +180,22 @@ describe('agent safety workflow', () => {
     expect(() => enforceAgentTaskSafety({ initiator_type: 'agent', review_status: 'published' })).not.toThrow();
   });
 
+  it('detects agents by resolved role slug, not by raw UUID', () => {
+    // Raw accountability role UUIDs must never be treated as agent slugs.
+    expect(() => enforceAgentTaskSafety(
+      { initiator_type: 'human', review_status: 'published' },
+      ['8f3c1b2a-0000-4000-8000-000000000001'],
+    )).not.toThrow();
+    expect(() => enforceAgentTaskSafety(
+      { review_status: 'published' },
+      ['agent_write'],
+    )).toThrow(/Agent tasks/);
+  });
+
   it('uses accountability to restrict agent AI summaries', () => {
     expect(() => enforceAiSummarySafety(
       { created_by: 'human', status: 'published' },
-      { accountability: { role: 'agent_write' } },
+      ['agent_write'],
     )).toThrow(/AI summaries/);
   });
 
@@ -201,7 +213,7 @@ describe('agent safety workflow', () => {
     expect(() => enforceStakeholderGovernanceSafety(
       'stakeholder_decision',
       { status: 'draft' },
-      { accountability: { role: 'agent_write' } },
+      ['agent_write'],
     )).toThrow(/human-governed stakeholder collection/);
   });
 
@@ -209,7 +221,7 @@ describe('agent safety workflow', () => {
     expect(() => enforceStakeholderGovernanceSafety(
       'stakeholder_decision',
       { status: 'draft' },
-      { accountability: { role: 'manager' } },
+      ['manager'],
     )).not.toThrow();
   });
 
@@ -217,12 +229,12 @@ describe('agent safety workflow', () => {
     expect(() => enforceStakeholderGovernanceSafety(
       'governance_tension',
       { status: 'draft', action: 'create' },
-      { accountability: { role: 'agent_write' } },
+      ['agent_write'],
     )).not.toThrow();
     expect(() => enforceStakeholderGovernanceSafety(
       'governance_proposal',
       { status: 'approved', action: 'update' },
-      { accountability: { role: 'agent_write' } },
+      ['agent_write'],
     )).toThrow(/human-governed stakeholder collection/);
   });
 });

@@ -86,7 +86,9 @@ jobs:
         pip install --upgrade pip
         pip install -r requirements.txt
         pip install slither-analyzer==0.11.5 semgrep==1.170.0
-        npm install --global --no-audit --no-fund @@cyfrin/aderyn@@0.6.8
+        npm install --global --no-audit --no-fund @cyfrin/aderyn@0.6.8
+        # NOTE: foundryup/NodeSource installers are fetched over TLS from official
+        # sources. Pin to a known digest and verify checksums before CI use.
         curl --proto '=https' --tlsv1.2 -LsSf https://foundry.paradigm.xyz | bash
         /root/.foundry/bin/foundryup
         export PATH=/root/.foundry/bin:$PATH

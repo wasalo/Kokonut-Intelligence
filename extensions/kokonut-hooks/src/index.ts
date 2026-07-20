@@ -42,6 +42,7 @@ import {
   enforceAiSummarySafety,
   enforceStakeholderGovernanceSafety,
   prepareAgentActionLog,
+  STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS,
 } from './agent-safety.js';
 import { validateTenantReferences } from './tenant-validation.js';
 
@@ -198,9 +199,10 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('sales_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    if (payload.total_amount !== undefined || payload.return_amount !== undefined || payload.discount_amount !== undefined) {
+    const recordId = meta.keys?.[0];
+    if (recordId && (payload.total_amount !== undefined || payload.return_amount !== undefined || payload.discount_amount !== undefined)) {
       const current = await database('sales_event')
-        .where('id', meta.keys?.[0] || payload.id)
+        .where('id', recordId)
         .first();
 
       const total = payload.total_amount ?? current?.total_amount ?? 0;
@@ -351,7 +353,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   });
 
   filter('metric_proposal.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    const accountability = meta?.accountability || meta?.payload?._accountability;
+    const accountability = meta?.accountability;
     return await handleMetricProposalUpdate(payload, meta, database, accountability);
   });
 
@@ -365,39 +367,39 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const current = recordId ? await database('impact_claim').where('id', recordId).first() : {};
     validateImpactClaim({ ...(current || {}), ...payload });
-    const accountability = meta?.accountability || meta?.payload?._accountability;
+    const accountability = meta?.accountability;
     await stampImpactClaimReview(payload, accountability);
     return await applyWorkflow('impact_claim', payload, meta);
   });
 
-  filter('agent_task.create', (payload: Record<string, any>, meta: Record<string, any>) => enforceAgentTaskSafety(payload, meta));
-  filter('agent_task.update', (payload: Record<string, any>, meta: Record<string, any>) => enforceAgentTaskSafety(payload, meta));
-  filter('ai_summary.create', (payload: Record<string, any>, meta: Record<string, any>) => enforceAiSummarySafety(payload, meta));
+  filter('agent_task.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const roles = await resolveUserRoles(database, meta);
+    return enforceAgentTaskSafety(payload, roles);
+  });
+  filter('agent_task.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const roles = await resolveUserRoles(database, meta);
+    return enforceAgentTaskSafety(payload, roles);
+  });
+  filter('ai_summary.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const roles = await resolveUserRoles(database, meta);
+    return enforceAiSummarySafety(payload, roles);
+  });
   filter('ai_summary.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    enforceAiSummarySafety(payload, meta);
+    const roles = await resolveUserRoles(database, meta);
+    enforceAiSummarySafety(payload, roles);
     return await applyWorkflow('ai_summary', payload, meta);
   });
   filter('agent_action_log.create', (payload: Record<string, any>) => prepareAgentActionLog(payload));
 
-  for (const collection of [
-    'party_resolution_case',
-    'stakeholder_consent',
-    'stakeholder_grievance_case',
-    'grievance_remedy',
-    'stakeholder_decision',
-    'stakeholder_decision_evidence',
-    'buyer_verification',
-    'market_dispute',
-    'cooperative_distribution_decision',
-    'party_trust_evidence',
-    'stewardship_proxy_authority',
-    'nature_stewardship_obligation',
-    'future_generation_principle',
-  ]) {
-    filter(`${collection}.create`, (payload: Record<string, any>, meta: Record<string, any>) =>
-      enforceStakeholderGovernanceSafety(collection, payload, meta));
-    filter(`${collection}.update`, (payload: Record<string, any>, meta: Record<string, any>) =>
-      enforceStakeholderGovernanceSafety(collection, payload, meta));
+  for (const collection of STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS) {
+    filter(`${collection}.create`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+      const roles = await resolveUserRoles(database, meta);
+      return enforceStakeholderGovernanceSafety(collection, payload, roles);
+    });
+    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+      const roles = await resolveUserRoles(database, meta);
+      return enforceStakeholderGovernanceSafety(collection, payload, roles);
+    });
   }
 
   // ============================================================

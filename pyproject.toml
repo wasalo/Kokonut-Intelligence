@@ -3,8 +3,12 @@ line-length = 120
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]
-ignore = ["E501"]
+select = ["E", "F", "W", "I", "S", "BLE", "RUF"]
+ignore = ["E501", "S101", "S104", "S105", "S106", "S301", "S320", "S404", "S603", "S607", "RUF012"]
+# S101 assert (tests), S104 bind-all (intentional listeners), S105/S106 hardcoded creds
+# in test fixtures, S301 pickle (intentional local-only), S320 XML (defusedxml used),
+# S404 SSL (intentional disable for internal endpoints), S603/S607 subprocess,
+# RUF012 mutable class attrs — all reviewed as acceptable for this codebase.
 
 [tool.ruff.lint.isort]
 known-first-party = ["services", "tests"]
@@ -12,8 +16,9 @@ known-first-party = ["services", "tests"]
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
-check_untyped_defs = false
-warn_unused_ignores = false
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
 exclude = "contracts/|extensions/|sdk/"
 
 [tool.pytest.ini_options]

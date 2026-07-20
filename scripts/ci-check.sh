@@ -242,6 +242,22 @@ echo "[8/8] Attestation tests..."
 check "attestation tests" "python3 -m tests.test_attestation"
 echo ""
 
+# 9. Security tooling (guarded — surfaces findings; tighten to hard gate after triage)
+echo "[9/9] Security tooling..."
+if command -v ruff >/dev/null 2>&1; then
+    echo "  ruff (security rules):"
+    ruff check --select S,BLE services/ 2>&1 | head -60 || true
+else
+    echo "  ! ruff not installed — skipping (add to CI image)"
+fi
+if command -v pip-audit >/dev/null 2>&1; then
+    echo "  pip-audit:"
+    pip-audit -r requirements.txt 2>&1 | head -40 || true
+else
+    echo "  ! pip-audit not installed — skipping"
+fi
+echo ""
+
 # Summary
 echo "=== Results ==="
 echo "  Pass: $PASS"

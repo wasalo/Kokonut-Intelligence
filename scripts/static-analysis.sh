@@ -2,11 +2,13 @@
 # Static analysis gate for Solidity contracts and Python services.
 set -euo pipefail
 
-CONTRACTS_DIR="contracts"
-ARTIFACT_DIR="${ANALYSIS_ARTIFACT_DIR:-artifacts/static-analysis}"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONTRACTS_DIR="$PROJECT_DIR/contracts"
+ARTIFACT_DIR="${ANALYSIS_ARTIFACT_DIR:-$PROJECT_DIR/artifacts/static-analysis}"
 EXIT_CODE=0
 export PATH="$HOME/Library/Python/3.9/bin:$HOME/.cargo/bin:$PATH"
 mkdir -p "$ARTIFACT_DIR"
+cd "$PROJECT_DIR"
 
 echo "=== Slither (Solidity) ==="
 if ! command -v slither >/dev/null 2>&1; then
@@ -82,7 +84,11 @@ echo "=== Semgrep (Python + Solidity) ==="
 if command -v pysemgrep >/dev/null 2>&1 || command -v semgrep >/dev/null 2>&1; then
     SEMGREP=$(command -v pysemgrep 2>/dev/null || command -v semgrep)
     set +e
-    "$SEMGREP" scan --config auto --severity ERROR \
+    SEMGREP_CONFIG="auto"
+    if [ -f "$PROJECT_DIR/semgrep.yml" ]; then
+        SEMGREP_CONFIG="$PROJECT_DIR/semgrep.yml"
+    fi
+    "$SEMGREP" scan --config "$SEMGREP_CONFIG" --severity ERROR \
         --sarif --output /tmp/semgrep-gate.sarif \
         services/ contracts/src/ contracts/script/ 2>&1 | tee /tmp/semgrep.log
     SEMGREP_STATUS=${PIPESTATUS[0]}
