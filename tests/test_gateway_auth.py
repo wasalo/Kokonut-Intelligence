@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 pytest.importorskip("fastapi")
-from fastapi.testclient import TestClient  # noqa: E402
+from starlette.testclient import TestClient  # noqa: E402
 
 from services.gateway.app import create_app  # noqa: E402
 
