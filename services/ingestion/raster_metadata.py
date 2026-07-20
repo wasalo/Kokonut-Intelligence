@@ -48,8 +48,9 @@ def import_raster_metadata(filepath: str, location_id: str = None,
                 "source_system": source_system,
             }
             return {"status": "success", "metadata": data}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception:
+        logger.exception("Failed to import raster metadata")
+        return {"status": "error", "message": "Failed to read raster metadata"}
 
 
 def get_raster_info(filepath: str) -> dict:
@@ -77,5 +78,6 @@ def get_raster_info(filepath: str) -> dict:
                 "data_type": str(src.dtypes[0]) if src.dtypes else None,
                 "file_size": os.path.getsize(filepath),
             }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+    except Exception:
+        logger.exception("Failed to read raster info")
+        return {"status": "error", "message": "Failed to read raster info"}

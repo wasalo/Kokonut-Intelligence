@@ -267,8 +267,8 @@ export async function handleWorkflowTransition(
     try {
       const record = await db(collection).where('id', recordId).first('status');
       currentStatus = record?.status as string | undefined;
-    } catch (e) {
-      throw new Error(`Unable to verify current status for ${collection}: ${String(e)}`);
+    } catch {
+      throw new Error(`Unable to verify current status for ${collection}`);
     }
   } else {
     currentStatus = keys.status as string | undefined;
@@ -310,9 +310,9 @@ export async function handleWorkflowTransition(
     let record: { submitted_at?: string } | undefined;
     try {
       record = await db(collection).where('id', recordId).first('submitted_at');
-    } catch (error) {
+    } catch {
       pendingTransitions.delete(transitionKey(collection, recordId));
-      throw new Error(`Unable to verify stakeholder feedback review period: ${String(error)}`);
+      throw new Error('Unable to verify stakeholder feedback review period');
     }
     if (!record?.submitted_at) {
       pendingTransitions.delete(transitionKey(collection, recordId));

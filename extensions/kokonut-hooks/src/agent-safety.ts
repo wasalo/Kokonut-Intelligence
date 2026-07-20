@@ -64,9 +64,12 @@ export function isHighRiskAgentAction(action: string | undefined): boolean {
   return HIGH_RISK_ACTIONS.has(action || '');
 }
 
-function isAgentActor(meta?: Record<string, any>): boolean {
-  const role = meta?.accountability?.role;
-  return typeof role === 'string' && (
+/** True when any of the resolved role slugs identify an agent actor.
+ *  Role slugs are resolved from the Directus role UUID by `resolveUserRoles`
+ *  (see roles.ts); the raw accountability role UUID must NEVER be trusted here. */
+export function isAgentActorByRoles(roles: string[] | undefined): boolean {
+  if (!Array.isArray(roles)) return false;
+  return roles.some((role) =>
     role === 'agent_read_only' ||
     role === 'agent_write' ||
     role === 'agent_full' ||
@@ -76,9 +79,9 @@ function isAgentActor(meta?: Record<string, any>): boolean {
 
 export function enforceAgentTaskSafety(
   payload: Record<string, any>,
-  meta?: Record<string, any>
+  roles: string[] = []
 ): Record<string, any> {
-  if (isAgentActor(meta) && payload.review_status && !AGENT_REVIEW_STATUSES.has(payload.review_status)) {
+  if (isAgentActorByRoles(roles) && payload.review_status && !AGENT_REVIEW_STATUSES.has(payload.review_status)) {
     throw new Error('Agent tasks can only be draft, submitted, or rejected');
   }
 
@@ -90,8 +93,11 @@ export function enforceAgentTaskSafety(
   return payload;
 }
 
-export function enforceAiSummarySafety(payload: Record<string, any>, meta?: Record<string, any>): Record<string, any> {
-  if (isAgentActor(meta) && payload.status && !AGENT_AI_STATUSES.has(payload.status)) {
+export function enforceAiSummarySafety(
+  payload: Record<string, any>,
+  roles: string[] = []
+): Record<string, any> {
+  if (isAgentActorByRoles(roles) && payload.status && !AGENT_AI_STATUSES.has(payload.status)) {
     throw new Error('Agent-created AI summaries can only be draft, submitted, or rejected');
   }
   return payload;
@@ -100,21 +106,22 @@ export function enforceAiSummarySafety(payload: Record<string, any>, meta?: Reco
 export function enforceStakeholderGovernanceSafety(
   collection: string,
   payload: Record<string, any>,
-  meta?: Record<string, any>
+  roles: string[] = []
 ): Record<string, any> {
-  if (collection === 'coordination_alliance' && isAgentActor(meta) && payload.status === 'draft') {
+  const agent = isAgentActorByRoles(roles);
+  if (collection === 'coordination_alliance' && agent && payload.status === 'draft') {
     return payload;
   }
-  if (isAgentActor(meta) && collection === 'governance_tension' && (!payload.action || payload.action === 'create') && payload.status === 'draft') {
+  if (agent && collection === 'governance_tension' && (!payload.action || payload.action === 'create') && payload.status === 'draft') {
     return payload;
   }
-  if (isAgentActor(meta) && collection === 'governance_proposal' && (!payload.action || payload.action === 'create') && payload.status === 'draft') {
+  if (agent && collection === 'governance_proposal' && (!payload.action || payload.action === 'create') && payload.status === 'draft') {
     return payload;
   }
-  if (isAgentActor(meta) && collection === 'governance_tactical_item' && (!payload.action || payload.action === 'create') && (!payload.status || payload.status === 'open')) {
+  if (agent && collection === 'governance_tactical_item' && (!payload.action || payload.action === 'create') && (!payload.status || payload.status === 'open')) {
     return payload;
   }
-  if (isAgentActor(meta) && STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS.has(collection)) {
+  if (agent && STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS.has(collection)) {
     throw new Error(`Agent writes are blocked for human-governed stakeholder collection ${collection}`);
   }
   return payload;

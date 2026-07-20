@@ -1246,6 +1246,17 @@ Commands:
 - `DISK_THRESHOLD` and `MEM_THRESHOLD` control health-check alert thresholds (default: 90%).
 - Worker crontab lives in `config/worker/crontab` and covers weather, market data, EAS/RPC indexers, sensor ingester, anomaly detection, metrics, health checks, backups, and dataset refresh.
 
+### Enforced security & supply-chain gates
+
+- **Static analysis**: `scripts/static-analysis.sh` runs Slither (Solidity, High/Medium gate), Aderyn, and Semgrep (`semgrep.yml`, `python.lang.security` + `python.lang.correctness`). It runs in CI.
+- **Secret scanning**: `scripts/check-tracked-secrets.sh` fails on private keys, AWS/GitHub/Slack tokens, 64-hex (private key) strings, and `key/secret/token` assignment literals. Run it before committing.
+- **Python lint/security**: `ruff` is configured with `S` (flake8-bandit), `BLE`, and `RUF` selectors in `pyproject.toml`. Run `ruff check --select S,BLE services/` and review findings.
+- **Dependency hygiene**: generate a hash-pinned `requirements.lock` (`pip-compile --generate-hashes`) and install with `--require-hashes`. Keep dependency versions resolvable (avoid conflicts like `numpy>=2` vs `prophet<2`). `renovate.json` automates dependency + base-image digest updates.
+- **Directus hooks**: never trust client-supplied `payload._accountability` — accountability comes only from the server `meta.accountability` (`roles.ts`). Agent-safety enforcement keys off **resolved role slugs** (`resolveUserRoles`), never the raw role UUID. All human-governed stakeholder collections in `STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS` are protected by create/update filters.
+- **Gateway authz**: API keys are scope-enforced (fail-closed) via `KOKONUT_API_KEY_SCOPES`; the Directus admin token is the only full-access key. Service keys are constant-time compared.
+- **Solidity**: zero-address validation in constructors, `whenNotPaused` on `reverseAward`, timelock `getUpgrade` readable by `DEFAULT_ADMIN_ROLE`. Run `forge test` before any contract change.
+- **Containers**: `Dockerfile.worker` / `Dockerfile.grpc` run as non-root `appuser`. Pin base images by digest in production overlays.
+
 ## Blockchain Indexing
 
 - Gnosis Chain (chain ID 100) is home of the Kokonut Moloch DAO.

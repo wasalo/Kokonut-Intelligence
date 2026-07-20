@@ -19,6 +19,8 @@ contract KokonutResolver is SchemaResolver, Ownable {
     /// @param owner Address that can manage allowed attesters.
     /// @param initialAttesters Addresses to allow immediately.
     constructor(IEAS eas, address owner, address[] memory initialAttesters) SchemaResolver(eas) Ownable(owner) {
+        require(address(eas) != address(0), "Zero EAS address");
+        require(owner != address(0), "Zero owner address");
         for (uint256 i = 0; i < initialAttesters.length; i++) {
             allowedAttesters[initialAttesters[i]] = true;
             emit AttesterAdded(initialAttesters[i]);

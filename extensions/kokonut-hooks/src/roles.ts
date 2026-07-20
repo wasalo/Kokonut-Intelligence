@@ -20,7 +20,9 @@ export async function resolveUserRoles(
   db: any,
   meta: Record<string, any>
 ): Promise<string[]> {
-  const accountability = meta?.accountability || meta?.payload?._accountability;
+  // Trust only the server-provided accountability. Client-supplied
+  // `payload._accountability` is never honored (spoofing risk).
+  const accountability = meta?.accountability;
   if (!accountability) return [];
   if (accountability.admin) return ['admin'];
 

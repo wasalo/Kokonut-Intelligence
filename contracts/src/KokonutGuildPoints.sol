@@ -46,7 +46,6 @@ contract KokonutGuildPoints is
     error InvalidClaimSigner(address signer);
     error NonTransferable();
     error InvalidDomainIdentity();
-    error DomainRegistryAlreadySet();
     error ChainIdMismatch();
 
     struct AwardRecord {
@@ -147,7 +146,6 @@ contract KokonutGuildPoints is
 
     function reinitializeDomainRegistry(KokonutGuildDomain domains) external reinitializer(2) onlyRole(UPGRADER_ROLE) {
         if (address(domains) == address(0)) revert ZeroAddress();
-        if (address(domainRegistry) != address(0)) revert DomainRegistryAlreadySet();
         domainRegistry = domains;
     }
 
@@ -175,7 +173,6 @@ contract KokonutGuildPoints is
             revert ClaimNonceUsed(voucher.contributor, voucher.nonce);
         }
         if (voucher.chainId != block.chainid) revert ChainIdMismatch();
-        if (deploymentChainId != block.chainid) revert ChainIdMismatch();
 
         address signer = ECDSA.recover(claimDigest(voucher), signature);
         if (!hasRole(CLAIM_SIGNER_ROLE, signer)) revert InvalidClaimSigner(signer);

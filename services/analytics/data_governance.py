@@ -23,6 +23,7 @@ Usage:
 
 import argparse
 import json
+import re
 import uuid
 from datetime import datetime, date, timezone, timedelta
 
@@ -787,6 +788,11 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
                     if not has_created_at:
                         status, error = "error", "entity table lacks created_at"
                     else:
+                        # entity_type is interpolated as a SQL identifier; allow only
+                        # snake_case table names to prevent identifier injection.
+                        if not re.match(r"^[a-z_]+$", entity_type or ""):
+                            status, error = "error", "invalid entity_type"
+                            continue
                         quoted = '"' + entity_type.replace('"', '""') + '"'
                         where = f"created_at < NOW() - make_interval(days => %s)"
                         params = [days]

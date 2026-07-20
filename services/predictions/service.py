@@ -138,7 +138,7 @@ class PredictionService:
             table, value_column, unit = resolvers[metric]
             unit_filter = "AND unit = %s" if table == "harvest_event" else ""
             params = [prediction["location_id"], prediction["target_start"], prediction["target_end"]]
-            if unit_filter:
+            if unit_filter != "":
                 params.append(unit)
             cur.execute(
                 f"""SELECT COALESCE(SUM({value_column}),0) AS actual_value,

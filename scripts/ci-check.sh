@@ -242,6 +242,35 @@ echo "[8/8] Attestation tests..."
 check "attestation tests" "python3 -m tests.test_attestation"
 echo ""
 
+# 9. Security tooling (mandatory — ruff and pip-audit are installed by CI buildspec)
+echo "[9/9] Security tooling..."
+echo "  ruff (security rules):"
+set +e
+RUFF_OUTPUT=$(ruff check --select S,BLE --ignore S101,S104,S105,S110,S112,S301,S310,S311,S320,S404,S603,S607,S608,RUF012,BLE001 services/ 2>&1 | head -60)
+RUFF_STATUS=$?
+set -e
+if [ $RUFF_STATUS -ne 0 ]; then
+    echo "$RUFF_OUTPUT"
+    echo "  FAIL: ruff found security findings"
+    check "ruff security scan" "false"
+else
+    echo "  ruff: PASS"
+fi
+
+echo "  pip-audit:"
+set +e
+AUDIT_OUTPUT=$(pip-audit -r requirements.txt 2>&1 | head -40)
+AUDIT_STATUS=$?
+set -e
+if [ $AUDIT_STATUS -ne 0 ]; then
+    echo "$AUDIT_OUTPUT"
+    echo "  FAIL: pip-audit found vulnerabilities"
+    check "pip-audit scan" "false"
+else
+    echo "  pip-audit: PASS"
+fi
+echo ""
+
 # Summary
 echo "=== Results ==="
 echo "  Pass: $PASS"
