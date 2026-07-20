@@ -63,6 +63,27 @@ def _breaches(operator: Optional[str], value: Optional[float], threshold: Option
     return None
 
 
+def _preempt_value(operator: Optional[str], threshold: Optional[float], preempt_pct: Optional[float]) -> Optional[float]:
+    """Compute the forward-deployment (preempt) threshold.
+
+    The preempt threshold is ``preempt_pct`` of the distance from a neutral
+    baseline (0) to the hard ``threshold``. For a falling-is-bad operator
+    (``lt``/``lte``) the baseline is +infinity-ish, so we treat the preempt
+    point as ``threshold * preempt_pct`` (i.e. 80% of the way to breach).
+    For a rising-is-bad operator (``gt``/``gte``) the same multiplicative rule
+    applies from 0. Returns None when not configured.
+    """
+    if preempt_pct is None or threshold is None or not operator:
+        return None
+    if operator in ("lt", "lte"):
+        # falling is bad: deploy when value drops to preempt_pct of threshold
+        return threshold * preempt_pct
+    if operator in ("gt", "gte"):
+        # rising is bad: deploy when value rises to preempt_pct of threshold
+        return threshold * preempt_pct
+    return None
+
+
 def evaluate_trigger(
     conn, reserve: Dict[str, Any]
 ) -> Dict[str, Any]:
@@ -71,8 +92,13 @@ def evaluate_trigger(
     Uses the most recent ``metric_value`` row for ``trigger_metric_key``
     (network scope when the reserve scope is network, else the reserve's
     ``scope_id``). Returns whether the breach condition is met, the observed
-    value, and the release threshold. Human approval is still required to
-    actually draw down; this only surfaces the proposal.
+    value, and the release threshold.
+
+    When the reserve defines ``preempt_threshold_pct`` (>0), the engine also
+    surfaces a DRAFT forward-deployment proposal once the observed value enters
+    the preempt band (``preempt_pct`` of the way to the hard breach) — the
+    "best defense is a good offense" posture. Forward deployment is still DRAFT
+    and requires human approval; this module never draws down autonomously.
     """
     key = reserve.get("trigger_metric_key")
     operator = reserve.get("trigger_operator")
@@ -103,6 +129,13 @@ def evaluate_trigger(
 
     observed = float(row["value"]) if row and row.get("value") is not None else None
     breach = _breaches(operator, observed, threshold)
+
+    preempt_pct = reserve.get("preempt_threshold_pct")
+    preempt_value = _preempt_value(operator, threshold, preempt_pct if preempt_pct else None)
+    preempt_breach = _breaches(operator, observed, preempt_value) if preempt_value is not None else None
+    # Forward-deployment proposal fires on the preempt band (but not yet hard breach).
+    preempt_proposed = bool(preempt_breach) and not bool(breach)
+
     return {
         "trigger_defined": True,
         "metric_key": key,
@@ -111,6 +144,10 @@ def evaluate_trigger(
         "observed_value": observed,
         "breach": breach,
         "release_proposed": bool(breach),
+        "preempt_threshold_pct": preempt_pct,
+        "preempt_value": preempt_value,
+        "preempt_breach": preempt_breach,
+        "preempt_proposed": preempt_proposed,
     }
 
 
