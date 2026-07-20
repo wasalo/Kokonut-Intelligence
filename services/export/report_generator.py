@@ -4150,6 +4150,45 @@ def generate_tactical_layer(conn, location_id: str = None, period_start: str = N
     }
 
 
+def generate_simulation_wargame(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate an advisory tactical-wargame simulation report.
+
+    ADVISORY-ONLY. Runs two probabilistic stress-tests:
+    1. A Monte Carlo yield ensemble over the location's digital twin (yield
+       distribution under perturbed weather/inputs).
+    2. A two-sided clash of active high/critical threat pressure against the
+       location's strategic-reserve adequacy.
+
+    No governed state is written; the "opposing force" is shocks/threats vs.
+    reserves, never stakeholders or communities (see AGENTS.md).
+    """
+    from services.analytics.digital_twin import list_twins, monte_carlo_yield
+    from services.simulation.clash_examples import stress_reserve
+
+    result = {
+        "report_type": "simulation_wargame",
+        "location_id": location_id,
+        "monte_carlo_yield": None,
+        "reserve_clash": None,
+        "note": (
+            "Advisory probabilistic stress-test. Outcomes are distributions, not "
+            "determinations. No automatic action is taken."
+        ),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    if location_id:
+        twins = list_twins(conn, location_id)
+        if twins:
+            result["monte_carlo_yield"] = monte_carlo_yield(conn, twins[0]["twin_id"], n=200)
+        try:
+            result["reserve_clash"] = stress_reserve(conn, location_id)
+        except Exception as exc:  # advisory: never fatal
+            result["reserve_clash"] = {"error": str(exc)}
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # REPORT_GENERATORS dictionary
 # ---------------------------------------------------------------------------
@@ -4246,7 +4285,8 @@ REPORT_GENERATORS = {
        "fork_opportunities": generate_fork_opportunities,
        "pin_dependency": generate_pin_dependency,
        "promotion_ladder": generate_promotion_ladder,
-       "tactical_layer": generate_tactical_layer,
+        "tactical_layer": generate_tactical_layer,
+        "simulation_wargame": generate_simulation_wargame,
 }
 
 

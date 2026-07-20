@@ -230,6 +230,62 @@ class StockFlowSimulator:
             "scenarios": results,
         }
 
+    def monte_carlo_stock(
+        self,
+        model_name: str,
+        location_id: str,
+        stock_name: str,
+        *,
+        parameter_sampler: Dict[str, Any],
+        n: int = 500,
+        seed: Optional[int] = None,
+        max_workers: int = 8,
+        duration: int = 365,
+        time_step: int = 1,
+    ) -> Dict[str, Any]:
+        """Run a Monte Carlo ensemble over a stock-and-flow model.
+
+        ADVISORY-ONLY: returns a distribution of a chosen stock's final value
+        under perturbed model parameters. ``run_simulation`` persists a run row
+        per draw (legitimate history, not governed state). No publish/act effects.
+
+        Args:
+            model_name: Model to simulate (e.g. "soil_carbon").
+            location_id: Location for context.
+            stock_name: Which stock's final value to aggregate.
+            parameter_sampler: Mapping of model parameter -> distribution spec.
+            n: Number of draws.
+            seed: RNG seed for reproducibility.
+            max_workers: Bound on concurrent draws (each opens its own connection).
+            duration / time_step: Forwarded to ``run_simulation``.
+
+        Returns:
+            Distribution dict from ``services.simulation.resolution.monte_carlo``.
+        """
+        from ..simulation.resolution import monte_carlo
+        from .base import get_db
+
+        metric = f"summary.{stock_name}.final"
+
+        def _sim(conn, **params):
+            return self.run_simulation(
+                model_name, location_id,
+                scenario_name="monte_carlo",
+                duration=duration, time_step=time_step,
+                parameters=params,
+            )
+
+        return monte_carlo(
+            _sim,
+            {},
+            sampler=parameter_sampler,
+            metric=metric,
+            conn_factory=get_db,
+            n=n,
+            seed=seed,
+            max_workers=max_workers,
+        )
+
     def get_trajectory(
         self, model_name: str, location_id: str, scenario: str = "baseline"
     ) -> List[Dict[str, Any]]:

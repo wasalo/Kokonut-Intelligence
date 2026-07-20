@@ -568,6 +568,65 @@ def compare_scenarios(conn, twin_id: str) -> dict:
     }
 
 
+def monte_carlo_yield(
+    conn,
+    twin_id: str,
+    *,
+    n: int = 500,
+    seed: Optional[int] = None,
+    max_workers: int = 8,
+    rainfall_sd: float = 0.2,
+    temperature_sd: float = 1.5,
+    fertilizer_sd: float = 20.0,
+) -> dict:
+    """Run a Monte Carlo ensemble over the crop-growth simulation.
+
+    ADVISORY-ONLY: returns a distribution of final yield under perturbed weather
+    and input assumptions. Each draw calls ``run_simulation``, which persists a
+    ``simulation_run`` row (this is legitimate simulation history, not governed
+    state). No publish/act side effects are introduced.
+
+    Args:
+        conn: A DB connection used only to read twin config / build the base params.
+        twin_id: Digital twin to simulate.
+        n: Number of draws.
+        seed: RNG seed for reproducibility.
+        max_workers: Bound on concurrent draws (each draw opens its own connection).
+        rainfall_sd / temperature_sd / fertilizer_sd: Per-draw perturbation stdev
+            applied to the twin's nominal parameters.
+
+    Returns:
+        Distribution dict from ``services.simulation.resolution.monte_carlo``.
+    """
+    from ..simulation.resolution import monte_carlo
+    from .base import get_db
+
+    params = get_twin_config(conn, twin_id)
+    base = {
+        "rainfall_multiplier": float(params.get("rainfall_multiplier", 1.0)),
+        "temperature_offset_c": float(params.get("temperature_offset_c", 0)),
+        "fertilizer_kg_ha": float(params.get("fertilizer_kg_ha", 120)),
+    }
+
+    sampler = {
+        "rainfall_multiplier": {"dist": "normal", "mean": base["rainfall_multiplier"], "sd": rainfall_sd},
+        "temperature_offset_c": {"dist": "normal", "mean": base["temperature_offset_c"], "sd": temperature_sd},
+        "fertilizer_kg_ha": {"dist": "normal", "mean": base["fertilizer_kg_ha"], "sd": fertilizer_sd},
+    }
+
+    return monte_carlo(
+        run_simulation,
+        base,
+        sampler=sampler,
+        metric="final_yield_kg_ha",
+        conn=conn,
+        conn_factory=get_db,
+        n=n,
+        seed=seed,
+        max_workers=max_workers,
+    )
+
+
 # ============================================================
 # CLI
 # ============================================================
