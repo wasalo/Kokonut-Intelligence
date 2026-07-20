@@ -4052,6 +4052,105 @@ def generate_env_scan_report(conn, location_id: str, period_start: str = None, p
 
 
 # ---------------------------------------------------------------------------
+# Tactical Layer report generators (chess-inspired governance tactics)
+# ---------------------------------------------------------------------------
+
+
+def _tactical_location_param(location_id: Optional[str]) -> Optional[str]:
+    return location_id
+
+
+def generate_fork_opportunities(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Fork tactic: a single event that reveals/creates multiple high-value opportunities."""
+    from services.events.fork_detector import detect_fork_opportunities
+
+    result = detect_fork_opportunities(conn, location_id=location_id)
+    return {
+        "report_type": "fork_opportunities",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "fork_count": result.get("fork_count", 0),
+        "forks": result.get("forks", []),
+        "note": "Read-only detection. Use events CLI to propose DRAFT tactical items.",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_pin_dependency(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Pin tactic: governed records blocked (pinned) by an unverified upstream."""
+    from services.analytics.pin_dependency import detect_pin_blocks
+
+    result = detect_pin_blocks(conn, location_id=location_id)
+    return {
+        "report_type": "pin_dependency",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "pin_count": result.get("pin_count", 0),
+        "severity": result.get("severity", "low"),
+        "pins": result.get("pins", []),
+        "note": "Read-only detection. Use pin_dependency detection to propose DRAFT items.",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_promotion_ladder(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Promotion tactic: the regenerative value chain funnel per location."""
+    from services.analytics.promotion_ladder import compute_promotion_ladder
+
+    result = compute_promotion_ladder(conn, location_id=location_id)
+    return {
+        "report_type": "promotion_ladder",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "ladder_depth": result.get("ladder_depth", 4),
+        "locations": result.get("locations", []),
+        "note": "Read-only funnel; no writes performed.",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def generate_tactical_layer(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Composite Tactical Layer view: fork, discovered double-check, pin, zwischenzug, promotion."""
+    from services.analytics.pin_dependency import detect_pin_blocks
+    from services.analytics.promotion_ladder import compute_promotion_ladder
+    from services.events.fork_detector import detect_fork_opportunities
+    from services.feedback.automation import detect_zwischenzug
+    from services.threatcasting.preempt import plan_preemptive_actions
+
+    forks = detect_fork_opportunities(conn, location_id=location_id)
+    preempt = plan_preemptive_actions(conn, location_id=location_id)
+    pins = detect_pin_blocks(conn, location_id=location_id)
+    zwischenzug = detect_zwischenzug(conn, location_id=location_id)
+    ladder = compute_promotion_ladder(conn, location_id=location_id)
+
+    return {
+        "report_type": "tactical_layer",
+        "location_id": location_id,
+        "period_start": period_start,
+        "period_end": period_end,
+        "fork": {"fork_count": forks.get("fork_count", 0), "forks": forks.get("forks", [])},
+        "double_check": {
+            "double_check_count": preempt.get("double_check_count", 0),
+            "double_checks": preempt.get("double_checks", []),
+        },
+        "pin": {"pin_count": pins.get("pin_count", 0), "severity": pins.get("severity", "low")},
+        "zwischenzug": {"zwischenzug_count": zwischenzug.get("zwischenzug_count", 0)},
+        "promotion_ladder": {
+            "ladder_depth": ladder.get("ladder_depth", 4),
+            "locations": ladder.get("locations", []),
+        },
+        "note": (
+            "Composite read-only tactical surface. Individual tactics propose DRAFT "
+            "tactical_opportunity rows via their CLIs; human review required to act."
+        ),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # REPORT_GENERATORS dictionary
 # ---------------------------------------------------------------------------
 
@@ -4143,7 +4242,11 @@ REPORT_GENERATORS = {
       "state_of_kokonut": generate_state_of_kokonut,
       "state_of_kokonut_graphs": generate_state_of_kokonut_graphs,
       "comprehensive_status": generate_comprehensive_status,
-      "strategic_reserve": generate_strategic_reserve,
+       "strategic_reserve": generate_strategic_reserve,
+       "fork_opportunities": generate_fork_opportunities,
+       "pin_dependency": generate_pin_dependency,
+       "promotion_ladder": generate_promotion_ladder,
+       "tactical_layer": generate_tactical_layer,
 }
 
 

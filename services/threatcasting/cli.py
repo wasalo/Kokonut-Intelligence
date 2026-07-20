@@ -308,6 +308,18 @@ def cmd_preempt(args):
     print(_json(result))
 
 
+def cmd_preempt_double_check(args):
+    from services.threatcasting.preempt import plan_preemptive_actions
+    result = plan_preemptive_actions(_get_conn(), location_id=args.location_id)
+    print(_json({"double_checks": result.get("double_checks", []), "double_check_count": result.get("double_check_count", 0)}))
+
+
+def cmd_propose_double_check(args):
+    from services.threatcasting.preempt import propose_double_checks
+    result = propose_double_checks(_get_conn(), location_id=args.location_id, actor=args.actor)
+    print(_json(result))
+
+
 # ------------------------------------------------------------------
 # Backcasting enhancements — Principles
 # ------------------------------------------------------------------
@@ -865,6 +877,21 @@ def main():
     )
     p.add_argument("--location-id", help="Limit to a single location")
     p.set_defaults(func=cmd_preempt)
+
+    p = sub.add_parser(
+        "preempt-double-check",
+        help="Show discovered double-checks (warning flags revealing latent threats)",
+    )
+    p.add_argument("--location-id", help="Limit to a single location")
+    p.set_defaults(func=cmd_preempt_double_check)
+
+    p = sub.add_parser(
+        "propose-double-check",
+        help="Write DRAFT tactical_opportunity rows for discovered double-checks",
+    )
+    p.add_argument("--location-id", help="Limit to a single location")
+    p.add_argument("--actor", default="cli", help="Proposer recording the action")
+    p.set_defaults(func=cmd_propose_double_check)
 
     args = parser.parse_args()
     if hasattr(args, "func"):

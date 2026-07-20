@@ -119,9 +119,16 @@ class FeedbackAutomation:
             cur.close()
 
     def run_full_cycle(
-        self, location_id: Optional[str] = None
+        self, location_id: Optional[str] = None, zwischenzug: bool = False
     ) -> Dict[str, Any]:
-        """Evaluate outcomes + apply feedback + update thresholds."""
+        """Evaluate outcomes + apply feedback + update thresholds.
+
+        When ``zwischenzug=True`` (the chess "intermediate move" tactic), high
+        priority signals are applied FIRST within the cycle, preempting lower
+        priority ones — a counter-threat injected under stress. All resulting
+        feedback_loop rows remain ``status='proposed'``; human approval is still
+        required (configure rejects auto_apply). No autonomous state change.
+        """
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         start_time = time.time()
@@ -141,13 +148,21 @@ class FeedbackAutomation:
             # Evaluate outcomes
             eval_result = self.run_evaluation(location_id)
 
+            signals = list(eval_result["signals"])
+            if zwischenzug:
+                # Intermediate move: high-priority counter-threats first.
+                signals.sort(
+                    key=lambda s: (s.get("priority") != "high", s.get("priority") or ""),
+                    reverse=False,
+                )
+
             # Apply feedback from generated signals
             applied_count = 0
             proposed_count = 0
             adjusted_count = 0
 
-            if eval_result["signals"]:
-                for signal in eval_result["signals"]:
+            if signals:
+                for signal in signals:
                     if self._dry_run:
                         continue
 
@@ -507,3 +522,104 @@ class FeedbackAutomation:
             "signals_generated": len(signals),
             "signals": signals,
         }
+
+
+# --- Tactical Layer: zwischenzug (the "intermediate move") -----------------
+# Under stress, a high-priority counter-threat is applied BEFORE finishing the
+# lower-priority queue. These helpers surface those as read-only detections and
+# DRAFT tactical_opportunity rows; no autonomous state change is performed.
+
+
+def detect_zwischenzug(conn, location_id: Optional[str] = None) -> Dict[str, Any]:
+    """Detect high-priority feedback signals that should preempt the queue."""
+    from psycopg2.extras import RealDictCursor
+
+    params: List[Any] = []
+    loc_filter = ""
+    if location_id:
+        loc_filter = " AND ao.location_id = %s"
+        params.append(location_id)
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        cur.execute(
+            f"""
+            SELECT ao.id AS outcome_id, ao.location_id, ao.metric_key,
+                   ao.measured_value, ao.feedback_applied
+            FROM action_outcome ao
+            WHERE ao.feedback_applied = FALSE
+              AND NOT EXISTS (
+                  SELECT 1 FROM feedback_loop fl
+                  WHERE fl.source_outcome_id = ao.id
+              )
+              AND ao.measured_at > NOW() - INTERVAL '168 hours'
+              AND ao.measured_at IS NOT NULL
+              {loc_filter}
+            ORDER BY ao.measured_at DESC
+            """,
+            params,
+        )
+        rows = cur.fetchall()
+
+    signals = [
+        {
+            "outcome_id": str(r["outcome_id"]),
+            "location_id": str(r["location_id"]) if r["location_id"] else None,
+            "metric_key": r["metric_key"],
+            "measured_value": r["measured_value"],
+            "priority": "high",
+            "reason": "Unprocessed outcome eligible as high-priority counter-threat (zwischenzug).",
+        }
+        for r in rows
+    ]
+    return {
+        "location_id": location_id,
+        "zwischenzug_count": len(signals),
+        "signals": signals,
+        "note": "Read-only detection; no feedback_loop rows are written here.",
+    }
+
+
+def propose_zwischenzug(
+    conn, location_id: Optional[str] = None, actor: Optional[str] = None
+) -> Dict[str, Any]:
+    """Write DRAFT tactical_opportunity rows for detected zwischenzug signals."""
+    detection = detect_zwischenzug(conn, location_id=location_id)
+    created = []
+    from psycopg2.extras import RealDictCursor
+
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        for sig in detection["signals"]:
+            opp_id = str(uuid.uuid4())
+            cur.execute(
+                """
+                INSERT INTO tactical_opportunity
+                    (id, opportunity_type, location_id, severity,
+                     opportunity_summary, source_refs, status, proposed_by)
+                VALUES (%s, 'zwischenzug', %s, 'high', %s, %s, 'draft', %s)
+                RETURNING *
+                """,
+                (
+                    opp_id,
+                    sig.get("location_id"),
+                    sig["reason"],
+                    _zwischenzug_json({
+                        "outcome_id": sig["outcome_id"],
+                        "metric_key": sig["metric_key"],
+                    }),
+                    actor,
+                ),
+            )
+            created.append(dict(cur.fetchone()))
+    conn.commit()
+    return {
+        "location_id": location_id,
+        "proposed_count": len(created),
+        "opportunities": created,
+        "note": "DRAFT opportunities created; human review required to act.",
+    }
+
+
+def _zwischenzug_json(obj: Any) -> Any:
+    import json as _json
+
+    return _json.dumps(obj)

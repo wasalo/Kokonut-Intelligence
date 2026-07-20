@@ -57,6 +57,12 @@ def main():
     parser.add_argument("--variable", choices=["price", "yield", "cost"], default="price", help="Variable for sensitivity analysis")
     parser.add_argument("--range-pct", type=float, default=20.0, help="Percentage range for sensitivity (default: 20)")
     parser.add_argument("--steps", type=int, default=5, help="Number of steps for sensitivity (default: 5)")
+    parser.add_argument("--pin-dependency", action="store_true", help="Detect governed records pinned by an unverified upstream")
+    parser.add_argument("--propose-pin", action="store_true", help="Write DRAFT tactical_opportunity rows for pin blocks")
+    parser.add_argument("--promotion-ladder", action="store_true", help="Show per-location regenerative value-chain promotion funnel")
+    parser.add_argument("--zwischenzug", action="store_true", help="Detect high-priority feedback counter-threats (zwischenzug)")
+    parser.add_argument("--propose-zwischenzug", action="store_true", help="Write DRAFT tactical_opportunity rows for zwischenzug signals")
+    parser.add_argument("--tactical-layer", action="store_true", help="Composite tactical-layer report (fork, double-check, pin, zwischenzug, promotion)")
     args = parser.parse_args()
 
     from ..ingestion.base import get_db
@@ -233,6 +239,61 @@ def main():
         from .portfolio import ebf_portfolio_summary
         conn = get_db()
         result = ebf_portfolio_summary(conn)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.pin_dependency:
+        if not args.location_id:
+            parser.error("--pin-dependency requires --location-id")
+        from .pin_dependency import detect_pin_blocks
+        conn = get_db()
+        result = detect_pin_blocks(conn, location_id=args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.propose_pin:
+        if not args.location_id:
+            parser.error("--propose-pin requires --location-id")
+        from .pin_dependency import propose_pin_blocks
+        conn = get_db()
+        result = propose_pin_blocks(conn, location_id=args.location_id, actor="cli")
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.promotion_ladder:
+        from .promotion_ladder import compute_promotion_ladder
+        conn = get_db()
+        result = compute_promotion_ladder(conn, location_id=args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.zwischenzug:
+        from ..common.env import get_db
+        from . import automation
+        conn = get_db()
+        result = automation.detect_zwischenzug(conn, location_id=args.location_id)
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.propose_zwischenzug:
+        from ..common.env import get_db
+        from . import automation
+        conn = get_db()
+        result = automation.propose_zwischenzug(conn, location_id=args.location_id, actor="cli")
+        conn.close()
+        print(json.dumps(result, indent=2, default=str))
+        return
+
+    if args.tactical_layer:
+        from ..common.env import get_db
+        from ..export.report_generator import generate_tactical_layer
+        conn = get_db()
+        result = generate_tactical_layer(conn, location_id=args.location_id)
         conn.close()
         print(json.dumps(result, indent=2, default=str))
         return
