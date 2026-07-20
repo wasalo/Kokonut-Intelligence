@@ -46,6 +46,7 @@ jobs:
         METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
         EOF
         ./scripts/check-tracked-secrets.sh
+        ./scripts/check-image-digests.sh
         echo "=== [step] Starting services ==="
         # Remove stale volumes from prior builds so PostgreSQL reinitializes.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true

@@ -8,7 +8,7 @@ services:
       MB_EMBEDDING_SECRET_KEY: "${METABASE_EMBEDDING_SECRET_KEY:-sandbox-dev-secret-key-change-in-production}"
 
   sandbox-seed:
-    image: postgis/postgis:14-3.4
+    image: postgis/postgis:14-3.4@sha256:d803ac7dab61c5e5c36b8597e4a77d4a60be075507672e08da8aaba022dd9aaa
     depends_on:
       database:
         condition: service_healthy
