@@ -84,11 +84,21 @@ echo "=== Semgrep (Python + Solidity) ==="
 if command -v pysemgrep >/dev/null 2>&1 || command -v semgrep >/dev/null 2>&1; then
     SEMGREP=$(command -v pysemgrep 2>/dev/null || command -v semgrep)
     set +e
-    SEMGREP_CONFIG="auto"
+    SEMGREP_CONFIG_ARGS=()
     if [ -f "$PROJECT_DIR/semgrep.yml" ]; then
-        SEMGREP_CONFIG="$PROJECT_DIR/semgrep.yml"
+        while IFS= read -r pack; do
+            pack="$(printf '%s' "$pack" | sed 's/^[[:space:]]*-[[:space:]]*//; s/[[:space:]]*$//')"
+            [ -n "$pack" ] && SEMGREP_CONFIG_ARGS+=(--config "$pack")
+        done < <(awk '
+            /^[[:space:]]*configs:/ { f=1; next }
+            f && /^[[:space:]]*-/ { print }
+            f && !/^[[:space:]]*-/ && !/^[[:space:]]*#/ { f=0 }
+        ' "$PROJECT_DIR/semgrep.yml")
     fi
-    "$SEMGREP" scan --config "$SEMGREP_CONFIG" --severity ERROR \
+    if [ "${#SEMGREP_CONFIG_ARGS[@]}" -eq 0 ]; then
+        SEMGREP_CONFIG_ARGS=(--config auto)
+    fi
+    "$SEMGREP" scan "${SEMGREP_CONFIG_ARGS[@]}" --severity ERROR \
         --sarif --output /tmp/semgrep-gate.sarif \
         services/ contracts/src/ contracts/script/ 2>&1 | tee /tmp/semgrep.log
     SEMGREP_STATUS=${PIPESTATUS[0]}

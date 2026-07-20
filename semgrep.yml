@@ -1,5 +1,5 @@
-# Semgrep configuration for Kokonut Intelligence.
-# Deterministic ruleset (avoids `--config auto` drift). Scans Python + Solidity.
-rules:
+# Deterministic Semgrep rulepacks (no --config auto drift).
+# Consumed by scripts/static-analysis.sh via the `configs:` list.
+configs:
   - r/python.lang.security
   - r/python.lang.correctness
