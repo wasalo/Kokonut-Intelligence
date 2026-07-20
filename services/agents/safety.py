@@ -185,6 +185,10 @@ GOVERNED_COLLECTIONS = {
     "governance_tactical_session",
     "governance_tactical_item",
     "governance_circle_link",
+    "capital_capacity_assessment",
+    "capital_diversion_observation",
+    "capital_capture_risk",
+    "regenerative_credit_ledger",
 }
 
 STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
@@ -262,6 +266,7 @@ def assess_agent_action(action: str, collection: str, payload: Optional[dict[str
         "governance_tension": action == "create" and payload.get("status", "draft") == "draft",
         "governance_proposal": action == "create" and payload.get("status", "draft") == "draft",
         "governance_tactical_item": action == "create" and payload.get("status", "open") == "open",
+        "regenerative_credit_ledger": action == "create" and payload.get("status", "draft") == "draft",
     }
     if collection in draftable and draftable[collection]:
         return SafetyDecision(True, False, False, f"agents may create draft {collection} records only")

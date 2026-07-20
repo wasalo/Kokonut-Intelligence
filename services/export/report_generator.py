@@ -1511,6 +1511,12 @@ def generate_comprehensive_status(conn, location_id: str = None, period_start: s
                 entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
             except Exception as exc:  # noqa: BLE001 - keep composite resilient
                 entry["sections"][section] = {"error": f"{type(exc).__name__}: {exc}"}
+        try:
+            entry["sections"]["capital_accounting"] = generate_capital_accounting(
+                conn, loc_id, period_start, period_end
+            )
+        except Exception as exc:  # noqa: BLE001 - keep composite resilient
+            entry["sections"]["capital_accounting"] = {"error": f"{type(exc).__name__}: {exc}"}
         extended.append(entry)
 
     # Network-wide rollup from composed financial/environmental summaries.
@@ -4199,6 +4205,27 @@ def generate_simulation_wargame(conn, location_id: str = None, period_start: str
     return result
 
 
+def generate_capital_accounting(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate the capital-accounting report (Keynes-inspired, advisory-only).
+
+    Aggregates four lenses over the 8 Forms of Capital:
+      - capacity: stock vs regenerative output capacity (under-mobilization)
+      - diversion: consumption-vs-reinvestment diversion index
+      - capture_risk: value-leakage / concentration signal
+      - credit_ledger: DRAFT-only deferred regenerative credits + capacity
+
+    No governed state is written; the credit ledger is a read-only view here.
+    """
+    from services.capital import accounting_report
+
+    if not location_id:
+        raise ValueError("capital_accounting report requires a location_id")
+
+    return accounting_report.build_capital_accounting(
+        conn, location_id, period_start, period_end
+    )
+
+
 # ---------------------------------------------------------------------------
 # REPORT_GENERATORS dictionary
 # ---------------------------------------------------------------------------
@@ -4297,6 +4324,7 @@ REPORT_GENERATORS = {
        "promotion_ladder": generate_promotion_ladder,
         "tactical_layer": generate_tactical_layer,
         "simulation_wargame": generate_simulation_wargame,
+        "capital_accounting": generate_capital_accounting,
 }
 
 
