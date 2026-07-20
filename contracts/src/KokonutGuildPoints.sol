@@ -199,7 +199,7 @@ contract KokonutGuildPoints is
         bytes32 reasonHash,
         bytes32 ledgerRecordHash,
         bytes32 calculationVersion
-    ) external onlyRole(REVERSER_ROLE) whenNotPaused {
+    ) external onlyRole(REVERSER_ROLE) {
         if (settledReversals[reversalId]) revert ReversalAlreadySettled(reversalId);
 
         AwardRecord storage record = _awards[awardId];

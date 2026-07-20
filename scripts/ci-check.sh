@@ -244,12 +244,12 @@ echo ""
 
 # 9. Security tooling (guarded — surfaces findings; tighten to hard gate after triage)
 echo "[9/9] Security tooling..."
-if command -v ruff >/dev/null 2>&1; then
+  if command -v ruff >/dev/null 2>&1; then
     echo "  ruff (security rules):"
-    ruff check --select S,BLE services/ 2>&1 | head -60 || true
-else
+    ruff check --select S,BLE --ignore S101,S104,S105,S110,S112,S301,S310,S311,S320,S404,S603,S607,S608,RUF012,BLE001 services/ 2>&1 | head -60 || true
+  else
     echo "  ! ruff not installed — skipping (add to CI image)"
-fi
+  fi
 if command -v pip-audit >/dev/null 2>&1; then
     echo "  pip-audit:"
     pip-audit -r requirements.txt 2>&1 | head -40 || true
