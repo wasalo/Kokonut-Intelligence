@@ -1558,6 +1558,89 @@ def generate_comprehensive_status(conn, location_id: str = None, period_start: s
     }
 
 
+def generate_strategic_reserve(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+    """Generate a Strategic Reserve resilience report (location + network-wide).
+
+    Surfaces shock-absorption capacity across the five reserve types
+    (carbon_buffer, commons_reserve, financial_ringfence, capability_standby,
+    seed_vault) with per-reserve adequacy, drawdown headroom, and
+    trigger/breach status. When a location is selected, also includes the
+    biodiversity/seed-vault proxy (distinct species/crop lines held as
+    agro-biodiversity insurance). Network-wide (``--all`` / no location) covers
+    every reserve and adds an ecosystem rollup.
+
+    The mere existence of an adequately-funded reserve is surfaced as a
+    fundability/due-diligence signal (the energy-reserve "investment
+    incentive" parallel from the strategic-reserve literature).
+
+    Read-only; never modifies governed data.
+    """
+    from services.strategic_reserve import health as srh
+
+    location_ids = None
+    if location_id and location_id.lower() != "all":
+        location_ids = [lid.strip() for lid in location_id.split(",") if lid.strip()]
+
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    if location_ids:
+        cur.execute(
+            "SELECT id, name FROM location WHERE id = ANY(%s) ORDER BY name",
+            (list(location_ids),),
+        )
+    else:
+        cur.execute("SELECT id, name FROM location ORDER BY name")
+    locations = [dict(r) for r in cur.fetchall()]
+    cur.close()
+
+    # Network-level reserve health.
+    net_health = srh.reserve_health(conn)
+    reserves = net_health["reserves"]
+
+    per_location = []
+    for loc in locations:
+        loc_id = str(loc["id"])
+        try:
+            seed = srh.seed_vault_health(conn, loc_id)
+        except Exception as exc:  # noqa: BLE001 - isolate per-location failure
+            seed = {"error": f"{type(exc).__name__}: {exc}"}
+        per_location.append({
+            "location_id": loc_id,
+            "name": loc.get("name"),
+            "seed_vault": seed,
+        })
+
+    # Fundability signal: fraction of reserves that are adequately funded.
+    adequate = [
+        r for r in reserves
+        if isinstance(r.get("adequacy", {}).get("adequacy_pct"), (int, float))
+        and r["adequacy"]["adequacy_pct"] >= 100
+    ]
+    fundability_pct = round((len(adequate) / len(reserves)) * 100, 2) if reserves else None
+
+    return {
+        "report_type": "strategic_reserve",
+        "scope": "all_locations" if location_ids is None else "selected_locations",
+        "selected_location_ids": location_ids,
+        "period_start": period_start,
+        "period_end": period_end,
+        "reserve_count": net_health["reserve_count"],
+        "reserves": reserves,
+        "fundability_signal": {
+            "adequately_funded_reserves": len(adequate),
+            "total_reserves": len(reserves),
+            "fundability_pct": fundability_pct,
+            "note": "Reserve adequacy reduces perceived risk and supports funding-round due diligence (strategic-reserve investment-incentive parallel).",
+        },
+        "locations": per_location,
+        "limitations": [
+            "Reserve health is monitor + propose only; release decisions require human approval via decision_policy.requires_approval / agents/safety.py. No automatic on-chain drawdown.",
+            "Seed-vault biodiversity proxy uses distinct tree species + crop lines held; it is a resilience indicator, not a physical logistics system.",
+            "Pilot reserves are seeded targets; held_quantity for derived reserves is computed from existing pilot tables and may be zero where source rows are absent.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 def generate_capital_provider_utility(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe capital-provider utility scenario report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -4060,6 +4143,7 @@ REPORT_GENERATORS = {
       "state_of_kokonut": generate_state_of_kokonut,
       "state_of_kokonut_graphs": generate_state_of_kokonut_graphs,
       "comprehensive_status": generate_comprehensive_status,
+      "strategic_reserve": generate_strategic_reserve,
 }
 
 
@@ -4204,7 +4288,7 @@ def main():
 
         # Location requirement: network-level reports (state_of_kokonut, dao_proposal_history)
         # accept --all or no location; others require at least one --location-id.
-        network_level = args.type in ("state_of_kokonut", "dao_proposal_history", "state_of_kokonut_graphs", "comprehensive_status")
+        network_level = args.type in ("state_of_kokonut", "dao_proposal_history", "state_of_kokonut_graphs", "comprehensive_status", "strategic_reserve")
         if not args.location_id and not args.all and not network_level:
             parser.error("--location-id is required (or use --all for network-level reports)")
 
