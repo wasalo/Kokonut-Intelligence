@@ -302,6 +302,12 @@ def cmd_landscape(args):
     print(_json(result))
 
 
+def cmd_preempt(args):
+    from services.threatcasting.preempt import plan_preemptive_actions
+    result = plan_preemptive_actions(_get_conn(), location_id=args.location_id)
+    print(_json(result))
+
+
 # ------------------------------------------------------------------
 # Backcasting enhancements — Principles
 # ------------------------------------------------------------------
@@ -851,6 +857,14 @@ def main():
     p.add_argument("--panel-member-id", required=True)
     p.add_argument("--domain", required=True)
     p.set_defaults(func=cmd_expert_calibrate)
+
+    # Preemptive Intervention Planner — "best defense is a good offense"
+    p = sub.add_parser(
+        "preempt",
+        help="Plan DRAFT preemptive interventions from warning-band flags (read-only)",
+    )
+    p.add_argument("--location-id", help="Limit to a single location")
+    p.set_defaults(func=cmd_preempt)
 
     args = parser.parse_args()
     if hasattr(args, "func"):
