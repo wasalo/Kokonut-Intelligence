@@ -3073,6 +3073,13 @@ def generate_reward_calibration(conn, location_id: str, period_start: str = None
     metric_links = [dict(r) for r in cur.fetchall()]
     cur.close()
     latest = models[0] if models else None
+    from services.analytics.reward_calibration import detect_overjustification_risk
+
+    overjustification = None
+    try:
+        overjustification = detect_overjustification_risk(conn, location_id)
+    except Exception as exc:  # advisory: never fatal
+        overjustification = {"error": str(exc)}
     return {
         "report_type": "reward_calibration",
         "location_id": location_id,
@@ -3081,11 +3088,14 @@ def generate_reward_calibration(conn, location_id: str, period_start: str = None
         "metric_links": _serialize_rows(metric_links),
         "latest_calibration_score": latest.get("calibration_score") if latest else None,
         "latest_model_name": latest.get("model_name") if latest else None,
+        "overjustification_risk": overjustification,
         "limitations": [
             "Calibration scores are computed from limited pilot data.",
             "Weight assignments are governance-decided and may change.",
             "Metric-reward correlations require sufficient sample size.",
             "Token per unit output ratios depend on total epoch budget.",
+            "overjustification_risk is advisory-only (overjustification effect "
+            "guardrail); it never auto-disables rewards.",
         ],
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }

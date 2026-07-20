@@ -7,7 +7,7 @@ AAA-D rating, and persists results to the database.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -186,6 +186,12 @@ def compute_composite_rating(
         methodology_version=methodology_version or CRISP_VERSION,
         weights=weights,
         dimensions=dim_scores,
+        design_note=(
+            "The AAA-D band is a competence/merit signal, not an extrinsic "
+            "bribe. Per persuasive-technology guidance (overjustification "
+            "effect), gamified scores increase intrinsic motivation only when "
+            "seen as reflecting verified competence -- never as a coercive reward."
+        ),
     )
 
 
