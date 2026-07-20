@@ -123,6 +123,10 @@ The default local override may expose Metabase at `http://localhost:3001`. Use d
 - **ARKIV parity**: Time-scoped data (expires_at), origin transaction indexing for double-mint prevention, and marketplace fee collection/distribution.
 - **GeoNode parity**: Shapefile import (fiona), KML import, raster metadata, CSW OGC Catalogue Service, ISO 19115 metadata fields, hierarchical thesaurus system, interactive Leaflet map viewer, geostories, and general harvesting framework.
 - **gRPC API**: Type-safe external API with Protobuf schemas, server-side streaming (5s batching), API key authentication, Buf codegen for Python/TypeScript, and gRPC-web support.
+- **Unified meta-CLI**: A single `python3 -m services.cli` entry point aggregates all service CLIs (`metrics`, `analytics`, `attestation`, `agents`, `governance`, `export`, …); legacy per-service `python3 -m services.X` invocations remain supported.
+- **Business Model Canvas 1-click + Comprehensive Status**: `business_model_canvas create-from-data` derives all nine BMC blocks from canonical tables in one call; `report_generator --type comprehensive_status` composes 13 per-location sections plus a network-wide rollup.
+- **State of Kokonut + visual timelines**: Ecosystem report across one, many, or all locations with an ecosystem-actor (Network/DAO/Foundation/Genesis/Seeds) funding view; `state_of_kokonut_graphs` emits dependency-free Mermaid + JSON descriptors (ecosystem tree, Ikigai v1/v2, farm phases, crop timelines).
+- **Strategic Reserve**: Monitorable reserve registry (carbon buffer, commons reserve, financial ring-fence, capability standby, seed vault) with per-reserve adequacy, drawdown headroom, trigger/breach status, and a fundability signal; release proposals are DRAFT-only and human-approved (no automatic on-chain drawdown).
 
 ## How Metrics Enable Answers
 
@@ -171,14 +175,25 @@ See [User Guide](docs/user-guide.md) for role workflows and data-entry walkthrou
 `AGENTS.md` is the canonical command reference for all local commands — CLI flags, analytics, ingestion, agents, report types, and tests. Below are the most common entry points:
 
 ```bash
+# Unified meta-CLI (aggregates all service CLIs)
+python3 -m services.cli --help
+python3 -m services.cli metrics --list
+
 # Metrics
 python3 -m services.metrics --list
 python3 -m services.metrics --compute --all-locations
 python3 -m services.metrics --verify-value METRIC_VALUE_UUID --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"
 
-# Reports (use --auto for all registered types)
-python3 -m services.export.report_generator --auto --location-id UUID
+# Reports (use --auto for all registered types; --all spans every location)
+python3 -m services.export.report_generator --auto --all
 python3 -m services.export.report_generator --type climate_impact --location-id UUID
+
+# Network-level reports (--all, or repeat --location-id to select several)
+python3 -m services.export.report_generator --type state_of_kokonut --all
+python3 -m services.export.report_generator --type state_of_kokonut_graphs --all
+python3 -m services.export.report_generator --type comprehensive_status --location-id UUID
+python3 -m services.export.report_generator --type strategic_reserve --all
+python3 -m services.export.report_generator --type dao_proposal_history
 
 # CIDS export
 python3 -m services.registry.cids_export --location-id UUID
@@ -200,25 +215,19 @@ See [AGENTS.md](AGENTS.md) for the full command catalogue and [CHANGELOG.md](CHA
 
 ## CI And Contributing
 
-CI runs 3 jobs on every push and pull request via `.github/workflows/ci.yml`:
+CI runs on OneDev via `.onedev-buildspec.yml` as a single `ci` job on every push and pull request. The job brings up the Compose stack (PostgreSQL, ClickHouse, Directus), seeds the database, then runs:
 
-| Job | What it checks |
-|-----|----------------|
-| Python checks | Ruff lint, full `ci-check.sh` suite, CLI smoke tests, attestation tests, integration tests |
-| Directus hooks | `npm ci`, `npm run build`, `npm test` in `extensions/kokonut-hooks` |
-| Foundry contracts | `forge fmt --check`, `forge build --sizes`, `forge test -vvv` |
+- `./scripts/ci-check.sh` and the full `pytest` suite (the suite fails closed on any skipped test)
+- Static analysis: `ruff` lint and `aderyn` for Solidity
+- Unified-CLI smoke test (`python3 -m services.cli --help`)
+- Solidity checks: `forge fmt --check && forge build --sizes && forge test`
+- Directus hooks checks: `npm ci && npm run build && npm test` in `extensions/kokonut-hooks`
 
-Branch protection is enforced via GitHub rulesets on `main`:
-- Pull requests required (1 approval, code owner review, review thread resolution)
-- Required status checks: Python checks, Directus hooks, Foundry contracts
-- Linear history enforced; force pushes and deletions blocked
-- Version tags (`v*`) protected from force pushes and deletions
+This repository is hosted on a self-managed Git instance (not GitHub), so GitHub-specific workflows, rulesets, and `.github/` config do not apply.
 
 Contributing guidelines:
-- `AGENTS.md` is the canonical command reference — update it when adding commands, env vars, or conventions.
-- `.github/CODEOWNERS` defines review ownership; sensitive paths require admin review.
-- `.github/pull_request_template.md` includes a checklist for CI, secrets, schema idempotency, agent registration, and public views.
-- `.github/dependabot.yml` enables weekly dependency updates for pip, npm, and github-actions.
+- `AGENTS.md` is the canonical command reference and contributing workflow — update it when adding commands, env vars, or conventions.
+- Branch from `main` (`feat/...`, `fix/...`, `chore/...`), open a pull request, and merge through the OneDev UI or the `tod` agent skills (`work-on-issue`, `submit-pull-request-work`) once reviewed. Never push directly to `main` except for hotfixes.
 - Seed files must be idempotent with `ON CONFLICT` guards and `psql -v ON_ERROR_STOP=1`.
 
 ## Production Deployment
@@ -261,7 +270,7 @@ migrations/         Migration tooling and legacy migration helpers
 schemas/            PostgreSQL and ClickHouse schemas, Directus snapshots, seed files
 scripts/            Setup, seed, schema, metrics, backup, health-check, and CI scripts
 sdk/                JavaScript/TypeScript and Python SDKs
-services/           Python services for ingestion, metrics, analytics, export, agents, attestation, scoring, abundance, flows, data_stream, credit_class, iri, rdf, data_module, certificates, metadata_api, linkml, csw, geostory, maps, thesaurus, grpc
+services/           Python services for ingestion, metrics, analytics, export, agents, attestation, scoring, abundance, flows, data_stream, credit_class, iri, rdf, data_module, certificates, metadata_api, linkml, csw, geostory, maps, thesaurus, grpc. Includes the unified meta-CLI (services/cli.py) and the strategic_reserve resilience layer.
 tests/              Unit and integration tests for platform services and invariants
 Dockerfile.worker   Optional worker container for cron-based ingestion
 docker-compose.yml  Base services (PostgreSQL 16, ClickHouse 25.8, Directus 12.1.1, Metabase 0.62.4, Caddy, Mosquitto)
