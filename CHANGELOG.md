@@ -5,6 +5,12 @@ All notable changes to the Kokonut Intelligence Platform.
 ## [Unreleased]
 
 ### Added
+- **Security hardening — supply-chain & runtime validation (KI-48, KI-49, merged to `main`)**:
+  - **Base-image digest pinning**: all `FROM` directives in `Dockerfile.worker` / `Dockerfile.grpc` and all `image:` references in `docker-compose.yml` / `docker-compose.sandbox.yml` are pinned to `@sha256` digests (Python 3.11-slim, Postgres/PostGIS 16 & 14, Redis 7, Directus 12.1.1, Metabase v0.62.4, ClickHouse 25.8, Caddy 2, Mosquitto 2). CI fails on unpinned images via the new `scripts/check-image-digests.sh`, wired into `.onedev-buildspec.yml`.
+  - **Mandatory Python supply-chain gates**: `ruff` (S/BLE/RUF selectors) and `pip-audit` run as required CI gates via `scripts/verify-ci-toolchain.sh` and `scripts/ci-check.sh`; a build that skips them is not passing.
+  - **Directus hook Zod validation**: added `zod` as a runtime dependency; `extensions/kokonut-hooks/src/schemas/` validates request payloads for governed collections (`agent_task`, `ai_summary`, `agent_action_log`, `impact_claim`, `stakeholder_feedback`, `expense_event`, `sales_event`, `revenue_event`) ahead of governance/lifecycle checks (full validation on create, partial on update, unknown keys preserved). Hook suite at 52/52 tests.
+
+### Added
 - **Data Stream**: Chronological project data posts with Markdown content, file attachments (Directus + URLs), geo-tagged files with PostGIS geometry, full-text search (tsvector + GIN), blockchain anchoring via EAS (`kokonut-data-post` schema), visibility controls (public/internal/private), governed lifecycle (draft→published), and 15 post types. `schemas/postgres/100_data_stream.sql` with `data_stream_post`, `data_stream_post_comment`, `data_stream_file`, `v_project_data_stream`, `v_data_stream_search`. Services: `services/data_stream/` (post.py, stream.py, anchor.py, files.py, cli.py). 15 pilot posts for Adelphi. 45 tests.
 - **Linked Data Infrastructure**: IRI system with versioning (`services/iri/`), RDF triple store with SPARQL queries (`services/rdf/`), content-hashed storage, resolver registry, evidence chaining, and LinkML schema validation. `schemas/postgres/102_iri_system.sql`, `104_rdf_triples.sql`. 10+ CLI commands. 39 tests.
 - **CreditClassInfo Parity**: Full alignment with Regen Framework WG CreditClassInfo schema — 13 fields including primary impact, co-benefits, registry, crediting program, credit protocol, methodologies, buffer pool accounts, admin address, credit type ID. `schemas/postgres/103_credit_class_batch.sql`. 39 tests.
