@@ -12,9 +12,9 @@ info:
 
     ## Authentication
 
-    Endpoints require Directus Bearer token authentication unless noted otherwise and remain subject to Directus role and collection permissions. Gateway API keys and capability tokens are a separate authentication boundary.
+    Endpoints require Directus Bearer token authentication unless noted otherwise and remain subject to Directus role, collection, lifecycle, and tenant permissions. This file is a typed reference for important collections; the generic `/items/{collection}` path covers the full deployed Directus collection surface. Gateway API keys and capability tokens are a separate authentication boundary and are not valid Directus credentials.
 
-    Obtain tokens via the `/auth/login` endpoint.
+    Obtain tokens via the `/auth/login` endpoint. A deployed Directus instance can expose its authoritative runtime specifications through `/server/specs/oas` and `/server/specs/graphql`.
 
 
     ## Filtering
@@ -67,6 +67,57 @@ tags:
 security:
 - BearerAuth: []
 paths:
+  /server/info:
+    get:
+      operationId: getServerInfo
+      tags:
+      - Schema
+      summary: Get Directus server information
+      description: Runtime Directus information. Availability depends on the caller's Directus permissions.
+      responses:
+        '200':
+          description: Directus server information
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /server/specs/oas:
+    get:
+      operationId: getRuntimeOpenApi
+      tags:
+      - Schema
+      summary: Get the deployed Directus OpenAPI specification
+      description: Runtime schema output is authoritative for the deployed Directus instance and may differ from this repository reference.
+      responses:
+        '200':
+          description: OpenAPI document
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /server/specs/graphql:
+    get:
+      operationId: getRuntimeGraphqlSchema
+      tags:
+      - Schema
+      summary: Get the deployed Directus GraphQL schema
+      description: Runtime GraphQL schema output is authoritative for the deployed Directus instance.
+      responses:
+        '200':
+          description: GraphQL schema document
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /auth/login:
     post:
       operationId: login
@@ -6848,7 +6899,223 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /items/metric_value:
+    get:
+      operationId: listMetricValues
+      tags:
+      - Governance
+      summary: List computed metric values
+      description: Computed metric values. New computations are draft and unverified; public exposure is controlled by governed views.
+      parameters:
+      - $ref: '#/components/parameters/FilterQuery'
+      - $ref: '#/components/parameters/SortQuery'
+      - $ref: '#/components/parameters/FieldsQuery'
+      - $ref: '#/components/parameters/LimitQuery'
+      - $ref: '#/components/parameters/OffsetQuery'
+      - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200':
+          description: Metric values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MetricValue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /items/revenue_event:
+    get:
+      operationId: listRevenueEvents
+      tags:
+      - Finance
+      summary: List canonical revenue events
+      description: Canonical revenue facts. Payment state is separate from the governed lifecycle status.
+      parameters:
+      - $ref: '#/components/parameters/FilterQuery'
+      - $ref: '#/components/parameters/SortQuery'
+      - $ref: '#/components/parameters/FieldsQuery'
+      - $ref: '#/components/parameters/LimitQuery'
+      - $ref: '#/components/parameters/OffsetQuery'
+      - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200':
+          description: Revenue events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RevenueEvent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /items/farm_registry_record:
+    get:
+      operationId: listFarmRegistryRecords
+      tags:
+      - Master Data
+      summary: List farm registry records
+      description: Governed farm onboarding records. Public projections require a verified or published registry record.
+      parameters:
+      - $ref: '#/components/parameters/FilterQuery'
+      - $ref: '#/components/parameters/SortQuery'
+      - $ref: '#/components/parameters/FieldsQuery'
+      - $ref: '#/components/parameters/LimitQuery'
+      - $ref: '#/components/parameters/OffsetQuery'
+      - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200':
+          description: Farm registry records
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FarmRegistryRecord'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /items/agent_task:
+    get:
+      operationId: listAgentTasks
+      tags:
+      - Governance
+      summary: List agent tasks
+      description: Agent task inputs, execution state, outputs, and review state. Agent-created governed outputs remain subject to human review.
+      parameters:
+      - $ref: '#/components/parameters/FilterQuery'
+      - $ref: '#/components/parameters/SortQuery'
+      - $ref: '#/components/parameters/FieldsQuery'
+      - $ref: '#/components/parameters/LimitQuery'
+      - $ref: '#/components/parameters/OffsetQuery'
+      - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200':
+          description: Agent tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AgentTask'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /items/stakeholder_feedback:
+    get:
+      operationId: listStakeholderFeedback
+      tags:
+      - Governance
+      summary: List stakeholder feedback
+      description: Stakeholder feedback is private by default. Public access requires consent, public scope, publication, and a public summary.
+      parameters:
+      - $ref: '#/components/parameters/FilterQuery'
+      - $ref: '#/components/parameters/SortQuery'
+      - $ref: '#/components/parameters/FieldsQuery'
+      - $ref: '#/components/parameters/LimitQuery'
+      - $ref: '#/components/parameters/OffsetQuery'
+      - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200':
+          description: Stakeholder feedback
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StakeholderFeedback'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /items/work_item:
+    get:
+      operationId: listWorkItems
+      tags:
+      - Operations
+      summary: List governed work items
+      description: Human and agent work items with a governed lifecycle, separate from scheduled automation tasks.
+      parameters:
+      - $ref: '#/components/parameters/FilterQuery'
+      - $ref: '#/components/parameters/SortQuery'
+      - $ref: '#/components/parameters/FieldsQuery'
+      - $ref: '#/components/parameters/LimitQuery'
+      - $ref: '#/components/parameters/OffsetQuery'
+      - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200':
+          description: Work items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /items/credit_batch:
+    get:
+      operationId: listCreditBatches
+      tags:
+      - Finance
+      summary: List internal credit batches
+      description: Governed internal credit batch records. Issuance and external registry recognition are separate workflows.
+      parameters:
+      - $ref: '#/components/parameters/FilterQuery'
+      - $ref: '#/components/parameters/SortQuery'
+      - $ref: '#/components/parameters/FieldsQuery'
+      - $ref: '#/components/parameters/LimitQuery'
+      - $ref: '#/components/parameters/OffsetQuery'
+      - $ref: '#/components/parameters/SearchQuery'
+      responses:
+        '200':
+          description: Credit batches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CreditBatch'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Directus access token. This is separate from gateway API keys and capability tokens.
   parameters:
     CollectionPath:
       name: collection
@@ -6960,6 +7227,295 @@ components:
               message:
                 type: string
   schemas:
+    MetricValue:
+      type: object
+      description: Computed governed metric result. New computations are unverified until a human reviews them.
+      properties:
+        id:
+          type: string
+          format: uuid
+        metric_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        value:
+          type: number
+          format: double
+        unit:
+          type: string
+        computation_method:
+          type: string
+        source_record_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        computed_at:
+          type: string
+          format: date-time
+        verified:
+          type: boolean
+        verified_by:
+          type: string
+          format: uuid
+        verified_at:
+          type: string
+          format: date-time
+        verification_notes:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+    RevenueEvent:
+      type: object
+      description: Canonical revenue fact with payment state separate from lifecycle state.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        revenue_date:
+          type: string
+          format: date
+        revenue_type:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+        payment_status:
+          type: string
+        status:
+          type: string
+          enum:
+          - draft
+          - submitted
+          - verified
+          - published
+          - rejected
+        source_system:
+          type: string
+        source_id:
+          type: string
+        source_raw:
+          type: object
+          additionalProperties: true
+    FarmRegistryRecord:
+      type: object
+      description: Governed farm onboarding and registry record.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - draft
+          - submitted
+          - verified
+          - published
+          - rejected
+        evidence_maturity:
+          type: integer
+          minimum: 0
+        public_summary:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AgentTask:
+      type: object
+      description: Agent task input, execution, output, and review record.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_type:
+          type: string
+        subject_type:
+          type: string
+        subject_id:
+          type: string
+          format: uuid
+        inputs:
+          type: object
+          additionalProperties: true
+        output:
+          type: object
+          additionalProperties: true
+        execution_status:
+          type: string
+        review_status:
+          type: string
+          enum:
+          - draft
+          - submitted
+          - verified
+          - published
+          - rejected
+        requested_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+    StakeholderFeedback:
+      type: object
+      description: Private-by-default stakeholder feedback record.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        party_id:
+          type: string
+          format: uuid
+        feedback_type:
+          type: string
+        feedback_date:
+          type: string
+          format: date
+        feedback_text:
+          type: string
+        consent_given:
+          type: boolean
+        consent_scope:
+          type: string
+        public_summary:
+          type: string
+        status:
+          type: string
+          enum:
+          - draft
+          - submitted
+          - verified
+          - published
+          - rejected
+        is_public:
+          type: boolean
+    WorkItem:
+      type: object
+      description: Governed human or agent work item, separate from scheduled automation.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        organization_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum:
+          - draft
+          - assigned
+          - in_progress
+          - blocked
+          - done
+          - cancelled
+        priority:
+          type: string
+          enum:
+          - low
+          - medium
+          - high
+          - critical
+        assignee_type:
+          type: string
+        assignee_id:
+          type: string
+          format: uuid
+        due_at:
+          type: string
+          format: date-time
+        sla_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        cancelled_at:
+          type: string
+          format: date-time
+    CreditBatch:
+      type: object
+      description: Governed internal credit batch. External registry recognition is separate.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        credit_class_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        vintage_year:
+          type: integer
+        quantity:
+          type: number
+          format: double
+        status:
+          type: string
+          enum:
+          - draft
+          - submitted
+          - verified
+          - published
+          - rejected
+        issuer:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    ExportLog:
+      type: object
+      description: Export operation audit record.
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        export_type:
+          type: string
+        status:
+          type: string
+        file_url:
+          type: string
+        created_at:
+          type: string
+          format: date-time
     Location:
       type: object
       properties:
@@ -13116,34 +13672,29 @@ components:
     SchemaMigration:
       type: object
       properties:
-        id:
-          type: string
-          format: uuid
         version:
           type: string
         name:
           type: string
-        description:
-          type: string
         sql_up:
-          type: string
-        sql_down:
           type: string
         checksum:
           type: string
+        status:
+          type: string
+          enum:
+          - pending
+          - applied
+        execution_time_ms:
+          type: integer
         applied_at:
           type: string
           format: date-time
         applied_by:
           type: string
-        execution_time_ms:
-          type: integer
-        status:
+        migration_id:
           type: string
-          enum:
-          - applied
-          - failed
-          - rolled_back
+          description: Namespaced immutable ID such as schema:001_example.sql or seed:001_example.sql
     SchemaVersionRecord:
       type: object
       properties:
