@@ -1,6 +1,6 @@
 # Operator Guide
 
-This guide describes the minimum Green Paper V1 operating flow for Kokonut Adelphi and future pilot farms.
+This guide describes the minimum Green Paper operating flow for Kokonut Adelphi and future pilot farms.
 
 ## Daily And Weekly Data Entry
 

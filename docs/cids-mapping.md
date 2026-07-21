@@ -1,6 +1,6 @@
 # CIDS Mapping
 
-Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier for Green Paper V1.
+Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier for the Green Paper.
 
 ## Current Mapping
 
