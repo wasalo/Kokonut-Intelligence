@@ -306,6 +306,7 @@ Output: `{evidence_gaps: [...], recommendations: [...]}`.
 | Certify carbon claims | no |
 | Expose private stakeholder feedback | no |
 
+Agent outputs are draft aids for human review, not publication authority.
 Enforced by `GOVERNED_COLLECTIONS` in `services/agents/safety.py` and
 `AGENT_ALLOWED_EBF_STATUSES = {"draft", "submitted", "rejected"}`.
 
