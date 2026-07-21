@@ -1,5 +1,16 @@
 # Data Dictionary
 
+This dictionary is a domain-oriented index of the PostgreSQL schema. It documents
+canonical tables, governed outputs, operational infrastructure, and public views.
+It is intentionally organized by capability rather than migration number. For
+complete column definitions and constraints, use the ordered files under
+`schemas/postgres/`; migrations remain the schema source of truth.
+
+Lifecycle fields generally use `draft`, `submitted`, `verified`, and `published`.
+`rejected` is reserved for rework or exception paths. Payment, attestation,
+review, and domain states use separate fields unless a table explicitly defines
+another state machine.
+
 ## Governed Metric Definitions
 
 | Metric Key | Display Name | Formula | Source Tables | Update Freq | Report Usage | Validation |
@@ -344,3 +355,419 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | `impact_office_run` | Orchestration runs | run_type, status, started_at, completed_at |
 | `impact_office_step` | Orchestration steps | step_type, step_order, depends_on, step_status |
 | `impact_office_alert` | Orchestration alerts | alert_type, severity, message, resolution_status |
+
+## Impact Frameworks And Scorecards
+
+### EBF Scorecard
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `ebf_pillar` | Evidence-Based Framework pillar definitions | pillar_key, pillar_name, framework_id |
+| `ebf_rubric_band` | Score bands for each pillar | pillar_id, score_value, band_label |
+| `ebf_scorecard` | Location scorecard for a reporting period | location_id, period, overall_score, status |
+| `ebf_score` | Per-pillar score within a scorecard | scorecard_id, pillar_id, score_value |
+| `ebf_score_evidence` | Evidence linked to an EBF score | score_id, evidence_type, evidence_url |
+| `ebf_calibration_session` | Rubric calibration session | session_name, rubric_version, calibration_method |
+| `ebf_calibration_decision` | Calibration decision and adjusted score | session_id, pillar_id, adjusted_score |
+| `ebf_farm_metric_profile` | Location-to-pillar metric mapping | location_id, pillar_id, metric_id |
+| `ebf_improvement_recommendation` | Evidence-based improvement recommendation | scorecard_id, pillar_id, recommendation |
+| `ebf_trust_graph_node` | EBF trust graph node | node_type, entity_id, trust_score |
+| `ebf_trust_graph_edge` | EBF trust graph relationship | source_node, target_node, weight |
+| `graph_node` | Generic graph projection node | node_type, entity_id, label |
+| `graph_edge` | Generic graph projection edge | source_node_id, target_node_id, edge_type |
+
+### CRISP Risk Scoring
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `crisp_risk_dimension` | Risk dimension configuration | dimension_key, default_weight, data_sources |
+| `crisp_location_weight` | Per-location dimension weight override | location_id, dimension_id, weight |
+| `crisp_risk_assessment` | Periodic composite risk assessment | location_id, period_start, period_end, composite_score, rating |
+| `crisp_carbon_yield_risk` | Carbon-yield scenario detail | assessment_id, scenario_minimum, scenario_realistic, risk_score |
+| `crisp_climate_risk` | Climate hazard detail | assessment_id, drought_risk_score, natural_risk_rating, ssp_scenario |
+| `crisp_policy_risk` | Policy and legal sub-factor detail | assessment_id, carbon_rights_score, land_tenure_score, risk_score |
+| `crisp_financial_risk` | Financial risk-factor detail | assessment_id, revenue_risk_factor, liquidity_risk, risk_score |
+| `crisp_implementation_risk` | Implementation sub-factor detail | assessment_id, team_strength_score, transparency_score, risk_score |
+| `v_crisp_composite_rating` | Published CRISP rating view | location_id, composite_score, rating, confidence_level |
+| `v_crisp_latest_assessment` | Latest assessment per location | location_id, period_end, rating, status |
+
+### Wellbeing, GNH, And Commons
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `cultural_context_record` | Cultural context observation | context_type, description, location_id |
+| `participatory_action_record` | Participatory action and outcome | action_type, participants, outcome |
+| `wellbeing_metric_observation` | Wellbeing dimension observation | dimension, score, observation_date |
+| `gnh_alignment_assessment` | Gross National Happiness alignment score | dimension, score, assessment_date |
+| `cultural_preservation_plan` | Cultural preservation plan | plan_name, heritage_type, status |
+| `renewable_energy_plan` | Renewable energy target plan | energy_type, capacity_kw, target_date |
+| `vulnerable_group_access_plan` | Access plan for vulnerable groups | group_type, access_type, status |
+| `foundational_wellbeing_observation` | Foundational wellbeing observation | dimension, score, observation_date |
+| `energy_source` | Energy source registry | source_type, capacity, location_id |
+| `renewable_energy_source` | Renewable energy source registry | renewable_type, capacity_kw, status |
+| `time_liberation_observation` | Time reclaimed or burden reduced | baseline_hours, hours_reclaimed, burden_reduction_pct |
+| `capital_alignment_assessment` | Capital-provider alignment assessment | provider_name, alignment_status, extractive_risk_level |
+| `governance_inclusion_observation` | Inclusion and participation observation | inclusion_type, participation_rate |
+| `land_stewardship_commitment` | Land stewardship commitment | commitment_type, duration_years, conditions |
+| `anti_capture_governance_policy` | Anti-capture governance policy | policy_type, description, enforcement |
+| `commons_redistribution_policy` | Commons redistribution policy | redistribution_type, allocation_pct |
+| `algorithmic_redistribution_mechanism` | Rule-based redistribution mechanism | mechanism_name, formula, trigger |
+| `federation_protocol` | Federation protocol definition | protocol_name, chain, contract_address |
+| `participatory_signal_experiment` | Advisory participatory signal experiment | experiment_name, status, results |
+
+### Regenerative Outcomes And Scaling
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `regenerative_outcome_summary` | Periodic regenerative outcome summary | period, outcome_type, score |
+| `community_governance_mechanism` | Community governance mechanism | mechanism_type, description, effectiveness |
+| `replication_readiness_assessment` | Replication readiness assessment | location_id, readiness_score, factors |
+| `adaptive_stewardship_review` | Stewardship review and adaptation record | review_type, findings, actions |
+| `adoption_barrier_assessment` | Adoption barrier assessment | barrier_type, severity, mitigation |
+| `farm_launch_unit_economics` | Farm launch unit economics | revenue_per_unit, cost_per_unit, margin |
+| `network_scaling_target` | Network scaling target | target_type, target_value, deadline |
+| `open_source_impact_artifact` | Open-source impact artifact | artifact_type, license, download_count |
+| `perpetual_value_stress_test` | Perpetual-value stress-test scenario | scenario_name, impact_score, recovery_time |
+| `capital_efficiency_scenario` | Capital efficiency scenario | scenario_name, efficiency_score |
+| `capital_provider_utility_scenario` | Capital-provider utility scenario | provider_id, utility_score |
+| `governance_throughput_observation` | Governance throughput observation | decision_count, avg_time_hours |
+| `regenerative_efficiency_observation` | Regenerative efficiency observation | resource_type, efficiency_pct |
+
+## Risk, Orientation, And Feedback
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `situation_assessment` | Unified location situation assessment | location_id, situation_grade, crisp_rating, crisp_composite_score |
+| `situation_signal` | Signal contributing to an assessment | assessment_id, signal_type, signal_key, signal_value |
+| `decision_policy` | Decision rule and approval requirement | policy_name, requires_approval, timeout_hours |
+| `decision_log` | Decision execution record | policy_id, entity_type, decision, decided_by |
+| `decision_outcome` | Measured decision outcome | decision_id, outcome_type, measured_at |
+| `ooda_cycle_log` | Observe-Orient-Decide-Act timing record | location_id, correlation_id, cycle_time_ms |
+| `action_outcome` | Outcome of an action | action_type, outcome_type, measured_delta |
+| `feedback_loop` | Feedback adjustment record | loop_type, previous_value, new_value, status |
+| `adaptive_threshold` | Adaptive threshold configuration | threshold_key, current_value, baseline_value, adaptation_rate |
+| `sampling_config` | Sensor sampling configuration | sensor_id, interval_seconds, metric |
+| `sampling_adjustment_log` | Sampling interval adjustment history | config_id, old_interval, new_interval, reason |
+
+## Systems Thinking And Trend Analysis
+
+### Systems Thinking
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `causal_loop` | Reinforcing or balancing causal loop | loop_name, loop_type, strength |
+| `causal_link` | Directed causal relationship | source_var, target_var, polarity |
+| `system_variable` | Variable in a systems model | variable_name, current_value, unit |
+| `stock_flow_model` | Stock-flow model definition | model_name, parameters, equations |
+| `stock_flow_run` | Stock-flow simulation run | model_id, duration_days, results |
+| `system_archetype` | Detected systems archetype | archetype_type, location_id, confidence |
+| `leverage_assessment` | Leverage-point assessment | location_id, leverage_point, potential_score |
+| `time_delay` | Action-to-effect delay | action, effect, delay_days |
+| `mental_model` | Stakeholder mental-model elicitation | stakeholder_id, dimension, position |
+| `structural_assumption` | Structural assumption under review | assumption_text, challenge_count |
+| `structural_question` | Double-loop learning question | question_text, status, depth |
+| `assumption_challenge` | Assumption challenge and resolution | assumption_text, challenge_text, outcome |
+| `paradigm_shift` | Detected paradigm shift | shift_type, evidence, confidence |
+
+### Trend Analysis
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `trend_estimate` | Least-squares trend estimate | metric_key, slope, intercept, r_squared |
+| `trend_smoothing` | Smoothed time-series output | metric_key, method, smoothed_values |
+| `seasonal_decomposition` | Trend, seasonal, and residual components | metric_key, trend, seasonal, residual |
+| `change_point` | Detected time-series change point | metric_key, change_date, magnitude |
+| `time_series_forecast` | Time-series forecast | metric_key, horizon, predicted_values |
+| `forecast_accuracy` | Forecast accuracy record | forecast_id, mae, mape, r_squared |
+| `trend_dashboard_metric` | Dashboard trend status | location_id, metric_key, trend_status |
+| `trend_monitor_config` | Trend monitoring threshold | metric_key, alert_threshold |
+
+## Credit Lifecycle And Marketplace
+
+### Credit Classes, Batches, And Retirement
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `carbon_credit` | Governed legacy carbon-credit identity | credit_code, vintage_year, issuable_tonnes, retired_tonnes, status |
+| `credit_adjustment` | Carbon-credit quantity adjustment | adjustment_type, delta_tonnes, trigger_source, requires_review |
+| `credit_retirement` | Human-reviewed retirement request | credit_id, retired_tonnes, idempotency_key, status |
+| `credit_transfer` | Governed credit transfer record | transfer_type, transferred_tonnes, from_wallet, to_wallet |
+| `credit_type` | Ecocredit unit type | name, abbreviation, unit |
+| `credit_class` | Methodology and eligibility definition | name, methodology, credit_type, status |
+| `credit_class_cobenefit` | Credit class co-benefit | credit_class_id, impact_name, sdg_numbers |
+| `credit_class_registry` | Registry linkage | credit_class_id, registry_name, registry_url |
+| `crediting_program` | Crediting program | credit_class_id, name, version |
+| `credit_protocol` | Credit protocol | credit_class_id, name, version, is_primary |
+| `credit_class_methodology` | Approved methodology reference | credit_class_id, name, version, is_approved |
+| `buffer_pool_account` | Buffer-pool account | credit_class_id, name, wallet_address |
+| `credit_batch` | Batch issuance event | credit_class_id, location_id, batch_code, vintage_year, status |
+| `credit_class_issuer` | Authorized class issuer | credit_class_id, issuer_address, revoked_at |
+| `credit_class_creator_allowlist` | Class creator allowlist | address, entity_name, is_active |
+| `credit_batch_contract` | Batch-to-chain contract link | credit_batch_id, contract_address, chain |
+| `project_credit_class_enrollment` | Project enrollment in a credit class | location_id, credit_class_id, status |
+| `credit_balance` | Per-account batch custody ledger | credit_batch_id, account_address, tradable_amount, retired_amount, escrowed_amount |
+| `ecocredit_params` | Ecocredit module parameters | param_key, param_value, description |
+
+### Baskets, Marketplace, And Bridge
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `credit_basket` | Fungible basket definition | name, token_denom, credit_type_id, status |
+| `credit_basket_deposit` | Batch deposited into a basket | basket_id, credit_batch_id, quantity, token_amount |
+| `credit_basket_token` | Basket-token holder balance | basket_id, holder_address, token_amount |
+| `credit_sell_order` | Marketplace sell order and escrow | credit_batch_id, seller_address, quantity, ask_price, status |
+| `credit_buy_order` | Marketplace buy order | sell_order_id, buyer_address, quantity, total_price, status |
+| `credit_allowed_denom` | Allowed marketplace payment denomination | denom, chain, contract_address, is_active |
+| `marketplace_fee` | Marketplace fee record | transaction_type, transaction_id, buyer_fee, seller_fee, status |
+| `marketplace_fee_distribution` | Marketplace fee distribution | fee_id, recipient_address, amount, denom |
+| `credit_bridge_transaction` | Cross-chain credit movement | direction, source_chain, target_chain, quantity, status |
+| `origin_tx_index` | Origin transaction deduplication index | credit_class_id, origin_tx_id, origin_tx_source |
+| `retirement_certificate` | Integrity-checked retirement certificate | certificate_number, retirement_id, certificate_hash |
+
+## Data, Linked Data, And Public Views
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `data_stream_post` | Governed data-stream post | location_id, post_type, status, content |
+| `data_stream_post_comment` | Comment on a data-stream post | post_id, author_id, content |
+| `data_stream_file` | File attached to a post | post_id, file_name, cid |
+| `iri_registry` | Deterministic Kokonut IRI registry | iri, entity_type, entity_id, version |
+| `content_hash_entry` | Content hash lookup | hash_value, algorithm, entity_id |
+| `data_resolver` | External metadata resolver | resolver_url, manager_address |
+| `data_resolver_registration` | IRI-to-resolver registration | resolver_id, iri_id |
+| `data_iri_attestor` | IRI attestor record | iri_id, attestor_address |
+| `rdf_namespace` | RDF namespace definition | prefix, uri |
+| `rdf_named_graph` | RDF named graph | graph_name, description |
+| `rdf_triple` | RDF triple store row | subject, predicate, object, graph |
+| `linkml_schema` | LinkML schema definition | schema_name, version, schema_data |
+| `linkml_schema_instance` | LinkML-validated entity instance | schema_id, entity_type, entity_id |
+| `linkml_directus_mapping` | LinkML-to-Directus field mapping | schema_id, collection, field |
+| `app_project_metadata` | Application rendering metadata | entity_type, entity_id, metadata |
+| `project_link` | Project cross-reference link | project_id, target_type, target_id |
+| `project_reference_id` | External project identifier | project_id, id_type, id_value |
+| `v_public_farm_summary` | Public farm aggregate view | location_id, farm_name, status |
+| `v_public_metric_summary` | Verified public metric aggregate | metric_key, location_id, value, period |
+| `v_public_attestation_summary` | Public Celo attestation aggregate | subject_type, subject_id, schema_uid, status |
+
+## Database Infrastructure And Security
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `schema_version` | Base schema version record | version, applied_at, checksum |
+| `schema_migration` | Ordered migration tracking | filename, checksum, applied_at |
+| `api_key` | API key hash and scope record | key_hash, scope, expires_at |
+| `app_role` | Application role definition | role_name, permissions |
+| `audit_log` | System action audit trail | action, entity_type, actor |
+| `export_log` | Export execution record | export_type, record_count, file_path |
+| `scheduled_job` | Scheduled job registry | job_name, cron_expr, enabled |
+| `webhook` | Outbound webhook configuration | url, event_type, secret |
+| `capability_token` | Scoped capability token | token_hash, capabilities, expires_at |
+| `access_audit_log` | Capability access audit | token_id, resource, action, timestamp |
+| `verification_review` | Verification review result | entity_type, entity_id, result, reviewer_id |
+| `approval` | Human approval record | entity_type, entity_id, decision, decided_by |
+| `workflow_history` | Lifecycle transition audit | entity_type, entity_id, from_state, to_state, changed_by |
+| `file_upload` | Uploaded file metadata | filename, storage_path, mime_type |
+
+### Event Bus And Cache
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `platform_event` | Durable event queue row | event_type, status, priority, payload |
+| `event_handler` | Event handler registry | handler_name, event_type, module_path |
+| `event_handler_log` | Handler execution record | event_id, handler_id, status, duration_ms |
+| `event_dead_letter` | Failed event disposition record | original_event_id, failure_count, error |
+| `cache_entry` | Computation cache entry | cache_key, result, expires_at, hit_count |
+| `cache_invalidation_rule` | Event-to-cache invalidation rule | event_type, target_computation_type, scope |
+
+## Ingestion, Scheduling, Federation, And Analysis
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `data_freshness_config` | Freshness threshold configuration | source_system, max_age_hours, alert_threshold |
+| `data_freshness_check` | Freshness check result | source_system, last_data_at, is_stale |
+| `remote_sensing_job` | Remote-sensing fetch job | provider, status, last_run_at |
+| `sensor_device_health` | Sensor health observation | device_id, battery_pct, signal_strength |
+| `scheduled_task` | Durable scheduler task | task_name, cron_expr, module_path |
+| `task_run` | Scheduler run state | task_id, status, started_at, completed_at |
+| `task_resource` | Scheduler resource lease | task_run_id, resource_type, locked_by |
+| `driver_registry` | External driver definition | driver_name, driver_type, config_schema |
+| `driver_instance` | Installed driver configuration | driver_id, instance_name, config |
+| `driver_instance_log` | Driver execution log | instance_id, status, duration_ms |
+| `stream_window` | Stream aggregation window | sensor_id, metric, window_start, value |
+| `stream_buffer` | Buffered stream values | buffer_key, values, count |
+| `stream_alert` | Stream-processing alert | alert_type, severity, metric, threshold |
+| `ingestion_log` | External ingestion execution log | source_system, target_table, status, processing_time_ms |
+| `harvest_ingestion_log` | Harvest ingestion audit | source, record_count, status |
+| `federation_node` | Federation node registry | node_name, url, status |
+| `federation_share` | Data shared with a node | node_id, data_type, shared_at |
+| `federation_query` | Federated query record | query_type, source_node, status |
+| `analysis_environment` | Sandboxed analysis environment | env_name, sandbox_type, resources |
+| `analysis_run` | Analysis execution record | env_id, status, started_at, completed_at |
+| `analysis_sandbox` | Analysis sandbox instance | env_id, sandbox_id, status |
+
+## Environmental Modeling And Spatial Data
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `environmental_baseline` | Baseline environmental measurement | baseline_type, value, date |
+| `water_access` | Water access point and quality record | water_source, access_type, quality |
+| `water_sample` | Water sample collection | sample_date, parameters, location |
+| `water_analysis` | Water quality analysis | parameter, value, unit |
+| `disease_observation` | Crop disease observation | disease_name, severity, crop_id |
+| `irrigation_program` | Irrigation program definition | program_name, method, frequency |
+| `plant_analysis` | Plant tissue or nutrient analysis | analysis_type, nutrient_values |
+| `sample_plot_design` | Experimental sample-plot design | design_type, replication_count |
+| `sample_plot` | Individual experimental plot | plot_id, location, treatment |
+| `sampling_protocol` | Sampling protocol | protocol_name, depth_cm, frequency |
+| `mitigation_approach` | Environmental mitigation approach | approach_name, description, effectiveness |
+| `reporting_cadence` | Reporting cadence configuration | report_type, frequency, recipients |
+| `spatial_import_log` | Spatial import execution log | file_name, record_count, status |
+| `geostory` | Geospatial narrative | title, location_id, status |
+| `geostory_section` | Geostory section | geostory_id, section_type, content |
+| `thesaurus` | Controlled vocabulary thesaurus | thesaurus_name, version |
+| `thesaurus_keyword` | Thesaurus keyword | thesaurus_id, keyword |
+| `thesaurus_keyword_label` | Localized keyword label | keyword_id, language, label |
+| `worldclim_climate` | WorldClim climate feature | variable, value, period |
+| `ncep_weather_summary` | NCEP weather summary | variable, value, date_range |
+| `modis_lst_summary` | MODIS land-surface temperature summary | mean_lst, date_range, pixel_count |
+| `smap_soil_moisture` | SMAP soil moisture observation | moisture_pct, date, geometry |
+| `sentinel1_sar_summary` | Sentinel-1 SAR summary | vvh_db, vv_db, date_range |
+| `soc_prediction_model` | Soil-organic-carbon model configuration | model_type, parameters, accuracy |
+| `soc_prediction` | Soil-organic-carbon prediction | location_id, predicted_soc, confidence |
+| `computed_feature_importance` | Model feature importance | feature_name, importance_score |
+| `cv_fold_result` | Cross-validation fold result | fold, rmse, r_squared |
+| `rs_time_series_feature` | Remote-sensing time-series feature | feature_name, value, timestamp |
+| `weather_time_series_feature` | Weather time-series feature | feature_name, value, timestamp |
+| `modis_lst_time_series` | MODIS temperature time series | lst_value, date, pixel |
+| `smap_moisture_time_series` | SMAP moisture time series | moisture_pct, date |
+| `sentinel1_time_series` | Sentinel-1 time series | vvh, vv, date |
+
+## Supply Chain, Procurement, Training, And Capacity
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `buyer_demand_signal` | Buyer demand signal | buyer_id, crop, quantity, price |
+| `demand_forecast` | Demand forecast | crop, period, forecasted_qty |
+| `market_size_estimate` | Market-size estimate | market_type, region, total_value |
+| `demand_trend` | Demand trend | crop, period, trend_direction |
+| `production_market_match` | Production-to-buyer match | production_id, buyer_id, match_score |
+| `buyer_segment` | Buyer segment definition | segment_name, criteria, size |
+| `supplier_profile` | Supplier registry | supplier_name, product_type, rating |
+| `supply_agreement` | Supply agreement | supplier_id, terms, expiry_date |
+| `purchase_order` | Purchase order | supplier_id, total_amount, status |
+| `purchase_order_item` | Purchase-order line item | po_id, item_name, quantity, unit_cost |
+| `group_buy` | Collective purchasing campaign | crop, target_qty, target_price |
+| `group_buy_participation` | Group-buy participation | group_buy_id, farmer_id, quantity |
+| `supplier_quality_assessment` | Supplier quality score | supplier_id, score, assessment_date |
+| `shipment` | Shipment record | origin, destination, status |
+| `shipment_item` | Shipment line item | shipment_id, item_name, quantity |
+| `cold_chain_record` | Cold-chain observation | temperature, humidity, duration |
+| `storage_facility` | Storage facility | facility_name, capacity, type |
+| `transport_log` | Transport activity | vehicle_type, distance_km, fuel_cost |
+| `training_program` | Training program | program_name, duration, status |
+| `training_module` | Training module | program_id, title, sequence |
+| `training_lesson` | Training lesson | module_id, title, content_type |
+| `training_enrollment` | Training enrollment | program_id, farmer_id, status |
+| `training_progress` | Training progress | enrollment_id, lesson_id, completed |
+| `competency_framework` | Competency definition | competency_name, level, category |
+| `credential` | Credential award | farmer_id, competency_id, awarded_at |
+| `utilization_observation` | Capacity utilization reading | asset_id, utilization_pct, period |
+| `equipment_usage_log` | Equipment usage period | asset_id, start_time, end_time |
+| `capacity_threshold` | Capacity alert threshold | asset_id, warning_pct, critical_pct |
+
+## Bio Factory And Content
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `bio_factory_batch` | Bio-input production batch | batch_type, quantity, status |
+| `bio_input_provenance` | Bio-input sourcing record | input_type, source, quantity |
+| `bio_recipe_library` | Bio-input recipe | recipe_name, ingredients, process |
+| `bio_factory_distribution` | Bio-input distribution | batch_id, recipient, quantity |
+| `bio_factory_quality_test` | Bio-input quality test | batch_id, test_type, result |
+| `bio_ingredient_composition_reference` | Ingredient composition reference | ingredient_name, composition |
+| `bio_regional_input_availability` | Regional input availability | input_type, region, available_qty |
+| `content_piece` | Educational or public content | title, content_type, status |
+| `content_distribution` | Content delivery record | content_id, channel, reach |
+| `sensemaking_score` | Content sensemaking score | content_id, score, reviewer |
+
+## Token Economics, DAO, And Web3
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `colony_instance` | Colony network instance | chain, colony_address, token_address |
+| `kokonut_guild` | Kokonut guild record | guild_name, chain, token |
+| `guild_contributor` | Guild contributor | guild_id, wallet_address, reputation |
+| `guild_contribution` | Guild contribution | guild_id, contributor_id, hours |
+| `guild_reputation_snapshot` | Guild reputation snapshot | guild_id, score, period |
+| `dao_proposal` | DAO proposal record | proposal_id, title, status |
+| `dao_proposal_extended` | Extended proposal metadata | proposal_id, vote_count, status |
+| `dao_vote` | DAO vote | proposal_id, voter, vote_power |
+| `governance_token` | Governance token record | token_name, chain, total_supply |
+| `staking_position` | Token staking position | token_id, amount, lock_period |
+| `token_balance_snapshot` | Token balance snapshot | wallet_id, balance, snapshot_date |
+| `tree_token_binding` | Tree-to-token binding | tree_id, token_id, binding_date |
+| `yield_distribution` | Yield distribution | epoch, recipient, amount |
+| `reputation_token` | Reputation token balance | holder_id, balance, decay_rate |
+| `delegation_record` | Voting delegation | delegator, delegate, weight |
+| `coin_inflation_event` | Token inflation event | amount, recipient, reason |
+| `fund_distribution` | Fund distribution | fund_id, recipient, amount |
+| `funding_bid` | Funding bid | bid_amount, project_id, status |
+| `funding_request` | Funding request | request_type, amount, justification |
+| `incentive_alignment_log` | Incentive alignment observation | incentive_type, alignment_score |
+| `inflation_schedule` | Inflation schedule | schedule_name, rate, effective_date |
+| `value_stability_metric` | Value stability metric | metric_name, period, stability_score |
+| `inflation_adjustment` | Inflation adjustment | adjustment_rate, effective_date |
+| `evaluator` | Web-of-Trust evaluator | evaluator_type, reputation_score |
+| `attester_reputation` | Attester reputation | attester_id, reputation, total_attestations |
+| `attestation_reference` | Attestation cross-reference | attestation_id, reference_type, reference_id |
+| `preference_signal` | User preference signal | signal_type, weight, entity_id |
+| `ranking_algorithm` | Ranking configuration | algorithm_name, parameters |
+| `ranking_result` | Ranking result | entity_id, rank, score |
+| `governance_event` | On-chain governance event | event_type, tx_hash, proposal_id |
+| `dapp_session` | DApp session record | wallet_address, session_token |
+
+## Modeled Outputs And Scenarios
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| `metric_version` | Metric formula version history | metric_id, formula, version, effective_date |
+| `dashboard_dataset` | Dashboard dataset refresh configuration | dataset_key, sql_query, refresh_interval |
+| `scenario_parameter` | Scenario parameter definition | param_name, default_value, range |
+| `scenario_simulation` | Scenario simulation run | scenario_id, parameters, results |
+| `ai_impact_evaluation` | AI impact evaluation | evaluation_type, score, evidence |
+| `data_stream_post` | Governed data-stream output | location_id, content, status |
+| `impact_estimate_post` | Impact estimation post | post_type, estimate_value, evidence |
+| `category_graft` | Cross-category mapping | source_category, target_category |
+| `category_relatedness` | Category relatedness score | category_a, category_b, relatedness |
+| `estimate_category_assignment` | Estimate-to-category link | estimate_id, category_id |
+| `expertise_category` | Expertise category | category_name, description |
+| `waiting_list_entry` | Waiting-list entry | entry_type, status, position |
+| `validation_round` | Impact validation round | round_number, status, deadline |
+| `validator_selection` | Validator selection | round_id, validator_id, weight |
+| `validator_review` | Validator review | review_id, score, comments |
+| `quadratic_vote` | Quadratic validation vote | round_id, voter_id, amount |
+| `validator_compensation` | Validator compensation | validator_id, amount, token |
+| `periodic_validation` | Periodic validation run | period, status, results |
+| `realized_impact_record` | Realized impact record | metric, value, verified |
+| `impact_deviation` | Expected-versus-realized deviation | expected, actual, deviation_pct |
+| `relatedness_coefficient` | Relatedness coefficient | entity_a, entity_b, coefficient |
+
+## Common Schema Conventions
+
+- PostgreSQL and Directus are the canonical application data layer; ClickHouse is the analytical event store.
+- UUID primary keys and `created_at`/`updated_at` audit fields are common but not universal. Confirm the migration before relying on them.
+- Public views must apply lifecycle, evidence maturity, consent, and registry gates defined by their source migrations.
+- `metric_value` rows produced by computation are drafts and unverified until a human reviewer verifies them.
+- Public carbon claims require evidence maturity 6, an evidence link, an external verifier, a methodology reference, and the required published claim state.
+- Agent-generated governed records remain draft or submitted; agents cannot verify or publish them.
+- Payment state, attestation state, and lifecycle state are separate concepts. Do not overload `status` when a dedicated field exists.
+- Geometry fields use PostGIS types or GeoJSON projection views where spatial export is required.
+- JSONB fields preserve source payloads, model inputs, evidence metadata, and structured configuration; their detailed shapes are defined by the owning service or migration.
+
+## Source Of Truth
+
+Use the ordered PostgreSQL migrations under `schemas/postgres/` for exact columns,
+constraints, indexes, triggers, and views. Use `schemas/seeds/` for canonical
+reference data, metric definitions, framework mappings, and pilot records. This
+document is a navigation layer and must be updated when a migration adds a new
+canonical domain object or changes a public contract.
