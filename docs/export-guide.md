@@ -1,284 +1,438 @@
-# Data Export & Report Guide
+# Data Export And Report Guide
 
-Kokonut Intelligence provides structured data exports and report snapshots for partners, compliance, and analysis.
+Kokonut Intelligence has several separate export paths:
 
-## Export Types
+1. The generic tabular exporter reads allowlisted PostgreSQL or ClickHouse
+   collections and writes local CSV, JSON, or conditional Parquet output.
+2. The report generator computes registered report payloads and stores governed
+   `report_snapshot` rows.
+3. The spreadsheet bridge validates/imports CSV templates.
+4. Spatial export/import handles GeoJSON, KML, XML, and spatial import logs.
+5. CIDS export produces a compatibility JSON-LD mapping.
+6. Dataset refresh executes stored dashboard SQL; it is not a file export.
 
-| Format | Extension | Use Case |
-|--------|-----------|----------|
-| CSV | `.csv` | Spreadsheet analysis, partner delivery |
-| JSON | `.json` | API integration, programmatic use |
-| Parquet | `.parquet` | Analytical workloads, ClickHouse import |
+These paths have different filtering, lifecycle, hash, and persistence behavior.
 
-## Using the Export Service
+## Generic Exporter
+
+Implementation: `services/export/exporter.py`.
 
 ### CLI
 
 ```bash
-# Export harvest events to CSV
 python3 -m services.export.exporter \
   --collection harvest_event \
   --format csv \
   --output exports/
 
-# Export with filters
 python3 -m services.export.exporter \
   --collection harvest_event \
   --format json \
-  --filter '{"location_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"}' \
+  --filter '{"location_id": "LOCATION_UUID"}' \
   --output exports/
 
-# Export with date range
 python3 -m services.export.exporter \
   --collection expense_event \
   --format parquet \
   --filter '{"expense_date": {"$gte": "2026-01-01", "$lte": "2026-06-30"}}' \
   --output exports/
 
-# Export from ClickHouse
 python3 -m services.export.exporter \
-  --collection daily_event_counts \
+  --collection sensor_reading \
   --format csv \
   --source clickhouse \
+  --filter '{"sensor_id": "SENSOR_UUID"}' \
   --output exports/
 ```
 
+The exact flags should be checked with:
+
+```bash
+python3 -m services.export.exporter --help
+```
+
 ### Python API
+
+The parameter is `fmt`, not `format`:
 
 ```python
 from services.export.exporter import Exporter
 
 exporter = Exporter()
-
-# Export to CSV
 result = exporter.export(
     collection="harvest_event",
-    format="csv",
+    fmt="csv",
     output_dir="exports/",
     filters={"status": "verified"},
 )
-print(f"Exported {result.row_count} rows to {result.file_path}")
+print(result.row_count, result.file_path, result.file_size)
+```
 
-# Export to JSON
-result = exporter.export(
-    collection="crop_cycle",
-    format="json",
+The signature is:
+
+```python
+export(
+    collection,
+    fmt="csv",
     output_dir="exports/",
-    filters={"location_id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"},
+    filters=None,
+    user_id=None,
+    include_drafts=False,
 )
 ```
 
-## Export Log
+`ExportResult` contains `collection`, `format`, `file_path`, `row_count`,
+`file_size`, and `duration_ms`.
 
-Every export is logged to the `export_log` table:
+### Collection Allowlist
+
+The exporter rejects collections that are not in its hard-coded
+`ALLOWED_COLLECTIONS` list. Examples in this guide must use an allowlisted
+collection. Arbitrary PostgreSQL tables and ClickHouse views are not accepted.
+The ClickHouse example should not use `daily_event_counts` unless that name is
+added to the allowlist.
+
+### Formats
+
+| Format | Behavior |
+|--------|----------|
+| `csv` | Direct CSV output |
+| `json` | JSON output |
+| `parquet` | Requires `pyarrow`; otherwise falls back to JSON under a `.json` path |
+
+Parquet fallback is imperfect: the requested export/log format can still say
+`parquet` while the generated file is JSON. Confirm `pyarrow` is installed when
+Parquet interoperability is required. Parquet type detection is conservative;
+numeric samples may become `float64`, booleans are handled after numeric
+detection, and other values are converted to strings.
+
+### Output Paths
+
+The exporter creates the output directory and writes timestamped local files,
+for example:
+
+```text
+exports/harvest_event_20260721T120000Z.csv
+```
+
+It sanitizes the collection name. It does not upload files to Directus, create a
+Directus file record, or provide a signed HTTP download URL.
+
+## Source And Filter Semantics
+
+### PostgreSQL
+
+PostgreSQL exports execute a `SELECT *` from the allowlisted collection, apply
+filters, order by `created_at DESC NULLS LAST`, and load all matching rows into
+memory. There is no pagination or continuation token.
+
+Supported filter operators include:
+
+- `$gte`
+- `$lte`
+- `$gt`
+- `$lt`
+- `$ne`
+- `$in`
+- `$like`
+
+Lists are treated as `IN` filters. Unsupported operators are silently ignored;
+callers should validate filter input before export. Empty `$in` lists can produce
+invalid SQL and should be avoided.
+
+For governed collections, the default filter is:
+
+```json
+{"status": {"$in": ["verified", "published"]}}
+```
+
+This default is replaced when the caller supplies a status filter. The
+`include_drafts=True` API option disables the default governed filter. Export
+does not itself verify records; it reads the selected rows.
+
+### ClickHouse
+
+ClickHouse exports use equality filters only:
 
 ```sql
-SELECT
-    el.export_type,
-    el.target_table,
-    el.row_count,
-    el.file_size_bytes,
-    el.status,
-    el.created_at
-FROM export_log el
-ORDER BY el.created_at DESC
+SELECT *
+FROM <allowlisted_collection>
+WHERE key = {key}
+ORDER BY timestamp DESC
+LIMIT 100000
+```
+
+ClickHouse does not support the PostgreSQL operator dictionaries in this path.
+Results are capped at 100,000 rows, with no pagination. The target table is
+assumed to expose a `timestamp` column and `clickhouse-connect` must be
+available. A missing client raises an error.
+
+### Error Behavior
+
+Database and file-generation failures generally propagate. Successful file
+generation is logged after the file is written. Export-log failures are printed
+as warnings rather than replacing the export result. The exporter does not
+reliably create failed export-log rows for every failure path.
+
+## Export Log
+
+`export_log` is defined in `schemas/postgres/008_governance.sql`.
+
+| Column | Meaning |
+|--------|---------|
+| `id` | Export UUID |
+| `user_id` | Optional requesting user |
+| `export_type` | Requested format, such as `csv`, `json`, or `parquet` |
+| `target_table` | Exported collection |
+| `filters` | JSONB filter object |
+| `row_count` | Rows written |
+| `file_size_bytes` | Output size |
+| `file_url` | Local path in the current exporter, not necessarily a URL |
+| `status` | Schema-supported export lifecycle |
+| `created_at` | Log timestamp |
+
+Schema status values are `pending`, `generating`, `completed`, and `failed`.
+The current exporter primarily writes `completed`; it does not consistently
+persist intermediate or failed states. There is no export hash, MIME type,
+duration, error message, or completion timestamp in this table.
+
+```sql
+SELECT export_type, target_table, row_count, file_size_bytes,
+       file_url, status, created_at
+FROM export_log
+ORDER BY created_at DESC
 LIMIT 20;
 ```
 
-| Column | Description |
-|--------|-------------|
-| `export_type` | `csv`, `json`, `parquet` |
-| `target_table` | Collection that was exported |
-| `filters` | JSONB of applied filters |
-| `row_count` | Number of rows exported |
-| `file_size_bytes` | Output file size |
-| `status` | `pending`, `generating`, `completed`, `failed` |
+## Report Generator
 
-## Report Snapshots
+Implementation: `services/export/report_generator.py`.
 
-Report snapshots are frozen, reproducible outputs stored in `report_snapshot`. Each snapshot includes a hash for verification.
+The current registry contains **94 report types**. The registry is the source of
+truth; report descriptions and scopes vary by generator. Report types include
+farm, crop, environmental, climate, financial, governance, EBF, CRISP,
+ecological, organic, stakeholder, process, business architecture, data stream,
+capital, strategic reserve, tactical, simulation, and State of Kokonut reports.
 
-### Report Types
+Examples of current types include:
 
-| Type | Description |
-|------|-------------|
-| `farm_summary` | Location-level operational and financial summary |
-| `crop_noi` | Crop cycle net operating income |
-| `environmental` | Soil carbon, biodiversity, NDVI, weather |
-| `revenue_multiplier` | Revenue multiplier opportunity analysis |
-| `forecast` | Forecast scenario summary |
-| `climate_impact` | Carbon balance, GHG, tree carbon, regenerative score |
-| `ebf_scorecard` | EBF scorecard with pillar scores and evidence |
-| `holistic_wellbeing` | Cultural context, well-being metrics, participatory actions |
-| `financial_sustainability` | Grant dependency, reinvestment, runway, projected NOI |
-| `risk_mitigation` | Risk register with likelihood, impact, residual risk |
-| `scaling_roadmap` | Scaling milestones with capital, partners, dependencies, risk gates |
-| `green_paper_publication_status` | Green Paper review and publication status |
-| `capital_efficiency` | Capital deployed, output value, leverage, regenerative payback |
-| `governance_throughput` | DAO proposal creation, decision, execution latency |
-| `capital_provider_utility` | Capital-provider utility scenarios with limitations |
-| `time_liberation` | Hours reclaimed, burden reduction, automation signals |
-| `capital_alignment` | Capital alignment, extractive risk, commons reinvestment |
-| `governance_inclusion` | Representation, pseudonymous participation, missing groups |
-| `land_stewardship` | Stewardship model, landlord dependency, anti-speculation terms |
-| `gnh_alignment` | GNH domain alignment scores and safeguards |
-| `cultural_preservation` | Cultural preservation plans, local-language, consent |
-| `renewable_energy` | Renewable energy plans (planned vs implemented) |
-| `vulnerable_access` | Vulnerable group access plans and accommodations |
-| `foundational_wellbeing` | Peace, safety, health, education well-being observations |
-| `regenerative_outcomes` | Hectares, species, soil carbon, trees, jobs, beneficiaries |
-| `community_governance` | Decision methods, power distribution, veto rights, escalation |
-| `replication_readiness` | Readiness score, prerequisites, barriers, enablers |
-| `adaptive_stewardship` | Review cadence, triggers, corrective actions, completion |
-| `scaling_economics` | Cost-per-farm, cost-per-beneficiary, ROI, payback scenarios |
-| `adoption_barriers` | Onboarding, regulatory, cultural, DAO, market barriers |
-| `perpetual_value_stress` | Downside runway, NOI, solvency, mitigation scenarios |
-| `open_source_impact` | Reusable schemas, dashboards, agents, contracts, exports |
-| `anti_capture_governance` | Voting caps, veto rights, Sybil resistance, enforcement |
-| `redistribution_policy` | Flexible commons/local/operator/digital commons allocation |
-| `federation_mutual_aid` | Permissionless forking, mutual aid, anti-extractive safeguards |
-| `algorithmic_redistribution` | Targeted grants, fee rebates, operator support mechanisms |
-| `participatory_signal` | Advisory meme, vibes, sentiment, story experiments |
+```text
+farm_summary, crop_noi, environmental, climate_impact, ebf_scorecard,
+ecological_modeling, trophic_pyramid, pest_management, resource_efficiency,
+training_impact, revenue_streams, model_validation, data_stream_summary,
+business_plan, pitch_deck, process_health, stakeholder_cockpit,
+comprehensive_status, strategic_reserve, tactical_layer, simulation_wargame,
+capital_accounting, state_of_kokonut
+```
 
-### Using the Report Generator
+This is an abbreviated list, not a complete registry. Inspect
+`REPORT_GENERATORS` before relying on a report type.
+
+## Report CLI
 
 ```bash
-# Generate a farm summary for a location
+# Generate one location report
 python3 -m services.export.report_generator \
-  --type farm_summary \
-  --location-id a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+  --type farm_summary --location-id LOCATION_UUID
 
-# Generate a crop NOI report
-python3 -m services.export.report_generator \
-  --type crop_noi \
-  --location-id a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
-
-# Generate an environmental impact report
+# Repeat --location-id for selected locations
 python3 -m services.export.report_generator \
   --type environmental \
-  --location-id a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+  --location-id LOCATION_UUID_1 \
+  --location-id LOCATION_UUID_2
 
-# Generate all report types for a location
+# Generate all registered report types for a supported scope
 python3 -m services.export.report_generator \
-  --auto \
-  --location-id a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+  --auto --location-id LOCATION_UUID
 
 # List existing snapshots
 python3 -m services.export.report_generator --list
+
+# Verify an existing snapshot by UUID or exact hash
+python3 -m services.export.report_generator --verify SNAPSHOT_UUID_OR_HASH
 ```
 
-### Snapshot Hash Verification
+Supported flags are `--type`, repeatable `--location-id`, `--all`,
+`--period-start`, `--period-end`, `--list`, `--verify`, and `--auto`.
 
-Each snapshot includes a SHA-256 hash of its data for reproducibility:
+There is no report-generator `--force`, `--org-id`, `--output`, or generic
+`--format` flag. The troubleshooting command using `--force` is invalid.
 
-```sql
-SELECT
-    rs.report_name,
-    rs.report_type,
-    rs.snapshot_hash,
-    rs.period_start,
-    rs.period_end,
-    rs.status,
-    rs.created_at
-FROM report_snapshot rs
-WHERE rs.location_id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
-ORDER BY rs.created_at DESC;
+### `--auto`
+
+`--auto` attempts all 94 registered report generators for the selected scope.
+Each report is handled independently; successful reports are persisted even if
+others fail. The command exits nonzero when one or more generators fail. There
+is no all-or-nothing transaction across the report set.
+
+### Scope And Periods
+
+`--all` passes the literal scope value `all`; it does not centrally iterate every
+location. Only network-aware generators interpret that value correctly. Many
+location generators require a UUID and may fail with `all` or multiple IDs.
+
+Network-aware report types include State of Kokonut, DAO proposal history,
+State of Kokonut graphs, comprehensive status, and strategic reserve.
+
+Period arguments are forwarded to each generator. Some generators apply dates,
+some use them to select a reporting year, and some ignore them. There is no
+generic report-level date filtering contract.
+
+`--list` returns at most 20 snapshots and provides limited metadata. It does not
+offer generic report-type, period, status, or hash-prefix filters.
+
+## Report Snapshots
+
+`report_snapshot` stores report payloads and governance metadata. A newly stored
+snapshot is:
+
+```text
+status = 'draft'
+frozen_at = NULL
 ```
 
-Verify a snapshot:
+Snapshot storage does not immediately make a report frozen, verified, or public.
+Later migrations add:
+
+- `frozen`
+- `frozen_at`
+- `frozen_by`
+- `expires_at`
+- `public_interest_summary`
+- `uncertainty_notes`
+- `negative_findings`
+- `affected_community_voice`
+
+Lifecycle and publication gates remain separate from hash computation.
+
+### Snapshot Hash
+
+The generator computes SHA-256 over a sorted JSON representation:
 
 ```python
-import hashlib
-import json
-
-def verify_snapshot(snapshot_data, expected_hash):
-    """Verify snapshot data integrity."""
-    computed = hashlib.sha256(
-        json.dumps(snapshot_data, sort_keys=True, default=str).encode()
-    ).hexdigest()
-    return computed == expected_hash
+payload = json.dumps(data, sort_keys=True, default=str)
+snapshot_hash = hashlib.sha256(payload.encode()).hexdigest()
 ```
 
-## API Examples
+The payload includes the generated report and attached public-interest context.
+Regenerating a report can produce a different hash when fields such as
+`generated_at` change. No report file is generated by snapshot storage.
 
-### Trigger Export via Directus REST
+### Verification
 
 ```bash
-# Trigger a CSV export via Directus Flow (if configured)
-DIRECTUS_URL=${DIRECTUS_URL:-https://localhost/directus}
-curl -k -X POST "$DIRECTUS_URL/flows/trigger/EXPORT_FLOW_ID" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "collection": "harvest_event",
-    "format": "csv",
-    "filters": {"status": "verified"}
-  }'
+python3 -m services.export.report_generator \
+  --verify SNAPSHOT_UUID_OR_EXACT_HASH
 ```
 
-### Download Exported File
+The command recomputes and prints PASS/FAIL. It does not update snapshot status,
+freeze the snapshot, publish it, or return a dedicated verification record.
+
+There is no deduplication or idempotency key for report generation. Re-running a
+generator creates another snapshot row.
+
+## Other Export Tools
+
+### Spreadsheet Bridge
 
 ```bash
-# Get the latest export file URL
-curl -k -H "Authorization: Bearer $TOKEN" \
-  "$DIRECTUS_URL/items/export_log?sort[]=-created_at&limit=1&fields[]=file_url"
+python3 -m services.export.spreadsheet_bridge \
+  --template exports/templates/ebf_scorecard_template.csv
 
-# Download
-curl -k -H "Authorization: Bearer $TOKEN" \
-  "$(curl -sk -H "Authorization: Bearer $TOKEN" \
-    "$DIRECTUS_URL/items/export_log?sort[]=-created_at&limit=1&fields[]=file_url" \
-    | python3 -c "import sys,json; print(json.load(sys.stdin)['data'][0]['file_url'])")" \
-  -o export.csv
+python3 -m services.export.spreadsheet_bridge \
+  --import-file data.csv --dry-run
 ```
 
-## Scheduled Exports
+The bridge supports farm activity and EBF templates, draft farm-activity
+imports, scorecard metadata imports, and evidence validation. EBF evidence rows
+are validation-only and are not written to canonical evidence records. It does
+not verify or publish scorecards.
 
-### Via Directus Flows
+### Spatial Export And Import
 
-Configure a Directus Flow with a cron trigger:
+`services/export/spatial_export.py` provides library APIs for zone, tree,
+location, combined-project GeoJSON, KML, and XML. It is not a generic exporter
+CLI path. `services/export/spatial_import.py` handles GeoJSON/KML imports with
+content hashing and import logging; it uses separate spatial logs rather than
+`export_log`.
 
-1. Go to **Flows** → **Create Flow**
-2. Add **Cron Trigger**: `0 0 1 * *` (monthly)
-3. Add **Webhook** operation calling the export service
-4. Add **Notification** operation to alert when complete
+### Dataset Refresh
 
-### Via System Cron
+`services/export/dataset_refresh.py` executes stored `dashboard_dataset.query_sql`
+statements and updates dataset metadata. It is not a file export and does not
+create `export_log` rows.
 
 ```bash
-# Monthly export of all verified data
-0 0 1 * * cd /path/to/Kokonut-Intelligence && \
-  python3 -m services.export.exporter \
-    --collection harvest_event --format parquet --output /data/exports/ && \
-  python3 -m services.export.exporter \
-    --collection expense_event --format parquet --output /data/exports/
+python3 -m services.export.dataset_refresh --all
 ```
 
-## Troubleshooting
+### Business Plan And CIDS
 
-### "Permission denied" on export
-
-The export user lacks read access to the collection. Check Directus permissions for the export role.
-
-### Export file is empty
-
-The filter returned no results. Verify filter syntax and check the collection has data:
-
-```sql
-SELECT COUNT(*) FROM harvest_event WHERE status = 'verified';
-```
-
-### ClickHouse export fails
-
-Ensure ClickHouse is running and accessible:
+Business-plan generation supports location or organization scope internally:
 
 ```bash
-docker compose exec clickhouse wget --spider -q http://localhost:8123/ping
+python3 -m services.export.business_plan --location-id LOCATION_UUID
+python3 -m services.export.business_plan --org-id ORG_UUID
 ```
 
-### Snapshot hash doesn't match
+It writes JSON to stdout and does not itself persist a report snapshot.
 
-The data changed between generation and verification. Regenerate the snapshot:
+`services/registry/cids_export.py` separately produces CIDS v3.2.0 Essential Tier
+JSON-LD. It is a governed compatibility export, not a CSV/JSON/Parquet
+collection export.
 
-```bash
-python3 -m services.export.report_generator --type farm_summary --location-id UUID --force
-```
+## Scheduling And Directus
+
+The repository schedules dashboard dataset refresh and operational ingestion,
+metrics, indexing, health, and freshness tasks. It does not configure a generic
+exporter cron job or report-generator cron job in the worker crontab or scheduled
+task seed.
+
+There is no repository-configured Directus export Flow or `EXPORT_FLOW_ID`.
+Directus may expose `export_log` through ordinary REST if permissions are
+configured, but the exporter does not upload files to Directus or create a
+download endpoint. `file_url` should be treated as a local path unless an
+external deployment layer changes that behavior.
+
+## Operational Limitations
+
+- PostgreSQL exports load all matching rows into memory.
+- ClickHouse exports are capped at 100,000 rows with no continuation token.
+- Parquet requires `pyarrow` and has a JSON fallback.
+- Generic filter behavior differs between PostgreSQL and ClickHouse.
+- Unsupported PostgreSQL operators may be silently ignored.
+- Export-log failures may be warnings rather than durable failed records.
+- Report generation is not transactionally atomic across 94 report types.
+- Snapshot creation starts as draft/unfrozen.
+- Hash verification does not change governance state.
+- Period and scope behavior is generator-specific.
+- A local output path is not a public download URL.
+
+## Tests And Source References
+
+Relevant tests include:
+
+- `tests/test_report_governance.py`
+- `tests/test_cids_export.py`
+- `tests/test_spreadsheet_bridge.py`
+- `tests/test_spatial_export.py`
+- `tests/test_smoke.py`
+- `tests/test_cli.py`
+- report-specific tests importing `REPORT_GENERATORS`
+
+Primary implementation references:
+
+- `services/export/exporter.py`
+- `services/export/report_generator.py`
+- `services/export/spreadsheet_bridge.py`
+- `services/export/spatial_export.py`
+- `services/export/spatial_import.py`
+- `services/export/dataset_refresh.py`
+- `services/export/business_plan.py`
+- `services/registry/cids_export.py`
+- `schemas/postgres/008_governance.sql`
+- `schemas/postgres/007_modeled_outputs.sql`
+- `schemas/postgres/113_arkiv_parity.sql`
+- `schemas/postgres/179_lifecycle_transition.sql`
+- `config/worker/crontab`
+- `schemas/seeds/050_scheduled_tasks.sql`
