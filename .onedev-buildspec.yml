@@ -96,6 +96,9 @@ jobs:
         rm -f .env.sops
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
+        echo "=== [step] Computing metrics ==="
+        . .venv/bin/activate
+        ./scripts/compute-metrics.sh
         echo "=== [step] Connecting CI runner to Compose databases ==="
         DB_CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q database)
         DB_NETWORK=$(docker inspect -f '{{range $network, $_ := .NetworkSettings.Networks}}{{println $network}}{{end}}' "$DB_CONTAINER")
