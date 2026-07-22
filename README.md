@@ -29,6 +29,8 @@ PostgreSQL and Directus are the canonical schema/API layer. ClickHouse stores an
 | Verification | EAS on Celo + offchain evidence storage | Onchain attestations, offchain signed claims, MRV proof metadata |
 | Governance and Guilds | Gnosis Moloch DAO + Colony metadata | Treasury governance, Guild contribution records, reputation snapshots |
 | Contracts | Foundry + Solidity | KokonutResolver attester gating for EAS schemas |
+| Systems Intelligence | Python services | Trend analysis, geostatistics, systems thinking, process mining, causal loops, stock-and-flow simulation |
+| Organizational | Python services | Work items, escalation, budgets, objectives, portfolio, S&OP, capability maps, strategy execution |
 | Workflow | Prefect 3.x | Pipeline orchestration with event-driven automations |
 | External API | gRPC (port 50051) + Protobuf | Type-safe external API with streaming, API key auth, Buf codegen |
 
@@ -127,6 +129,25 @@ The default local override may expose Metabase at `http://localhost:3001`. Use d
 - **Business Model Canvas 1-click + Comprehensive Status**: `business_model_canvas create-from-data` derives all nine BMC blocks from canonical tables in one call; `report_generator --type comprehensive_status` composes 13 per-location sections plus a network-wide rollup.
 - **State of Kokonut + visual timelines**: Ecosystem report across one, many, or all locations with an ecosystem-actor (Network/DAO/Foundation/Genesis/Seeds) funding view; `state_of_kokonut_graphs` emits dependency-free Mermaid + JSON descriptors (ecosystem tree, Ikigai v1/v2, farm phases, crop timelines).
 - **Strategic Reserve**: Monitorable reserve registry (carbon buffer, commons reserve, financial ring-fence, capability standby, seed vault) with per-reserve adequacy, drawdown headroom, trigger/breach status, and a fundability signal; release proposals are DRAFT-only and human-approved (no automatic on-chain drawdown).
+- **OODA loop and adaptive decisions**: Observe→Orient→Decide→Act cycle with situation assessment, adaptive thresholds, decision policy engine, cycle tracking, and human-approval gateways for all automated actions.
+- **Systems thinking**: Causal loop diagrams, leverage point identification, system archetypes, double-loop learning, time delay tracking, stock-and-flow simulation, and mental model elicitations.
+- **Trend analysis and geostatistics**: Least-squares estimation, Mann-Kendall significance testing, exponential smoothing, seasonal decomposition, CUSUM/PELT change-point detection, ARIMA forecasting, variogram modeling, kriging, sequential Gaussian simulation, and spatial cross-validation.
+- **Capital accounting**: Dynamic 8 Forms of Capital inventory, Keynes-inspired deferred-credit ledger, capacity assessment, consumption-vs-reinvestment diversion tracking, and value-capture risk diagnostics.
+- **Tactical layer and simulation**: Chess-inspired governance tactics (fork, pin, zwischenzug, double-check, promotion ladder), Monte Carlo perturbation analysis, and CRT-style clash resolution for adversarial stress-testing.
+- **Stakeholder ecosystem**: Stakeholder foundation, consent management, identity resolution, engagement plans, grievance handling, representation metrics, decision lineage, and trust evidence with timeline.
+- **Management workflow**: Work items with SLA tracking, responsibility assignments, escalation sweeps, and capacity-aware organizational planning.
+- **Planning and budgeting**: Budgets with variance analysis, objectives with KPIs, portfolio management (programs and projects), and S&OP cockpit for capacity-constrained planning.
+- **Business architecture**: Capability maps, strategy maps with initiative tracking, vision/mission governance, and formal value stream definitions with lead-time and yield observations.
+- **Process intelligence**: Process mining (variant discovery, conformance checking, cycle-time analysis), predictive BPM with SLA breach forecasting, SPC charts, CTQ analysis, and process health dashboards.
+- **Revenue model and channels**: Revenue streams, pricing strategies, cost structures, break-even analysis, sensitivity analysis, multi-channel orchestration (SMS, WhatsApp, mobile app, email), and partner lifecycle management.
+- **Pitch and business planning**: Pitch deck generation with evidence backing, elevator pitches, business plan generation, and template-based business model canvases.
+- **Precision agriculture**: Yield monitoring with prediction and benchmarking, precision irrigation with zone management and water-balance optimization, digital twin crop simulation with what-if scenarios, nutrient budget tracking, and mobile offline-first data collection.
+- **Traceability and extension**: Batch tracking with custody chain, quality testing, food safety, cold chain monitoring, forward/backward tracing, extension learning modules, peer groups, delivery tracking, and assessment effectiveness.
+- **Farmer identity and cooperatives**: Profiles with credentials and KYC, role-based access control, device registration, cooperative membership, asset booking, purchase aggregation, and collective market orders.
+- **Energy, waste, and landscape**: Energy source monitoring with efficiency and carbon intensity tracking, waste recording with composting and incident tracking, habitat and corridor management, hedgerow recording, buffer compliance, and pollinator health monitoring.
+- **Data governance**: Consent management, access logging, data portability, retention policies, and sharing agreements with audit trails.
+- **Environmental scanning and market analysis**: Multi-step PESTEL analysis, regional readiness assessments with benchmarks, public and segment mapping, demand analysis, and marketplace with listings, orders, and price trends.
+- **Governance framework abstraction**: Pluggable `GovernanceFramework` adapters with a concrete Moloch v3 (Baal) implementation for on-chain governance queries (proposals, votes, members, shamans). Future adapters planned for OpenZeppelin Governor, Aragon, and Colony.
 
 ## How Metrics Enable Answers
 
@@ -206,6 +227,45 @@ python3 -m services.agents.ai_summary --location-id UUID --summary-type combined
 python3 -m services.attestation.cli info --chain celo
 python3 -m services.attestation.cli schema list
 
+# OODA and decisions
+python3 -m services.decision.policies --list
+python3 -m services.decision.policies --evaluate --location-id UUID
+python3 -m services.orientation.assess  # situation assessment library
+
+# Systems thinking
+python3 -m systems.causal_loops --list
+python3 -m systems.leverage --rank --location-id UUID
+python3 -m systems.stock_flow --run --model soil_carbon --location-id UUID --duration 365
+
+# Trends and geostatistics
+python3 -m services.trends.estimator --metric-key soil_carbon_delta --location-id UUID
+python3 -m services.trends.forecasting --metric-key crop_revenue --location-id UUID --horizon 30
+python3 -m services.geostatistics.cli variogram --location-id UUID --property soil_carbon
+
+# Threatcasting
+python3 -m services.threatcasting create-threat --location-id UUID --name "Drought" --type climate --severity high
+python3 -m services.threatcasting briefing --location-id UUID
+
+# Stakeholder ecosystem
+python3 -m services.analytics.cli_stakeholders landscape
+python3 -m services.analytics.cli_stakeholder_trust profile PARTY_UUID
+
+# Management and planning
+python3 -m services.management work-item list --org-id UUID
+python3 -m services.planning budget list --org-id UUID
+python3 -m services.capital.cli capacity --location-id UUID
+
+# Governance framework
+python3 -m services.governance.cli framework list
+python3 -m services.governance.cli baal proposals
+
+# Tactical and simulation reports
+python3 -m services.export.report_generator --type tactical_layer --location-id UUID
+python3 -m services.export.report_generator --type simulation_wargame --location-id UUID
+
+# Agent tasks
+python3 -m services.agents.tasks --list
+
 # Migration
 python3 -m services.migration status
 python3 -m services.migration migrate
@@ -215,13 +275,20 @@ See [AGENTS.md](AGENTS.md) for the full command catalogue and [CHANGELOG.md](CHA
 
 ## CI And Contributing
 
-CI runs on OneDev via `.onedev-buildspec.yml` as a single `ci` job on every push and pull request. The job brings up the Compose stack (PostgreSQL, ClickHouse, Directus), seeds the database, then runs:
+CI runs on OneDev via `.onedev-buildspec.yml` as a single `ci` job on every push and pull request (~14 minutes). The pipeline is structured for fast feedback:
 
-- `./scripts/ci-check.sh` and the full `pytest` suite (the suite fails closed on any skipped test)
-- Static analysis: `ruff` lint and `aderyn` for Solidity
-- Unified-CLI smoke test (`python3 -m services.cli --help`)
-- Solidity checks: `forge fmt --check && forge build --sizes && forge test`
-- Directus hooks checks: `npm ci && npm run build && npm test` in `extensions/kokonut-hooks`
+1. **Supply-chain gates**: Secret scanning (`check-tracked-secrets.sh`) and image digest pinning (`check-image-digests.sh`).
+2. **Fast-fail steps** (fail immediately, no Docker needed):
+   - `ruff` security scan (`S`, `BLE` selectors)
+   - `pip-audit` dependency vulnerability check
+   - `ci-check.sh` — Python import validation, CLI smoke tests, TypeScript build
+3. **Infrastructure**: Docker Compose brings up PostgreSQL 16, ClickHouse 25.8, cache, and Directus. Database is seeded and metrics are computed.
+4. **Full test suite**: 3,389+ tests via `verify-full-test-suite.sh` (fails closed on any skip).
+5. **Static analysis**: Slither (Solidity), Aderyn (Solidity), and Semgrep (`python.lang.security` + `python.lang.correctness`).
+6. **Solidity**: `forge fmt --check`, `forge build --sizes`, `forge test` (37 tests).
+7. **Directus hooks**: `npm ci`, `npm run build`, `npm test` (52 tests).
+
+The runner connects to the Compose network via `docker network bridge` for database access during tests. `compute-metrics.sh` runs in CI to populate governed metric rows required by platform-integrity tests.
 
 This repository is hosted on a self-managed Git instance (not GitHub), so GitHub-specific workflows, rulesets, and `.github/` config do not apply.
 
@@ -264,14 +331,35 @@ See [Deployment](docs/deployment.md) for full production setup, reverse proxy op
 config/             Docker, PostgreSQL, ClickHouse, Caddy, Directus, Mosquitto, and worker crontab config
 contracts/          Foundry project for KokonutResolver and EAS-related contracts
 dashboards/         Metabase dashboard templates with backing SQL
-docs/               Guides and references; see Documentation below
+docs/               90+ guides and references; see Documentation below
 extensions/         Directus lifecycle hooks, workflow rules, metric hooks, AI helpers
 migrations/         Migration tooling and legacy migration helpers
-schemas/            PostgreSQL and ClickHouse schemas, Directus snapshots, seed files
+schemas/            PostgreSQL (330+ migrations) and ClickHouse schemas, Directus snapshots, seed files
 scripts/            Setup, seed, schema, metrics, backup, health-check, and CI scripts
 sdk/                JavaScript/TypeScript and Python SDKs
-services/           Python services for ingestion, metrics, analytics, export, agents, attestation, scoring, abundance, flows, data_stream, credit_class, iri, rdf, data_module, certificates, metadata_api, linkml, csw, geostory, maps, thesaurus, grpc. Includes the unified meta-CLI (services/cli.py) and the strategic_reserve resilience layer.
-tests/              Unit and integration tests for platform services and invariants
+tests/              299 test files covering platform services and invariants
+```
+
+The `services/` directory contains 65+ Python service modules organized by domain:
+
+```text
+services/
+  Core:             common, core, cli.py, migration, gateway, scheduler, events, security
+  Data:             ingestion, metrics, stream, data_stream, data_module, cache, storage
+  Analytics:        analytics, crisp, scoring, forecast, fortune500, revenue_multiplier,
+                    finance, trends, geostatistics, systems, simulation, innovation
+  Governance:       governance, decision, orientation, feedback, delphi, threatcasting,
+                    graph_projection, workflow_specs
+  Organization:     management, planning, capital, guilds, federation
+  Web3:             attestation, credit_class, iri, rdf, registry, certificates, abundance, flows
+  Intelligence:     agents, predictions, strategy_markup, schema_introspection
+  External:         grpc, drivers, export, sandbox, metadata_api, linkml, csw, geostory,
+                    maps, thesaurus, office
+```
+
+See `AGENTS.md` for the full service catalogue with CLI commands, or `python3 -m services.cli --help` for the unified meta-CLI.
+
+```text
 Dockerfile.worker   Optional worker container for cron-based ingestion
 docker-compose.yml  Base services (PostgreSQL 16, ClickHouse 25.8, Directus 12.1.1, Metabase 0.62.4, Caddy, Mosquitto)
 docker-compose.prod.yml     Production overlay (resource limits, no direct port exposure)
@@ -327,8 +415,23 @@ Documentation lives under `docs/`. Key entry points:
 | [Data Stream](docs/data-stream.md) | Chronological data posts, file attachments, blockchain anchoring |
 | [gRPC API](docs/grpc-api.md) | Type-safe external API, streaming, Protobuf schemas |
 | [Dependency Capabilities](docs/dependency-capabilities.md) | All dependency updates mapped to platform capabilities |
+| [CI Pipeline](docs/ci.md) | CI pipeline structure, fast-fail steps, and local reproduction |
+| [IRI System](docs/iri-system.md) | IRI generation, versioning, resolution, and anchoring |
+| [RDF and SPARQL](docs/rdf-sparql.md) | RDF triple store, SPARQL queries, and linked data |
+| [Management](docs/management.md) | Work items, responsibilities, escalation, and SLA tracking |
+| [Stakeholder Ecosystem](docs/stakeholder-ecosystem.md) | Stakeholder foundation, trust, engagement, and governance |
+| [Workflow Specifications](docs/workflow-specifications.md) | 30 governed workflow specs with parity metadata |
+| [Secrets Management](docs/secrets-management.md) | Encrypted secrets, SOPS, and environment variable handling |
+| [Operator Guide](docs/operator-guide.md) | Day-2 operations, monitoring, and incident response |
+| [Reviewer Guide](docs/reviewer-guide.md) | Metric verification, governed record review, and approval workflows |
+| [Bio Factory Operations](docs/bio-factory-operations.md) | Bio-input production, quality testing, and recipe management |
+| [Ecological Modeling](docs/ecological-modeling.md) | Ecological simulation and trophic analysis |
+| [Evidence Lineage Graph](docs/evidence-lineage-graph.md) | Graph-based evidence tracing and validation chains |
+| [Strategy Markup](docs/strategy-markup.md) | Strategy markup language for capability and initiative mapping |
+| [Business Process Management](docs/business-process-management.md) | Process mining, predictive BPM, and process health |
+| [CRISP Risk Scoring](docs/crisp-risk-scoring.md) | Five-dimension risk scoring and AAA-D composite rating |
 
-Additional docs cover: CIDS mapping, stakeholder feedback, participatory metrics, holistic well-being, financial sustainability, risk mitigation, scaling roadmap, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source capitalist scaling, commons governance, EBF trust graph, spreadsheet guide, common foundations checklist, agent safety, public report disclaimer, operator guide, reviewer guide, advisor review guide, PRD completion scope, partner dashboards, sandbox, subgraph guide, EBF implementation memo, CRISP risk scoring, dMRV architecture, field data collection guide, telemetry infrastructure, ecological modeling, and OpenAPI spec (`docs/openapi.yaml`).
+Additional docs cover: CIDS mapping, stakeholder feedback, participatory metrics, holistic well-being, financial sustainability, risk mitigation, scaling roadmap, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source capitalist scaling, commons governance, EBF trust graph, spreadsheet guide, common foundations checklist, agent safety, public report disclaimer, advisor review guide, PRD completion scope, partner dashboards, sandbox, subgraph guide, EBF implementation memo, dMRV architecture, field data collection guide, telemetry infrastructure, OpenAPI spec (`docs/openapi.yaml`), KGP protocol/deployment/security model, Adelphi governance pilot, and 20+ per-entity workflow specifications.
 
 ## License
 
