@@ -1,0 +1,103 @@
+{
+  "name": "Carbon Credits",
+  "description": "Carbon credit lifecycle: issuance, adjustments, retirements, certificates, and MRV claims for carbon tracking.",
+  "icon": "park",
+  "color": "#1b5e20",
+  "modules": [
+    {
+      "name": "Credit Summary",
+      "type": "stats",
+      "collection": "carbon_credit",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "aggregations": [
+        { "field": "quantity", "function": "sum", "label": "Total Credits" },
+        { "function": "count", "label": "Credit Records" }
+      ]
+    },
+    {
+      "name": "Credit Inventory",
+      "type": "table",
+      "collection": "carbon_credit",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["active", "partially_retired"] }
+      },
+      "columns": [
+        { "field": "credit_class_id.name", "label": "Class" },
+        { "field": "vintage_year", "label": "Vintage" },
+        { "field": "quantity", "label": "Qty" },
+        { "field": "retired_quantity", "label": "Retired" },
+        { "field": "methodology", "label": "Methodology" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-vintage_year"]
+    },
+    {
+      "name": "Retirement Records",
+      "type": "table",
+      "collection": "credit_retirement",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "retirement_date", "label": "Date" },
+        { "field": "quantity", "label": "Qty" },
+        { "field": "retirement_reason", "label": "Reason" },
+        { "field": "beneficiary", "label": "Beneficiary" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-retirement_date"]
+    },
+    {
+      "name": "Retirement Certificates",
+      "type": "table",
+      "collection": "retirement_certificate",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "certificate_number", "label": "Cert #" },
+        { "field": "retirement_id.quantity", "label": "Qty" },
+        { "field": "issued_at", "label": "Issued" },
+        { "field": "hash", "label": "Hash" }
+      ],
+      "sort": ["-issued_at"]
+    },
+    {
+      "name": "MRV Claims",
+      "type": "table",
+      "collection": "mrv_claim",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "claim_type": { "_eq": "carbon" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Created" },
+        { "field": "claim_type", "label": "Type" },
+        { "field": "subject_type", "label": "Subject" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    }
+  ],
+  "data_access": {
+    "carbon_credit": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["credit_class_id", "vintage_year", "quantity", "retired_quantity", "methodology", "status"]
+    },
+    "credit_retirement": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["retirement_date", "quantity", "retirement_reason", "beneficiary", "status"]
+    },
+    "retirement_certificate": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["certificate_number", "retirement_id", "issued_at", "hash"]
+    },
+    "mrv_claim": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["created_at", "claim_type", "subject_type", "status"]
+    }
+  }
+}

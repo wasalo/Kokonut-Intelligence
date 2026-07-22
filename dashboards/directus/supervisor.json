@@ -1,0 +1,113 @@
+{
+  "name": "Supervisor",
+  "description": "Field supervision: team activity, pending approvals, harvest oversight, sensor alerts, and quality checks for supervisors.",
+  "icon": "supervisor_account",
+  "color": "#1565c0",
+  "modules": [
+    {
+      "name": "Team Activity",
+      "type": "stats",
+      "collection": "farm_activity",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "activity_date": { "_gte": "$NOW(-7 days)" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Activities (7d)" },
+        { "field": "labor_hours", "function": "sum", "label": "Total Hours" },
+        { "function": "count", "label": "Active Workers", "distinct": true, "field": "created_by" }
+      ]
+    },
+    {
+      "name": "Pending Approvals",
+      "type": "table",
+      "collection": "approval",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_eq": "pending" }
+      },
+      "columns": [
+        { "field": "entity_type", "label": "Type" },
+        { "field": "entity_id", "label": "Record" },
+        { "field": "requested_by", "label": "Requested By" },
+        { "field": "requested_at", "label": "Requested" },
+        { "field": "approval_type", "label": "Approval Type" }
+      ],
+      "sort": ["requested_at"]
+    },
+    {
+      "name": "Submitted Records",
+      "type": "table",
+      "collection": "farm_activity",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_eq": "submitted" }
+      },
+      "columns": [
+        { "field": "activity_type", "label": "Type" },
+        { "field": "created_by", "label": "Worker" },
+        { "field": "activity_date", "label": "Date" },
+        { "field": "plot_id.name", "label": "Plot" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-activity_date"]
+    },
+    {
+      "name": "Harvest Quality",
+      "type": "table",
+      "collection": "harvest_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "harvest_date": { "_gte": "$NOW(-30 days)" },
+        "status": { "_in": ["submitted", "verified"] }
+      },
+      "columns": [
+        { "field": "harvest_date", "label": "Date" },
+        { "field": "crop_cycle_id.name", "label": "Crop" },
+        { "field": "quantity", "label": "Qty" },
+        { "field": "quality_grade", "label": "Grade" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-harvest_date"]
+    },
+    {
+      "name": "Sensor Alerts",
+      "type": "table",
+      "collection": "sensor_alert",
+      "filters": {
+        "sensor_device_id.location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["open", "acknowledged"] }
+      },
+      "columns": [
+        { "field": "severity", "label": "Severity" },
+        { "field": "message", "label": "Message" },
+        { "field": "reading_value", "label": "Value" },
+        { "field": "triggered_at", "label": "Triggered" }
+      ],
+      "sort": ["-triggered_at"]
+    }
+  ],
+  "data_access": {
+    "farm_activity": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "update": true,
+      "fields": ["activity_type", "activity_date", "plot_id", "labor_hours", "status", "notes"]
+    },
+    "approval": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "update": true,
+      "fields": ["entity_type", "entity_id", "status", "approval_type", "notes"]
+    },
+    "harvest_event": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "update": true,
+      "fields": ["harvest_date", "quantity", "unit", "quality_grade", "status"]
+    },
+    "sensor_alert": {
+      "read": "sensor_device_id.location_id IN ($CURRENT_USER.assigned_locations)",
+      "update": true,
+      "fields": ["severity", "message", "reading_value", "status"]
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "name": "Workflow Health",
+  "description": "Workflow transitions, pending approvals, collection status distribution, and pipeline health for operational oversight.",
+  "icon": "route",
+  "color": "#6d4c41",
+  "modules": [
+    {
+      "name": "Transition Summary",
+      "type": "stats",
+      "collection": "workflow_history",
+      "filters": {
+        "changed_at": { "_gte": "$NOW(-7 days)" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Transitions (7d)" },
+        { "function": "count", "label": "Rejected", "filter": { "to_status": { "_eq": "rejected" } } }
+      ]
+    },
+    {
+      "name": "Recent Transitions",
+      "type": "table",
+      "collection": "workflow_history",
+      "filters": {
+        "changed_at": { "_gte": "$NOW(-7 days)" }
+      },
+      "columns": [
+        { "field": "changed_at", "label": "Time" },
+        { "field": "entity_type", "label": "Type" },
+        { "field": "entity_id", "label": "Record" },
+        { "field": "from_status", "label": "From" },
+        { "field": "to_status", "label": "To" },
+        { "field": "changed_by", "label": "Actor" }
+      ],
+      "sort": ["-changed_at"]
+    },
+    {
+      "name": "Pending Approvals",
+      "type": "table",
+      "collection": "approval",
+      "filters": {
+        "status": { "_eq": "pending" }
+      },
+      "columns": [
+        { "field": "entity_type", "label": "Type" },
+        { "field": "entity_id", "label": "Record" },
+        { "field": "requested_by", "label": "Requested By" },
+        { "field": "requested_at", "label": "Requested" },
+        { "field": "approval_type", "label": "Approval Type" }
+      ],
+      "sort": ["requested_at"]
+    },
+    {
+      "name": "Submitted Records",
+      "type": "stats",
+      "collection": "farm_activity",
+      "filters": {
+        "status": { "_eq": "submitted" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Activities" }
+      ]
+    },
+    {
+      "name": "Rejected Records",
+      "type": "table",
+      "collection": "workflow_history",
+      "filters": {
+        "to_status": { "_eq": "rejected" },
+        "changed_at": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "changed_at", "label": "Time" },
+        { "field": "entity_type", "label": "Type" },
+        { "field": "entity_id", "label": "Record" },
+        { "field": "changed_by", "label": "Actor" }
+      ],
+      "sort": ["-changed_at"]
+    }
+  ],
+  "data_access": {
+    "workflow_history": {
+      "read": true,
+      "fields": ["changed_at", "entity_type", "entity_id", "from_status", "to_status", "changed_by"]
+    },
+    "approval": {
+      "read": true,
+      "create": true,
+      "update": true,
+      "fields": ["entity_type", "entity_id", "requested_by", "requested_at", "approval_type", "status"]
+    },
+    "farm_activity": {
+      "read": true,
+      "fields": ["status"]
+    }
+  }
+}

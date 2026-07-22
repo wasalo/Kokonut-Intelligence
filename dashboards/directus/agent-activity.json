@@ -1,0 +1,101 @@
+{
+  "name": "Agent Activity",
+  "description": "AI agent tasks, summaries, action logs, and safety monitoring for agent oversight.",
+  "icon": "smart_toy",
+  "color": "#00838f",
+  "modules": [
+    {
+      "name": "Agent Summary",
+      "type": "stats",
+      "collection": "agent_task",
+      "filters": {
+        "created_at": { "_gte": "$NOW(-7 days)" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Tasks (7d)" },
+        { "function": "count", "label": "Completed", "filter": { "status": { "_eq": "completed" } } },
+        { "function": "count", "label": "Failed", "filter": { "status": { "_eq": "failed" } } }
+      ]
+    },
+    {
+      "name": "Recent Tasks",
+      "type": "table",
+      "collection": "agent_task",
+      "filters": {
+        "created_at": { "_gte": "$NOW(-7 days)" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Created" },
+        { "field": "agent_id.name", "label": "Agent" },
+        { "field": "task_type", "label": "Type" },
+        { "field": "entity_type", "label": "Entity" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    },
+    {
+      "name": "AI Summaries",
+      "type": "table",
+      "collection": "ai_summary",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "created_at": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Created" },
+        { "field": "summary_type", "label": "Type" },
+        { "field": "location_id.name", "label": "Location" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    },
+    {
+      "name": "Action Log",
+      "type": "table",
+      "collection": "agent_action_log",
+      "filters": {
+        "created_at": { "_gte": "$NOW(-7 days)" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Time" },
+        { "field": "agent_id.name", "label": "Agent" },
+        { "field": "action_type", "label": "Action" },
+        { "field": "entity_type", "label": "Entity" },
+        { "field": "entity_id", "label": "Record" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    },
+    {
+      "name": "Registered Agents",
+      "type": "table",
+      "collection": "agent_identity",
+      "columns": [
+        { "field": "name", "label": "Name" },
+        { "field": "agent_type", "label": "Type" },
+        { "field": "status", "label": "Status" },
+        { "field": "last_active_at", "label": "Last Active" }
+      ],
+      "sort": ["name"]
+    }
+  ],
+  "data_access": {
+    "agent_task": {
+      "read": true,
+      "fields": ["agent_id", "task_type", "entity_type", "status", "created_at"]
+    },
+    "ai_summary": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "fields": ["summary_type", "location_id", "status", "created_at"]
+    },
+    "agent_action_log": {
+      "read": true,
+      "fields": ["agent_id", "action_type", "entity_type", "entity_id", "status", "created_at"]
+    },
+    "agent_identity": {
+      "read": true,
+      "fields": ["name", "agent_type", "status", "last_active_at"]
+    }
+  }
+}
