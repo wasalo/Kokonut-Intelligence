@@ -1,220 +1,315 @@
 # Ecological Modeling Hub
 
-The Ecological Modeling module captures trophic interactions, energy flow, population dynamics, soil inputs, pest management, biocontrol, resource consumption, and ecological model outputs for syntropic farms — enabling simulation and optimization of nutrient cycling, pest dynamics, biomass yields, and resource efficiency.
+The ecological modeling modules describe trophic interactions, energy flow,
+population dynamics, soil inputs, pest observations, biocontrol, resource use,
+training, revenue streams, and model-validation records for syntropic farms.
 
-## Purpose
+The analytics implementation is primarily **read-only**. Functions calculate
+results from a supplied database connection; they do not create governed metric
+values, persist model runs, verify source records, or publish reports. Public
+views expose only records that satisfy their lifecycle and farm-registry gates.
+Model outputs are advisory estimates and require human interpretation.
 
-Model and track the ecological relationships that make syntropic farms self-regulating systems: which species interact, how energy flows across trophic levels, how populations change over time, what ecological models predict, how organic inputs persist in soil, how pest pressure responds to biocontrol, and how efficiently resources are used per kilogram of yield.
+## Module Inventory
 
-**Audience:** Ecology guild members, farm designers, researchers, regenerative agriculture practitioners.
+| Module | Responsibility | Persistence |
+|--------|----------------|-------------|
+| `services/analytics/ecological_modeling.py` | Trophic balance, energy flow, population stability, pyramid | Read-only |
+| `services/analytics/ecological_modeling_v2.py` | Soil retention, pest trends, biocontrol, resource efficiency, conservation status | Read-only |
+| `services/analytics/resource_efficiency.py` | Labor efficiency and crop-level resource use | Read-only |
+| `services/analytics/economic_performance.py` | Revenue per acre, revenue streams, training impact | Read-only |
+| `services/analytics/model_validation.py` | Regression, error metrics, field aggregation, geographic folds | Read-only |
+| `services/agents/ecological_modeling_agent.py` | In-memory synthesis across ecological outputs | Read-only |
 
-## Tables
+None of these modules exposes an `argparse`/`typer` CLI entry point. The
+analytics functions are called by reports, agents, tests, or application code.
+The agent also has no CLI and is not a dedicated task in
+`services/agents/tasks.py`.
 
-### Core Ecological Tables (v1)
+## Schema Inventory
 
-| Table | Purpose |
-|-------|---------|
-| `ecological_interaction` | Species-species relationships: mutualism, competition, predation, facilitation |
-| `ecological_model_run` | Simulation model inputs and outputs: nutrient cycling, pest dynamics, yield prediction |
-| `energy_flow_measurement` | Biomass transfer between trophic levels with conversion efficiency |
-| `population_dynamics_record` | Species population tracking over time with density and growth rate |
+### Core Ecological Tables
 
-### Soil and Pest Tables (v2)
+Defined in `schemas/postgres/046_ecological_modeling.sql`:
 
-| Table | Purpose |
-|-------|---------|
-| `soil_input_application` | Organic input tracking: biochar, leaf litter, compost application and decomposition |
-| `pest_observation` | Monthly pest incidence tracking with severity, weather conditions, and outbreak probability |
-| `biocontrol_release` | Deliberate predator/biocontrol introductions with effectiveness follow-up |
-| `resource_consumption` | Actual metered resource use: energy (kWh), water (liters), labor (hours) |
+| Table | Purpose | Important fields |
+|-------|---------|------------------|
+| `ecological_interaction` | Species relationship observation | species names, interaction type, strength, evidence, status |
+| `ecological_model_run` | Model input/output record | model type, input parameters, output predictions, status |
+| `energy_flow_measurement` | Biomass transfer between trophic levels | source/destination levels, biomass transferred, conversion efficiency |
+| `population_dynamics_record` | Species population time series | species, population count, density, growth rate, carrying capacity |
 
-### Economic and Social Tables (v2)
+Extensions from the same migration:
 
-| Table | Purpose |
-|-------|---------|
-| `training_session` | Individual training participation with pre/post score improvement |
-| `revenue_stream_contribution` | Revenue stream breakdown linked to profitability |
+- `species_observation.trophic_level`
+- `species_observation.population_density_per_m2`
+- `farm_zone.strata_layer`
 
-### Model Validation Tables (v2)
+### Soil, Pest, And Resources
 
-| Table | Purpose |
-|-------|---------|
-| `prediction_accuracy_record` | Predicted vs actual comparisons with MAE, RMSE, MAPE metrics |
-| `feature_importance_record` | Sensitivity analysis: which input variables most strongly predict outcomes |
+Defined in `schemas/postgres/047_ecological_modeling_v2.sql`:
 
-## Extensions to Existing Tables
+| Table | Purpose | Important fields |
+|-------|---------|------------------|
+| `soil_input_application` | Organic input application and residual tracking | input type, quantity, residual percentage, decomposition status |
+| `pest_observation` | Pest incidence and weather context | pest species, category, incidence, severity, outbreak probability, predators |
+| `biocontrol_release` | Predator or biocontrol release | predator species, target pest, release count, effectiveness, pest reduction |
+| `resource_consumption` | Metered or estimated resource use | resource type, quantity, unit, crop cycle, period, estimated flag |
 
-| Table | New Column | Purpose |
-|-------|-----------|---------|
-| `species_observation` | `trophic_level` | Classify species as producer/primary_consumer/secondary_consumer/decomposer/omnivore |
-| `species_observation` | `population_density_per_m2` | Population density for insects and soil organisms |
-| `species_observation` | `conservation_status` | IUCN conservation status: critically_endangered through least_concern |
-| `farm_zone` | `strata_layer` | Syntropic vertical layer: emergent/canopy/sub_canopy/shrub/herbaceous/ground_cover/root/decomposer |
+Extensions include `species_observation.conservation_status`.
+`resource_consumption` uses generic `quantity` and `unit`; it does not have
+separate canonical `energy_kwh`, `water_liters`, and `labor_hours` columns.
+
+### Economic, Social, And Validation Tables
+
+| Table | Purpose | Important fields |
+|-------|---------|------------------|
+| `training_session` | Training participation and outcomes | participant name, pre/post scores, improvement, hours |
+| `revenue_stream_contribution` | Revenue stream profitability | stream name, gross revenue, direct/allocated costs, net contribution |
+| `prediction_accuracy_record` | Governed predicted-versus-actual record | predicted, actual, absolute error, MAE, RMSE, MAPE, R² |
+| `feature_importance_record` | Model sensitivity record | feature, importance, direction, correlation, p-value, sample size |
+
+These are defined in migrations 048 and 049.
+
+### Later Extensions
+
+Migration 050 adds:
+
+- `pest_observation.predation_count`
+- `pest_observation.predation_rate_per_day`
+- `leaf_litter_measurement`
+- `livestock_group`
+- `feed_intake_record`
+- `decomposition_measurement`
+- `token_reward_distribution`
+- `reward_calibration_model`
+
+Migration 051 adds:
+
+- `species_observation.status`
+- `resource_consumption.irrigation_mm_used`
+- `resource_consumption.rainfall_mm_during_period`
+- `v_public_rainfall_vs_irrigation`
+- `v_public_species_richness_per_ha`
+- `v_public_location_species_richness`
+
+Migration 052 adds:
+
+- `v_public_weather_growth_correlation`
+- `v_public_endangered_species_survival`
+
+The later views and extensions are part of the current schema even though they
+are not all consumed by the Python analytics modules.
 
 ## Trophic Levels
 
-| Level | Definition | Farm Examples |
-|-------|-----------|---------------|
-| **Producer** | Photosynthetic organisms | Coconut palm, passion fruit, jack bean, cover crops |
-| **Primary Consumer** | Herbivores and pollinators | Honey bees, free-range chickens, herbivorous insects |
-| **Secondary Consumer** | Predators | House sparrows, ladybugs, lacewings, frogs |
-| **Decomposer** | Decomposing organisms | Earthworms, fungi, bacteria, compost microbes |
-| **Omnivore** | Feeds at multiple levels | Chickens (eats plants + insects) |
+| Level | Definition | Examples |
+|-------|-------------|----------|
+| `producer` | Photosynthetic organism | Coconut, passion fruit, cover crops |
+| `primary_consumer` | Herbivore or pollinator | Bees, chickens, herbivorous insects |
+| `secondary_consumer` | Predator | Ladybugs, lacewings, frogs |
+| `decomposer` | Decomposing organism | Earthworms, fungi, bacteria, compost microbes |
+| `omnivore` | Feeds across levels | Chickens eating plants and insects |
+
+`species_observation.trophic_level` and `farm_zone.strata_layer` support
+syntropic vertical and trophic analysis. Species are represented by text names,
+not a separate species foreign-key table.
 
 ## Interaction Types
 
-| Type | Definition | Farm Example |
-|------|-----------|--------------|
-| **Mutualism** | Both species benefit | Honey bee ↔ passion fruit (pollination ↔ nectar) |
-| **Competition** | Species compete for resources | Two crop species competing for soil nitrogen |
-| **Predation** | One species consumes another | House sparrow → honey bee |
-| **Facilitation** | One species benefits, other unaffected | Inga edulis N-fixation → passion fruit soil enrichment |
-| **Commensalism** | One benefits, other unaffected | Epiphytic moss on coconut trunk |
-| **Parasitism** | One benefits, other harmed | Root-knot nematode → coconut roots |
+The schema supports:
 
-## Soil Input Types
+| Type | Meaning |
+|------|---------|
+| `mutualism` | Both species benefit |
+| `competition` | Species compete for a resource |
+| `predation` | One species consumes another |
+| `facilitation` | One species benefits without materially affecting the other |
+| `commensalism` | One benefits and the other is unaffected |
+| `parasitism` | One benefits while harming the other |
 
-| Type | Description | Decomposition Timeline |
-|------|-------------|----------------------|
-| **Biochar** | Charred organic matter for soil amendment | 5-10 years to fully incorporate |
-| **Leaf litter** | Natural leaf fall from canopy species | 3-6 months to partial decomposition |
-| **Compost** | Aerobically decomposed organic matter | 1-3 months to full decomposition |
-| **Vermicompost** | Worm-processed organic matter | 1-2 months to full decomposition |
-| **Manure** | Animal waste for nutrient input | 2-4 months to decomposition |
-| **Green manure** | Cover crops incorporated into soil | 1-2 months to decomposition |
+`compute_trophic_balance()` reads verified or published interactions and
+calculates:
 
-## Pest Categories
+```text
+mutualism / max(mutualism + competition, 1)
+```
 
-| Category | Examples | Monitoring Method |
-|----------|----------|-------------------|
-| **Insect** | Fall armyworm, aphids, bean fly | Visual scouting, sticky traps |
-| **Fungal** | Powdery mildew, root rot | Visual inspection, lab analysis |
-| **Bacterial** | Bacterial wilt, leaf blight | Lab analysis |
-| **Viral** | Bean common mosaic virus | Lab analysis |
-| **Mite** | Spider mites | Hand lens inspection |
+It also returns average interaction strength by type and an average of those
+type-level averages. The report generator uses a different mutualism-versus-
+predation calculation, so report and analytics results should not be assumed to
+be identical.
 
-## Resource Types
+## Soil Inputs, Pests, And Biocontrol
 
-| Type | Unit | Source | Linked to Yield |
-|------|------|--------|-----------------|
-| **Energy** | kWh | Meter reading or estimate | Yes (per crop cycle) |
-| **Water** | liters | Meter reading or irrigation program | Yes (per crop cycle) |
-| **Labor** | hours | Activity tracking | Yes (per crop cycle) |
-| **Fuel** | liters | Purchase records | Yes (per activity) |
+### Soil Inputs
 
-## Public Views
+`compute_soil_input_retention()` groups verified or published applications by
+input type/name and returns quantity-weighted residual percentage. Common domain
+types include biochar, leaf litter, compost, vermicompost, manure, and green
+manure, but the analytics function aggregates stored values rather than applying
+a fixed decomposition timetable.
 
-### Core Ecological Views
+### Pest Trends
 
-- `v_public_ecological_interaction_summary` — published interactions with location/zone context
-- `v_public_energy_flow_summary` — published energy flow measurements
-- `v_public_population_dynamics_summary` — published population records
-- `v_public_ecological_model_summary` — published model run inputs/outputs
-- `v_trophic_balance` — aggregated interaction counts by trophic transfer
-- `v_energy_flow_efficiency` — aggregated biomass transfer and efficiency by trophic level
+`compute_pest_trends()` groups verified or published observations by month,
+species, common name, and category. It returns incidence, severity, weather,
+predator, natural-enemy, and observation-count-weighted outbreak-probability
+aggregates.
 
-### Soil and Pest Views
+The system stores `outbreak_probability_pct`; the Python module aggregates that
+field. It does not independently derive probability from severity, incidence,
+and weather.
 
-- `v_public_pest_trends` — monthly pest incidence by plot with outbreak probability
-- `v_public_biocontrol_effectiveness` — biocontrol release outcomes and pest reduction
-- `v_public_resource_efficiency` — resource consumption per kg of yield
-- `v_public_soil_input_retention` — organic input persistence over time
+### Biocontrol
 
-### Economic and Social Views
+`compute_biocontrol_effectiveness()` groups verified or published releases by
+predator and target pest. It returns average effectiveness and pest reduction.
+Overall reduction is weighted by release-event count, not organism count.
 
-- `v_public_training_impact` — training participation and improvement scores
-- `v_public_revenue_streams` — revenue by stream linked to profitability
+## Resource And Economic Analytics
 
-### Model Validation Views
+### Resource Efficiency
 
-- `v_public_prediction_accuracy` — predicted vs actual comparisons with error metrics
-- `v_public_feature_importance` — which input variables most strongly predict outcomes
+`compute_resource_efficiency()` separately returns:
 
-## Governed Metrics
+- labor hours per kilogram harvested;
+- energy kWh per kilogram;
+- water liters per kilogram.
 
-### Core Ecological Metrics
+It does not calculate the seeded composite `resource_intensity_index`.
+`compute_resource_consumption_by_crop()` groups resource use by resource type,
+crop cycle, and crop. `compute_labor_efficiency()` joins completed/harvested
+crop cycles to harvest and labor events and returns harvest kg per labor hour
+plus an experience-curve efficiency measure.
 
-- `ecological_interaction_count` — number of documented interactions per location
-- `trophic_balance_index` — ratio of mutualistic to competitive interactions
-- `energy_flow_efficiency_pct` — average biomass conversion efficiency
-- `population_stability_index` — coefficient of variation of species populations
+The metric seed formula for resource intensity is recorded as:
 
-### Soil and Pest Metrics
+```text
+(sum(energy_kwh) + sum(water_liters) / 1000) / sum(harvest_kg)
+```
 
-- `pest_outbreak_probability` — monthly pest probability per plot
-- `biocontrol_effectiveness_pct` — predator release success rate
-- `labor_efficiency_kg_per_hour` — harvest output per labor hour
-- `resource_intensity_index` — composite energy+water per kg yield
+The intended precedence should be confirmed before implementing it because the
+stored formula can be read differently without explicit parentheses.
 
-### Economic and Social Metrics
+### Revenue Performance
 
-- `training_improvement_pct` — average pre/post score improvement
-- `revenue_per_acre_usd` — gross revenue per acre of cultivated area
+`compute_revenue_per_acre()` converts hectares to acres using `2.47105` and
+returns revenue per acre and ROI:
 
-### Model Validation Metrics
+```text
+revenue / area_acres
+(revenue - expenses) / expenses * 100
+```
 
-- `forecast_mae` — mean absolute error for predictions
-- `forecast_accuracy_pct` — 100 minus MAPE for yield predictions
+Its SQL joins revenue and expense events in one query; multiple rows on both
+sides can multiply amounts. Review this before using the result as an audited
+financial figure.
 
-## Analytics API
+`compute_revenue_stream_contribution()` returns gross revenue, direct costs,
+allocated costs, net contribution, and the most profitable stream.
+
+### Training Impact
+
+`compute_training_impact()` aggregates verified or published training sessions,
+including participant counts, hours, pre/post scores, and weighted improvement.
+It aggregates the stored `improvement_pct`; it does not recompute improvement
+from pre- and post-score values.
+
+## Model Validation
+
+The implemented functions in `model_validation.py` are:
 
 ```python
-from services.analytics.ecological_modeling import (
-    compute_trophic_balance,
-    compute_energy_flow_efficiency,
-    compute_population_stability,
-    trophic_pyramid_summary,
-)
-from services.analytics.ecological_modeling_v2 import (
-    compute_soil_input_retention,
-    compute_pest_trends,
-    compute_biocontrol_effectiveness,
-    compute_resource_efficiency,
-    compute_conservation_status_summary,
-)
-from services.analytics.resource_efficiency import (
-    compute_labor_efficiency,
-    compute_resource_consumption_by_crop,
-)
-from services.analytics.economic_performance import (
-    compute_revenue_per_acre,
-    compute_revenue_stream_contribution,
-    compute_training_impact,
-)
 from services.analytics.model_validation import (
-    compute_prediction_accuracy,
-    compute_feature_importance,
-    compute_backtest_summary,
+    compute_rmse,
+    compute_mae,
+    compute_me,
+    compute_r_squared,
+    compute_mec,
+    compute_regression_metrics,
+    geographic_cross_validation,
+    aggregate_to_field_level,
 )
 ```
 
-## Commands
+`compute_regression_metrics()` returns R², RMSE, MAE, ME, MEC, intercept, slope,
+and sample count. `geographic_cross_validation()` creates plot/field fold
+partitions with an unseeded shuffle; it does not train or evaluate a model.
+`aggregate_to_field_level()` aggregates predicted and measured SOC by plot.
+
+These functions do not include the nonexistent imports
+`compute_prediction_accuracy`, `compute_feature_importance`, or
+`compute_backtest_summary`.
+
+## Public Views And Gates
+
+Most `v_public_*` ecological views require:
+
+- an active location;
+- source status `verified` or `published`;
+- a related `farm_registry_record` with status `verified` or `published`.
+
+Core views from migration 046:
+
+- `v_public_ecological_interaction_summary`
+- `v_public_energy_flow_summary`
+- `v_public_population_dynamics_summary`
+- `v_public_ecological_model_summary`
+- `v_trophic_balance`
+- `v_energy_flow_efficiency`
+
+V2 views from migration 047:
+
+- `v_public_pest_trends`
+- `v_public_biocontrol_effectiveness`
+- `v_public_resource_efficiency`
+- `v_public_soil_input_retention`
+
+Economic and validation views:
+
+- `v_public_training_impact`
+- `v_public_revenue_streams`
+- `v_public_prediction_accuracy`
+- `v_public_feature_importance`
+
+The internal aggregate views `v_trophic_balance` and
+`v_energy_flow_efficiency` apply source status filters but have weaker public
+location and registry semantics. “Public” does not guarantee minimal disclosure:
+the training view includes participant names, the model view includes input and
+output JSON, and prediction views expose model details. Review privacy before
+external publication.
+
+## Governed Metrics
+
+Seeded metric definitions include:
+
+| Metric | Meaning | Implementation note |
+|--------|---------|---------------------|
+| `ecological_interaction_count` | Documented interactions | Seed evidence rule differs from analytics filter |
+| `trophic_balance_index` | Mutualism/competition balance | Analytics uses mutualism and competition |
+| `energy_flow_efficiency_pct` | Biomass conversion efficiency | Analytics uses biomass-weighted averaging |
+| `population_stability_index` | Population stability | Analytics returns `1 - average(CV)`, clamped 0–1 |
+| `pest_outbreak_probability` | Pest outbreak probability | Aggregates stored probability field |
+| `biocontrol_effectiveness_pct` | Biocontrol success | Release-event-count weighted overall result |
+| `labor_efficiency_kg_per_hour` | Harvest per labor hour | Calculated by resource-efficiency module |
+| `resource_intensity_index` | Energy/water per harvest kg | Seeded but not calculated by `compute_resource_efficiency` |
+| `training_improvement_pct` | Training improvement | Uses stored improvement percentages |
+| `revenue_per_acre_usd` | Revenue per acre | Uses hectare-to-acre conversion |
+| `forecast_mae` | Mean absolute forecast error | Validation record metric |
+| `forecast_accuracy_pct` | Accuracy derived from MAPE | Validation metric definition |
+
+Additional later definitions include `predation_rate_per_day` and
+`rainfall_irrigation_delta_mm`.
+
+Metric computation creates draft, unverified `metric_value` rows. It is not
+verification and does not make the underlying public views eligible.
+
+## Reports
+
+There are seven ecological-domain report registrations:
 
 ```bash
-# Core ecological analytics
-python3 -m services.analytics.ecological_modeling --trophic-balance --location-id UUID
-python3 -m services.analytics.ecological_modeling --energy-flow --location-id UUID
-python3 -m services.analytics.ecological_modeling --population-stability --location-id UUID
-
-# V2 ecological analytics
-python3 -m services.analytics.ecological_modeling_v2 --soil-inputs --location-id UUID
-python3 -m services.analytics.ecological_modeling_v2 --pest-trends --location-id UUID
-python3 -m services.analytics.ecological_modeling_v2 --biocontrol --location-id UUID
-python3 -m services.analytics.ecological_modeling_v2 --resource-efficiency --location-id UUID
-
-# Economic analytics
-python3 -m services.analytics.economic_performance --revenue-per-acre --location-id UUID
-python3 -m services.analytics.economic_performance --revenue-streams --location-id UUID
-python3 -m services.analytics.economic_performance --training --location-id UUID
-
-# Model validation
-python3 -m services.analytics.model_validation --prediction-accuracy --location-id UUID
-python3 -m services.analytics.model_validation --feature-importance --location-id UUID
-
-# Agent synthesis
-python3 -m services.agents.ecological_modeling_agent --location-id UUID
-
-# Reports (49 total)
 python3 -m services.export.report_generator --type ecological_modeling --location-id UUID
 python3 -m services.export.report_generator --type trophic_pyramid --location-id UUID
 python3 -m services.export.report_generator --type pest_management --location-id UUID
@@ -222,25 +317,99 @@ python3 -m services.export.report_generator --type resource_efficiency --locatio
 python3 -m services.export.report_generator --type training_impact --location-id UUID
 python3 -m services.export.report_generator --type revenue_streams --location-id UUID
 python3 -m services.export.report_generator --type model_validation --location-id UUID
-
-# Tests
-python3 -m tests.test_ecological_modeling
-python3 -m tests.test_ecological_modeling_v2
 ```
 
-## Design Decisions
+The global report registry contains many unrelated reports; the ecological
+domain count is seven, not 49.
 
-- **Species by name, not FK**: Ecological models reference species by scientific name. This allows flexible species lists without a separate `species` table.
-- **JSONB model I/O**: Ecological models vary widely (nutrient cycling, pest dynamics, carbon projection). JSONB allows flexible input/output without rigid schema.
-- **Interaction strength 0-1 scale**: Normalized strength allows comparison across interaction types and species pairs.
-- **Population dynamics separate from species_observation**: Population tracking requires temporal analysis with density, carrying capacity, and growth rate — beyond simple observation counts.
-- **Energy flow as dedicated table**: Trophic-level biomass transfer is distinct from crop yields and enables pyramid analysis.
-- **Soil input retention via residual_pct**: Organic input decomposition tracked through periodic residual measurements rather than continuous monitoring.
-- **Pest outbreak probability as model output**: Outbreak probability is computed from severity, incidence, and weather conditions — not a simple threshold.
-- **Resource consumption linked to crop cycles**: Energy, water, and labor linked to specific crop cycles for per-kg yield efficiency calculations.
-- **Conservation status on species_observation**: IUCN status field enables endangered species tracking without a separate table.
-- **Prediction accuracy as governed records**: Model validation stored as formal records with status workflow, enabling audit and governance.
+Report generators calculate report payloads in memory. A report snapshot is a
+separate persistence operation. Period arguments are accepted by report
+interfaces but several ecological SQL queries do not apply them consistently.
+`generate_ecological_modeling` includes soil inputs but does not include every
+v2 pest, biocontrol, and resource result.
 
-## Disclaimer
+## Agent Synthesis
 
-Ecological modeling outputs are **advisory estimates**, not deterministic predictions. Interaction strength values are observational estimates requiring ground-truth verification. Population dynamics records depend on survey method accuracy and observer skill. Energy flow measurements use estimation methods; direct measurement is preferred. Pest outbreak probability is a model estimate based on historical incidence and weather. Biocontrol effectiveness depends on environmental conditions and timing. Resource consumption may include estimated values where metering is unavailable. Soil input retention rates vary with soil type and climate. Prediction accuracy metrics are computed from limited pilot data and do not guarantee future model performance. Agent synthesis is a draft and requires human review before publication.
+`synthesize_ecological_modeling(conn, location_id)` calls the v1/v2 ecological
+analytics functions plus livestock-feed and reward-calibration analytics. It
+returns an in-memory dictionary containing trophic, energy, population, soil,
+pest, biocontrol, resource, conservation, livestock, reward, safety, and
+limitation sections.
+
+The agent:
+
+- does not expose a CLI;
+- is not a dedicated task-catalogue entry;
+- does not create an `ai_summary` row;
+- does not persist a draft;
+- does not verify or publish any source or output.
+
+Its result is advisory and requires human review before use in a governed report
+or public claim.
+
+## Tests And Known Gaps
+
+Relevant tests:
+
+- `tests/test_ecological_modeling.py`
+- `tests/test_ecological_modeling_v2.py`
+
+Coverage includes schema/view presence, metric seeds, report registration,
+public report shape, trophic balance, energy flow, population stability,
+pyramid, soil retention, pest trends, biocontrol, resource efficiency,
+conservation, economic/social structures, and regression metrics.
+
+Known test/documentation gaps:
+
+- Tests do not provide complete PostgreSQL integration coverage for public gates.
+- Formula parity between seed definitions and runtime analytics is incomplete.
+- Privacy minimization of public views is not comprehensively tested.
+- Stale test calls reference nonexistent prediction-accuracy,
+  feature-importance, and backtest analytics functions.
+- The geographic cross-validation test does not actually invoke the geographic
+  cross-validation function.
+- There is no persistence workflow for analytics results or agent synthesis.
+
+## Design Decisions And Limitations
+
+- Species are stored by name rather than a species foreign key for flexible farm
+  species lists.
+- Model input/output uses JSONB because model structures vary.
+- Interaction strength uses a normalized 0–1 scale.
+- Population dynamics are separate from simple species observations because
+  temporal population analysis requires density and growth fields.
+- Energy flow is separate from crop yield so trophic transfer can be modeled.
+- Soil retention uses periodic residual measurements rather than continuous
+  decomposition monitoring.
+- Resource consumption can be estimated; `is_estimated` must be considered.
+- `crop_cycle_id` is nullable, so resource-to-crop-cycle linkage is optional.
+- Prediction records have lifecycle fields and public views, but no dedicated
+  persistence/calibration workflow is guaranteed by the analytics modules.
+
+Ecological outputs are advisory estimates. Interaction strength depends on
+observation quality; population dynamics depend on survey method; energy flow
+may be estimated; pest probabilities aggregate stored model outputs; biocontrol
+depends on timing and conditions; resource values may be estimated; soil
+retention varies by soil and climate; and validation metrics from limited data do
+not guarantee future performance.
+
+## Source References
+
+- `schemas/postgres/046_ecological_modeling.sql`
+- `schemas/postgres/047_ecological_modeling_v2.sql`
+- `schemas/postgres/048_economic_social_enhancement.sql`
+- `schemas/postgres/049_model_validation.sql`
+- `schemas/postgres/050_remaining_gaps.sql`
+- `schemas/postgres/051_gap_closures.sql`
+- `schemas/postgres/052_final_gaps.sql`
+- `schemas/seeds/046_ecological_modeling.sql`
+- `schemas/seeds/047_ecological_modeling_v2.sql`
+- `schemas/seeds/048_economic_social_enhancement.sql`
+- `schemas/seeds/049_model_validation.sql`
+- `services/analytics/ecological_modeling.py`
+- `services/analytics/ecological_modeling_v2.py`
+- `services/analytics/resource_efficiency.py`
+- `services/analytics/economic_performance.py`
+- `services/analytics/model_validation.py`
+- `services/agents/ecological_modeling_agent.py`
+- `services/export/report_generator.py`

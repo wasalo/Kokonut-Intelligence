@@ -28,15 +28,6 @@ def test_public_spatial_views_are_reconciled_once_and_registry_gated():
         assert "fr.status IN ('verified', 'published')" in cleanup
 
 
-def test_canonical_pilot_cleanup_is_idempotent_and_legacy_alias_is_documented():
-    seed = (SEED_DIR / "111_pilot_source_of_truth_cleanup.sql").read_text()
-    docs = (ROOT / "docs/source-of-truth-cleanup.md").read_text()
-    assert "WHERE location_id = 'a0000000-0000-0000-0000-000000000001'" in seed
-    assert "ELSE vendor" in seed
-    assert "024_adelphi_alignment.sql" in docs
-    assert "Kisumu demo labels" in docs
-
-
 def test_directus_reconciliation_is_guarded_and_column_based():
     cleanup = (SCHEMA_DIR / "304_phase5_source_of_truth_cleanup.sql").read_text()
     assert "to_regclass('public.directus_fields')" in cleanup

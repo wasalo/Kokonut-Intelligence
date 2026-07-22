@@ -1,109 +1,275 @@
 # Kokonut Guild Points Protocol
 
-## Purpose
+Kokonut Guild Points (KGP) are non-transferable, domain-scoped reputation
+points for contributors to Kokonut Guilds. KGP recognizes governed work and
+reviewed evidence. It is not money, a payment instrument, a transferable token,
+or a replacement for Moloch DAO governance.
 
-Kokonut Guild Points (KGP) are a non-transferable, domain-scoped reputation unit for contributors to Kokonut Guilds. KGP recognizes reviewed work and evidence; it is not money, a payment instrument, or a substitute for Moloch DAO governance.
+The protocol is self-hosted. PostgreSQL is the canonical governed ledger for
+tasks, evidence reviews, reputation events, claims, and canonical balances. The
+KGP contract is an auditable on-chain projection and settlement surface for
+approved awards, contributor claims, and reversals.
 
-The protocol is self-hosted and deployed on Gnosis Chain. PostgreSQL is the canonical source of truth for governed contribution and reputation records. The KGP contract is an auditable on-chain projection and a settlement layer for automatic awards and contributor claims.
+The repository contains deployable contracts and workflows for Gnosis Chain and
+Chiado. A deployment is not considered active until its addresses, transaction
+metadata, role configuration, and indexer state are recorded in
+`kgp_protocol_deployment` and independently reconciled.
 
-## Separation of Powers
+## Separation Of Powers
 
-- Moloch DAO controls treasury assets, `$vKKN`, Loot, rage-quit, and treasury proposals.
-- Guilds coordinate operational work, review contributions, and maintain domain reputation.
-- KGP does not grant Moloch voting power and cannot invoke treasury actions.
+- Moloch DAO controls treasury assets, `$vKKN`, Loot, rage-quit, and treasury
+  proposals.
+- The operational Guild protocol coordinates Guilds, domains, tasks, evidence
+  review, and allowlisted governance motions.
+- KGP awards reputation points but grants no Moloch voting power and cannot call
+  Moloch treasury execution.
 - Celo EAS remains the attestation layer for farm and MRV evidence.
-- PostgreSQL determines eligibility, review status, calculation version, and canonical balances.
-- Gnosis records award, claim, and reversal commitments with transaction history.
+- PostgreSQL determines candidate eligibility, review state, calculation
+  version, settlement state, and canonical balances.
+- Gnosis or Chiado records KGP award, claim, reversal, and operational protocol
+  events as an auditable projection.
 
-## Reputation Properties
+## Contract Model
 
-Every reputation event is:
+`KokonutGuildPoints` is:
 
-- Scoped to one Guild domain.
-- Assigned to one contributor wallet.
-- Linked to a reviewed evidence commitment.
-- Recorded as an append-only award or reversal event.
-- Versioned by epoch and calculation version.
-- Corrected through an explicit reversal, never an in-place edit.
-- Non-transferable and non-delegable.
+- ERC-1155-compatible for domain balances;
+- UUPS-upgradeable behind an ERC-1967 proxy;
+- EIP-712-enabled for claim vouchers;
+- role-controlled through OpenZeppelin AccessControl;
+- pausable for award and claim incident response;
+- domain-aware through `KokonutGuildDomain`.
 
-The canonical balance is the PostgreSQL sum of accepted, non-reversed events. The on-chain balance is a public projection that must reconcile against that ledger.
+Each active domain has a numeric token ID. A contributor balance is queried as:
 
-## Domain-Scoped Representation
-
-KGP uses an ERC-1155-compatible domain balance model rather than ERC-20. Each domain has a stable token identifier. A contributor's balance is queried as:
-
-```text
+```solidity
 balanceOf(contributor, domainId)
 ```
 
-Wallet-to-wallet transfers, approvals, and operator transfers are disabled. Minting and burning are protocol actions performed only by authorized award and reversal paths.
+The convenience method `domainBalance(contributor, domainId)` returns the same
+value.
+
+Wallet transfers, batch transfers, and operator approvals revert with
+`NonTransferable`. Minting occurs through automatic awards or valid claims;
+burning occurs through authorized reversals.
+
+## Reputation Facts
+
+Every canonical reputation event is:
+
+- scoped to a Guild domain;
+- assigned to a contributor wallet;
+- linked to evidence and a ledger record hash;
+- recorded as an append-only award or reversal event;
+- identified by epoch and calculation version;
+- corrected through a new reversal event rather than an in-place edit;
+- represented by a unique award or reversal ID.
+
+The PostgreSQL canonical balance view sums award amounts and subtracts reversal
+amounts for events with review status `verified` or `published` and settlement
+status in `pending`, `submitted`, `settled`, `reconciled`, or `reversed`.
+It is the canonical accounting view; the chain balance is a projection that must
+be reconciled against it.
+
+## Guild And Domain Preconditions
+
+The on-chain domain registry validates every award:
+
+1. The domain must be active, or within its 48-hour deprecation grace period.
+2. The domain must belong to the supplied Guild ID.
+3. The contributor and amount must be nonzero.
+4. The award ID must not already be settled.
+
+Guilds and domains are separate operational records. The registry rejects
+duplicate Guild IDs and keys, requires a steward, and tracks active, paused, and
+deprecated status. Domain deprecation requires Guild steward approval after the
+deprecation request.
 
 ## Award Lifecycle
 
+### Candidate And Canonical Ledger
+
+1. A Guild task is created for an active domain with an evidence requirement and
+   deadline.
+2. A contributor is assigned and submits an evidence hash.
+3. A reviewer accepts, rejects, disputes, resolves, or revokes the evidence.
+4. Accepted task/evidence pairs appear in `v_guild_reputation_candidates` only
+   when task and review lifecycle states are `verified` or `published`.
+5. PostgreSQL creates an idempotent `guild_reputation_event` with settlement
+   method `automatic` or `claim`.
+6. The service validates a positive integer reward amount and evidence hash.
+7. A deterministic award payload is generated for settlement.
+
 ### Automatic Award
 
-1. A contribution is submitted to PostgreSQL.
-2. Required human review accepts the contribution and its evidence.
-3. PostgreSQL creates a canonical reputation event and deterministic `awardId`.
-4. An authorized Kokonut awarder submits the event commitment on-chain.
-5. The indexer records the transaction and block reference.
-6. The reconciliation process compares the on-chain event with PostgreSQL.
+1. A human-reviewed candidate becomes a canonical PostgreSQL award event.
+2. The authorized awarder submits the award commitment on-chain.
+3. The contract validates role, domain/Guild identity, contributor, amount, and
+   award-ID uniqueness.
+4. The contract stores the award record and mints the domain balance.
+5. `KGP_Awarded` is indexed with transaction, block, and log metadata.
+6. PostgreSQL moves the event through submitted, settled, and reconciled states
+   as appropriate.
+
+Automatic award calls are blocked while KGP is paused.
 
 ### Claimable Award
 
-1. PostgreSQL accepts a canonical reputation event.
-2. An authorized Kokonut signer creates an EIP-712 claim voucher.
-3. The contributor submits the voucher from the recipient wallet.
-4. The contract validates the signer, recipient, nonce, deadline, and award ID.
-5. The contract records the award and mints the non-transferable domain balance.
-6. PostgreSQL records the claim transaction and reconciles the event.
+1. PostgreSQL creates a canonical event with settlement method `claim`.
+2. An authorized claim signer creates an EIP-712 voucher.
+3. The contributor submits the voucher from the signed contributor wallet.
+4. The contract checks deadline, sender, nonce, chain ID, and signer role.
+5. The contract settles the shared award ID and mints the domain balance.
+6. The indexer records `KGPClaimed` and updates the `kgp_claim` projection.
 
-Automatic awards and claims consume the same unique `awardId`; they cannot both settle the same award.
+Automatic awards and claims share the same unique `awardId`; they cannot both
+settle the same award.
+
+## Award Identity And Voucher Encoding
+
+The Solidity helper computes:
+
+```text
+awardId = keccak256(
+  abi.encode(guildId, domainId, contributor, ledgerEventId, calculationVersion)
+)
+```
+
+This uses ABI encoding, not packed encoding. The Python helper in
+`services.guilds.kgp.compute_award_id()` matches the contract.
+
+The EIP-712 `ClaimVoucher` contains:
+
+```text
+awardId
+guildId
+contributor
+domainId
+amount
+epoch
+evidenceHash
+ledgerRecordHash
+calculationVersion
+nonce
+deadline
+chainId
+```
+
+The signing domain is `Kokonut Guild Points`, version `1`, with the target chain
+ID and verifying proxy address. Changing the domain version invalidates
+outstanding vouchers and requires an explicit migration.
 
 ## Reversal Lifecycle
 
-A correction creates a new reversal event referencing the original award:
+A correction creates a new reversal event:
 
 ```text
 award A -> reversal R -> optional corrected award B
 ```
 
-A reversal must identify the original award, amount, reason commitment, PostgreSQL ledger record, and calculation version. Reversal amount cannot exceed the unreversed amount of the original award. Historical events remain queryable.
+On-chain `reverseAward()` requires the reverser role, a unique reversal ID, a
+known award, a positive amount, and an amount no greater than the award's
+outstanding amount. It reduces outstanding points and burns the contributor's
+domain balance. A burn can fail if the contributor no longer has enough balance.
 
-## Contract Authority
+PostgreSQL additionally requires the reversal to reference an award with the
+same Guild, domain, contributor, and wallet, and prevents cumulative reversals
+from exceeding the original amount. Historical records remain queryable.
 
-- `AWARDER_ROLE` submits approved automatic awards.
-- `CLAIM_SIGNER_ROLE` authorizes claim vouchers but cannot directly mint.
-- `REVERSER_ROLE` submits governed correction events.
-- `PAUSER_ROLE` stops state-changing award, claim, and reversal operations during incidents.
-- `UPGRADER_ROLE` authorizes UUPS implementation upgrades.
+Reversals remain available while KGP is paused so incident correction can still
+reduce an invalid balance. This is intentional and differs from award/claim
+pause behavior.
 
-Production upgrade authority must be transferred from the deployment operator to Kokonut governance, preferably through an approved Moloch DAO execution or the Kokonut multisig during bootstrap. The awarder service must never control upgrades.
+## Operational Guild Protocol
 
-## Identifier Rules
+The separate operational protocol contains:
 
-`awardId` and `reversalId` are deterministic, unique identifiers derived from canonical PostgreSQL identity and calculation context. Full evidence and private data remain off-chain. The contract stores compact hashes and identifiers:
+| Contract | Responsibility |
+|---|---|
+| `KokonutGuildRegistry` | Guild identity, key, steward, and status |
+| `KokonutGuildDomain` | Guild-scoped domains and deprecation workflow |
+| `KokonutTaskBoard` | Tasks, assignments, deadlines, evidence submission, and task state |
+| `KokonutEvidenceReview` | Evidence decisions, disputes, resolution, and revocation |
+| `KokonutGuildGovernance` | Allowlisted operational motions with objection windows |
 
-```text
-awardId = keccak256(guildId, domainId, contributor, ledgerEventId, calculationVersion)
-```
+The task board and evidence review do not move treasury funds. The PostgreSQL
+projection records tasks, reviews, motions, and KGP candidates while Moloch
+treasury operations remain a separate governance path.
 
-The exact ABI-encoded derivation is part of the contract interface and must be shared by PostgreSQL services and tests.
+Operational controls include a 7-day review grace period, up to three disputes
+per review, a 24-hour dispute cooldown, and a minimum one-day governance
+objection window.
 
-## Versioning
+## Governance Motions
 
-The contract is UUPS-upgradeable. Upgrades must preserve balances, consumed award IDs, reversal state, role boundaries, and event compatibility. Storage layout changes require an upgrade test from the previous implementation.
+`KokonutGuildGovernance` is a lazy-consensus operational governance contract.
+It can execute only:
 
-Claim voucher domain version changes invalidate outstanding vouchers and therefore require an explicit protocol migration. No implementation may silently change the signing domain.
+- an allowlisted target;
+- an allowlisted function selector;
+- calldata of at most 256 bytes;
+- a Guild-scoped call whose encoded target Guild matches the motion Guild;
+- a motion that passed after the objection deadline.
+
+Return data is bounded to 4096 bytes. The contract cannot execute arbitrary
+treasury calls and does not replace a Moloch proposal.
+
+## Contract Roles
+
+| Role | Capability |
+|---|---|
+| `AWARDER_ROLE` | Submit approved automatic awards |
+| `CLAIM_SIGNER_ROLE` | Sign claim vouchers; cannot directly mint through `award` |
+| `REVERSER_ROLE` | Submit correction/reversal events |
+| `PAUSER_ROLE` | Pause/unpause award and claim settlement |
+| `UPGRADER_ROLE` | Authorize UUPS upgrades, normally held by the timelock |
+| `DEFAULT_ADMIN_ROLE` | Administrative metadata and role-admin capabilities, subject to role-admin configuration |
+
+The awarder service must not control upgrades. Production upgrade authority
+should be held by the approved `KokonutGuildUpgradeTimelock` and governed through
+the configured proposer/executor/admin separation.
+
+## Versioning And Upgrades
+
+KGP uses UUPS upgrades through the proxy. Upgrades must preserve:
+
+- balances;
+- award records and consumed award IDs;
+- reversal state;
+- used claim nonces;
+- role boundaries;
+- domain registry linkage;
+- event compatibility.
+
+The timelock checks the approved proxy, UUPS `proxiableUUID`, expected current
+implementation, configured delay, and executor role before calling
+`upgradeToAndCall`. The first domain-registry migration uses
+`reinitializeDomainRegistry`; later upgrades use reviewed calldata.
 
 ## Non-Goals
 
 KGP does not provide:
 
-- Transferable value.
-- Treasury ownership.
-- Moloch voting rights.
-- Automatic truth about off-chain evidence.
-- Permission to publish or verify governed records without human review.
-- A replacement for `$vKKN` or Loot.
+- transferable value or wallet-to-wallet movement;
+- treasury ownership or treasury execution;
+- Moloch voting rights;
+- automatic truth about off-chain evidence;
+- permission to verify or publish governed records;
+- a replacement for `$vKKN` or Loot;
+- an autonomous blockchain execution path for PostgreSQL candidates.
+
+## References
+
+- `contracts/src/KokonutGuildPoints.sol`
+- `contracts/src/KokonutGuildDomain.sol`
+- `contracts/src/KokonutGuildRegistry.sol`
+- `contracts/src/KokonutTaskBoard.sol`
+- `contracts/src/KokonutEvidenceReview.sol`
+- `contracts/src/KokonutGuildGovernance.sol`
+- `schemas/postgres/317_kgp_protocol.sql`
+- `schemas/postgres/318_guild_protocol_projection.sql`
+- `schemas/postgres/319_guild_integrity_controls.sql`
+- `services/guilds/kgp.py`
+- `services/guilds/reputation.py`
+- `tests/test_kgp_service.py`
+- `tests/test_guild_services.py`

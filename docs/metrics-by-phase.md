@@ -1,295 +1,309 @@
-# Metrics by Development Phase
+# Metrics By Development Era
+
+Kokonut Intelligence grew from a farm data model into a governed measurement,
+analytics, and decision-support platform. This guide explains how that growth
+enabled the current metric layer and what questions the metrics answer
+together.
 
-This document outlines which metrics are enabled by each development phase, how they are measured individually, and what answers they enable collectively.
+It makes one distinction up front:
 
-## Overview
+- **Governed metrics** are defined in `metric_definition`, computed into
+  `metric_value`, and independently verified before public exposure.
+- **Analytics indicators** are read-only calculations or domain summaries.
+- **Reports and framework scores** compose governed records and analytics for a
+  particular audience; they are not automatically additional `metric_value`
+  rows.
 
-The Kokonut Intelligence Platform is built across 62 schema phases (001-062), each adding governed tables, analytics, and metrics. This document maps:
+## At A Glance
+
+The repository currently contains:
 
-1. **What each phase added** — tables, views, analytics functions
-2. **Which metrics each phase enabled** — governed metric definitions and computed outputs
-3. **What questions each metric answers individually** — single-metric insights
-4. **What questions metrics answer collectively** — cross-metric intelligence
+- 20 registered metric calculators.
+- 323 numbered PostgreSQL migrations, through migration 330.
+- 94 report generators.
+- 18 named agent modules, alongside shared agent infrastructure.
+- 53 Metabase dashboard definitions.
+- 117 SQL seed files.
 
-The platform currently supports **17 governed metrics**, **50+ analytics functions**, **16 agents**, and **55 report types**.
+These are repository inventory counts, not guarantees about the number of
+records or reports currently populated in a deployment.
+
+## Measurement Path
 
-## How to Read This Document
+Every governed metric follows the same controlled path:
+
+```text
+governed source records
+        -> metric definition and calculator
+        -> draft metric_value
+        -> human verification
+        -> verified public metric projection
+```
+
+Computation records the value, unit, period, computation method, definition
+version, and provenance. Computation never verifies its own output. The public
+metric view additionally requires an active location and a verified or
+published farm registry record.
 
-Each tier groups related phases and answers a collective question. Within each tier, individual phases are listed with their metrics. At the end of each tier, the collective question is answered by combining metrics across phases.
+See [Metric Verification](metric-verification.md) for the operational workflow,
+CLI, provenance model, lifecycle ledger, and recovery rules.
 
----
+## Governed Metric Catalog
 
-## Tier 1: Foundation (Phases 001-008)
+The current registry is maintained in
+`services/metrics/calculators/__init__.py`. The metric definition seeds provide
+the semantic descriptions, formulas, validation tests, report usage, and
+deprecation policies.
 
-**Collective Question: "What is the financial and operational baseline of this farm, and how does it compare to current performance?"**
+### Baseline
 
-### Phase 001 — Locations & Master Data
+These values come from the location's pre-intervention baseline fields. They
+are comparison anchors, not computed claims about current performance.
 
-| What Was Added | Tables |
-|----------------|--------|
-| Location/farm registry with PostGIS geometry | `location`, `farm`, `plot` |
-| Farm registry record with onboarding contract | `farm_registry_record` |
-| Baseline fields for before/after comparison | `location.baseline_revenue/asset_value/cash_flow/cost` |
+| Metric | Main source | Question answered |
+|---|---|---|
+| `baseline_revenue` | Migration 001, `location.baseline_revenue` | What revenue was recorded before the intervention? |
+| `baseline_asset_value` | Migration 001, `location.baseline_asset_value` | What productive or asset value was recorded at baseline? |
+| `baseline_cash_flow` | Migration 001, `location.baseline_cash_flow` | What cash-flow position was recorded at baseline? |
+| `baseline_cost` | Migration 001, `location.baseline_cost` | What operating cost was recorded at baseline? |
 
-**Metrics Enabled:** `baseline_revenue`, `baseline_asset_value`, `baseline_cash_flow`, `baseline_cost`
+### Crop Economics
 
-**Individual Questions:**
-- baseline_revenue: "What was the farm earning before Kokonut intervention?"
-- baseline_asset_value: "What was the starting asset/productive value?"
-- baseline_cash_flow: "What was the pre-intervention net cash flow?"
-- baseline_cost: "What were the pre-intervention operating costs?"
+These metrics connect crop cycles and harvest activity to revenue, cost, and
+profitability. They use the canonical revenue and expense records and the
+crop-cost allocation model.
 
-### Phase 002 — Crops & Crop Cycles
+| Metric | Main source | Question answered |
+|---|---|---|
+| `crop_revenue` | Migrations 002-004, `revenue_event` | How much gross crop revenue was recorded? |
+| `net_crop_revenue` | Migrations 004 and 070, revenue adjustments | What revenue remains after applicable returns and discounts? |
+| `direct_crop_cost` | Migration 004, direct crop expenses | What costs are directly attributable to the crop? |
+| `allocated_shared_cost` | Migration 004, `crop_cost_allocation` | What share of common costs is allocated to the crop? |
+| `crop_noi` | Migration 004, revenue less crop costs | What net operating income did the crop generate? |
+| `loss_rate_pct` | Migrations 003-004, harvest loss fields | What share of harvested output was lost rather than saleable? |
+| `operating_margin_pct` | Migration 004, crop NOI and net revenue | What percentage margin remains after crop operating costs? |
 
-| What Was Added | Tables |
-|----------------|--------|
-| Crop catalog with expected yields | `crop` |
-| Crop cycles linking crops to plots | `crop_cycle` |
+The calculator preserves source provenance where source IDs are available and
+applies the inclusion and exclusion rules defined for the metric. A computed
+value is not a financial statement or a claim that all economic externalities
+have been captured.
 
-**Metrics Enabled:** `crop_revenue`, `loss_rate_pct`
+### Value And Web3 Engagement
 
-**Individual Questions:**
-- crop_revenue: "How much gross revenue did this crop generate?"
-- loss_rate_pct: "What percentage of harvested output was lost before sale?"
+These metrics describe value movement and participation in the platform's
+digital infrastructure.
 
-### Phase 003 — Operations
+| Metric | Main source | Question answered |
+|---|---|---|
+| `value_flowed` | Migration 004, `value_flow_event` | What recorded value flowed through the governed activity? |
+| `wallet_retention` | Migration 006, `wallet_profile` | How many eligible wallets remain active under the metric definition? |
+| `digital_lego_usage` | Migration 006, `digital_lego_usage` and verified records | Which verified digital protocols or building blocks are being used? |
 
-| What Was Added | Tables |
-|----------------|--------|
-| Farm activities, harvest events, loss events, labor, field notes | `farm_activity`, `harvest_event`, `loss_event`, `labor_event`, `field_note` |
+`value_flowed` is not the same as revenue, profit, treasury balance, or token
+value. The metric definition and source filters determine what counts.
 
-**Metrics Enabled:** `loss_rate_pct` (1 - net_harvest / gross_harvest)
+### Environmental And Evidence Signals
 
-### Phase 004 — Finance
+These metrics summarize environmental change and attestation coverage from
+governed source records.
 
-| What Was Added | Tables |
-|----------------|--------|
-| Expense tracking, revenue events, cost allocation, NOI snapshots | `expense_event`, `revenue_event`, `crop_cost_allocation`, `noi_snapshot`, `cash_flow_snapshot`, `value_flow_event` |
+| Metric | Main source | Question answered |
+|---|---|---|
+| `soil_carbon_delta` | Migration 005, soil-carbon measurements | How did measured soil carbon change across the comparison period? |
+| `biodiversity_delta` | Migration 005, species observations | How did observed biodiversity change across the comparison period? |
+| `attestation_coverage` | Migrations 013 and 024, attestation and MRV records | What share of eligible claims has the required attestation coverage? |
 
-**Metrics Enabled:** `direct_crop_cost`, `allocated_shared_cost`, `crop_noi`, `operating_margin_pct`, `value_flowed`
+Environmental deltas are measurements within their defined source, location,
+and period. They are not automatically equivalent to a carbon credit, an
+ecological causal claim, or independent third-party verification.
 
-**Individual Questions:**
-- crop_noi: "What is the net operating profit from this crop?"
-- operating_margin_pct: "What is the profitability margin?"
-- value_flowed: "How much verified value moved through Kokonut activity?"
+### Process Quality
 
-### Phase 005 — Environmental
+These metrics were added with the value-stream and lifecycle instrumentation
+work. They use the append-only `lifecycle_transition` ledger rather than
+inventing a separate status model.
 
-| What Was Added | Tables |
-|----------------|--------|
-| Soil sampling, carbon measurement, species observation, remote sensing | `soil_sample`, `soil_carbon_measurement`, `species_observation`, `remote_sensing_observation` |
+| Metric | Main source | Question answered |
+|---|---|---|
+| `governed_lead_time_days` | Migration 103, lifecycle transitions | How long do published lifecycle records take from first draft? |
+| `first_time_through_yield_pct` | Migration 103, lifecycle transitions | What share reaches publication without a rejection or rework transition? |
+| `rework_rate_pct` | Migration 103, lifecycle transitions | What share reaches publication after at least one rejection transition? |
 
-**Metrics Enabled:** `soil_carbon_delta`, `biodiversity_delta`
+The process metrics exclude entities that never reach the relevant terminal
+state. They describe flow performance, not the substantive quality of the
+underlying record.
 
-**Individual Questions:**
-- soil_carbon_delta: "Has soil carbon increased since intervention?"
-- biodiversity_delta: "Has species richness increased?"
+## Development Eras
 
-### Phase 006 — Web3 & Engagement
+The original documentation grouped only migrations `001-062`. That history is
+still useful, but it is no longer the complete platform. The current schema
+continues through migration 330, so the phases below are presented as eras
+rather than as a claim that every migration creates a metric.
 
-| What Was Added | Tables |
-|----------------|--------|
-| Wallet profiles, digital lego tracking, attestations | `wallet_profile`, `digital_lego_usage`, `attestation_record` |
+### Era 1: Foundation, Migrations 001-008
 
-**Metrics Enabled:** `wallet_retention`, `digital_lego_usage`
+The foundation established locations, farms, plots, crop cycles, field
+activity, finance, environmental observations, wallets, metric definitions,
+metric values, and initial governance tables.
 
-### Phase 007 — Modeled Outputs
+This era enables the baseline, crop economics, environmental, value-flow, and
+engagement metric families. Migration 007 is especially important because it
+defines the semantic `metric_definition` and computed `metric_value` layer.
 
-| What Was Added | Tables |
-|----------------|--------|
-| Forecast scenarios, metric definitions, report snapshots | `forecast_scenario`, `forecast_output`, `metric_definition`, `metric_value`, `report_snapshot` |
+### Era 2: Governance And Public Infrastructure, Migrations 009-024
 
-**Metrics Enabled:** All 17 metrics stored in `metric_value`
+Workflow history, market data, sensors, MRV and impact claims, revenue
+multiplier configuration, public-safe views, and metric-definition versioning
+make measurement governable.
 
-### Phase 008 — Governance
+This era establishes the distinction between a computed value and a verified
+public value. Migration 018 defines the public metric projection, while
+migration 024 records semantic metric-definition changes. Attestation coverage
+is tied to the MRV and attestation work in this era.
 
-| What Was Added | Tables |
-|----------------|--------|
-| Audit logging, schema migration, roles | `audit_log`, `schema_migration`, `role` |
+### Era 3: Frameworks And Environmental Evidence, Migrations 025-033
 
-### Tier 1 Collective Insight
+Impact framework alignment, ground analytics, carbon accounting, evidence
+maturity, CIDS mapping, and the EBF scorecard add interpretation around the
+core metrics.
 
-> **"What is the financial and operational baseline?"**
->
-> Combining baseline metrics with current financial metrics and environmental baselines: "This farm earned $12,000 baseline revenue, now earns $24,500 (2x improvement). Soil carbon increased from 24.5 to 27.9 t/ha (+14%). Species count increased from 8 to 14 (+75%). NOI is $9,200 with 82% operating margin."
+These capabilities help answer whether observed changes align with impact
+frameworks and evidence requirements. They should not be mistaken for a new
+set of core metric calculators unless explicitly registered in the metric
+engine.
 
----
+### Era 4: Wellbeing, Finance, And Commons, Migrations 034-041
 
-## Tier 2: Governance & Infrastructure (Phases 009-024)
+Holistic wellbeing, financial sustainability, capital efficiency, commons
+liberation, GNH alignment, regenerative outcomes, community governance, and
+anti-capture mechanisms expand the platform beyond farm output.
 
-**Collective Question: "Can we trust the data, and how do external market conditions affect our revenue projections?"**
+Most outputs from this era are domain records, analytics, framework scores, and
+reports. They complement the governed metrics by adding human, social,
+financial, and governance context.
 
-### Key Phases
+### Era 5: Regenerative Operations, Migrations 042-078
 
-| Phase | What Was Added | Key Capability |
-|-------|---------------|----------------|
-| 009 | Workflow history, approvals | Lifecycle enforcement |
-| 010 | Commodity price observations | Market data for projections |
-| 011 | IoT sensor types and readings | Real-time monitoring |
-| 013 | MRV claims, impact claims | Evidence maturity gating |
-| 016 | Revenue multiplier config | 10-dimension opportunity analysis |
-| 018 | Public-safe aggregate views | Governed public exposure |
-| 024 | Metric governance enforcement | Formula version tracking |
+Bio-factory operations, ecological modeling, pest management, training,
+revenue streams, prediction validation, livestock feed, grants, organic
+readiness, carbon credits, and retirement certificates turn measurement into
+operational and value-chain workflows.
 
-**Metrics Enabled:** `attestation_coverage`
+The primary contribution is richer evidence and decision context around the
+metric layer. Claims, credits, certificates, and reports retain their own
+lifecycles and verification gates.
 
-**Individual Question:** attestation_coverage: "What percentage of eligible claims have been attested on-chain?"
+### Era 6: Field Intelligence And Applied Analytics, Migrations 079-156
 
-### Tier 2 Collective Insight
-
-> **"Can we trust the data?"**
->
-> Workflow enforcement, metric versioning, evidence maturity gating, and public view governance collectively ensure: "All metrics are computed from verified data, versioned formulas, and exposed only through governed public views. Revenue projections account for market price volatility through the revenue multiplier's 10-dimension analysis."
-
----
-
-## Tier 3: Frameworks & Impact (Phases 025-033)
-
-**Collective Question: "Are we actually making a difference?"**
-
-### Key Phases
-
-| Phase | What Was Added | Key Capability |
-|-------|---------------|----------------|
-| 025 | Impact frameworks, SDGs, 8 Forms of Capital | Framework alignment |
-| 026 | Plant analysis, disease observation | Ground analytics |
-| 028 | Carbon framework, tree inventory, benchmarks | Carbon accounting |
-| 029 | Evidence maturity levels (0-6) | Evidence gating |
-| 031 | Impact claims, CIDS export | Blockchain verification |
-| 032 | EBF scorecard with 5 pillars | Performance scoring |
-
-### Tier 3 Collective Insight
-
-> **"Are we actually making a difference?"**
->
-> EBF scorecard shows 7.2/10 across 5 pillars. Impact claims document measurable outcomes with evidence maturity Level 4+. Carbon framework confirms 57.5 tCO2e sequestered. Biodiversity tracking confirms 37 species with Shannon index 1.12. CIDS export makes all claims blockchain-verifiable.
-
----
-
-## Tier 4: Wellbeing & Governance (Phases 034-041)
-
-**Collective Question: "Are people and communities thriving?"**
-
-### Key Phases
-
-| Phase | What Was Added | Key Capability |
-|-------|---------------|----------------|
-| 034 | Cultural context, well-being metrics | Holistic wellbeing |
-| 035 | Financial sustainability, risk mitigation | Financial resilience |
-| 036 | Capital efficiency, governance throughput | Capital utility |
-| 037 | Time liberation, governance inclusion | Commons liberation |
-| 038 | GNH alignment (9 domains), cultural preservation | Happiness metrics |
-| 039 | Regenerative outcomes, community governance | Regeneration evidence |
-| 041 | Anti-capture governance, redistribution | Commons governance |
-
-### Tier 4 Collective Insight
-
-> **"Are people and communities thriving?"**
->
-> GNH alignment scores 78/100 across 9 domains. Regenerative outcomes show 154 trees planted (91.6% survival), 36 training hours, 12 beneficiaries. Financial sustainability projects 9.5 months runway. Commons governance implements anti-capture with quadratic voting and community veto.
-
----
-
-## Tier 5: Operations & Specialization (Phases 043-055)
-
-**Collective Question: "Can we scale regeneratively while maintaining organic integrity?"**
-
-### Key Phases
-
-| Phase | What Was Added | Key Capability |
-|-------|---------------|----------------|
-| 043 | Bio-organic fertilizer production | Local input production |
-| 046-047 | Ecological modeling, pest management | Ecosystem intelligence |
-| 048 | Training sessions, revenue streams | Human capacity + revenue diversity |
-| 049 | Prediction accuracy, feature importance | Model validation |
-| 050 | Livestock feed, token rewards | Animal husbandry + Web3 rewards |
-| 053 | Farm templates, objectives | Configurable containers |
-| 054 | Grant applications, network diversity | Funding intelligence |
-| 055 | Organic certification readiness | Compliance intelligence |
-
-### Tier 5 Collective Insight
-
-> **"Can we scale regeneratively while maintaining organic integrity?"**
->
-> Bio-factory produces 3 batches of organic inputs locally. Organic certification scores 72.5/100 readiness with 14/18 checklist items passing. Ecological modeling confirms trophic balance and pest management effectiveness. Training shows 64% average improvement. Grant network manages 2 applications with $25K awarded.
-
----
-
-## Tier 6: Resilience & True Cost (Phases 056-062)
-
-**Collective Question: "What is the full triple-bottom-line picture when we account for hidden costs?"**
-
-### Key Phases
-
-| Phase | What Was Added | Key Capability |
-|-------|---------------|----------------|
-| 056 | Emergency incident tracking | Crisis response |
-| 057 | Individual tree records with GPS | Precision forestry |
-| 058 | Farm zone geometry, GeoJSON/KML export | Spatial intelligence |
-| 059 | MSAVI, spatial clustering, pest hotspots | Remote sensing intelligence |
-| 060 | Worst/base/best case parameters | Scenario intelligence |
-| 061 | Departments, job roles, tasks, phases | Organizational intelligence |
-| 062 | Hidden costs, natural/social capital valuation, LCA, GRI, systems thinking | True cost intelligence |
-
-### Tier 6 Collective Insight
-
-> **"What is the full triple-bottom-line picture?"**
->
-> True cost statement reveals: Market profit $9,200, but after accounting for $1,100 in hidden environmental/health/social costs and adding $4,733 in natural capital value (carbon + biodiversity + water + soil + pollination) and $7,700 in social capital value (training + governance + culture + health + community), the **true profit is $20,533** — a 123% improvement over market-only accounting.
-
----
-
-## Cross-Phase Collective Insights
-
-| Collective Question | Metrics/Analytics Combined |
-|--------------------|---------------------------|
-| "Is this farm regenerative?" | soil_carbon_delta + biodiversity_delta + regenerative_score + carbon_balance + trophic_balance |
-| "Is this farm financially sustainable?" | crop_noi + operating_margin_pct + value_flowed + financial_sustainability + capital_efficiency |
-| "Is this farm governance-justified?" | attestation_coverage + governance_throughput + governance_inclusion + anti_capture_governance |
-| "Is this farm culturally respectful?" | holistic_wellbeing + gnh_alignment + cultural_preservation + stakeholder_feedback |
-| "Is this farm scaling without extraction?" | adoption_barriers + perpetual_value_stress + open_source_impact + redistribution_policy |
-| "Is this farm organic-ready?" | organic_readiness_score + input_compliance + buffer_adequacy + harvest_segregation |
-| "Is this farm spatially intelligent?" | tree_density + canopy_cover + habitat_connectivity + spatial_clusters + pest_hotspots |
-| "Is this farm crisis-resilient?" | emergency_response_time + financial_sustainability + capital_efficiency |
-| "What is the true cost of production?" | market_costs + hidden_costs + natural_capital_value + social_capital_value = true_profit |
-| "How does this farm compare to benchmarks?" | carbon_benchmark + ebf_scorecard + organic_readiness + living_wage_ratio |
-
----
-
-## Metric Reference
-
-### 17 Governed Metrics
-
-| # | Metric Key | Phase | Formula |
-|---|-----------|-------|---------|
-| 1 | baseline_revenue | 001 | location.baseline_revenue |
-| 2 | baseline_asset_value | 001 | location.baseline_asset_value |
-| 3 | baseline_cash_flow | 001 | location.baseline_cash_flow |
-| 4 | baseline_cost | 001 | location.baseline_cost |
-| 5 | crop_revenue | 002 | SUM(sales_event.total_amount) WHERE verified |
-| 6 | net_crop_revenue | 002 | crop_revenue - returns - discounts |
-| 7 | direct_crop_cost | 004 | SUM(expense_event.amount) WHERE direct |
-| 8 | allocated_shared_cost | 04 | SUM(crop_cost_allocation.allocated_amount) |
-| 9 | crop_noi | 004 | net_crop_revenue - direct_crop_cost - allocated_shared_cost |
-| 10 | loss_rate_pct | 003 | 1 - (net_harvest / gross_harvest) |
-| 11 | operating_margin_pct | 004 | crop_noi / net_crop_revenue * 100 |
-| 12 | value_flowed | 004 | SUM(value_flow_event.amount) WHERE verified |
-| 13 | wallet_retention | 006 | COUNT(DISTINCT active wallets) |
-| 14 | digital_lego_usage | 006 | COUNT(DISTINCT verified protocols) |
-| 15 | soil_carbon_delta | 005 | after碳 - baseline碳 |
-| 16 | biodiversity_delta | 005 | after_species - baseline_species |
-| 17 | attestation_coverage | 013 | published / eligible * 100 |
-
-### Platform Capabilities
-
-| Category | Count | Description |
-|----------|-------|-------------|
-| Governed metrics | 17 | Computed and stored in metric_value |
-| Analytics functions | 50+ | Python functions computing derived indicators |
-| Agents | 16 | AI synthesis agents (draft-only, cannot publish) |
-| Report types | 55 | Structured report snapshots with hash verification |
-| Public views | 90+ | Governed views with consent/privacy controls |
-| Schema tables | 100+ | Governed tables with lifecycle status |
-| Seed files | 69 | Idempotent pilot data |
-| Test files | 49 | Comprehensive test coverage |
-| Dashboards | 53 | Metabase BI dashboards |
+Field collection, content, spatial imports, weather, forecasting, mobile
+offline capture, precision irrigation, pest biology, crop rotation,
+traceability, digital finance, extension, identity, energy, waste, landscape,
+pollinator, marketplace, cooperative, and related modules add operational
+resolution.
+
+These modules produce many analytics indicators, observations, and governed
+records that can become metric inputs. They do not all create rows in
+`metric_value`.
+
+### Era 7: Platform Integrity And Durable Workflows, Migrations 157-196
+
+Backcasting, Delphi, OODA feedback, decision policies, process mining,
+predictive BPM, lifecycle transitions, process health, escalation, and process
+costing make the platform's governed flows observable.
+
+Migration 179 introduces the lifecycle transition ledger. Migration 187 maps
+`metric_value.verified` to the ledger's `draft -> verified` process model.
+Migration 103's three flow metrics use this lifecycle infrastructure.
+
+### Era 8: Stakeholder, Business, And Coordination Architecture, Migrations 197-249
+
+Revenue models, channel orchestration, partner lifecycle, business model
+canvas, pitch and business-plan outputs, capability maps, strategy maps,
+stakeholder landscape, consent, engagement, grievance, representation, trust,
+and coordination governance broaden the questions the platform can answer.
+
+These capabilities provide stakeholder and organizational context for metric
+interpretation. Consent, privacy, participation, and grievance boundaries
+remain separate from metric verification.
+
+### Era 9: Operating Model And Strategy Execution, Migrations 250-307
+
+Work selection, capacity-aware planning, competencies, learning, coaching,
+operating pilots, strategy plans, choices, investments, evidence lineage,
+competitive analysis, and execution snapshots connect evidence to coordinated
+action.
+
+The management and strategy layers can use metric keys as targets or evidence
+links, but they do not grant agents authority to verify metrics or publish
+governed records.
+
+### Era 10: Integrity, Governance, Guild, And Capital Extensions, Migrations 308-330
+
+Relationship entities, cardinality and temporal integrity, reference-policy
+validation, consent append-only controls, public financial governance, the KGP
+protocol, Guild projections, Baal governance, strategic reserves, tactical
+layers, and capital accounting harden the platform's later-stage boundaries.
+
+For metrics, the important additions include normalized provenance through
+`metric_value_source`, semantic uniqueness for verified values, and stronger
+cross-domain evidence lineage.
+
+## Questions Answered Together
+
+Metrics become more useful when interpreted with their source records,
+uncertainty, evidence maturity, and domain context.
+
+| Question | Governed metrics | Complementary analytics and records |
+|---|---|---|
+| How is current performance changing from baseline? | Baseline metrics plus `crop_revenue`, `crop_noi`, `operating_margin_pct` | Forecasts, crop cycles, verified revenue and expense events |
+| Is the crop operation economically viable? | `net_crop_revenue`, `direct_crop_cost`, `allocated_shared_cost`, `crop_noi`, `operating_margin_pct` | Market prices, unit economics, revenue model, financial sustainability |
+| Is value being created and retained? | `value_flowed`, `wallet_retention` | Value-flow records, treasury data, retention context, capital accounting |
+| Is there evidence of environmental improvement? | `soil_carbon_delta`, `biodiversity_delta` | Soil measurements, species observations, carbon balance, tree and habitat records |
+| Can the public trust the measurement? | `attestation_coverage` and verified metric values | Evidence maturity, reviewer attribution, provenance, farm registry, claim gates |
+| Is the governed system flowing well? | `governed_lead_time_days`, `first_time_through_yield_pct`, `rework_rate_pct` | Lifecycle transitions, process mining, predictive BPM, escalation, work items |
+| Is the farm ready for a particular claim or standard? | Relevant verified metrics | CRISP, EBF, organic readiness, CIDS, external verification, methodology evidence |
+| Are people and communities benefiting? | Metrics used as supporting evidence where explicitly mapped | Wellbeing, GNH, stakeholder feedback, consent, representation, grievance, governance |
+| Can the operating model scale responsibly? | Flow, financial, and environmental metrics as evidence | Capacity, strategy execution, reserves, capital accounting, competitive and regional readiness |
+
+No single metric establishes that a farm is regenerative, financially
+sustainable, culturally respectful, or ready for a public claim. Those are
+composite interpretations that require explicit evidence and governance.
+
+## What A Metric Does Not Mean
+
+- A computed row is draft data, not verification.
+- A verified metric is not automatically a published impact claim.
+- A public metric value is not an attestation, credit, certificate, or financial
+  settlement.
+- A positive delta does not prove causality without the relevant design,
+  comparison, and evidence.
+- A report or framework score may include modeled or advisory outputs and must
+  retain its own uncertainty and public-interest context.
+- Agent and analytics outputs remain advisory or draft-only wherever the
+  applicable governance workflow requires human review.
+
+## Source References
+
+- [Metric Verification](metric-verification.md)
+- [Metric Value Lifecycle](workflow-metric-value.md)
+- [Evidence Maturity](evidence-maturity.md)
+- [Platform Integrity](platform-integrity.md)
+- [Value Stream Workflow](workflow-value-stream.md)
+- `services/metrics/calculators/__init__.py`
+- `services/metrics/engine.py`
+- `schemas/postgres/007_modeled_outputs.sql`
+- `schemas/postgres/018_public_views.sql`
+- `schemas/postgres/024_metric_governance_enforcement.sql`
+- `schemas/seeds/103_flow_metrics.sql`
+- `schemas/postgres/179_lifecycle_transition.sql`
+- `schemas/postgres/187_state_model_triggers.sql`
+- `schemas/postgres/309_relationship_entities.sql`
+- `schemas/postgres/310_cardinality_temporal_integrity.sql`
+
+## Maintenance Rule
+
+When adding a governed calculator, update the metric registry, definition seed,
+metric-governance tests, and this catalog together. When adding an analytics
+module, report, or framework score that does not write `metric_value`, document
+it in the relevant domain guide rather than inflating the governed metric
+count.

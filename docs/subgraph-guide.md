@@ -1,54 +1,24 @@
 # Subgraph Indexer Guide
 
-The subgraph indexer queries external subgraphs to pull structured on-chain data into the Kokonut platform. It supports EAS attestation subgraphs and Kokonut-specific contract event subgraphs via The Graph.
+`services.ingestion.subgraph_indexer` is a legacy/experimental adapter for
+The Graph-style EAS subgraph endpoints. It is not the canonical EAS or Kokonut
+governance indexer.
 
-## Overview
+Current production paths are:
 
-The indexer lives in `services/ingestion/subgraph_indexer.py` and periodically queries GraphQL endpoints hosted on The Graph's decentralized network. It:
+| Source | Implementation | Scope |
+|---|---|---|
+| EAS Scan GraphQL API | `services/ingestion/eas_indexer.py` | EAS attestations and schemas on configured chains, including Celo |
+| Gnosis/Moloch RPC events | `services/ingestion/gnosis_indexer.py` | Legacy Kokonut Moloch v2 history |
+| Baal RPC events | `services/ingestion/baal_indexer.py` | Kokonut DAO Moloch v3 governance state |
+| The Graph adapter | `services/ingestion/subgraph_indexer.py` | Legacy `eas` and `eas_schema` subgraph queries |
 
-- Fetches new attestations and schemas from the EAS subgraph
-- Tracks Kokonut contract events (deposits, distributions, votes)
-- Deduplicates records using block number tracking
-- Logs all ingestion to `ingestion_log` and tracks sync state in `chain_indexer_status`
+Do not describe this module as a source of current treasury, governance, or
+Digital Lego event data. Those integrations are not implemented here.
 
-## Architecture
+## Current Scope
 
-```
-┌─────────────────────┐     GraphQL      ┌──────────────────────┐
-│  subgraph_indexer.py │ ─────────────── │  The Graph Subgraph  │
-│                     │                  │  (EAS / Kokonut)     │
-└────────┬────────────┘                  └──────────────────────┘
-         │
-         ▼
-┌─────────────────────┐     SQL          ┌──────────────────────┐
-│  PostgreSQL          │ ◄─────────────  │  Canonical Tables    │
-│                     │                  │  attestation_record  │
-│                     │                  │  wallet_activity_event│
-│                     │                  │  chain_indexer_status │
-└─────────────────────┘                  └──────────────────────┘
-```
-
-### Data Flow
-
-1. Indexer reads last synced block from `chain_indexer_status`
-2. Queries subgraph for records after that block
-3. Normalizes response to canonical schema
-4. Upserts into target tables
-5. Updates `chain_indexer_status` with new block number
-
-## Configuration
-
-Environment variables in `.env`:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `EAS_GRAPHQL_URL` | `https://attest.sh` | EAS GraphQL API endpoint |
-| `GRAPH_API_KEY` | _(empty)_ | The Graph API key for paid subgraphs |
-| `ETH_RPC_URL` | `https://ethereum.publicnode.com` | Ethereum mainnet RPC |
-| `OPTIMISM_RPC_URL` | `https://mainnet.optimism.io` | Optimism RPC |
-| `BASE_RPC_URL` | `https://mainnet.base.org` | Base RPC |
-
-Subgraph endpoints are configured in `SUBGRAPH_ENDPOINTS` within the indexer:
+The adapter currently configures two endpoints:
 
 ```python
 SUBGRAPH_ENDPOINTS = {
@@ -57,183 +27,257 @@ SUBGRAPH_ENDPOINTS = {
 }
 ```
 
-## Supported Protocols
+With no protocol argument, the adapter iterates over those configured keys.
+`eas` fetches schema registrations and attestations. `eas_schema` only logs
+that schemas are handled by `eas`; it does not perform an independent import.
+The CLI accepts `kokonut`, but no endpoint is configured for it, so it only
+logs an unknown-protocol warning.
 
-### EAS (Ethereum Attestation Service)
+The canonical EAS implementation uses chain-specific EAS Scan endpoints in
+`services/ingestion/eas_indexer.py`:
 
-Queries the EAS subgraph for:
+- Optimism: `https://optimism.easscan.org/graphql`
+- Base: `https://base.easscan.org/graphql`
+- Celo: `https://celo.easscan.org/graphql`
 
-- **Attestations**: On-chain claims with schema, attester, recipient, and data
-- **Schema Registrations**: Schema definitions created by Kokonut or partners
-- **Revocations**: Attestation revocation events
+The direct EAS indexer uses timestamp/API pagination and is separate from this
+block-oriented legacy adapter. The Celo deployment and pilot schemas remain
+the repository's primary EAS context.
 
-### Kokonut Contract Events
+## CLI
 
-Queries Kokonut-specific subgraphs for:
-
-- **Treasury Events**: Inflows and outflows from farm wallets
-- **Governance Events**: Proposals, votes, delegation changes
-- **Digital Lego Usage**: Protocol interactions tied to farms
-
-## Running the Indexer
-
-### CLI Usage
+The only registered flag is `--protocol`:
 
 ```bash
-# Index all supported protocols
 python3 -m services.ingestion.subgraph_indexer
-
-# Index only EAS data
 python3 -m services.ingestion.subgraph_indexer --protocol eas
-
-# Dry run (no writes)
-python3 -m services.ingestion.subgraph_indexer --dry-run
-
-# Index from a specific block
-python3 -m services.ingestion.subgraph_indexer --from-block 120000000
+python3 -m services.ingestion.subgraph_indexer --protocol eas_schema
 ```
 
-### Querying Indexed Data
+The following documented flags are not implemented by this module and fail
+argument parsing:
 
-```python
-import psycopg2
+- `--dry-run`
+- `--from-block`
+- `--to-block`
 
-conn = psycopg2.connect(host="localhost", dbname="kokonut_intelligence", user="kokonut")
-cur = conn.cursor()
+There is no preview mode. Normal execution writes to PostgreSQL, ClickHouse,
+`ingestion_log`, and `chain_indexer_status`. Run it only against an intended
+database and review the source code's current limitations before use.
 
-# Get recent attestations
-cur.execute("""
-    SELECT ar.attestation_uid, ar.claim_type, ar.status, ar.chain,
-           ars.name as schema_name, ar.created_at
-    FROM attestation_record ar
-    JOIN attestation_schema ars ON ar.schema_id = ars.id
-    ORDER BY ar.created_at DESC
-    LIMIT 10
-""")
-for row in cur.fetchall():
-    print(row)
+## Write Behavior
+
+For `eas`, the adapter attempts to:
+
+1. Fetch at most 100 schema registrations.
+2. Insert schemas into `attestation_schema`.
+3. Fetch at most 100 attestations.
+4. Insert records into `attestation_record`.
+5. Write analytical rows to ClickHouse `attestation_events`.
+6. Record a batch result in `ingestion_log`.
+7. Update the Ethereum/subgraph row in `chain_indexer_status`.
+
+The PostgreSQL and ClickHouse writes are not one atomic transaction. ClickHouse
+insert failures are logged as warnings and do not fail the PostgreSQL path.
+The outer connection is committed after protocol processing.
+
+The current adapter also has governance and schema limitations:
+
+- Imported attestations are written with `status = 'published'`; indexing is
+  not human verification and must not be described as such.
+- The importer hardcodes `chain = 'ethereum'`, while the canonical pilot EAS
+  deployment is on Celo.
+- A schema ID is looked up only from the current schema response; an
+  attestation whose schema was not returned in that batch may fail because
+  `attestation_record.schema_id` is required.
+- The recipient wallet is written to `subject_id`, although the canonical
+  column is UUID-oriented.
+- The block timestamp is calculated for the import path but is not persisted in
+  the PostgreSQL attestation row.
+- Schema and attestation inserts use `ON CONFLICT DO NOTHING`; changed source
+  metadata is not reconciled.
+
+Until these constraints are addressed and covered by tests, treat this adapter
+as legacy ingestion rather than a production-grade canonical indexer.
+
+## Cursor And Idempotency
+
+The adapter queries `chain_indexer_status` for the maximum block associated
+with `chain = 'ethereum'`, `indexer_type = 'subgraph'`, and a protocol metadata
+filter. It then updates the shared status row with the maximum block observed.
+
+This is not a reliable per-protocol cursor:
+
+- `chain_indexer_status` is unique by `(chain, indexer_type)`, so `eas` and
+  `eas_schema` can contend for the same row.
+- The status update does not persist the protocol metadata used by the read
+  query.
+- Only one page of 100 records is requested; there is no pagination loop.
+- The cursor can advance past records that were not included in that page.
+- Block number alone cannot distinguish multiple events in one block or safely
+  handle replay boundaries.
+- Attestation deduplication relies primarily on the database's unique
+  `attestation_uid` constraint and `ON CONFLICT DO NOTHING`.
+
+Do not reset a cursor by directly editing a shared status row without first
+checking target records, preserving evidence, and planning for replay and
+duplicate handling. Use the status commands below for inspection before any
+operator-led recovery.
+
+## Configuration And Runtime
+
+The hardcoded subgraph URLs above are the active source configuration. The
+imported `EAS_GRAPHQL_URL` value is not used by this module, and `GRAPH_API_KEY`
+is not defined or sent as an authorization header. Setting it does not resolve
+rate limiting for this adapter.
+
+The adapter uses the common database and ClickHouse environment settings. For
+Compose worker execution, use service names such as `database` and
+`clickhouse`; PostgreSQL and ClickHouse are private in the base Compose setup.
+Host commands using `localhost` require an explicit port-publishing override,
+such as the CI Compose override.
+
+Operational setup follows the repository workflow:
+
+```bash
+source scripts/load-secrets.sh
+docker compose up -d
+python3 -m services.ingestion.subgraph_indexer --protocol eas
 ```
 
-### Checking Sync Status
+For a worker/container deployment, run the command from the configured worker
+environment rather than assuming host database ports are available.
+
+## Monitoring
+
+Inspect ingestion records and indexer state with the shared status CLI:
+
+```bash
+python3 -m services.ingestion.status log --source subgraph
+python3 -m services.ingestion.status log --source subgraph --status failed
+python3 -m services.ingestion.status indexers
+python3 -m services.ingestion.status summary
+```
+
+The adapter writes successful and failed batch records to `ingestion_log` with
+source `subgraph`. `chain_indexer_status` is shared state keyed by chain and
+indexer type, not a durable independent cursor for each configured protocol.
+Inspect both tables before replay or recovery.
+
+## Data Queries
+
+Use the canonical database connection appropriate to the runtime. In a worker
+container, the database host is normally `database`; `localhost` is valid only
+when PostgreSQL is explicitly published to the host.
+
+For example, inspect recent records without assuming that this legacy adapter
+populated every canonical field:
 
 ```sql
-SELECT chain, indexer_type, last_synced_block, last_synced_at, status
-FROM chain_indexer_status
-ORDER BY updated_at DESC;
+SELECT ar.attestation_uid,
+       ar.status,
+       ar.chain,
+       ar.subject_type,
+       ar.subject_id,
+       ar.tx_hash,
+       ar.created_at
+FROM attestation_record ar
+ORDER BY ar.created_at DESC
+LIMIT 10;
 ```
 
-## Extending: Adding New Subgraph Sources
+For production EAS data, identify the chain and ingestion path before querying
+or interpreting `attestation_record`. Fields such as `claim_type` and
+`attested_at` are not reliably populated by this subgraph adapter.
 
-### Step 1: Define the GraphQL Query
+## Adding A Source
 
-Add a new query constant in `subgraph_indexer.py`:
+Adding a new endpoint is not sufficient to make a source supported. A new
+adapter must define and test:
 
-```python
-MY_PROTOCOL_QUERY = """
-query GetEvents($lastBlock: Int!, $first: Int!) {
-    protocolEvents(
-        first: $first
-        orderBy: blockNumber
-        orderDirection: asc
-        where: { blockNumber_gt: $lastBlock }
-    ) {
-        id
-        blockNumber
-        blockTimestamp
-        eventType
-        amount
-        participant
-        # ... other fields
-    }
+1. A GraphQL query matching the deployed schema, with stable ascending order.
+2. Endpoint and chain metadata, without embedding secrets.
+3. Real pagination using variables that change between requests.
+4. Explicit GraphQL error handling in addition to HTTP error handling.
+5. Retry behavior for the actual transient failures, with bounded attempts.
+6. Canonical-table-compatible normalization, including UUID fields, chain,
+   timestamps, lifecycle status, and required foreign keys.
+7. Stable event identity and database deduplication semantics.
+8. A cursor design that does not share unrelated protocols' state.
+9. PostgreSQL/ClickHouse transaction and partial-failure behavior.
+10. Ingestion logging, status updates, replay behavior, and focused tests.
+
+A basic query shape may look like this, but field names and pagination must be
+validated against the deployed subgraph:
+
+```graphql
+query GetEvents($lastBlock: Int!, $first: Int!, $skip: Int!) {
+  protocolEvents(
+    first: $first
+    skip: $skip
+    orderBy: blockNumber
+    orderDirection: asc
+    where: { blockNumber_gt: $lastBlock }
+  ) {
+    id
+    blockNumber
+    blockTimestamp
+    transactionHash
+  }
 }
-"""
 ```
 
-### Step 2: Add the Subgraph Endpoint
-
-```python
-SUBGRAPH_ENDPOINTS["my_protocol"] = "https://api.studio.thegraph.com/query/my-org/my-protocol/v0.0.1"
-```
-
-### Step 3: Implement the Fetch Function
-
-```python
-def fetch_my_protocol_events(session, last_block, batch_size=100):
-    """Fetch events from My Protocol subgraph."""
-    events = []
-    offset = 0
-    while True:
-        resp = session.post(
-            SUBGRAPH_ENDPOINTS["my_protocol"],
-            json={"query": MY_PROTOCOL_QUERY, "variables": {"lastBlock": last_block, "first": batch_size}},
-        )
-        data = resp.json()
-        batch = data.get("data", {}).get("protocolEvents", [])
-        if not batch:
-            break
-        events.extend(batch)
-        offset += batch_size
-        if len(batch) < batch_size:
-            break
-    return events
-```
-
-### Step 4: Implement the Normalize Function
-
-```python
-def normalize_my_protocol_event(raw):
-    """Normalize a raw subgraph event to canonical schema."""
-    return {
-        "source_system": "my_protocol",
-        "source_id": raw["id"],
-        "event_type": raw["eventType"],
-        "amount": raw["amount"],
-        "chain": "optimism",
-        "block_number": int(raw["blockNumber"]),
-        "block_timestamp": raw["blockTimestamp"],
-        "metadata": raw,
-    }
-```
-
-### Step 5: Wire into the Main Indexer
-
-```python
-def main():
-    # ... existing code ...
-    if args.protocol in ("all", "my_protocol"):
-        print("Indexing My Protocol events...")
-        events = fetch_my_protocol_events(session, last_block)
-        # ... upsert logic ...
-```
+Do not advance a cursor until all pages have been processed. Use event IDs,
+transaction/log identity, or a documented overlap strategy in addition to block
+numbers where the source supports it.
 
 ## Troubleshooting
 
-### "Rate limited" errors
+### Rate limiting or HTTP failures
 
-The Graph free tier has rate limits. Use a paid API key:
+The adapter retries its decorated request function up to three times with a
+two-second backoff. It does not currently send `GRAPH_API_KEY`, and GraphQL
+error payloads are not explicitly surfaced when a response contains no usable
+`data`. Inspect application logs and the ingestion log rather than assuming an
+empty result means the source is caught up.
+
+### Stale or conflicting sync status
+
+First inspect shared indexer state:
 
 ```bash
-export GRAPH_API_KEY=your-api-key-here
+python3 -m services.ingestion.status indexers
+python3 -m services.ingestion.status log --source subgraph --errors-only
 ```
 
-### Stale sync status
+Do not blindly update `chain_indexer_status`; reconcile the target rows and
+protocol collision described in the cursor section before an operator-led
+replay.
 
-Reset the indexer to re-sync from a known good block:
+### Missing or inconsistent data
 
-```sql
-UPDATE chain_indexer_status
-SET last_synced_block = 120000000, status = 'syncing'
-WHERE chain = 'optimism' AND indexer_type = 'subgraph';
+Check the source-specific ingestion records:
+
+```bash
+python3 -m services.ingestion.status log --source subgraph --limit 20
 ```
 
-### Missing data after indexing
+Then verify whether the data was produced by the legacy subgraph adapter, the
+direct EAS indexer, or an RPC/Baal indexer. Different paths use different chain,
+cursor, and lifecycle semantics.
 
-Check the ingestion log for errors:
+## Verification Status
 
-```sql
-SELECT source_system, status, error_message, created_at
-FROM ingestion_log
-WHERE source_system = 'subgraph'
-ORDER BY created_at DESC
-LIMIT 20;
-```
+There are no dedicated subgraph-adapter tests currently covering CLI flags,
+GraphQL errors, pagination, cursor advancement, schema mapping, UUID/chain
+normalization, ClickHouse partial failure, or replay behavior. Generic ingestion
+retry and reliability tests are not end-to-end validation of this adapter.
+
+Relevant implementation and tests:
+
+- Legacy adapter: `services/ingestion/subgraph_indexer.py`
+- Direct EAS ingestion: `services/ingestion/eas_indexer.py`
+- RPC governance ingestion: `services/ingestion/gnosis_indexer.py`, `services/ingestion/baal_indexer.py`
+- Shared ingestion helpers: `services/ingestion/base.py`, `services/ingestion/config.py`
+- Status CLI: `services/ingestion/status.py`
+- Generic retry tests: `tests/test_ingestion_retry.py`, `tests/test_ingestion_reliability.py`

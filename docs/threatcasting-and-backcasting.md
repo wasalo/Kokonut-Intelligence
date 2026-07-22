@@ -20,13 +20,20 @@ The implementation is defined by `schemas/postgres/159_threatcasting.sql`, `sche
 
 ## Lifecycle
 
-Threatcasting records do not use the governed `draft` to `published` lifecycle. Their state is represented by focused fields:
+The original threatcasting and backcasting records do not use one shared
+`draft` to `published` lifecycle. Their state is represented by focused fields.
+Forecast questions and Delphi records are an exception and have their own
+governed lifecycle and publication rules described below.
 
 - Threats, flags, horizons, principles, cross-impacts, and cascades use active or enabled booleans.
 - Signals track whether classification has occurred.
 - Milestones move among `pending`, `in_progress`, `completed`, `skipped`, and `blocked`.
 - Assumption challenges move from `pending` to `confirmed`, `modified`, or `rejected`.
 - Path comparisons store computed and manual scores but have no approval status.
+- Forecast questions move through `draft`, `open`, `closed`, `resolved`,
+  `cancelled`, or `invalid`; probability forecasts are immutable submissions.
+- Delphi studies and recommendations have explicit open/closed, approval,
+  consensus, stopping, calibration, and minority-report behavior.
 
 A normal operating sequence is:
 
@@ -108,6 +115,14 @@ python3 -m services.threatcasting effectiveness --plan-id UUID
 
 `backcast-progress --plan-id` is preferred. `--narrative-id` remains available for legacy callers, but exactly one identifier is required and narrative lookup fails when a narrative has multiple plans. Progress reports dependency readiness and `blocked_by` from the DAG. The reported `critical_path` is a deterministic planning heuristic based on target dates, with milestone order as a fallback; it and all readiness output are advisory and do not authorize execution.
 
+`--milestones` is effectively required for `create-backcast`; an empty
+milestone list is rejected. The plan header is authoritative, and migration
+172 synchronizes flattened compatibility fields from `backcast_plan`. New
+dependencies are stored in `backcast_milestone_dependency` and synchronized to
+the compatibility dependency array. The Python milestone-update API rejects
+transitions to `in_progress` or `completed` when dependencies are unmet, but no
+CLI milestone-update command is currently exposed.
+
 ### Assumptions and path comparison
 
 ```bash
@@ -123,6 +138,52 @@ python3 -m services.threatcasting premortem-create --comparison-id UUID --narrat
 python3 -m services.threatcasting premortem-submit --premortem-id UUID --submitted-by HUMAN
 python3 -m services.threatcasting premortem-review --premortem-id UUID --result verified --reviewer-id UUID --notes "Reviewed failure modes and mitigations"
 ```
+
+Path comparisons accept only `cost`, `time`, `risk`, `desirability`, and
+`principle_alignment` criteria. Automatic weights must be finite and positive;
+manual criterion scores must be numeric values from `0` to `1`. The current
+scoring version is `v2`. Missing automatic values remain unknown and known
+weights are renormalized. A manual score can supply an otherwise unknown
+criterion.
+
+Premortems are editable only while `draft` or `rejected`. Submission requires
+at least one failure mode with a nonblank description. Review requires a UUID
+reviewer and nonblank notes; verified premortems cannot be edited.
+
+### Probability forecasts and Delphi calibration
+
+```bash
+python3 -m services.threatcasting forecast-question-create --location-id UUID --threat-id UUID --domain climate --question "Will the event occur?" --event-definition "..." --resolution-criteria "..." --resolution-source "..." --opens-at ISO_TIMESTAMP --closes-at ISO_TIMESTAMP --resolves-by ISO_TIMESTAMP --created-by UUID
+python3 -m services.threatcasting forecast-question-status --question-id UUID --status open
+python3 -m services.threatcasting probability-forecast --question-id UUID --probability 0.7 --source-type analyst --methodology-version v1
+python3 -m services.threatcasting forecast-resolve --question-id UUID --status resolved --outcome 1 --evidence '[]' --notes "Resolved from governed source" --resolved-by UUID
+python3 -m services.threatcasting expert-calibrate --panel-member-id UUID --domain climate
+```
+
+Forecast questions use `draft`, `open`, `closed`, `resolved`, `cancelled`, and
+`invalid` states. Forecast submissions are immutable and retain methodology,
+source, and probability data for later calibration. Resolution requires governed
+evidence and a human resolver UUID; resolved forecasts support Brier-style
+calibration scores.
+
+Delphi studies add expert calibration, panel diversity targets, stopping
+evaluations, consensus history, and minority reports. A Delphi recommendation
+or forecast resolution is not automatically an approved operational decision.
+
+### Preemptive and tactical analysis
+
+```bash
+python3 -m services.threatcasting preempt --location-id UUID
+python3 -m services.threatcasting preempt-double-check --location-id UUID
+python3 -m services.threatcasting propose-double-check --location-id UUID --actor OPERATOR
+```
+
+`preempt` and `preempt-double-check` are read-only detections. They identify
+warning-band flags, latent cross-impact threats, and heuristic lead time to a
+critical breach. `propose-double-check` creates DRAFT tactical opportunities
+for later human review; it does not execute an intervention or mutate threat
+state. The preemptive planner currently has a schema/query column mismatch in
+the repository and should be treated as an implementation gap until repaired.
 
 ## Data Model
 
@@ -152,11 +213,11 @@ Schemas 160 and 167 add:
 | `backcast_path_comparison` | Criteria, system scores, human scores, and selected winner |
 | `backcast_path_premortem` | Private failure modes, assumptions, warning signals, mitigations, and human review state |
 
-Foreign keys enforce most parent relationships. Milestone dependencies use the normalized `backcast_milestone_dependency` table. Other arrays, such as compatibility cascade chains and comparison narrative IDs, do not validate every referenced UUID at the array-element level.
+Foreign keys enforce most parent relationships. Milestone dependencies use the normalized `backcast_milestone_dependency` table. Other arrays, such as compatibility cascade chains and comparison narrative IDs, do not validate every referenced UUID at the array-element level. Threat cross-impact triggers additionally require both endpoints to belong to the same location and reject self-loops.
 
 Assumption challenges should use the canonical `--plan-id` returned by creation. `--narrative-id` is retained on that command as a consistency check against the plan. The CLI does not expose a separate `--milestone-id` selector because the current challenge handler stores a compatibility milestone reference and cannot safely accept both identifiers independently.
 
-Several `v_public_*` views expose active threat summaries, flag status, cross-impacts, narratives, horizons, and cascades. Unlike some other Kokonut public views, schema 159 does not gate these views on a verified or published farm registry record. Access control must therefore be enforced by the API/Directus deployment if the records are sensitive.
+Several `v_public_*` views expose active threat summaries, flag status, cross-impacts, narratives, horizons, and cascades. Unlike some other Kokonut public views, schema 159 does not gate these views on a verified or published farm registry record. Access control must therefore be enforced by the API/Directus deployment if the records are sensitive. Premortems have no public view and remain private. Delphi consensus becomes public only after study closure, an approved recommendation, and a verified or published farm registry record.
 
 ## Interpretation
 
@@ -165,7 +226,7 @@ Several `v_public_*` views expose active threat summaries, flag status, cross-im
 - Cross-impact matrix signs come from `impact_direction`; amplification-loop detection follows only edges whose `impact_type` is `amplifies`.
 - Flag evaluation checks critical, then warning, then normal thresholds using the same comparison operator. Configuration order must match the indicator's direction. Non-numeric values produce `unknown`.
 - Flag summary risk is a weighted status average: critical `1.0`, warning `0.6`, elevated `0.3`, and normal `0.0`.
-- Cascade simulation is a deterministic heuristic over configured edges. Its cumulative value starts at `1.0`, applies edge modifiers, and is clamped to 0-1; it should not be read as an empirically estimated probability.
+- Cascade simulation is a deterministic heuristic over configured edges. Its cumulative value starts with the trigger probability, multiplies downstream threat probabilities and edge modifiers, and is clamped to 0-1; it should not be read as an empirically estimated probability. This differs from cross-impact interaction fusion, which uses `1 - product(1-p)` with bounded edge modifiers.
 - Narrative desirability is the weighted mean of entered dimension scores. Zero placeholders mean “not assessed,” not neutral evidence.
 - Principle alignment reads the latest verified `metric_value` for metric-backed principles, or the latest CRISP assessment for CRISP-backed principles. Missing current data or targets yields alignment `0.0`.
 - Alignment values are snapshots of current evidence, not forecasts of what a milestone will cause.
@@ -186,6 +247,28 @@ The service computes summaries, scores, and candidate paths, but these outputs a
 - Warning and cascade states should trigger review, not automatic actuation.
 - Public communication should retain uncertainty, source quality, negative findings, and dissenting interpretations.
 
+Threat, backcast, forecast, and resolution collections are included in the
+agent governed-collection safety boundary. Agents cannot directly verify or
+publish these records. Service checks still differ from identity enforcement:
+assumption `--approved-by` requires only non-empty text, while forecast
+resolvers and premortem reviewers require UUID-shaped values. The service does
+not independently establish that a supplied identity has the required role.
+
+## Report Integrations
+
+There is no standalone threatcasting report type. Threatcasting and backcasting
+outputs are surfaced through report integrations including:
+
+- Public-interest context attached to generated reports.
+- Blocked and overdue backcast milestone findings.
+- Pending assumption challenges.
+- Delphi non-consensus findings.
+- `comprehensive_status`.
+- `tactical_layer` and related tactical opportunity reports.
+
+These projections preserve advisory status and do not execute interventions,
+approve plans, or publish private premortem details.
+
 ## Privacy
 
 Threats may contain sensitive operational vulnerabilities, source references, preparedness details, and inferred risks. Store only data appropriate to the configured access boundary. Do not place private evidence, personal data, credentials, or secret infrastructure details in narrative stories, signal content, metadata, completion evidence, or public-view fields.
@@ -198,12 +281,13 @@ The schemas do not provide field-level redaction, consent handling, or source co
 - Signal ingestion does not classify, deduplicate, verify, or corroborate a signal automatically.
 - The CLI does not expose every service operation, including cross-impact creation, flag-value updates, and persisted cascade creation.
 - The schema does not version narratives, principles, threshold configurations, or path-comparison formulas.
-- Cross-location cross-impact rows are possible at the database level; matrix output only includes edges whose endpoints occur in its location-scoped threat set.
+- Cross-impact rows are database-enforced to use same-location, non-self-loop endpoints; matrix output includes edges whose endpoints occur in its location-scoped threat set.
 - Array references are not fully protected by foreign keys.
 - `between` is allowed in the flag schema but `FlagMonitor` does not implement a two-bound `between` threshold check.
 - Desirability, cascade, and path formulas are transparent heuristics, not validated forecasting models.
 - Narrative arrays are service-validated but cannot enforce element-level foreign keys; `winner_narrative_id` has a database foreign key.
 - There is no built-in approval state for narratives, milestones, principles, or path comparisons.
+- The preemptive planner currently queries column names that do not match the threatcasting schema and requires repair before it can be treated as a reliable operational path.
 
 ## Operational Checklist
 
@@ -217,3 +301,19 @@ The schemas do not provide field-level redaction, consent handling, or source co
 8. Treat missing-data defaults and heuristic scores as uncertainty flags.
 9. Require a named, authorized human to resolve assumptions and accept any plan.
 10. Re-run analyses after evidence, thresholds, milestones, or formulas change and preserve review records outside mutable summary rows where auditability is required.
+
+## References And Tests
+
+- Core schemas: `schemas/postgres/159_threatcasting.sql`, `160_backcasting_enhancements.sql`, `161_delphi.sql`, `167_path_comparison_integrity.sql`, `171_graph_integrity_repairs.sql`, and `172_backcast_cascade_normalization.sql`
+- Service package: `services/threatcasting/`
+- CLI: `services/threatcasting/cli.py`
+- Forecasts and calibration: `services/threatcasting/probability.py`
+- Preemptive planning: `services/threatcasting/preempt.py`
+- Agent safety: `services/agents/safety.py`
+- Focused tests: `tests/test_threatcasting.py`, `tests/test_backcasting_enhancements.py`, `tests/test_backcast_dag.py`, `tests/test_threatcasting_cli_compat.py`, and `tests/test_delphi.py`
+
+The focused tests cover threatcasting formulas, canonical backcast plans,
+dependency guards, cascade normalization, path completeness, premortem gates,
+and Delphi lifecycle/consensus behavior. They do not make heuristic scores
+predictive, establish causal effects, or replace external authorization and
+deployment testing.

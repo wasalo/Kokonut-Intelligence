@@ -315,7 +315,7 @@ Documentation lives under `docs/`. Key entry points:
 | [Metrics by Development Phase](docs/metrics-by-phase.md) | Which metrics each phase enables, how they're measured, and collective insights |
 | [AGENTS.md](AGENTS.md) | Canonical command reference (CLI, analytics, ingestion, agents, tests) |
 | [CHANGELOG.md](CHANGELOG.md) | Release history and unreleased changes |
-| [Green Paper V1](docs/green-paper-v1.md) | Comprehensive 15-section publication-ready document |
+| [Green Paper](docs/green-paper.md) | Comprehensive publication-ready document |
 | [Export Guide](docs/export-guide.md) | Report types, data exports, and report snapshots |
 | [EBF Scorecard Guide](docs/ebf-scorecard.md) | EBF pillars, rubric, scorecards, trust graphs |
 | [Attestation Guide](docs/attestation-guide.md) | EAS on Celo, schemas, onchain/offchain attestations |

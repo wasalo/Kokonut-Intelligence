@@ -1,8 +1,8 @@
-# Kokonut Intelligence Platform — Green Paper V1
+# Kokonut Intelligence Platform — Green Paper
 
-**Version:** 1.0  
-**Date:** June 2026  
-**Status:** V1 — Publication Ready  
+**Version:** 2.0
+**Date:** July 2026
+**Status:** Codebase Parity Draft
 **License:** Apache License 2.0
 
 ---
@@ -22,6 +22,13 @@
 11. [Web3 Verification](#11-web3-verification)
 12. [Carbon and Environmental Impact](#12-carbon-and-environmental-impact)
 13. [Additional Evidence Modules](#13-additional-evidence-modules)
+13A. [Operational Intelligence and Decisioning](#13a-operational-intelligence-and-decisioning)
+13B. [Precision Agriculture and Ecological Modeling](#13b-precision-agriculture-and-ecological-modeling)
+13C. [Financial, Credit, and Market Infrastructure](#13c-financial-credit-and-market-infrastructure)
+13D. [Strategy, Planning, and Process Management](#13d-strategy-planning-and-process-management)
+13E. [Identity, Linked Data, and Federation](#13e-identity-linked-data-and-federation)
+13F. [Resilience, Capital, and Simulation](#13f-resilience-capital-and-simulation)
+13G. [Stakeholder, Governance, and Cooperative Operations](#13g-stakeholder-governance-and-cooperative-operations)
 14. [Reporting Principles and Public Interest](#14-reporting-principles-and-public-interest)
 15. [Common Foundations Checklist](#15-common-foundations-checklist)
 16. [Publication Boundaries](#16-publication-boundaries)
@@ -33,7 +40,7 @@
 
 ## 1. Purpose
 
-This Green Paper is the publication-ready stakeholder document for the Kokonut Intelligence Platform. It communicates how the platform makes regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
+This Green Paper is the stakeholder document for the Kokonut Intelligence Platform. It reconciles the publication narrative with the implemented repository while preserving privacy and surfacing uncertainty. It remains subject to human stakeholder sign-off before publication.
 
 **Audience:** Funders, impact investors, partners, reviewers, standards bodies, and the broader regenerative agriculture community.
 
@@ -48,7 +55,12 @@ This Green Paper is the publication-ready stakeholder document for the Kokonut I
 - Web3 verification via EAS on Celo with private evidence off-chain.
 - Carbon and environmental impact tracking with explicit boundaries.
 - EBF pillar scoring with trust graph provenance and calibration.
-- Six additional evidence modules: capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source capitalist scaling, and Kokonut Commons governance.
+- Seven additional evidence modules: capital efficiency, commons liberation, GNH alignment, regenerative outcomes, open-source capitalist scaling, Kokonut Commons governance, and bio-factory operations.
+- Operational intelligence through OODA assessment, CRISP risk scoring, threatcasting, backcasting, Delphi consultation, trend analysis, geostatistics, and systems-thinking tools.
+- Precision agriculture through weather and climate forecasts, phenology, irrigation, nutrient budgets, pest management, equipment, yield monitoring, digital twins, mobile offline collection, and advisory workflows.
+- Strategy and execution through capability maps, value streams, budgets, objectives, portfolios, process mining, predictive BPM, process control, innovation stage gates, and competitive analysis.
+- Linked-data and platform infrastructure through IRIs, RDF/SPARQL, JSON-LD, LinkML, evidence-lineage graphs, governed data streams, durable events, scheduling, federation, gRPC, SDKs, and a unified CLI.
+- Resilience and capital infrastructure through strategic reserves, capital accounting, prediction calibration, Monte Carlo stress testing, and human-approved release or credit proposals.
 - Reporting principles, public-interest context, and disclaimers.
 - Pilot data for Kokonut Adelphi, the canonical proof farm.
 
@@ -85,26 +97,27 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 
 ### Key Capabilities
 
-- Governed farm operations across 160+ tables with role-based access.
-- Multi-source ingestion from weather, market prices, remote sensing, sensors, EAS attestations, and Gnosis DAO activity.
-- 17 calculator-backed metrics and 83 governed metric definitions with public aggregate views and dashboard datasets.
-- Evidence maturity model (levels 0-6) enforced across claims, feedback, MRV, and reporting.
-- CIDS v3.2.0 Essential Tier JSON-LD export for impact data interoperability.
-- Private-by-default stakeholder feedback with consent management and public-safe summaries.
-- EAS on Celo for onchain/offchain attestations with attester-gating via KokonutResolver.
-- Carbon and environmental impact tracking with sequestration, emissions, biodiversity, and regenerative scoring.
-- Agent-assisted CIDS export, feedback synthesis, and report preparation with draft-only outputs.
-- Report snapshots with public-interest context, limitations, uncertainty notes, and negative findings.
-- EBF pillar scoring across 7 dimensions with 70 rubric bands, public scorecards, trust graph provenance, and calibration workflow.^[29]^
-- Portfolio messy roll-up comparison by pillar, confidence, and maturity with explicit caveats, not farm ranking.^[30]^
-- Holistic well-being evidence for cultural context, local-language reporting, community trust, operator capability, and participatory feedback-to-action traceability.^[33]^
-- Financial resilience evidence for grant dependency, reinvestment, public-goods allocation, runway, risk mitigation, scaling milestones, and Green Paper publication status.^[34]^
-- Capital efficiency and utility evidence for scenario-based capital leverage, regenerative practice payback, DAO/community governance throughput, and capital-provider utility limitations.^[35]^
-- Commons liberation and stewardship evidence for time reclaimed, capital alignment, governance inclusion, pseudonymous participation boundaries, and land stewardship commitments.^[36]^
-- GNH alignment evidence for domain-level well-being, cultural preservation, renewable energy planning, vulnerable-group access, and foundational well-being signals.^[37]^
-- Regenerative outcomes and stewardship evidence for concise impact summaries, community decision mechanisms, replication readiness, and adaptive management loops.^[38]^
-- Open Source Capitalist scaling evidence for cost-per-farm economics, explicit planned targets, adoption barriers, downside stress testing, and reusable open-source artifacts.^[39]^
-- Kokonut Commons governance evidence for anti-capture policies, flexible redistribution scenarios, federation/mutual-aid protocols, algorithmic redistribution mechanisms, and advisory participatory signals.^[40]^
+| Category | Capability | What it provides |
+|---|---|---|
+| **Data Infrastructure** | Governed schema | Versioned PostgreSQL schema with 331 ordered migrations, role-based access, and Directus workflows. |
+| | Multi-source ingestion | Weather, market prices, remote sensing, sensors, EAS attestations, and Gnosis DAO activity. |
+| | Versioned metrics | Calculator-backed metrics, governed metric definitions, public aggregate views, dashboard datasets, and separate human verification. |
+| | Evidence maturity | Levels 0-6 enforced across claims, feedback, MRV, and reporting. |
+| **Verification & Interoperability** | CIDS export | v3.2.0 Essential Tier JSON-LD export for impact data interoperability. |
+| | EAS attestations | Onchain/offchain attestations on Celo with attester-gating via KokonutResolver. |
+| **Reporting & Transparency** | Report snapshots | Public-interest context, limitations, uncertainty notes, and negative findings. |
+| | EBF pillar scoring | 7 dimensions, 70 rubric bands, public scorecards, trust graph provenance, and calibration workflow.^[29]^ |
+| | Portfolio roll-up | Messy roll-up comparison by pillar, confidence, and maturity with explicit caveats, not farm ranking.^[30]^ |
+| | Holistic well-being | Cultural context, local-language reporting, community trust, operator capability, and feedback-to-action traceability.^[33]^ |
+| **Impact Domains** | Financial resilience | Grant dependency, reinvestment, public-goods allocation, runway, risk mitigation, scaling milestones, and publication status.^[34]^ |
+| | Capital efficiency | Scenario-based capital leverage, regenerative practice payback, DAO/community governance throughput, and capital-provider utility limits.^[35]^ |
+| | Commons liberation | Time reclaimed, capital alignment, governance inclusion, pseudonymous participation boundaries, and land stewardship commitments.^[36]^ |
+| | GNH alignment | Domain-level well-being, cultural preservation, renewable energy planning, vulnerable-group access, and foundational well-being signals.^[37]^ |
+| | Regenerative outcomes | Impact summaries, community decision mechanisms, replication readiness, and adaptive management loops.^[38]^ |
+| | Open-source scaling | Cost-per-farm economics, planned targets, adoption barriers, downside stress testing, and reusable open-source artifacts.^[39]^ |
+| | Commons governance | Anti-capture policies, flexible redistribution, federation/mutual-aid protocols, algorithmic redistribution, and participatory signals.^[40]^ |
+| **AI & Workflows** | Agent-assisted workflows | CIDS export, feedback synthesis, and report preparation with draft-only outputs. |
+| | Stakeholder feedback | Private-by-default feedback with consent management and public-safe summaries. |
 
 ---
 
@@ -146,13 +159,15 @@ Kokonut Intelligence addresses these challenges through governed data models, ev
 
 | Layer | Technology | Role |
 |-------|------------|------|
-| Canonical core | PostgreSQL 14 + PostGIS 3.4 + Directus 11.17 | Schema, API, permissions, workflows, data entry UI |
-| Analytics | ClickHouse 25.3 | Time-series events and high-volume analytical queries |
-| BI | Metabase | Internal dashboards and aggregate reporting |
-| Intelligence | Python services | Metrics, forecasts, scoring, exports, ingestion, AI summaries |
+| Canonical core | PostgreSQL 16 + PostGIS 3.4 + Directus 12.1.1 | Schema, API, permissions, workflows, data entry UI |
+| Analytics | ClickHouse 25.8 LTS | Time-series events and high-volume analytical queries |
+| BI | Metabase 0.62.4 | Internal dashboards, aggregate reporting, custom visualizations, and MCP |
+| Intelligence | Python 3.11 services | Metrics, forecasts, scoring, exports, ingestion, AI summaries, and ML anomaly detection |
 | Verification | EAS on Celo + offchain evidence storage | Onchain attestations, offchain signed claims, MRV proof metadata |
 | Governance and Guilds | Gnosis Moloch DAO + Colony metadata | Treasury governance, Guild contribution records, reputation snapshots |
-| Contracts | Foundry + Solidity | KokonutResolver attester gating for EAS schemas |
+| Contracts | Foundry + Solidity + OpenZeppelin | KokonutResolver attester gating for EAS schemas |
+| Workflow orchestration | Prefect 3.x + durable scheduler | Pipelines, event-driven automations, leases, retries, and run history |
+| External API | gRPC + Protobuf | Type-safe API, streaming, API-key authentication, and generated SDKs |
 
 ### Data Flow
 
@@ -204,11 +219,12 @@ Kokonut Intelligence addresses these challenges through governed data models, ev
 ┌────────▼───────────────────────────────────────────────┐
 │              PYTHON INGESTION LAYER                     │
 │                                                         │
-│  weather.py       → OpenWeatherMap API                  │
-│  rpc_indexer.py   → Ethereum/L2 public RPC              │
-│  market_data.py   → World Bank Pink Sheet               │
-│  remote_sensing.py → CSV upload (NDVI/NDRE)            │
-│  eas_indexer.py   → EAS GraphQL API (Celo/Optimism/Base)   │
+│  weather.py / forecast.py → weather and climate APIs      │
+│  rpc_indexer.py / DAO indexers → chain events             │
+│  market_data.py / yahoo_finance.py → market prices        │
+│  remote sensing / GEE / Copernicus → spatial evidence     │
+│  sensors / MQTT / HTTP → telemetry and device events      │
+│  eas_indexer.py → EAS attestations                        │
 │                                                         │
 │  All scripts: services/ingestion/                       │
 │  Common framework: base.py (DB, logging, retry)         │
@@ -244,7 +260,7 @@ The optional Kokonut gateway is a separate FastAPI process, not part of the Dire
 ### Security Model
 
 - **Roles:** Administrator, Field Worker, Supervisor, Manager, Finance, Analyst, Auditor, Agent Read-Only, Agent Write, Agent Full.
-- **Policies:** Per-collection, per-action, per-field permissions (188 rules across 9 policies).
+- **Policies:** Per-collection, per-action, per-field permissions enforced through Directus metadata, hooks, gateway policy, and service-level safety checks.
 - **Field-level:** Sensitive fields hidden per role.
 - **Row-level:** Filter rules restrict record visibility.
 - **Audit:** All mutations logged to `audit_log`.
@@ -254,6 +270,8 @@ The optional Kokonut gateway is a separate FastAPI process, not part of the Dire
 ### Schema Management
 
 Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus snapshots capture the API-layer state. ClickHouse schemas live in `schemas/clickhouse/`. Seed data lives in `schemas/seeds/`.
+
+The repository currently contains 331 ordered PostgreSQL migrations, six ClickHouse schema files, and 117 seed files. Migration application is checksummed and fails closed on drift. The migration sequence, not this paper, is the authoritative source for exact database structure.
 
 ---
 
@@ -362,7 +380,7 @@ EBF score publication is gated by `services/scoring/gates.py`, which checks evid
 
 ## 7. CIDS Mapping and Export
 
-Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier for Green Paper V1. PostgreSQL/Directus remains the canonical data layer; CIDS is an export compatibility layer.^[8]^
+Kokonut targets Common Impact Data Standard (CIDS) v3.2.0 Essential Tier. PostgreSQL/Directus remains the canonical data layer; CIDS is an export compatibility layer.^[8]^
 
 ### Mapping
 
@@ -455,7 +473,7 @@ python3 -m services.agents.feedback_agent --location-id UUID --store
 
 ### Holistic Well-being And Cultural Context
 
-Grant-review feedback highlighted that Kokonut's cultural heritage, local-language accessibility, participatory governance, and holistic well-being evidence should be explicit rather than implied. Green Paper V1 now treats these as governed public-safe evidence objects.^[33]^
+Grant-review feedback highlighted that Kokonut's cultural heritage, local-language accessibility, participatory governance, and holistic well-being evidence should be explicit rather than implied. The Green Paper now treats these as governed public-safe evidence objects.^[33]^
 
 | Record | Purpose |
 |---|---|
@@ -842,6 +860,140 @@ Report types: `bio_factory_batch`, `bio_input_provenance`, `bio_recipe_library`,
 
 ---
 
+## 13A. Operational Intelligence and Decisioning
+
+The platform implements a governed Observe-Orient-Decide-Act-Feedback (OODA) loop. It is an evidence-to-decision system, not an autonomous decision-maker.
+
+| Phase | Implemented capabilities | Main records or services |
+|---|---|---|
+| Observe | Sensors, MQTT/HTTP ingestion, weather and climate data, remote sensing, freshness checks, anomaly detection | `services/ingestion/`, `services/stream/`, `sensor_reading`, `ingestion_log` |
+| Orient | Situation assessment, CRISP risk, trends, threat intelligence, geostatistics, systems thinking | `services/orientation/`, `services/crisp/`, `services/trends/`, `services/threatcasting/` |
+| Decide | Policy evaluation, Delphi recommendations, path comparison, advisory recommendations | `services/decision/`, `services/delphi/`, `services/analytics/advisor.py` |
+| Act | Governed work items, alerts, data-stream posts, approved actuator commands, field workflows | `services/management/`, `services/data_stream/`, `services/ingestion/mqtt_actuator.py` |
+| Feedback | Action outcomes, adaptive thresholds, sampling changes, learning-rate and cycle-time measurements | `services/feedback/`, `services/systems/`, `services/orientation/cycle_tracker.py` |
+
+The `situation_assessment`, `decision_policy`, `decision_log`, `action_outcome`, `feedback_loop`, `adaptive_threshold`, and `ooda_cycle_log` records preserve the decision trail. Seeded policies require approval, and feedback automation supports dry-run and proposal-oriented operation.
+
+### CRISP Risk Scoring
+
+CRISP is the platform's configurable internal risk intelligence engine. It scores carbon yield, climate, policy, financial viability, and implementation risk on a 0-100 scale, where higher values indicate higher risk. Default weights are 0.40, 0.25, 0.15, 0.10, and 0.10 respectively; locations may have approved weight overrides. Composite bands are AAA, AA, A, B, C, and D.
+
+CRISP assessments are planning and risk evidence. They are not credit ratings, insurance decisions, external certification, or guarantees of project performance. The implementation lives in `services/crisp/` and migration `076_crisp_risk_scoring.sql`.
+
+### Threatcasting, Backcasting, and Delphi
+
+Threatcasting records climate, market, policy, ecological, social, health, security, and technology threats. Warning flags, incoming signals, cross-impact relationships, narratives, horizons, cascades, and intelligence briefings support forward-looking analysis. Backcasting works from a future state through milestones, sustainability principles, assumption challenges, pathway comparisons, and premortems.
+
+The real-time Delphi module supports pseudonymous panels, continuously updated evaluations, weighted median/IQR/CV summaries, consensus snapshots, minority views, and draft recommendations. Facilitator outputs require human approval. These tools are advisory and cannot publish claims, execute funds, or alter stakeholder decisions autonomously.
+
+Primary records are defined in `159_threatcasting.sql` and `161_delphi.sql`. Representative commands include:
+
+```bash
+python3 -m services.threatcasting intelligence --location-id UUID
+python3 -m services.threatcasting preempt --location-id UUID
+python3 -m services.threatcasting create-backcast --narrative-id UUID --location-id UUID --name "Plan" --future-state "..." --gaps "..."
+python3 -m services.delphi live-summary --study-id UUID
+python3 -m services.agents.delphi_facilitator_agent --study-id UUID --draft
+```
+
+### Systems Thinking, Trends, and Spatial Analysis
+
+The systems toolkit provides causal-loop and leverage analysis, archetype detection, delay mapping, double-loop learning, stock-flow models, mental-model comparison, growth-curve analysis, adaptation velocity, improvement-rate tracking, meta-learning, and statistical process control. It is used to expose assumptions, delays, feedback effects, and possible intervention points.
+
+Trend services provide least-squares estimates, Mann-Kendall significance, exponential smoothing, seasonal decomposition, change-point detection, forecasts, and forecast-accuracy tracking. Geostatistics provides variograms, kriging, simulation, spatial autocorrelation, spatial cross-validation, and sensor-design analysis. These outputs support soil-carbon prediction, situation assessment, and reports; they do not turn modeled results into verified evidence.
+
+## 13B. Precision Agriculture and Ecological Modeling
+
+The platform contains a field-operations layer beyond the core farm ledger:
+
+- Weather forecasts, FAO-56 evapotranspiration, crop coefficients, water balance, and spray-window analysis.
+- Crop growing-degree-day accumulation, stage detection, projected stages, and anomaly tracking.
+- Precision irrigation zones, moisture targets, ETc-based schedules, rule evaluation, water efficiency, and approval gates.
+- Prescription maps with natural-break and equal-interval classification for fertilizer, irrigation, and seed inputs.
+- Nutrient budgets for inputs, soil tests, crop removal, recommendations, and efficiency.
+- Pest scouting, economic thresholds, IPM interventions, pesticide safety intervals, resistance, degree-day, trap monitoring, and organic-pest scoring.
+- Yield recording, trend and benchmark analysis, ensemble yield prediction, and harvest summaries.
+- Digital twins with crop growth, water, nitrogen, biomass, carbon, scenarios, comparison, and Monte Carlo wrappers.
+- Equipment usage, maintenance, OEE, operating cost, and cooperative asset utilization.
+- Mobile offline queues, conflict resolution, sync audits, LLM chat intent handling, farmer identity, training, and cooperative workflows.
+
+Environmental and ecological services add soil-organic-carbon prediction, spectral and time-series features, ecological models, trophic analysis, energy monitoring, waste and composting records, landscape and habitat conservation, pollinator health, tree tracking, and organic-certification readiness. Organic readiness is a 0-100 assessment across transition, soil, inputs, pests, biodiversity, buffers, records, training, and harvest segregation; it is not a certification.
+
+The principal implementations are under `services/analytics/`, `services/ingestion/`, `services/geostatistics/`, and migrations `134` through `157`. Forecasts and ecological models remain projections until governed review and evidence requirements are satisfied.
+
+## 13C. Financial, Credit, and Market Infrastructure
+
+The financial layer includes governed revenue, expense, sales, cash-flow, and value-flow records; standard financial statements; IRR, NPV, MIRR, ROI, and payback calculations; true-cost accounting; natural and social capital valuation; life-cycle assessment; GRI mapping; and cross-capital flow analysis.
+
+Business services include revenue streams, pricing, cost structures, break-even and sensitivity analysis, Business Model Canvas generation, business plans, pitch decks, SWOT/TOWS, PESTEL, publics and market segmentation, partner lifecycle, channel orchestration, traceability, digital finance, and marketplace workflows. These are decision-support and planning outputs, not funding or revenue guarantees.
+
+Additional platform surfaces include Fortune 500-style comparative scoring with explicit benchmark context, the ten-dimension revenue-multiplier analyzer, Abundance Protocol impact-estimate and validation records, and token-reward calibration diagnostics. These outputs are signals for review, not rankings that make farms interchangeable or automatic compensation claims.
+
+### Credit and Ecocredit Records
+
+The internal credit module models a class-to-batch-to-balance-to-retirement hierarchy. It supports project enrollment, batch issuance by authorized issuers, account and batch custody, baskets, marketplace orders, fees, cross-chain bridge records, and retirement certificates. Carbon-credit adjustment and retirement-integrity controls preserve supply, custody, and independent human confirmation boundaries.
+
+These records are internal platform ledgers. They do not establish external registry issuance, certification, or recognition. External writes and marketplace identity, payment, escrow, and reputation logic remain outside the scope of this repository where stated in the agent and platform boundaries.
+
+Representative commands:
+
+```bash
+python3 -m services.credit_class.cli class list --type carbon
+python3 -m services.credit_class.cli batch balance --batch-id UUID
+python3 -m services.credit_class.cli marketplace sell --batch-id UUID --seller 0x1234 --quantity 100 --price 2500 --denom cusd
+python3 -m services.analytics.carbon_credits --confirm-retirement --retirement-id UUID --reviewer-id REVIEWER_UUID
+```
+
+## 13D. Strategy, Planning, and Process Management
+
+Strategy services model vision and mission, capability maps and maturity, strategy maps, objectives, initiatives, KPIs, strategy choices and assumptions, execution snapshots, coherence, contingencies, risk evidence, foresight, consultation, communication, competitive landscape, strategic positioning, advantage assessment, and technology roadmaps. `services/strategy_markup/` exports a deterministic StratML Part 1 projection; PostgreSQL remains canonical.
+
+Planning services provide approved budgets and lines, variance analysis, objectives and KPI reviews, program/project portfolios, capacity-aware planning, and an S&OP cockpit. They organize work without claiming that a plan has been executed.
+
+### Business Process Management
+
+`services/workflow_specs/` defines state machines for governed entities, including work items, budgets, objectives, projects, data-stream posts, claims, reports, stakeholder records, market orders, pest interventions, emergency incidents, and coordination. The process-model synchronization layer mirrors specifications in the database.
+
+Process mining discovers variants and case timelines; conformance checks compare observed paths with specifications; predictive BPM estimates SLA breach risk; process control provides statistical process-control charts and CTQ analysis; process health and escalation services expose overdue or degraded flows. Work-item management adds assignments, responsibility, self-selection modes, SLA breaches, learning plans, and escalation. These are operational governance controls, not autonomous workforce management.
+
+Innovation services provide a human-approved stage-gate lifecycle from discovery and framing through experimentation, validation, investment readiness, funding, piloting, adoption, scaling, and retirement. Gate evaluations and transition logs preserve the evidence trail.
+
+## 13E. Identity, Linked Data, and Federation
+
+The platform's identity and semantic layers make governed records addressable and exportable:
+
+- The IRI service generates deterministic `kokonut:{entity_type}:{entity_id}:v{version}` identifiers, version history, and content hashes.
+- RDF graph building projects governed records into `rdf_triple`; a constrained SPARQL-to-SQL engine supports basic graph patterns.
+- JSON-LD and LinkML services provide schema validation and machine-readable metadata.
+- The Metadata Graph API resolves IRIs and serves linked metadata.
+- The evidence-lineage projection builds audience-aware nodes and edges from registries, metric definitions and values, claims, attestations, and schemas. Rebuilds are atomic and validate graph integrity.
+- The governed Data Stream stores posts, comments, attachments, visibility, search content, hashes, verification, and optional Celo anchoring. Public visibility requires an appropriate verified or published farm registry record.
+- A durable event bus provides outbox-style delivery, leases, retries, idempotency, dead letters, replay, disposal, and cross-domain insight transfer.
+- A database-backed scheduler provides task dependencies, resource locks, run history, leases, retry backoff, and overlap control.
+- Federation shares approved aggregate data between nodes with consent levels, query records, heartbeats, and incremental sync logs. Federation is not multi-master PostgreSQL and does not authorize arbitrary remote SQL.
+
+The linked-data and stream interfaces are projections over governed records. Hashes, CIDs, UIDs, and transaction references may be public; private source evidence remains subject to consent and access policy.
+
+The gateway is an optional FastAPI process with explicit route policy, API-key or capability-token authentication, rate limiting, audit logging, and fail-closed unknown-route behavior. The sandbox provides isolated analysis environments and monitoring. SDKs for Python, TypeScript, and JavaScript expose supported integration paths without bypassing canonical permissions. GeoNode-oriented services provide shapefile, KML, raster metadata, CSW, ISO 19115, thesaurus, and map-viewer interoperability. These are integration and operating surfaces, not alternate sources of truth.
+
+## 13F. Resilience, Capital, and Simulation
+
+Strategic reserves track carbon buffers, commons reserves, financial ring-fences, capability standby, and seed vault capacity. Health checks report held-versus-target adequacy, drawdown headroom, trigger and breach state, and a fundability signal. Preemptive deployment and release proposals are drafts requiring independent human approval; no autonomous drawdown or on-chain release is performed.
+
+Capital accounting extends the eight Forms of Capital with capacity assessments, consumption-versus-reinvestment observations, capture-risk diagnostics, and a deferred regenerative-credit ledger. A regenerative credit is a claim on future regenerative output, not a coercive levy or automatic token reward. Agents may propose draft ledger entries only; settlement and redemption require a separate human-approved flow.
+
+Forecast services calculate scenario outputs for revenue, NOI, yield, cost, carbon sequestration, biodiversity value, and retained value. The prediction ledger records forecasts and outcomes so accuracy can be evaluated by horizon, including Brier-style calibration where applicable. Reference-class forecasting and outside-view evidence are supported.
+
+Simulation services are read-only and advisory. Monte Carlo wrappers perturb sampled inputs around deterministic simulators; clash examples model shocks, pests, market pressure, or reserve adequacy. They never model stakeholder fragmentation or community manipulation and never write governed state.
+
+## 13G. Stakeholder, Governance, and Cooperative Operations
+
+The stakeholder layer now covers the full participation lifecycle: party and relationship records, identity resolution, interests and salience, consent and portability, engagement plans and touchpoints, grievances and remedies, representation and accessibility, minority views, decisions and trade-offs, evidence and outcomes, trust profiles, and stakeholder cockpit views. Public outputs remain consented, summarized, and governed.
+
+Governance is framework-aware. `services/governance/` exposes a read-first `GovernanceFramework` abstraction and a Moloch v3/Baal adapter for proposals, votes, members, shares, loot, configuration, and shaman permissions. The legacy Moloch v2 indexer remains separate for historical records. Governance circles, roles, authority, tensions, proposals, and tactical coordination are modeled off-chain with human approval boundaries.
+
+Cooperative services support cooperative creation, member roles and shares, shared assets and bookings, collective purchasing, market orders, and member dashboards. These records describe coordination and governance evidence; they do not imply legal incorporation, ownership transfer, or autonomous treasury execution.
+
 ## 14. Reporting Principles and Public Interest
 
 Kokonut Green Paper reports should be useful to partners without overstating evidence quality or exposing private stakeholder evidence.^[21]^
@@ -864,9 +1016,19 @@ Kokonut Green Paper reports should be useful to partners without overstating evi
 - `negative_findings`
 - `affected_community_voice`
 
+The report registry includes farm, crop, environmental, financial, EBF, stakeholder, business, strategy, process-health, ecosystem, tactical, simulation, strategic-reserve, and capital-accounting reports. `--auto` runs every registered generator for the selected scope; it does not imply that every report has sufficient source evidence.
+
+Representative report families include:
+
+- Ecosystem: `state_of_kokonut`, `state_of_kokonut_graphs`, `comprehensive_status`, and `dao_proposal_history`.
+- Operations and resilience: `process_health`, `value_stream_map`, `strategic_reserve`, `simulation_wargame`, and `capital_accounting`.
+- Strategy and business architecture: `business_plan`, `business_model_canvas`, `pitch_deck`, `capability_dashboard`, `capability_assessment`, `strategy_execution`, and `technology_roadmap`.
+- Stakeholder governance: `stakeholder_landscape`, `stakeholder_engagement`, `stakeholder_grievance`, `stakeholder_representation`, `stakeholder_decision_lineage`, `stakeholder_ecosystem`, `stakeholder_outcomes`, `stakeholder_trust`, `stakeholder_value_streams`, and `stakeholder_cockpit`.
+- Tactical diagnostics: `fork_opportunities`, `pin_dependency`, `promotion_ladder`, and `tactical_layer`.
+
 ### Financial Resilience And Scaling
 
-Regenerator review feedback identified that Kokonut's long-term financial self-sustainability, risk mitigation implementation, scaling roadmap, and Green Paper finalization should be explicit rather than implied. Green Paper V1 now treats these as governed evidence objects.^[34]^
+Regenerator review feedback identified that Kokonut's long-term financial self-sustainability, risk mitigation implementation, scaling roadmap, and Green Paper finalization should be explicit rather than implied. The Green Paper treats these as governed evidence objects.^[34]^
 
 | Record | Purpose |
 |---|---|
@@ -945,54 +1107,31 @@ Use this checklist before publishing impact claims, report snapshots, or Green P
 
 ## 16. Publication Boundaries
 
-This section defines what Green Paper V1 claims and what it does not claim.
+This section defines what the Green Paper claims and what it does not claim.
 
-### What Green Paper V1 Includes
+### What the Green Paper Includes
 
-- CIDS v3.2.0 Essential Tier JSON-LD export.
-- Evidence maturity levels across claims, feedback, MRV, and reporting.
-- Private-by-default stakeholder feedback and public-safe summaries.
-- Public impact claims with maturity gates.
-- Level 6 external verification for public carbon claims.
-- Evidence gap and stakeholder feedback dashboards.
-- Report snapshots with public-interest context.
-- Holistic well-being evidence with cultural context, local-language reporting, and feedback-to-action traceability.
-- Financial sustainability, risk mitigation, scaling roadmap, and Green Paper publication review evidence.
-- Agent-assisted CIDS export and feedback synthesis with draft-only outputs.
-- Carbon and environmental impact tracking with sequestration, emissions, biodiversity, and regenerative scoring.
-- EBF pillar scoring with 7 dimensions, 70 rubric bands, public scorecards, trust graph provenance, calibration workflow, and portfolio messy roll-up.^[29]^
-- Capital efficiency and utility evidence with scenario-based leverage, governance throughput, and capital-provider utility signals.^[35]^
-- Commons liberation and stewardship evidence with time liberation, capital alignment, governance inclusion, and land stewardship commitments.^[36]^
-- GNH alignment and inclusion evidence with domain-level well-being, cultural preservation, renewable energy planning, and vulnerable-group access.^[37]^
-- Regenerative outcomes and stewardship evidence with outcome summaries, community governance, replication readiness, and adaptive stewardship loops.^[38]^
-- Open Source Capitalist scaling evidence with unit economics, scaling targets, adoption barriers, stress tests, and open-source artifacts.^[39]^
-- Kokonut Commons governance evidence with anti-capture policies, flexible redistribution, federation protocols, algorithmic redistribution, and participatory signals.^[40]^
-- Bio Factory operations evidence with production batches, ingredient provenance, recipe library, quality testing, ingredient composition reference, and LAC regional input availability.^[41]^
-- Web3 verification metadata on Celo via EAS.
+| Category | Includes |
+|---|---|
+| **Data & Governance** | Evidence maturity levels (0-6) across claims, feedback, MRV, and reporting. Private-by-default stakeholder feedback and public-safe summaries. Public impact claims with maturity gates. Report snapshots with public-interest context. Evidence gap and stakeholder feedback dashboards. |
+| **Verification & Interoperability** | CIDS v3.2.0 Essential Tier JSON-LD export. EAS on Celo for onchain/offchain attestation metadata. EBF pillar scoring with 7 dimensions, 70 rubric bands, public scorecards, trust graph provenance, calibration workflow, and portfolio messy roll-up.^[29]^ |
+| **Ecological & Carbon** | Carbon and environmental impact tracking with sequestration, emissions, biodiversity, and regenerative scoring. Level 6 external verification for public carbon claims. |
+| **Impact Domains** | Holistic well-being evidence with cultural context, local-language reporting, and feedback-to-action traceability.^[33]^ Financial sustainability, risk mitigation, scaling roadmap, and publication review evidence.^[34]^ Capital efficiency and utility evidence with scenario-based leverage, governance throughput, and capital-provider utility signals.^[35]^ Commons liberation and stewardship evidence with time liberation, capital alignment, governance inclusion, and land stewardship commitments.^[36]^ GNH alignment and inclusion evidence with domain-level well-being, cultural preservation, renewable energy planning, and vulnerable-group access.^[37]^ Regenerative outcomes and stewardship evidence with outcome summaries, community governance, replication readiness, and adaptive stewardship loops.^[38]^ Open Source Capitalist scaling evidence with unit economics, scaling targets, adoption barriers, stress tests, and open-source artifacts.^[39]^ Kokonut Commons governance evidence with anti-capture policies, flexible redistribution, federation protocols, algorithmic redistribution, and participatory signals.^[40]^ Bio Factory operations evidence with production batches, ingredient provenance, recipe library, quality testing, ingredient composition reference, and LAC regional input availability.^[41]^ |
+| **AI & Workflows** | Agent-assisted CIDS export and feedback synthesis with draft-only outputs. |
+| **Web3** | Web3 verification metadata on Celo via EAS. |
 
-### What Green Paper V1 Does Not Claim
+### What the Green Paper Does Not Claim
 
-- CIDS export is compatibility mapping, not the canonical database.^[25]^
-- EAS attestations are verification metadata, not automatic proof of external verification.
-- Carbon-balance evidence is distinct from carbon credit issuance.
-- Private stakeholder evidence remains private unless explicit consent allows publication.
-- Agent outputs are draft aids and must be human-reviewed.
-- EBF scores are governed assessments, not automatic certifications; calibration and rubric decisions require human review.
-- Holistic well-being signals are learning and accountability evidence, not a guarantee of community satisfaction or cultural representation.
-- Financial sustainability plans and scaling milestones are planning evidence, not guarantees of revenue, funding, expansion, or risk elimination.
-- Capital efficiency reports are planning evidence, not guarantees of returns or capital deployment outcomes.
-- Land stewardship records are commitment evidence, not legal land-transfer or landlord-abolition claims.
-- GNH alignment is evidence of well-being signals, not Bhutan-readiness certification.
-- Renewable energy records distinguish planned from implemented status; planned records are not operational claims.
-- Regenerative outcome summaries are grant-reporting evidence, not performance guarantees.
-- Replication readiness is a checkpoint signal, not a commitment to launch new farms.
-- Scaling targets are explicit planned numbers, not unlimited-scaling claims.
-- Participatory signal experiments are advisory only unless explicitly marked as decision-binding with human review.
-- Bio-factory batch yields, input provenance records, and quality test results are smallholder pilot evidence, not commercial production guarantees. Recipes are public knowledge for adaptation, not commercial endorsements. Quality test results are advisory, not certification.
-- Redistribution policies are flexible per scenario; no single allocation percentage is hardcoded across all contexts.
-- Forecast and modeled outputs are projections, not guarantees.
-- The platform's governed credit issuance and retirement records are internal ledger events, not claims of external registry issuance, certification, or recognition. The platform does not provide external verification services.
-- Agent capabilities described in this document are current; future capabilities are not commitments.
+| Category | Does not claim |
+|---|---|
+| **Data & Verification** | CIDS export is compatibility mapping, not the canonical database.^[25]^ EAS attestations are verification metadata, not automatic proof of external verification. Carbon-balance evidence is distinct from carbon credit issuance. Private stakeholder evidence remains private unless explicit consent allows publication. |
+| **Agent & AI** | Agent outputs are draft aids and must be human-reviewed. Agent capabilities described in this document are current; future capabilities are not commitments. |
+| **EBF & Scoring** | EBF scores are governed assessments, not automatic certifications; calibration and rubric decisions require human review. Holistic well-being signals are learning and accountability evidence, not a guarantee of community satisfaction or cultural representation. CRISP, EBF, trend, geostatistical, systems-thinking, and simulation outputs are analytical or planning evidence unless separately governed and reviewed. |
+| **Financial & Scaling** | Financial sustainability plans and scaling milestones are planning evidence, not guarantees of revenue, funding, expansion, or risk elimination. Capital efficiency reports are planning evidence, not guarantees of returns or capital deployment outcomes. Scaling targets are explicit planned numbers, not unlimited-scaling claims. |
+| **Impact Domains** | Land stewardship records are commitment evidence, not legal land-transfer or landlord-abolition claims. GNH alignment is evidence of well-being signals, not Bhutan-readiness certification. Renewable energy records distinguish planned from implemented status; planned records are not operational claims. Regenerative outcome summaries are grant-reporting evidence, not performance guarantees. Replication readiness is a checkpoint signal, not a commitment to launch new farms. Participatory signal experiments are advisory only unless explicitly marked as decision-binding with human review. Redistribution policies are flexible per scenario; no single allocation percentage is hardcoded across all contexts. |
+| **Bio Factory** | Batch yields, input provenance records, and quality test results are smallholder pilot evidence, not commercial production guarantees. Recipes are public knowledge for adaptation, not commercial endorsements. Quality test results are advisory, not certification. |
+| **Credits & Forecasting** | The platform's governed credit issuance and retirement records are internal ledger events, not claims of external registry issuance, certification, or recognition. The platform does not provide external verification services. Forecast and modeled outputs are projections, not guarantees. |
+| **Federation & Coordination** | Federation is approved aggregate-data exchange, not multi-master PostgreSQL, arbitrary remote SQL, or a cross-replica transaction layer. Threatcasting, Delphi, tactical, reserve, and simulation outputs do not authorize autonomous intervention, fund release, stakeholder manipulation, or on-chain execution. |
 
 ### Suggested Narrative
 
@@ -1088,6 +1227,16 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 | SDG | Sustainable Development Goal — United Nations 2030 agenda targets |
 | Shannon Diversity Index | Ecological measure of species diversity |
 | Solidity | Programming language for Ethereum-compatible smart contracts |
+| OODA | Observe, Orient, Decide, Act; the platform's governed intelligence loop |
+| CRISP | Internal five-dimension risk scoring engine with configurable weights and AAA-D bands |
+| Delphi | Real-time, pseudonymous expert consultation and consensus process |
+| IRI | Stable, versioned `kokonut:` identifier for a governed entity |
+| RDF | Resource Description Framework used for linked-data triples |
+| SPARQL | Query language translated to supported SQL patterns over RDF triples |
+| BPM | Business Process Management; lifecycle, mining, prediction, control, and escalation tooling |
+| EBF | Ecological Benefits Framework; seven-pillar scoring and evidence model |
+| StratML | ISO 17469-1 strategy interchange projection |
+| dMRV | Digital Measurement, Reporting, and Verification using sensors, remote sensing, and evidence controls |
 
 ### References
 
@@ -1171,6 +1320,22 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ^[40]^ `schemas/postgres/041_kokonut_commons_governance.sql` — Anti-capture governance policies, flexible redistribution policies, federation protocols, algorithmic redistribution mechanisms, participatory signal experiments, and public-safe views; `docs/kokonut-commons-governance.md` — Kokonut Commons governance operating guide.
 
+^[41]^ `schemas/postgres/043_bio_factory_operations.sql` — Bio-factory batches, provenance, recipes, quality tests, composition references, and regional input availability; `docs/bio-factory-operations.md` — operating guide.
+
+^[42]^ `services/orientation/`, `services/decision/`, `services/feedback/`, and `schemas/postgres/124_orientation.sql` through `127_ooda_cycles.sql` — OODA assessment, policy, feedback, and cycle tracking.
+
+^[43]^ `services/crisp/` and `schemas/postgres/076_crisp_risk_scoring.sql` — configurable CRISP risk scoring.
+
+^[44]^ `services/threatcasting/`, `services/delphi/`, `schemas/postgres/159_threatcasting.sql`, and `161_delphi.sql` — threatcasting, backcasting, probability forecasting, Delphi consultation, and human-approved recommendations.
+
+^[45]^ `services/workflow_specs/`, `services/analytics/process_mining.py`, `services/analytics/predictive_bpm.py`, and `schemas/postgres/182_process_mining.sql` through `195_service_catalog.sql` — workflow specifications and BPM tooling.
+
+^[46]^ `services/iri/`, `services/rdf/`, `services/linkml/`, `services/graph_projection/`, and `services/data_stream/` — linked data, identity, evidence lineage, and governed data streams.
+
+^[47]^ `services/strategic_reserve/`, `services/capital/`, `services/simulation/`, and migrations `327` through `330` — resilience reserves, capital accounting, and advisory simulation.
+
+^[48]^ `services/export/report_generator.py` — registered report generators and report snapshot public-interest fields.
+
 ---
 
 ## Appendix A: Review Commands
@@ -1239,7 +1404,7 @@ python3 -m services.agents.ebf_scorecard_agent --location-id UUID --draft
 python3 -m services.agents.ebf_evidence_gap_agent --location-id UUID
 python3 -m services.agents.ebf_calibration_agent --location-id UUID --draft
 
-# Report generation (--auto generates all 42 report types)
+# Report generation (--auto generates every registered report type)
 python3 -m services.export.report_generator --auto --location-id UUID
 
 # Core reports
@@ -1294,8 +1459,46 @@ python3 -m services.export.report_generator --type redistribution_policy --locat
 python3 -m services.export.report_generator --type federation_mutual_aid --location-id UUID
 python3 -m services.export.report_generator --type algorithmic_redistribution --location-id UUID
 python3 -m services.export.report_generator --type participatory_signal --location-id UUID
+
+# Unified CLI and platform operations
+python3 -m services.cli --help
+python3 -m services.workflow_specs validate
+python3 -m services.graph_projection rebuild --actor OPERATOR
+python3 -m services.events --stats
+python3 -m services.scheduler.cli --status
+python3 -m services.federation.cli --list-nodes
+
+# OODA, CRISP, trends, and geostatistics
+python3 -m services.decision.policies --pending --location-id UUID
+python3 -m services.crisp --composite --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD
+python3 -m services.trends.dashboard --location-id UUID --alerts
+python3 -m services.geostatistics.cli spatial-cv-soc --location-id UUID --block-size 200
+
+# Threatcasting and Delphi
+python3 -m services.threatcasting briefing --location-id UUID
+python3 -m services.threatcasting cascade-risk --location-id UUID
+python3 -m services.delphi live-summary --study-id UUID
+python3 -m services.delphi check-stopping --study-id UUID
+
+# Identity, linked data, and data stream
+python3 -m services.iri.cli generate --entity-type location --entity-id UUID
+python3 -m services.rdf.cli build --location-id UUID
+python3 -m services.rdf.cli query --subject "kokonut:location:UUID"
+python3 -m services.data_stream.cli stream --location-id UUID
+
+# Resilience, capital, prediction, and simulation
+python3 -m services.strategic_reserve.cli health
+python3 -m services.capital.cli report --location-id UUID
+python3 -m services.predictions --help
+python3 -m services.export.report_generator --type simulation_wargame --location-id UUID
+
+# Strategy, planning, and process health
+python3 -m services.planning budget variance --id UUID
+python3 -m services.planning cockpit show --org-id UUID
+python3 -m services.analytics.process_mining discover --entity-type TYPE
+python3 -m services.analytics.predictive_bpm breaches --entity-type TYPE --sla-target-hours 72
 ```
 
 ---
 
-*This document is V1 — Publication Ready. All factual claims have been verified against the current repository state. Human stakeholder sign-off remains the final step before public release.*
+*This document is the Codebase Parity Draft. Claims and commands are aligned to the current repository structure, but human stakeholder sign-off and a final execution review remain required before public release.*
