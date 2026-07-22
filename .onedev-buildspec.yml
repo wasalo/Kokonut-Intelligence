@@ -62,7 +62,6 @@ jobs:
         ./scripts/verify-ci-toolchain.sh
         echo "=== [step] Fast-fail: ruff security scan ==="
         . .venv/bin/activate
-        export PATH=/root/.foundry/bin:$PATH
         ruff check --select S,BLE --ignore S101,S104,S105,S110,S112,S301,S310,S311,S320,S404,S603,S607,S608,RUF012,BLE001 services/
         echo "ruff: PASS"
         echo "=== [step] Fast-fail: pip-audit ==="
@@ -100,6 +99,7 @@ jobs:
         echo "=== [step] Computing metrics ==="
         . .venv/bin/activate
         ./scripts/compute-metrics.sh
+        export PATH=/root/.foundry/bin:$PATH
         echo "=== [step] Connecting CI runner to Compose databases ==="
         DB_CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q database)
         DB_NETWORK=$(docker inspect -f '{{range $network, $_ := .NetworkSettings.Networks}}{{println $network}}{{end}}' "$DB_CONTAINER")
