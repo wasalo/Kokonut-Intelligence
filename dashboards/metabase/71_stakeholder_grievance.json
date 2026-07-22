@@ -1,0 +1,16 @@
+{
+  "title": "Stakeholder Grievance",
+  "description": "Grievance cases, investigations, remedies, and resolution time tracking.",
+  "cards": [
+    {
+      "name": "Stakeholder Grievance",
+      "dataset_query": "dashboards/metabase/sql/71_stakeholder_grievance.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Technology Roadmap",
+  "description": "Technology areas, drivers, alternatives, requirements, and maturity assessment.",
+  "cards": [
+    {
+      "name": "Technology Roadmap",
+      "dataset_query": "dashboards/metabase/sql/88_technology_roadmap.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "strategy_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

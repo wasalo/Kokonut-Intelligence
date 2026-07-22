@@ -1,0 +1,16 @@
+{
+  "title": "Strategy Execution",
+  "description": "Objectives, initiatives, investment cases, and coherence tracking.",
+  "cards": [
+    {
+      "name": "Strategy Execution",
+      "dataset_query": "dashboards/metabase/sql/86_strategy_execution.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "strategy_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

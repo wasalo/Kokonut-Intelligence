@@ -1,0 +1,16 @@
+{
+  "title": "Stakeholder Representation",
+  "description": "Participation rates, accessibility requests, and minority view tracking.",
+  "cards": [
+    {
+      "name": "Stakeholder Representation",
+      "dataset_query": "dashboards/metabase/sql/72_stakeholder_representation.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

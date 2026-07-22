@@ -1,0 +1,16 @@
+{
+  "title": "Value Stream Formal",
+  "description": "Stream definitions, stages, observations, and lead-time/yield metrics.",
+  "cards": [
+    {
+      "name": "Value Stream Formal",
+      "dataset_query": "dashboards/metabase/sql/87_value_stream_formal.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "strategy_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

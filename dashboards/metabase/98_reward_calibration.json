@@ -1,0 +1,16 @@
+{
+  "title": "Reward Calibration",
+  "description": "Token reward distribution, overjustification risk, and intrinsic motivation signals.",
+  "cards": [
+    {
+      "name": "Reward Calibration",
+      "dataset_query": "dashboards/metabase/sql/98_reward_calibration.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "analytics_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

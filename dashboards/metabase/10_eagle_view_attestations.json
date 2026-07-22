@@ -1,0 +1,16 @@
+{
+  "title": "Eagle View - Attestations",
+  "description": "Platform-wide attestation coverage, EAS schema usage, and verification status.",
+  "cards": [
+    {
+      "name": "Eagle View Attestations",
+      "dataset_query": "dashboards/metabase/sql/10_eagle_view_attestations.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "verification_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Governance Coordination Health",
+  "description": "Governance circles, roles, proposals, tensions, and link health.",
+  "cards": [
+    {
+      "name": "Governance Coordination Health",
+      "dataset_query": "dashboards/metabase/sql/90_governance_coordination_health.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

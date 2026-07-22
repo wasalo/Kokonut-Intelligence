@@ -1,0 +1,16 @@
+{
+  "title": "Strategic Reserve",
+  "description": "Reserve health, adequacy thresholds, breach status, and drawdown headroom.",
+  "cards": [
+    {
+      "name": "Strategic Reserve",
+      "dataset_query": "dashboards/metabase/sql/81_strategic_reserve.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "finance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

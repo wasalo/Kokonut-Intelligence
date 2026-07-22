@@ -1,0 +1,16 @@
+{
+  "title": "Stakeholder Ecosystem",
+  "description": "Stakeholder relationships, risk indicators, and recommendation engine.",
+  "cards": [
+    {
+      "name": "Stakeholder Ecosystem",
+      "dataset_query": "dashboards/metabase/sql/69_stakeholder_ecosystem.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

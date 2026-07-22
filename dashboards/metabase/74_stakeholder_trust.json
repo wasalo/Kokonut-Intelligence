@@ -1,0 +1,16 @@
+{
+  "title": "Stakeholder Trust",
+  "description": "Trust profiles, evidence, dispute performance, and risk indicators.",
+  "cards": [
+    {
+      "name": "Stakeholder Trust",
+      "dataset_query": "dashboards/metabase/sql/74_stakeholder_trust.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

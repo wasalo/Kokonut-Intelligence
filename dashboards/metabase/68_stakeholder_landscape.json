@@ -1,0 +1,16 @@
+{
+  "title": "Stakeholder Landscape",
+  "description": "Party types, salience assessments, and relationship mapping across stakeholders.",
+  "cards": [
+    {
+      "name": "Stakeholder Landscape",
+      "dataset_query": "dashboards/metabase/sql/68_stakeholder_landscape.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

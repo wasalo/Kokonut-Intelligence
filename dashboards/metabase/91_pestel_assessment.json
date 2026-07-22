@@ -1,0 +1,16 @@
+{
+  "title": "PESTEL Assessment",
+  "description": "Political, economic, social, technological, environmental, legal factor analysis.",
+  "cards": [
+    {
+      "name": "PESTEL Assessment",
+      "dataset_query": "dashboards/metabase/sql/91_pestel_assessment.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "strategy_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}
