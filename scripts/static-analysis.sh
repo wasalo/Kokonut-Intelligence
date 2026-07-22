@@ -6,7 +6,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTRACTS_DIR="$PROJECT_DIR/contracts"
 ARTIFACT_DIR="${ANALYSIS_ARTIFACT_DIR:-$PROJECT_DIR/artifacts/static-analysis}"
 EXIT_CODE=0
-export PATH="$HOME/Library/Python/3.9/bin:$HOME/.cargo/bin:$PATH"
+export PATH="$HOME/Library/Python/3.9/bin:$HOME/.cargo/bin:$HOME/.foundry/bin:$PATH"
 mkdir -p "$ARTIFACT_DIR"
 cd "$PROJECT_DIR"
 
