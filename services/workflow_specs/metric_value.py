@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 METRIC_VALUE = register(WorkflowSpec(
     id="metric_value",
     title="Metric Value Lifecycle",

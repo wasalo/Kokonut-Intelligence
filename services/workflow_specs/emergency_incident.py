@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 SPEC_NAME = register(WorkflowSpec(
     id="emergency_incident",
     title="Emergency Incident Lifecycle",

@@ -2,7 +2,6 @@
 
 from .model import WorkflowMetadata
 
-
 _COMMON_AUDIT = (
     "Lifecycle transitions are recorded with actor and timestamp.",
     "Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.",

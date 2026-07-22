@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 COORDINATION_ALLIANCE = register(WorkflowSpec(
     id="coordination_alliance",
     title="Coordination Alliance Governance Workflow",

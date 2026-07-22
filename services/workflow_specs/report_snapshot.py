@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 REPORT_SNAPSHOT = register(WorkflowSpec(
     id="report_snapshot",
     title="Report Snapshot Lifecycle",

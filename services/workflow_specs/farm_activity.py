@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 FARM_ACTIVITY = register(WorkflowSpec(
     id="farm_activity",
     title="Farm Activity Lifecycle",

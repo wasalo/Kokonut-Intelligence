@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 AI_SUMMARY = register(WorkflowSpec(
     id="ai_summary",
     title="AI Summary Lifecycle",

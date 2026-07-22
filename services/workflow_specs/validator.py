@@ -3,7 +3,7 @@
 from collections import defaultdict, deque
 from typing import Dict, List, Set, Tuple
 
-from .model import Step, Transition, WorkflowSpec
+from .model import Step, WorkflowSpec
 
 HIGH_RISK_ACTIONS = frozenset(
     {

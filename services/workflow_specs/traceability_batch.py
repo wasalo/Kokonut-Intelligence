@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 SPEC_NAME = register(WorkflowSpec(
     id="traceability_batch",
     title="Traceability Batch Lifecycle",

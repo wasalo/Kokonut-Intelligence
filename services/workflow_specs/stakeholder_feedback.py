@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 STAKEHOLDER_FEEDBACK = register(WorkflowSpec(
     id="stakeholder_feedback",
     title="Stakeholder Feedback Lifecycle",

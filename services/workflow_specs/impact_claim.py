@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 IMPACT_CLAIM = register(WorkflowSpec(
     id="impact_claim",
     title="Impact Claim Lifecycle",

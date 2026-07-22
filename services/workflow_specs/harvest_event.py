@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 HARVEST_EVENT = register(WorkflowSpec(
     id="harvest_event",
     title="Harvest Event Lifecycle",

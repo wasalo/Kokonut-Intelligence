@@ -3,8 +3,8 @@
 from dataclasses import replace
 from typing import Dict, Tuple
 
-from .model import WorkflowSpec
 from .metadata import metadata_for
+from .model import WorkflowSpec
 
 _SPECS: Dict[str, WorkflowSpec] = {}
 
@@ -32,10 +32,27 @@ def list_specs() -> Tuple[WorkflowSpec, ...]:
 def load_builtin_specs() -> None:
     """Import built-in specifications once."""
     from . import (  # noqa: F401
-        carbon_retirement, event_bus, work_item, budget, objective, project,
-        data_stream_post, ai_summary, impact_claim, report_snapshot,
-        stakeholder_feedback, farm_activity, harvest_event, metric_value,
-        traceability_batch, insurance_claim, pest_intervention,
-        emergency_incident, cooperative_order, extension_enrollment,
-        market_order, coordination_alliance, governance,
+        ai_summary,
+        budget,
+        carbon_retirement,
+        cooperative_order,
+        coordination_alliance,
+        data_stream_post,
+        emergency_incident,
+        event_bus,
+        extension_enrollment,
+        farm_activity,
+        governance,
+        harvest_event,
+        impact_claim,
+        insurance_claim,
+        market_order,
+        metric_value,
+        objective,
+        pest_intervention,
+        project,
+        report_snapshot,
+        stakeholder_feedback,
+        traceability_batch,
+        work_item,
     )

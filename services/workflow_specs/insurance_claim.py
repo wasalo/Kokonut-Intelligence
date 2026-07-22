@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 SPEC_NAME = register(WorkflowSpec(
     id="insurance_claim",
     title="Insurance Claim Lifecycle",

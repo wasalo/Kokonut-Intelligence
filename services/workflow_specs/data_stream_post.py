@@ -3,7 +3,6 @@
 from .model import Step, Transition, WorkflowSpec
 from .registry import register
 
-
 DATA_STREAM_POST = register(WorkflowSpec(
     id="data_stream_post",
     title="Data Stream Post Lifecycle",
