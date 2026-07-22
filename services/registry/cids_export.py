@@ -164,7 +164,12 @@ def fetch_cids_source(conn, location_id: str) -> dict[str, Any]:
         SELECT sf.*, em.label AS evidence_maturity_label
         FROM stakeholder_feedback sf
         LEFT JOIN evidence_maturity_level em ON em.level = sf.evidence_maturity
-        WHERE sf.location_id = %s AND sf.status IN ('verified', 'published')
+        WHERE sf.location_id = %s
+          AND sf.is_public = TRUE
+          AND sf.consent_given = TRUE
+          AND sf.consent_scope IN ('public_summary', 'public_quote', 'public_full')
+          AND sf.status = 'published'
+          AND NULLIF(TRIM(COALESCE(sf.public_summary, '')), '') IS NOT NULL
         ORDER BY sf.feedback_date, sf.id
         """,
         (location_id,),
