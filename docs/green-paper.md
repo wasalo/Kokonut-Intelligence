@@ -4,6 +4,7 @@
 **Date:** July 2026
 **Status:** Codebase Parity Draft
 **License:** Apache License 2.0
+**Review status:** Human stakeholder, privacy, and execution review required before public release.
 
 ---
 
@@ -41,6 +42,8 @@
 ## 1. Purpose
 
 This Green Paper is the stakeholder document for the Kokonut Intelligence Platform. It reconciles the publication narrative with the implemented repository while preserving privacy and surfacing uncertainty. It remains subject to human stakeholder sign-off before publication.
+
+This is a capability and governance paper, not an independent impact evaluation. A described schema, service, report, or command demonstrates implemented platform capability; it does not by itself demonstrate populated pilot evidence, verified outcomes, or external validation.
 
 **Audience:** Funders, impact investors, partners, reviewers, standards bodies, and the broader regenerative agriculture community.
 
@@ -83,7 +86,7 @@ Reviewers and partners should use the Evidence Maturity Model (Section 6) and Pu
 
 Kokonut Intelligence is an open-source intelligence layer for regenerative farm operations, financial performance, ecological outcomes, partner reporting, and Web3 verification. It is designed to make regenerative farm evidence comparable while preserving privacy and surfacing uncertainty.
 
-The platform combines PostgreSQL and Directus as the canonical schema and API layer, ClickHouse for analytical events, Python services for metrics and forecasting, EAS on Celo for public verification metadata, and Gnosis Moloch DAO for treasury governance. The system is built to serve farm operators, partners, reviewers, and the broader regenerative agriculture community.
+The platform combines PostgreSQL and Directus as the canonical schema and API layer, ClickHouse for analytical events, Python services for metrics and forecasting, EAS on Celo for public attestation metadata, and Gnosis governance records for treasury coordination. The current governance layer includes a read-first Moloch v3/Baal adapter, while the legacy Moloch v2 indexer remains a separate historical integration. The system is built to serve farm operators, partners, reviewers, and the broader regenerative agriculture community.
 
 ### Core Principles
 
@@ -118,6 +121,17 @@ The platform combines PostgreSQL and Directus as the canonical schema and API la
 | | Commons governance | Anti-capture policies, flexible redistribution, federation/mutual-aid protocols, algorithmic redistribution, and participatory signals.^[40]^ |
 | **AI & Workflows** | Agent-assisted workflows | CIDS export, feedback synthesis, and report preparation with draft-only outputs. |
 | | Stakeholder feedback | Private-by-default feedback with consent management and public-safe summaries. |
+
+### Claims At A Glance
+
+The following distinction applies throughout this paper: implementation is not the same as evidence, and evidence is not the same as external validation.
+
+| Claim type | What supports it | Public interpretation |
+|---|---|---|
+| Platform capability | Code, migrations, tests, and operator commands | The feature is implemented or configured; this does not prove a pilot outcome. |
+| Pilot evidence | Populated Adelphi records with dates, lineage, and source coverage | The evidence describes the available pilot record and its limitations. |
+| Governed evidence | Human review, lifecycle state, evidence links, consent, and applicable public gates | The record may be eligible for a defined public use. |
+| External validation | Independent verifier, methodology reference, and externally reviewable evidence | Required for claims presented as externally verified, especially public carbon claims. |
 
 ---
 
@@ -277,7 +291,7 @@ The repository currently contains 331 ordered PostgreSQL migrations, six ClickHo
 
 ## 5. Data Lifecycle
 
-Every important record follows a canonical four-state lifecycle:
+Many governed records generally follow a canonical four-state lifecycle:
 
 ```
 draft → submitted → verified → published
@@ -289,6 +303,8 @@ draft → submitted → verified → published
 - **Published:** Available to dashboards, APIs, attestations.
 
 `rejected` is available for rework and exception paths. Payment, attestation, execution, and domain-specific states live in dedicated fields such as `payment_status`, `attestation_uid`, `attested_at`, `execution_status`, and `revocation_date`.^[2]^
+
+This lifecycle is not universal. Market orders, metric verification, credit retirement, proposals, work items, and other domains have their own state machines or verification flags. Their domain-specific rules remain authoritative.
 
 Metric computation writes draft `metric_value` records; it does not verify them. Verification is a separate, explicit human action. Forecast execution similarly moves a scenario to `submitted`, not to `verified` or `published`.
 
@@ -318,7 +334,7 @@ Directus hooks enforce review workflows for stakeholder feedback, stakeholder ou
 
 ## 6. Evidence Maturity Model
 
-Kokonut uses a 0-6 evidence maturity model across impact claims, MRV claims, stakeholder feedback, and public reporting.^[6]^
+Kokonut uses a 0-6 evidence maturity reference model for records that describe claims, measurements, outcomes, scorecards, and supporting evidence.^[6]^ Maturity is one governance dimension, not a universal publication switch. Publication also depends on lifecycle status, public flags, consent, evidence links, registry eligibility, metric verification, claim type, methodology, and external verification where applicable.
 
 | Level | Key | Public Claim | Meaning |
 |---:|---|---|---|
@@ -330,12 +346,21 @@ Kokonut uses a 0-6 evidence maturity model across impact claims, MRV claims, sta
 | 5 | `attested_record` | Yes | Evidence-linked record with attestation. |
 | 6 | `externally_verified` | Yes | Externally verified record with methodology and verifier reference. |
 
-### Public Claim Eligibility
+### Object-Specific Publication Gates
 
-- Levels 0-3 are internal or pre-publication evidence states.
-- Level 4 is the minimum maturity for ordinary public impact claims.
-- Level 5 records may include onchain/offchain attestations, but still need reviewer interpretation.
-- Level 6 is required when a public carbon claim could be read as externally verified.
+The maturity reference table is not a universal gate for every output. The effective gates are object-specific:
+
+| Object/output | Effective gate |
+|---|---|
+| Ordinary public `impact_claim` | `public_claim = TRUE`, `status = 'published'`, maturity >= 4, and registry-backed location. |
+| Public carbon `impact_claim` | Published, maturity 6, carbon claim type/category, external verifier, and methodology reference. |
+| Stakeholder feedback | `is_public = TRUE`, explicit consent and public scope, published status, and non-empty `public_summary`; no universal maturity >= 4 rule. |
+| Public metric summary | Verified metric value, active metric definition, active/registry-backed location; base metric tables have no maturity field. |
+| Attestation summary | Verified/published Celo attestation and registry-backed location; attestation is not external verification. |
+| Report snapshot | Governed report lifecycle and report-specific source gates; no universal maturity gate. |
+| CIDS export | Verified/published source records with maturity labels where available and public-safe source filtering. |
+
+Levels 0-3 are generally internal or pre-publication evidence states; Levels 4-6 indicate increasing evidence strength, not automatic publication.
 
 ### Public Carbon Claims
 
@@ -423,7 +448,7 @@ python3 -m services.agents.cids_agent --location-id UUID --summary
 
 ### Governance Boundary
 
-CIDS export does not create or publish canonical records. Directus/PostgreSQL lifecycle state, evidence maturity, consent fields, and public-safe views determine what may appear in partner-facing outputs.
+CIDS export does not create or publish canonical records. Directus/PostgreSQL lifecycle state, evidence maturity, consent fields, public-safe views, and exporter-side public filters determine what may appear in partner-facing outputs. Stakeholder feedback is exported only when `is_public = TRUE`, consent is explicit and public-scoped, status is `published`, and `public_summary` is non-empty.
 
 ### Compatibility Notes
 
@@ -449,6 +474,7 @@ Stakeholder feedback is private by default. Public Green Paper outputs can inclu
 
 Public feedback requires all of the following:
 
+- `is_public = TRUE`
 - `consent_given = TRUE`
 - `consent_scope` is `public_summary`, `public_quote`, or `public_full`
 - `status = 'published'`
@@ -601,9 +627,9 @@ Reviewers may use agent outputs as evidence preparation, but final publication, 
 
 ---
 
-## 11. Web3 Verification
+## 11. Web3 Attestation Metadata
 
-Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet, and `KokonutResolver` gates attestation to allowed attesters under Kokonut multisig ownership.^[17]^
+Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Celo mainnet, and `KokonutResolver` gates attestation to allowed attesters under Kokonut multisig ownership.^[17]^ An EAS record proves that an attestation was submitted under a schema and resolver policy; it does not independently prove the underlying measurement, methodology, or verifier's conclusion. Public claims still require the applicable evidence, lifecycle, consent, registry, and external-verification gates.
 
 ### Deployed Contracts
 
@@ -630,7 +656,7 @@ Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Ce
 
 ### Resolver Ownership
 
-Resolver ownership is transferred to the Kokonut multisig. The resolver gates attestation to allowed attesters only.
+Resolver ownership is transferred to the Kokonut multisig. The resolver gates attestation to allowed attesters only. Contract addresses and schema UIDs are deployment metadata and should be checked against the configured chain and current deployment status before operational use.
 
 ### Private Evidence Strategy
 
@@ -1016,7 +1042,7 @@ Kokonut Green Paper reports should be useful to partners without overstating evi
 - `negative_findings`
 - `affected_community_voice`
 
-The report registry includes farm, crop, environmental, financial, EBF, stakeholder, business, strategy, process-health, ecosystem, tactical, simulation, strategic-reserve, and capital-accounting reports. `--auto` runs every registered generator for the selected scope; it does not imply that every report has sufficient source evidence.
+The report registry includes farm, crop, environmental, financial, EBF, stakeholder, business, strategy, process-health, ecosystem, tactical, simulation, strategic-reserve, and capital-accounting reports. `--auto` attempts every registered generator independently; successful reports may persist when another generator fails, and the command exits nonzero if any generator fails. It does not imply that every report has sufficient source evidence. Scope and date-filter behavior remain report-specific rather than universal.
 
 Representative report families include:
 
@@ -1044,7 +1070,7 @@ Financial sustainability reports are planning evidence, not guarantees. Scaling 
 Use the Evidence Gap and Stakeholder Feedback dashboards before publishing Green Paper materials. Claims with missing evidence links, public claims below maturity thresholds, or carbon claims below Level 6 should be treated as review items rather than public proof.^[22]^
 
 ```bash
-# Generate all report types for a location
+# Attempt all registered report types for a location; partial success is possible
 python3 -m services.export.report_generator --auto --location-id UUID
 
 # Generate climate impact report
@@ -1145,13 +1171,15 @@ Kokonut Adelphi (`kokonut-adelphi`) is the canonical pilot/demo farm and the fir
 
 ### Key Facts
 
+The following values are repository seed/configuration facts unless a separate source and verification status is stated. They should be treated as of the document review date, not as independently audited field measurements.
+
 | Field | Value |
 |-------|-------|
 | Total area | 15,725 m² |
 | Agricultural land | 13,838 m² |
 | Registry slug | `kokonut-adelphi` |
 | Hub reference | `https://hub.kokonut.network/projects/41` |
-| Public goods allocation | 10% |
+| Public goods allocation | 10% (seeded/configured value; confirm whether it represents an actual allocation or a policy target before publication) |
 
 ### Products
 
@@ -1194,7 +1222,9 @@ Framework reference data is seeded by `schemas/seeds/023_impact_frameworks.sql` 
 
 ### Verification
 
-The MVP verifier asserts that Kokonut Adelphi identity, operational records, source lineage, governed metric values, public views, MRV/attestation readiness, Celo EAS schema metadata, Gnosis DAO metadata, framework reference data, Colony-backed Guild records, forecasts, dashboard datasets, environmental baselines, Web3 usage, schema versions, metric versions, and agent summary permissions are present and coherent.^[28]^
+The MVP verifier asserts that Kokonut Adelphi identity, operational records, source lineage, governed metric values, public views, MRV/attestation readiness, Celo EAS schema metadata, Gnosis DAO metadata, framework reference data, Colony-backed Guild records, forecasts, dashboard datasets, environmental baselines, Web3 usage, schema versions, metric versions, and agent summary permissions are present and coherent.^[28]^ This is a repository and configuration integrity check, not independent validation of field outcomes, causal impact, or external verification.
+
+Before public release, the pilot section should add an evidence inventory with record counts, observation date ranges, source coverage, missingness, lifecycle status, maturity, consent/publication status, and independent-verification status for each claimed outcome. Empty or seeded records should be labeled explicitly rather than inferred as demonstrated impact.
 
 ---
 
@@ -1228,13 +1258,11 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 | Shannon Diversity Index | Ecological measure of species diversity |
 | Solidity | Programming language for Ethereum-compatible smart contracts |
 | OODA | Observe, Orient, Decide, Act; the platform's governed intelligence loop |
-| CRISP | Internal five-dimension risk scoring engine with configurable weights and AAA-D bands |
 | Delphi | Real-time, pseudonymous expert consultation and consensus process |
 | IRI | Stable, versioned `kokonut:` identifier for a governed entity |
 | RDF | Resource Description Framework used for linked-data triples |
 | SPARQL | Query language translated to supported SQL patterns over RDF triples |
 | BPM | Business Process Management; lifecycle, mining, prediction, control, and escalation tooling |
-| EBF | Ecological Benefits Framework; seven-pillar scoring and evidence model |
 | StratML | ISO 17469-1 strategy interchange projection |
 | dMRV | Digital Measurement, Reporting, and Verification using sensors, remote sensing, and evidence controls |
 
@@ -1338,7 +1366,9 @@ The MVP verifier asserts that Kokonut Adelphi identity, operational records, sou
 
 ---
 
-## Appendix A: Review Commands
+## Appendix A: Developer and Operator Review Commands
+
+These commands are for repository operators and reviewers with an appropriately configured environment. They may write database state, require running services, or generate draft records; they are not required for a general public reading of this paper. Use the read-only report/export commands where possible and review prerequisites in the linked operating guides.
 
 ```bash
 # Schema and seeds
