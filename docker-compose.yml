@@ -191,7 +191,7 @@ services:
     networks:
       - databases
     healthcheck:
-      test: ["CMD-SHELL", "mosquitto_sub -h localhost -p 8883 --cafile /mosquitto/certs/ca.crt --cert /mosquitto/certs/healthcheck.crt --key /mosquitto/certs/healthcheck.key -t '$$SYS/#' -C 1 -i healthcheck -W 3 | grep -q . || exit 1"]
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -p 8883 --cafile /mosquitto/certs/ca.crt --cert /mosquitto/certs/healthcheck.crt --key /mosquitto/certs/healthcheck.key -t '$$SYS/#' -C 1 -i healthcheck -W 12 | grep -q . || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
