@@ -21,6 +21,25 @@ Spec: `metric_value`
 - `schemas/postgres/007_modeled_outputs.sql`
 - `services/metrics/engine.py`
 
+## Governance Controls
+
+- Computation creates draft values; a human verifies values before public exposure.
+- Agents cannot verify or publish metric values.
+
+## Data and Persistence
+
+- metric_value | metric definition, period, source records, verification
+
+## Audit Controls
+
+- Formula version, source lineage, reviewer, and verification notes are retained.
+
+## Tests
+
+- `tests/test_metrics.py`
+- `tests/test_bpm_state_models.py`
+- `tests/test_evidence_lineage_integrity.py`
+
 ## Mermaid
 
 ```mermaid

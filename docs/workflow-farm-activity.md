@@ -30,6 +30,24 @@ Spec: `farm_activity`
 - `schemas/postgres/003_operations.sql`
 - `services/ingestion/sensor_ingester.py`
 
+## Governance Controls
+
+- Human verification is required before publication or metric use.
+- Operational parent context must agree with location, plot, and crop cycle constraints.
+
+## Data and Persistence
+
+- farm_activity | location, plot, crop cycle, source lineage
+
+## Audit Controls
+
+- source_system, source_id, and source_raw preserve ingestion provenance.
+
+## Tests
+
+- `tests/test_metrics.py`
+- `tests/test_relational_integrity.py`
+
 ## Mermaid
 
 ```mermaid

@@ -53,6 +53,25 @@ Spec: `carbon_retirement`
 - `schemas/postgres/078_carbon_credits.sql`
 - `schemas/postgres/163_carbon_retirement_integrity.sql`
 
+## Governance Controls
+
+- Independent human confirmation is required before final retirement or certificate use.
+- Reservation and balance mutations must be atomic and idempotent.
+
+## Data and Persistence
+
+- credit_retirement | credit balance, reservation, retirement certificate
+
+## Audit Controls
+
+- Idempotency keys and reviewer identity are retained with the retirement ledger.
+- Certificate linkage follows confirmed retirement only.
+
+## Tests
+
+- `tests/test_carbon_credits.py`
+- `tests/test_bpm_state_models.py`
+
 ## Mermaid
 
 ```mermaid

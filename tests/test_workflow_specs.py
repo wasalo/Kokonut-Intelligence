@@ -7,6 +7,7 @@ from services.workflow_specs import (
     Transition,
     WorkflowSpec,
     WorkflowValidationError,
+    list_specs,
     render_markdown,
     render_mermaid,
     validate,
@@ -89,3 +90,16 @@ def test_rendering_is_deterministic():
     assert render_markdown(first) == render_markdown(second)
     assert render_mermaid(first) == render_mermaid(second)
     assert render_markdown(first).index("a_end") < render_markdown(first).index("z_end")
+
+
+def test_builtin_specs_include_implementation_parity_metadata():
+    for workflow in list_specs():
+        assert workflow.metadata.governance_controls
+        assert workflow.metadata.data_sources
+        assert workflow.metadata.audit_controls
+        assert workflow.metadata.test_refs
+        rendered = render_markdown(workflow)
+        assert "## Governance Controls" in rendered
+        assert "## Data and Persistence" in rendered
+        assert "## Audit Controls" in rendered
+        assert "## Tests" in rendered

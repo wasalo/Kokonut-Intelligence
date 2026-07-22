@@ -29,6 +29,24 @@ Spec: `objective`
 - `services/planning/performance.py`
 - `services/management/workbench.py`
 
+## Governance Controls
+
+- Human review determines objective health.
+- Off-track objectives require a corrective work item; reopening requires a new review.
+
+## Data and Persistence
+
+- objective | KPI targets, reviews, corrective work items
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_objective_performance.py`
+
 ## Mermaid
 
 ```mermaid

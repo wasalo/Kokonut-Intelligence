@@ -41,6 +41,24 @@ Spec: `work_item`
 - `services/management/workbench.py`
 - `services/management/responsibility.py`
 
+## Governance Controls
+
+- A work item requires an assignee and exactly one accountable responsibility before start.
+- Claims, leases, escalation, and completion are durable.
+
+## Data and Persistence
+
+- work_item | assignment, claims, events, responsibilities, SLA
+
+## Audit Controls
+
+- Assignment, blocker, completion, cancellation, and SLA timestamps are recorded.
+
+## Tests
+
+- `tests/test_management_workflow.py`
+- `tests/test_responsibility_assignment.py`
+
 ## Mermaid
 
 ```mermaid

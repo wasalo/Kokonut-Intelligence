@@ -30,6 +30,24 @@ Spec: `governance_proposal`
 
 - `schemas/postgres/246_governance_proposals.sql`
 
+## Governance Controls
+
+- Human approval requires material harm and consent objections to be resolved.
+- Implementation requires a linked work item.
+
+## Data and Persistence
+
+- governance_proposal | evidence, objections, work item
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_governance_proposals.py`
+
 ## Mermaid
 
 ```mermaid

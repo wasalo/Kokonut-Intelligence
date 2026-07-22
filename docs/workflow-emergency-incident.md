@@ -27,6 +27,23 @@ Spec: `emergency_incident`
 
 - `schemas/postgres/194_process_taxonomy_expansion.sql`
 
+## Governance Controls
+
+- Human verification is required before compliance publication.
+
+## Data and Persistence
+
+- emergency_incident | response actions and remediation evidence
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_emergency_response.py`
+
 ## Mermaid
 
 ```mermaid

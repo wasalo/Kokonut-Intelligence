@@ -30,6 +30,26 @@ Spec: `impact_claim`
 - `schemas/postgres/031_impact_claims_and_cids.sql`
 - `services/agents/tasks.py`
 
+## Governance Controls
+
+- Human verification is required for publication.
+- Public claims require evidence maturity; public carbon claims require maturity 6, third-party verification, and methodology.
+
+## Data and Persistence
+
+- impact_claim | evidence links, maturity, verifier, methodology
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_ebf_carbon_gates.py`
+- `tests/test_ebf_p0.py`
+- `tests/test_ebf_schema.py`
+
 ## Mermaid
 
 ```mermaid

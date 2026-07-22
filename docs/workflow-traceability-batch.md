@@ -28,6 +28,23 @@ Spec: `traceability_batch`
 - `schemas/postgres/003_operations.sql`
 - `schemas/postgres/194_process_taxonomy_expansion.sql`
 
+## Governance Controls
+
+- Human custody-chain verification is required before provenance publication.
+
+## Data and Persistence
+
+- produce_batch | custody, quality, certification, provenance, food safety
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_traceability.py`
+
 ## Mermaid
 
 ```mermaid

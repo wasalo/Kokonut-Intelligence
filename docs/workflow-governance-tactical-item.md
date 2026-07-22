@@ -21,6 +21,23 @@ Spec: `governance_tactical_item`
 
 - `schemas/postgres/247_governance_tactical_coordination.sql`
 
+## Governance Controls
+
+- An owner and explicit disposition are required before closure.
+
+## Data and Persistence
+
+- governance_tactical_item | owner, disposition, outcome
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_governance_tactical.py`
+
 ## Mermaid
 
 ```mermaid

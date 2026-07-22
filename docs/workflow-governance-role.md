@@ -26,6 +26,24 @@ Spec: `governance_role`
 
 - `schemas/postgres/242_governance_circles_roles.sql`
 
+## Governance Controls
+
+- A role is independent of its assignee.
+- Activation requires an active governance circle and human approval.
+
+## Data and Persistence
+
+- governance_role | role definition, accountabilities, circle
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_governance_links.py`
+
 ## Mermaid
 
 ```mermaid

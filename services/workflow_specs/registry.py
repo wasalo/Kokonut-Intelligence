@@ -1,8 +1,10 @@
 """In-process workflow specification registry."""
 
+from dataclasses import replace
 from typing import Dict, Tuple
 
 from .model import WorkflowSpec
+from .metadata import metadata_for
 
 _SPECS: Dict[str, WorkflowSpec] = {}
 
@@ -10,6 +12,8 @@ _SPECS: Dict[str, WorkflowSpec] = {}
 def register(spec: WorkflowSpec) -> WorkflowSpec:
     if spec.id in _SPECS:
         raise ValueError(f"workflow spec already registered: {spec.id}")
+    if not spec.metadata.governance_controls and not spec.metadata.data_sources:
+        spec = replace(spec, metadata=metadata_for(spec.id))
     _SPECS[spec.id] = spec
     return spec
 

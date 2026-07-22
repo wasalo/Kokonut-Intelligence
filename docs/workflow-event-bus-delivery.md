@@ -48,6 +48,23 @@ Spec: `event_bus_delivery`
 - `schemas/postgres/116_event_bus.sql`
 - `schemas/postgres/165_event_bus_durability.sql`
 
+## Governance Controls
+
+- Lease ownership prevents concurrent claims.
+- Retries are bounded; replay and disposal require an operator.
+
+## Data and Persistence
+
+- event_handler_delivery | leases, attempts, handler results, dead letters
+
+## Audit Controls
+
+- Lease owner, expiry, attempt number, retry reason, and dead-letter disposition are durable.
+
+## Tests
+
+- `tests/test_event_bus_durability.py`
+
 ## Mermaid
 
 ```mermaid

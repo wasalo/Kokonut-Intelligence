@@ -27,6 +27,24 @@ Spec: `pest_intervention`
 
 - `schemas/postgres/194_process_taxonomy_expansion.sql`
 
+## Governance Controls
+
+- Human IPM-compliance verification is required before publication.
+- Published intervention data feeds resistance and compliance tracking.
+
+## Data and Persistence
+
+- pest_intervention | scouting, IPM method, pesticide and resistance records
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_pest_management.py`
+
 ## Mermaid
 
 ```mermaid

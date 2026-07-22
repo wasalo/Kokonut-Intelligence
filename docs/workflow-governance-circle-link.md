@@ -118,6 +118,23 @@ Spec: `governance_circle_link`
 
 - `schemas/postgres/248_governance_circle_links.sql`
 
+## Governance Controls
+
+- Active links require active circles, an active assignment, a mandate, and human approval.
+
+## Data and Persistence
+
+- governance_circle_link | source circle, target circle, mandate
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_governance_links.py`
+
 ## Mermaid
 
 ```mermaid

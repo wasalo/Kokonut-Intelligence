@@ -27,6 +27,23 @@ Spec: `insurance_claim`
 
 - `schemas/postgres/194_process_taxonomy_expansion.sql`
 
+## Governance Controls
+
+- Human validity review is required before payout processing.
+
+## Data and Persistence
+
+- insurance_claim | policy, claimant, evidence, adjustment
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_digital_finance.py`
+
 ## Mermaid
 
 ```mermaid

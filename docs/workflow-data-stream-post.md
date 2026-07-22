@@ -31,6 +31,24 @@ Spec: `data_stream_post`
 - `schemas/postgres/100_data_stream.sql`
 - `services/data_stream/cli.py`
 
+## Governance Controls
+
+- Public visibility requires a verified or published farm registry record.
+- Agents cannot verify or publish posts; consent and redaction boundaries remain explicit.
+
+## Data and Persistence
+
+- data_stream_post | comments, files, EAS anchor metadata
+
+## Audit Controls
+
+- Public publication retains reviewer, consent, redaction, and anchor evidence.
+
+## Tests
+
+- `tests/test_data_stream.py`
+- `tests/test_workflow_spec_conformance.py`
+
 ## Mermaid
 
 ```mermaid

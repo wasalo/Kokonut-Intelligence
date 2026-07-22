@@ -24,6 +24,25 @@ Spec: `governance_circle`
 
 - `schemas/postgres/242_governance_circles_roles.sql`
 
+## Governance Controls
+
+- Purpose and scope are required before human activation.
+- Suspension and retirement require explicit governance rationale.
+
+## Data and Persistence
+
+- governance_circle | purpose, scope, memberships
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_governance_links.py`
+- `tests/test_process_architecture.py`
+
 ## Mermaid
 
 ```mermaid

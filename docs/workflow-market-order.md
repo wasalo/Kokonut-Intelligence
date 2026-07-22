@@ -26,6 +26,25 @@ Spec: `market_order`
 - `schemas/postgres/186_process_state_models.sql`
 - `schemas/postgres/187_state_model_triggers.sql`
 
+## Governance Controls
+
+- Seller confirmation and shipment evidence are required for later states.
+- Cancellation remains an explicit governed path.
+
+## Data and Persistence
+
+- market_order | buyer, seller, payment, carrier, delivery
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_marketplace.py`
+- `tests/test_bpm_state_models.py`
+
 ## Mermaid
 
 ```mermaid

@@ -30,6 +30,25 @@ Spec: `stakeholder_feedback`
 - `schemas/postgres/030_stakeholder_feedback.sql`
 - `services/agents/feedback_agent.py`
 
+## Governance Controls
+
+- Feedback is private by default.
+- Public feedback requires explicit consent, a non-empty public summary, published status, and the minimum review period.
+
+## Data and Persistence
+
+- stakeholder_feedback | consent, review, public summary, outcomes
+
+## Audit Controls
+
+- Consent scope, review period, redaction, reviewer, and publication decision are retained.
+
+## Tests
+
+- `tests/test_stakeholder_dod_closure.py`
+- `tests/test_cids_export.py`
+- `tests/test_stakeholder_consent.py`
+
 ## Mermaid
 
 ```mermaid

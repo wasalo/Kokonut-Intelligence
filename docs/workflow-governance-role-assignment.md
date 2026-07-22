@@ -22,6 +22,25 @@ Spec: `governance_role_assignment`
 
 - `schemas/postgres/243_governance_role_authority.sql`
 
+## Governance Controls
+
+- Assignment requires human approval and a non-recused party.
+- Suspension and end states require explicit authority disposition.
+
+## Data and Persistence
+
+- governance_role_assignment | party, role, term, recusal
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_governance_links.py`
+- `tests/test_governance_role_authority.py`
+
 ## Mermaid
 
 ```mermaid

@@ -27,6 +27,23 @@ Spec: `extension_enrollment`
 
 - `schemas/postgres/194_process_taxonomy_expansion.sql`
 
+## Governance Controls
+
+- A trainer verifies completion and score before publication.
+
+## Data and Persistence
+
+- extension_enrollment | module, farmer, progress, assessment
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_extension.py`
+
 ## Mermaid
 
 ```mermaid

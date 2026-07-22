@@ -30,6 +30,25 @@ Spec: `harvest_event`
 - `schemas/postgres/003_operations.sql`
 - `schemas/postgres/137_yield_monitoring.sql`
 
+## Governance Controls
+
+- Human verification is required before analytics or carbon use.
+- Harvest context must agree with the crop cycle ownership path.
+
+## Data and Persistence
+
+- harvest_event | plot, crop cycle, crop, source lineage
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_metrics.py`
+- `tests/test_relational_integrity.py`
+
 ## Mermaid
 
 ```mermaid

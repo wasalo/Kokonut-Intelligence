@@ -29,6 +29,24 @@ Spec: `project`
 - `schemas/postgres/178_program_portfolio.sql`
 - `services/planning/portfolio.py`
 
+## Governance Controls
+
+- Managers control start, hold, resume, completion, and cancellation.
+- Hold and cancellation reasons are explicit.
+
+## Data and Persistence
+
+- project | program, manager, milestones, completion evidence
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_program_portfolio.py`
+
 ## Mermaid
 
 ```mermaid

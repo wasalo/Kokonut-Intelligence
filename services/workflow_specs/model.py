@@ -38,6 +38,16 @@ class Step:
 
 
 @dataclass(frozen=True)
+class WorkflowMetadata:
+    """Implementation references rendered alongside a workflow specification."""
+
+    governance_controls: Tuple[str, ...] = field(default_factory=tuple)
+    data_sources: Tuple[str, ...] = field(default_factory=tuple)
+    audit_controls: Tuple[str, ...] = field(default_factory=tuple)
+    test_refs: Tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True)
 class WorkflowSpec:
     """A complete state and control-flow declaration."""
 
@@ -47,3 +57,4 @@ class WorkflowSpec:
     steps: Tuple[Step, ...]
     invariants: Tuple[str, ...] = field(default_factory=tuple)
     source_refs: Tuple[str, ...] = field(default_factory=tuple)
+    metadata: WorkflowMetadata = field(default_factory=WorkflowMetadata)

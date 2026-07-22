@@ -17,7 +17,13 @@ AI_SUMMARY = register(WorkflowSpec(
     ),
     source_refs=(
         "schemas/postgres/007_modeled_outputs.sql",
+        "schemas/postgres/015_constraints.sql",
+        "schemas/postgres/029_impact_accountability_foundation.sql",
+        "schemas/postgres/179_lifecycle_transition.sql",
         "services/agents/ai_summary.py",
+        "services/agents/safety.py",
+        "extensions/kokonut-hooks/src/schemas/ai-summary.ts",
+        "extensions/kokonut-hooks/src/workflow.ts",
     ),
     steps=(
         Step("ais_draft_entry", "generator", "draft", "Generate AI summary", entry=True, transitions=(

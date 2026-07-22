@@ -53,6 +53,27 @@ Spec: `coordination_alliance`
 - `services/analytics/stakeholder_decisions.py`
 - `services/analytics/cooperative_governance.py`
 
+## Governance Controls
+
+- Consent, accessibility, minority views, and separation of duties are required for governed coordination.
+- No workflow step creates an implicit community commitment.
+
+## Data and Persistence
+
+- coordination_alliance | participants, reviews, objectives, obligations
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_coordination.py`
+- `tests/test_coordination_governance.py`
+- `tests/test_coordination_accounting.py`
+- `tests/test_coordination_market_cycles.py`
+
 ## Mermaid
 
 ```mermaid

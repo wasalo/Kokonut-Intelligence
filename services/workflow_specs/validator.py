@@ -30,6 +30,11 @@ def validate(spec: WorkflowSpec) -> None:
     """Validate structure, termination, retry bounds, and approval policy."""
     errors: List[str] = []
     by_id: Dict[str, Step] = {}
+    metadata = spec.metadata
+    for field_name in ("governance_controls", "data_sources", "audit_controls", "test_refs"):
+        values = getattr(metadata, field_name)
+        if any(not isinstance(value, str) or not value.strip() for value in values):
+            errors.append(f"metadata field {field_name} contains an empty or non-string value")
     for step in spec.steps:
         if step.id in by_id:
             errors.append(f"duplicate step id: {step.id}")

@@ -27,6 +27,23 @@ Spec: `cooperative_order`
 
 - `schemas/postgres/194_process_taxonomy_expansion.sql`
 
+## Governance Controls
+
+- A coordinator verifies member commitments before publication.
+
+## Data and Persistence
+
+- cooperative_order | cooperative order and participant commitments
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_cooperative.py`
+
 ## Mermaid
 
 ```mermaid

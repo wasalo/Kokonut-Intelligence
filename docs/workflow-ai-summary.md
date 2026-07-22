@@ -28,7 +28,37 @@ Spec: `ai_summary`
 ## Sources
 
 - `schemas/postgres/007_modeled_outputs.sql`
+- `schemas/postgres/015_constraints.sql`
+- `schemas/postgres/029_impact_accountability_foundation.sql`
+- `schemas/postgres/179_lifecycle_transition.sql`
 - `services/agents/ai_summary.py`
+- `services/agents/safety.py`
+- `extensions/kokonut-hooks/src/schemas/ai-summary.ts`
+- `extensions/kokonut-hooks/src/workflow.ts`
+
+## Governance Controls
+
+- Agents may create only draft summaries; human roles verify and publish.
+- Generation requires a verified or published farm registry record.
+- Eleven catalogue tasks write only ai_summary:draft.
+
+## Data and Persistence
+
+- operations | harvest_event, sales_event, crop_cycle, sensor_reading
+- financial | sales_event, expense_event, noi_snapshot, crop_cycle, crop
+- environmental | soil_carbon_measurement, species_observation, remote_sensing_observation, weather_observation
+- combined | operations + financial + environmental sources
+
+## Audit Controls
+
+- Database, Python safety, Directus Zod, and workflow hooks enforce agent draft-only behavior.
+- The lifecycle transition trigger records every status change.
+
+## Tests
+
+- `tests/test_process_architecture.py`
+- `tests/test_agent_tasks.py`
+- `tests/test_workflow_spec_conformance.py`
 
 ## Mermaid
 

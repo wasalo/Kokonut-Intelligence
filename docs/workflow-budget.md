@@ -29,6 +29,25 @@ Spec: `budget`
 - `schemas/postgres/176_financial_planning.sql`
 - `services/planning/budget.py`
 
+## Governance Controls
+
+- Human approval is required before activation or closure.
+- Agents cannot approve or close budgets.
+
+## Data and Persistence
+
+- budget | budget_line, expense_event, revenue_event
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_planning_budget.py`
+- `tests/test_sandop.py`
+
 ## Mermaid
 
 ```mermaid

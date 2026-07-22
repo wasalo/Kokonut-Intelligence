@@ -30,6 +30,25 @@ Spec: `report_snapshot`
 - `schemas/postgres/007_modeled_outputs.sql`
 - `services/export/report_generator.py`
 
+## Governance Controls
+
+- Human verification is required before publication.
+- Public-interest context, uncertainty, and negative findings remain attached to the snapshot.
+
+## Data and Persistence
+
+- report_snapshot | report generator inputs, evidence, uncertainty context
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_report_governance.py`
+- `tests/test_process_architecture.py`
+
 ## Mermaid
 
 ```mermaid

@@ -28,6 +28,24 @@ Spec: `governance_tension`
 
 - `schemas/postgres/244_governance_tensions.sql`
 
+## Governance Controls
+
+- A triaged or active tension requires an owner.
+- Resolution or deferral requires a rationale and evidence.
+
+## Data and Persistence
+
+- governance_tension | triage owner, resolution, deferral
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_governance_tensions.py`
+
 ## Mermaid
 
 ```mermaid

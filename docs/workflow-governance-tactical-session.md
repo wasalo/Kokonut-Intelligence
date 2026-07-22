@@ -21,6 +21,23 @@ Spec: `governance_tactical_session`
 
 - `schemas/postgres/247_governance_tactical_coordination.sql`
 
+## Governance Controls
+
+- Completion requires recorded outcomes; cancellation requires a reason.
+
+## Data and Persistence
+
+- governance_tactical_session | participants and outcomes
+
+## Audit Controls
+
+- Lifecycle transitions are recorded with actor and timestamp.
+- Rejection, cancellation, or terminal disposition requires an explicit reason where applicable.
+
+## Tests
+
+- `tests/test_governance_tactical.py`
+
 ## Mermaid
 
 ```mermaid

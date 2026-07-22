@@ -34,6 +34,15 @@ def render_markdown(spec: WorkflowSpec) -> str:
             )
     if spec.source_refs:
         lines.extend(("", "## Sources", "", *[f"- `{item}`" for item in spec.source_refs]))
+    metadata = spec.metadata
+    if metadata.governance_controls:
+        lines.extend(("", "## Governance Controls", "", *[f"- {item}" for item in metadata.governance_controls]))
+    if metadata.data_sources:
+        lines.extend(("", "## Data and Persistence", "", *[f"- {item}" for item in metadata.data_sources]))
+    if metadata.audit_controls:
+        lines.extend(("", "## Audit Controls", "", *[f"- {item}" for item in metadata.audit_controls]))
+    if metadata.test_refs:
+        lines.extend(("", "## Tests", "", *[f"- `{item}`" for item in metadata.test_refs]))
     return "\n".join(lines) + "\n"
 
 
