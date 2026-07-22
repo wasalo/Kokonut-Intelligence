@@ -22,7 +22,6 @@ jobs:
         set -euo pipefail
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
         echo "=== [step] Installing Docker CLI ==="
-        # Install Docker CLI inside the container (socket is mounted from host).
         apt-get update -qq && apt-get install -y -qq curl ca-certificates git >/dev/null
         install -m 0755 -d /etc/apt/keyrings
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -31,7 +30,6 @@ jobs:
         apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin python3 python3-venv >/dev/null
         docker --version; docker compose version
         echo "=== [step] Writing CI .env ==="
-        # PR builds use disposable test credentials, never deployment secrets.
         umask 077
         trap 'rm -f .env' EXIT
         cat > .env <<'EOF'
@@ -45,16 +43,37 @@ jobs:
         PUBLIC_URL=http://localhost:8055
         METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
         EOF
+        echo "=== [step] Supply-chain gates ==="
         ./scripts/check-tracked-secrets.sh
         ./scripts/check-image-digests.sh
-        echo "=== [step] Starting services ==="
-        # Remove stale volumes from prior builds so PostgreSQL reinitializes.
+        echo "=== [step] Installing Python deps + security tools ==="
+        apt-get update -qq && apt-get install -y -qq ca-certificates curl openssl libpq-dev gcc xz-utils >/dev/null
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+        apt-get install -y -qq nodejs >/dev/null
+        python3 -m venv .venv
+        . .venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install slither-analyzer==0.11.5 semgrep==1.170.0 ruff pip-audit
+        npm install --global --no-audit --no-fund @@cyfrin/aderyn@@0.6.8
+        curl --proto '=https' --tlsv1.2 -LsSf https://foundry.paradigm.xyz | bash
+        /root/.foundry/bin/foundryup
+        export PATH=/root/.foundry/bin:$PATH
+        ./scripts/verify-ci-toolchain.sh
+        echo "=== [step] Fast-fail: ruff security scan ==="
+        . .venv/bin/activate
+        ruff check --select S,BLE --ignore S101,S104,S105,S110,S112,S301,S310,S311,S320,S404,S603,S607,S608,RUF012,BLE001 services/
+        echo "ruff: PASS"
+        echo "=== [step] Fast-fail: pip-audit ==="
+        pip-audit -r requirements.txt
+        echo "pip-audit: PASS"
+        echo "=== [step] Fast-fail: ci-check (imports + CLIs + TS build) ==="
+        ./scripts/ci-check.sh
+        echo "=== [step] Starting infrastructure ==="
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
-        # Start the services required by database-backed and Directus tests.
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache
         docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
         echo "=== [step] Waiting for PostgreSQL ==="
-        # Wait for PostgreSQL to accept connections.
         for i in $(seq 1 30); do
           docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break
           sleep 1
@@ -77,23 +96,6 @@ jobs:
         rm -f .env.sops
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
-        echo "=== [step] Installing Python deps ==="
-        # Isolate Python deps (host Python 3.11+).
-        apt-get update -qq && apt-get install -y -qq ca-certificates curl openssl libpq-dev gcc xz-utils >/dev/null
-        curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-        apt-get install -y -qq nodejs >/dev/null
-        python3 -m venv .venv
-        . .venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install slither-analyzer==0.11.5 semgrep==1.170.0 ruff pip-audit
-        npm install --global --no-audit --no-fund @@cyfrin/aderyn@@0.6.8
-        # NOTE: foundryup/NodeSource installers are fetched over TLS from official
-        # sources. Pin to a known digest and verify checksums before CI use.
-        curl --proto '=https' --tlsv1.2 -LsSf https://foundry.paradigm.xyz | bash
-        /root/.foundry/bin/foundryup
-        export PATH=/root/.foundry/bin:$PATH
-        ./scripts/verify-ci-toolchain.sh
         echo "=== [step] Connecting CI runner to Compose databases ==="
         DB_CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q database)
         DB_NETWORK=$(docker inspect -f '{{range $network, $_ := .NetworkSettings.Networks}}{{println $network}}{{end}}' "$DB_CONTAINER")
@@ -112,13 +114,7 @@ jobs:
         export PG_HOST=database
         export CH_HOST=clickhouse
         export CI_STRICT_DB=1
-        python scripts/check-python-runtime.py
-        python -c 'import fastapi; from fastapi.testclient import TestClient; print(f"FastAPI {fastapi.__version__}")'
-        echo "=== [step] Running CI checks ==="
-        # The runner is attached to the Compose network, so service DNS names are
-        # reachable without relying on private container IPs or Docker-host loopback.
-        ./scripts/ci-check.sh
-        echo "=== [step] Running test suite ==="
+        echo "=== [step] Full test suite ==="
         ./scripts/verify-full-test-suite.sh
         echo "=== [step] Static analysis ==="
         ./scripts/static-analysis.sh
@@ -131,7 +127,7 @@ jobs:
         echo "=== [step] Directus hooks checks ==="
         (cd extensions/kokonut-hooks && npm ci --no-audit --no-fund && npm run build && npm test)
         echo "=== [step] Done ==="
-        echo "Static analysis complete"
+        echo "All CI checks complete"
     runAs: 0:0
     useTTY: false
     condition: SUCCESSFUL
