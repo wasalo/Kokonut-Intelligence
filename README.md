@@ -88,7 +88,7 @@ Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus and
 | Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
 | Metabase | `https://localhost/metabase` | BI dashboards |
 | gRPC | `localhost:50051` | Host-exposed external API in base Compose; removed by the production overlay |
-| MQTT | `mqtt://127.0.0.1:1883` | Loopback-only sensor broker |
+| MQTT | `mqtts://127.0.0.1:8883` | Loopback-only TLS sensor broker |
 | PostgreSQL | Docker service `database:5432` | Canonical data store; use `docker compose exec database ...` |
 | ClickHouse | Docker service `clickhouse:8123` | Analytical store; use Docker network or `docker compose exec clickhouse ...` |
 | Worker | Compose service `kokonut-worker` | Cron/one-shot Python execution; `compute-metrics.sh` uses an ephemeral `run --rm` worker when the Compose database is running |

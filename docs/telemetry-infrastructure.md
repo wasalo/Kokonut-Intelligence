@@ -119,7 +119,7 @@ Supported collection routes include:
 python3 -m services.ingestion.sensor_ingester --file readings.csv
 python3 -m services.ingestion.sensor_ingester --sensor SENSOR_UUID --value 25.3
 python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056
-python3 -m services.ingestion.mqtt_subscriber --broker BROKER --port 1883
+python3 -m services.ingestion.mqtt_subscriber --broker BROKER --port 8883
 python3 -m services.ingestion.device_manager --list
 python3 -m services.ingestion.device_manager --health --device-id DEVICE_ID
 ```

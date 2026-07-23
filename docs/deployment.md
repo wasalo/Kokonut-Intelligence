@@ -6,7 +6,7 @@
 
 - Docker Desktop (with Docker Compose v2)
 - 4GB+ RAM available for Docker
-- Ports available for base Compose: 80, 443, and 50051; loopback ports 8055 and 1883 must also be available. PostgreSQL, ClickHouse, and Metabase are internal-only. Directus is additionally bound to `127.0.0.1:8055`, MQTT to `127.0.0.1:1883`, and gRPC to host port `50051` in base Compose.
+- Ports available for base Compose: 80, 443, and 50051; loopback ports 8055 and 8883 must also be available. PostgreSQL, ClickHouse, and Metabase are internal-only. Directus is additionally bound to `127.0.0.1:8055`, MQTT TLS to `127.0.0.1:8883`, and gRPC to host port `50051` in base Compose.
 
 ### Quick Start
 
@@ -42,7 +42,7 @@ docker compose ps
 | Metabase | `https://localhost/metabase` | Internal BI dashboards |
 | Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
 | gRPC | `localhost:50051` | gRPC service; host exposure is removed by the production overlay |
-| MQTT | `mqtt://127.0.0.1:1883` | Loopback-only sensor broker |
+| MQTT | `mqtts://127.0.0.1:8883` | Loopback-only TLS sensor broker |
 | PostgreSQL | Docker service `database:5432` | Canonical data store |
 | ClickHouse HTTP | Docker service `clickhouse:8123` | Analytical queries |
 | ClickHouse Native | Docker service `clickhouse:9000` | Native protocol |

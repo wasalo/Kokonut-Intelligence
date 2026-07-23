@@ -297,7 +297,7 @@ Commands:
 - Remote sensing fetch jobs: `python3 -m services.ingestion.remote_sensing_fetcher --list-jobs`
 - Remote sensing run jobs: `python3 -m services.ingestion.remote_sensing_fetcher --run-jobs`
 - Remote sensing create job: `python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID --provider gee`
-- MQTT subscriber: `python3 -m services.ingestion.mqtt_subscriber --broker localhost --port 1883`
+- MQTT subscriber: `python3 -m services.ingestion.mqtt_subscriber --broker localhost --port 8883`
 - HTTP sensor receiver: `python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056`
 - Device manager list: `python3 -m services.ingestion.device_manager --list`
 - Device manager register: `python3 -m services.ingestion.device_manager --register --device-id sensor001 --sensor-type air_temperature --location-id UUID`

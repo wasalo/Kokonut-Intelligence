@@ -39,7 +39,10 @@ mkdir -p "$PROJECT_DIR/data/clickhouse"
 
 # Start services
 echo "Starting infrastructure..."
-docker compose -f "$PROJECT_DIR/docker-compose.yml" up -d
+docker compose \
+    -f "$PROJECT_DIR/docker-compose.yml" \
+    -f "$PROJECT_DIR/docker-compose.override.yml" \
+    up -d
 
 echo ""
 echo "Waiting for services to be healthy..."
@@ -48,7 +51,10 @@ sleep 10
 # Check health
 echo ""
 echo "Service health:"
-docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+docker compose \
+    -f "$PROJECT_DIR/docker-compose.yml" \
+    -f "$PROJECT_DIR/docker-compose.override.yml" \
+    ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 
 echo ""
 echo "=== Setup Complete ==="
