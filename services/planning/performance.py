@@ -8,7 +8,7 @@ from typing import Mapping, Optional, Sequence, Tuple
 from psycopg2.extras import RealDictCursor
 
 from services.common.logging import get_logger
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.planning import model
 from services.workflow_specs.objective import OBJECTIVE
 

@@ -200,7 +200,7 @@ def main() -> None:
     import argparse
     import json
 
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     p = argparse.ArgumentParser(description="Generate business plan")
     p.add_argument("--org-id")

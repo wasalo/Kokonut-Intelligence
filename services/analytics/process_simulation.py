@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.analytics import process_mining as pm, value_stream
 from services.analytics.process_gap import (
     _compute_actual, _compute_gap, _assign_maturity,

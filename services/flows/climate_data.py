@@ -8,12 +8,9 @@ def climate_data_flow():
     """Refresh climate covariates for all locations."""
     import subprocess
     # Get all active locations
-    from services.common.db import PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD
-    import psycopg2
+    from services.common.database import get_db
 
-    conn = psycopg2.connect(
-        host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD,
-    )
+    conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT id FROM location WHERE status = 'active'")
     locations = [r[0] for r in cur.fetchall()]

@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.planning import budget, performance, portfolio, sandop
 
 

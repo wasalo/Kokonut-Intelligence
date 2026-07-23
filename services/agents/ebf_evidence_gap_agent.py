@@ -14,11 +14,11 @@ import psycopg2.extras
 
 from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import validate_output
-from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+from services.common.database import get_db
 
 
 def get_connection():
-    return psycopg2.connect(host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)
+    return get_db()
 
 
 def analyze_evidence_gaps(conn, scorecard_id: str) -> dict[str, Any]:

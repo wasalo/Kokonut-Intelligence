@@ -18,7 +18,7 @@ import sys
 
 
 def cmd_status(args):
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
     from services.scheduler.engine import SchedulerEngine
 
     conn = get_db()
@@ -51,7 +51,7 @@ def cmd_status(args):
 
 
 def cmd_tick(args):
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
     from services.scheduler.engine import SchedulerEngine
 
     conn = get_db()
@@ -65,7 +65,7 @@ def cmd_tick(args):
 
 
 def cmd_enable(args):
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     conn = get_db()
     try:
@@ -92,7 +92,7 @@ def cmd_enable(args):
 
 
 def cmd_disable(args):
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     conn = get_db()
     try:
@@ -122,7 +122,7 @@ def cmd_run_now(args):
     import subprocess
     import sys as _sys
 
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
     from services.security.execution_allowlist import validate_scheduled_module
 
     conn = get_db()
@@ -150,7 +150,7 @@ def cmd_run_now(args):
 
 
 def cmd_list_runs(args):
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     conn = get_db()
     try:

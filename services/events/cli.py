@@ -71,7 +71,7 @@ def cmd_cleanup(args):
 
 
 def cmd_list_handlers(args):
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     conn = get_db()
     try:
@@ -100,7 +100,7 @@ def cmd_list_handlers(args):
 
 
 def cmd_list_dead_letter(args):
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     conn = get_db()
     try:
@@ -309,7 +309,7 @@ def cmd_add_rule(args):
 
 
 def _get_conn():
-    from services.common.env import get_db
+    from services.common.database import get_db
 
     return get_db()
 

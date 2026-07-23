@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 from xml.etree import ElementTree as ET
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from .ids import xml_id
 
 STRATML_NS = "urn:ISO:std:iso:17469:tech:xsd:stratml_core"

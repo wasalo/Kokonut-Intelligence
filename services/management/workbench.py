@@ -15,7 +15,7 @@ from typing import Iterable, Mapping, Optional, Sequence
 from psycopg2.extras import RealDictCursor
 
 from services.common.logging import get_logger
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.management.model import TERMINAL_STATES
 from services.workflow_specs.work_item import WORK_ITEM
 

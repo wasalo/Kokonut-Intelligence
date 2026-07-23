@@ -104,7 +104,7 @@ def main():
         parser.print_help()
         return
 
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     conn = get_db()
 

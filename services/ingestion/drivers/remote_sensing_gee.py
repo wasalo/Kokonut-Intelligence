@@ -14,7 +14,7 @@ class Driver(BaseDriver):
         return True  # Uses GEE service account from env
 
     def discover(self, config: dict) -> list[dict]:
-        from services.ingestion.base import get_db
+        from services.common.database import get_db
 
         db = get_db()
         try:

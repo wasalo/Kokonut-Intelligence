@@ -41,14 +41,15 @@ TRANSIENT_EXCEPTIONS = (
 
 
 def get_db():
-    """Get PostgreSQL connection."""
-    return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASSWORD,
-    )
+    """Get PostgreSQL connection.
+
+    Delegates to :func:`services.common.database.get_db` (the canonical
+    connection factory) to ensure consistent connection parameters across
+    all services.
+    """
+    from services.common.database import get_db as _canonical_get_db
+
+    return _canonical_get_db()
 
 
 def get_clickhouse():

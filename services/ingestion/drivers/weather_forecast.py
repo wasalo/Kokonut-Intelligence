@@ -21,7 +21,7 @@ class Driver(BaseDriver):
         return bool(os.environ.get("OPENWEATHERMAP_API_KEY"))
 
     def discover(self) -> list[dict]:
-        from services.ingestion.base import get_db
+        from services.common.database import get_db
         db = get_db()
         with db.cursor() as cur:
             cur.execute(
@@ -33,7 +33,7 @@ class Driver(BaseDriver):
 
     def fetch(self, location: dict) -> list[dict]:
         from services.ingestion.weather_forecast import fetch_forecast_raw, parse_forecast_list
-        from services.ingestion.base import get_db
+        from services.common.database import get_db
         db = get_db()
         with db.cursor() as cur:
             cur.execute(

@@ -63,7 +63,7 @@ def main():
         }
         module_name = module_map.get(args.dimension, args.dimension)
         mod = importlib.import_module(f".dimensions.{module_name}", package="services.revenue_multiplier")
-        from services.ingestion.base import get_db
+        from services.common.database import get_db
         conn = get_db()
         result = mod.analyze(conn, args.location_id)
         conn.close()

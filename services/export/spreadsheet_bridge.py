@@ -10,7 +10,7 @@ from typing import Any, Iterable
 
 import psycopg2.extras
 
-from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+from services.common.database import get_db
 
 FARM_ACTIVITY_FIELDS = [
     "location_id",
@@ -55,13 +55,7 @@ EBF_EVIDENCE_TYPES = {
 
 
 def get_connection():
-    return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASSWORD,
-    )
+    return get_db()
 
 
 def template_rows() -> list[dict[str, str]]:

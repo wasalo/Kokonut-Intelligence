@@ -9,7 +9,7 @@ from services.analytics.governance_links import approve_link, create_link, end_l
 
 
 def _connection():
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
     return get_db()
 
 

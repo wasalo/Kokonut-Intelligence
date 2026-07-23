@@ -20,7 +20,7 @@ from services.analytics.governance_proposals import (
 
 
 def _connection():
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
     return get_db()
 
 

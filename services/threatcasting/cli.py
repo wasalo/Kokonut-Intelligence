@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 
 
 def _get_conn():
-    from services.common.env import get_db
+    from services.common.database import get_db
     return get_db()
 
 

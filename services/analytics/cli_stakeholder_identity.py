@@ -7,7 +7,7 @@ import json
 import sys
 
 from services.analytics import stakeholder_identity_resolution as identity
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def _out(value):

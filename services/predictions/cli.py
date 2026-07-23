@@ -4,16 +4,13 @@ import argparse
 import json
 from datetime import datetime
 
-import psycopg2
 
-from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+from services.common.database import get_db
 from .service import PredictionService
 
 
 def get_db():
-    return psycopg2.connect(
-        host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD
-    )
+    return get_db()
 
 
 def main():

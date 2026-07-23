@@ -10,7 +10,7 @@ from services.analytics.stakeholder_grievances import (
     acknowledge_case, add_evidence, appeal_case, assign_investigation,
     close_case, create_case, decide_appeal, list_case_health, propose_remedy, update_remedy,
 )
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def _out(data):

@@ -13,7 +13,7 @@ import argparse
 import json
 from typing import Any, Dict, List, Optional
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.analytics import value_stream, process_mining as pm, predictive_bpm
 from services.analytics.process_gap import assess_maturity
 

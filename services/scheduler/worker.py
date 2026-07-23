@@ -11,7 +11,7 @@ import sys
 import time
 
 from services.common.logging import get_logger
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.scheduler.engine import SchedulerEngine
 
 logger = get_logger("scheduler.worker")

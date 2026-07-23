@@ -1,7 +1,15 @@
-"""Small psycopg2 adapter for services using a SQLAlchemy-like execute API.
+"""Shared database utilities for Kokonut Intelligence services.
 
-This keeps credit-domain SQL readable with named ``:parameter`` placeholders
-without adding SQLAlchemy as a runtime dependency.
+Provides two connection factories:
+
+- ``get_db()`` — returns a raw psycopg2 connection.  This is the canonical
+  connection factory used by the vast majority of services (analytics,
+  ingestion, systems, threatcasting, etc.).  All import paths
+  (``ingestion.base.get_db``, ``common.env.get_db``) delegate here.
+
+- ``get_connection()`` / ``DatabaseConnection`` — a context-managed wrapper
+  with SQLAlchemy-like ``:param`` style and auto-commit/rollback.  Used by
+  the credit/capital domain and CLI entry points.
 """
 
 from __future__ import annotations
@@ -9,9 +17,10 @@ from __future__ import annotations
 import re
 from typing import Any, Iterable, Iterator, Optional
 
+import psycopg2
 import psycopg2.extras
 
-from services.ingestion.base import get_db
+from .db import PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD
 
 _NAMED_PARAMETER = re.compile(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)")
 
@@ -19,6 +28,23 @@ _NAMED_PARAMETER = re.compile(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)")
 def _to_psycopg2_sql(sql: str) -> str:
     """Translate ``:name`` parameters while preserving PostgreSQL ``::`` casts."""
     return _NAMED_PARAMETER.sub(r"%(\1)s", sql)
+
+
+def get_db():
+    """Return a raw psycopg2 connection using shared ``common.db`` constants.
+
+    This is the single canonical connection factory for the platform.
+    All other ``get_db`` functions (``ingestion.base``, ``common.env``)
+    delegate here to ensure a consistent default database name and
+    connection parameters.
+    """
+    return psycopg2.connect(
+        host=PG_HOST,
+        port=PG_PORT,
+        dbname=PG_DB,
+        user=PG_USER,
+        password=PG_PASSWORD,
+    )
 
 
 class MappingResult:

@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 # (table, lifecycle_column) for the governed publication pipeline (5-state
 # vocabulary). Most tables carry a location_id (enabling per-location scoping);

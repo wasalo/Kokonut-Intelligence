@@ -9,7 +9,7 @@ from psycopg2 import IntegrityError
 from psycopg2.extras import RealDictCursor
 
 from services.common.logging import get_logger
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.management.model import PARTY_TYPES, RACI_ROLES
 
 logger = get_logger("management.responsibility")

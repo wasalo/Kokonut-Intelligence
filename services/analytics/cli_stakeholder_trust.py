@@ -8,7 +8,7 @@ import sys
 
 from services.analytics import cooperative_governance as governance
 from services.analytics import stakeholder_trust as trust
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def out(value):

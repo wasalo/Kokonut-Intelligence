@@ -9,7 +9,7 @@ import argparse
 import json
 import sys
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.management import responsibility, workbench
 
 

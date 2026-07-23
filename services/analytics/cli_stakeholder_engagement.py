@@ -10,7 +10,7 @@ from services.analytics.stakeholder_engagement import (
     add_objective, create_commitment, create_plan, list_commitment_health,
     list_plans, record_outcome, schedule_touchpoint, update_commitment,
 )
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def _out(data):

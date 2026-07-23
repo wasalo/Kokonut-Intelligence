@@ -3,7 +3,7 @@
 import argparse
 import json
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from .kernel import PROJECTION_KEY, PROJECTION_VERSION, rebuild, validate_generation
 from .query import query_graph
 

@@ -75,21 +75,14 @@ def load_dotenv() -> None:
 
 
 def get_db():
-    """Return a psycopg2 connection using the loaded environment variables.
+    """Return a psycopg2 connection.
 
-    This is a convenience re-export so that modules which do
-    ``from services.common.env import get_db`` (a common pattern across
-    systems, threatcasting, trends, delphi, events, geostatistics, etc.)
-    resolve to a real connection factory.
+    Delegates to :func:`services.common.database.get_db` (the canonical
+    connection factory).  This exists so that the ~50 modules which do
+    ``from services.common.database import get_db`` resolve to a real
+    connection factory without changing every import site.
     """
-    import psycopg2
+    from services.common.database import get_db as _canonical_get_db
 
     load_dotenv()  # ensure env vars are populated
-
-    return psycopg2.connect(
-        host=os.environ.get("PG_HOST", "localhost"),
-        port=os.environ.get("PG_PORT", "5432"),
-        dbname=os.environ.get("PG_DB", "kokonut"),
-        user=os.environ.get("PG_USER", "kokonut"),
-        password=os.environ.get("PG_PASSWORD", ""),
-    )
+    return _canonical_get_db()

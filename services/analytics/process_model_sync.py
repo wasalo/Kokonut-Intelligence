@@ -14,7 +14,7 @@ import argparse
 import json
 from typing import Any, Dict, List
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.workflow_specs.registry import list_specs, load_builtin_specs
 
 # Terminal states that represent failure rather than successful completion.

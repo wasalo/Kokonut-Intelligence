@@ -11,7 +11,7 @@ from services.analytics.stakeholder_representation import (
     record_distribution, record_minority_view, record_participation,
     representation_metrics,
 )
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def _out(data):

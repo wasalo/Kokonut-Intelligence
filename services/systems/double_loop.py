@@ -22,7 +22,7 @@ class DoubleLoopController:
 
     def _get_conn(self):
         if self._conn is None:
-            from services.common.env import get_db
+            from services.common.database import get_db
             self._conn = get_db()
         return self._conn
 

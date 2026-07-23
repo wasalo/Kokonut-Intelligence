@@ -9,7 +9,7 @@ import sys
 from collections import defaultdict
 from typing import Any, Iterable, Mapping
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def _rows(conn, query: str) -> list[dict[str, Any]]:

@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import psycopg2
 import psycopg2.extras
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def control_limits(values: List[float], k: float = 3.0) -> Dict[str, float]:

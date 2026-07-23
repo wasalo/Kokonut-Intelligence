@@ -15,7 +15,7 @@ from typing import Any
 import psycopg2
 import psycopg2.extras
 
-from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+from services.common.database import get_db
 
 CIDS_CONTEXTS = [
     "https://ontology.commonapproach.org/contexts/cidsContext.jsonld",
@@ -27,14 +27,7 @@ SDG_BASE_URL = "https://metadata.un.org/sdg"
 
 
 def get_connection():
-    """Create a PostgreSQL connection using shared repo environment settings."""
-    return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASSWORD,
-    )
+    return get_db()
 
 
 def _json_default(value: Any) -> Any:

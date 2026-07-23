@@ -39,7 +39,7 @@ def _check_postgres() -> HealthStatus:
     import time
     start = time.monotonic()
     try:
-        from services.ingestion.base import get_db
+        from services.common.database import get_db
         db = get_db()
         with db.cursor() as cur:
             cur.execute("SELECT 1")

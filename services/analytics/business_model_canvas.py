@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 # The 9 BMC building blocks in canonical order
 BMC_BLOCKS = [

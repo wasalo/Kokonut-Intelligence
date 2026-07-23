@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.common.logging import get_logger
 
 logger = get_logger(__name__)

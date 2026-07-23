@@ -10,7 +10,7 @@ from services.analytics.stakeholders import (
     add_identifier, add_interest, assess_salience, create_party,
     get_party, link_parties, list_landscape, list_parties,
 )
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def _out(data):

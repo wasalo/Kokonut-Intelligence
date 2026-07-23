@@ -24,7 +24,7 @@ import psycopg2.extras
 # can adapt them in every environment.
 psycopg2.extras.register_uuid()
 
-from services.ingestion.base import get_db
+from services.common.database import get_db
 from services.analytics import predictive_bpm as pp
 
 

@@ -96,7 +96,7 @@ async def get_location(location_id: str):
 @router.get("/metrics/{location_id}")
 async def get_metrics(location_id: str):
     """Get verified public metrics for a location without creating records."""
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     conn = get_db()
     try:

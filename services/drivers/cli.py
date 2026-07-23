@@ -95,7 +95,7 @@ def cmd_test(args):
 
 def cmd_test_instance(args):
     from services.drivers.registry import DriverRegistry
-    from services.ingestion.base import get_db
+    from services.common.database import get_db
 
     registry = DriverRegistry()
     conn = get_db()

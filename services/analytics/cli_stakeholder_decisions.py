@@ -7,7 +7,7 @@ import json
 import sys
 
 from services.analytics import stakeholder_decisions as decisions
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 
 def _out(data):
