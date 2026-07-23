@@ -1,4 +1,11 @@
-from .client import KokonutClient
+from .client import (
+    KokonutClient,
+    KokonutError,
+    AuthenticationError,
+    NotFoundError,
+    ForbiddenError,
+    ValidationError,
+)
 from .types import (
     Location,
     Farm,
@@ -18,6 +25,11 @@ from .types import (
 
 __all__ = [
     "KokonutClient",
+    "KokonutError",
+    "AuthenticationError",
+    "NotFoundError",
+    "ForbiddenError",
+    "ValidationError",
     "Location",
     "Farm",
     "Plot",

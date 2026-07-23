@@ -309,6 +309,9 @@ class ReportSnapshot:
 class ExportLog:
     id: str
     export_type: str
+    format: Optional[str] = None
+    entity_type: Optional[str] = None
+    entity_ids: Optional[List[str]] = None
     user_id: Optional[str] = None
     target_table: Optional[str] = None
     filters: Optional[Dict[str, Any]] = None

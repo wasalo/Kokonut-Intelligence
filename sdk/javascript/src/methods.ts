@@ -302,7 +302,7 @@ export function buildSensorReadingMethods(client: any): SensorReadingMethods {
     listAnomalies: (options?: ListOptions) =>
       client.listItems('sensor_reading', {
         ...options,
-        filter: { ...options?.filter, anomaly_flag: true },
+        filter: { ...options?.filter, quality: { _eq: 'suspect' } },
       }) as Promise<SensorReading[]>,
   };
 }
@@ -340,9 +340,9 @@ export function buildAttestationMethods(client: any): AttestationMethods {
         ...options,
         filter: { ...options?.filter, status: { _in: ['draft', 'submitted'] } },
       }) as Promise<AttestationRecord[]>,
-    listByEntity: (entityType: string, entityId: string) =>
+    listByEntity: (subjectType: string, subjectId: string) =>
       client.listItems('attestation_record', {
-        filter: { entity_type: entityType, entity_id: entityId },
+        filter: { subject_type: subjectType, subject_id: subjectId },
       }) as Promise<AttestationRecord[]>,
   };
 }
