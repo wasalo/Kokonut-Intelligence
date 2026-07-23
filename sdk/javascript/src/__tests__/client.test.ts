@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { KokonutClient } from './client.js';
+import { KokonutClient } from '../client.js';
 
 // Mock the @directus/sdk
 vi.mock('@directus/sdk', () => {

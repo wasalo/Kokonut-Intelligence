@@ -139,16 +139,19 @@ export interface ReportMethods extends GenericMethods {
   listByType(reportType: string, options?: ListOptions): Promise<ReportSnapshot[]>;
 }
 
-export interface ExportMethods {
+export interface ExportMethods extends GenericMethods {
   list(options?: ListOptions): Promise<ExportLog[]>;
   get(id: string): Promise<ExportLog>;
-  create(params: {
+  create(data: {
     export_type: string;
     format: ExportLog['format'];
     entity_type?: string;
     entity_ids?: string[];
     filters?: Record<string, any>;
   }): Promise<ExportLog>;
+  createMany: never;
+  update(id: string, data: Record<string, any>): Promise<ExportLog>;
+  delete(id: string): Promise<void>;
 }
 
 export function buildLocationMethods(client: any): LocationMethods {
@@ -381,6 +384,9 @@ export function buildExportMethods(client: any): ExportMethods {
         requested_by: 'sdk',
       }) as Promise<ExportLog>;
     },
+    createMany: undefined as never,
+    update: (id: string, data: Record<string, any>) => client.updateItem('export_log', id, data) as Promise<ExportLog>,
+    delete: (id: string) => client.deleteItem('export_log', id),
   };
 }
 
