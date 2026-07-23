@@ -9,7 +9,7 @@ The CLI executes one mode at a time: template generation, import/validation, or 
 ## Farm Activity Template
 
 ```bash
-python3 -m services.export.spreadsheet_bridge --template exports/farm_activity_template.csv
+python3 -m services.export.spreadsheet_bridge --template exports/templates/farm_activity_template.csv
 ```
 
 The generated `farm_activity` header contains:
