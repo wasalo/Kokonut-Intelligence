@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hmac
 import os
-from typing import Any
 
 from services.common.logging import get_logger
 
@@ -20,7 +19,7 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
     Checks (in order):
     1. Capability token (x-capability-token header) — fine-grained, resource-scoped.
     2. API key (x-api-key header) — trusted service key, scope-enforced.
-    Returns dict with 'authenticated' bool and optional 'caller' and 'reason'.
+    Returns a structured result with caller, scope, and capability metadata.
     """
     headers = dict(request.headers)
 
@@ -37,27 +36,70 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
             location_id=location_id,
         )
         if result:
-            return {"authenticated": True, "caller": result.get("holder", "cap-token")}
-        return {"authenticated": False, "reason": "invalid_capability_token"}
+            return {
+                "authenticated": True,
+                "caller": result.get("holder", "cap-token"),
+                "capability_token_id": result.get("token_id"),
+                "resource": resource,
+                "action": action,
+                "location_id": location_id,
+            }
+        return {
+            "authenticated": False,
+            "reason": "invalid_capability_token",
+            "resource": resource,
+            "action": action,
+            "location_id": location_id,
+        }
 
     # 2. Check API key
     api_key = headers.get("x-api-key") or headers.get("api-key")
     if api_key:
         key_meta = _match_api_key(api_key)
         if key_meta is None:
-            return {"authenticated": False, "reason": "invalid_api_key"}
+            return {
+                "authenticated": False,
+                "reason": "invalid_api_key",
+                "resource": resource,
+                "action": action,
+                "location_id": location_id,
+            }
 
         # Admin role is full-access by design (Directus admin token).
         if key_meta.get("role") == ADMIN_ROLE:
-            return {"authenticated": True, "caller": key_meta.get("name", "admin")}
+            return {
+                "authenticated": True,
+                "caller": key_meta.get("name", "admin"),
+                "resource": resource,
+                "action": action,
+                "location_id": location_id,
+            }
 
         # Service/custom keys are fail-closed: the route's resource/action
         # must be explicitly permitted by the key's configured scopes.
         if _scope_allows(key_meta, resource, action):
-            return {"authenticated": True, "caller": key_meta.get("name", "api-key")}
-        return {"authenticated": False, "reason": "api_key_scope_denied"}
+            return {
+                "authenticated": True,
+                "caller": key_meta.get("name", "api-key"),
+                "resource": resource,
+                "action": action,
+                "location_id": location_id,
+            }
+        return {
+            "authenticated": False,
+            "reason": "api_key_scope_denied",
+            "resource": resource,
+            "action": action,
+            "location_id": location_id,
+        }
 
-    return {"authenticated": False, "reason": "credentials_required"}
+    return {
+        "authenticated": False,
+        "reason": "credentials_required",
+        "resource": resource,
+        "action": action,
+        "location_id": location_id,
+    }
 
 
 def _match_api_key(api_key: str) -> dict | None:

@@ -2,26 +2,55 @@
 
 from __future__ import annotations
 
-import os
+import hashlib
+import json
 from datetime import datetime, timezone
-from typing import Any, Optional
 
 from services.common.logging import get_logger
 
 logger = get_logger("gateway.app")
 
 
+def _request_identity(request, client_ip: str) -> str:
+    """Return a bounded, non-secret identity for rate limits and audit logs."""
+    credential = (
+        request.headers.get("x-api-key")
+        or request.headers.get("api-key")
+        or request.headers.get("x-capability-token")
+        or request.headers.get("capability-token")
+    )
+    if credential:
+        digest = hashlib.sha256(credential.encode("utf-8")).hexdigest()[:16]
+        return f"credential:{digest}"
+    return f"ip:{client_ip}"
+
+
+async def _request_location(request, policy: dict) -> str | None:
+    """Resolve a route's location scope, including data-stream request bodies."""
+    if policy.get("location_id"):
+        return policy["location_id"]
+    if policy.get("resource") != "data_stream_post":
+        return None
+    try:
+        body = await request.body()
+        request._body = body
+        payload = json.loads(body or b"{}")
+        return payload.get("location_id")
+    except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
+        return None
+
+
 def create_app():
     """Create the FastAPI gateway application."""
     try:
-        from fastapi import FastAPI, Request, HTTPException, Depends
+        from fastapi import FastAPI, Request
         from fastapi.responses import JSONResponse
     except ImportError:
         raise ImportError("FastAPI is required: pip install fastapi uvicorn")
 
+    from services.gateway.audit import GatewayAudit
     from services.gateway.auth import verify_request
     from services.gateway.rate_limiter import RateLimiter
-    from services.gateway.audit import GatewayAudit
     from services.gateway.router import get_route_policy, router
 
     app = FastAPI(
@@ -40,32 +69,39 @@ def create_app():
         client_ip = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "")
 
-        # Health and API discovery are intentionally public.
-        if request.url.path in ("/health", "/docs", "/openapi.json", "/"):
-            response = await call_next(request)
-            return response
-
         # Rate limiting
-        caller = request.headers.get("x-api-key", client_ip)
+        caller = _request_identity(request, client_ip)
         allowed = rate_limiter.check(caller)
         if not allowed:
+            audit.log(
+                caller=caller,
+                path=request.url.path,
+                method=request.method,
+                status="denied",
+                ip=client_ip,
+                user_agent=user_agent,
+                status_code=429,
+                reason="rate_limited",
+                resource="gateway",
+                action=request.method.lower(),
+            )
             return JSONResponse(
                 status_code=429,
                 content={"error": "Rate limit exceeded"},
+                headers={"Retry-After": str(rate_limiter.retry_after(caller))},
             )
 
         policy = get_route_policy(request.method, request.url.path)
-        auth_result = (
-            {"authenticated": True, "caller": "anonymous"}
-            if policy["public"]
-            else verify_request(
+        location_id = await _request_location(request, policy)
+        auth_result = {"authenticated": True, "caller": "anonymous", **policy, "location_id": location_id} \
+            if policy["public"] else verify_request(
                 request,
                 resource=policy["resource"],
                 action=policy["action"],
-                location_id=policy["location_id"],
+                location_id=location_id,
             )
-        )
         if not auth_result.get("authenticated"):
+            denial_status = 403 if auth_result.get("reason") == "api_key_scope_denied" else 401
             audit.log(
                 caller=caller,
                 path=request.url.path,
@@ -74,16 +110,37 @@ def create_app():
                 ip=client_ip,
                 user_agent=user_agent,
                 reason=auth_result.get("reason", "unauthenticated"),
+                status_code=denial_status,
+                resource=policy["resource"],
+                action=policy["action"],
+                location_id=location_id,
+                capability_token_id=auth_result.get("capability_token_id"),
             )
             return JSONResponse(
-                status_code=401,
+                status_code=denial_status,
                 content={"error": "Unauthorized", "reason": auth_result.get("reason")},
             )
 
         request.state.caller = auth_result.get("caller", "anonymous")
 
-        # Process request
-        response = await call_next(request)
+        # Process request, retaining an audit record if the handler fails.
+        try:
+            response = await call_next(request)
+        except Exception as exc:
+            audit.log(
+                caller=auth_result.get("caller", caller),
+                path=request.url.path,
+                method=request.method,
+                status="error",
+                ip=client_ip,
+                user_agent=user_agent,
+                reason=type(exc).__name__,
+                resource=policy["resource"],
+                action=policy["action"],
+                location_id=location_id,
+                capability_token_id=auth_result.get("capability_token_id"),
+            )
+            raise
 
         # Audit logging
         duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
@@ -91,11 +148,16 @@ def create_app():
             caller=auth_result.get("caller", caller),
             path=request.url.path,
             method=request.method,
-            status="allowed" if response.status_code < 400 else "error",
+            status="allowed" if response.status_code < 400 else "denied",
             ip=client_ip,
             user_agent=user_agent,
             duration_ms=duration_ms,
             status_code=response.status_code,
+            reason="" if response.status_code < 400 else "handler_response",
+            resource=policy["resource"],
+            action=policy["action"],
+            location_id=location_id,
+            capability_token_id=auth_result.get("capability_token_id"),
         )
 
         return response

@@ -93,7 +93,7 @@ docker compose logs database
 
 `scripts/load-secrets.sh` requires `.env.sops`, verifies that `sops` is installed, sets `SOPS_AGE_KEY_FILE` automatically when `~/.config/sops/age/keys.txt` exists, decrypts to stdout, and exports the parsed dotenv values into the current shell. It does not write a plaintext `.env` file and must be sourced rather than executed in a child shell.
 
-The repository's seed, health-check, schema-snapshot, and Metabase scripts support `.env.sops` first and fall back to `.env`. `scripts/backup.sh` is stricter: it refuses to source a plaintext `.env`.
+The repository's seed, health-check, schema-snapshot, and Metabase scripts support `.env.sops` first. Plaintext fallback is limited to explicit development/test opt-in via `KOKONUT_ALLOW_PLAINTEXT_ENV=true`; production and CI should fail closed. `scripts/backup.sh` remains stricter and refuses to source a plaintext `.env`.
 
 ### Decrypt to stdout (read secrets)
 
@@ -125,7 +125,7 @@ source scripts/load-secrets.sh
 
 ### Python services
 
-Python services that use `services.common.env.load_dotenv()` prefer `.env.sops` and decrypt it through the `sops` CLI. If SOPS is missing, decryption fails, or the encrypted file is absent, the loader falls back to `.env` when present. This fallback is deliberate compatibility behavior, so a failed SOPS decrypt must not be mistaken for a secure successful load.
+Python services that use `services.common.env.load_dotenv()` prefer `.env.sops` and decrypt it through the `sops` CLI. In `ci` and `production`, missing SOPS, decryption errors, and missing secret sources fail closed. Development/test environments may explicitly opt into `.env` with `KOKONUT_ALLOW_PLAINTEXT_ENV=true`.
 
 The loader is idempotent and uses `os.environ.setdefault`, so already-exported variables are not overwritten by dotenv values.
 
@@ -161,7 +161,7 @@ If a private age key may have been compromised, rotate every secret value protec
 
 ## CI/CD
 
-The repository does not currently contain a CI workflow that decrypts `.env.sops`; the following is illustrative only. Prefer a platform secret store and ephemeral runners. If a plaintext dotenv file is created, restrict its permissions and delete it in an always-run cleanup step.
+OneDev CI currently uses a short-lived, permission-restricted test `.env` with placeholder credentials and explicitly sets `KOKONUT_ENV=ci` plus `KOKONUT_ALLOW_PLAINTEXT_ENV=true`. Production deployments should use platform secret injection or SOPS decryption; they must not enable plaintext fallback. If a plaintext dotenv file is created, restrict its permissions and delete it in an always-run cleanup step.
 
 ### GitHub Actions
 

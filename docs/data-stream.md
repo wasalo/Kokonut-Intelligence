@@ -191,13 +191,17 @@ URLs, metadata, comments, file names, or file descriptions.
 | `content` | Required comment text |
 | `is_anchored` | Local comment anchoring flag |
 | `attestation_uid` | Optional attestation reference |
-| `status` | Defaults to `published` |
+| `status` | Draft-first lifecycle: `draft`, `submitted`, `verified`, `published`, or `rejected` |
+| `visibility` | Public, internal, or private visibility |
+| `metadata` | Privacy declaration and moderation metadata |
 | `created_at` / `updated_at` | Audit timestamps |
 
-The schema has post and status indexes, but no status check constraint. There
-is currently no dedicated comment service, comment CLI, comment lifecycle hook,
-or comment anchoring implementation. Public post views include a comment count
-subquery without filtering comment status.
+Migration `331_data_stream_public_governance.sql` adds status and visibility
+constraints, a draft-first default, and database publication gates. Public post
+views count only published comments with `visibility=public` and
+`metadata.privacy=public_summary`. Comment moderation is governed by the
+standard Directus lifecycle; there is still no dedicated comment CLI or comment
+anchoring implementation.
 
 Python agent safety classifies `data_stream_post_comment` as governed, but the
 Directus human-review collection list does not currently provide equivalent
@@ -228,15 +232,15 @@ post.
 | `sort_order` | Display ordering |
 | `created_at` | Creation timestamp |
 
-The service supports add, list, metadata update, and remove operations. File
-removal is a hard delete and decrements the parent post's `file_count`.
-Coordinates create a PostGIS point; when coordinates are omitted, the current
-implementation writes `POINT(0 0)`, which should not be interpreted as a real
-location. `VALID_MEDIA_TYPES` exists in the service, but media-type validation
-is not currently enforced.
+The service supports add, list, metadata update, and remove operations. Migration
+`331_data_stream_public_governance.sql` adds lifecycle, visibility, privacy,
+audit, and soft-delete fields. Published files require a public-eligible parent
+post and cannot be mutated. Coordinates are stored as `NULL` when omitted and
+validated when supplied. `VALID_MEDIA_TYPES` is enforced by the service.
 
-`data_stream_file` is not in the Python `GOVERNED_COLLECTIONS` list. This means
-file governance is weaker than post and comment governance.
+`data_stream_file` is included in the Python `GOVERNED_COLLECTIONS` list and in
+the Directus lifecycle collection list. Public consumers should use
+`v_data_stream_public_file`, not the base table.
 
 ## Service API
 
@@ -528,12 +532,14 @@ Relevant tests include:
 Important remaining gaps:
 
 - No test confirms actual EAS submission or UID population.
-- No integration test validates the current PostgreSQL public-view privacy gate
-  against pilot data.
-- No comment lifecycle or anchoring test exists.
-- No Directus hook tests cover comments or files.
-- No test covers the ignored `get_project_stream` visibility argument.
-- No test validates missing-coordinate geometry behavior.
+- No integration test validates the PostgreSQL public-view privacy gate against
+  pilot data.
+- No comment anchoring test exists; local comment anchoring fields remain
+  intentionally separate from confirmed EAS state.
+- No end-to-end Directus test covers comment/file publication against a live
+  database.
+- No test validates all public service paths against the public views.
+- No test validates the new soft-delete behavior against a live database.
 - No test validates the inactive or zero-UID seeded EAS schema.
 - Workflow specification and Directus behavior differ on rejected-state
   terminality and rejection reasons.
@@ -547,6 +553,8 @@ Important remaining gaps:
 - `schemas/postgres/179_lifecycle_transition.sql` — lifecycle audit trigger
 - `schemas/postgres/298_consent_privacy_p0.sql` — current public-view privacy
   and registry gates
+- `schemas/postgres/331_data_stream_public_governance.sql` — publication,
+  immutability, comment/file governance, and public attachment view
 - `schemas/seeds/101_pilot_data_stream_posts.sql` — Adelphi pilot records
 - `schemas/seeds/014_pilot_celo_eas.sql` — Celo data-post schema seed state
 - `services/attestation/schemas.py` — EAS schema text and encoding helper

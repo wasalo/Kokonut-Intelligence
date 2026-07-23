@@ -6,8 +6,7 @@ import hashlib
 import json
 import secrets
 import uuid
-from datetime import datetime, timezone, timedelta
-from typing import Any, Optional
+from datetime import datetime, timedelta, timezone
 
 from services.common.logging import get_logger
 
@@ -133,7 +132,9 @@ class CapabilityManager:
                         continue
                     if cap.get("action") != action:
                         continue
-                    if location_id and cap.get("location_id") and cap["location_id"] != location_id:
+                    # A location-scoped request must be authorized by a
+                    # capability scoped to that exact location.
+                    if location_id and cap.get("location_id") != location_id:
                         continue
                     matched_cap = cap
                     break
