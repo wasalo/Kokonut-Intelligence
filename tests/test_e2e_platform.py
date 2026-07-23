@@ -150,7 +150,7 @@ def test_all_views_exist():
     if ch_dir.exists():
         for sql_file in ch_dir.glob("*.sql"):
             content = sql_file.read_text()
-            for match in re.findall(r"CREATE (?:OR REPLACE )?(?:MATERIALIZED )?VIEW (\w+)", content):
+            for match in re.findall(r"CREATE (?:OR REPLACE )?(?:MATERIALIZED )?VIEW (?:IF NOT EXISTS )?(\w+)", content):
                 ch_views.add(match)
 
     ch_missing = [v for v in sorted(ch_views) if not _check_ch_view(v)]
