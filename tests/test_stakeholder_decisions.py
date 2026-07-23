@@ -89,3 +89,36 @@ def test_approval_requires_explicit_approver():
                 cur.execute("DELETE FROM stakeholder_decision WHERE id = %s::uuid", (decision_id,))
             conn.commit()
         conn.close()
+
+
+from unittest.mock import MagicMock
+
+
+def test_create_decision_rejects_invalid_type():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="decision_type"):
+        decisions.create_decision(mock_conn, "Title", "Desc", "invalid_type")
+
+
+def test_create_decision_rejects_blank_title():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="title and description"):
+        decisions.create_decision(mock_conn, "  ", "Description", "policy")
+
+
+def test_add_participant_rejects_invalid_role():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="stakeholder_role"):
+        decisions.add_participant(mock_conn, "decision-id", party_id="p1", stakeholder_role="invalid_role")
+
+
+def test_add_tradeoff_rejects_invalid_direction():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="direction"):
+        decisions.add_tradeoff(mock_conn, "decision-id", "desc", "invalid_direction")
+
+
+def test_link_execution_requires_reference():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="work_item_id or decision_log_id"):
+        decisions.link_execution(mock_conn, "decision-id")

@@ -87,3 +87,36 @@ def test_party_type_validation():
             stakeholders.create_party(conn, "shareholder", "Invalid party")
     finally:
         conn.close()
+
+
+from unittest.mock import MagicMock
+
+
+def test_create_party_rejects_invalid_privacy_level():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="privacy_level"):
+        stakeholders.create_party(mock_conn, "person", "Test", privacy_level="world_visible")
+
+
+def test_add_interest_rejects_invalid_interest_type():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="interest_type"):
+        stakeholders.add_interest(mock_conn, "p1", "invalid_type", "Title")
+
+
+def test_assess_salience_rejects_out_of_range_score():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="scores must be between 0 and 10"):
+        stakeholders.assess_salience(mock_conn, "p1", power=11, rationale="Test")
+
+
+def test_assess_salience_rejects_empty_rationale():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="rationale is required"):
+        stakeholders.assess_salience(mock_conn, "p1", rationale="  ")
+
+
+def test_link_parties_rejects_invalid_legitimacy():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="legitimacy"):
+        stakeholders.link_parties(mock_conn, "p1", "p2", "supports", legitimacy="invalid")

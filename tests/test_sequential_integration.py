@@ -1,6 +1,7 @@
 """Integration coverage for posterior-driven reviews and solution gates."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -20,6 +21,25 @@ def test_solution_gate_rejects_unlinked_or_invalid_evidence_before_database_acce
         sequential_integration.evaluate_solution_gate_from_hypothesis(
             None, "gate", "hypothesis", "reviewer", minimum_posterior=1.1,
             evidence=[{"evidence_event_id": str(uuid.uuid4())}]
+        )
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "action": "act"}
+    cleaned = sequential_integration._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_evaluate_hypothesis_rejects_missing_posterior():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="no posterior update"):
+        sequential_integration.evaluate_hypothesis(
+            mock_conn, "hypothesis-id", action_threshold=0.5
         )
 
 

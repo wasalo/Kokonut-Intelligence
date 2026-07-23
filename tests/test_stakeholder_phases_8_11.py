@@ -66,3 +66,33 @@ def test_phase_8_to_11_views_and_reports_exist():
         }.issubset(REPORT_GENERATORS)
     finally:
         conn.close()
+
+
+from unittest.mock import MagicMock
+
+
+def test_trust_profile_returns_none_for_missing_party():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = trust.profile(mock_conn, "nonexistent-party-id")
+    assert result is None
+
+
+def test_trust_record_evidence_with_valid_data():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = {
+        "id": "e1", "subject_party_id": "p1", "dimension": "payment",
+        "direction": "supporting", "source_type": "financial_transaction",
+    }
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = trust.record_evidence(
+        mock_conn, "p1", "payment", "supporting", "financial_transaction",
+        "Payment settled", confidence=0.9, uncertainty=0.1,
+    )
+    assert result["dimension"] == "payment"
+    assert result["direction"] == "supporting"

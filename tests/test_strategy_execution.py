@@ -11,6 +11,27 @@ from services.ingestion.base import get_db
 PARTY_ID = "b0000000-0000-0000-0000-000000002605"
 
 
+def test_calculate_variance_zero_planned():
+    result = strategy_execution.calculate_variance(0, 10)
+    assert result["status"] == "breach"
+
+
+def test_calculate_variance_negative_values():
+    result = strategy_execution.calculate_variance(-100, -105)
+    assert result["status"] == "within_tolerance"
+    assert result["variance_value"] == -5.0
+
+
+def test_calculate_variance_negative_planned():
+    result = strategy_execution.calculate_variance(-100, -120)
+    assert result["status"] == "warning"
+
+
+def test_complete_review_task_rejects_invalid_decision():
+    with pytest.raises(ValueError, match="invalid strategy review decision"):
+        strategy_execution.complete_review_task(None, str(uuid.uuid4()), str(uuid.uuid4()), "maybe")
+
+
 def test_execution_dashboard_can_be_snapshotted():
     try:
         conn = get_db()

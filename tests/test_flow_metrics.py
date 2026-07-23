@@ -1,5 +1,7 @@
 """Tests for VSM flow-metric calculators and definitions."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 import psycopg2
 

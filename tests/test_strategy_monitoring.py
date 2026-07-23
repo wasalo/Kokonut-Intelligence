@@ -1,6 +1,7 @@
 """Tests for competitive signal monitoring."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -43,3 +44,27 @@ def test_material_signal_creates_idempotent_review_task():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_monitor_summary_counts_zero_signals():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.side_effect = [
+        {"signal_count": 0, "unreviewed_material_count": 0},
+        {"open_review_count": 0},
+    ]
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    summary = strategy_monitoring.monitor_summary(mock_conn, str(uuid.uuid4()))
+    assert summary["signal_count"] == 0
+    assert summary["open_competitive_review_count"] == 0
+
+
+def test_process_material_signals_returns_empty_when_no_signals():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = []
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = strategy_monitoring.process_material_signals(mock_conn)
+    assert result == []

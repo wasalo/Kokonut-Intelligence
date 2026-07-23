@@ -1,6 +1,7 @@
 """Integration coverage for solution adoption readiness and consent."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -43,3 +44,26 @@ def test_adoption_requires_readiness_and_consent_for_use():
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
         conn.commit()
         conn.close()
+
+
+def test_record_event_rejects_missing_consent():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="consent"):
+        solution_adoption.record_event(
+            mock_conn, "program-id", "adopter-1", "first_use"
+        )
+
+
+def test_assess_readiness_status_logic():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = {"id": "test", "readiness_status": "ready"}
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = solution_adoption.assess_readiness(
+        mock_conn, "sol-id", "loc", "scope-id", 0.9, 0.5
+    )
+    assert result["readiness_status"] == "ready"

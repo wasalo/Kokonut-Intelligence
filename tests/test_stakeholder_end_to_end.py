@@ -114,3 +114,26 @@ def test_identity_consent_decision_trust_and_cockpit_journey():
             cur.execute("DELETE FROM party_identifier WHERE source_system = 'dod-e2e'")
         conn.commit()
         conn.close()
+
+
+from unittest.mock import MagicMock
+
+
+def test_decision_rejects_unresolved_harm_before_approval():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = {"unresolved_harm_count": 2}
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="unresolved material harm"):
+        decisions.approve_decision(mock_conn, "d1", "approver-id")
+
+
+def test_decision_submit_requires_draft_status():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = decisions.submit_decision(mock_conn, "nonexistent-id")
+    assert result is None

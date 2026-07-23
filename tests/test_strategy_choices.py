@@ -1,6 +1,7 @@
 """Tests for strategic choices and assumptions."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -9,6 +10,31 @@ from services.ingestion.base import get_db
 
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002602"
+
+
+def test_test_assumption_rejects_invalid_status():
+    with pytest.raises(ValueError, match="invalid assumption status"):
+        strategy_choices.test_assumption(None, str(uuid.uuid4()), "unknown_status")
+
+
+def test_approve_choice_rejects_non_submitted():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only submitted"):
+        strategy_choices.approve_choice(mock_conn, str(uuid.uuid4()), str(uuid.uuid4()))
+
+
+def test_submit_choice_rejects_non_draft():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only draft"):
+        strategy_choices.submit_choice(mock_conn, str(uuid.uuid4()))
 
 
 def test_choices_preserve_alternatives_tradeoffs_and_assumptions():

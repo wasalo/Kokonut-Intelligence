@@ -29,6 +29,12 @@ warn_unused_ignores = true
 exclude = "contracts/|extensions/|sdk/"
 
 [tool.pytest.ini_options]
+markers = [
+  "unit: pure unit tests (no DB, no network)",
+  "integration: tests requiring a live database",
+  "cli: CLI parser and help-screen tests",
+  "slow: tests that take >1s",
+]
 filterwarnings = [
   "ignore:websockets\\.legacy is deprecated.*:DeprecationWarning:websockets\\.legacy",
 ]

@@ -8,6 +8,21 @@ from services.analytics import strategy_evidence
 from services.ingestion.base import get_db
 
 
+def test_link_evidence_rejects_invalid_subject_type():
+    with pytest.raises(ValueError, match="invalid strategy evidence subject type"):
+        strategy_evidence.link_evidence(None, str(uuid.uuid4()), "invalid_type", str(uuid.uuid4()), "metric_value", source_id=str(uuid.uuid4()))
+
+
+def test_link_evidence_rejects_invalid_source_type():
+    with pytest.raises(ValueError, match="invalid strategy evidence source type"):
+        strategy_evidence.link_evidence(None, str(uuid.uuid4()), "plan", str(uuid.uuid4()), "fake_source", source_id=str(uuid.uuid4()))
+
+
+def test_link_evidence_rejects_missing_source():
+    with pytest.raises(ValueError, match="source_id or source_ref"):
+        strategy_evidence.link_evidence(None, str(uuid.uuid4()), "plan", str(uuid.uuid4()), "metric_value")
+
+
 def test_evidence_link_is_typed_and_idempotent():
     try:
         conn = get_db()

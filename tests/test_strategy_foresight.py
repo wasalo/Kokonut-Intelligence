@@ -1,11 +1,37 @@
 """Integration coverage for the unified strategic foresight frame."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
 from services.analytics import strategy_foresight, strategy_kernel, strategy_coherence
 from services.ingestion.base import get_db
+
+
+def test_create_frame_rejects_empty_focal_question():
+    with pytest.raises(ValueError, match="requires"):
+        strategy_foresight.create_frame(None, str(uuid.uuid4()), "  ", "decision?", "boundary", "2026-01-01", "2030-12-31")
+
+
+def test_create_frame_rejects_empty_decision_question():
+    with pytest.raises(ValueError, match="requires"):
+        strategy_foresight.create_frame(None, str(uuid.uuid4()), "focal?", "  ", "boundary", "2026-01-01", "2030-12-31")
+
+
+def test_link_input_rejects_missing_source():
+    with pytest.raises(ValueError, match="source_id or source_ref"):
+        strategy_foresight.link_input(None, str(uuid.uuid4()), "external_document", "scan")
+
+
+def test_submit_frame_rejects_non_draft():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only draft"):
+        strategy_foresight.submit_frame(mock_conn, str(uuid.uuid4()))
 
 
 def test_foresight_frame_links_inputs_and_drivers():

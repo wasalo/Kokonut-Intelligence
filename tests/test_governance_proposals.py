@@ -1,6 +1,8 @@
 """Tests for governance proposals, objections, and human gates."""
 
 import uuid
+from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -99,3 +101,17 @@ def test_proposal_requires_human_review_for_implementation():
             cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid, %s::uuid)", (PARTY_ID, APPROVER_ID, INVALID_APPROVER_ID))
         conn.commit()
         conn.close()
+
+
+def test_proposal_types_and_objection_types_constants():
+    assert "change_policy" in governance_proposals.PROPOSAL_TYPES
+    assert "create_role" in governance_proposals.PROPOSAL_TYPES
+    assert "material_harm" in governance_proposals.OBJECTION_TYPES
+    assert "consent_failure" in governance_proposals.OBJECTION_TYPES
+
+
+def test_value_helper_converts_uuid_and_datetime():
+    mock_uuid = uuid.uuid4()
+    now = datetime.now(timezone.utc)
+    assert governance_proposals._value(mock_uuid) == str(mock_uuid)
+    assert governance_proposals._value(now) == now.isoformat()

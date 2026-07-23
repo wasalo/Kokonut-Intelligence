@@ -1,6 +1,8 @@
 """Tests for bounded cross-circle representation links."""
 
 import uuid
+from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -62,3 +64,17 @@ def test_representative_link_requires_assignment_and_human_approval():
                 cur.execute("DELETE FROM governance_circle WHERE id = %s::uuid", (target_circle,))
             cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid)", (PARTY_ID, APPROVER_ID))
         conn.commit()
+
+
+def test_link_types_constant():
+    assert "representative_link" in governance_links.LINK_TYPES
+    assert "lead_link" in governance_links.LINK_TYPES
+    assert "liaison" in governance_links.LINK_TYPES
+    assert "observer" in governance_links.LINK_TYPES
+
+
+def test_value_helper_converts_uuid_and_datetime():
+    mock_uuid = uuid.uuid4()
+    now = datetime.now(timezone.utc)
+    assert governance_links._value(mock_uuid) == str(mock_uuid)
+    assert governance_links._value(now) == now.isoformat()

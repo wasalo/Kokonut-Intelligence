@@ -1,6 +1,7 @@
 """Tests for operating competency and learning plans."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -39,3 +40,17 @@ def test_competency_gap_creates_learning_plan():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "competency_key": "facilitation"}
+    cleaned = learning_plans._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_create_learning_plan_rejects_invalid_scope_type():
+    with pytest.raises(ValueError, match="scope_type must be"):
+        learning_plans.create_learning_plan(
+            MagicMock(), "party-id", "bad_scope", "scope-id", "Title"
+        )

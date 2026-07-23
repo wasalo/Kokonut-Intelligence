@@ -1,6 +1,8 @@
 """Tests for tactical sessions and explicit dispositions."""
 
 import uuid
+from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -76,3 +78,18 @@ def test_tactical_item_requires_owner_and_disposition():
                 cur.execute("DELETE FROM governance_tactical_session WHERE id = %s::uuid", (session_id,))
         conn.commit()
         conn.close()
+
+
+def test_session_types_and_item_statuses_constants():
+    assert "weekly_review" in governance_tactical.SESSION_TYPES
+    assert "risk_triage" in governance_tactical.SESSION_TYPES
+    assert "open" in governance_tactical.ITEM_STATUSES
+    assert "next_action" in governance_tactical.DISPOSITIONS
+
+
+def test_value_helper_converts_uuid_and_datetime():
+    mock_uuid = uuid.uuid4()
+    now = datetime.now(timezone.utc)
+    assert governance_tactical._value(mock_uuid) == str(mock_uuid)
+    assert governance_tactical._value(now) == now.isoformat()
+    assert governance_tactical._value(42) == 42

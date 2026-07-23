@@ -142,6 +142,16 @@ def test_directus_metadata() -> None:
     assert not failures, f"Directus metadata checks failed: {', '.join(failures)}"
 
 
+def test_snapshot_drift_returns_list():
+    result = snapshot_drift()
+    assert isinstance(result, list)
+
+
+def test_database_running_returns_bool():
+    result = database_running()
+    assert isinstance(result, bool)
+
+
 if __name__ == "__main__":
     print("=== Directus Metadata Test ===")
     results = run_directus_metadata_checks()

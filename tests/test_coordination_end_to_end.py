@@ -18,3 +18,9 @@ def test_public_coordination_schema_excludes_private_evidence():
     assert "privacy_limitation" in schema
     assert "public_summary" in schema
     assert "private evidence" in schema
+
+
+def test_coordination_cockpit_report_type_exists():
+    from services.export.report_generator import REPORT_GENERATORS
+    assert "coordination_cockpit" in REPORT_GENERATORS
+    assert callable(REPORT_GENERATORS["coordination_cockpit"])

@@ -1,6 +1,7 @@
 """Tests for dual-scope operating pilot boundaries."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -32,3 +33,18 @@ def test_bootstrap_registers_internal_and_adelphi_boundaries():
             cur.execute("DELETE FROM organization WHERE id = ANY(%s::uuid[])", (org_ids,))
         conn.commit()
         conn.close()
+
+
+def test_boundaries_constant_has_both_scopes():
+    assert "internal" in operating_pilot.BOUNDARIES
+    assert "adelphi" in operating_pilot.BOUNDARIES
+    assert "kokonut-internal-operations" == operating_pilot.BOUNDARIES["internal"]["key"]
+    assert "kokonut-adelphi-field-operations" == operating_pilot.BOUNDARIES["adelphi"]["key"]
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "scope_type": "internal"}
+    cleaned = operating_pilot._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+    assert cleaned["scope_type"] == "internal"

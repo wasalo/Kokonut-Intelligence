@@ -1,6 +1,7 @@
 """Integration coverage for scenario-linked strategy adaptation."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -9,6 +10,31 @@ from services.ingestion.base import get_db
 
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002605"
+
+
+def test_create_choice_rejects_empty_title():
+    with pytest.raises(ValueError, match="required"):
+        strategy_contingency.create_choice(None, str(uuid.uuid4()), str(uuid.uuid4()), "  ", "action")
+
+
+def test_create_choice_rejects_empty_action():
+    with pytest.raises(ValueError, match="required"):
+        strategy_contingency.create_choice(None, str(uuid.uuid4()), str(uuid.uuid4()), "title", "  ")
+
+
+def test_record_adaptation_rejects_empty_rationale():
+    with pytest.raises(ValueError, match="rationale"):
+        strategy_contingency.record_adaptation(None, str(uuid.uuid4()), "activate", "  ")
+
+
+def test_approve_choice_rejects_non_proposed():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only proposed"):
+        strategy_contingency.approve_choice(mock_conn, str(uuid.uuid4()), str(uuid.uuid4()))
 
 
 def test_approved_scenario_choice_records_adaptation_lineage():

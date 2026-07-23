@@ -1,6 +1,7 @@
 """Tests for competitive landscape evidence."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -52,3 +53,17 @@ def test_landscape_records_actor_force_and_signal():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "name": "Landscape"}
+    cleaned = competitive_landscape._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_create_landscape_rejects_invalid_scope_type():
+    with pytest.raises(ValueError, match="scope_type must be"):
+        competitive_landscape.create_landscape(
+            MagicMock(), "plan-id", "invalid", "scope-id", "2026-01-01", "2026-12-31"
+        )

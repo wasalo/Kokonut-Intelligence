@@ -35,6 +35,34 @@ def test_linked_carbon_claim_requires_verifier_and_methodology() -> None:
     assert linked_carbon_claim_allowed(invalid) is False
 
 
+def test_linked_carbon_claim_rejects_none_claim() -> None:
+    assert linked_carbon_claim_allowed(None) is False
+
+
+def test_linked_carbon_claim_rejects_missing_verifier() -> None:
+    claim = {
+        "claim_category": "carbon",
+        "claim_type": "third_party_verified_claim",
+        "evidence_maturity": 6,
+        "status": "published",
+        "external_verifier": "",
+        "methodology_ref": "IPCC 2006",
+    }
+    assert linked_carbon_claim_allowed(claim) is False
+
+
+def test_linked_carbon_claim_rejects_non_carbon_category() -> None:
+    claim = {
+        "claim_category": "biodiversity",
+        "claim_type": "third_party_verified_claim",
+        "evidence_maturity": 6,
+        "status": "published",
+        "external_verifier": "Reviewer",
+        "methodology_ref": "IPCC 2006",
+    }
+    assert linked_carbon_claim_allowed(claim) is False
+
+
 if __name__ == "__main__":
     test_public_carbon_score_requires_level6()
     test_service_carbon_gate_requires_level6_and_evidence()

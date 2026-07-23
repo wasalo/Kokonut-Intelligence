@@ -1,6 +1,7 @@
 """Tests for private coaching and resource decisions."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -39,3 +40,18 @@ def test_resource_request_and_private_coaching():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "privacy_level": "private"}
+    cleaned = operating_support._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_record_coaching_rejects_invalid_privacy_level():
+    with pytest.raises(ValueError, match="invalid privacy_level"):
+        operating_support.record_coaching_session(
+            MagicMock(), "internal", "scope-id", "party-id", "focus",
+            privacy_level="public"
+        )

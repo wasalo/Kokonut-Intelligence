@@ -93,3 +93,28 @@ def test_invalid_engagement_mode_is_rejected():
             engagement.create_plan(conn, "Invalid", "a0000000-0000-0000-0000-000000001002", engagement_mode="broadcast")
     finally:
         conn.close()
+
+
+from unittest.mock import MagicMock
+
+
+def test_create_plan_rejects_invalid_engagement_mode():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="engagement_mode"):
+        engagement.create_plan(mock_conn, "Plan", "p1", engagement_mode="dictate")
+
+
+def test_record_outcome_rejects_invalid_type():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="outcome_type"):
+        engagement.record_outcome(mock_conn, "plan-id", "invalid_type", "summary")
+
+
+def test_update_commitment_with_no_values_returns_existing():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = {"id": "c1", "status": "open"}
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = engagement.update_commitment(mock_conn, "c1")
+    assert result["id"] == "c1"

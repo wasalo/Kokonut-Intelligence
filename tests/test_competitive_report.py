@@ -1,6 +1,7 @@
 """Tests for competitive strategy reporting."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -34,3 +35,21 @@ def test_competitive_health_separates_external_position_state():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    import uuid as _uuid
+    mock_uuid = _uuid.uuid4()
+    row = {"id": mock_uuid, "strategy_plan_id": "plan-1"}
+    cleaned = competitive_report._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_health_raises_when_not_found():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="strategy competitive health not found"):
+        competitive_report.health(mock_conn, "missing-plan")

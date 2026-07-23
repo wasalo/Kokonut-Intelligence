@@ -1,5 +1,8 @@
 """Tests for governed coordination alliances and knowledge networks."""
 
+from datetime import datetime, timezone
+from unittest.mock import MagicMock
+
 import pytest
 
 from services.ingestion.base import get_db
@@ -82,3 +85,20 @@ def test_coordination_agents_cannot_write_governed_records():
     decision = assess_agent_action("create", "coordination_alliance", {"status": "draft"})
     assert decision.allowed
     assert not assess_agent_action("update", "coordination_alliance", {"status": "approved"}).allowed
+
+
+def test_row_helper_converts_uuid_and_datetime():
+    from services.analytics.coordination import _row
+    mock_uuid = uuid_mod.uuid4()
+    now = datetime.now(timezone.utc)
+    row = MagicMock()
+    row.__iter__ = lambda s: iter({"id": mock_uuid, "created_at": now, "name": "test"}.items())
+    result = _row(row)
+    assert result["id"] == str(mock_uuid)
+    assert result["created_at"] == now.isoformat()
+    assert result["name"] == "test"
+
+
+def test_row_helper_returns_none_for_none():
+    from services.analytics.coordination import _row
+    assert _row(None) is None

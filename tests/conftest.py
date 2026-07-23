@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any, List, Optional
+from unittest.mock import MagicMock
 
 import psycopg2
 import psycopg2.extras
+import pytest
 
 
 PROJECT_DIR = Path(__file__).parent.parent
@@ -29,6 +32,10 @@ def pytest_sessionfinish(session, exitstatus):
         print(f"\nERROR: {len(database_skips)} database-dependent tests were skipped in strict CI mode")
         session.exitstatus = 1
 
+
+# ---------------------------------------------------------------------------
+# Database helpers
+# ---------------------------------------------------------------------------
 
 def database_running() -> bool:
     """Check if the PostgreSQL Docker service is running."""
@@ -51,6 +58,10 @@ def get_db():
     )
 
 
+# ---------------------------------------------------------------------------
+# Mock helpers (shared across test files to avoid duplication)
+# ---------------------------------------------------------------------------
+
 class MockCursor:
     """Reusable mock cursor for unit tests. Tracks call count for sequential fetchall returns."""
 
@@ -58,9 +69,11 @@ class MockCursor:
         self._calls = 0
         self._fetchall_returns = fetchall_returns or []
         self._fetchone_return = fetchone_return or {"name": "Kokonut Adelphi"}
+        self._execute_args: list[tuple] = []
 
     def execute(self, query, params=None):
         self._calls += 1
+        self._execute_args.append((query, params))
 
     def fetchone(self):
         return self._fetchone_return
@@ -79,15 +92,63 @@ class MockConn:
 
     def __init__(self, cursor: MockCursor | None = None):
         self._cursor = cursor or MockCursor()
+        self._closed = False
 
     def cursor(self, cursor_factory=None):
         return self._cursor
 
     def close(self):
-        pass
+        self._closed = True
 
     def commit(self):
         pass
+
+    def rollback(self):
+        pass
+
+
+# ---------------------------------------------------------------------------
+# pytest fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def mock_cursor():
+    """Shared MockCursor instance."""
+    return MockCursor()
+
+
+@pytest.fixture
+def mock_conn(mock_cursor):
+    """Shared MockConn wrapping the mock_cursor."""
+    return MockConn(cursor=mock_cursor)
+
+
+@pytest.fixture
+def db():
+    """Get a database connection, skip if unavailable."""
+    try:
+        conn = get_db()
+        yield conn
+        conn.rollback()
+        conn.close()
+    except Exception as exc:
+        pytest.skip(f"no database available: {exc}")
+
+
+@pytest.fixture
+def cli_runner():
+    """Run a CLI module's main with given args, return (exit_code, stdout, stderr)."""
+    import subprocess
+
+    def _run(module: str, args: list[str] | None = None):
+        cmd = [sys.executable, "-m", module] + (args or [])
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30,
+            cwd=str(PROJECT_DIR),
+        )
+        return result.returncode, result.stdout, result.stderr
+
+    return _run
 
 
 def assert_public_safe_rows(rows: list[dict]) -> None:

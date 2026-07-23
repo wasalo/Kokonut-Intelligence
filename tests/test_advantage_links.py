@@ -1,6 +1,7 @@
 """Tests for advantage-to-operating-model links."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -50,3 +51,22 @@ def test_advantage_links_to_capability_and_fit_dashboard():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuid_values():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "relationship": "required"}
+    cleaned = advantage_assessment._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+    assert cleaned["relationship"] == "required"
+
+
+def test_link_advantage_validates_entity_type_and_relationship():
+    with pytest.raises(ValueError, match="invalid advantage link entity type"):
+        advantage_assessment.link_advantage(
+            MagicMock(), "id", "bad_type", "eid", "required"
+        )
+    with pytest.raises(ValueError, match="invalid advantage link relationship"):
+        advantage_assessment.link_advantage(
+            MagicMock(), "id", "capability", "eid", "bad_rel"
+        )

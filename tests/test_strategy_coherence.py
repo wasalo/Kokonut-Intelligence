@@ -1,6 +1,7 @@
 """Tests for strategy coherence findings."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -9,6 +10,21 @@ from services.ingestion.base import get_db
 
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002604"
+
+
+def test_resolve_finding_rejects_invalid_status():
+    with pytest.raises(ValueError, match="invalid finding resolution status"):
+        strategy_coherence.resolve_finding(None, str(uuid.uuid4()), str(uuid.uuid4()), "invalid", "note")
+
+
+def test_resolve_finding_rejects_missing_finding():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="coherence finding not found"):
+        strategy_coherence.resolve_finding(mock_conn, str(uuid.uuid4()), str(uuid.uuid4()), "resolved", "Fixed")
 
 
 def test_coherence_finds_missing_kernel_fields():

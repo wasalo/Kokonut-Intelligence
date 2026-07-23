@@ -1,5 +1,7 @@
 """Tests for reference-class forecasting (optimism-bias dampening)."""
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 import psycopg2
 
@@ -45,3 +47,14 @@ def test_apply_reference_class_keys():
         pytest.skip("forecast/noi tables not present (migration not applied)")
     finally:
         conn.close()
+
+
+def test_alpha_out_of_range_rejected():
+    with pytest.raises(ValueError, match="alpha must be between"):
+        rc.apply_reference_class(MagicMock(), "loc-id", alpha=-0.1)
+    with pytest.raises(ValueError, match="alpha must be between"):
+        rc.apply_reference_class(MagicMock(), "loc-id", alpha=1.1)
+
+
+def test_module_has_apply_reference_class():
+    assert callable(rc.apply_reference_class)

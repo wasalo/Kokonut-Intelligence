@@ -40,6 +40,28 @@ def test_service_publication_gates_match_maturity_rules() -> None:
     assert reasons == []
 
 
+def test_scorecard_gate_rejects_low_maturity() -> None:
+    allowed, reasons = scorecard_publication_gate(3, [])
+    assert allowed is False
+    assert any("Level 4" in r for r in reasons)
+
+
+def test_scorecard_gate_aggregates_pillar_failures() -> None:
+    pillar_results = [
+        (True, "allowed"),
+        (False, "public scores require Level 4 evidence"),
+    ]
+    allowed, reasons = scorecard_publication_gate(4, pillar_results)
+    assert allowed is False
+    assert len(reasons) == 1
+
+
+def test_carbon_gate_without_claim_fails() -> None:
+    allowed, reason = score_publication_gate("carbon_sequestration", 6, True, None)
+    assert allowed is False
+    assert "third-party verified" in reason
+
+
 if __name__ == "__main__":
     test_public_scorecard_requires_level4_and_public_claim_allowed()
     test_public_scores_require_evidence_links_in_view()

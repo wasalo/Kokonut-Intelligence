@@ -1,6 +1,7 @@
 """Tests for strategic positions."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -44,3 +45,20 @@ def test_position_preserves_private_value_proposition():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "target_name": "Buyers"}
+    cleaned = strategic_positioning._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_approve_position_rejects_non_submitted():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only submitted"):
+        strategic_positioning.approve_position(mock_conn, "pos-id", "party-id")

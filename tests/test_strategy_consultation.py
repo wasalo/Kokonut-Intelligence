@@ -1,6 +1,7 @@
 """Integration coverage for strategy consultation and communication governance."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -9,6 +10,31 @@ from services.ingestion.base import get_db
 
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002606"
+
+
+def test_submit_response_rejects_missing_consent():
+    with pytest.raises(ValueError, match="consent"):
+        strategy_consultation.submit_response(None, str(uuid.uuid4()), "response", consent_checked=False)
+
+
+def test_publish_communication_rejects_non_draft():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only draft"):
+        strategy_consultation.publish_communication(mock_conn, str(uuid.uuid4()), str(uuid.uuid4()))
+
+
+def test_open_consultation_rejects_non_draft():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only draft"):
+        strategy_consultation.open_consultation(mock_conn, str(uuid.uuid4()))
 
 
 def test_consultation_requires_consent_and_communication_approval():

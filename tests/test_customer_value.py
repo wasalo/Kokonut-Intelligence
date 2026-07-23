@@ -1,6 +1,7 @@
 """Integration coverage for customer value and value capture economics."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -41,3 +42,20 @@ def test_customer_value_bridge_exposes_surplus_and_capture():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "hypothesis": "test"}
+    cleaned = customer_value._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_submit_hypothesis_rejects_non_draft():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only draft"):
+        customer_value.submit_hypothesis(mock_conn, "hypothesis-id")

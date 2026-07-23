@@ -1,6 +1,7 @@
 """Integration coverage for the immutable sequential evidence ledger."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -43,3 +44,16 @@ def test_record_evidence_rejects_incomplete_or_invalid_inputs(kwargs):
             None, "not-a-real-hypothesis", "sensor", "signal",
             "2026-07-01T00:00:00+00:00", source_ref="source", **kwargs
         )
+
+
+def test_quality_statuses_constant():
+    assert "unverified" in sequential_evidence._QUALITY_STATUSES
+    assert "verified" in sequential_evidence._QUALITY_STATUSES
+    assert "rejected" in sequential_evidence._QUALITY_STATUSES
+
+
+def test_probability_helper_rejects_non_finite():
+    with pytest.raises(ValueError, match="must be between zero and one"):
+        sequential_evidence._probability(1.5, "test_prob")
+    with pytest.raises(ValueError, match="must be finite"):
+        sequential_evidence._probability(float("nan"), "test_prob")

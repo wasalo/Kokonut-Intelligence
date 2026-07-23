@@ -1,5 +1,7 @@
 """Coordination strategy lifecycle tests."""
 
+from unittest.mock import MagicMock
+
 import pytest
 
 from services.analytics.coordination import activate_alliance, create_alliance
@@ -34,3 +36,13 @@ def test_strategy_review_can_start_a_new_term():
         with conn.cursor() as cur:
             cur.execute("DELETE FROM coordination_alliance WHERE id = %s::uuid", (alliance["id"],))
         conn.commit()
+
+
+def test_declare_conflict_rejects_invalid_type():
+    with pytest.raises(ValueError, match="declaration_type must be"):
+        declare_conflict("alliance-id", "party-id", "invalid", "description")
+
+
+def test_record_benefit_harm_analysis_rejects_invalid_type():
+    with pytest.raises(ValueError, match="analysis_type must be"):
+        record_benefit_harm_analysis("alliance-id", "invalid", "description")

@@ -8,6 +8,26 @@ from services.analytics import strategy_kernel
 from services.ingestion.base import get_db
 
 
+def test_create_strategy_plan_rejects_invalid_scope_type():
+    with pytest.raises(ValueError, match="scope_type"):
+        strategy_kernel.create_strategy_plan(None, "platform", str(uuid.uuid4()), "Bad scope", "2026-01-01", "2026-12-31")
+
+
+def test_create_strategy_plan_rejects_invalid_approval_mode():
+    with pytest.raises(ValueError, match="approval_mode"):
+        strategy_kernel.create_strategy_plan(None, "organization", str(uuid.uuid4()), "Bad mode", "2026-01-01", "2026-12-31", approval_mode="unanimous")
+
+
+def test_create_strategy_plan_rejects_empty_name():
+    with pytest.raises(ValueError, match="name is required"):
+        strategy_kernel.create_strategy_plan(None, "organization", str(uuid.uuid4()), "   ", "2026-01-01", "2026-12-31")
+
+
+def test_create_strategy_plan_rejects_invalid_visibility():
+    with pytest.raises(ValueError, match="invalid visibility"):
+        strategy_kernel.create_strategy_plan(None, "organization", str(uuid.uuid4()), "Plan", "2026-01-01", "2026-12-31", visibility="secret")
+
+
 def test_location_plan_can_adapt_organization_plan():
     try:
         conn = get_db()

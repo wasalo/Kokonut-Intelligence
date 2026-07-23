@@ -1,6 +1,7 @@
 """Tests for VRIO-style advantage assessment."""
 
 import uuid
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -45,3 +46,44 @@ def test_advantage_assessment_computes_defensibility():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids_to_strings():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "name": "Test", "score": 85}
+    cleaned = advantage_assessment._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+    assert cleaned["name"] == "Test"
+    assert cleaned["score"] == 85
+
+
+def test_score_fields_constant():
+    assert "valuable_score" in advantage_assessment.SCORE_FIELDS
+    assert "rare_score" in advantage_assessment.SCORE_FIELDS
+    assert "inimitable_score" in advantage_assessment.SCORE_FIELDS
+    assert "organized_score" in advantage_assessment.SCORE_FIELDS
+    assert len(advantage_assessment.SCORE_FIELDS) == 10
+
+
+def test_link_advantage_rejects_invalid_entity_type():
+    with pytest.raises(ValueError, match="invalid advantage link entity type"):
+        advantage_assessment.link_advantage(
+            MagicMock(), "adv-id", "invalid_type", "entity-id", "required"
+        )
+
+
+def test_link_advantage_rejects_invalid_relationship():
+    with pytest.raises(ValueError, match="invalid advantage link relationship"):
+        advantage_assessment.link_advantage(
+            MagicMock(), "adv-id", "capability", "entity-id", "invalid_rel"
+        )
+
+
+def test_assess_advantage_rejects_missing_advantage():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="advantage not found"):
+        advantage_assessment.assess_advantage(mock_conn, "missing-id", "party-id")

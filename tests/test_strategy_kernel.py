@@ -1,6 +1,7 @@
 """Tests for versioned organization/location strategy plans."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -89,3 +90,28 @@ def test_strategy_plan_lifecycle_and_versioning():
 def test_strategy_kernel_supports_both_scope_types_without_database():
     with pytest.raises(ValueError, match="scope_type"):
         strategy_kernel.create_strategy_plan(None, "platform", str(uuid.uuid4()), "Invalid", "2026-01-01", "2026-12-31")
+
+
+def test_kernel_rejects_invalid_approval_mode():
+    with pytest.raises(ValueError, match="approval_mode"):
+        strategy_kernel.create_strategy_plan(None, "organization", str(uuid.uuid4()), "Plan", "2026-01-01", "2026-12-31", approval_mode="direct_vote")
+
+
+def test_kernel_rejects_invalid_visibility():
+    with pytest.raises(ValueError, match="invalid visibility"):
+        strategy_kernel.create_strategy_plan(None, "location", str(uuid.uuid4()), "Plan", "2026-01-01", "2026-12-31", visibility="hidden")
+
+
+def test_kernel_rejects_blank_name():
+    with pytest.raises(ValueError, match="name is required"):
+        strategy_kernel.create_strategy_plan(None, "organization", str(uuid.uuid4()), "", "2026-01-01", "2026-12-31")
+
+
+def test_transition_rejects_non_draft_submit():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only draft"):
+        strategy_kernel.submit_strategy_plan(mock_conn, str(uuid.uuid4()))

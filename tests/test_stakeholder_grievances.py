@@ -95,3 +95,46 @@ def test_conflicted_investigator_is_rejected():
                 cur.execute("DELETE FROM stakeholder_grievance_case WHERE id = %s::uuid", (case_id,))
             conn.commit()
         conn.close()
+
+
+from unittest.mock import MagicMock
+
+
+def test_close_case_rejects_empty_reason():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="closure reason is required"):
+        grievances.close_case(mock_conn, "case-id", "  ")
+
+
+def test_appeal_rejects_empty_reason():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="appeal reason is required"):
+        grievances.appeal_case(mock_conn, "case-id", "  ")
+
+
+def test_decide_appeal_rejects_invalid_status():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="appeal decision"):
+        grievances.decide_appeal(mock_conn, "appeal-id", "invalid", "reviewer", "Notes")
+
+
+def test_update_remedy_rejects_invalid_status():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="invalid remedy status"):
+        grievances.update_remedy(mock_conn, "remedy-id", "invalid_status")
+
+
+def test_assign_investigation_rejects_conflict_flag():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = {
+        "complainant_party_id": "p1",
+        "affected_party_id": "p2",
+        "owner_party_id": "p3",
+    }
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="conflicted investigators"):
+        grievances.assign_investigation(
+            mock_conn, "case-id", "p4", "scope", conflict_check_status="conflict"
+        )

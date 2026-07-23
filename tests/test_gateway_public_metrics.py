@@ -26,3 +26,21 @@ def test_public_metrics_reads_verified_view_without_computing() -> None:
     assert response.json()["computed"][0]["metric_key"] == "yield"
     compute_all.assert_not_called()
     conn.cursor.return_value.execute.assert_called_once()
+
+
+def test_create_app_returns_fastapi_instance() -> None:
+    app = create_app()
+    assert app is not None
+    assert app.title == "Kokonut Intelligence Gateway"
+
+
+def test_public_metrics_empty_result() -> None:
+    conn = MagicMock()
+    conn.cursor.return_value.fetchall.return_value = []
+
+    with patch("services.ingestion.base.get_db", return_value=conn):
+        with TestClient(create_app()) as client:
+            response = client.get("/api/metrics/location-999")
+
+    assert response.status_code == 200
+    assert response.json()["computed"] == []

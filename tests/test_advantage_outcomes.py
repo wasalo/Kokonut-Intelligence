@@ -1,6 +1,7 @@
 """Integration coverage for realized advantage outcomes and renewal."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -47,3 +48,25 @@ def test_advantage_performance_tracks_outcome_and_erosion():
                 cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuid_and_datetime():
+    from datetime import datetime, timezone
+    mock_uuid = uuid.uuid4()
+    now = datetime.now(timezone.utc)
+    row = {"id": mock_uuid, "event_date": now, "outcome_type": "price_premium"}
+    cleaned = advantage_outcomes._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+    assert cleaned["event_date"] == now
+    assert cleaned["outcome_type"] == "price_premium"
+
+
+def test_performance_returns_list_shape():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = []
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = advantage_outcomes.performance(mock_conn, "plan-id")
+    assert isinstance(result, list)
+    assert result == []

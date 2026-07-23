@@ -1,6 +1,8 @@
 """Tests for role assignments, domains, and authority controls."""
 
 import uuid
+from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -117,3 +119,19 @@ def test_delegate_requires_mandate_and_primary_is_unique():
             cur.execute("DELETE FROM party WHERE id IN (%s::uuid, %s::uuid, %s::uuid)", (PARTY_ID, APPROVER_ID, INVALID_APPROVER_ID))
         conn.commit()
         conn.close()
+
+
+def test_role_constants_are_well_defined():
+    assert "network" in governance_roles.SCOPE_TYPES
+    assert "observe" in governance_roles.AUTHORITY_LEVELS
+    assert "execute" in governance_roles.AUTHORITY_LEVELS
+    assert "primary" in governance_roles.ASSIGNMENT_TYPES
+    assert "delegate" in governance_roles.ASSIGNMENT_TYPES
+
+
+def test_value_helper_converts_uuid_and_datetime():
+    mock_uuid = uuid.uuid4()
+    now = datetime.now(timezone.utc)
+    assert governance_roles._value(mock_uuid) == str(mock_uuid)
+    assert governance_roles._value(now) == now.isoformat()
+    assert governance_roles._value("plain") == "plain"

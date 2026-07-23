@@ -96,3 +96,30 @@ def test_small_activity_is_suppressed_from_public_representation():
                 cur.execute("DELETE FROM stakeholder_participation WHERE id = %s::uuid", (participation_id,))
             conn.commit()
         conn.close()
+
+
+from unittest.mock import MagicMock
+
+
+def test_record_participation_rejects_invalid_activity_type():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="activity_type"):
+        representation.record_participation(mock_conn, "invalid_type", "act-id")
+
+
+def test_record_participation_requires_party_or_anonymous():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="party_id or anonymous_group"):
+        representation.record_participation(mock_conn, "decision", "act-id")
+
+
+def test_record_accessibility_request_rejects_invalid_need_type():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="need_type"):
+        representation.record_accessibility_request(mock_conn, "part-id", "invalid", "Support")
+
+
+def test_record_distribution_rejects_invalid_type():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="distribution_type"):
+        representation.record_distribution(mock_conn, "location", "invalid", "metric", 10.0, "hours")

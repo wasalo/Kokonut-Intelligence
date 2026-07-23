@@ -1,6 +1,7 @@
 """Integration coverage for scale gates, learning, and retirement."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -55,3 +56,16 @@ def test_scale_requires_evidence_and_learning_can_be_applied():
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "status": "passed"}
+    cleaned = solution_scale._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_evaluate_gate_rejects_empty_evidence():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="evidence"):
+        solution_scale.evaluate_gate(mock_conn, "gate-id", True, "val", [], "party-id")

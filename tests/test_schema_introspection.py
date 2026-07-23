@@ -1,6 +1,6 @@
 """Tests for the read-only ER schema inventory."""
 
-from services.schema_introspection.inventory import build_inventory, inventory_as_markdown
+from services.schema_introspection.inventory import build_inventory, inventory_as_markdown, risk_findings
 
 
 def _inventory():
@@ -34,3 +34,18 @@ def test_markdown_inventory_is_deterministic_and_reviewable():
     assert markdown.startswith("# PostgreSQL ER Inventory")
     assert "`plot`: `owner_type` + `owner_id`" in markdown
     assert "`plot.farmer_id` -> `farmer.id` (CASCADE)" in markdown
+
+
+def test_risk_findings_reports_polymorphism_and_relationships():
+    report = {
+        "polymorphic_references": [
+            {"table_name": "thing", "type_column": "owner_type", "id_column": "owner_id"}
+        ],
+        "relationship_shaped_columns": [
+            {"table_name": "thing", "column_name": "source_ids", "type": "_uuid"}
+        ],
+    }
+    findings = risk_findings(report)
+    assert len(findings) == 2
+    assert "polymorphic reference" in findings[0]
+    assert "relationship-shaped column" in findings[1]

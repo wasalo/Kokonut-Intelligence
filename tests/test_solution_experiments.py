@@ -1,6 +1,7 @@
 """Integration coverage for solution experiments and replication."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -49,3 +50,20 @@ def test_validated_experiment_can_create_replication():
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "hypothesis": "test"}
+    cleaned = solution_experiments._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_approve_protocol_rejects_non_submitted():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only submitted"):
+        solution_experiments.approve_protocol(mock_conn, "exp-id", "party-id")

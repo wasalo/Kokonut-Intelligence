@@ -42,6 +42,29 @@ def test_refresh_uses_verified_metric_value():
         conn.close()
 
 
+def test_variance_gte_at_risk():
+    assert strategy_kpi_refresh._variance(80, 100, "gte") == "at_risk"
+    assert strategy_kpi_refresh._variance(100, 100, "gte") == "on_track"
+    assert strategy_kpi_refresh._variance(50, 100, "gte") == "breach"
+
+
+def test_variance_lte_inverts_direction():
+    assert strategy_kpi_refresh._variance(120, 100, "lte") == "at_risk"
+    assert strategy_kpi_refresh._variance(100, 100, "lte") == "on_track"
+    assert strategy_kpi_refresh._variance(100, 50, "lte") == "breach"
+
+
+def test_variance_unknown_direction():
+    assert strategy_kpi_refresh._variance(100, 100, "eq") == "on_track"
+    assert strategy_kpi_refresh._variance(100, 200, "eq") == "breach"
+
+
+def test_variance_none_values():
+    assert strategy_kpi_refresh._variance(None, 100, "gte") == "not_measurable"
+    assert strategy_kpi_refresh._variance(100, None, "gte") == "not_measurable"
+    assert strategy_kpi_refresh._variance(None, None, "gte") == "not_measurable"
+
+
 def test_refresh_creates_one_kpi_breach_review_task():
     try:
         conn = get_db()

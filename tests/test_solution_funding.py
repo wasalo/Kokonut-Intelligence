@@ -1,6 +1,7 @@
 """Integration coverage for staged solution funding."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -44,3 +45,20 @@ def test_funding_release_requires_milestone_evidence():
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
         conn.commit()
         conn.close()
+
+
+def test_clean_helper_converts_uuids():
+    mock_uuid = uuid.uuid4()
+    row = {"id": mock_uuid, "amount": 1000}
+    cleaned = solution_funding._clean(row)
+    assert cleaned["id"] == str(mock_uuid)
+
+
+def test_submit_case_rejects_non_draft():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only draft"):
+        solution_funding.submit_case(mock_conn, "case-id", "party-id")

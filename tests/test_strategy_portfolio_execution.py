@@ -1,6 +1,7 @@
 """Integration coverage for executable strategic portfolio selections."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -10,6 +11,26 @@ from services.planning import strategy_allocation
 
 
 PARTY_ID = "b0000000-0000-0000-0000-000000002604"
+
+
+def test_execute_rejects_unapproved_selection():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only approved"):
+        strategy_allocation.execute_portfolio_selection(mock_conn, str(uuid.uuid4()))
+
+
+def test_approve_rejects_non_recommended_selection():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    with pytest.raises(ValueError, match="only recommended"):
+        strategy_allocation.approve_portfolio_selection(mock_conn, str(uuid.uuid4()), str(uuid.uuid4()))
 
 
 def test_approved_portfolio_creates_work_and_capacity_reservation():

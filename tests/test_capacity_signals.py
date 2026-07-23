@@ -1,6 +1,7 @@
 """Tests for dual-scope capacity and demand signals."""
 
 import uuid
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -46,3 +47,14 @@ def test_capacity_gap_is_visible_after_approval():
 def test_capacity_cannot_overcommit():
     with pytest.raises(ValueError, match="cannot exceed"):
         capacity_signals.record_capacity(None, "adelphi", str(uuid.uuid4()), PARTY_ID, "2026-07-01", "2026-07-31", 2, committed_hours=2, protected_hours=1)
+
+
+def test_scopes_constant():
+    assert capacity_signals.SCOPES == ("internal", "adelphi")
+
+
+def test_record_demand_rejects_negative_hours():
+    with pytest.raises(ValueError, match="negative"):
+        capacity_signals.record_demand(
+            None, "internal", str(uuid.uuid4()), "test", "2026-07-01", "2026-07-31", -5
+        )

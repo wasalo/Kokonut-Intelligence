@@ -1,6 +1,7 @@
 """Integration coverage for the canonical solution lifecycle."""
 
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -40,3 +41,22 @@ def test_solution_requires_gate_for_validated_promotion():
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
         conn.commit()
         conn.close()
+
+
+def test_stages_constant_covers_full_lifecycle():
+    assert "discovered" in solution_lifecycle.STAGES
+    assert "scaled" in solution_lifecycle.STAGES
+    assert "retired" in solution_lifecycle.STAGES
+    assert len(solution_lifecycle.STAGES) >= 15
+
+
+def test_promotion_gates_constant():
+    assert "validated" in solution_lifecycle.PROMOTION_GATES
+    assert "funded" in solution_lifecycle.PROMOTION_GATES
+    assert "scaled" in solution_lifecycle.PROMOTION_GATES
+
+
+def test_evaluate_gate_requires_evidence():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="evidence"):
+        solution_lifecycle.evaluate_gate(mock_conn, "gate-id", True, "party-id")

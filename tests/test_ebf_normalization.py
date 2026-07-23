@@ -24,6 +24,23 @@ def test_invalid_range_raises() -> None:
         raise AssertionError("expected ValueError")
 
 
+def test_clamp_score_rounds_to_one_decimal() -> None:
+    assert clamp_score(3.456) == 3.5
+    assert clamp_score(7.89) == 7.9
+
+
+def test_normalize_linear_inverted_scales_opposite() -> None:
+    low = normalize_linear(0, 0, 100)
+    high = normalize_linear(100, 0, 100, invert=True)
+    assert low == 0.0
+    assert high == 0.0  # invert maps 100 -> 0.0, 0 -> 10.0
+
+
+def test_normalize_percentage_at_boundaries() -> None:
+    assert normalize_percentage(0) == 0.0
+    assert normalize_percentage(100) == 10.0
+
+
 if __name__ == "__main__":
     test_clamp_score_bounds_values()
     test_linear_and_percentage_normalization()

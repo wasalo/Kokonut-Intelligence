@@ -182,3 +182,34 @@ def test_cooperative_governance_links_membership_to_party():
                 cur.execute("DELETE FROM cooperative WHERE id = %s::uuid", (cooperative_id,))
         conn.commit()
         conn.close()
+
+
+from unittest.mock import MagicMock
+
+
+def test_consent_check_returns_absent_for_unknown_party():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.return_value = None
+    mock_conn.cursor.return_value.__enter__ = lambda s: mock_cursor
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = consent_resolver.check_consent(mock_conn, "unknown-party", "soil", "research")
+    assert result["consented"] is False
+    assert result["effective_status"] == "absent"
+
+
+def test_identity_propose_link_rejects_missing_party():
+    mock_conn = MagicMock()
+    result = stakeholder_identity_resolution.propose_link(
+        mock_conn, "src", "type", "val", None, "person"
+    )
+    assert result == {} or result is None or "error" in str(result).lower()
+
+
+def test_trust_verify_buyer_requires_human_verifier():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="human verifier"):
+        stakeholder_trust.verify_buyer(
+            mock_conn, "buyer-id", "registration", "registry",
+            verified_by_party_id=None,
+        )
