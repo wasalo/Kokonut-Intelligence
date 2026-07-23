@@ -3,6 +3,13 @@
 # the databases. This is an explicit, CI-only override; base Compose keeps
 # these services private (per repo policy). Never use this file for
 # production deployments.
+#
+# Prerequisites:
+#   - .env must define CLICKHOUSE_PASSWORD (used by both the container and
+#     host Python tests).  CLICKHOUSE_USER defaults to "kokonut" and
+#     CLICKHOUSE_DB to "kokonut_analytics" in the base compose file.
+#   - KOKONUT_ENV should be "development" so services/common/db.py falls
+#     back to dev-mode placeholder secrets when variables are unset.
 services:
   database:
     ports:
