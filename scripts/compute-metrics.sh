@@ -2,7 +2,7 @@
 # ============================================================
 # compute-metrics.sh — Compute all metrics for all locations
 # ============================================================
-set -eo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
