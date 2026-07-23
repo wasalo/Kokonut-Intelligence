@@ -36,6 +36,9 @@ jobs:
          KOKONUT_ENV=ci
          KOKONUT_ALLOW_PLAINTEXT_ENV=true
          POSTGRES_PASSWORD=ci-placeholder
+        PG_HOST=database
+        PG_DB=kokonut_intelligence
+        PG_USER=kokonut
         PG_PASSWORD=ci-placeholder
         CLICKHOUSE_PASSWORD=ci-placeholder
         REDIS_PASSWORD=ci-placeholder
