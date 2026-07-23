@@ -11,12 +11,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Run health check with alerting
-if "$SCRIPT_DIR/health-check.sh" --alert > /dev/null 2>&1; then
+HEALTH_OUTPUT=$("$SCRIPT_DIR/health-check.sh" --alert 2>&1) && HEALTH_EXIT=0 || HEALTH_EXIT=$?
+
+if [ "$HEALTH_EXIT" -eq 0 ]; then
     # Healthy — suppress output for cron
     exit 0
 else
-    EXIT_CODE=$?
-    # Failed — re-run with visible output for cron log, alerts already sent
-    "$SCRIPT_DIR/health-check.sh" --alert 2>&1 || true
-    exit $EXIT_CODE
+    # Failed — show output for cron log, alerts already sent by --alert
+    echo "$HEALTH_OUTPUT"
+    exit "$HEALTH_EXIT"
 fi
