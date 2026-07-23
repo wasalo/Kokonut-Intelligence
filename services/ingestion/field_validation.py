@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 SENSOR_RANGES = {
@@ -26,6 +26,20 @@ class ValidationResult:
     errors: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     normalized: dict[str, Any] = field(default_factory=dict)
+    provenance: dict[str, Any] = field(default_factory=dict)
+    dedupe_key: str | None = None
+
+
+def parse_reading_timestamp(reading_date: str, reading_time: str | None = None) -> datetime:
+    """Parse the canonical field-reading date/time format as UTC."""
+    date_part = datetime.strptime(reading_date, "%Y-%m-%d").date()
+    time_part = datetime.strptime(reading_time or "00:00:00", "%H:%M:%S").time()
+    return datetime.combine(date_part, time_part, tzinfo=timezone.utc)
+
+
+def build_dedupe_key(sensor_id: str, timestamp: datetime) -> str:
+    """Build the canonical sensor identity used by CSV, HTTP, and MQTT."""
+    return f"sensor_reading:{sensor_id}:{timestamp.astimezone(timezone.utc).isoformat()}"
 
 
 def validate_sensor_reading(
@@ -35,6 +49,7 @@ def validate_sensor_reading(
     timestamp: datetime | None = None,
     quality: str | None = None,
     ranges: dict[str, tuple[float, float]] | None = None,
+    identity: str | None = None,
 ) -> ValidationResult:
     """Apply common numeric, timestamp, range, and quality validation."""
     errors: list[str] = []
@@ -72,4 +87,13 @@ def validate_sensor_reading(
         status = "suspect"
     else:
         status = "accepted"
-    return ValidationResult(status, errors, warnings, normalized)
+    provenance = {
+        "schema_version": "field-ingestion-v1",
+        "validation_status": status,
+        "warnings": warnings,
+        "errors": errors,
+    }
+    dedupe_key = None
+    if timestamp is not None and (identity or sensor_type):
+        dedupe_key = build_dedupe_key(identity or sensor_type, timestamp)
+    return ValidationResult(status, errors, warnings, normalized, provenance, dedupe_key)

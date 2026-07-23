@@ -54,7 +54,7 @@ def test_unscoped_api_key_is_denied(monkeypatch):
             json={"location_id": "location-1", "title": "Report"},
         )
 
-    assert response.status_code == 401
+    assert response.status_code == 403
     assert response.json()["reason"] == "api_key_scope_denied"
 
 

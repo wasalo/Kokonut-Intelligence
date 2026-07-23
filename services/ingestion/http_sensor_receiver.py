@@ -113,9 +113,18 @@ def _get_app():
                 ts = datetime.now(timezone.utc)
 
             validation = validate_sensor_reading(
-                reading.value, sensor_type, reading.unit, ts, reading.quality
+                reading.value, sensor_type, reading.unit, ts, reading.quality,
+                identity=reading.device_id,
             )
             if validation.status == "rejected":
+                log_ingestion(
+                    source_system="http_sensor", source_table="sensor_reading",
+                    source_id=reading.device_id, target_table="sensor_reading", target_id=None,
+                    operation="insert", payload_hash=hash_payload(reading.dict()),
+                    status="failed", error_message="; ".join(validation.errors),
+                    validation_status="rejected", validation_errors=validation.errors,
+                    validation_warnings=validation.warnings, dedupe_key=validation.dedupe_key,
+                )
                 return {"status": "error", "message": "; ".join(validation.errors)}
             quality = "suspect" if validation.status == "suspect" else "good"
 
@@ -125,13 +134,25 @@ def _get_app():
                     (location_id, plot_id, sensor_id, sensor_type, reading_date, reading_time, value, unit, quality,
                      source_system, source_id, source_raw, schema_version)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'field-ingestion-v1')
+                ON CONFLICT (sensor_id, reading_date, reading_time) DO NOTHING
                 RETURNING id
             """, (
                 location_id, plot_id, device_db_id, sensor_type,
                 ts.date(), ts.time(), reading.value, reading.unit, quality,
                 "http_sensor", reading.device_id, json.dumps(reading.dict()),
             ))
-            reading_id = str(cur.fetchone()[0])
+            inserted = cur.fetchone()
+            if not inserted:
+                db.commit()
+                log_ingestion(
+                    source_system="http_sensor", source_table="sensor_reading",
+                    source_id=reading.device_id, target_table="sensor_reading", target_id=None,
+                    operation="insert", payload_hash=hash_payload(reading.dict()),
+                    status="partial", error_message="duplicate reading",
+                    validation_status="duplicate", dedupe_key=validation.dedupe_key,
+                )
+                return {"status": "duplicate", "device_id": reading.device_id}
+            reading_id = str(inserted[0])
 
             # Update device health
             cur.execute("""
@@ -152,16 +173,19 @@ def _get_app():
             )
 
             log_ingestion(
-                source_system="http_sensor",
+                    source_system="http_sensor",
                 source_table="sensor_reading",
                 source_id=reading.device_id,
                 target_table="sensor_reading",
                 target_id=reading_id,
                 operation="insert",
                 payload_hash=hash_payload(reading.dict()),
-                status="success",
-                rows_affected=1,
-            )
+                    status="success",
+                    rows_affected=1,
+                    validation_status=validation.status,
+                    validation_warnings=validation.warnings,
+                    dedupe_key=validation.dedupe_key,
+                )
 
             return {"status": "success", "reading_id": reading_id}
 

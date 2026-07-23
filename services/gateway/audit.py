@@ -65,9 +65,13 @@ class GatewayAudit:
 
         # Write to access_audit_log if DB available. The table accepts
         # semantic actions, not raw HTTP verbs.
+        owns_conn = self._conn is None
+        conn = None
         try:
+            conn = self._get_conn()
             from services.security.audit import AuditLogger
-            audit = AuditLogger(conn=self._conn)
+            audit = AuditLogger(conn=conn)
+            outcome = "allowed" if status == "allowed" else "error" if status == "error" else "denied"
             audit.log_access(
                 caller=caller,
                 resource_type=f"gateway:{resource}",
@@ -78,6 +82,7 @@ class GatewayAudit:
                 ip_address=safe_ip,
                 user_agent=user_agent,
                 metadata={
+                    "outcome": outcome,
                     "duration_ms": duration_ms,
                     "status_code": status_code,
                     "reason": reason,
@@ -90,3 +95,6 @@ class GatewayAudit:
             # Audit failure must not break the request, but it must be visible
             # to operators instead of being silently discarded.
             logger.exception("Durable gateway audit failed: %s", exc)
+        finally:
+            if owns_conn and conn is not None:
+                conn.close()

@@ -101,6 +101,7 @@ def create_app():
                 location_id=location_id,
             )
         if not auth_result.get("authenticated"):
+            denial_status = 403 if auth_result.get("reason") == "api_key_scope_denied" else 401
             audit.log(
                 caller=caller,
                 path=request.url.path,
@@ -109,14 +110,14 @@ def create_app():
                 ip=client_ip,
                 user_agent=user_agent,
                 reason=auth_result.get("reason", "unauthenticated"),
-                status_code=401,
+                status_code=denial_status,
                 resource=policy["resource"],
                 action=policy["action"],
                 location_id=location_id,
                 capability_token_id=auth_result.get("capability_token_id"),
             )
             return JSONResponse(
-                status_code=401,
+                status_code=denial_status,
                 content={"error": "Unauthorized", "reason": auth_result.get("reason")},
             )
 

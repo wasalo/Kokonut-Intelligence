@@ -39,6 +39,10 @@ def test_development_plaintext_fallback_requires_explicit_flag(monkeypatch, tmp_
     _reset_loader(monkeypatch, tmp_path)
     monkeypatch.setenv("KOKONUT_ENV", "ci")
     monkeypatch.setenv("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")
+    monkeypatch.setenv("PG_HOST", "database")
+    monkeypatch.setenv("PG_DB", "kokonut_intelligence")
+    monkeypatch.setenv("PG_USER", "kokonut")
+    monkeypatch.setenv("PG_PASSWORD", "test-password")
     (tmp_path / ".env.sops").write_text("encrypted")
     (tmp_path / ".env").write_text("FALLBACK_SECRET=plaintext\n")
     monkeypatch.setattr(
@@ -66,3 +70,30 @@ def test_missing_secret_source_fails_for_ci(monkeypatch, tmp_path):
 
     with pytest.raises(env.SecretLoadError, match="source found"):
         env.load_dotenv()
+
+
+def test_plaintext_requires_explicit_opt_in_in_development(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "development")
+    (tmp_path / ".env").write_text("FALLBACK_SECRET=plaintext\n")
+
+    with pytest.raises(env.SecretLoadError, match="explicit development opt-in"):
+        env.load_dotenv()
+    assert env._LOADED is False
+
+
+def test_production_rejects_placeholder_credentials(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("PG_HOST", "database")
+    monkeypatch.setenv("PG_DB", "kokonut_intelligence")
+    monkeypatch.setenv("PG_USER", "kokonut")
+    monkeypatch.setenv("PG_PASSWORD", "replace-with-strong-password-min-24-chars")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(env.subprocess, "run", lambda *args, **kwargs: type(
+        "Result", (), {"stdout": ""}
+    )())
+
+    with pytest.raises(env.SecretLoadError, match="placeholder"):
+        env.load_dotenv()
+    assert env._LOADED is False

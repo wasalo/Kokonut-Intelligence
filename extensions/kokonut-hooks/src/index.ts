@@ -149,6 +149,20 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     });
   }
 
+  // Data-stream records always enter the governed lifecycle as drafts. Their
+  // status can only advance through the standard role-gated workflow.
+  for (const collection of ['data_stream_post', 'data_stream_post_comment', 'data_stream_file']) {
+    filter(`${collection}.create`, (payload: Record<string, any>) => {
+      if (payload.status && payload.status !== 'draft') {
+        delete payload.status;
+      }
+      return payload;
+    });
+    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+      return await applyWorkflow(collection, payload, meta);
+    });
+  }
+
   // ============================================================
   // Filter hooks (blocking - run before DB write)
   // ============================================================

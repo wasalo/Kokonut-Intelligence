@@ -39,6 +39,36 @@ def test_gateway_audit_rejects_invalid_ip_without_failing_request():
     assert audit_logger.log_access.call_args.kwargs["ip_address"] is None
 
 
+def test_gateway_audit_marks_handler_failures_as_errors():
+    audit_logger = MagicMock()
+    with patch("services.security.audit.AuditLogger", return_value=audit_logger):
+        GatewayAudit().log(
+            caller="caller",
+            path="/api/data-stream/post",
+            method="POST",
+            status="error",
+            status_code=500,
+            reason="RuntimeError",
+        )
+
+    assert audit_logger.log_access.call_args.kwargs["metadata"]["outcome"] == "error"
+
+
+def test_gateway_audit_closes_owned_connection():
+    conn = MagicMock()
+    with patch("services.gateway.audit.GatewayAudit._get_conn", return_value=conn):
+        audit_logger = MagicMock()
+        with patch("services.security.audit.AuditLogger", return_value=audit_logger):
+            GatewayAudit().log(
+                caller="caller",
+                path="/health",
+                method="GET",
+                status="allowed",
+            )
+
+    conn.close.assert_called_once()
+
+
 def test_request_identity_does_not_return_raw_credentials():
     request = MagicMock()
     request.headers.get.side_effect = lambda key: "secret" if key == "x-api-key" else None

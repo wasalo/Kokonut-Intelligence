@@ -5,26 +5,31 @@ Shared functions for all ingestion scripts: database connections,
 logging, hashing, retry logic.
 """
 
+import functools
 import hashlib
 import json
 import random
-import time
-import functools
 import re
+import time
 from datetime import datetime, timezone
 from typing import Any, Optional
 
 import psycopg2
 import psycopg2.extras
-
-psycopg2.extras.register_uuid()
+import requests
 
 from ..common.logging import get_logger
 from .config import (
-    PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD,
-    CH_HOST, CH_USER, CH_PASSWORD,
-    RETRY_MAX_RETRIES, RETRY_BACKOFF, RETRY_JITTER,
+    CH_HOST,
+    CH_PASSWORD,
+    CH_PORT,
+    CH_USER,
+    RETRY_BACKOFF,
+    RETRY_JITTER,
+    RETRY_MAX_RETRIES,
 )
+
+psycopg2.extras.register_uuid()
 
 logger = get_logger("ingestion.base")
 
@@ -97,9 +102,6 @@ def post_clickhouse_rows(table: str, columns: list[str], rows: list[list]) -> bo
     if not rows:
         return True
     _validate_ch_identifiers(table, columns)
-    import requests
-    from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
-
     query = f"INSERT INTO {table} ({', '.join(columns)}) FORMAT JSONEachRow"
     payload = "\n".join(
         json.dumps(dict(zip(columns, row)), default=str) for row in rows
@@ -143,6 +145,11 @@ def log_ingestion(
     rows_affected: int = 0,
     processing_time_ms: int = 0,
     processor_version: Optional[str] = None,
+    batch_id: Optional[str] = None,
+    validation_status: Optional[str] = None,
+    validation_errors: Optional[list[str]] = None,
+    validation_warnings: Optional[list[str]] = None,
+    dedupe_key: Optional[str] = None,
 ) -> None:
     """Log ingestion event to the ingestion_log table."""
     db = None
@@ -154,13 +161,18 @@ def log_ingestion(
                 INSERT INTO ingestion_log
                     (source_system, source_table, source_id, target_table, target_id,
                      operation, payload_hash, status, error_message, rows_affected,
-                     processing_time_ms, processor_version)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     processing_time_ms, processor_version, batch_id, validation_status,
+                     validation_errors, validation_warnings, dedupe_key)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                        %s::jsonb, %s::jsonb, %s)
                 """,
                 (
                     source_system, source_table, source_id, target_table, target_id,
                     operation, payload_hash, status, error_message, rows_affected,
                     processing_time_ms, processor_version or INGESTION_PROCESSOR_VERSION,
+                    batch_id, validation_status,
+                    json.dumps(validation_errors or []), json.dumps(validation_warnings or []),
+                    dedupe_key,
                 ),
             )
         db.commit()

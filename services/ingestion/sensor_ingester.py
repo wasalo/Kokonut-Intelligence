@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, insert_clickhouse_rows, log_ingestion
-from .field_validation import validate_sensor_reading
+from .field_validation import parse_reading_timestamp, validate_sensor_reading
 
 # Lazy event bus — initialized on first publish to avoid import-time side effects
 _event_bus = None
@@ -232,7 +232,26 @@ def run_csv(file_path: str):
 
             if not device_id or not reading_date or not value_str:
                 errors += 1
+                log_ingestion(
+                    source_system="csv_upload", source_table="sensor_csv", source_id=f"row_{i + 1}",
+                    target_table="sensor_reading", target_id=None, operation="insert",
+                    payload_hash=hash_payload(row), status="failed", error_message="missing required fields",
+                    validation_status="rejected", validation_errors=["missing required fields"],
+                )
                 logger.warning("  ✗ Row %d: missing required fields (device_id, reading_date, value)", i + 1)
+                continue
+
+            try:
+                timestamp = parse_reading_timestamp(reading_date, reading_time)
+            except ValueError as exc:
+                errors += 1
+                log_ingestion(
+                    source_system="csv_upload", source_table="sensor_csv", source_id=f"row_{i + 1}",
+                    target_table="sensor_reading", target_id=None, operation="insert",
+                    payload_hash=hash_payload(row), status="failed", error_message=str(exc),
+                    validation_status="rejected", validation_errors=[str(exc)],
+                )
+                logger.warning("  ✗ Row %d: invalid timestamp: %s", i + 1, exc)
                 continue
 
             try:
@@ -251,12 +270,23 @@ def run_csv(file_path: str):
 
             # Validate range
             sensor_type = sensor_info[4]
-            range_warnings = validate_reading(value, sensor_type, ranges)
-            quality = "good"
-            if range_warnings:
-                quality = "suspect"
+            validation = validate_sensor_reading(
+                value, sensor_type, "sensor", timestamp, ranges=ranges, identity=device_id
+            )
+            if validation.status == "rejected":
+                errors += 1
+                log_ingestion(
+                    source_system="csv_upload", source_table="sensor_csv", source_id=f"row_{i + 1}",
+                    target_table="sensor_reading", target_id=None, operation="insert",
+                    payload_hash=hash_payload(row), status="failed", error_message="; ".join(validation.errors),
+                    validation_status="rejected", validation_errors=validation.errors,
+                    validation_warnings=validation.warnings, dedupe_key=validation.dedupe_key,
+                )
+                continue
+            quality = "suspect" if validation.status == "suspect" else "good"
+            if validation.warnings:
                 warnings += 1
-                logger.warning("  ⚠ Row %d: %s", i + 1, ', '.join(range_warnings))
+                logger.warning("  ⚠ Row %d: %s", i + 1, ', '.join(validation.warnings))
 
             try:
                 pg_id = insert_reading(
@@ -276,6 +306,9 @@ def run_csv(file_path: str):
                     payload_hash=hash_payload(row),
                     status="success",
                     rows_affected=1,
+                    validation_status=validation.status,
+                    validation_warnings=validation.warnings,
+                    dedupe_key=validation.dedupe_key,
                 )
 
                 bus = _get_event_bus(conn=db)
@@ -335,15 +368,18 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
         now = datetime.now(timezone.utc)
         reading_date = date_str or now.strftime("%Y-%m-%d")
         reading_time = time_str or now.strftime("%H:%M:%S")
+        timestamp = parse_reading_timestamp(reading_date, reading_time)
 
         # Validate
         sensor_type = sensor_info[4]
-        range_warnings = validate_reading(value, sensor_type, ranges)
-        quality = "good"
-        if range_warnings:
-            quality = "suspect"
-            for w in range_warnings:
-                logger.warning("  ⚠ %s", w)
+        validation = validate_sensor_reading(
+            value, sensor_type, "sensor", timestamp, ranges=ranges, identity=sensor_id
+        )
+        if validation.status == "rejected":
+            raise ValueError("; ".join(validation.errors))
+        quality = "suspect" if validation.status == "suspect" else "good"
+        for warning in validation.warnings:
+            logger.warning("  ⚠ %s", warning)
 
         pg_id = insert_reading(
             db, sensor_info, reading_date, reading_time, value, quality,
@@ -363,6 +399,9 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
             payload_hash=hash_payload({"sensor_id": sensor_id, "value": value}),
             status="success",
             rows_affected=1,
+            validation_status=validation.status,
+            validation_warnings=validation.warnings,
+            dedupe_key=validation.dedupe_key,
         )
 
         bus = _get_event_bus(conn=db)

@@ -10,6 +10,8 @@ from pathlib import Path
 _LOADED = False
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_PLACEHOLDER_RE = re.compile(r"^(replace-with|your[_-]|change[_-]me|todo|none|null|0x\.\.\.)", re.IGNORECASE)
+_PRODUCTION_REQUIRED = ("PG_HOST", "PG_DB", "PG_USER", "PG_PASSWORD")
 
 
 class SecretLoadError(RuntimeError):
@@ -89,7 +91,17 @@ def _plaintext_allowed(env_path: Path) -> bool:
         explicit = _dotenv_flag(env_path, "KOKONUT_ALLOW_PLAINTEXT_ENV")
     if str(explicit).lower() == "true":
         return True
-    return os.environ.get("KOKONUT_ENV", "development").lower() == "development"
+    return False
+
+
+def _validate_production_environment() -> None:
+    """Reject missing or example credentials in CI/production."""
+    for key in _PRODUCTION_REQUIRED:
+        value = os.environ.get(key, "").strip()
+        if not value:
+            raise SecretLoadError(f"required environment variable is missing: {key}")
+        if _PLACEHOLDER_RE.match(value):
+            raise SecretLoadError(f"placeholder environment value is not allowed: {key}")
 
 
 def load_dotenv() -> None:
@@ -117,6 +129,8 @@ def load_dotenv() -> None:
     elif os.environ.get("KOKONUT_ENV", "development").lower() != "development":
         raise SecretLoadError("no encrypted or plaintext environment source found")
 
+    if os.environ.get("KOKONUT_ENV", "development").lower() in {"ci", "production"}:
+        _validate_production_environment()
     _LOADED = True
 
 

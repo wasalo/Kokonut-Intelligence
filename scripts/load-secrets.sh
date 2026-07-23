@@ -31,7 +31,45 @@ if [ -z "${SOPS_AGE_KEY_FILE:-}" ] && [ -f "$HOME/.config/sops/age/keys.txt" ]; 
     export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 fi
 
-# Decrypt and export each variable
-set -a
-eval "$(sops -d --input-type dotenv --output-type dotenv "$SOPS_FILE")"
-set +a
+# Decrypt into a restrictive temporary file, then parse assignments without
+# evaluating shell code from the encrypted payload.
+umask 077
+DECRYPTED_FILE="$(mktemp "${TMPDIR:-/tmp}/kokonut-env.XXXXXX")"
+cleanup() {
+    rm -f "$DECRYPTED_FILE"
+}
+trap cleanup EXIT
+
+if ! sops -d --input-type dotenv --output-type dotenv "$SOPS_FILE" > "$DECRYPTED_FILE"; then
+    echo "ERROR: unable to decrypt $SOPS_FILE" >&2
+    return 1 2>/dev/null || exit 1
+fi
+
+while IFS= read -r line || [ -n "$line" ]; do
+    line="${line#${line%%[![:space:]]*}}"
+    line="${line%${line##*[![:space:]]}}"
+    [ -z "$line" ] && continue
+    [[ "$line" == \#* ]] && continue
+
+    if [[ "$line" == export\ * ]]; then
+        line="${line#export }"
+    fi
+    if [[ "$line" != *=* ]]; then
+        echo "ERROR: invalid dotenv assignment" >&2
+        return 1 2>/dev/null || exit 1
+    fi
+
+    key="${line%%=*}"
+    value="${line#*=}"
+    key="${key#${key%%[![:space:]]*}}"
+    key="${key%${key##*[![:space:]]}}"
+    if [[ ! "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+        echo "ERROR: invalid dotenv variable name: $key" >&2
+        return 1 2>/dev/null || exit 1
+    fi
+    if [[ "$value" == \"*\" && "$value" == *\" ]] ||
+       [[ "$value" == \'*\' && "$value" == *\' ]]; then
+        value="${value:1:${#value}-2}"
+    fi
+    export "$key=$value"
+done < "$DECRYPTED_FILE"
