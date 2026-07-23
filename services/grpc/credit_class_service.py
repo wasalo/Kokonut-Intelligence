@@ -6,6 +6,8 @@ import json
 import time
 from typing import Any
 
+import grpc
+
 from services.common.logging import get_logger
 
 logger = get_logger("grpc.ecocredit_service")

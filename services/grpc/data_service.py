@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import time
 
+import grpc
+
 from services.common.logging import get_logger
 
 logger = get_logger("grpc.data_service")
