@@ -19,6 +19,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -45,9 +46,29 @@ def _check_table(table_name: str) -> bool:
 
 
 def _check_view(view_name: str) -> bool:
-    """Check if a view exists."""
+    """Check if a view exists in PostgreSQL."""
     result = _run_sql(f"SELECT EXISTS (SELECT 1 FROM information_schema.views WHERE table_schema = 'public' AND table_name = '{view_name}') AS exists")
     return "t" in result
+
+
+def _run_ch(sql: str) -> str:
+    """Execute SQL via ClickHouse client in Docker."""
+    password = os.environ.get("CLICKHOUSE_PASSWORD", "dev-clickhouse-kokonut-2026")
+    result = subprocess.run(
+        ["docker", "compose", "exec", "-T", "clickhouse", "clickhouse-client",
+         "--user", "kokonut", "--password", password,
+         "--query", sql],
+        capture_output=True, text=True, timeout=30,
+    )
+    return result.stdout.strip()
+
+
+def _check_ch_view(view_name: str) -> bool:
+    """Check if a view or materialized view exists in ClickHouse."""
+    result = _run_ch(
+        f"SELECT count() FROM system.tables WHERE name = '{view_name}' AND database = currentDatabase()"
+    )
+    return result.strip() != "0"
 
 
 def _check_column(table_name: str, column_name: str) -> bool:
@@ -108,29 +129,33 @@ def test_all_tables_exist():
 
 
 def test_all_views_exist():
-    """Verify all views exist."""
-    schema_dir = Path("schemas/postgres")
-    all_views = set()
-    for sql_file in schema_dir.glob("*.sql"):
-        content = sql_file.read_text()
-        for match in __import__("re").findall(r"CREATE (?:OR REPLACE )?VIEW (\w+)", content):
-            all_views.add(match)
+    """Verify all views exist in their respective databases."""
+    import re
 
-    # Also check ClickHouse views
+    # PostgreSQL views
+    pg_views = set()
+    pg_dir = Path("schemas/postgres")
+    for sql_file in pg_dir.glob("*.sql"):
+        content = sql_file.read_text()
+        for match in re.findall(r"CREATE (?:OR REPLACE )?VIEW (\w+)", content):
+            pg_views.add(match)
+
+    pg_missing = [v for v in sorted(pg_views) if not _check_view(v)]
+    assert not pg_missing, f"Missing PostgreSQL views: {pg_missing}"
+    print(f"  All {len(pg_views)} PostgreSQL views exist")
+
+    # ClickHouse views (materialized + regular)
+    ch_views = set()
     ch_dir = Path("schemas/clickhouse")
     if ch_dir.exists():
         for sql_file in ch_dir.glob("*.sql"):
             content = sql_file.read_text()
-            for match in __import__("re").findall(r"CREATE (?:OR REPLACE )?(?:MATERIALIZED )?VIEW (\w+)", content):
-                all_views.add(match)
+            for match in re.findall(r"CREATE (?:OR REPLACE )?(?:MATERIALIZED )?VIEW (\w+)", content):
+                ch_views.add(match)
 
-    missing = []
-    for view in sorted(all_views):
-        if not _check_view(view):
-            missing.append(view)
-
-    assert not missing, f"Missing views: {missing}"
-    print(f"  All {len(all_views)} views exist")
+    ch_missing = [v for v in sorted(ch_views) if not _check_ch_view(v)]
+    assert not ch_missing, f"Missing ClickHouse views: {ch_missing}"
+    print(f"  All {len(ch_views)} ClickHouse views exist")
 
 
 # ============================================================
