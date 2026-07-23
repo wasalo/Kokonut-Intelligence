@@ -180,8 +180,8 @@ def search_posts(
     limit: int = 20,
 ) -> list[dict]:
     conditions = [
+        "id IN (SELECT id FROM v_data_stream_search)",
         "content_search @@ plainto_tsquery('english', :query)",
-        "status IN ('published', 'verified')",
     ]
     params: dict[str, Any] = {"query": query_text, "limit": limit}
 

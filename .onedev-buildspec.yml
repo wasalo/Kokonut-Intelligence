@@ -32,8 +32,10 @@ jobs:
         echo "=== [step] Writing CI .env ==="
         umask 077
         trap 'rm -f .env' EXIT
-        cat > .env <<'EOF'
-        POSTGRES_PASSWORD=ci-placeholder
+         cat > .env <<'EOF'
+         KOKONUT_ENV=ci
+         KOKONUT_ALLOW_PLAINTEXT_ENV=true
+         POSTGRES_PASSWORD=ci-placeholder
         PG_PASSWORD=ci-placeholder
         CLICKHOUSE_PASSWORD=ci-placeholder
         REDIS_PASSWORD=ci-placeholder

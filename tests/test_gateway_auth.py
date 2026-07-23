@@ -74,5 +74,5 @@ def test_capability_uses_route_resource_and_action():
         "token",
         resource="data_stream_post",
         action="create",
-        location_id=None,
+        location_id="location-1",
     )

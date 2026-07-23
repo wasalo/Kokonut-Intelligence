@@ -24,10 +24,9 @@ import re
 import sys
 from datetime import datetime, timezone
 
-import requests
-
 from ..common.logging import get_logger
-from .base import get_db, insert_clickhouse_rows, log_ingestion, hash_payload, retry
+from .base import get_db, hash_payload, insert_clickhouse_rows, log_ingestion
+from .field_validation import validate_sensor_reading
 
 # Lazy event bus — initialized on first publish to avoid import-time side effects
 _event_bus = None
@@ -96,6 +95,9 @@ def get_sensor_type_ranges(db) -> dict:
 
 def validate_reading(value: float, sensor_type: str, ranges: dict) -> list:
     """Validate a sensor reading. Returns list of warnings."""
+    result = validate_sensor_reading(value, sensor_type, unit="sensor", ranges=ranges)
+    if not result.normalized.get("value") == result.normalized.get("value"):
+        return ["Value is NaN"]
     warnings = []
     if sensor_type in ranges:
         min_val, max_val = ranges[sensor_type]
@@ -103,9 +105,7 @@ def validate_reading(value: float, sensor_type: str, ranges: dict) -> list:
             warnings.append(f"Below minimum ({min_val} {sensor_type}): {value}")
         if value > max_val:
             warnings.append(f"Above maximum ({max_val} {sensor_type}): {value}")
-    if value != value:  # NaN check
-        warnings.append("Value is NaN")
-    return warnings
+    return warnings + [w for w in result.errors if w != "value must be finite"]
 
 
 def get_active_sensors(db) -> list:
@@ -135,7 +135,9 @@ def get_sensor_by_id_or_slug(db, identifier: str):
 
 
 def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
-                   value: float, quality: str = "good", metadata: dict = None) -> str:
+                   value: float, quality: str = "good", metadata: dict = None,
+                   source_system: str = "sensor_ingester", source_id: str = None,
+                   source_raw: dict = None) -> str:
     """Insert a sensor reading into PostgreSQL. Returns record ID."""
     sensor_id, name, slug, sensor_type_id, sensor_type, location_id, plot_id, status, protocol = sensor_info
     reading_time = reading_time or "00:00:00"
@@ -145,17 +147,19 @@ def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
             """
             INSERT INTO sensor_reading
                 (location_id, plot_id, sensor_id, sensor_type, reading_date,
-                 reading_time, value, unit, quality, metadata)
+                 reading_time, value, unit, quality, metadata, source_system,
+                 source_id, source_raw, schema_version)
             VALUES (%s, %s, %s, %s, %s, %s, %s,
                     (SELECT unit FROM sensor_type WHERE id = %s),
-                    %s, %s::jsonb)
+                    %s, %s::jsonb, %s, %s, %s::jsonb, 'field-ingestion-v1')
             ON CONFLICT (sensor_id, reading_date, reading_time) DO NOTHING
             RETURNING id
             """,
             (
                 location_id, plot_id, str(sensor_id), sensor_type,
                 reading_date, reading_time, value, sensor_type_id,
-                quality, json.dumps(metadata or {}),
+                quality, json.dumps(metadata or {}), source_system, source_id,
+                json.dumps(source_raw if source_raw is not None else metadata or {}),
             ),
         )
         row = cur.fetchone()
@@ -255,8 +259,11 @@ def run_csv(file_path: str):
                 logger.warning("  ⚠ Row %d: %s", i + 1, ', '.join(range_warnings))
 
             try:
-                pg_id = insert_reading(db, sensor_info, reading_date, reading_time, value, quality,
-                                        {"csv_row": i + 1, "source_file": file_path})
+                pg_id = insert_reading(
+                    db, sensor_info, reading_date, reading_time, value, quality,
+                    {"csv_row": i + 1, "source_file": file_path},
+                    source_system="csv_upload", source_id=f"row_{i + 1}", source_raw=row,
+                )
                 insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality)
 
                 log_ingestion(
@@ -338,8 +345,12 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
             for w in range_warnings:
                 logger.warning("  ⚠ %s", w)
 
-        pg_id = insert_reading(db, sensor_info, reading_date, reading_time, value, quality,
-                                {"source": "api", "ingested_at": now.isoformat()})
+        pg_id = insert_reading(
+            db, sensor_info, reading_date, reading_time, value, quality,
+            {"source": "api", "ingested_at": now.isoformat()},
+            source_system="api", source_id=sensor_id,
+            source_raw={"sensor_id": sensor_id, "value": value},
+        )
         insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality)
 
         log_ingestion(

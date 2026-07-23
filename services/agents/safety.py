@@ -130,6 +130,7 @@ GOVERNED_COLLECTIONS = {
     "credit_transfer",
     "data_stream_post",
     "data_stream_post_comment",
+    "data_stream_file",
     "credit_class",
     "credit_batch",
     "retirement_certificate",

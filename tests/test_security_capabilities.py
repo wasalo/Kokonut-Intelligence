@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -98,6 +99,24 @@ def test_verify_returns_none_for_revoked_token(manager, mock_conn):
 
     result = manager.verify("some-token", resource="harvest_event", action="write")
     assert result is None
+
+
+def test_verify_requires_exact_location_scope(manager, mock_conn):
+    """A location-scoped request cannot use another location's capability."""
+    future = datetime.now(timezone.utc) + timedelta(hours=1)
+    cursor = MagicMock()
+    cursor.fetchone.return_value = (
+        "tok-id",
+        "holder",
+        '[{"resource":"harvest_event","action":"write","location_id":"loc-a"}]',
+        future,
+        None,
+        False,
+    )
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+    assert manager.verify("some-token", "harvest_event", "write", "loc-b") is None
 
 
 def test_revoke_returns_true_on_success(manager, mock_conn):

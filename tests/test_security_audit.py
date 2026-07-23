@@ -6,7 +6,8 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
+
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -54,6 +55,25 @@ def test_log_access_denied_status(audit, mock_conn):
         status="denied",
     )
     assert isinstance(log_id, str)
+
+
+def test_log_access_serializes_gateway_metadata(audit, mock_conn):
+    """Gateway audit metadata remains queryable without raw HTTP verbs."""
+    cursor = MagicMock()
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+    audit.log_access(
+        caller="gateway-client",
+        resource_type="gateway:data_stream_post",
+        action="write",
+        status="allowed",
+        metadata={"http_method": "POST", "status_code": 201},
+    )
+
+    params = cursor.execute.call_args[0][1]
+    assert params[5] == "write"
+    assert json.loads(params[9]) == {"http_method": "POST", "status_code": 201}
 
 
 def test_query_logs_builds_conditions(audit, mock_conn):

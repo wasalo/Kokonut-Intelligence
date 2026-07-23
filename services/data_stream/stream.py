@@ -37,6 +37,7 @@ def get_chronological_feed(
     conditions = [
         "dsp.status IN ('published', 'verified')",
         "dsp.visibility = 'public'",
+        "COALESCE(dsp.metadata ->> 'privacy', '') = 'public_summary'",
         "l.status = 'active'",
         "EXISTS (SELECT 1 FROM farm_registry_record fr WHERE fr.location_id = dsp.location_id AND fr.status IN ('verified', 'published'))",
     ]
@@ -85,7 +86,14 @@ def get_filtered_stream(
     visibility: str | None = None,
     limit: int = 50,
 ) -> list[dict]:
-    conditions = ["location_id = :location_id"]
+    conditions = [
+        "location_id = :location_id",
+        "status IN ('published', 'verified')",
+        "visibility = 'public'",
+        "COALESCE(metadata ->> 'privacy', '') = 'public_summary'",
+        "EXISTS (SELECT 1 FROM location l WHERE l.id = data_stream_post.location_id AND l.status = 'active')",
+        "EXISTS (SELECT 1 FROM farm_registry_record fr WHERE fr.location_id = data_stream_post.location_id AND fr.status IN ('verified', 'published'))",
+    ]
     params: dict[str, Any] = {"location_id": location_id, "limit": limit}
 
     if post_type:

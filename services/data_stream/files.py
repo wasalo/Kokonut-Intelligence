@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from services.common.logging import get_logger
 
 logger = get_logger("data_stream.files")
@@ -27,6 +25,15 @@ def add_file_to_post(
     longitude: float = None,
     sort_order: int = 0,
 ) -> dict:
+    if media_type not in VALID_MEDIA_TYPES:
+        raise ValueError(f"Invalid media_type: {media_type}")
+    if file_size_bytes is not None and file_size_bytes < 0:
+        raise ValueError("file_size_bytes must be non-negative")
+    if latitude is not None and not -90 <= latitude <= 90:
+        raise ValueError("latitude must be between -90 and 90")
+    if longitude is not None and not -180 <= longitude <= 180:
+        raise ValueError("longitude must be between -180 and 180")
+
     geometry_wkt = None
     if latitude is not None and longitude is not None:
         geometry_wkt = f"SRID=4326;POINT({longitude} {latitude})"
@@ -49,7 +56,7 @@ def add_file_to_post(
             "url": file_url, "dfid": directus_file_id,
             "mt": media_type, "fsb": file_size_bytes, "mime": mime_type,
             "lat": latitude, "lon": longitude,
-            "geom": geometry_wkt or "SRID=4326;POINT(0 0)",
+            "geom": geometry_wkt,
             "so": sort_order,
         },
     )
@@ -71,6 +78,21 @@ def list_post_files(conn, post_id: str) -> list[dict]:
             "file_url, directus_file_id, media_type, file_size_bytes, mime_type, "
             "latitude, longitude, sort_order, created_at "
             "FROM data_stream_file WHERE post_id = :pid ORDER BY sort_order, created_at"
+        ),
+        {"pid": post_id},
+    )
+    return [dict(r) for r in result.mappings()]
+
+
+def list_public_post_files(conn, post_id: str) -> list[dict]:
+    """List only files eligible for a public data-stream post."""
+    result = conn.execute(
+        conn.text(
+            "SELECT id, file_iri, file_name, file_description, file_credit, "
+            "file_url, directus_file_id, media_type, file_size_bytes, mime_type, "
+            "latitude, longitude, sort_order, created_at "
+            "FROM v_data_stream_public_file WHERE post_id = :pid "
+            "ORDER BY sort_order, created_at"
         ),
         {"pid": post_id},
     )

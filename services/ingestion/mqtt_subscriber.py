@@ -15,18 +15,17 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import hashlib
 import hmac
+import json
 import os
 import signal
 import sys
-import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
+from .base import get_db, hash_payload, log_ingestion
+from .field_validation import validate_sensor_reading
 
 logger = get_logger("ingestion.mqtt_subscriber")
 
@@ -201,16 +200,24 @@ class MQTTSensorSubscriber:
         else:
             reading_time = datetime.now(timezone.utc)
 
+        validation = validate_sensor_reading(value, sensor_type, unit, reading_time)
+        if validation.status == "rejected":
+            logger.warning("Invalid MQTT reading for device %s: %s", device_id, validation.errors)
+            cur.close()
+            return
+        quality = "suspect" if validation.status == "suspect" else "good"
+
         # Insert reading
         cur.execute("""
             INSERT INTO sensor_reading
-                (location_id, plot_id, sensor_id, sensor_type, reading_date, reading_time, value, unit, quality)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'good')
+                (location_id, plot_id, sensor_id, sensor_type, reading_date, reading_time, value, unit, quality,
+                 source_system, source_id, source_raw, schema_version)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'field-ingestion-v1')
             RETURNING id
         """, (
             location_id, plot_id, device_db_id, sensor_type,
             reading_time.date(), reading_time.time(),
-            float(value), unit or "",
+            float(value), unit or "", quality, "mqtt_sensor", device_id, json.dumps(data),
         ))
         reading_id = str(cur.fetchone()[0])
 
@@ -228,7 +235,10 @@ class MQTTSensorSubscriber:
         cur.close()
 
         # Dual-write to ClickHouse
-        self._insert_ch(reading_id, location_id, plot_id, device_db_id, sensor_type, value, unit, reading_time)
+        self._insert_ch(
+            reading_id, location_id, plot_id, device_db_id, sensor_type,
+            value, unit, reading_time, quality,
+        )
 
         log_ingestion(
             source_system="mqtt_sensor",
@@ -242,7 +252,7 @@ class MQTTSensorSubscriber:
             rows_affected=1,
         )
 
-    def _insert_ch(self, reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp):
+    def _insert_ch(self, reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp, quality="good"):
         """Insert reading into ClickHouse."""
         try:
             from .base import post_clickhouse_rows
@@ -251,7 +261,7 @@ class MQTTSensorSubscriber:
                 ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
                  "value", "unit", "quality", "metadata"],
                 [[timestamp, str(sensor_id), str(sensor_type), str(location_id),
-                  str(plot_id or ""), float(value), str(unit or ""), "good", {}]],
+                  str(plot_id or ""), float(value), str(unit or ""), quality, {}]],
             )
         except Exception as e:
             logger.warning("ClickHouse insert failed: %s", e)
