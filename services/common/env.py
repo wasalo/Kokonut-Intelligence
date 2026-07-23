@@ -72,3 +72,24 @@ def load_dotenv() -> None:
         _load_via_dotenv(env_path)
 
     _LOADED = True
+
+
+def get_db():
+    """Return a psycopg2 connection using the loaded environment variables.
+
+    This is a convenience re-export so that modules which do
+    ``from services.common.env import get_db`` (a common pattern across
+    systems, threatcasting, trends, delphi, events, geostatistics, etc.)
+    resolve to a real connection factory.
+    """
+    import psycopg2
+
+    load_dotenv()  # ensure env vars are populated
+
+    return psycopg2.connect(
+        host=os.environ.get("PG_HOST", "localhost"),
+        port=os.environ.get("PG_PORT", "5432"),
+        dbname=os.environ.get("PG_DB", "kokonut"),
+        user=os.environ.get("PG_USER", "kokonut"),
+        password=os.environ.get("PG_PASSWORD", ""),
+    )

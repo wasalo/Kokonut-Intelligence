@@ -33,7 +33,7 @@ app = typer.Typer(
 )
 
 
-def _legacy(module_path: str, attr: str = "main") -> Callable[[], Callable[..., Any]]:
+def _legacy(module_path: str, attr: str = "main") -> Callable:
     """Return a factory that lazily fetches ``module.attr`` (the legacy main).
 
     Import errors surface as a clean ``Error:`` message rather than a raw
