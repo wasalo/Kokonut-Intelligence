@@ -1,0 +1,16 @@
+{
+  "title": "Soil Carbon Trend",
+  "description": "Soil organic carbon measurements over time with sequestration rates.",
+  "cards": [
+    {
+      "name": "Soil Carbon Trend",
+      "dataset_query": "dashboards/metabase/sql/15_soil_carbon_trend.sql",
+      "visualization": "line"
+    }
+  ],
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

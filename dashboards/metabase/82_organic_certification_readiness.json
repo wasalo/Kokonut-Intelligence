@@ -1,0 +1,16 @@
+{
+  "title": "Organic Certification Readiness",
+  "description": "Readiness scores, compliance percentages, and transition phase tracking.",
+  "cards": [
+    {
+      "name": "Organic Certification Readiness",
+      "dataset_query": "dashboards/metabase/sql/82_organic_certification_readiness.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

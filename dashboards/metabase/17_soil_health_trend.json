@@ -1,0 +1,16 @@
+{
+  "title": "Soil Health Trend",
+  "description": "Soil health composite indicators: pH, organic matter, microbial activity.",
+  "cards": [
+    {
+      "name": "Soil Health Trend",
+      "dataset_query": "dashboards/metabase/sql/17_soil_health_trend.sql",
+      "visualization": "line"
+    }
+  ],
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

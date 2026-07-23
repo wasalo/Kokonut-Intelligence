@@ -1,0 +1,16 @@
+{
+  "title": "Organic Input Audit",
+  "description": "Input compliance, prohibited substance tracking, and harvest segregation.",
+  "cards": [
+    {
+      "name": "Organic Input Audit",
+      "dataset_query": "dashboards/metabase/sql/84_organic_input_audit.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

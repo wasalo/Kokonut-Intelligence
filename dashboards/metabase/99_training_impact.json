@@ -1,0 +1,16 @@
+{
+  "title": "Training Impact",
+  "description": "Training programs, attendance, completion rates, and skill improvement.",
+  "cards": [
+    {
+      "name": "Training Impact",
+      "dataset_query": "dashboards/metabase/sql/99_training_impact.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Eagle View - Financial",
+  "description": "Platform-wide financial summary: revenue, expenses, margins, and cost breakdowns.",
+  "cards": [
+    {
+      "name": "Eagle View Financial",
+      "dataset_query": "dashboards/metabase/sql/07_eagle_view_financial.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "finance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

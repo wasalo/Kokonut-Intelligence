@@ -1,0 +1,16 @@
+{
+  "title": "Stakeholder Cockpit",
+  "description": "Consolidated stakeholder view with salience, trust scores, and engagement counts.",
+  "cards": [
+    {
+      "name": "Stakeholder Cockpit",
+      "dataset_query": "dashboards/metabase/sql/76_stakeholder_cockpit.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

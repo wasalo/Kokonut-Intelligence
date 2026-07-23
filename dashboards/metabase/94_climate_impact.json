@@ -1,0 +1,16 @@
+{
+  "title": "Climate Impact",
+  "description": "Carbon balance, GHG emissions, tree carbon, and regenerative scores.",
+  "cards": [
+    {
+      "name": "Climate Impact",
+      "dataset_query": "dashboards/metabase/sql/94_climate_impact.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

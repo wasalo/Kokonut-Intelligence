@@ -1,0 +1,106 @@
+{
+  "name": "Impact & Accountability",
+  "description": "Impact claims, evidence maturity, attestation coverage, and metric proposals for accountability tracking.",
+  "icon": "assignment",
+  "color": "#880e4f",
+  "modules": [
+    {
+      "name": "Impact Summary",
+      "type": "stats",
+      "collection": "impact_claim",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Total Claims" },
+        { "function": "count", "label": "Published", "filter": { "status": { "_eq": "published" } } },
+        { "function": "count", "label": "Pending", "filter": { "status": { "_eq": "submitted" } } }
+      ]
+    },
+    {
+      "name": "Impact Claims",
+      "type": "table",
+      "collection": "impact_claim",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "claim_type", "label": "Type" },
+        { "field": "claim_text", "label": "Claim" },
+        { "field": "evidence_maturity", "label": "Evidence" },
+        { "field": "framework_alignment", "label": "Framework" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    },
+    {
+      "name": "Attestation Coverage",
+      "type": "table",
+      "collection": "attestation_record",
+      "filters": {
+        "subject_type": "location",
+        "subject_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "attested_at", "label": "Attested" },
+        { "field": "claim_data", "label": "Claim" },
+        { "field": "attestation_uid", "label": "UID" },
+        { "field": "chain", "label": "Chain" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-attested_at"]
+    },
+    {
+      "name": "Metric Proposals",
+      "type": "table",
+      "collection": "metric_proposal",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "proposal_date", "label": "Proposed" },
+        { "field": "metric_name", "label": "Metric" },
+        { "field": "proposed_by", "label": "Proposed By" },
+        { "field": "discussion_count", "label": "Discussions" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-proposal_date"]
+    },
+    {
+      "name": "MRV Claims",
+      "type": "table",
+      "collection": "mrv_claim",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Created" },
+        { "field": "claim_type", "label": "Type" },
+        { "field": "subject_type", "label": "Subject" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    }
+  ],
+  "data_access": {
+    "impact_claim": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "fields": ["claim_type", "claim_text", "evidence_maturity", "framework_alignment", "status"]
+    },
+    "attestation_record": {
+      "read": "subject_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["attested_at", "claim_data", "attestation_uid", "chain", "status"]
+    },
+    "metric_proposal": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "fields": ["proposal_date", "metric_name", "proposed_by", "discussion_count", "status"]
+    },
+    "mrv_claim": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "fields": ["created_at", "claim_type", "subject_type", "status"]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "EBF Evidence Gap",
+  "description": "EBF pillar evidence gaps with coverage analysis and remediation priorities.",
+  "cards": [
+    {
+      "name": "EBF Evidence Gap",
+      "dataset_query": "dashboards/metabase/sql/23_ebf_evidence_gap.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "analytics_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

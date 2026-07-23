@@ -1,0 +1,133 @@
+{
+  "name": "Auditor",
+  "description": "Compliance audit: audit logs, workflow history, attestation records, report snapshots, and agent activity for auditors.",
+  "icon": "verified_user",
+  "color": "#bf360c",
+  "modules": [
+    {
+      "name": "Audit Log",
+      "type": "table",
+      "collection": "audit_log",
+      "filters": {
+        "timestamp": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "timestamp", "label": "Time" },
+        { "field": "actor", "label": "Actor" },
+        { "field": "action", "label": "Action" },
+        { "field": "collection", "label": "Collection" },
+        { "field": "record_id", "label": "Record" },
+        { "field": "ip_address", "label": "IP" }
+      ],
+      "sort": ["-timestamp"]
+    },
+    {
+      "name": "Workflow Transitions",
+      "type": "table",
+      "collection": "workflow_history",
+      "filters": {
+        "changed_at": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "changed_at", "label": "Time" },
+        { "field": "entity_type", "label": "Type" },
+        { "field": "entity_id", "label": "Record" },
+        { "field": "from_status", "label": "From" },
+        { "field": "to_status", "label": "To" },
+        { "field": "changed_by", "label": "Actor" }
+      ],
+      "sort": ["-changed_at"]
+    },
+    {
+      "name": "Attestation Records",
+      "type": "table",
+      "collection": "attestation_record",
+      "filters": {
+        "attested_at": { "_gte": "$NOW(-90 days)" }
+      },
+      "columns": [
+        { "field": "attested_at", "label": "Attested" },
+        { "field": "subject_type", "label": "Type" },
+        { "field": "subject_id", "label": "Subject" },
+        { "field": "attestation_uid", "label": "UID" },
+        { "field": "chain", "label": "Chain" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-attested_at"]
+    },
+    {
+      "name": "Agent Activity",
+      "type": "table",
+      "collection": "agent_action_log",
+      "filters": {
+        "created_at": { "_gte": "$NOW(-7 days)" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Time" },
+        { "field": "agent_id.name", "label": "Agent" },
+        { "field": "action_type", "label": "Action" },
+        { "field": "entity_type", "label": "Entity" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    },
+    {
+      "name": "Report Snapshots",
+      "type": "table",
+      "collection": "report_snapshot",
+      "filters": {
+        "generated_at": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "report_type", "label": "Type" },
+        { "field": "location_id.name", "label": "Location" },
+        { "field": "generated_at", "label": "Generated" },
+        { "field": "status", "label": "Status" },
+        { "field": "public_interest_summary", "label": "Public Summary" }
+      ],
+      "sort": ["-generated_at"]
+    },
+    {
+      "name": "MRV Claims",
+      "type": "table",
+      "collection": "mrv_claim",
+      "filters": {
+        "created_at": { "_gte": "$NOW(-90 days)" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Created" },
+        { "field": "claim_type", "label": "Type" },
+        { "field": "subject_type", "label": "Subject Type" },
+        { "field": "subject_id", "label": "Subject" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    }
+  ],
+  "data_access": {
+    "audit_log": {
+      "read": true,
+      "fields": ["timestamp", "actor", "action", "collection", "record_id", "ip_address"]
+    },
+    "workflow_history": {
+      "read": true,
+      "fields": ["changed_at", "entity_type", "entity_id", "from_status", "to_status", "changed_by"]
+    },
+    "attestation_record": {
+      "read": true,
+      "fields": ["attested_at", "subject_type", "subject_id", "attestation_uid", "chain", "status"]
+    },
+    "agent_action_log": {
+      "read": true,
+      "fields": ["created_at", "agent_id", "action_type", "entity_type", "status"]
+    },
+    "report_snapshot": {
+      "read": true,
+      "fields": ["report_type", "location_id", "generated_at", "status", "public_interest_summary"]
+    },
+    "mrv_claim": {
+      "read": true,
+      "fields": ["created_at", "claim_type", "subject_type", "subject_id", "status"]
+    }
+  }
+}

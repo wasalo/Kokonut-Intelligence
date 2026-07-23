@@ -1,0 +1,16 @@
+{
+  "title": "NDVI Trend",
+  "description": "Normalized Difference Vegetation Index time-series from satellite imagery.",
+  "cards": [
+    {
+      "name": "NDVI Trend",
+      "dataset_query": "dashboards/metabase/sql/14_ndvi_trend.sql",
+      "visualization": "line"
+    }
+  ],
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

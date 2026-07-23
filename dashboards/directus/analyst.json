@@ -1,0 +1,113 @@
+{
+  "name": "Analyst",
+  "description": "Data analysis: metric definitions, computed values, forecast outputs, dashboard datasets, and trend analysis for analysts.",
+  "icon": "analytics",
+  "color": "#0277bd",
+  "modules": [
+    {
+      "name": "Metric Catalog",
+      "type": "table",
+      "collection": "metric_definition",
+      "filters": {
+        "status": { "_eq": "active" }
+      },
+      "columns": [
+        { "field": "metric_key", "label": "Key" },
+        { "field": "name", "label": "Name" },
+        { "field": "category", "label": "Category" },
+        { "field": "unit", "label": "Unit" },
+        { "field": "formula", "label": "Formula" }
+      ],
+      "sort": ["category", "name"]
+    },
+    {
+      "name": "Latest Metrics",
+      "type": "table",
+      "collection": "metric_value",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["verified", "published"] }
+      },
+      "columns": [
+        { "field": "metric_definition_id.metric_key", "label": "Metric" },
+        { "field": "value", "label": "Value" },
+        { "field": "unit", "label": "Unit" },
+        { "field": "period_end", "label": "Period" },
+        { "field": "verified", "label": "Verified" }
+      ],
+      "sort": ["-period_end"]
+    },
+    {
+      "name": "Forecast Scenarios",
+      "type": "table",
+      "collection": "forecast_scenario",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "scenario_name", "label": "Scenario" },
+        { "field": "created_at", "label": "Created" },
+        { "field": "status", "label": "Status" },
+        { "field": "description", "label": "Description" }
+      ],
+      "sort": ["-created_at"]
+    },
+    {
+      "name": "Dashboard Datasets",
+      "type": "table",
+      "collection": "dashboard_dataset",
+      "filters": {
+        "status": { "_eq": "published" }
+      },
+      "columns": [
+        { "field": "dataset_key", "label": "Key" },
+        { "field": "name", "label": "Name" },
+        { "field": "category", "label": "Category" },
+        { "field": "last_refreshed_at", "label": "Last Refresh" }
+      ],
+      "sort": ["category", "name"]
+    },
+    {
+      "name": "Report Snapshots",
+      "type": "table",
+      "collection": "report_snapshot",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["verified", "published"] }
+      },
+      "columns": [
+        { "field": "report_type", "label": "Type" },
+        { "field": "generated_at", "label": "Generated" },
+        { "field": "status", "label": "Status" },
+        { "field": "location_id.name", "label": "Location" }
+      ],
+      "sort": ["-generated_at"]
+    }
+  ],
+  "data_access": {
+    "metric_definition": {
+      "read": true,
+      "fields": ["metric_key", "name", "category", "unit", "formula", "description"]
+    },
+    "metric_value": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["metric_definition_id", "value", "unit", "period_end", "verified", "location_id"]
+    },
+    "forecast_scenario": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["scenario_name", "created_at", "status", "description"]
+    },
+    "forecast_output": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["metric_name", "value", "unit", "confidence_low", "confidence_high"]
+    },
+    "dashboard_dataset": {
+      "read": true,
+      "fields": ["dataset_key", "name", "category", "last_refreshed_at"]
+    },
+    "report_snapshot": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["report_type", "generated_at", "status", "location_id"]
+    }
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "name": "Bio-Factory Operations",
+  "description": "Bio-input production: batches, recipes, quality tests, provenance tracking, and regional inputs for bio-factory management.",
+  "icon": "biotech",
+  "color": "#33691e",
+  "modules": [
+    {
+      "name": "Production Summary",
+      "type": "stats",
+      "collection": "bio_factory_batch",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Total Batches" },
+        { "function": "count", "label": "Active", "filter": { "status": { "_eq": "active" } } },
+        { "field": "quantity_produced", "function": "sum", "label": "Total Produced" }
+      ]
+    },
+    {
+      "name": "Recent Batches",
+      "type": "table",
+      "collection": "bio_factory_batch",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "batch_number", "label": "Batch #" },
+        { "field": "recipe_id.name", "label": "Recipe" },
+        { "field": "production_date", "label": "Produced" },
+        { "field": "quantity_produced", "label": "Qty" },
+        { "field": "quality_score", "label": "Quality" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-production_date"]
+    },
+    {
+      "name": "Recipe Library",
+      "type": "table",
+      "collection": "bio_recipe_library",
+      "filters": {
+        "status": { "_eq": "active" }
+      },
+      "columns": [
+        { "field": "recipe_name", "label": "Name" },
+        { "field": "category", "label": "Category" },
+        { "field": "target_pest", "label": "Target" },
+        { "field": "efficacy_rating", "label": "Efficacy" },
+        { "field": "cost_per_unit", "label": "Cost" }
+      ],
+      "sort": ["recipe_name"]
+    },
+    {
+      "name": "Quality Tests",
+      "type": "table",
+      "collection": "bio_quality_test",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "test_date", "label": "Date" },
+        { "field": "batch_id.batch_number", "label": "Batch" },
+        { "field": "test_type", "label": "Test" },
+        { "field": "result", "label": "Result" },
+        { "field": "passed", "label": "Passed" }
+      ],
+      "sort": ["-test_date"]
+    },
+    {
+      "name": "Input Provenance",
+      "type": "table",
+      "collection": "bio_input_provenance",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "input_name", "label": "Input" },
+        { "field": "source_type", "label": "Source" },
+        { "field": "origin_location", "label": "Origin" },
+        { "field": "certification", "label": "Certification" },
+        { "field": "traceability_id", "label": "Trace ID" }
+      ],
+      "sort": ["input_name"]
+    }
+  ],
+  "data_access": {
+    "bio_factory_batch": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "fields": ["batch_number", "recipe_id", "production_date", "quantity_produced", "quality_score", "status"]
+    },
+    "bio_recipe_library": {
+      "read": true,
+      "fields": ["recipe_name", "category", "target_pest", "efficacy_rating", "cost_per_unit"]
+    },
+    "bio_quality_test": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "fields": ["test_date", "batch_id", "test_type", "result", "passed"]
+    },
+    "bio_input_provenance": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["input_name", "source_type", "origin_location", "certification", "traceability_id"]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Eagle View - Monthly Trend",
+  "description": "Platform-wide monthly trend lines for key KPIs across all locations.",
+  "cards": [
+    {
+      "name": "Eagle View Monthly Trend",
+      "dataset_query": "dashboards/metabase/sql/12_eagle_view_monthly_trend.sql",
+      "visualization": "line"
+    }
+  ],
+  "metadata": {
+    "owner": "analytics_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "title": "Coordination Cockpit",
+  "description": "Alliances, participants, objectives, contributions, and benefits tracking.",
+  "cards": [
+    {
+      "name": "Coordination Cockpit",
+      "dataset_query": "dashboards/metabase/sql/89_coordination_cockpit.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

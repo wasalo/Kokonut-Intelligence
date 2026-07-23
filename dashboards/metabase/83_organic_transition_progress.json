@@ -1,0 +1,16 @@
+{
+  "title": "Organic Transition Progress",
+  "description": "Transition milestones, timeline, substance-free days, and compliance trajectory.",
+  "cards": [
+    {
+      "name": "Organic Transition Progress",
+      "dataset_query": "dashboards/metabase/sql/83_organic_transition_progress.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

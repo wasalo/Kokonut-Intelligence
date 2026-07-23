@@ -1,0 +1,16 @@
+{
+  "title": "Eagle View - Environmental",
+  "description": "Platform-wide environmental indicators: soil, water, biodiversity, and carbon.",
+  "cards": [
+    {
+      "name": "Eagle View Environmental",
+      "dataset_query": "dashboards/metabase/sql/09_eagle_view_environmental.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}
