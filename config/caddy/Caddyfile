@@ -40,11 +40,7 @@
 	# gRPC-Web proxy (h2c transport for gRPC services)
 	handle /grpc/* {
 		uri strip_prefix /grpc
-		reverse_proxy grpc:50051 {
-			transport http {
-				protocols h2c
-			}
-		}
+		reverse_proxy h2c://grpc:50051
 	}
 
 	# Directus (default — catches everything else)
