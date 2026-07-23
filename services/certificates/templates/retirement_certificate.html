@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Carbon Credit Retirement Certificate</title>
+<style>
+body { font-family: 'Georgia', serif; max-width: 800px; margin: 40px auto; padding: 20px; }
+.header { text-align: center; border-bottom: 3px double #333; padding-bottom: 20px; }
+.title { font-size: 28px; font-weight: bold; margin: 20px 0; }
+.details { margin: 30px 0; }
+.row { display: flex; margin: 8px 0; }
+.label { font-weight: bold; width: 200px; }
+.footer { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 10px; font-size: 12px; color: #666; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">Carbon Credit Retirement Certificate</div>
+  <div>Certificate # $certificate_number</div>
+</div>
+<div class="details">
+  <div class="row"><div class="label">Beneficiary:</div><div>$beneficiary_name</div></div>
+  <div class="row"><div class="label">Tonnes Retired:</div><div>$retired_tonnes tCO2e</div></div>
+  <div class="row"><div class="label">Vintage Year:</div><div>$vintage_year</div></div>
+  <div class="row"><div class="label">Methodology:</div><div>$methodology</div></div>
+  <div class="row"><div class="label">Retirement Reason:</div><div>$retirement_reason</div></div>
+  <div class="row"><div class="label">Statement:</div><div>$retirement_statement</div></div>
+  <div class="row"><div class="label">Issued:</div><div>$issued_at</div></div>
+</div>
+<div class="footer">
+  <div>Verify this certificate: $verification_url</div>
+  <div>This certificate confirms permanent retirement of carbon credits.</div>
+</div>
+</body>
+</html>

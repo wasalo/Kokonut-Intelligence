@@ -175,7 +175,7 @@ Commands:
 - Dataset refresh: `python3 -m services.export.dataset_refresh --all`
 - Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`
 - Climate-impact report: `python3 -m services.export.report_generator --type climate_impact --location-id UUID`
-- Spreadsheet template: `python3 -m services.export.spreadsheet_bridge --template exports/farm_activity_template.csv`
+- Spreadsheet template: `python3 -m services.export.spreadsheet_bridge --template exports/templates/farm_activity_template.csv`
 - Spreadsheet import dry-run: `python3 -m services.export.spreadsheet_bridge --import-file data.csv --dry-run`
 - CIDS export tests: `python3 -m tests.test_cids_export`
 - Agent safety tests: `python3 -m tests.test_agent_safety`
