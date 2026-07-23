@@ -6,13 +6,44 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{py,tsc,ts,sol}]
+[*.py]
 indent_style = space
 indent_size = 4
 
-[*.{json,yaml,yml,md}]
+[*.sol]
+indent_style = space
+indent_size = 4
+
+[*.sql]
+indent_style = space
+indent_size = 4
+
+[*.sh]
+indent_style = space
+indent_size = 4
+
+[*.{ts,tsx,js,mjs,cjs}]
 indent_style = space
 indent_size = 2
 
+[*.{json,yaml,yml,proto,toml,lock}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+indent_style = space
+indent_size = 2
+
+[*.{xml,html}]
+indent_style = space
+indent_size = 4
+
 [Makefile]
 indent_style = tab
+
+[Caddyfile]
+indent_style = tab
+
+[Dockerfile*]
+indent_style = space
+indent_size = 4
