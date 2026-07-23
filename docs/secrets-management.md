@@ -221,7 +221,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 ```bash
 source scripts/load-secrets.sh
-docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile worker up -d
 ```
 
 ### Cron jobs

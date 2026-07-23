@@ -103,19 +103,24 @@ check "metabase_health" "curl -sf ${METABASE_URL}/api/health"
 if [ "$JSON_OUTPUT" = "false" ]; then echo ""; fi
 
 # ── Docker containers ──
-if [ "$JSON_OUTPUT" = "false" ]; then echo "Docker containers:"; fi
-check "container_database" "docker ps --format '{{.Names}}' | grep -q 'database'"
-check "container_directus" "docker ps --format '{{.Names}}' | grep -q 'directus'"
-check "container_clickhouse" "docker ps --format '{{.Names}}' | grep -q 'clickhouse'"
-check "container_metabase" "docker ps --format '{{.Names}}' | grep -q 'metabase'"
+CHECK_DOCKER="${HEALTH_CHECK_DOCKER:-true}"
+if [ "$CHECK_DOCKER" = "true" ]; then
+    if [ "$JSON_OUTPUT" = "false" ]; then echo "Docker containers:"; fi
+    check "container_database" "docker ps --format '{{.Names}}' | grep -q 'database'"
+    check "container_directus" "docker ps --format '{{.Names}}' | grep -q 'directus'"
+    check "container_clickhouse" "docker ps --format '{{.Names}}' | grep -q 'clickhouse'"
+    check "container_metabase" "docker ps --format '{{.Names}}' | grep -q 'metabase'"
 
-# Check for exited (crashed) containers
-EXITED=$(docker ps -a --filter "status=exited" --filter "status=dead" --format '{{.Names}}' 2>/dev/null | head -5 || true)
-if [ -n "$EXITED" ]; then
-    check "containers_no_crashes" "false"
-    FAILURES="${FAILURES}crashed_containers:${EXITED};"
+    # Check for exited (crashed) containers
+    EXITED=$(docker ps -a --filter "status=exited" --filter "status=dead" --format '{{.Names}}' 2>/dev/null | head -5 || true)
+    if [ -n "$EXITED" ]; then
+        check "containers_no_crashes" "false"
+        FAILURES="${FAILURES}crashed_containers:${EXITED};"
+    else
+        check "containers_no_crashes" "true"
+    fi
 else
-    check "containers_no_crashes" "true"
+    if [ "$JSON_OUTPUT" = "false" ]; then echo "Docker containers: skipped (HEALTH_CHECK_DOCKER=false)"; fi
 fi
 if [ "$JSON_OUTPUT" = "false" ]; then echo ""; fi
 

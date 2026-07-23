@@ -21,6 +21,8 @@ services:
       databases:
       apps:
       traefik:
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:?PUBLIC_URL must be set for Traefik deployments}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${KOKONUT_TRAEFIK_NETWORK:-traefik}"
@@ -35,6 +37,8 @@ services:
       databases:
       apps:
       traefik:
+    environment:
+      MB_APPLICATION_ROOT: "/"
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${KOKONUT_TRAEFIK_NETWORK:-traefik}"

@@ -38,9 +38,6 @@
 # Health check with alerting — every 5 minutes
 */5 * * * * cd /app && bash scripts/health-alert.sh >> /var/log/cron.log 2>&1
 
-# Daily backup — at 02:00 UTC
-0 2 * * * cd /app && bash scripts/backup.sh >> /var/log/cron.log 2>&1
-
 # Dashboard dataset refresh — every 6 hours
 0 */6 * * * cd /app && python3 -m services.export.dataset_refresh --all >> /var/log/cron.log 2>&1
 

@@ -10,18 +10,18 @@ Crontab for the `kokonut-worker` container, running periodic ingestion, computat
 
 ## How It's Installed
 
-`Dockerfile.worker` copies and installs the crontab:
+`Dockerfile.worker` copies and installs the `appuser` crontab:
 
 ```dockerfile
 COPY config/worker/crontab /tmp/kokonut-crontab
-RUN crontab /tmp/kokonut-crontab
+RUN crontab -u appuser /tmp/kokonut-crontab
 ```
 
 Changes require rebuilding the worker image:
 
 ```bash
-docker compose build kokonut-worker
-docker compose up -d kokonut-worker
+docker compose -f docker-compose.yml -f docker-compose.worker.yml build kokonut-worker
+docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile worker up -d kokonut-worker
 ```
 
 ## Cron Jobs
@@ -37,7 +37,6 @@ docker compose up -d kokonut-worker
 | Anomaly detection | Every hour | `python3 -m services.ingestion.anomaly_detector` |
 | Metrics computation | Every 4 hours | `python3 -m services.metrics --compute --all-locations` |
 | Health check + alerting | Every 5 minutes | `bash scripts/health-alert.sh` |
-| Daily backup | 02:00 UTC | `bash scripts/backup.sh` |
 | Dashboard dataset refresh | Every 6 hours | `python3 -m services.export.dataset_refresh --all` |
 | Data freshness check | Every hour | `python3 -m services.ingestion.data_freshness --check` |
 | Climate data refresh | Sundays 03:00 UTC | `python3 -m services.ingestion.climate_data --all --location-id ...` |
@@ -48,7 +47,14 @@ docker compose up -d kokonut-worker
 2. Follow the cron format: `minute hour day-of-month month day-of-week command`
 3. All commands run from `/app` with the Kokonut Python environment
 4. Logs go to `/var/log/cron.log`
-5. Rebuild: `docker compose build kokonut-worker`
+5. Rebuild: `docker compose -f docker-compose.yml -f docker-compose.worker.yml build kokonut-worker`
+
+Backups are operator-owned and must run from the host or a dedicated backup
+service. The worker intentionally does not include the Docker CLI or Docker
+socket required by `scripts/backup.sh`.
+
+Worker health checks validate service endpoints and system resources. Docker
+container checks are disabled because the worker has no Docker CLI or socket.
 
 ## Timing Adjustments
 

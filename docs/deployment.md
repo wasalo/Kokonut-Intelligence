@@ -102,6 +102,7 @@ KOKONUT_DOMAIN=kokonut.example.com
 KOKONUT_METABASE_DOMAIN=metabase.example.com
 KOKONUT_TRAEFIK_NETWORK=traefik
 KOKONUT_TLS_RESOLVER=letsencrypt
+PUBLIC_URL=https://kokonut.example.com
 
 # Start with production + Traefik overlays
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
@@ -112,6 +113,7 @@ Prerequisites for Traefik:
 2. A shared Docker network named `traefik` (or set `KOKONUT_TRAEFIK_NETWORK`)
 3. Traefik `websecure` entrypoint (443) with TLS resolver configured
 4. `KOKONUT_DOMAIN` must be set in `.env`
+5. `PUBLIC_URL` must be set to the Directus HTTPS URL
 
 The Traefik overlay creates routes:
 - `Host(kokonut.example.com)` → Directus on port 8055
@@ -122,11 +124,13 @@ The Traefik overlay creates routes:
 Python ingestion services (weather, market data, EAS indexer, RPC indexer, sensor ingester, anomaly detection, metrics computation) are CLI tools. By default, they run on the host via cron. For production isolation, use the worker container:
 
 ```bash
-# Build and start the worker container
-docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile worker up -d kokonut-worker
+# Build and start both worker services
+docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile worker up -d
 ```
 
 The worker container runs a cron daemon with jobs pre-configured in `config/worker/crontab`. Its metric entry invokes `python3 -m services.metrics --compute --all-locations` once and exits; cron supplies the repetition. Metric computation writes draft `metric_value` rows and does not verify them.
+
+Backups are operator-owned and should run from the host or a dedicated backup service. The worker does not include the Docker CLI or Docker socket required by `scripts/backup.sh`.
 
 To run ad-hoc commands inside the worker:
 
