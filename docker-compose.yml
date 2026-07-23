@@ -75,7 +75,7 @@ services:
       LOGIN_RATELIMIT_ENABLED: "true"
       LOGIN_RATELIMIT_POINTS: "5"
       LOGIN_RATELIMIT_DURATION: "900000"
-      CORS_ORIGIN: ${CORS_ORIGIN:-"http://localhost:8055,http://localhost:3001"}
+      CORS_ORIGIN: ${CORS_ORIGIN:-"http://localhost,http://localhost:8055,http://localhost:3001"}
       PUBLIC_RESTRICT: "true"
 
   metabase:
@@ -96,7 +96,8 @@ services:
       MB_DB_PASS: ${POSTGRES_PASSWORD}
       MB_DB_HOST: "database"
       MB_ENABLE_EMBEDDING: "true"
-      MB_EMBEDDING_APP_ORIGIN: "http://localhost:3001"
+      MB_APPLICATION_ROOT: "/metabase"
+      MB_EMBEDDING_APP_ORIGIN: "${CORS_ORIGIN:-http://localhost}"
       MB_EMBEDDING_SECRET_KEY: ${METABASE_EMBEDDING_SECRET_KEY:?Set METABASE_EMBEDDING_SECRET_KEY in .env}
     depends_on:
       database:
@@ -141,6 +142,7 @@ services:
       - "${CADDY_HTTPS_PORT:-443}:443"
     volumes:
       - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./services/maps:/app/services/maps:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:

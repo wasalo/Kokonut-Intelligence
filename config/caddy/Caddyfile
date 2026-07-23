@@ -37,9 +37,27 @@
 		reverse_proxy metabase:3000
 	}
 
+	# gRPC-Web proxy (h2c transport for gRPC services)
+	handle /grpc/* {
+		uri strip_prefix /grpc
+		reverse_proxy grpc:50051 {
+			transport http {
+				protocols h2c
+			}
+		}
+	}
+
 	# Directus (default — catches everything else)
 	handle {
 		reverse_proxy directus:8055
+	}
+
+	# CORS headers for all responses
+	header {
+		Access-Control-Allow-Origin *
+		Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type, Authorization, x-api-key, x-capability-token"
+		Access-Control-Max-Age 86400
 	}
 
 	# Security headers

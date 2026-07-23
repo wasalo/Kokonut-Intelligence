@@ -17,7 +17,8 @@ private_key
 *_private_key
 secrets.json
 *.keystore
-config/keys/
+config/keys/*
+!config/keys/README.md
 
 # Data directories (persistent state)
 /data/
