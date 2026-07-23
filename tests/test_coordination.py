@@ -1,11 +1,11 @@
 """Tests for governed coordination alliances and knowledge networks."""
 
+import uuid as uuid_mod
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
 
 import pytest
 
-from services.ingestion.base import get_db
+from services.agents.safety import assess_agent_action
 from services.analytics.coordination import (
     activate_alliance,
     activate_participant,
@@ -20,10 +20,12 @@ from services.analytics.coordination import (
     get_coordination_health,
 )
 from services.analytics.coordination_strategy import (
-    declare_conflict, record_benefit_harm_analysis,
-    review_benefit_harm_analysis, review_conflict_declaration,
+    declare_conflict,
+    record_benefit_harm_analysis,
+    review_benefit_harm_analysis,
+    review_conflict_declaration,
 )
-from services.agents.safety import assess_agent_action
+from services.ingestion.base import get_db
 
 
 def _db():
@@ -91,11 +93,10 @@ def test_row_helper_converts_uuid_and_datetime():
     from services.analytics.coordination import _row
     mock_uuid = uuid_mod.uuid4()
     now = datetime.now(timezone.utc)
-    row = MagicMock()
-    row.__iter__ = lambda s: iter({"id": mock_uuid, "created_at": now, "name": "test"}.items())
+    row = {"id": mock_uuid, "created_at": now, "name": "test"}
     result = _row(row)
     assert result["id"] == str(mock_uuid)
-    assert result["created_at"] == now.isoformat()
+    assert result["created_at"] == str(now)
     assert result["name"] == "test"
 
 

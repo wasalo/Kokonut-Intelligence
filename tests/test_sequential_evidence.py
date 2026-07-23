@@ -1,7 +1,6 @@
 """Integration coverage for the immutable sequential evidence ledger."""
 
 import uuid
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -53,7 +52,7 @@ def test_quality_statuses_constant():
 
 
 def test_probability_helper_rejects_non_finite():
-    with pytest.raises(ValueError, match="must be between zero and one"):
+    with pytest.raises(ValueError, match="must be greater than zero and at most one"):
         sequential_evidence._probability(1.5, "test_prob")
-    with pytest.raises(ValueError, match="must be finite"):
+    with pytest.raises(ValueError, match="must be greater than zero and at most one"):
         sequential_evidence._probability(float("nan"), "test_prob")

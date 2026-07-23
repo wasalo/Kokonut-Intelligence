@@ -16,7 +16,7 @@ def test_public_metrics_reads_verified_view_without_computing() -> None:
         ("yield", "Yield", "kg", 12.5, None),
     ]
 
-    with patch("services.ingestion.base.get_db", return_value=conn), patch(
+    with patch("services.common.database.get_db", return_value=conn), patch(
         "services.metrics.engine.compute_all"
     ) as compute_all:
         with TestClient(create_app()) as client:
@@ -38,7 +38,7 @@ def test_public_metrics_empty_result() -> None:
     conn = MagicMock()
     conn.cursor.return_value.fetchall.return_value = []
 
-    with patch("services.ingestion.base.get_db", return_value=conn):
+    with patch("services.common.database.get_db", return_value=conn):
         with TestClient(create_app()) as client:
             response = client.get("/api/metrics/location-999")
 
