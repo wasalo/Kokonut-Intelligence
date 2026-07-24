@@ -18,7 +18,6 @@ logger = get_logger("migration")
 PROJECT_DIR = Path(__file__).parent.parent.parent
 SCHEMA_DIR = PROJECT_DIR / "schemas" / "postgres"
 SEED_DIR = PROJECT_DIR / "schemas" / "seeds"
-ADVISORY_LOCK_KEY = 777_204_681
 
 # Historical post-apply edits that were merged before checksum enforcement was
 # consistently used. Repairs are only permitted for this explicit inventory;
@@ -116,16 +115,6 @@ def _validate_sources(files: list[dict]) -> None:
             raise MigrationError(
                 f"migration cannot change databases with \\connect: {file_info['id']}"
             )
-
-
-def _migration_is_applied_sql(migration_id_variable: str, index: int) -> str:
-    """Return a psql conditional that rechecks state while the lock is held."""
-    return (
-        "SELECT EXISTS ("
-        "SELECT 1 FROM schema_migration "
-        f"WHERE migration_id = :'{migration_id_variable}' AND status = 'applied'"
-        f") AS migration_applied \\gset migration_{index}_"
-    )
 
 
 def _ensure_tracking_table() -> None:
@@ -314,45 +303,53 @@ COMMIT;
 
 
 def _apply_files(files: list[dict]) -> None:
-    """Apply and track a batch while one PostgreSQL session holds the advisory lock.
+    """Apply migrations one at a time, each in its own psql session.
 
-    Repository migrations may contain transaction control, so migration SQL and its
-    tracking insert cannot universally share a transaction. ON_ERROR_STOP makes any
-    boundary failure loud; operators may need to inspect a partially committed file.
-    Each migration is rechecked inside this same locked session so concurrent runners
-    cannot execute a migration that another runner has already applied.
+    This avoids SIGPIPE (exit 141) when the monolithic batch grows to 300+
+    migrations: a single ``subprocess.run(input=<2 MB>)`` piped through
+    ``docker compose exec -T`` breaks if psql exits early (e.g. a statement
+    failure inside a ``BEGIN``/``COMMIT`` block with ``ON_ERROR_STOP=1``).
+
+    Each migration is its own ``_psql()`` call, so:
+    - Successfully applied migrations are committed before the next starts.
+    - A failure in one migration does not kill the pipe for subsequent ones.
+    - On re-run, already-applied migrations are skipped via ``ON CONFLICT``.
     """
-    script = [f"SELECT pg_advisory_lock({ADVISORY_LOCK_KEY});"]
     for index, file_info in enumerate(files):
-        script.extend([
-            _migration_is_applied_sql(f"migration_id_{index}", index),
-            f"\\if :migration_{index}_migration_applied",
-            "\\else",
-            file_info["path"].read_text(),
-            """
+        migration_id = file_info["id"]
+        sql_check = (
+            "SELECT EXISTS ("
+            "SELECT 1 FROM schema_migration "
+            f"WHERE migration_id = :'migration_id' AND status = 'applied'"
+            ") AS migration_applied \\gset check_"
+        )
+        result = _psql(sql_check, {"migration_id": migration_id})
+        if result.stdout.strip().lower() == "t":
+            logger.debug("Skipping already applied migration: %s", migration_id)
+            continue
+        logger.info("Applying migration %s...", migration_id)
+        sql_content = file_info["path"].read_text()
+        sql_track = """
 INSERT INTO schema_migration
     (migration_id, version, name, sql_up, checksum, status, execution_time_ms, applied_by)
 VALUES
-    (:'migration_id_%d', :'migration_id_%d', :'name_%d', :'source_%d',
-     :'checksum_%d', 'applied', 0, 'migration-cli')
+    (:'migration_id', :'migration_id', :'name', :'source',
+     :'checksum', 'applied', 0, 'migration-cli')
 ON CONFLICT (migration_id) WHERE migration_id IS NOT NULL DO UPDATE SET
     checksum = EXCLUDED.checksum,
     status = EXCLUDED.status,
     execution_time_ms = EXCLUDED.execution_time_ms,
     applied_at = NOW();
-""" % (index, index, index, index, index),
-            "\\endif",
-        ])
-    script.append(f"SELECT pg_advisory_unlock({ADVISORY_LOCK_KEY});")
-    variables = {}
-    for index, file_info in enumerate(files):
-        variables.update({
-            f"migration_id_{index}": file_info["id"],
-            f"name_{index}": file_info["name"],
-            f"source_{index}": f"(see {file_info['path'].name})",
-            f"checksum_{index}": file_info["checksum"],
-        })
-    _psql("\n".join(script), variables)
+"""
+        _psql(
+            sql_content + "\n" + sql_track,
+            {
+                "migration_id": migration_id,
+                "name": file_info["name"],
+                "source": f"(see {file_info['path'].name})",
+                "checksum": file_info["checksum"],
+            },
+        )
 
 
 def _load_state(*, include_seeds: bool = True) -> tuple[list[dict], dict[str, dict]]:

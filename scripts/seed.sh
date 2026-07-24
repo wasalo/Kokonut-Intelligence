@@ -49,11 +49,9 @@ echo "PostgreSQL is ready."
 # to fix DinD failures where the source paths resolve to executor host directories).
 echo ""
 echo "Applying init.sql..."
-cat "$PROJECT_DIR/config/postgres/init.sql" \
-  | docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/config/postgres/init.sql"
 echo "Applying extensions.sql..."
-cat "$PROJECT_DIR/config/postgres/extensions.sql" \
-  | docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
+docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/config/postgres/extensions.sql"
 
 # Apply PostgreSQL schema and numbered seed migrations through the checksum-
 # tracked runner. Keep this as the only default PostgreSQL application path.
