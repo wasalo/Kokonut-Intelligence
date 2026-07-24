@@ -2844,33 +2844,45 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
     cur.execute(
         """
         SELECT * FROM v_public_ecological_model_summary
-        WHERE location_id = %s ORDER BY run_date DESC
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR run_date >= %s::date)
+          AND (%s::date IS NULL OR run_date <= %s::date)
+        ORDER BY run_date DESC
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     models = [dict(r) for r in cur.fetchall()]
     cur.execute(
         """
         SELECT * FROM v_public_population_dynamics_summary
-        WHERE location_id = %s ORDER BY species_name, record_date
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR record_date >= %s::date)
+          AND (%s::date IS NULL OR record_date <= %s::date)
+        ORDER BY species_name, record_date
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     populations = [dict(r) for r in cur.fetchall()]
     cur.execute(
         """
         SELECT * FROM v_public_energy_flow_summary
-        WHERE location_id = %s ORDER BY measurement_date DESC
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR measurement_date >= %s::date)
+          AND (%s::date IS NULL OR measurement_date <= %s::date)
+        ORDER BY measurement_date DESC
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     energy_flows = [dict(r) for r in cur.fetchall()]
     cur.execute(
         """
         SELECT * FROM v_public_soil_input_retention
-        WHERE location_id = %s ORDER BY application_date DESC
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR application_date >= %s::date)
+          AND (%s::date IS NULL OR application_date <= %s::date)
+        ORDER BY application_date DESC
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     soil_inputs = [dict(r) for r in cur.fetchall()]
     cur.close()
@@ -2933,9 +2945,11 @@ def generate_trophic_pyramid(conn, location_id: str, period_start: str = None, p
         SELECT trophic_level, COUNT(DISTINCT species_name) AS species_count
         FROM population_dynamics_record
         WHERE location_id = %s AND status IN ('verified', 'published')
+          AND (%s::date IS NULL OR record_date >= %s::date)
+          AND (%s::date IS NULL OR record_date <= %s::date)
         GROUP BY trophic_level
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     species_by_trophic = [dict(r) for r in cur.fetchall()]
     cur.close()
@@ -2969,17 +2983,23 @@ def generate_pest_management(conn, location_id: str, period_start: str = None, p
     cur.execute(
         """
         SELECT * FROM v_public_pest_trends
-        WHERE location_id = %s ORDER BY observation_date DESC
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR observation_date >= %s::date)
+          AND (%s::date IS NULL OR observation_date <= %s::date)
+        ORDER BY observation_date DESC
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     pest_trends = [dict(r) for r in cur.fetchall()]
     cur.execute(
         """
         SELECT * FROM v_public_biocontrol_effectiveness
-        WHERE location_id = %s ORDER BY release_date DESC
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR release_date >= %s::date)
+          AND (%s::date IS NULL OR release_date <= %s::date)
+        ORDER BY release_date DESC
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     biocontrol = [dict(r) for r in cur.fetchall()]
     cur.close()
@@ -3018,9 +3038,12 @@ def generate_resource_efficiency(conn, location_id: str, period_start: str = Non
     cur.execute(
         """
         SELECT * FROM v_public_resource_efficiency
-        WHERE location_id = %s ORDER BY resource_type, period_start DESC
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR period_start >= %s::date)
+          AND (%s::date IS NULL OR period_start <= %s::date)
+        ORDER BY resource_type, period_start DESC
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     resources = [dict(r) for r in cur.fetchall()]
     cur.execute(
@@ -3028,8 +3051,10 @@ def generate_resource_efficiency(conn, location_id: str, period_start: str = Non
         SELECT SUM(he.quantity) AS total_harvest_kg
         FROM harvest_event he
         WHERE he.location_id = %s AND he.status IN ('verified', 'published')
+          AND (%s::date IS NULL OR he.event_date >= %s::date)
+          AND (%s::date IS NULL OR he.event_date <= %s::date)
         """,
-        (location_id,),
+        (location_id, period_start, period_start, period_end, period_end),
     )
     harvest = cur.fetchone()
     cur.close()
