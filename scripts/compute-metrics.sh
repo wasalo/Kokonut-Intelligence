@@ -21,7 +21,7 @@ elif docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --status running --s
     docker compose \
         -f "$PROJECT_DIR/docker-compose.yml" \
         -f "$PROJECT_DIR/docker-compose.worker.yml" \
-        run --rm --no-deps kokonut-worker \
+        run --build --rm --no-deps kokonut-worker \
         python3 -m services.metrics --compute --all-locations --json
 else
     run_metrics
