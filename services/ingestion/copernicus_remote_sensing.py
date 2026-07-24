@@ -23,6 +23,7 @@ import requests
 
 from ..common.logging import get_logger
 from .base import log_ingestion, hash_payload, post_clickhouse_rows
+from .clickhouse_outbox import enqueue
 
 logger = get_logger("ingestion.copernicus_remote_sensing")
 
@@ -99,11 +100,11 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     """
     token = _get_token()
     if not token:
-        return {"status": "error", "message": "Copernicus token unavailable", "observations": 0}
+        return {"status": "error", "message": "Copernicus token unavailable", "observations": 0, "retryable": False}
 
     bbox = _resolve_bbox(job)
     if not bbox:
-        return {"status": "error", "message": "No bbox available", "observations": 0}
+        return {"status": "error", "message": "No bbox available", "observations": 0, "retryable": False}
 
     location_id = str(job["location_id"])
     cloud_max = float(job.get("cloud_max_pct", 20))
@@ -133,7 +134,9 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
         products = resp.json().get("value", [])
     except Exception as e:
         logger.error("Copernicus catalog query failed: %s", e)
-        return {"status": "error", "message": str(e), "observations": 0}
+        status_code = getattr(getattr(e, "response", None), "status_code", None)
+        retryable = isinstance(e, (requests.Timeout, requests.ConnectionError)) or status_code in (429, 500, 502, 503, 504)
+        return {"status": "error", "message": str(e), "observations": 0, "retryable": retryable}
 
     if not products:
         logger.info("No Copernicus products for location %s", location_id[:8])
@@ -171,7 +174,7 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
         pg_id = _insert_pg(conn, record)
         record["id"] = pg_id
         if not record.get("_duplicate"):
-            _insert_ch(record)
+            _insert_ch(record, conn)
 
         log_ingestion(
             source_system="copernicus_api",
@@ -226,23 +229,31 @@ def _insert_pg(conn, record: dict) -> str:
             (record.get("source_system", "copernicus_api"), record["source_id"]),
         )
         record_id = str(cur.fetchone()[0])
-    conn.commit()
     cur.close()
     return record_id
 
 
-def _insert_ch(record: dict) -> None:
+def _insert_ch(record: dict, conn=None) -> None:
+    """Queue canonical observation; direct writes are demo-only when conn is absent."""
     source_system = record.get("source_system", "copernicus_api")
-
+    columns = ["timestamp", "observation_id", "location_id", "plot_id", "source",
+               "cloud_cover_pct", "source_system", "metadata"]
+    rows = [[f"{record['observation_date']} 00:00:00.000", record.get("id", ""),
+             record.get("location_id", ""), record.get("plot_id") or "",
+             record.get("source", "sentinel-2"), record.get("cloud_cover_pct"),
+             source_system, {}]]
     try:
+        if conn is not None:
+            payload_hash = hash_payload(record)
+            enqueue(conn, event_key=f"remote_sensing:remote_sensing_events:{record.get('id')}",
+                    source_table="remote_sensing_observation", source_id=str(record.get("id")),
+                    target_table="remote_sensing_events", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows(
             "remote_sensing_events",
-            ["timestamp", "observation_id", "location_id", "plot_id", "source",
-             "cloud_cover_pct", "source_system", "metadata"],
-            [[f"{record['observation_date']} 00:00:00.000", record.get("id", ""),
-              record.get("location_id", ""), record.get("plot_id") or "",
-              record.get("source", "sentinel-2"), record.get("cloud_cover_pct"),
-              source_system, {}]],
+            columns, rows,
         )
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)

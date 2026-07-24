@@ -4,6 +4,7 @@ import uuid
 import pytest
 
 from services.graph_projection import evidence_lineage, kernel, policy, query
+from services.graph_projection import coordinator
 
 
 def test_rebuild_orders_transaction_and_activation():
@@ -69,3 +70,46 @@ def test_query_filters_every_read_to_active_generation():
     assert "active_generation_id" in node_sql
     assert "active_generation_id" in edge_sql
     assert "SET LOCAL statement_timeout" in cur.execute.call_args_list[0].args[0]
+
+
+def test_synchronized_rebuild_shares_identity_and_cutoff():
+    request_id = uuid.uuid4()
+    cutoff = "2026-07-23T12:00:00Z"
+    conn = MagicMock()
+    result = MagicMock()
+    result.mappings.return_value.first.return_value = {
+        "id": request_id, "status": "building", "source_cutoff": cutoff
+    }
+    conn.execute.return_value = result
+    with (
+        patch.object(coordinator, "_rebuild", return_value={"generation_id": "typed"}) as typed,
+        patch.object(coordinator, "_persist_graph", return_value={"generation_id": "rdf", "count": 1}) as rdf,
+    ):
+        output = coordinator.rebuild_synchronized(conn, "operator", "loc-001")
+    assert output["rebuild_id"] == request_id
+    assert typed.call_args.kwargs["rebuild_id"] == request_id
+    assert rdf.call_args.kwargs["rebuild_id"] == request_id
+    assert typed.call_args.kwargs["cutoff"] == cutoff
+    assert rdf.call_args.kwargs["cutoff"] == cutoff
+    assert output["status"] == "active"
+
+
+def test_synchronized_rebuild_records_failure_without_partial_activation():
+    request_id = uuid.uuid4()
+    conn = MagicMock()
+    result = MagicMock()
+    result.mappings.return_value.first.return_value = {
+        "id": request_id, "status": "building", "source_cutoff": "cutoff"
+    }
+    conn.execute.return_value = result
+    with (
+        patch.object(coordinator, "_rebuild", return_value={"generation_id": "typed"}),
+        patch.object(coordinator, "_persist_graph", side_effect=RuntimeError("rdf failed")),
+    ):
+        with pytest.raises(RuntimeError, match="rdf failed"):
+            coordinator.rebuild_synchronized(conn, "operator", "loc-001")
+    assert conn.rollback.call_count == 1
+    assert conn.commit.call_count == 2
+    updates = [call.args[0] for call in conn.text.call_args_list if "graph_rebuild_coordinator SET" in call.args[0]]
+    assert updates and "status = :status" in updates[-1]
+    assert conn.execute.call_args_list[-1].args[1]["status"] == "failed"

@@ -8,7 +8,7 @@ import pytest
 
 
 def test_rdf_graph_namespace_helpers():
-    from services.rdf.graph_builder import _k, _s, _c
+    from services.rdf.graph_builder import _c, _k, _s
 
     assert _k("name") == "https://kokonut.network/ontology#name"
     assert _s("name") == "http://schema.org/name"
@@ -104,6 +104,41 @@ def test_rdf_graph_build_claim_graph_returns_empty_when_missing():
 
     result = build_claim_graph(conn, "claim-001")
     assert result == []
+
+
+def test_rdf_triple_validation_rejects_incomplete_terms():
+    from services.rdf.triple_store import add_triple
+
+    with pytest.raises(ValueError, match="Exactly one"):
+        add_triple(MagicMock(), "s", "p")
+    with pytest.raises(ValueError, match="Exactly one"):
+        add_triple(MagicMock(), "s", "p", object_value="v", object_iri="kokonut:x")
+
+
+def test_rdf_persist_stages_and_activates_without_deleting():
+    from services.rdf import graph_builder
+
+    conn = MagicMock()
+    conn.execute.return_value.mappings.return_value.first.side_effect = [
+        {"cutoff": "2026-01-01T00:00:00Z"},
+        {"id": "generation-1"},
+        {"count": 1},
+    ]
+    with (
+        patch.object(
+            graph_builder,
+            "build_full_graph",
+            return_value=[
+                {"subject": "s", "predicate": "p", "object_value": "v"},
+            ],
+        ),
+        patch.object(graph_builder, "add_triples", return_value=1),
+    ):
+        assert graph_builder.persist_graph(conn, "loc-001") == 1
+    sql = [call.args[0] for call in conn.text.call_args_list]
+    assert not any("DELETE FROM rdf_triple" in statement for statement in sql)
+    assert any("rdf_graph_generation" in statement for statement in sql)
+    conn.commit.assert_called_once_with()
 
 
 if __name__ == "__main__":

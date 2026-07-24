@@ -20,6 +20,7 @@ import requests
 
 from ..common.logging import get_logger
 from .base import get_db, insert_clickhouse_rows, log_ingestion, hash_payload, retry
+from .clickhouse_outbox import enqueue
 from .config import OPENWEATHERMAP_API_KEY
 
 logger = get_logger("ingestion.weather")
@@ -106,8 +107,8 @@ def insert_weather(db, record: dict, source_raw: dict = None) -> str:
         return str(cur.fetchone()[0])
 
 
-def insert_weather_clickhouse(records: list[dict]) -> None:
-    """Insert weather records into ClickHouse weather_events table."""
+def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
+    """Queue canonical weather rows; direct writes are demo-only when conn is absent."""
     rows = []
     for rec in records:
         meta = rec.get("metadata", {})
@@ -138,6 +139,17 @@ def insert_weather_clickhouse(records: list[dict]) -> None:
         return
 
     try:
+        if conn is not None:
+            payload_hash = hash_payload(records)
+            enqueue(conn, event_key=f"weather:weather_events:{payload_hash}",
+                    source_table="weather_observation", source_id=payload_hash,
+                    target_table="weather_events",
+                    columns=["timestamp", "location_id", "source", "temperature_c",
+                             "precipitation_mm", "humidity_pct", "wind_speed_kmh",
+                             "solar_radiation_wm2", "cloud_cover_pct", "metadata"],
+                    rows=rows, payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         insert_clickhouse_rows(
             "weather_events",
             [
@@ -220,12 +232,10 @@ def run(location_id: str = None):
             )
             logger.error("  ✗ %s: %s", name, e)
 
+    if records:
+        insert_weather_clickhouse(records, db)
     db.commit()
     db.close()
-
-    # Insert into ClickHouse
-    if records:
-        insert_weather_clickhouse(records)
 
     logger.info("Done: %d success, %d errors", success, errors)
 

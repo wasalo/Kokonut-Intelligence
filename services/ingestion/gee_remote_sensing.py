@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from ..common.logging import get_logger
 from .base import log_ingestion, hash_payload, post_clickhouse_rows
+from .clickhouse_outbox import enqueue
 
 logger = get_logger("ingestion.gee_remote_sensing")
 
@@ -168,11 +169,11 @@ def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     """
     ee = _get_gee_client()
     if ee is None:
-        return {"status": "error", "message": "GEE client not available", "observations": 0}
+        return {"status": "error", "message": "GEE client not available", "observations": 0, "retryable": True}
 
     bbox = _resolve_bbox(job)
     if not bbox:
-        return {"status": "error", "message": "No bbox available", "observations": 0}
+        return {"status": "error", "message": "No bbox available", "observations": 0, "retryable": False}
 
     location_id = str(job["location_id"])
     cloud_max = float(job.get("cloud_max_pct", 20))
@@ -250,7 +251,7 @@ def fetch_gee(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     # Insert into ClickHouse
     record["id"] = pg_id
     if not record.get("_duplicate"):
-        _insert_ch(record)
+        _insert_ch(record, conn)
 
     log_ingestion(
         source_system="gee_api",
@@ -322,13 +323,12 @@ def _insert_pg(conn, record: dict) -> str:
             (record.get("source_system", "gee_api"), record["source_id"]),
         )
         record_id = str(cur.fetchone()[0])
-    conn.commit()
     cur.close()
     return record_id
 
 
-def _insert_ch(record: dict) -> None:
-    """Insert observation into ClickHouse."""
+def _insert_ch(record: dict, conn=None) -> None:
+    """Queue canonical observation; direct writes are demo-only when conn is absent."""
     source_system = record.get("source_system", "gee_api")
     columns = ["timestamp", "observation_id", "location_id", "plot_id", "source",
                "ndvi", "ndre", "evi", "savi", "canopy_cover_pct", "ndwi", "cloud_cover_pct",
@@ -340,8 +340,15 @@ def _insert_ch(record: dict) -> None:
               record.get("source", "sentinel-2")]
     values += [record.get(name) for name in columns[5:28]]
     values += [source_system, {}]
-
     try:
+        if conn is not None:
+            payload_hash = hash_payload(record)
+            enqueue(conn, event_key=f"remote_sensing:remote_sensing_events:{record.get('id')}",
+                    source_table="remote_sensing_observation", source_id=str(record.get("id")),
+                    target_table="remote_sensing_events", columns=columns, rows=[values],
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows("remote_sensing_events", columns, [values])
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)

@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, insert_clickhouse_rows, log_ingestion
+from .clickhouse_outbox import enqueue
 from .field_validation import parse_reading_timestamp, validate_sensor_reading
 
 # Lazy event bus — initialized on first publish to avoid import-time side effects
@@ -173,8 +174,8 @@ def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
 
 
 def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time: str,
-                               value: float, quality: str = "good") -> None:
-    """Insert a sensor reading into ClickHouse sensor_readings table."""
+                               value: float, quality: str = "good", conn=None) -> None:
+    """Queue canonical sensor rows; direct writes are demo-only when conn is absent."""
     sensor_id, name, slug, sensor_type_id, sensor_type, location_id, plot_id, status, protocol = sensor_info
 
     # Build timestamp
@@ -187,23 +188,26 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
     unit = sensor_type if _UNIT_RE.match(sensor_type) else "unknown"
 
     try:
+        columns = [
+            "timestamp", "sensor_id", "sensor_type", "location_id",
+            "plot_id", "value", "unit", "quality", "metadata",
+        ]
+        rows = [[
+            ts, str(sensor_id), sensor_type, str(location_id), str(plot_id) if plot_id else "",
+            float(value), unit, quality, {},
+        ]]
+        if conn is not None:
+            payload_hash = hash_payload({"sensor_id": str(sensor_id), "reading_date": reading_date,
+                                         "reading_time": reading_time, "value": value})
+            enqueue(conn, event_key=f"sensor_reading:sensor_readings:{payload_hash}",
+                    source_table="sensor_reading", source_id=payload_hash,
+                    target_table="sensor_readings", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         insert_clickhouse_rows(
             "sensor_readings",
-            [
-                "timestamp", "sensor_id", "sensor_type", "location_id",
-                "plot_id", "value", "unit", "quality", "metadata",
-            ],
-            [[
-                ts,
-                str(sensor_id),
-                sensor_type,
-                str(location_id),
-                str(plot_id) if plot_id else "",
-                float(value),
-                unit,
-                quality,
-                {},
-            ]],
+            columns, rows,
         )
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
@@ -294,7 +298,7 @@ def run_csv(file_path: str):
                     {"csv_row": i + 1, "source_file": file_path},
                     source_system="csv_upload", source_id=f"row_{i + 1}", source_raw=row,
                 )
-                insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality)
+                insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality, db)
 
                 log_ingestion(
                     source_system="csv_upload",
@@ -387,7 +391,7 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
             source_system="api", source_id=sensor_id,
             source_raw={"sensor_id": sensor_id, "value": value},
         )
-        insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality)
+        insert_reading_clickhouse(sensor_info, reading_date, reading_time, value, quality, db)
 
         log_ingestion(
             source_system="api",

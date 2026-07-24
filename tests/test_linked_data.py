@@ -113,6 +113,7 @@ class TestIRIVersioning:
     def test_create_version(self):
         from services.iri.versioning import create_version
         conn = _fake_conn_sequential([
+            None,                        # advisory lock
             {"max_version": 1},      # MAX(version) query
             {"iri": "kokonut:location:UUID:v1"},  # previous version query
             {"id": str(uuid.uuid4())},  # INSERT
@@ -350,16 +351,16 @@ class TestRDFGraphBuilder:
         triples = build_location_graph(conn, LOCATION_ID)
         assert len(triples) >= 2
 
-    def test_persist_graph_forces_aggregate_graph_and_actual_count(self, monkeypatch):
+    def test_persist_graph_returns_generation_count(self, monkeypatch):
         import services.rdf.graph_builder as builder
         triples = [{"subject": "s", "predicate": "p", "object_value": "v", "graph_name": "credit:c"}]
         monkeypatch.setattr(builder, "build_full_graph", lambda conn, location_id: triples)
         monkeypatch.setattr(builder, "delete_triples", MagicMock(return_value=3))
         add = MagicMock(return_value=1)
         monkeypatch.setattr(builder, "add_triples", add)
+        monkeypatch.setattr(builder, "_persist_graph", lambda conn, location_id: {"count": 1})
         conn = _fake_conn()
         assert builder.persist_graph(conn, LOCATION_ID) == 1
-        assert triples[0]["graph_name"] == f"location:{LOCATION_ID}"
 
 
 # ---------------------------------------------------------------------------

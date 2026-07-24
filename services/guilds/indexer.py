@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
+import uuid
 from typing import Any
 
 from eth_abi import decode as abi_decode
@@ -45,12 +47,20 @@ EVENT_SIGNATURES = {
     "MotionFinalized": "MotionFinalized(uint256,uint8)",
     "MotionExecuted": "MotionExecuted(uint256,bytes)",
 }
-EVENT_TOPICS = {"0x" + Web3.keccak(text=value).hex().removeprefix("0x"): name for name, value in EVENT_SIGNATURES.items()}
+EVENT_TOPICS = {
+    "0x" + Web3.keccak(text=value).hex().removeprefix("0x"): name for name, value in EVENT_SIGNATURES.items()
+}
 KGP_EVENT_NAMES = {"KGP_Awarded", "KGPClaimed", "KGPReversed"}
 EVENT_DATA_TYPES = {
-    "KGP_Awarded": (["uint256", "uint256", "uint256", "bytes32", "bytes32", "bytes32"], ["domain_id", "amount", "epoch", "evidence_hash", "ledger_record_hash", "calculation_version"]),
+    "KGP_Awarded": (
+        ["uint256", "uint256", "uint256", "bytes32", "bytes32", "bytes32"],
+        ["domain_id", "amount", "epoch", "evidence_hash", "ledger_record_hash", "calculation_version"],
+    ),
     "KGPClaimed": (["uint256"], ["nonce"]),
-    "KGPReversed": (["address", "uint256", "uint256", "bytes32", "bytes32", "bytes32"], ["contributor_wallet", "domain_id", "amount", "reason_hash", "ledger_record_hash", "calculation_version"]),
+    "KGPReversed": (
+        ["address", "uint256", "uint256", "bytes32", "bytes32", "bytes32"],
+        ["contributor_wallet", "domain_id", "amount", "reason_hash", "ledger_record_hash", "calculation_version"],
+    ),
     "GuildCreated": (["string"], ["name"]),
     "GuildMetadataUpdated": (["string"], ["metadata_uri"]),
     "GuildStewardUpdated": ([], []),
@@ -131,23 +141,44 @@ def decode_log(log: dict[str, Any]) -> dict[str, Any]:
             }
         )
     elif event_name == "GuildCreated":
-        decoded.update({"guild_id": _hex(topics[1]), "guild_key": _hex(topics[2]), "steward": _topic_address(topics[3]), "guild_key_name": ""})
+        decoded.update(
+            {
+                "guild_id": _hex(topics[1]),
+                "guild_key": _hex(topics[2]),
+                "steward": _topic_address(topics[3]),
+                "guild_key_name": "",
+            }
+        )
     elif event_name in {"GuildMetadataUpdated", "GuildStewardUpdated", "GuildStatusUpdated"}:
         decoded["guild_id"] = _hex(topics[1])
         if event_name == "GuildStewardUpdated":
             decoded["steward"] = _topic_address(topics[2])
     elif event_name == "DomainCreated":
-        decoded.update({"domain_id": int.from_bytes(bytes.fromhex(_hex(topics[1])[2:]), "big"), "guild_id": _hex(topics[2]), "parent_domain_id": int.from_bytes(bytes.fromhex(_hex(topics[3])[2:]), "big")})
+        decoded.update(
+            {
+                "domain_id": int.from_bytes(bytes.fromhex(_hex(topics[1])[2:]), "big"),
+                "guild_id": _hex(topics[2]),
+                "parent_domain_id": int.from_bytes(bytes.fromhex(_hex(topics[3])[2:]), "big"),
+            }
+        )
     elif event_name in {"DomainMetadataUpdated", "DomainStatusUpdated"}:
         decoded["domain_id"] = int.from_bytes(bytes.fromhex(_hex(topics[1])[2:]), "big")
     elif event_name in {"TaskCreated", "TaskAssigned", "TaskEvidenceSubmitted", "TaskStatusUpdated"}:
         decoded["task_id"] = int.from_bytes(bytes.fromhex(_hex(topics[1])[2:]), "big")
         if event_name == "TaskCreated":
-            decoded.update({"guild_id": _hex(topics[2]), "domain_id": int.from_bytes(bytes.fromhex(_hex(topics[3])[2:]), "big")})
+            decoded.update(
+                {"guild_id": _hex(topics[2]), "domain_id": int.from_bytes(bytes.fromhex(_hex(topics[3])[2:]), "big")}
+            )
         elif event_name in {"TaskAssigned", "TaskEvidenceSubmitted"}:
             decoded["contributor_wallet"] = _topic_address(topics[2])
     elif event_name == "EvidenceReviewed":
-        decoded.update({"review_id": _hex(topics[1]), "task_id": int.from_bytes(bytes.fromhex(_hex(topics[2])[2:]), "big"), "reviewer_wallet": _topic_address(topics[3])})
+        decoded.update(
+            {
+                "review_id": _hex(topics[1]),
+                "task_id": int.from_bytes(bytes.fromhex(_hex(topics[2])[2:]), "big"),
+                "reviewer_wallet": _topic_address(topics[3]),
+            }
+        )
     elif event_name in {"EvidenceDisputed", "EvidenceDisputeResolved", "EvidenceRevoked"}:
         decoded["review_id"] = _hex(topics[1])
         if event_name == "EvidenceDisputed":
@@ -174,7 +205,9 @@ def _mark_processed(cursor, deployment_id: str, transaction_hash: str, log_index
     )
 
 
-def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dict[str, Any], source_chain_event_id: str | None = None) -> bool:
+def _project_event(
+    cursor, deployment_id: str, log: dict[str, Any], decoded: dict[str, Any], source_chain_event_id: str | None = None
+) -> bool:
     tx_hash = _hex(log["transactionHash"])
     block_number = int(log["blockNumber"])
     log_index = int(log["logIndex"])
@@ -193,9 +226,19 @@ def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dic
               AND calculation_version = %s
             """,
             (
-                deployment_id, tx_hash, block_number, log_index, source_chain_event_id, decoded["award_id"],
-                decoded["contributor_wallet"], decoded["domain_id"], decoded["amount"], decoded["epoch"],
-                decoded["evidence_hash"], decoded["ledger_record_hash"], decoded["calculation_version"],
+                deployment_id,
+                tx_hash,
+                block_number,
+                log_index,
+                source_chain_event_id,
+                decoded["award_id"],
+                decoded["contributor_wallet"],
+                decoded["domain_id"],
+                decoded["amount"],
+                decoded["epoch"],
+                decoded["evidence_hash"],
+                decoded["ledger_record_hash"],
+                decoded["calculation_version"],
             ),
         )
     elif decoded["event_name"] == "KGPClaimed":
@@ -207,7 +250,14 @@ def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dic
                 claimed_at = COALESCE(claimed_at, NOW()), updated_at = NOW()
             WHERE award_id = %s AND LOWER(contributor_wallet) = LOWER(%s) AND nonce = %s
             """,
-            (tx_hash, block_number, source_chain_event_id, decoded["award_id"], decoded["contributor_wallet"], decoded["nonce"]),
+            (
+                tx_hash,
+                block_number,
+                source_chain_event_id,
+                decoded["award_id"],
+                decoded["contributor_wallet"],
+                decoded["nonce"],
+            ),
         )
     else:
         cursor.execute(
@@ -224,9 +274,18 @@ def _project_event(cursor, deployment_id: str, log: dict[str, Any], decoded: dic
               AND calculation_version = %s
             """,
             (
-                deployment_id, tx_hash, block_number, log_index, source_chain_event_id, decoded["reversal_id"],
-                decoded["contributor_wallet"], decoded["domain_id"], decoded["amount"],
-                decoded["reason_hash"], decoded["ledger_record_hash"], decoded["calculation_version"],
+                deployment_id,
+                tx_hash,
+                block_number,
+                log_index,
+                source_chain_event_id,
+                decoded["reversal_id"],
+                decoded["contributor_wallet"],
+                decoded["domain_id"],
+                decoded["amount"],
+                decoded["reason_hash"],
+                decoded["ledger_record_hash"],
+                decoded["calculation_version"],
             ),
         )
     return cursor.rowcount == 1
@@ -246,7 +305,7 @@ class KGPIndexer:
         }
         self.chain_id = chain_id
 
-    def scan_once(self) -> int:
+    def scan_once(self, worker_id: str | None = None) -> int:
         with self.db.cursor() as cursor:
             cursor.execute(
                 "SELECT next_block, last_block_number, last_block_hash FROM kgp_indexer_cursor WHERE deployment_id = %s FOR UPDATE",
@@ -255,6 +314,13 @@ class KGPIndexer:
             row = cursor.fetchone()
             if row is None:
                 raise ValueError("KGP indexer cursor is not initialized")
+            if worker_id:
+                cursor.execute(
+                    "SELECT 1 FROM kgp_indexer_cursor WHERE deployment_id = %s AND lease_owner = %s AND lease_expires_at > NOW()",
+                    (self.deployment_id, worker_id),
+                )
+                if cursor.fetchone() is None:
+                    raise RuntimeError("KGP worker lease is no longer owned")
 
             if self._reorg_detected(row):
                 self._rewind_after_reorg(cursor, int(row[1]))
@@ -269,12 +335,16 @@ class KGPIndexer:
             end = min(start + BLOCK_BATCH - 1, confirmed)
             logs = []
             for contract_address in self.contract_addresses.values():
-                logs.extend(self.w3.eth.get_logs({
-                    "address": contract_address,
-                    "fromBlock": start,
-                    "toBlock": end,
-                    "topics": [list(EVENT_TOPICS)],
-                }))
+                logs.extend(
+                    self.w3.eth.get_logs(
+                        {
+                            "address": contract_address,
+                            "fromBlock": start,
+                            "toBlock": end,
+                            "topics": [list(EVENT_TOPICS)],
+                        }
+                    )
+                )
             logs.sort(key=lambda item: (int(item["blockNumber"]), int(item["transactionIndex"]), int(item["logIndex"])))
             processed = 0
             for raw_log in logs:
@@ -299,12 +369,17 @@ class KGPIndexer:
                     )
                     source_chain_event_id = str(cursor.fetchone()[0])
                     if decoded["event_name"] not in KGP_EVENT_NAMES:
-                        projected = project_protocol_event(cursor, self.deployment_id, {
-                            **decoded,
-                            "transaction_hash": event["transaction_hash"],
-                            "block_number": event["block_number"],
-                            "log_index": event["log_index"],
-                        }, source_chain_event_id)
+                        projected = project_protocol_event(
+                            cursor,
+                            self.deployment_id,
+                            {
+                                **decoded,
+                                "transaction_hash": event["transaction_hash"],
+                                "block_number": event["block_number"],
+                                "log_index": event["log_index"],
+                            },
+                            source_chain_event_id,
+                        )
                         if projected:
                             _mark_processed(cursor, self.deployment_id, event["transaction_hash"], event["log_index"])
                         else:
@@ -318,6 +393,9 @@ class KGPIndexer:
                                 """
                                 UPDATE kgp_chain_event
                                 SET processing_status = 'dead_letter',
+                                    processing_attempts = processing_attempts + 1,
+                                    dead_lettered_at = NOW(),
+                                    next_retry_at = NULL,
                                     processing_error = 'No canonical PostgreSQL ledger record matched the chain event'
                                 WHERE deployment_id = %s AND transaction_hash = %s AND log_index = %s
                                 """,
@@ -326,6 +404,13 @@ class KGPIndexer:
                     processed += 1
 
             block_hash = _hex(self.w3.eth.get_block(end).hash)
+            if worker_id:
+                cursor.execute(
+                    "SELECT 1 FROM kgp_indexer_cursor WHERE deployment_id = %s AND lease_owner = %s AND lease_expires_at > NOW()",
+                    (self.deployment_id, worker_id),
+                )
+                if cursor.fetchone() is None:
+                    raise RuntimeError("KGP worker lease was lost before cursor commit")
             cursor.execute(
                 """
                 UPDATE kgp_indexer_cursor
@@ -337,6 +422,71 @@ class KGPIndexer:
             )
             self.db.commit()
             return processed
+
+    def run_forever(self, poll_interval: float = 30.0, worker_id: str | None = None) -> None:
+        """Continuously scan with durable cursor failure state and recovery."""
+        worker_id = worker_id or f"kgp-{uuid.uuid4().hex[:8]}"
+        while True:
+            try:
+                self._claim_worker_lease(worker_id)
+                self.scan_once(worker_id)
+                self._heartbeat_worker_lease(worker_id)
+            except KeyboardInterrupt:
+                self.db.rollback()
+                self._release_worker_lease(worker_id)
+                raise
+            except Exception as exc:
+                logger.exception("KGP scan failed for %s", self.deployment_id)
+                self.db.rollback()
+                self._record_scan_failure(worker_id, str(exc))
+            time.sleep(poll_interval)
+
+    def _claim_worker_lease(self, worker_id: str) -> None:
+        token = str(uuid.uuid4())
+        with self.db.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE kgp_indexer_cursor
+                SET lease_owner = %s, lease_token = %s, lease_expires_at = NOW() + INTERVAL '2 minutes',
+                    heartbeat_at = NOW(), status = 'active', updated_at = NOW()
+                WHERE deployment_id = %s
+                  AND (lease_expires_at IS NULL OR lease_expires_at < NOW() OR lease_owner = %s)
+                RETURNING id
+                """,
+                (worker_id, token, self.deployment_id, worker_id),
+            )
+            if cursor.fetchone() is None:
+                raise RuntimeError("KGP cursor is leased by another worker")
+        self.db.commit()
+
+    def _heartbeat_worker_lease(self, worker_id: str) -> None:
+        with self.db.cursor() as cursor:
+            cursor.execute(
+                "UPDATE kgp_indexer_cursor SET heartbeat_at = NOW(), lease_expires_at = NOW() + INTERVAL '2 minutes', updated_at = NOW() WHERE deployment_id = %s AND lease_owner = %s",
+                (self.deployment_id, worker_id),
+            )
+        self.db.commit()
+
+    def _release_worker_lease(self, worker_id: str) -> None:
+        with self.db.cursor() as cursor:
+            cursor.execute(
+                "UPDATE kgp_indexer_cursor SET lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL, updated_at = NOW() WHERE deployment_id = %s AND lease_owner = %s",
+                (self.deployment_id, worker_id),
+            )
+        self.db.commit()
+
+    def _record_scan_failure(self, worker_id: str, error: str) -> None:
+        with self.db.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE kgp_indexer_cursor
+                SET retry_count = retry_count + 1, last_error = %s, status = 'failed',
+                    lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL, updated_at = NOW()
+                WHERE deployment_id = %s AND lease_owner = %s
+                """,
+                (error[:4000], self.deployment_id, worker_id),
+            )
+        self.db.commit()
 
     def _reorg_detected(self, row) -> bool:
         if row[1] is None or row[2] is None:
@@ -408,11 +558,17 @@ class KGPIndexer:
             decoded["block_number"] = block_number
             decoded["log_index"] = log_index
             if event_name in KGP_EVENT_NAMES:
-                projected = _project_event(cursor, self.deployment_id, {
-                    "transactionHash": tx_hash,
-                    "blockNumber": block_number,
-                    "logIndex": log_index,
-                }, decoded, str(event_id))
+                projected = _project_event(
+                    cursor,
+                    self.deployment_id,
+                    {
+                        "transactionHash": tx_hash,
+                        "blockNumber": block_number,
+                        "logIndex": log_index,
+                    },
+                    decoded,
+                    str(event_id),
+                )
             else:
                 projected = project_protocol_event(cursor, self.deployment_id, decoded, str(event_id))
             cursor.execute(
@@ -423,12 +579,15 @@ class KGPIndexer:
     @staticmethod
     def _dead_letter(cursor, event: dict[str, Any]) -> None:
         cursor.execute(
-            """
-            UPDATE kgp_chain_event
-            SET processing_status = 'dead_letter',
-                processing_error = 'No canonical PostgreSQL projection matched the protocol event'
-            WHERE deployment_id = %s AND transaction_hash = %s AND log_index = %s
-            """,
+                """
+                UPDATE kgp_chain_event
+                SET processing_status = 'dead_letter',
+                    processing_attempts = processing_attempts + 1,
+                    dead_lettered_at = NOW(),
+                    next_retry_at = NULL,
+                    processing_error = 'No canonical PostgreSQL projection matched the protocol event'
+                WHERE deployment_id = %s AND transaction_hash = %s AND log_index = %s
+                """,
             (event["deployment_id"], event["transaction_hash"], event["log_index"]),
         )
 
@@ -436,28 +595,34 @@ class KGPIndexer:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Index Kokonut Guild Points events")
     parser.add_argument("--once", action="store_true", help="scan one confirmed block range")
+    parser.add_argument("--run", action="store_true", help="run the durable worker loop")
+    parser.add_argument("--poll-interval", type=float, default=30.0)
+    parser.add_argument("--worker-id")
     parser.add_argument("--rpc-url", default=GNOSIS_RPC_URL)
     parser.add_argument("--deployment-id", required=True)
     parser.add_argument("--contract-address")
     parser.add_argument("--addresses-json", help='JSON map such as {"kgp":"0x...","tasks":"0x..."}')
     parser.add_argument("--chain-id", type=int, default=100)
     args = parser.parse_args()
-    if not args.once:
-        parser.error("--once is required until the durable worker loop is enabled")
+    if not args.once and not args.run:
+        parser.error("one of --once or --run is required")
 
     if not args.contract_address and not args.addresses_json:
         parser.error("one of --contract-address or --addresses-json is required")
     addresses = json.loads(args.addresses_json) if args.addresses_json else args.contract_address
     db = get_db()
     try:
-        count = KGPIndexer(
+        indexer = KGPIndexer(
             Web3(Web3.HTTPProvider(args.rpc_url)),
             db,
             args.deployment_id,
             addresses,
             args.chain_id,
-        ).scan_once()
-        print(json.dumps({"processed": count}))
+        )
+        if args.run:
+            indexer.run_forever(args.poll_interval, args.worker_id)
+        else:
+            print(json.dumps({"processed": indexer.scan_once()}))
     finally:
         db.close()
 

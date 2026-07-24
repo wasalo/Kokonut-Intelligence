@@ -38,6 +38,10 @@ from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 logger = get_logger("ingestion.mock_sensors")
 
+# This generator is intentionally non-canonical demo data. Its direct ClickHouse
+# write must not be copied into production producers; canonical paths use the outbox.
+DEMO_DIRECT_CLICKHOUSE = True
+
 # Validation patterns for ClickHouse SQL interpolation
 _UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
 _TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')
@@ -288,18 +292,19 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                         )
                         pg_id = cur.fetchone()[0]
 
-                    # Insert into ClickHouse without placing values in SQL text.
-                    try:
-                        from .base import post_clickhouse_rows
-                        post_clickhouse_rows(
-                            "sensor_readings",
-                            ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
-                             "value", "unit", "quality", "metadata"],
-                            [[f"{reading_date} {reading_time}", str(sensor_id), stype,
-                              str(loc_id), str(plot_id or ""), value, "mock_unit", "good", {}]],
-                        )
-                    except Exception:
-                        pass
+                    if DEMO_DIRECT_CLICKHOUSE:
+                        # Demo-only path: no canonical PostgreSQL event is produced here.
+                        try:
+                            from .base import post_clickhouse_rows
+                            post_clickhouse_rows(
+                                "sensor_readings",
+                                ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
+                                 "value", "unit", "quality", "metadata"],
+                                [[f"{reading_date} {reading_time}", str(sensor_id), stype,
+                                  str(loc_id), str(plot_id or ""), value, "mock_unit", "good", {}]],
+                            )
+                        except Exception:
+                            pass
 
                     total += 1
 
