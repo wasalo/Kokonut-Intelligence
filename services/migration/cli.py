@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import uuid
 from pathlib import Path
 
@@ -44,24 +46,51 @@ class MigrationError(RuntimeError):
 
 
 def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess.CompletedProcess:
-    """Execute SQL through stdin, with values passed as psql variables."""
-    command = [
-        "docker", "compose", "exec", "-T", "database",
-        "psql", "-X", "-U", PG_USER, "-d", PG_DB,
-        "-v", "ON_ERROR_STOP=1", "-A", "-t", "-F", "\t",
-    ]
-    for key, value in (variables or {}).items():
-        command.extend(["-v", f"{key}={value}"])
+    """Execute SQL via a temp file with shell input redirection.
+
+    Writing SQL to a temp file and using shell input redirection
+    (``docker compose exec ... psql < /tmp/file``) avoids the SIGPIPE
+    (exit 141) that ``subprocess.run(input=...)`` triggers when piped
+    through ``docker compose exec -T database psql`` — especially with
+    large ``BEGIN``/``COMMIT``-wrapped migrations and ``ON_ERROR_STOP=1``.
+    """
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False)
+    tmp_name = tmp.name
     try:
-        result = subprocess.run(
-            command, input=input_sql, capture_output=True, text=True, timeout=3600
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise MigrationError(f"psql execution failed: {exc}") from exc
-    if result.returncode != 0:
-        detail = result.stderr.strip() or result.stdout.strip() or "unknown psql error"
-        raise MigrationError(detail)
-    return result
+        tmp.write(input_sql)
+        tmp.close()
+        psql_args = [
+            "docker", "compose", "exec", "-T", "database",
+            "psql", "-X", "-U", PG_USER, "-d", PG_DB,
+            "-v", "ON_ERROR_STOP=1", "-A", "-t", "-F", "\\t",
+            "-f", "-",
+        ]
+        for key, value in (variables or {}).items():
+            psql_args.extend(["-v", f"{key}={value}"])
+        # Shell input-redirected psql: the shell opens the temp file as stdin
+        # for ``docker compose exec``, avoiding both the Python subprocess stdin
+        # pipe (which caused SIGPIPE via ``subprocess.run(input=...)``) and the
+        # ``cat file | psql`` pattern (which reintroduced SIGPIPE via cat).
+        escaped_tmp = tmp_name.replace("'", "'\\''")
+        shell_cmd = [
+            "sh", "-c",
+            f"docker compose exec -T database {' '.join(psql_args)} < '{escaped_tmp}'",
+        ]
+        try:
+            result = subprocess.run(
+                shell_cmd, capture_output=True, text=True, timeout=3600
+            )
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise MigrationError(f"psql execution failed: {exc}") from exc
+        if result.returncode != 0:
+            detail = result.stderr.strip() or result.stdout.strip() or "unknown psql error"
+            raise MigrationError(detail)
+        return result
+    finally:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
 
 
 def _compute_checksum(filepath: Path) -> str:
