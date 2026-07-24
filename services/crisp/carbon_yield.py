@@ -73,8 +73,8 @@ def _query_harvest_summary(conn, location_id: str) -> Dict[str, Any]:
     cur.execute("""
         SELECT
             COUNT(*) AS harvest_count,
-            COALESCE(SUM(estimated_yield_kg), 0) AS total_yield_kg,
-            COALESCE(AVG(estimated_yield_kg), 0) AS avg_yield_kg,
+            COALESCE(SUM(CASE WHEN unit = 'kg' THEN quantity WHEN unit = 'tonnes' THEN quantity * 1000 ELSE quantity END), 0) AS total_yield_kg,
+            COALESCE(AVG(CASE WHEN unit = 'kg' THEN quantity WHEN unit = 'tonnes' THEN quantity * 1000 ELSE quantity END), 0) AS avg_yield_kg,
             MIN(harvest_date) AS first_harvest,
             MAX(harvest_date) AS last_harvest
         FROM harvest_event he
@@ -205,6 +205,7 @@ def compute_carbon_yield_risk(
     ex_ante_estimate: Optional[float] = None,
     planting_density: Optional[float] = None,
     mortality_rate: Optional[float] = None,
+    species: Optional[str] = None,
 ) -> DimensionScore:
     """Compute carbon yield risk score for a location.
 
@@ -222,7 +223,7 @@ def compute_carbon_yield_risk(
     soil_carbon = _query_soil_carbon(conn, location_id)
     harvest_summary = _query_harvest_summary(conn, location_id)
     ndvi = _query_ndvi_latest(conn, location_id)
-    benchmark = _query_carbon_benchmark(conn)
+    benchmark = _query_carbon_benchmark(conn, species)
 
     # Default ex-ante from tree inventory if not provided
     if ex_ante_estimate is None:

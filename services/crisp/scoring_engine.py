@@ -304,19 +304,35 @@ def persist_assessment(conn, rating: CompositeRating) -> str:
 
         elif dim.dimension_key == "financial":
             f = dim.factors
+            # Convert break_even_month to break_even_year for the CRISP schema
+            be_month = f.get("break_even_month")
+            be_year = None
+            if be_month is not None:
+                from .financial_risk import _query_financial_sustainability
+                fin = _query_financial_sustainability(conn, rating.location_id)
+                plan_start = fin.get("plan_period_start")
+                if plan_start:
+                    from datetime import date as _date
+                    if isinstance(plan_start, str):
+                        plan_start = _date.fromisoformat(plan_start)
+                    be_year = plan_start.year + (int(be_month) - 1) // 12
+                else:
+                    be_year = 2026 + (int(be_month) - 1) // 12
             cur.execute("""
                 INSERT INTO crisp_financial_risk (
                     assessment_id, location_id, risk_score,
                     break_even_year, revenue_risk_factor, cost_risk_factor,
                     market_price_risk, liquidity_risk, financial_risk_factor,
+                    vintage_year,
                     evidence_maturity_level, metadata
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 assessment_id, rating.location_id, dim.risk_score,
-                f.get("break_even_month"),
+                be_year,
                 f.get("revenue_risk"), f.get("cost_risk"),
                 f.get("market_price_risk"), f.get("liquidity_risk"),
                 f.get("financial_risk_factor"),
+                f.get("vintage_year"),
                 dim.evidence_maturity_level,
                 psycopg2.extras.Json(dim.factors),
             ))

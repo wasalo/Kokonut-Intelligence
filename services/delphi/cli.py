@@ -145,6 +145,21 @@ def cmd_list_recommendations(args):
     print(_json(f.list_recommendations(args.study_id)))
 
 
+def cmd_reject_recommendation(args):
+    from services.delphi.facilitator import Facilitator
+    f = Facilitator(conn=_get_conn())
+    rec = f.reject_recommendation(
+        args.recommendation_id, args.rejected_by, args.reason,
+    )
+    print(_json(rec))
+
+
+def cmd_calibrate_panel(args):
+    from services.delphi.facilitator import Facilitator
+    f = Facilitator(conn=_get_conn())
+    print(_json(f.calibrate_panel(args.study_id)))
+
+
 def cmd_list_studies(args):
     conn = _get_conn()
     cur = conn.cursor()
@@ -249,6 +264,16 @@ def main():
     p = sub.add_parser("list-recommendations", help="List recommendations")
     p.add_argument("--study-id", required=True)
     p.set_defaults(func=cmd_list_recommendations)
+
+    p = sub.add_parser("reject-recommendation", help="Reject a recommendation (human)")
+    p.add_argument("--recommendation-id", required=True)
+    p.add_argument("--rejected-by", required=True)
+    p.add_argument("--reason")
+    p.set_defaults(func=cmd_reject_recommendation)
+
+    p = sub.add_parser("calibrate-panel", help="Recalibrate expert weights")
+    p.add_argument("--study-id", required=True)
+    p.set_defaults(func=cmd_calibrate_panel)
 
     args = parser.parse_args()
     if hasattr(args, "func"):

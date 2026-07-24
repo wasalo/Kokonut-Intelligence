@@ -3,6 +3,7 @@ classifies them, and links to threats."""
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -27,6 +28,48 @@ class SignalIngestor:
             self._conn = get_db()
         return self._conn
 
+    def _content_hash(self, content: str, source: str) -> str:
+        """Deterministic hash for dedup: lowercased content + source."""
+        normalized = f"{source.lower().strip()}:{content.lower().strip()}"
+        return hashlib.sha256(normalized.encode()).hexdigest()[:16]
+
+    def _auto_classify(
+        self, conn, location_id: Optional[str], content: str,
+    ) -> Optional[str]:
+        """Match signal content against threat names for auto-classification.
+
+        Returns the best-matching threat_id or None.
+        """
+        if not location_id or not content:
+            return None
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            """
+            SELECT id, name FROM threat
+            WHERE location_id = %s AND status != 'archived'
+            """,
+            (location_id,),
+        )
+        threats = cur.fetchall()
+        cur.close()
+
+        content_lower = content.lower()
+        best_threat_id = None
+        best_score = 0
+        for t in threats:
+            name = (t["name"] or "").lower()
+            if not name:
+                continue
+            # Simple keyword overlap scoring
+            name_words = set(name.split())
+            content_words = set(content_lower.split())
+            overlap = len(name_words & content_words)
+            if overlap > best_score:
+                best_score = overlap
+                best_threat_id = t["id"]
+
+        return best_threat_id if best_score >= 2 else None
+
     def ingest_signal(
         self,
         signal_source: str,
@@ -39,34 +82,69 @@ class SignalIngestor:
         relevance_score: Optional[float] = None,
         sentiment: Optional[float] = None,
         signal_date: Optional[datetime] = None,
+        location_id: Optional[str] = None,
+        dedup_window_hours: int = 24,
     ) -> Dict[str, Any]:
-        """Ingest a new signal."""
+        """Ingest a new signal with dedup and optional auto-classification.
+
+        Dedup: if a signal with the same content_hash and source exists within
+        dedup_window_hours, returns the existing signal instead of inserting.
+        Auto-classify: if no threat_id provided, attempts keyword matching.
+        """
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        signal_id = str(uuid.uuid4())
         now = datetime.now(timezone.utc)
+        content_hash = self._content_hash(content, signal_source)
 
+        # Dedup check
+        cur.execute(
+            """
+            SELECT id FROM threat_signal
+            WHERE content_hash = %s AND signal_source = %s
+              AND ingested_at > NOW() - INTERVAL '%s hours'
+            LIMIT 1
+            """,
+            (content_hash, signal_source, dedup_window_hours),
+        )
+        existing = cur.fetchone()
+        if existing:
+            cur.close()
+            logger.info("Dedup: signal %s matches existing %s", content_hash, existing["id"])
+            return {"id": existing["id"], "dedup": True, "message": "Signal already ingested"}
+
+        # Auto-classify if no threat_id
+        classified = False
+        classification_notes = None
+        if not threat_id and location_id:
+            auto_threat = self._auto_classify(conn, location_id, content)
+            if auto_threat:
+                threat_id = auto_threat
+                classified = True
+                classification_notes = "auto-classified by keyword matching"
+
+        signal_id = str(uuid.uuid4())
         cur.execute(
             """
             INSERT INTO threat_signal
                 (id, threat_id, signal_source, source_reference, signal_type,
                  content, structured_data, confidence, relevance_score,
-                 sentiment, signal_date, ingested_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 sentiment, signal_date, ingested_at, classified,
+                 classification_notes, content_hash)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING *
             """,
             (
                 signal_id, threat_id, signal_source, source_reference, signal_type,
                 content, psycopg2.extras.Json(structured_data or {}),
                 confidence, relevance_score, sentiment,
-                signal_date or now, now,
+                signal_date or now, now, classified, classification_notes, content_hash,
             ),
         )
         result = dict(cur.fetchone())
         conn.commit()
         cur.close()
 
-        logger.info("Ingested signal %s from %s", signal_id, signal_source)
+        logger.info("Ingested signal %s from %s (auto_classified=%s)", signal_id, signal_source, classified)
         return result
 
     def classify_signal(
