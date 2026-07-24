@@ -143,6 +143,7 @@ services:
     volumes:
       - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - ./services/maps:/app/services/maps:ro
+      - ./services/mobile:/app/services/mobile:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:

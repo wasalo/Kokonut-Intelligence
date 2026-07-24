@@ -31,6 +31,13 @@
 		file_server
 	}
 
+	# Offline-first field collector companion app
+	handle /field/* {
+		uri strip_prefix /field
+		root * /app/services/mobile
+		file_server
+	}
+
 	# Metabase dashboards
 	handle /metabase/* {
 		uri strip_prefix /metabase
@@ -52,7 +59,7 @@
 	header {
 		Access-Control-Allow-Origin *
 		Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-		Access-Control-Allow-Headers "Content-Type, Authorization, x-api-key, x-capability-token"
+		Access-Control-Allow-Headers "Content-Type, Authorization, x-api-key, x-capability-token, x-device-token"
 		Access-Control-Max-Age 86400
 	}
 
