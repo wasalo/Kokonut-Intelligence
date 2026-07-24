@@ -15,6 +15,7 @@ Usage:
 import argparse
 import hashlib
 import json
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -29,14 +30,13 @@ from .kokonut_graphs import build_all
 
 
 def get_pg():
-    return psycopg2.connect(
-        host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD
-    )
+    return psycopg2.connect(host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)
 
 
 # ---------------------------------------------------------------------------
 # Report Generators
 # ---------------------------------------------------------------------------
+
 
 def _serialize_value(obj):
     if hasattr(obj, "isoformat"):
@@ -70,36 +70,144 @@ def build_negative_findings(context: dict) -> list[dict]:
     findings = []
     for gap in context.get("evidence_gaps", []):
         if gap.get("public_claims_below_threshold", 0):
-            findings.append({"code": "CLAIM_BELOW_PUBLICATION_THRESHOLD", "system": "impact_claim", "severity": "warning", "summary": "Public claims lack the required evidence maturity.", "basis": {"affected_count": gap["public_claims_below_threshold"]}, "review_prompt": "Review claim maturity and evidence before publication."})
+            findings.append(
+                {
+                    "code": "CLAIM_BELOW_PUBLICATION_THRESHOLD",
+                    "system": "impact_claim",
+                    "severity": "warning",
+                    "summary": "Public claims lack the required evidence maturity.",
+                    "basis": {"affected_count": gap["public_claims_below_threshold"]},
+                    "review_prompt": "Review claim maturity and evidence before publication.",
+                }
+            )
         if gap.get("carbon_publication_gaps", 0):
-            findings.append({"code": "CARBON_VERIFICATION_GAP", "system": "impact_claim", "severity": "high", "summary": "Carbon claims lack publication requirements.", "basis": {"affected_count": gap["carbon_publication_gaps"]}, "review_prompt": "Confirm Level 6 evidence, methodology, and external verifier."})
+            findings.append(
+                {
+                    "code": "CARBON_VERIFICATION_GAP",
+                    "system": "impact_claim",
+                    "severity": "high",
+                    "summary": "Carbon claims lack publication requirements.",
+                    "basis": {"affected_count": gap["carbon_publication_gaps"]},
+                    "review_prompt": "Confirm Level 6 evidence, methodology, and external verifier.",
+                }
+            )
         if gap.get("missing_evidence_links", 0):
-            findings.append({"code": "MISSING_EVIDENCE_POINTER", "system": "impact_claim", "severity": "warning", "summary": "Claims are missing evidence pointers.", "basis": {"affected_count": gap["missing_evidence_links"]}, "review_prompt": "Attach a governed CID, hash, or attestation reference."})
+            findings.append(
+                {
+                    "code": "MISSING_EVIDENCE_POINTER",
+                    "system": "impact_claim",
+                    "severity": "warning",
+                    "summary": "Claims are missing evidence pointers.",
+                    "basis": {"affected_count": gap["missing_evidence_links"]},
+                    "review_prompt": "Attach a governed CID, hash, or attestation reference.",
+                }
+            )
 
     forecast = context.get("forecast_performance") or {}
     if forecast.get("overprediction_count", 0):
-        findings.append({"code": "FORECAST_OVERPREDICTION", "system": "forecast_validation", "severity": "warning", "summary": "Verified outcomes were below forecasts for some evaluated records.", "basis": forecast, "review_prompt": "Review assumptions and calibration before reusing these projections."})
+        findings.append(
+            {
+                "code": "FORECAST_OVERPREDICTION",
+                "system": "forecast_validation",
+                "severity": "warning",
+                "summary": "Verified outcomes were below forecasts for some evaluated records.",
+                "basis": forecast,
+                "review_prompt": "Review assumptions and calibration before reusing these projections.",
+            }
+        )
     milestones = context.get("backcast_milestone_health") or {}
     if milestones.get("blocked_count", 0):
-        findings.append({"code": "BACKCAST_BLOCKED_MILESTONES", "system": "backcasting", "severity": "warning", "summary": "Backcast milestones are blocked.", "basis": milestones, "review_prompt": "Review dependencies, resources, and accountable owners."})
+        findings.append(
+            {
+                "code": "BACKCAST_BLOCKED_MILESTONES",
+                "system": "backcasting",
+                "severity": "warning",
+                "summary": "Backcast milestones are blocked.",
+                "basis": milestones,
+                "review_prompt": "Review dependencies, resources, and accountable owners.",
+            }
+        )
     if milestones.get("overdue_count", 0):
-        findings.append({"code": "BACKCAST_OVERDUE_MILESTONES", "system": "backcasting", "severity": "warning", "summary": "Backcast milestones are past their target dates.", "basis": milestones, "review_prompt": "Confirm whether target dates and plans remain authoritative."})
+        findings.append(
+            {
+                "code": "BACKCAST_OVERDUE_MILESTONES",
+                "system": "backcasting",
+                "severity": "warning",
+                "summary": "Backcast milestones are past their target dates.",
+                "basis": milestones,
+                "review_prompt": "Confirm whether target dates and plans remain authoritative.",
+            }
+        )
     assumptions = context.get("unresolved_assumption_challenges") or {}
     if assumptions.get("pending_count", 0):
-        findings.append({"code": "BACKCAST_PENDING_ASSUMPTIONS", "system": "backcasting", "severity": "warning", "summary": "Assumption challenges remain unresolved.", "basis": assumptions, "review_prompt": "Resolve challenged assumptions before adopting dependent milestones."})
+        findings.append(
+            {
+                "code": "BACKCAST_PENDING_ASSUMPTIONS",
+                "system": "backcasting",
+                "severity": "warning",
+                "summary": "Assumption challenges remain unresolved.",
+                "basis": assumptions,
+                "review_prompt": "Resolve challenged assumptions before adopting dependent milestones.",
+            }
+        )
     delphi = context.get("delphi_dissent") or {}
     if delphi.get("non_consensus_count", 0):
-        findings.append({"code": "DELPHI_NON_CONSENSUS", "system": "delphi", "severity": "notice", "summary": "Consensus criteria were not met for some reviewed items.", "basis": delphi, "review_prompt": "Preserve anonymized minority views and disclose non-consensus."})
+        findings.append(
+            {
+                "code": "DELPHI_NON_CONSENSUS",
+                "system": "delphi",
+                "severity": "notice",
+                "summary": "Consensus criteria were not met for some reviewed items.",
+                "basis": delphi,
+                "review_prompt": "Preserve anonymized minority views and disclose non-consensus.",
+            }
+        )
     crisp = context.get("crisp_risk") or {}
     if crisp.get("composite_score") is not None and float(crisp["composite_score"]) >= 69:
-        findings.append({"code": "CRISP_HIGH_RISK", "system": "crisp", "severity": "high", "summary": "The latest published assessment indicates elevated modeled risk.", "basis": crisp, "review_prompt": "Review the highest-risk dimensions and active mitigations."})
+        findings.append(
+            {
+                "code": "CRISP_HIGH_RISK",
+                "system": "crisp",
+                "severity": "high",
+                "summary": "The latest published assessment indicates elevated modeled risk.",
+                "basis": crisp,
+                "review_prompt": "Review the highest-risk dimensions and active mitigations.",
+            }
+        )
     if crisp and crisp.get("confidence_level") in {"low", "insufficient_evidence"}:
-        findings.append({"code": "CRISP_INSUFFICIENT_EVIDENCE", "system": "crisp", "severity": "warning", "summary": "The latest published risk assessment has limited evidence confidence.", "basis": crisp, "review_prompt": "Treat risk severity and evidence uncertainty as separate concerns."})
+        findings.append(
+            {
+                "code": "CRISP_INSUFFICIENT_EVIDENCE",
+                "system": "crisp",
+                "severity": "warning",
+                "summary": "The latest published risk assessment has limited evidence confidence.",
+                "basis": crisp,
+                "review_prompt": "Treat risk severity and evidence uncertainty as separate concerns.",
+            }
+        )
     calibration = context.get("prediction_calibration") or {}
     if calibration.get("failed_scope_count", 0):
-        findings.append({"code": "PREDICTION_CALIBRATION_FAILED", "system": "prediction_ledger", "severity": "high", "summary": "One or more model scopes materially failed calibration policy.", "basis": calibration, "review_prompt": "Do not publish affected forecasts without recalibration and independent review."})
+        findings.append(
+            {
+                "code": "PREDICTION_CALIBRATION_FAILED",
+                "system": "prediction_ledger",
+                "severity": "high",
+                "summary": "One or more model scopes materially failed calibration policy.",
+                "basis": calibration,
+                "review_prompt": "Do not publish affected forecasts without recalibration and independent review.",
+            }
+        )
     if calibration.get("insufficient_scope_count", 0):
-        findings.append({"code": "PREDICTION_CALIBRATION_INSUFFICIENT", "system": "prediction_ledger", "severity": "warning", "summary": "Some model scopes lack enough resolved outcomes for calibration.", "basis": calibration, "review_prompt": "Disclose limited calibration evidence and continue outcome collection."})
+        findings.append(
+            {
+                "code": "PREDICTION_CALIBRATION_INSUFFICIENT",
+                "system": "prediction_ledger",
+                "severity": "warning",
+                "summary": "Some model scopes lack enough resolved outcomes for calibration.",
+                "basis": calibration,
+                "review_prompt": "Disclose limited calibration evidence and continue outcome collection.",
+            }
+        )
     return findings
 
 
@@ -342,13 +450,21 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
 
     limitations = []
     if has_private_feedback:
-        limitations.append("Some stakeholder feedback is private or lacks public consent and is summarized only in aggregate.")
+        limitations.append(
+            "Some stakeholder feedback is private or lacks public consent and is summarized only in aggregate."
+        )
     if has_carbon_gaps:
-        limitations.append("Some public carbon claims are not publication-ready until Level 6 verifier and methodology requirements are satisfied.")
+        limitations.append(
+            "Some public carbon claims are not publication-ready until Level 6 verifier and methodology requirements are satisfied."
+        )
     if has_missing_evidence:
-        limitations.append("Some claims are missing CIDs, hashes, or attestation UIDs and should be treated as lower-confidence evidence.")
+        limitations.append(
+            "Some claims are missing CIDs, hashes, or attestation UIDs and should be treated as lower-confidence evidence."
+        )
     if not limitations:
-        limitations.append("No findings were detected by the configured checks in the available governed data. This is not evidence that adverse outcomes or evidence gaps are absent.")
+        limitations.append(
+            "No findings were detected by the configured checks in the available governed data. This is not evidence that adverse outcomes or evidence gaps are absent."
+        )
 
     return {
         "principles": [
@@ -368,7 +484,9 @@ def fetch_public_interest_context(conn, location_id: str) -> dict:
         "risk_mitigation": _serialize_rows(risk_mitigation),
         "forecast_performance": {k: _serialize_value(v) for k, v in forecast_performance.items()},
         "backcast_milestone_health": {k: _serialize_value(v) for k, v in backcast_milestone_health.items()},
-        "unresolved_assumption_challenges": {k: _serialize_value(v) for k, v in unresolved_assumption_challenges.items()},
+        "unresolved_assumption_challenges": {
+            k: _serialize_value(v) for k, v in unresolved_assumption_challenges.items()
+        },
         "delphi_dissent": {k: _serialize_value(v) for k, v in delphi_dissent.items()},
         "crisp_risk": {k: _serialize_value(v) for k, v in crisp_risk.items()},
         "prediction_calibration": {k: _serialize_value(v) for k, v in prediction_calibration.items()},
@@ -382,6 +500,7 @@ def attach_public_interest_context(conn, report_data: dict, location_id: Optiona
     if location_id:
         report_data["public_interest"] = fetch_public_interest_context(conn, location_id)
     return report_data
+
 
 def generate_farm_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a farm summary report for a location."""
@@ -398,25 +517,32 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
     farms = [dict(r) for r in cur.fetchall()]
 
     # Plots
-    cur.execute("""
+    cur.execute(
+        """
         SELECT p.*, f.name as farm_name
         FROM plot p JOIN farm f ON p.farm_id = f.id
         WHERE f.location_id = %s
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     plots = [dict(r) for r in cur.fetchall()]
 
     # Active crop cycles
-    cur.execute("""
+    cur.execute(
+        """
         SELECT cc.*, c.name as crop_name, p.name as plot_name
         FROM crop_cycle cc
         JOIN crop c ON cc.crop_id = c.id
         JOIN plot p ON cc.plot_id = p.id
         WHERE cc.location_id = %s
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     crop_cycles = [dict(r) for r in cur.fetchall()]
 
     # Harvest summary
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             COUNT(*) as total_harvests,
             COALESCE(SUM(quantity), 0) as total_quantity,
@@ -426,11 +552,14 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         WHERE location_id = %s
         AND (%s::date IS NULL OR harvest_date >= %s::date)
         AND (%s::date IS NULL OR harvest_date <= %s::date)
-    """, (location_id, period_start, period_start, period_end, period_end))
+    """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
     harvest_summary = dict(cur.fetchone())
 
     # Financial summary
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             COALESCE(SUM(CASE WHEN transaction_type = 'revenue' THEN amount_usd ELSE 0 END), 0) as total_revenue,
             COALESCE(SUM(CASE WHEN transaction_type = 'expense' THEN amount_usd ELSE 0 END), 0) as total_expenses,
@@ -440,27 +569,35 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         WHERE location_id = %s
         AND (%s::date IS NULL OR transaction_date >= %s::date)
         AND (%s::date IS NULL OR transaction_date <= %s::date)
-    """, (location_id, period_start, period_start, period_end, period_end))
+    """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
     financial = dict(cur.fetchone())
 
     # Expense breakdown
-    cur.execute("""
+    cur.execute(
+        """
         SELECT ee.category, COALESCE(SUM(ee.amount), 0) as total
         FROM expense_event ee
         WHERE ee.location_id = %s AND ee.status IN ('verified', 'published')
         GROUP BY ee.category ORDER BY total DESC
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     expense_breakdown = [dict(r) for r in cur.fetchall()]
 
     # Attestation coverage
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             COUNT(*) as total_records,
             COUNT(CASE WHEN status = 'published' THEN 1 END) as attested,
             COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft
         FROM attestation_record
         WHERE subject_type = 'location' AND subject_id = %s
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     attestation = dict(cur.fetchone())
 
     cur.close()
@@ -485,7 +622,8 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
     """Generate a crop net operating income report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             cc.id as cycle_id,
             cc.cycle_name,
@@ -503,40 +641,49 @@ def generate_crop_noi(conn, location_id: str, period_start: str = None, period_e
         JOIN plot p ON cc.plot_id = p.id
         WHERE cc.location_id = %s
         ORDER BY cc.planting_date DESC
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     cycles = [dict(r) for r in cur.fetchall()]
 
     # Get expenses per crop cycle
     noi_data = []
     for cycle in cycles:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT
                 COALESCE(SUM(ca.allocated_amount), 0) as total_allocated_cost
             FROM crop_cost_allocation ca
             WHERE ca.crop_cycle_id = %s
-        """, (cycle["cycle_id"],))
+        """,
+            (cycle["cycle_id"],),
+        )
         cost = dict(cur.fetchone())
 
         actual_revenue = float(cycle["actual_revenue"] or 0)
         allocated_cost = float(cost["total_allocated_cost"])
         noi = actual_revenue - allocated_cost
 
-        noi_data.append({
-            "cycle_id": str(cycle["cycle_id"]),
-            "cycle_name": cycle["cycle_name"],
-            "crop_name": cycle["crop_name"],
-            "plot_name": cycle["plot_name"],
-            "status": cycle["status"],
-            "planting_date": cycle["planting_date"].isoformat() if cycle["planting_date"] else None,
-            "actual_harvest_date": cycle["actual_harvest_date"].isoformat() if cycle["actual_harvest_date"] else None,
-            "expected_yield": float(cycle["expected_yield"] or 0),
-            "actual_yield": float(cycle["actual_yield"] or 0),
-            "expected_revenue": float(cycle["expected_revenue"] or 0),
-            "actual_revenue": actual_revenue,
-            "allocated_cost": allocated_cost,
-            "crop_noi": noi,
-            "operating_margin_pct": (noi / actual_revenue * 100) if actual_revenue > 0 else 0,
-        })
+        noi_data.append(
+            {
+                "cycle_id": str(cycle["cycle_id"]),
+                "cycle_name": cycle["cycle_name"],
+                "crop_name": cycle["crop_name"],
+                "plot_name": cycle["plot_name"],
+                "status": cycle["status"],
+                "planting_date": cycle["planting_date"].isoformat() if cycle["planting_date"] else None,
+                "actual_harvest_date": cycle["actual_harvest_date"].isoformat()
+                if cycle["actual_harvest_date"]
+                else None,
+                "expected_yield": float(cycle["expected_yield"] or 0),
+                "actual_yield": float(cycle["actual_yield"] or 0),
+                "expected_revenue": float(cycle["expected_revenue"] or 0),
+                "actual_revenue": actual_revenue,
+                "allocated_cost": allocated_cost,
+                "crop_noi": noi,
+                "operating_margin_pct": (noi / actual_revenue * 100) if actual_revenue > 0 else 0,
+            }
+        )
 
     cur.close()
 
@@ -563,39 +710,51 @@ def generate_environmental(conn, location_id: str, period_start: str = None, per
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Soil carbon measurements
-    cur.execute("""
+    cur.execute(
+        """
         SELECT measurement_date, carbon_tonnes_per_ha, measurement_method, depth_cm
         FROM soil_carbon_measurement
         WHERE location_id = %s
         ORDER BY measurement_date
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     soil_carbon = [dict(r) for r in cur.fetchall()]
 
     # Species observations
-    cur.execute("""
+    cur.execute(
+        """
         SELECT observation_date, count, habitat_type, notes
         FROM species_observation
         WHERE location_id = %s
         ORDER BY observation_date
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     species = [dict(r) for r in cur.fetchall()]
 
     # Remote sensing
-    cur.execute("""
+    cur.execute(
+        """
         SELECT observation_date, ndvi, ndre, cloud_cover_pct
         FROM remote_sensing_observation
         WHERE location_id = %s
         ORDER BY observation_date
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     remote_sensing = [dict(r) for r in cur.fetchall()]
 
     # Loss events (environmental)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT loss_date, loss_type, quantity, unit, cause
         FROM loss_event
         WHERE location_id = %s
         ORDER BY loss_date
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     losses = [dict(r) for r in cur.fetchall()]
 
     cur.close()
@@ -639,15 +798,19 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Get all scenarios for this location
-    cur.execute("""
+    cur.execute(
+        """
         SELECT id, name, scenario_type, status, assumptions, created_at
         FROM forecast_scenario
         WHERE location_id = %s
         ORDER BY created_at DESC
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
 
     # Get all forecast outputs grouped by scenario
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             fo.scenario_id,
             fs.name as scenario_name,
@@ -665,7 +828,9 @@ def generate_forecast_summary(conn, location_id: str, period_start: str = None, 
         JOIN forecast_scenario fs ON fo.scenario_id = fs.id
         WHERE fo.location_id = %s
         ORDER BY fs.scenario_type, fo.metric_name
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     outputs = [dict(r) for r in cur.fetchall()]
 
     # Group outputs by scenario
@@ -717,6 +882,7 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
         compute_regenerative_score,
         compute_tree_carbon,
     )
+
     if period_start:
         reporting_year = int(period_start[:4])
     else:
@@ -730,29 +896,38 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
     location_name = loc["name"] if loc else "Unknown"
 
     # Climate impact summary (if stored)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT * FROM climate_impact_summary
         WHERE location_id = %s AND reporting_year = %s
         LIMIT 1
-    """, (location_id, reporting_year))
+    """,
+        (location_id, reporting_year),
+    )
     summary_row = cur.fetchone()
 
     # Framework phases
-    cur.execute("""
+    cur.execute(
+        """
         SELECT framework_key, phase, phase_status, phase_start_date, review_cadence
         FROM framework_phase
         WHERE location_id = %s AND phase_status = 'active'
         ORDER BY framework_key
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     phases = [dict(r) for r in cur.fetchall()]
 
     # Operations protocols
-    cur.execute("""
+    cur.execute(
+        """
         SELECT protocol_key, title, section, version, review_cadence
         FROM operations_protocol
         WHERE status = 'active'
         ORDER BY section
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     protocols = [dict(r) for r in cur.fetchall()]
 
     cur.close()
@@ -774,8 +949,7 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
         "regenerative_score": regen,
         "framework_phases": phases,
         "operations_protocols": [
-            {"title": p["title"], "section": p["section"], "version": p["version"]}
-            for p in protocols
+            {"title": p["title"], "section": p["section"], "version": p["version"]} for p in protocols
         ],
         "stored_summary": dict(summary_row) if summary_row else None,
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -1003,7 +1177,9 @@ def generate_scaling_roadmap(conn, location_id: str = None, period_start: str = 
     }
 
 
-def generate_green_paper_publication_status(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_green_paper_publication_status(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe Green Paper publication status report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
@@ -1072,7 +1248,9 @@ def generate_capital_efficiency(conn, location_id: str, period_start: str = None
     }
 
 
-def generate_governance_throughput(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_governance_throughput(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe governance throughput report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     if location_id:
@@ -1100,7 +1278,9 @@ def generate_governance_throughput(conn, location_id: str = None, period_start: 
         )
     observations = [dict(r) for r in cur.fetchall()]
     cur.close()
-    latencies = [float(row["decision_latency_days"]) for row in observations if row.get("decision_latency_days") is not None]
+    latencies = [
+        float(row["decision_latency_days"]) for row in observations if row.get("decision_latency_days") is not None
+    ]
     return {
         "report_type": "governance_throughput",
         "location_id": location_id,
@@ -1115,7 +1295,9 @@ def generate_governance_throughput(conn, location_id: str = None, period_start: 
     }
 
 
-def generate_dao_proposal_history(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_dao_proposal_history(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a read-only history of Kokonut DAO (Moloch v3 / Baal) proposals.
 
     Aggregates the indexer-populated ``governance_event`` ledger (chain='gnosis')
@@ -1164,9 +1346,7 @@ def generate_dao_proposal_history(conn, location_id: str = None, period_start: s
             """
         )
         for r in cur.fetchall():
-            voter_map.setdefault(str(r["proposal_id"]), []).append(
-                r["address"] or str(r["wallet_id"])
-            )
+            voter_map.setdefault(str(r["proposal_id"]), []).append(r["address"] or str(r["wallet_id"]))
     cur.close()
 
     proposals = []
@@ -1431,7 +1611,9 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
     }
 
 
-def generate_state_of_kokonut_graphs(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_state_of_kokonut_graphs(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate visual graph descriptors for the State of Kokonut report.
 
     Builds structured graph descriptors (nodes, edges, layout) and Mermaid text
@@ -1446,21 +1628,25 @@ def generate_state_of_kokonut_graphs(conn, location_id: str = None, period_start
     graphs = []
     for desc in descriptors:
         try:
-            graphs.append({
-                "name": desc.name,
-                "layout": desc.layout,
-                "title": desc.title,
-                "descriptor": desc.to_json(),
-                "mermaid": desc.to_mermaid(),
-            })
+            graphs.append(
+                {
+                    "name": desc.name,
+                    "layout": desc.layout,
+                    "title": desc.title,
+                    "descriptor": desc.to_json(),
+                    "mermaid": desc.to_mermaid(),
+                }
+            )
         except Exception as exc:  # isolate a failing graph, mirror state_of_kokonut
             print(f"  ⚠ graph {desc.name} failed: {exc}")
-            graphs.append({
-                "name": desc.name,
-                "layout": desc.layout,
-                "title": desc.title,
-                "error": str(exc),
-            })
+            graphs.append(
+                {
+                    "name": desc.name,
+                    "layout": desc.layout,
+                    "title": desc.title,
+                    "error": str(exc),
+                }
+            )
 
     return {
         "report_type": "state_of_kokonut_graphs",
@@ -1478,7 +1664,9 @@ def generate_state_of_kokonut_graphs(conn, location_id: str = None, period_start
     }
 
 
-def generate_comprehensive_status(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_comprehensive_status(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a single Comprehensive Status Report for a location or network-wide.
 
     Composes the canonical per-location sections (farm, crop NOI, environmental,
@@ -1609,17 +1797,19 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
             seed = srh.seed_vault_health(conn, loc_id)
         except Exception as exc:  # noqa: BLE001 - isolate per-location failure
             seed = {"error": f"{type(exc).__name__}: {exc}"}
-        per_location.append({
-            "location_id": loc_id,
-            "name": loc.get("name"),
-            "seed_vault": seed,
-        })
+        per_location.append(
+            {
+                "location_id": loc_id,
+                "name": loc.get("name"),
+                "seed_vault": seed,
+            }
+        )
 
     # Fundability signal: fraction of reserves that are adequately funded.
     adequate = [
-        r for r in reserves
-        if isinstance(r.get("adequacy", {}).get("adequacy_pct"), (int, float))
-        and r["adequacy"]["adequacy_pct"] >= 100
+        r
+        for r in reserves
+        if isinstance(r.get("adequacy", {}).get("adequacy_pct"), (int, float)) and r["adequacy"]["adequacy_pct"] >= 100
     ]
     fundability_pct = round((len(adequate) / len(reserves)) * 100, 2) if reserves else None
 
@@ -1730,14 +1920,21 @@ def generate_bio_input_provenance(conn, location_id: str, period_start: str = No
     inputs = [dict(r) for r in cur.fetchall()]
     cur.close()
     lac_inputs = [
-        row for row in inputs
+        row
+        for row in inputs
         if row.get("origin_region")
         and any(
             keyword in (row.get("origin_region") or "").lower()
             for keyword in [
-                "caribbean", "central america", "south america",
-                "monte plata", "dominican", "mexico", "latin america",
-                "sabana grande", "greater antilles",
+                "caribbean",
+                "central america",
+                "south america",
+                "monte plata",
+                "dominican",
+                "mexico",
+                "latin america",
+                "sabana grande",
+                "greater antilles",
             ]
         )
     ]
@@ -1757,7 +1954,9 @@ def generate_bio_input_provenance(conn, location_id: str, period_start: str = No
     }
 
 
-def generate_bio_recipe_library(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_bio_recipe_library(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe bio-organic fertilizer recipe library report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     if location_id:
@@ -1836,7 +2035,9 @@ def generate_bio_quality_test(conn, location_id: str, period_start: str = None, 
     }
 
 
-def generate_bio_regional_input(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_bio_regional_input(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe LAC regional input availability report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
@@ -1934,7 +2135,9 @@ def generate_capital_alignment(conn, location_id: str, period_start: str = None,
     }
 
 
-def generate_governance_inclusion(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_governance_inclusion(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe governance inclusion report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     if location_id:
@@ -1966,7 +2169,9 @@ def generate_governance_inclusion(conn, location_id: str = None, period_start: s
         "report_type": "governance_inclusion",
         "location_id": location_id,
         "observations": _serialize_rows(observations),
-        "pseudonymous_participation_enabled_count": sum(1 for row in observations if row.get("pseudonymous_participation_enabled")),
+        "pseudonymous_participation_enabled_count": sum(
+            1 for row in observations if row.get("pseudonymous_participation_enabled")
+        ),
         "limitations": [
             "Governance inclusion reports use privacy-safe group summaries, not raw identity records.",
             "Pseudonymous participation is supported only where accountability and safety gates are preserved.",
@@ -2205,7 +2410,9 @@ def generate_regenerative_outcomes(conn, location_id: str, period_start: str = N
     }
 
 
-def generate_community_governance(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_community_governance(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe community governance mechanism report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     if location_id:
@@ -2241,7 +2448,9 @@ def generate_community_governance(conn, location_id: str = None, period_start: s
     }
 
 
-def generate_replication_readiness(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_replication_readiness(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe replication readiness report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     if location_id:
@@ -2409,7 +2618,9 @@ def generate_adoption_barriers(conn, location_id: str = None, period_start: str 
     }
 
 
-def generate_perpetual_value_stress(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_perpetual_value_stress(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate public-safe downside stress-test report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     if location_id:
@@ -2437,7 +2648,11 @@ def generate_perpetual_value_stress(conn, location_id: str = None, period_start:
         )
     scenarios = [dict(r) for r in cur.fetchall()]
     cur.close()
-    watchlist = [row for row in scenarios if row.get("solvency_status") in {"watchlist", "needs_mitigation", "insolvent_without_support"}]
+    watchlist = [
+        row
+        for row in scenarios
+        if row.get("solvency_status") in {"watchlist", "needs_mitigation", "insolvent_without_support"}
+    ]
     return {
         "report_type": "perpetual_value_stress",
         "location_id": location_id,
@@ -2452,10 +2667,14 @@ def generate_perpetual_value_stress(conn, location_id: str = None, period_start:
     }
 
 
-def generate_open_source_impact(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_open_source_impact(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate public-safe open-source artifact reuse report."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT * FROM v_public_open_source_impact_artifact ORDER BY reuse_count DESC, artifact_type, artifact_name")
+    cur.execute(
+        "SELECT * FROM v_public_open_source_impact_artifact ORDER BY reuse_count DESC, artifact_type, artifact_name"
+    )
     artifacts = [dict(r) for r in cur.fetchall()]
     cur.close()
     return {
@@ -2476,8 +2695,9 @@ def generate_open_source_impact(conn, location_id: str = None, period_start: str
 def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: str = "id") -> list[dict]:
     # Validate identifiers to prevent SQL injection
     import re
-    _IDENT_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*$')
-    _ORDER_RE = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*$')
+
+    _IDENT_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+    _ORDER_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)*$")
     if not _IDENT_RE.match(view_name):
         raise ValueError(f"Invalid view name: {view_name}")
     if not _ORDER_RE.match(order_by):
@@ -2496,8 +2716,12 @@ def _fetch_public_view(conn, view_name: str, location_id: str = None, order_by: 
     return rows
 
 
-def generate_anti_capture_governance(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    policies = _fetch_public_view(conn, "v_public_anti_capture_governance_policy", location_id, "policy_scope, policy_name")
+def generate_anti_capture_governance(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
+    policies = _fetch_public_view(
+        conn, "v_public_anti_capture_governance_policy", location_id, "policy_scope, policy_name"
+    )
     return {
         "report_type": "anti_capture_governance",
         "location_id": location_id,
@@ -2513,8 +2737,12 @@ def generate_anti_capture_governance(conn, location_id: str = None, period_start
     }
 
 
-def generate_redistribution_policy(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    policies = _fetch_public_view(conn, "v_public_commons_redistribution_policy", location_id, "policy_status, policy_scope, policy_name")
+def generate_redistribution_policy(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
+    policies = _fetch_public_view(
+        conn, "v_public_commons_redistribution_policy", location_id, "policy_status, policy_scope, policy_name"
+    )
     return {
         "report_type": "redistribution_policy",
         "location_id": location_id,
@@ -2530,8 +2758,12 @@ def generate_redistribution_policy(conn, location_id: str = None, period_start: 
     }
 
 
-def generate_federation_mutual_aid(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    protocols = _fetch_public_view(conn, "v_public_federation_protocol", None, "protocol_status, federation_scope, protocol_name")
+def generate_federation_mutual_aid(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
+    protocols = _fetch_public_view(
+        conn, "v_public_federation_protocol", None, "protocol_status, federation_scope, protocol_name"
+    )
     return {
         "report_type": "federation_mutual_aid",
         "location_id": location_id,
@@ -2546,13 +2778,22 @@ def generate_federation_mutual_aid(conn, location_id: str = None, period_start: 
     }
 
 
-def generate_algorithmic_redistribution(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    mechanisms = _fetch_public_view(conn, "v_public_algorithmic_redistribution_mechanism", location_id, "implementation_status, mechanism_type, mechanism_name")
+def generate_algorithmic_redistribution(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
+    mechanisms = _fetch_public_view(
+        conn,
+        "v_public_algorithmic_redistribution_mechanism",
+        location_id,
+        "implementation_status, mechanism_type, mechanism_name",
+    )
     return {
         "report_type": "algorithmic_redistribution",
         "location_id": location_id,
         "mechanisms": _serialize_rows(mechanisms),
-        "active_or_pilot_count": sum(1 for row in mechanisms if row.get("implementation_status") in {"active", "pilot"}),
+        "active_or_pilot_count": sum(
+            1 for row in mechanisms if row.get("implementation_status") in {"active", "pilot"}
+        ),
         "limitations": [
             "Redistribution mechanisms are not onchain payment implementations unless enforcement mode documents smart-contract execution.",
             "Public reports exclude private eligibility, protected-class details, and household-level beneficiary data.",
@@ -2562,8 +2803,12 @@ def generate_algorithmic_redistribution(conn, location_id: str = None, period_st
     }
 
 
-def generate_participatory_signal(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
-    experiments = _fetch_public_view(conn, "v_public_participatory_signal_experiment", None, "experiment_status, signal_type, experiment_name")
+def generate_participatory_signal(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
+    experiments = _fetch_public_view(
+        conn, "v_public_participatory_signal_experiment", None, "experiment_status, signal_type, experiment_name"
+    )
     return {
         "report_type": "participatory_signal",
         "location_id": location_id,
@@ -2581,6 +2826,7 @@ def generate_participatory_signal(conn, location_id: str = None, period_start: s
 # ---------------------------------------------------------------------------
 # Ecological Modeling Reports
 # ---------------------------------------------------------------------------
+
 
 def generate_ecological_modeling(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe ecological modeling report with interactions, model runs, and population dynamics."""
@@ -2631,9 +2877,7 @@ def generate_ecological_modeling(conn, location_id: str, period_start: str = Non
     mutualism_count = sum(1 for i in interactions if i.get("interaction_type") == "mutualism")
     predation_count = sum(1 for i in interactions if i.get("interaction_type") == "predation")
     trophic_balance = mutualism_count / max(mutualism_count + predation_count, 1)
-    avg_residual = (
-        sum(s.get("residual_pct", 0) or 0 for s in soil_inputs) / max(len(soil_inputs), 1)
-    )
+    avg_residual = sum(s.get("residual_pct", 0) or 0 for s in soil_inputs) / max(len(soil_inputs), 1)
     return {
         "report_type": "ecological_modeling",
         "location_id": location_id,
@@ -2716,6 +2960,7 @@ def generate_trophic_pyramid(conn, location_id: str, period_start: str = None, p
 # Pest Management Report
 # ---------------------------------------------------------------------------
 
+
 def generate_pest_management(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe pest management report with incidence trends and biocontrol effectiveness."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -2739,9 +2984,7 @@ def generate_pest_management(conn, location_id: str, period_start: str = None, p
     biocontrol = [dict(r) for r in cur.fetchall()]
     cur.close()
     severe_count = sum(1 for p in pest_trends if p.get("severity") in ("high", "critical"))
-    avg_outbreak_prob = (
-        sum(p.get("outbreak_probability_pct", 0) or 0 for p in pest_trends) / max(len(pest_trends), 1)
-    )
+    avg_outbreak_prob = sum(p.get("outbreak_probability_pct", 0) or 0 for p in pest_trends) / max(len(pest_trends), 1)
     return {
         "report_type": "pest_management",
         "location_id": location_id,
@@ -2765,6 +3008,7 @@ def generate_pest_management(conn, location_id: str, period_start: str = None, p
 # ---------------------------------------------------------------------------
 # Resource Efficiency Report
 # ---------------------------------------------------------------------------
+
 
 def generate_resource_efficiency(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe resource efficiency report with labor, energy, and water intensity."""
@@ -2826,6 +3070,7 @@ def generate_resource_efficiency(conn, location_id: str, period_start: str = Non
 # Training Impact Report
 # ---------------------------------------------------------------------------
 
+
 def generate_training_impact(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe training impact report with participation and improvement metrics."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -2841,9 +3086,7 @@ def generate_training_impact(conn, location_id: str, period_start: str = None, p
     sessions = [dict(r) for r in cur.fetchall()]
     cur.close()
     unique_participants = len(set(s.get("participant_name") for s in sessions if s.get("participant_name")))
-    avg_improvement = (
-        sum(s.get("improvement_pct", 0) or 0 for s in sessions) / max(len(sessions), 1)
-    )
+    avg_improvement = sum(s.get("improvement_pct", 0) or 0 for s in sessions) / max(len(sessions), 1)
     total_hours = sum(float(s.get("duration_hours", 0) or 0) for s in sessions)
     return {
         "report_type": "training_impact",
@@ -2866,6 +3109,7 @@ def generate_training_impact(conn, location_id: str, period_start: str = None, p
 # ---------------------------------------------------------------------------
 # Revenue Streams Report
 # ---------------------------------------------------------------------------
+
 
 def generate_revenue_streams(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe revenue streams report showing contribution to profitability."""
@@ -2904,6 +3148,7 @@ def generate_revenue_streams(conn, location_id: str, period_start: str = None, p
 # Model Validation Report
 # ---------------------------------------------------------------------------
 
+
 def generate_model_validation(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe model validation report with prediction accuracy and feature importance."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -2926,9 +3171,7 @@ def generate_model_validation(conn, location_id: str, period_start: str = None, 
     )
     features = [dict(r) for r in cur.fetchall()]
     cur.close()
-    avg_mape = (
-        sum(p.get("mape", 0) or 0 for p in predictions) / max(len(predictions), 1)
-    )
+    avg_mape = sum(p.get("mape", 0) or 0 for p in predictions) / max(len(predictions), 1)
     overall_accuracy = 100 - avg_mape
     return {
         "report_type": "model_validation",
@@ -2953,6 +3196,7 @@ def generate_model_validation(conn, location_id: str, period_start: str = None, 
 # ---------------------------------------------------------------------------
 # Livestock Feed Report
 # ---------------------------------------------------------------------------
+
 
 def generate_livestock_feed(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe livestock feed report with intake, conversion ratio, and per-animal metrics."""
@@ -3001,6 +3245,7 @@ def generate_livestock_feed(conn, location_id: str, period_start: str = None, pe
 # ---------------------------------------------------------------------------
 # Token Rewards Report
 # ---------------------------------------------------------------------------
+
 
 def generate_token_rewards(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe token rewards report with distribution, epoch totals, and metric correlation."""
@@ -3051,6 +3296,7 @@ def generate_token_rewards(conn, location_id: str, period_start: str = None, per
 # ---------------------------------------------------------------------------
 # Reward Calibration Report
 # ---------------------------------------------------------------------------
+
 
 def generate_reward_calibration(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe reward calibration report with calibration model outputs and sensitivity."""
@@ -3111,7 +3357,10 @@ def generate_reward_calibration(conn, location_id: str, period_start: str = None
 # Organic Certification Readiness Report
 # ---------------------------------------------------------------------------
 
-def generate_organic_certification_readiness(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+
+def generate_organic_certification_readiness(
+    conn, location_id: str, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe organic certification readiness report with composite score and sub-dimensions."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -3174,7 +3423,10 @@ def generate_organic_certification_readiness(conn, location_id: str, period_star
 # Organic Transition Progress Report
 # ---------------------------------------------------------------------------
 
-def generate_organic_transition_progress(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
+
+def generate_organic_transition_progress(
+    conn, location_id: str, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate a public-safe organic transition progress report with timeline, milestones, and barriers."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
@@ -3220,6 +3472,7 @@ def generate_organic_transition_progress(conn, location_id: str, period_start: s
 # ---------------------------------------------------------------------------
 # Organic Input Audit Report
 # ---------------------------------------------------------------------------
+
 
 def generate_organic_input_audit(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a public-safe organic input audit report with full input trail, organic/prohibited flags, and compliance."""
@@ -3272,6 +3525,7 @@ def generate_organic_input_audit(conn, location_id: str, period_start: str = Non
 # ---------------------------------------------------------------------------
 # Statement of Work Report
 # ---------------------------------------------------------------------------
+
 
 def generate_statement_of_work(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a Statement of Work by assembling data from existing tables.
@@ -3448,6 +3702,7 @@ def generate_statement_of_work(conn, location_id: str, period_start: str = None,
 # Data Stream Summary
 # ---------------------------------------------------------------------------
 
+
 def generate_data_stream_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a summary of data stream activity for a location."""
     conditions = ["dsp.location_id = :location_id"]
@@ -3462,13 +3717,17 @@ def generate_data_stream_summary(conn, location_id: str, period_start: str = Non
 
     where = " AND ".join(conditions)
 
-    posts = conn.execute(
-        conn.text(
-            f"SELECT dsp.post_type, dsp.status, dsp.visibility, dsp.is_anchored, dsp.created_at "
-            f"FROM data_stream_post dsp WHERE {where} ORDER BY dsp.created_at DESC"
-        ),
-        params,
-    ).mappings().all()
+    posts = (
+        conn.execute(
+            conn.text(
+                f"SELECT dsp.post_type, dsp.status, dsp.visibility, dsp.is_anchored, dsp.created_at "
+                f"FROM data_stream_post dsp WHERE {where} ORDER BY dsp.created_at DESC"
+            ),
+            params,
+        )
+        .mappings()
+        .all()
+    )
 
     total_posts = len(posts)
     by_type: dict[str, int] = {}
@@ -3533,8 +3792,10 @@ def generate_business_model_canvas(conn, location_id: str, period_start: str = N
 # Pitch Deck report
 # ---------------------------------------------------------------------------
 
+
 def generate_pitch_deck(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     from services.analytics.pitch import generate_pitch, render_markdown
+
     pitch_data = generate_pitch(conn, location_id, "elevator")
     return {
         "report_type": "pitch_deck",
@@ -3556,9 +3817,11 @@ def generate_pitch_deck(conn, location_id: str, period_start: str = None, period
 # Business Architecture Report Generators
 # ---------------------------------------------------------------------------
 
+
 def generate_capability_dashboard(conn, location_id=None, period_start=None, period_end=None):
     """Generate a capability map dashboard report."""
     from ..analytics.capability_map import get_capability_dashboard, get_coverage_analysis
+
     dashboard = get_capability_dashboard()
     coverage = get_coverage_analysis()
     return {
@@ -3580,6 +3843,7 @@ def generate_strategy_execution(conn, location_id=None, period_start=None, perio
     from ..analytics.competitive_report import health as competitive_health
     from ..analytics.strategy_execution import dashboard
     from ..analytics.strategy_map import get_perspective_summary
+
     execution = dashboard(conn, scope_type="location", scope_id=location_id) if location_id else dashboard(conn)
     perspectives = get_perspective_summary()
     external_health = []
@@ -3602,6 +3866,7 @@ def generate_strategy_execution(conn, location_id=None, period_start=None, perio
 def generate_capability_assessment(conn, location_id=None, period_start=None, period_end=None):
     """Generate a capability maturity and coverage assessment."""
     from ..analytics.capability_map import get_capability_dashboard, get_coverage_analysis
+
     dashboard = get_capability_dashboard()
     coverage = get_coverage_analysis()
     maturity_scores = [c.get("latest_maturity_score") for c in dashboard if c.get("latest_maturity_score")]
@@ -3622,6 +3887,7 @@ def generate_capability_assessment(conn, location_id=None, period_start=None, pe
 def generate_value_stream_formal(conn, location_id=None, period_start=None, period_end=None):
     """Generate a formal value stream map report."""
     from ..analytics.value_stream_defs import get_stream_summary
+
     streams = get_stream_summary()
     return {
         "report_type": "value_stream_formal",
@@ -3851,7 +4117,9 @@ def generate_stakeholder_trust(conn, location_id=None, period_start=None, period
         profiles = [dict(row) for row in cur.fetchall()]
         cur.execute("SELECT * FROM v_market_dispute_performance")
         disputes = dict(cur.fetchone())
-        cur.execute("SELECT * FROM relationship_risk_indicator WHERE status IN ('open', 'monitoring') ORDER BY created_at DESC")
+        cur.execute(
+            "SELECT * FROM relationship_risk_indicator WHERE status IN ('open', 'monitoring') ORDER BY created_at DESC"
+        )
         risks = [dict(row) for row in cur.fetchall()]
         cur.execute("SELECT * FROM v_party_financing_eligibility_inputs ORDER BY open_risk_count DESC, display_name")
         eligibility_inputs = [dict(row) for row in cur.fetchall()]
@@ -3878,9 +4146,13 @@ def generate_stakeholder_value_streams(conn, location_id=None, period_start=None
         links = [dict(row) for row in cur.fetchall()]
         cur.execute("SELECT * FROM v_value_stream_performance")
         performance = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM stakeholder_bottleneck_priority WHERE status IN ('reviewed', 'active') ORDER BY priority, reviewed_at DESC NULLS LAST")
+        cur.execute(
+            "SELECT * FROM stakeholder_bottleneck_priority WHERE status IN ('reviewed', 'active') ORDER BY priority, reviewed_at DESC NULLS LAST"
+        )
         bottlenecks = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM technology_alternative_stakeholder_outcome WHERE status IN ('reviewed', 'approved') ORDER BY reviewed_at DESC NULLS LAST")
+        cur.execute(
+            "SELECT * FROM technology_alternative_stakeholder_outcome WHERE status IN ('reviewed', 'approved') ORDER BY reviewed_at DESC NULLS LAST"
+        )
         alternatives = [dict(row) for row in cur.fetchall()]
     return {
         "report_type": "stakeholder_value_streams",
@@ -3972,8 +4244,10 @@ def generate_governance_coordination_health(conn, location_id=None, period_start
 # PESTEL Assessment report
 # ---------------------------------------------------------------------------
 
+
 def generate_pestel_assessment(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     from services.analytics.pestel import list_analyses, render_markdown
+
     analyses = list_analyses(conn, location_id)
     latest = analyses[0] if analyses else {}
     return {
@@ -3996,8 +4270,10 @@ def generate_pestel_assessment(conn, location_id: str, period_start: str = None,
 # Regional Readiness report
 # ---------------------------------------------------------------------------
 
+
 def generate_regional_readiness(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     from services.analytics.regional_readiness import list_assessments, render_markdown
+
     assessments = list_assessments(conn, location_id)
     latest = assessments[0] if assessments else {}
     return {
@@ -4020,8 +4296,10 @@ def generate_regional_readiness(conn, location_id: str, period_start: str = None
 # Publics & Market Landscape report
 # ---------------------------------------------------------------------------
 
+
 def generate_publics_market_landscape(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     from services.analytics.publics import influence_interest_matrix, list_publics, list_segments
+
     publics = list_publics(conn, location_id)
     segments = list_segments(conn, location_id)
     matrix = influence_interest_matrix(conn, location_id)
@@ -4047,8 +4325,10 @@ def generate_publics_market_landscape(conn, location_id: str, period_start: str 
 # Environmental Scan report
 # ---------------------------------------------------------------------------
 
+
 def generate_env_scan_report(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     from services.analytics.env_scanning import list_scans, render_markdown
+
     scans = list_scans(conn, location_id)
     latest = scans[0] if scans else {}
     return {
@@ -4076,7 +4356,9 @@ def _tactical_location_param(location_id: Optional[str]) -> Optional[str]:
     return location_id
 
 
-def generate_fork_opportunities(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_fork_opportunities(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Fork tactic: a single event that reveals/creates multiple high-value opportunities."""
     from services.events.fork_detector import detect_fork_opportunities
 
@@ -4166,7 +4448,9 @@ def generate_tactical_layer(conn, location_id: str = None, period_start: str = N
     }
 
 
-def generate_simulation_wargame(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_simulation_wargame(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate an advisory tactical-wargame simulation report.
 
     ADVISORY-ONLY. Runs two probabilistic stress-tests:
@@ -4205,7 +4489,9 @@ def generate_simulation_wargame(conn, location_id: str = None, period_start: str
     return result
 
 
-def generate_capital_accounting(conn, location_id: str = None, period_start: str = None, period_end: str = None) -> dict:
+def generate_capital_accounting(
+    conn, location_id: str = None, period_start: str = None, period_end: str = None
+) -> dict:
     """Generate the capital-accounting report (Keynes-inspired, advisory-only).
 
     Aggregates four lenses over the 8 Forms of Capital:
@@ -4221,9 +4507,7 @@ def generate_capital_accounting(conn, location_id: str = None, period_start: str
     if not location_id:
         raise ValueError("capital_accounting report requires a location_id")
 
-    return accounting_report.build_capital_accounting(
-        conn, location_id, period_start, period_end
-    )
+    return accounting_report.build_capital_accounting(conn, location_id, period_start, period_end)
 
 
 # ---------------------------------------------------------------------------
@@ -4244,8 +4528,8 @@ REPORT_GENERATORS = {
     "scaling_roadmap": generate_scaling_roadmap,
     "green_paper_publication_status": generate_green_paper_publication_status,
     "capital_efficiency": generate_capital_efficiency,
-     "governance_throughput": generate_governance_throughput,
-     "dao_proposal_history": generate_dao_proposal_history,
+    "governance_throughput": generate_governance_throughput,
+    "dao_proposal_history": generate_dao_proposal_history,
     "capital_provider_utility": generate_capital_provider_utility,
     "time_liberation": generate_time_liberation,
     "capital_alignment": generate_capital_alignment,
@@ -4287,13 +4571,13 @@ REPORT_GENERATORS = {
     "organic_certification_readiness": generate_organic_certification_readiness,
     "organic_transition_progress": generate_organic_transition_progress,
     "organic_input_audit": generate_organic_input_audit,
-     "statement_of_work": generate_statement_of_work,
+    "statement_of_work": generate_statement_of_work,
     "data_stream_summary": generate_data_stream_summary,
-     "value_stream_map": generate_value_stream_map,
-     "business_plan": generate_business_plan,
-     "process_health": generate_process_health,
-     "business_model_canvas": generate_business_model_canvas,
-     "pitch_deck": generate_pitch_deck,
+    "value_stream_map": generate_value_stream_map,
+    "business_plan": generate_business_plan,
+    "process_health": generate_process_health,
+    "business_model_canvas": generate_business_model_canvas,
+    "pitch_deck": generate_pitch_deck,
     "capability_dashboard": generate_capability_dashboard,
     "strategy_execution": generate_strategy_execution,
     "capability_assessment": generate_capability_assessment,
@@ -4302,29 +4586,29 @@ REPORT_GENERATORS = {
     "stakeholder_landscape": generate_stakeholder_landscape,
     "stakeholder_engagement": generate_stakeholder_engagement,
     "stakeholder_grievance": generate_stakeholder_grievance,
-     "stakeholder_representation": generate_stakeholder_representation,
-     "stakeholder_decision_lineage": generate_stakeholder_decision_lineage,
-     "stakeholder_ecosystem": generate_stakeholder_ecosystem,
-     "stakeholder_outcomes": generate_stakeholder_outcomes,
-     "stakeholder_trust": generate_stakeholder_trust,
-     "stakeholder_value_streams": generate_stakeholder_value_streams,
-      "stakeholder_cockpit": generate_stakeholder_cockpit,
-      "coordination_cockpit": generate_coordination_cockpit,
-     "governance_coordination_health": generate_governance_coordination_health,
+    "stakeholder_representation": generate_stakeholder_representation,
+    "stakeholder_decision_lineage": generate_stakeholder_decision_lineage,
+    "stakeholder_ecosystem": generate_stakeholder_ecosystem,
+    "stakeholder_outcomes": generate_stakeholder_outcomes,
+    "stakeholder_trust": generate_stakeholder_trust,
+    "stakeholder_value_streams": generate_stakeholder_value_streams,
+    "stakeholder_cockpit": generate_stakeholder_cockpit,
+    "coordination_cockpit": generate_coordination_cockpit,
+    "governance_coordination_health": generate_governance_coordination_health,
     "pestel_assessment": generate_pestel_assessment,
-     "regional_readiness": generate_regional_readiness,
-     "publics_market_landscape": generate_publics_market_landscape,
-      "env_scan_report": generate_env_scan_report,
-      "state_of_kokonut": generate_state_of_kokonut,
-      "state_of_kokonut_graphs": generate_state_of_kokonut_graphs,
-      "comprehensive_status": generate_comprehensive_status,
-       "strategic_reserve": generate_strategic_reserve,
-       "fork_opportunities": generate_fork_opportunities,
-       "pin_dependency": generate_pin_dependency,
-       "promotion_ladder": generate_promotion_ladder,
-        "tactical_layer": generate_tactical_layer,
-        "simulation_wargame": generate_simulation_wargame,
-        "capital_accounting": generate_capital_accounting,
+    "regional_readiness": generate_regional_readiness,
+    "publics_market_landscape": generate_publics_market_landscape,
+    "env_scan_report": generate_env_scan_report,
+    "state_of_kokonut": generate_state_of_kokonut,
+    "state_of_kokonut_graphs": generate_state_of_kokonut_graphs,
+    "comprehensive_status": generate_comprehensive_status,
+    "strategic_reserve": generate_strategic_reserve,
+    "fork_opportunities": generate_fork_opportunities,
+    "pin_dependency": generate_pin_dependency,
+    "promotion_ladder": generate_promotion_ladder,
+    "tactical_layer": generate_tactical_layer,
+    "simulation_wargame": generate_simulation_wargame,
+    "capital_accounting": generate_capital_accounting,
 }
 
 
@@ -4334,7 +4618,9 @@ def compute_hash(data: dict) -> str:
     return hashlib.sha256(serialized.encode()).hexdigest()
 
 
-def store_snapshot(conn, report_data: dict, location_id: str = None, period_start: str = None, period_end: str = None) -> str:
+def store_snapshot(
+    conn, report_data: dict, location_id: str = None, period_start: str = None, period_end: str = None
+) -> str:
     """Store an unfrozen draft report for independent review."""
     # The report_snapshot.location_id column is a UUID; network-level scopes
     # (e.g. "all" or a comma-joined multi-select) are stored as NULL.
@@ -4348,7 +4634,8 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
     uncertainty_notes = (
         "Checks use available governed records and public-safe views; missing records do not prove absence. "
         + public_interest.get("signed_error_convention", "")
-        if public_interest else None
+        if public_interest
+        else None
     )
     affected_voice = json.dumps(public_interest.get("public_feedback", []), default=str) if public_interest else None
 
@@ -4386,16 +4673,19 @@ def store_snapshot(conn, report_data: dict, location_id: str = None, period_star
 def list_snapshots(conn, location_id: str = None):
     """List existing report snapshots."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            "SELECT id, report_name, report_type, snapshot_hash, status, created_at FROM report_snapshot WHERE location_id = %s ORDER BY created_at DESC LIMIT 20",
-            (location_id,),
-        )
-    else:
-        cur.execute("SELECT id, report_name, report_type, snapshot_hash, status, created_at FROM report_snapshot ORDER BY created_at DESC LIMIT 20")
-    snapshots = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return snapshots
+    try:
+        if location_id:
+            cur.execute(
+                "SELECT id, report_name, report_type, snapshot_hash, status, created_at FROM report_snapshot WHERE location_id = %s ORDER BY created_at DESC, id DESC LIMIT 20",
+                (location_id,),
+            )
+        else:
+            cur.execute(
+                "SELECT id, report_name, report_type, snapshot_hash, status, created_at FROM report_snapshot ORDER BY created_at DESC, id DESC LIMIT 20"
+            )
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def _verify_snapshot(conn, snapshot_id_or_hash: str) -> None:
@@ -4432,15 +4722,44 @@ def _verify_snapshot(conn, snapshot_id_or_hash: str) -> None:
 
 def _check_report_empty(report_data: dict, report_type: str) -> None:
     """Warn if a report has no primary content rows."""
-    content_keys = [k for k in report_data if k in {
-        "plans", "risks", "milestones", "scenarios", "observations", "reviews",
-        "policies", "protocols", "mechanisms", "experiments", "barriers",
-        "stress_tests", "artifacts", "economics", "targets", "assessments",
-        "outcomes", "mechanisms", "rows", "items", "farms", "crops",
-        "pillars", "scores", "evidence_gaps", "recommendations",
-        "cultural_context", "wellbeing_metrics", "participatory_actions",
-        "financial_sustainability", "risk_mitigation",
-    }]
+    content_keys = [
+        k
+        for k in report_data
+        if k
+        in {
+            "plans",
+            "risks",
+            "milestones",
+            "scenarios",
+            "observations",
+            "reviews",
+            "policies",
+            "protocols",
+            "mechanisms",
+            "experiments",
+            "barriers",
+            "stress_tests",
+            "artifacts",
+            "economics",
+            "targets",
+            "assessments",
+            "outcomes",
+            "mechanisms",
+            "rows",
+            "items",
+            "farms",
+            "crops",
+            "pillars",
+            "scores",
+            "evidence_gaps",
+            "recommendations",
+            "cultural_context",
+            "wellbeing_metrics",
+            "participatory_actions",
+            "financial_sustainability",
+            "risk_mitigation",
+        }
+    ]
     for key in content_keys:
         value = report_data.get(key)
         if isinstance(value, list) and len(value) == 0:
@@ -4451,10 +4770,13 @@ def _check_report_empty(report_data: dict, report_type: str) -> None:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def main():
     parser = argparse.ArgumentParser(description="Generate Kokonut report snapshots")
     parser.add_argument("--type", choices=list(REPORT_GENERATORS.keys()), help="Report type to generate")
-    parser.add_argument("--location-id", action="append", help="Location UUID (repeatable; or use --all for every location)")
+    parser.add_argument(
+        "--location-id", action="append", help="Location UUID (repeatable; or use --all for every location)"
+    )
     parser.add_argument("--all", action="store_true", help="Generate the report across ALL locations")
     parser.add_argument("--period-start", help="Report period start (YYYY-MM-DD)")
     parser.add_argument("--period-end", help="Report period end (YYYY-MM-DD)")
@@ -4469,7 +4791,13 @@ def main():
 
         # Location requirement: network-level reports (state_of_kokonut, dao_proposal_history)
         # accept --all or no location; others require at least one --location-id.
-        network_level = args.type in ("state_of_kokonut", "dao_proposal_history", "state_of_kokonut_graphs", "comprehensive_status", "strategic_reserve")
+        network_level = args.type in (
+            "state_of_kokonut",
+            "dao_proposal_history",
+            "state_of_kokonut_graphs",
+            "comprehensive_status",
+            "strategic_reserve",
+        )
         if not args.location_id and not args.all and not network_level:
             parser.error("--location-id is required (or use --all for network-level reports)")
 
@@ -4477,20 +4805,26 @@ def main():
 
     if args.list:
         list_loc = args.location_id[0] if args.location_id else None
-        snapshots = list_snapshots(conn, list_loc)
-        if not snapshots:
-            print("No snapshots found.")
-        else:
-            print(f"{'ID':<38} {'Type':<20} {'Status':<12} {'Created':<20} Hash")
-            print("-" * 120)
-            for s in snapshots:
-                print(f"{str(s['id']):<38} {s['report_type']:<20} {s['status']:<12} {str(s['created_at']):<20} {s['snapshot_hash'][:16]}")
-        conn.close()
+        try:
+            snapshots = list_snapshots(conn, list_loc)
+            if not snapshots:
+                print("No snapshots found.")
+            else:
+                print(f"{'ID':<38} {'Type':<20} {'Status':<12} {'Created':<20} Hash")
+                print("-" * 120)
+                for s in snapshots:
+                    print(
+                        f"{str(s['id']):<38} {s['report_type']:<20} {s['status']:<12} {str(s['created_at']):<20} {s['snapshot_hash'][:16]}"
+                    )
+        finally:
+            conn.close()
         return
 
     if args.verify:
-        _verify_snapshot(conn, args.verify)
-        conn.close()
+        try:
+            _verify_snapshot(conn, args.verify)
+        finally:
+            conn.close()
         return
 
     # Normalize the location argument for single/all/multi selection.
@@ -4511,6 +4845,13 @@ def main():
 
     if args.auto:
         report_types = list(REPORT_GENERATORS.keys())
+        run_id = str(uuid.uuid4())
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO report_generation_run (id, location_scope, total_reports) VALUES (%s, %s, %s)",
+                (run_id, location_arg, len(report_types)),
+            )
+        conn.commit()
         print(f"Generating all {len(report_types)} report types for {location_label}...")
         print()
 
@@ -4520,6 +4861,13 @@ def main():
 
         for report_type in report_types:
             print(f"Generating {report_type}...")
+            item_id = str(uuid.uuid4())
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO report_generation_run_item (id, run_id, report_type, status) VALUES (%s, %s, %s, 'running')",
+                    (item_id, run_id, report_type),
+                )
+            conn.commit()
             try:
                 generator = REPORT_GENERATORS[report_type]
                 report_data = generator(conn, location_arg, args.period_start, args.period_end)
@@ -4527,12 +4875,32 @@ def main():
                 snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
                 snapshot_hash = compute_hash(report_data)
                 print(f"  ✓ {report_type}: {snapshot_id} ({snapshot_hash[:16]})")
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE report_generation_run_item SET status = 'succeeded', snapshot_id = %s, completed_at = NOW() WHERE id = %s",
+                        (snapshot_id, item_id),
+                    )
+                conn.commit()
                 success += 1
             except Exception as e:
                 print(f"  ✗ {report_type}: {e}")
+                conn.rollback()
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "UPDATE report_generation_run_item SET status = 'failed', error_message = %s, completed_at = NOW() WHERE id = %s",
+                        (str(e)[:4000], item_id),
+                    )
+                conn.commit()
                 failed += 1
 
         print(f"\nDone: {success} succeeded, {failed} failed, {empty} empty")
+        run_status = "succeeded" if failed == 0 else "partial" if success else "failed"
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE report_generation_run SET status = %s, succeeded_reports = %s, failed_reports = %s, completed_at = NOW() WHERE id = %s",
+                (run_status, success, failed, run_id),
+            )
+        conn.commit()
         conn.close()
         if failed > 0:
             exit(1)
@@ -4540,17 +4908,21 @@ def main():
 
     print(f"Generating {args.type} report for {location_label}...")
 
-    generator = REPORT_GENERATORS[args.type]
-    report_data = generator(conn, location_arg, args.period_start, args.period_end)
+    try:
+        generator = REPORT_GENERATORS[args.type]
+        report_data = generator(conn, location_arg, args.period_start, args.period_end)
 
-    snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
-    snapshot_hash = compute_hash(report_data)
+        snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
+        snapshot_hash = compute_hash(report_data)
 
-    print(f"Snapshot stored: {snapshot_id}")
-    print(f"Hash: {snapshot_hash}")
-    print(f"Report type: {args.type}")
-
-    conn.close()
+        print(f"Snapshot stored: {snapshot_id}")
+        print(f"Hash: {snapshot_hash}")
+        print(f"Report type: {args.type}")
+    except Exception as exc:
+        print(f"Report generation failed: {exc}")
+        raise
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

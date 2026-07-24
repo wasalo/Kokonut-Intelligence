@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows
+from .clickhouse_outbox import enqueue
 from .field_validation import validate_sensor_reading
 
 logger = get_logger("ingestion.http_sensor_receiver")
@@ -164,13 +165,12 @@ def _get_app():
                     updated_at = NOW()
             """, (device_db_id,))
 
-            db.commit()
-
-            # Dual-write to ClickHouse
+            # Enqueue before commit so the source row and analytical delivery are atomic.
             _insert_ch(
                 reading_id, location_id, plot_id, device_db_id, sensor_type,
-                reading.value, reading.unit, ts, quality,
+                reading.value, reading.unit, ts, quality, db,
             )
+            db.commit()
 
             log_ingestion(
                     source_system="http_sensor",
@@ -251,15 +251,25 @@ def _get_app():
     return app
 
 
-def _insert_ch(reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp, quality="good"):
-    """Insert reading into ClickHouse."""
+def _insert_ch(reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp, quality="good", conn=None):
+    """Queue canonical reading; direct writes are demo-only when conn is absent."""
+    columns = ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
+               "value", "unit", "quality", "metadata"]
+    rows = [[timestamp, str(sensor_id), str(sensor_type), str(location_id),
+             str(plot_id or ""), float(value), str(unit or ""), quality, {}]]
     try:
+        if conn is not None:
+            payload_hash = hash_payload({"reading_id": str(reading_id), "value": value,
+                                         "timestamp": str(timestamp)})
+            enqueue(conn, event_key=f"sensor_reading:sensor_readings:{reading_id}",
+                    source_table="sensor_reading", source_id=str(reading_id),
+                    target_table="sensor_readings", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows(
             "sensor_readings",
-            ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
-             "value", "unit", "quality", "metadata"],
-            [[timestamp, str(sensor_id), str(sensor_type), str(location_id),
-              str(plot_id or ""), float(value), str(unit or ""), quality, {}]],
+            columns, rows,
         )
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)

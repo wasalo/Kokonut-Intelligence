@@ -88,9 +88,9 @@ def _ebf_pillar_from_metric(metric_key: str | None) -> str | None:
 def fetch_cids_source(conn, location_id: str) -> dict[str, Any]:
     """Fetch source rows needed to build the CIDS graph."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute(
-        """
+    try:
+        cur.execute(
+            """
         SELECT l.*, f.id AS farm_id, f.name AS farm_name, f.slug AS farm_slug,
                f.description AS farm_description, f.total_area, f.area_unit,
                fr.id AS registry_id, fr.registry_slug, fr.project_date,
@@ -101,43 +101,43 @@ def fetch_cids_source(conn, location_id: str) -> dict[str, Any]:
         LEFT JOIN farm f ON f.location_id = l.id
         LEFT JOIN farm_registry_record fr ON fr.location_id = l.id
         WHERE l.id = %s
-        ORDER BY fr.created_at DESC NULLS LAST
+        ORDER BY fr.created_at DESC NULLS LAST, fr.id DESC NULLS LAST
         LIMIT 1
         """,
-        (location_id,),
-    )
-    location = cur.fetchone()
-    if not location:
-        raise ValueError(f"Location not found: {location_id}")
+            (location_id,),
+        )
+        location = cur.fetchone()
+        if not location:
+            raise ValueError(f"Location not found: {location_id}")
 
-    cur.execute(
-        """
+        cur.execute(
+            """
         SELECT so.*, em.label AS evidence_maturity_label
         FROM stakeholder_outcome so
         LEFT JOIN evidence_maturity_level em ON em.level = so.evidence_maturity
         WHERE so.location_id = %s AND so.status IN ('verified', 'published')
         ORDER BY so.created_at, so.id
         """,
-        (location_id,),
-    )
-    stakeholder_outcomes = cur.fetchall()
+            (location_id,),
+        )
+        stakeholder_outcomes = cur.fetchall()
 
-    cur.execute(
-        """
+        cur.execute(
+            """
         SELECT fim.*, sdg.name AS sdg_name, foc.name AS capital_name, pov.name AS pillar_name
         FROM farm_impact_mapping fim
         LEFT JOIN sdg ON sdg.sdg_number = fim.sdg_number
         LEFT JOIN form_of_capital foc ON foc.capital_key = fim.capital_key
         LEFT JOIN pillar_of_value pov ON pov.pillar_key = fim.pillar_key
         WHERE fim.location_id = %s AND fim.status IN ('verified', 'published')
-        ORDER BY fim.framework_key, fim.dimension_key, fim.sdg_number
+        ORDER BY fim.framework_key, fim.dimension_key, fim.sdg_number, fim.id
         """,
-        (location_id,),
-    )
-    framework_mappings = cur.fetchall()
+            (location_id,),
+        )
+        framework_mappings = cur.fetchall()
 
-    cur.execute(
-        """
+        cur.execute(
+            """
         SELECT DISTINCT ON (md.metric_key)
                md.metric_key, md.display_name, md.description, md.unit, md.data_type,
                md.for_stakeholder_group, md.participatory, md.report_usage,
@@ -148,12 +148,12 @@ def fetch_cids_source(conn, location_id: str) -> dict[str, Any]:
         WHERE mv.location_id = %s AND mv.verified = TRUE AND md.active = TRUE
         ORDER BY md.metric_key, mv.computed_at DESC, mv.id DESC
         """,
-        (location_id,),
-    )
-    metric_values = cur.fetchall()
+            (location_id,),
+        )
+        metric_values = cur.fetchall()
 
-    cur.execute(
-        """
+        cur.execute(
+            """
         SELECT sf.*, em.label AS evidence_maturity_label
         FROM stakeholder_feedback sf
         LEFT JOIN evidence_maturity_level em ON em.level = sf.evidence_maturity
@@ -165,30 +165,34 @@ def fetch_cids_source(conn, location_id: str) -> dict[str, Any]:
           AND NULLIF(TRIM(COALESCE(sf.public_summary, '')), '') IS NOT NULL
         ORDER BY sf.feedback_date, sf.id
         """,
-        (location_id,),
-    )
-    feedback = cur.fetchall()
+            (location_id,),
+        )
+        feedback = cur.fetchall()
 
-    cur.execute(
-        """
+        cur.execute(
+            """
         SELECT ic.*, em.label AS evidence_maturity_label
         FROM impact_claim ic
         LEFT JOIN evidence_maturity_level em ON em.level = ic.evidence_maturity
         WHERE ic.location_id = %s AND ic.status IN ('verified', 'published')
         ORDER BY ic.claim_date, ic.id
         """,
-        (location_id,),
-    )
-    impact_claims = cur.fetchall()
+            (location_id,),
+        )
+        impact_claims = cur.fetchall()
 
-    return {
-        "location": location,
-        "stakeholder_outcomes": stakeholder_outcomes,
-        "framework_mappings": framework_mappings,
-        "metric_values": metric_values,
-        "feedback": feedback,
-        "impact_claims": impact_claims,
-    }
+        return {
+            "location": location,
+            "stakeholder_outcomes": stakeholder_outcomes,
+            "framework_mappings": framework_mappings,
+            "metric_values": metric_values,
+            "feedback": feedback,
+            "impact_claims": impact_claims,
+        }
+    finally:
+        close = getattr(cur, "close", None)
+        if close:
+            close()
 
 
 def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
@@ -199,9 +203,18 @@ def build_cids_graph(source: dict[str, Any]) -> list[dict[str, Any]]:
     program_id = _uri("Program", f"{location_slug}-farm-program")
     impact_pathway_id = _uri("ImpactPathway", f"{location_slug}-impact-pathway")
 
-    outcome_ids = [_uri("Outcome", f"{location_slug}-{_slug(row.get('outcome_name'))}") for row in source["stakeholder_outcomes"]]
-    indicator_ids = [_uri("Indicator", f"{location_slug}-{_slug(row.get('metric_key'))}") for row in source["metric_values"]]
-    stakeholder_ids = sorted({_uri("Stakeholder", _slug(row.get("stakeholder_group"))) for row in source["stakeholder_outcomes"] + source["feedback"]})
+    outcome_ids = [
+        _uri("Outcome", f"{location_slug}-{_slug(row.get('outcome_name'))}") for row in source["stakeholder_outcomes"]
+    ]
+    indicator_ids = [
+        _uri("Indicator", f"{location_slug}-{_slug(row.get('metric_key'))}") for row in source["metric_values"]
+    ]
+    stakeholder_ids = sorted(
+        {
+            _uri("Stakeholder", _slug(row.get("stakeholder_group")))
+            for row in source["stakeholder_outcomes"] + source["feedback"]
+        }
+    )
 
     graph: list[dict[str, Any]] = []
     graph.append(

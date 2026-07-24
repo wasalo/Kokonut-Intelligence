@@ -20,6 +20,7 @@ import requests
 
 from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, retry, post_clickhouse_rows
+from .clickhouse_outbox import enqueue
 from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 logger = get_logger("ingestion.eas")
@@ -153,8 +154,8 @@ def insert_attestation(db, att: dict, chain: str) -> str:
         return str(row[0]) if row else None
 
 
-def insert_clickhouse(chain: str, att: dict, status: str) -> None:
-    """Insert attestation into ClickHouse."""
+def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
+    """Queue canonical attestation; direct writes are demo-only when conn is absent."""
     attestation_uid = att.get("id", "")
     schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
     attester = att.get("attester", "")
@@ -165,13 +166,22 @@ def insert_clickhouse(chain: str, att: dict, status: str) -> None:
         int(att.get("time", 0)), tz=timezone.utc
     ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
+    columns = ["timestamp", "attestation_uid", "schema_uid", "chain", "attester", "recipient",
+               "subject_type", "status", "revoked", "metadata"]
+    rows = [[block_ts, attestation_uid, schema_uid, chain, attester, recipient,
+             "wallet", status, att.get("revoked", False), {}]]
     try:
+        if conn is not None:
+            payload_hash = hash_payload(att)
+            enqueue(conn, event_key=f"attestation:attestation_events:{attestation_uid}",
+                    source_table="attestation_record", source_id=attestation_uid,
+                    target_table="attestation_events", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows(
             "attestation_events",
-            ["timestamp", "attestation_uid", "schema_uid", "chain", "attester", "recipient",
-             "subject_type", "status", "revoked", "metadata"],
-            [[block_ts, attestation_uid, schema_uid, chain, attester, recipient,
-              "wallet", status, att.get("revoked", False), {}]],
+            columns, rows,
         )
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
@@ -275,7 +285,7 @@ def run(chain: str = None):
                                 total_inserted += 1
                                 # Dual-write to ClickHouse
                                 status = "rejected" if att.get("revoked") else "published"
-                                insert_clickhouse(c, att, status)
+                                insert_clickhouse(c, att, status, db)
 
                             if att_time > max_attestation_time:
                                 max_attestation_time = att_time

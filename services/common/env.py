@@ -127,7 +127,11 @@ def load_dotenv() -> None:
             raise SecretLoadError("plaintext .env requires explicit development opt-in")
         _load_via_dotenv(env_path)
     elif os.environ.get("KOKONUT_ENV", "development").lower() != "development":
-        raise SecretLoadError("no encrypted or plaintext environment source found")
+        # Container runtimes commonly inject secrets directly rather than
+        # mounting a dotenv file. The validation below still rejects missing
+        # or placeholder credentials in CI and production.
+        if not all(os.environ.get(key, "").strip() for key in _PRODUCTION_REQUIRED):
+            raise SecretLoadError("no encrypted or plaintext environment source found")
 
     if os.environ.get("KOKONUT_ENV", "development").lower() in {"ci", "production"}:
         _validate_production_environment()

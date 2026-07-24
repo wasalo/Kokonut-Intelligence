@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 
 from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload, post_clickhouse_rows
+from .clickhouse_outbox import enqueue
 
 logger = get_logger("ingestion.remote_sensing")
 
@@ -144,8 +145,8 @@ def _validate_number(value) -> str:
     return str(float(value))
 
 
-def insert_clickhouse(record: dict) -> None:
-    """Insert remote sensing observation into ClickHouse."""
+def insert_clickhouse(record: dict, conn=None) -> None:
+    """Queue canonical observation; direct writes are demo-only when conn is absent."""
     ts = record.get("observation_date", datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     if isinstance(ts, str) and len(ts) == 10:
         ts = ts + " 00:00:00.000"
@@ -158,20 +159,29 @@ def insert_clickhouse(record: dict) -> None:
         source = _validate_source(record.get("source"))
         source_system = record.get("source_system", "csv_upload")
 
+        columns = ["timestamp", "observation_id", "location_id", "plot_id", "source",
+                   "ndvi", "ndre", "evi", "savi", "canopy_cover_pct", "ndwi", "cloud_cover_pct",
+                   "msavi", "satvi", "bsi", "nbr2", "ndti", "lswi", "brightness_index",
+                   "tc_brightness", "tc_greenness", "tc_wetness", "band_blue", "band_green",
+                   "band_red", "band_nir", "band_swir1", "band_swir2", "source_system", "metadata"]
+        rows = [[str(ts), record.get("id"), record.get("location_id"), record.get("plot_id"),
+                 record.get("source") or "manual"] +
+                [record.get(name) for name in ["ndvi", "ndre", "evi", "savi", "canopy_cover_pct",
+                 "ndwi", "cloud_cover_pct", "msavi", "satvi", "bsi", "nbr2", "ndti", "lswi",
+                 "brightness_index", "tc_brightness", "tc_greenness", "tc_wetness", "band_blue",
+                 "band_green", "band_red", "band_nir", "band_swir1", "band_swir2"]] +
+                [source_system, {}]]
+        if conn is not None:
+            payload_hash = hash_payload(record)
+            enqueue(conn, event_key=f"remote_sensing:remote_sensing_events:{record.get('id')}",
+                    source_table="remote_sensing_observation", source_id=str(record.get("id")),
+                    target_table="remote_sensing_events", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows(
             "remote_sensing_events",
-            ["timestamp", "observation_id", "location_id", "plot_id", "source",
-             "ndvi", "ndre", "evi", "savi", "canopy_cover_pct", "ndwi", "cloud_cover_pct",
-             "msavi", "satvi", "bsi", "nbr2", "ndti", "lswi", "brightness_index",
-             "tc_brightness", "tc_greenness", "tc_wetness", "band_blue", "band_green",
-             "band_red", "band_nir", "band_swir1", "band_swir2", "source_system", "metadata"],
-            [[str(ts), record.get("id"), record.get("location_id"), record.get("plot_id"),
-              record.get("source") or "manual"] +
-             [record.get(name) for name in ["ndvi", "ndre", "evi", "savi", "canopy_cover_pct",
-              "ndwi", "cloud_cover_pct", "msavi", "satvi", "bsi", "nbr2", "ndti", "lswi",
-              "brightness_index", "tc_brightness", "tc_greenness", "tc_wetness", "band_blue",
-              "band_green", "band_red", "band_nir", "band_swir1", "band_swir2"]] +
-             [source_system, {}]],
+            columns, rows,
         )
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
@@ -218,7 +228,7 @@ def run(file_path: str, location_id: str = None):
 
                 # Dual-write to ClickHouse
                 if not record.get("_duplicate"):
-                    insert_clickhouse(record)
+                    insert_clickhouse(record, db)
 
                 log_ingestion(
                     source_system="csv_upload",

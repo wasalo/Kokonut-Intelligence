@@ -51,9 +51,7 @@ class SchedulerEngine:
 
             try:
                 stats["launched"] += 1
-                if not self._execute_task(
-                    run_id, task_id, name, module_path, command_args, timeout, resource_name
-                ):
+                if not self._execute_task(run_id, task_id, name, module_path, command_args, timeout, resource_name):
                     stats["failed"] += 1
             finally:
                 if resource_name:
@@ -83,7 +81,7 @@ class SchedulerEngine:
                         retry_at = CASE WHEN retry_attempt < max_retries THEN %s END,
                         retry_attempt = CASE WHEN retry_attempt < max_retries
                                              THEN retry_attempt + 1 ELSE 0 END,
-                        lease_owner = NULL, lease_expires_at = NULL,
+                        lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
                         last_status = 'failed', updated_at = %s
                     WHERE lease_expires_at <= %s AND last_status = 'running'
                     """,
@@ -127,20 +125,21 @@ class SchedulerEngine:
                 cur.execute(
                     """
                     INSERT INTO task_run
-                        (id, task_id, status, worker_id, attempt_count, retry_count, allow_overlap)
-                    VALUES (%s, %s, 'running', %s, %s, %s, %s)
+                        (id, task_id, status, worker_id, lease_token, heartbeat_at,
+                         attempt_count, retry_count, allow_overlap)
+                    VALUES (%s, %s, 'running', %s, %s, %s, %s, %s, %s)
                     """,
-                    (run_id, task_id, self._worker_id, attempt, attempt - 1, overlap),
+                    (run_id, task_id, self._worker_id, run_id, now, attempt, attempt - 1, overlap),
                 )
                 cur.execute(
                     """
                     UPDATE scheduled_task SET
                         last_run_at = %s, last_status = 'running',
                         next_run_at = COALESCE(%s, next_run_at), retry_at = NULL,
-                        lease_owner = %s, lease_expires_at = %s, updated_at = %s
+                         lease_owner = %s, lease_token = %s, lease_expires_at = %s, updated_at = %s
                     WHERE id = %s
                     """,
-                    (now, next_run, self._worker_id, now + timedelta(seconds=timeout + 60), now, task_id),
+                    (now, next_run, self._worker_id, run_id, now + timedelta(seconds=timeout + 60), now, task_id),
                 )
             self._conn.commit()
             logger.info("Claimed task %s (run %s, attempt %d)", name, run_id[:8], attempt)
@@ -164,7 +163,7 @@ class SchedulerEngine:
                 (now, run_id),
             )
             cur.execute(
-                """UPDATE scheduled_task SET retry_at = %s, lease_owner = NULL,
+                """UPDATE scheduled_task SET retry_at = %s, lease_owner = NULL, lease_token = NULL,
                        lease_expires_at = NULL, last_status = 'cancelled', updated_at = %s
                    WHERE id = %s""",
                 (now, now, task_id),
@@ -195,13 +194,19 @@ class SchedulerEngine:
 
             if result.returncode == 0:
                 self._complete_task(
-                    task_id, run_id, "completed", duration_ms,
+                    task_id,
+                    run_id,
+                    "completed",
+                    duration_ms,
                     stdout=result.stdout[-2000:] if result.stdout else None,
                 )
                 return True
             else:
                 self._complete_task(
-                    task_id, run_id, "failed", duration_ms,
+                    task_id,
+                    run_id,
+                    "failed",
+                    duration_ms,
                     error=(result.stderr or result.stdout)[-2000:],
                 )
                 return False
@@ -216,9 +221,7 @@ class SchedulerEngine:
 
         except Exception as exc:
             duration_ms = int((time.monotonic() - start_time) * 1000)
-            self._complete_task(
-                task_id, run_id, "failed", duration_ms, str(exc), retry_immediately=True
-            )
+            self._complete_task(task_id, run_id, "failed", duration_ms, str(exc), retry_immediately=True)
             return False
 
     def _complete_task(
@@ -240,18 +243,20 @@ class SchedulerEngine:
                 """
                 UPDATE task_run
                 SET status = %s, completed_at = %s, duration_ms = %s,
-                    error_message = %s, stdout = %s
+                    error_message = %s, stdout = %s, heartbeat_at = %s
                 WHERE id = %s AND worker_id = %s AND status = 'running'
+                  AND lease_token = %s
                 """,
-                (status, now, duration_ms, error, stdout, run_id, self._worker_id),
+                (status, now, duration_ms, error, stdout, now, run_id, self._worker_id, run_id),
             )
             if cur.rowcount != 1:
                 self._conn.rollback()
-                raise SchedulerLeaseLostError(
-                    f"Run {run_id} is no longer owned by worker {self._worker_id}"
-                )
+                raise SchedulerLeaseLostError(f"Run {run_id} is no longer owned by worker {self._worker_id}")
 
-            cur.execute("SELECT attempt_count, max_retries, retry_delay_seconds FROM task_run JOIN scheduled_task ON scheduled_task.id = task_run.task_id WHERE task_run.id = %s", (run_id,))
+            cur.execute(
+                "SELECT attempt_count, max_retries, retry_delay_seconds FROM task_run JOIN scheduled_task ON scheduled_task.id = task_run.task_id WHERE task_run.id = %s",
+                (run_id,),
+            )
             attempt, max_retries, retry_delay = cur.fetchone()
 
             # Update scheduled_task and persist retry eligibility.
@@ -261,44 +266,55 @@ class SchedulerEngine:
                     UPDATE scheduled_task
                     SET last_status = %s, last_duration_ms = %s,
                         consecutive_failures = 0, retry_attempt = 0, retry_at = NULL,
-                        lease_owner = NULL, lease_expires_at = NULL, updated_at = %s
-                    WHERE id = %s AND lease_owner = %s AND lease_expires_at > %s
+                        lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL, updated_at = %s
+                     WHERE id = %s AND lease_owner = %s AND lease_token = %s AND lease_expires_at > %s
                       AND EXISTS (
                           SELECT 1 FROM task_run tr
                           WHERE tr.id = %s AND tr.task_id = scheduled_task.id
                             AND tr.worker_id = %s AND tr.status = %s
                       )
                     """,
-                    (status, duration_ms, now, task_id, self._worker_id, now,
-                     run_id, self._worker_id, status),
+                    (status, duration_ms, now, task_id, self._worker_id, run_id, now, run_id, self._worker_id, status),
                 )
             else:
                 retry_at = (
-                    now if retry_immediately else now + timedelta(seconds=retry_delay)
-                ) if attempt <= max_retries else None
+                    (now if retry_immediately else now + timedelta(seconds=retry_delay))
+                    if attempt <= max_retries
+                    else None
+                )
                 cur.execute(
                     """
                     UPDATE scheduled_task
                     SET last_status = %s, last_duration_ms = %s,
                         consecutive_failures = consecutive_failures + 1,
                         retry_attempt = %s, retry_at = %s,
-                        lease_owner = NULL, lease_expires_at = NULL,
+                         lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL,
                         updated_at = %s
-                    WHERE id = %s AND lease_owner = %s AND lease_expires_at > %s
+                     WHERE id = %s AND lease_owner = %s AND lease_token = %s AND lease_expires_at > %s
                       AND EXISTS (
                           SELECT 1 FROM task_run tr
                           WHERE tr.id = %s AND tr.task_id = scheduled_task.id
                             AND tr.worker_id = %s AND tr.status = %s
                       )
                     """,
-                    (status, duration_ms, attempt if retry_at else 0, retry_at, now,
-                     task_id, self._worker_id, now, run_id, self._worker_id, status),
+                    (
+                        status,
+                        duration_ms,
+                        attempt if retry_at else 0,
+                        retry_at,
+                        now,
+                        task_id,
+                        self._worker_id,
+                        run_id,
+                        now,
+                        run_id,
+                        self._worker_id,
+                        status,
+                    ),
                 )
             if cur.rowcount != 1:
                 self._conn.rollback()
-                raise SchedulerLeaseLostError(
-                    f"Lease for task {task_id} was lost by worker {self._worker_id}"
-                )
+                raise SchedulerLeaseLostError(f"Lease for task {task_id} was lost by worker {self._worker_id}")
 
             # Publish event
             event_type = "task_completed" if status == "completed" else "task_failed"

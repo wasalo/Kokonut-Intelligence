@@ -13,8 +13,6 @@ Usage:
 """
 
 import argparse
-import json
-import sys
 import time
 from datetime import datetime, timezone
 
@@ -22,8 +20,11 @@ from web3 import Web3
 
 from ..common.logging import get_logger
 from .base import (
-    get_db, insert_clickhouse_rows, log_ingestion, hash_payload, retry,
-    update_indexer_status, get_last_synced_block, now_utc,
+    get_db,
+    hash_payload,
+    insert_clickhouse_rows,
+    now_utc,
+    update_indexer_status,
 )
 from .config import CHAIN_RPC_MAP
 
@@ -139,8 +140,8 @@ def insert_activity(db, record: dict) -> str:
         return str(row[0]) if row else None
 
 
-def insert_activity_clickhouse(records: list[dict]) -> None:
-    """Insert wallet activity into ClickHouse wallet_events table."""
+def insert_activity_clickhouse(records: list[dict], conn=None) -> None:
+    """Queue wallet activity durably when the PostgreSQL transaction is available."""
     rows = []
     for rec in records:
         timestamp = rec.get("block_timestamp", "")
@@ -170,6 +171,24 @@ def insert_activity_clickhouse(records: list[dict]) -> None:
         return
 
     try:
+        if conn is not None:
+            from .clickhouse_outbox import enqueue
+
+            event_key = "rpc:wallet_events:" + hash_payload(records)
+            enqueue(
+                conn,
+                event_key=event_key,
+                source_table="wallet_activity_event",
+                source_id=event_key,
+                target_table="wallet_events",
+                columns=[
+                    "timestamp", "wallet_address", "chain", "tx_hash",
+                    "block_number", "event_type", "value", "token", "status", "metadata",
+                ],
+                rows=rows,
+                payload_hash=hash_payload(records),
+            )
+            return
         insert_clickhouse_rows(
             "wallet_events",
             [
@@ -235,11 +254,10 @@ def run(chain: str = None, wallet_address: str = None):
             update_indexer_status(w_chain, "rpc", None, "error", str(e))
             logger.error("  ✗ %s: %s", label or address[:10], e)
 
-    db.commit()
-
-    # Insert into ClickHouse
+    # Commit PostgreSQL records and their ClickHouse outbox entry atomically.
     if all_records:
-        insert_activity_clickhouse(all_records)
+        insert_activity_clickhouse(all_records, db)
+    db.commit()
 
     db.close()
     logger.info("Done: %d wallets indexed", len(all_records))
