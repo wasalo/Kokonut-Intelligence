@@ -428,10 +428,44 @@ class Facilitator:
             })
 
         cur.close()
+
+        # Persist stopping evaluation to study metadata
+        all_stopped = bool(item_results) and all(r["should_stop"] for r in item_results)
+        stop_reasons = []
+        for r in item_results:
+            stop_reasons.extend(r["detail"].get("reasons", []))
+        consensus_item_count = sum(1 for r in item_results if r["detail"].get("consensus_reached"))
+        round_summary = {
+            "evaluated_at": now.isoformat(),
+            "should_stop": all_stopped,
+            "consensus_item_count": consensus_item_count,
+            "total_item_count": len(item_results),
+            "stop_reasons": list(set(stop_reasons)),
+        }
+
+        conn2 = self._get_conn()
+        cur2 = conn2.cursor()
+        cur2.execute(
+            """
+            UPDATE delphi_study
+            SET metadata = jsonb_set(
+                COALESCE(metadata, '{}'),
+                '{stopping_evaluation}',
+                %s::jsonb
+            ),
+            updated_at = NOW()
+            WHERE id = %s
+            """,
+            (json.dumps(round_summary), study_id),
+        )
+        conn2.commit()
+        cur2.close()
+
         return {
             "study_id": study_id,
-            "should_stop": bool(item_results) and all(r["should_stop"] for r in item_results),
+            "should_stop": all_stopped,
             "items": item_results,
+            "round_summary": round_summary,
             "evaluated_at": now.isoformat(),
         }
 
@@ -503,6 +537,58 @@ class Facilitator:
         cur.close()
         return dict(row)
 
+    def reject_recommendation(
+        self,
+        recommendation_id: str,
+        rejected_by: str,
+        reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Human rejection of a draft recommendation with reason."""
+        if not rejected_by:
+            raise ValueError("rejected_by is required for human oversight")
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            """
+            UPDATE delphi_recommendation
+            SET status = 'rejected',
+                approved_by = %s,
+                approved_at = NOW()
+            WHERE id = %s AND status = 'draft'
+            RETURNING *
+            """,
+            (rejected_by, recommendation_id),
+        )
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            raise ValueError(f"Recommendation {recommendation_id} not found or not in draft status")
+        # Store rejection reason in study metadata
+        if reason:
+            study_id = row["study_id"]
+            cur2 = conn.cursor()
+            cur2.execute(
+                """
+                UPDATE delphi_study
+                SET metadata = jsonb_set(
+                    COALESCE(metadata, '{}'),
+                    '{rejection_log}',
+                    COALESCE(metadata->'rejection_log', '[]'::jsonb) || %s::jsonb
+                ),
+                updated_at = NOW()
+                WHERE id = %s
+                """,
+                (json.dumps([{
+                    "recommendation_id": recommendation_id,
+                    "rejected_by": rejected_by,
+                    "reason": reason,
+                    "rejected_at": datetime.now(timezone.utc).isoformat(),
+                }]), study_id),
+            )
+        conn.commit()
+        cur.close()
+        return dict(row)
+
     def list_recommendations(self, study_id: str) -> List[Dict[str, Any]]:
         conn = self._get_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -513,3 +599,112 @@ class Facilitator:
         results = [dict(r) for r in cur.fetchall()]
         cur.close()
         return results
+
+    # ------------------------------------------------------------------
+    # Panel calibration
+    # ------------------------------------------------------------------
+
+    def calibrate_panel(self, study_id: str) -> Dict[str, Any]:
+        """Recalibrate expert weights based on historical prediction accuracy.
+
+        For each panel member, compares their past scores against final consensus
+        medians. Members closer to consensus get higher weights; outliers get
+        lower weights. Weight changes are bounded [0.1, 3.0].
+        """
+        conn = self._get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # Get all items with consensus
+        cur.execute(
+            """
+            SELECT dc.item_id, dc.median AS consensus_median
+            FROM delphi_consensus dc
+            WHERE dc.study_id = %s AND dc.participant_count >= 2
+            """,
+            (study_id,),
+        )
+        item_consensus = {str(r["item_id"]): float(r["consensus_median"]) for r in cur.fetchall()}
+
+        if not item_consensus:
+            cur.close()
+            return {"study_id": study_id, "calibrated": False, "reason": "no_items_with_consensus"}
+
+        # Get all panel members
+        cur.execute(
+            "SELECT id, display_token, expert_weight FROM delphi_panel_member WHERE study_id = %s",
+            (study_id,),
+        )
+        members = [dict(r) for r in cur.fetchall()]
+
+        results = []
+        for member in members:
+            member_id = member["id"]
+
+            # Get this member's contributions for items with consensus
+            cur.execute(
+                """
+                SELECT c.item_id, c.score
+                FROM delphi_contribution c
+                WHERE c.panel_member_id = %s AND c.item_id = ANY(%s)
+                """,
+                (member_id, list(item_consensus.keys())),
+            )
+            contribs = cur.fetchall()
+
+            if len(contribs) < 2:
+                results.append({
+                    "member_id": member_id,
+                    "display_token": member["display_token"],
+                    "old_weight": float(member["expert_weight"]),
+                    "new_weight": float(member["expert_weight"]),
+                    "reason": "insufficient_data",
+                })
+                continue
+
+            # Compute mean absolute deviation from consensus
+            deviations = []
+            for c in contribs:
+                consensus_val = item_consensus[str(c["item_id"])]
+                deviations.append(abs(float(c["score"]) - consensus_val))
+            mad = sum(deviations) / len(deviations)
+
+            # Weight adjustment: inverse relationship to deviation
+            # MAD=0 → weight factor 1.5 (close to consensus)
+            # MAD=0.5 → weight factor 1.0 (neutral)
+            # MAD=1.0+ → weight factor 0.6 (outlier)
+            if mad < 0.01:
+                factor = 1.5
+            elif mad < 0.25:
+                factor = 1.2
+            elif mad < 0.5:
+                factor = 1.0
+            elif mad < 1.0:
+                factor = 0.8
+            else:
+                factor = 0.6
+
+            old_weight = float(member["expert_weight"])
+            new_weight = max(0.1, min(3.0, old_weight * factor))
+
+            cur.execute(
+                "UPDATE delphi_panel_member SET expert_weight = %s WHERE id = %s",
+                (new_weight, member_id),
+            )
+
+            results.append({
+                "member_id": member_id,
+                "display_token": member["display_token"],
+                "old_weight": old_weight,
+                "new_weight": new_weight,
+                "mad": round(mad, 4),
+                "factor": factor,
+            })
+
+        conn.commit()
+        cur.close()
+        return {
+            "study_id": study_id,
+            "calibrated": True,
+            "members": results,
+            "calibrated_at": datetime.now(timezone.utc).isoformat(),
+        }
