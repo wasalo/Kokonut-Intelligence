@@ -1,5 +1,6 @@
 """Focused tests for migration discovery, tracking, and execution safety."""
 
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -99,15 +100,16 @@ def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):
 
     def fake_run(command, **kwargs):
         captured["command"] = command
-        captured["input"] = kwargs["input"]
         return subprocess.CompletedProcess(command, 0, "", "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     cli._psql("SELECT :'value';", {"value": "name'; DROP TABLE x; --"})
 
-    assert "DROP TABLE" not in captured["input"]
-    assert "value=name'; DROP TABLE x; --" in captured["command"]
-    assert "ON_ERROR_STOP=1" in captured["command"]
+    shell_command = captured["command"][2]
+    assert shlex.quote("value=name'; DROP TABLE x; --") in shell_command
+    assert "ON_ERROR_STOP=1" in shell_command
+    assert shell_command.count("docker compose exec") == 1
+    assert "database psql" in shell_command
 
 
 def test_legacy_reconciliation_requires_exact_version_and_name(monkeypatch):

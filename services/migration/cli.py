@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -60,7 +61,6 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
         tmp.write(input_sql)
         tmp.close()
         psql_args = [
-            "docker", "compose", "exec", "-T", "database",
             "psql", "-X", "-U", PG_USER, "-d", PG_DB,
             "-v", "ON_ERROR_STOP=1", "-A", "-t", "-F", "\\t",
             "-f", "-",
@@ -72,9 +72,10 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
         # pipe (which caused SIGPIPE via ``subprocess.run(input=...)``) and the
         # ``cat file | psql`` pattern (which reintroduced SIGPIPE via cat).
         escaped_tmp = tmp_name.replace("'", "'\\''")
+        quoted_args = " ".join(shlex.quote(argument) for argument in psql_args)
         shell_cmd = [
             "sh", "-c",
-            f"docker compose exec -T database {' '.join(psql_args)} < '{escaped_tmp}'",
+            f"docker compose exec -T database {quoted_args} < '{escaped_tmp}'",
         ]
         try:
             result = subprocess.run(
