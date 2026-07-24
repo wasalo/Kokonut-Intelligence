@@ -142,21 +142,18 @@ def cmd_evaluate_flag(args):
 
 
 def cmd_ingest_signal(args):
-    conn = _get_conn()
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO threat_signal (threat_id, signal_source, source_reference,
-            signal_type, content, confidence, signal_date)
-        VALUES (%s, %s, %s, %s, %s, %s, NOW())
-        RETURNING id
-        """,
-        (args.threat_id, args.source, args.reference, args.signal_type, args.content, args.confidence),
+    from services.threatcasting.signals import SignalIngestor
+    ingestor = SignalIngestor(conn=_get_conn())
+    result = ingestor.ingest_signal(
+        signal_source=args.source,
+        content=args.content,
+        signal_type=args.signal_type,
+        threat_id=args.threat_id,
+        source_reference=args.reference,
+        confidence=args.confidence,
+        location_id=args.location_id,
     )
-    signal_id = cur.fetchone()[0]
-    conn.commit()
-    cur.close()
-    print(f"Ingested signal: {signal_id}")
+    print(_json(result))
 
 
 def cmd_list_signals(args):
@@ -621,6 +618,7 @@ def main():
     p.add_argument("--source", required=True)
     p.add_argument("--content", required=True)
     p.add_argument("--threat-id")
+    p.add_argument("--location-id")
     p.add_argument("--reference")
     p.add_argument("--signal-type", default="text")
     p.add_argument("--confidence", type=float)
