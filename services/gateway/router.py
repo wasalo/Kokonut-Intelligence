@@ -27,6 +27,13 @@ logger = get_logger("gateway.router")
 
 # Public access is deliberately opt-in. Unknown routes remain protected.
 _ROUTE_POLICIES = (
+    ("GET", re.compile(r"^/mobile/?$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/api/mobile/app$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/api/mobile/forms$"), "mobile_form", "read", True),
+    ("POST", re.compile(r"^/api/mobile/register$"), "mobile_device", "register", True),
+    # These endpoints perform their own opaque device-token authentication.
+    ("POST", re.compile(r"^/api/mobile/sync$"), "offline_collection", "write", True),
+    ("GET", re.compile(r"^/api/mobile/sync/status$"), "offline_collection", "read", True),
     ("GET", re.compile(r"^/api/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),

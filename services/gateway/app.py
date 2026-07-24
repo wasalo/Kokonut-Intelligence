@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime, timezone
 
 from services.common.logging import get_logger
@@ -44,6 +45,7 @@ def create_app():
     """Create the FastAPI gateway application."""
     try:
         from fastapi import FastAPI, Request
+        from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse
     except ImportError:
         raise ImportError("FastAPI is required: pip install fastapi uvicorn")
@@ -52,11 +54,23 @@ def create_app():
     from services.gateway.auth import verify_request
     from services.gateway.rate_limiter import RateLimiter
     from services.gateway.router import get_route_policy, router
+    from services.mobile.api import router as mobile_router
 
     app = FastAPI(
         title="Kokonut Intelligence Gateway",
         version="1.0.0",
         description="Unified API gateway for the Kokonut Intelligence platform",
+    )
+    cors_origins = [
+        origin.strip()
+        for origin in os.environ.get("CORS_ORIGIN", "*").split(",")
+        if origin.strip()
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins or ["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization", "x-api-key", "x-capability-token", "x-device-token"],
     )
 
     rate_limiter = RateLimiter()
@@ -177,7 +191,18 @@ def create_app():
             "health": "/health",
         }
 
+    @app.get("/mobile")
+    @app.get("/mobile/")
+    async def mobile_companion():
+        """Serve the standalone field collector companion app."""
+        from fastapi.responses import FileResponse
+
+        from services.mobile.api import APP_PATH
+
+        return FileResponse(APP_PATH, media_type="text/html")
+
     app.include_router(router, prefix="/api")
+    app.include_router(mobile_router, prefix="/api")
 
     logger.info("Gateway application created")
     return app

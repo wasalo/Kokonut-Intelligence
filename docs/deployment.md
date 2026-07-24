@@ -6,7 +6,7 @@
 
 - Docker Desktop (with Docker Compose v2)
 - 4GB+ RAM available for Docker
-- Ports available for base Compose: 80, 443, and 50051; loopback ports 8055 and 8883 must also be available. PostgreSQL, ClickHouse, and Metabase are internal-only. Directus is additionally bound to `127.0.0.1:8055`, MQTT TLS to `127.0.0.1:8883`, and gRPC to host port `50051` in base Compose.
+- Ports available for base Compose: 80, 443, and 50051; loopback ports 8055, 8099, and 8883 must also be available. PostgreSQL, ClickHouse, and Metabase are internal-only. Directus is bound to `127.0.0.1:8055`, gateway to `127.0.0.1:8099`, MQTT TLS to `127.0.0.1:8883`, and gRPC to host port `50051` in base Compose.
 
 ### Quick Start
 
@@ -37,10 +37,12 @@ docker compose ps
 | Service | Base Compose URL | Purpose |
 |---------|------------------|---------|
 | Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
+| Field Collector | `https://localhost/mobile` or `https://localhost/field/field-collector.html` | Offline-first mobile companion (LAN: `https://<lan-ip>/mobile`) |
 | Directus | `https://localhost` or `https://localhost/directus` | Schema management, API, admin |
 | Directus admin | `https://localhost/admin` | Admin UI route through Caddy |
 | Metabase | `https://localhost/metabase` | Internal BI dashboards |
 | Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
+| Gateway | `http://127.0.0.1:8099` | Loopback FastAPI gateway; Caddy proxies `/mobile` and `/api/mobile/*` |
 | gRPC | `localhost:50051` | gRPC service; host exposure is removed by the production overlay |
 | MQTT | `mqtts://127.0.0.1:8883` | Loopback-only TLS sensor broker |
 | PostgreSQL | Docker service `database:5432` | Canonical data store |
@@ -48,6 +50,72 @@ docker compose ps
 | ClickHouse Native | Docker service `clickhouse:9000` | Native protocol |
 
 Metabase has no host binding in base Compose. A local override may expose it at `http://localhost:3001`.
+
+### Field Collector (mobile LAN access)
+
+Base Compose includes the FastAPI `gateway` service and Caddy routes so phones on
+the same network can open the offline-first companion app and sync without a
+host-run process.
+
+**Deploy (local / LAN)**
+
+```bash
+# 1. Secrets and stack (gateway builds from Dockerfile.gateway)
+cp .env.example .env   # if needed; set POSTGRES_PASSWORD and CLICKHOUSE_PASSWORD
+docker compose up -d --build gateway caddy
+
+# 2. Confirm health
+docker compose ps gateway caddy
+curl -fsS http://127.0.0.1:8099/health
+curl -kfsS https://localhost/mobile | head -c 200
+
+# 3. Open on a phone (same Wi‑Fi as the host)
+#    https://<host-lan-ip>/mobile
+```
+
+Find the host LAN IP on macOS with `ipconfig getifaddr en0` (or `en1`). Dev
+Caddy uses an internal CA (`tls internal`); accept the browser certificate
+warning on the device the first time.
+
+| URL | Use |
+|-----|-----|
+| `https://<lan-ip>/mobile` | Preferred — HTML + `/api/mobile/*` same origin |
+| `https://<lan-ip>/field/field-collector.html` | Static HTML; API still via Caddy `/api/mobile/*` |
+| `http://127.0.0.1:8099/mobile` | Host loopback only (not for phones) |
+
+**What the reverse proxy exposes**
+
+- Caddy: `/mobile*` and `/api/mobile/*` → `gateway:8099`
+- Caddy: `/field/*` → static files from `services/mobile`
+- Gateway host port `8099` is loopback-only in base Compose; production overlay
+  removes the host binding entirely (`docker-compose.prod.yml`)
+
+**Production (Caddy)**
+
+```bash
+# .env: CADDY_DOMAIN, PUBLIC_URL, KOKONUT_ENV=production, strong secrets
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Field Collector: https://$CADDY_DOMAIN/mobile
+```
+
+**Production (Traefik)**
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d --build
+# Field Collector: https://$KOKONUT_DOMAIN/mobile
+```
+
+Traefik labels route `PathPrefix(/mobile)` and `PathPrefix(/api/mobile)` to the
+gateway with higher priority than the Directus catch-all host rule.
+
+**Host-process fallback** (no Compose gateway):
+
+```bash
+python3 -m services.gateway.cli --serve --port 8099
+# Point the app Settings → API URL at http://<lan-ip>:8099 if not behind Caddy
+```
+
+See `services/mobile/README.md` for API endpoints and device-token behavior.
 
 ### Stopping Services
 
@@ -117,6 +185,7 @@ Prerequisites for Traefik:
 
 The Traefik overlay creates routes:
 - `Host(kokonut.example.com)` → Directus on port 8055
+- `Host(kokonut.example.com)` + `/mobile` or `/api/mobile` → Gateway on port 8099
 - `Host(metabase.kokonut.example.com)` → Metabase on port 3000
 
 ### Worker Container (Optional)
@@ -185,6 +254,7 @@ Before deploying to production:
 - [ ] `CADDY_DOMAIN` or `KOKONUT_DOMAIN` set to your domain
 - [ ] TLS configured (Caddy auto-provisions or Traefik with cert resolver)
 - [ ] `docker-compose.prod.yml` applied (no direct port exposure to host)
+- [ ] Gateway healthy and Field Collector reachable at `https://$CADDY_DOMAIN/mobile` (or Traefik host)
 - [ ] Exactly one scheduling owner selected for each recurring job (worker cron, host cron, or database scheduler)
 - [ ] `event-worker` running if queued events must be processed continuously
 - [ ] Health-check cron with alerting configured

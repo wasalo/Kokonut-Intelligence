@@ -1,14 +1,15 @@
 # Gateway
 
-The FastAPI gateway is an optional authenticated application boundary, not a
-database exposure mechanism. It applies an explicit public-route policy,
-capability/API-key authentication, a process-local rate limiter, and best-effort
-request auditing before dispatching handlers.
+The FastAPI gateway is an authenticated application boundary, not a database
+exposure mechanism. It applies an explicit public-route policy, capability/API-key
+authentication, a process-local rate limiter, and best-effort request auditing
+before dispatching handlers.
 
-The gateway is separate from Directus. The base Compose stack does not define a
-gateway service, and the base Caddy configuration does not route `/api/*` to the
-gateway. Deployments that expose it externally must add their own service and
-reverse-proxy configuration.
+The gateway is separate from Directus. Base Compose defines a `gateway` service
+(loopback host port `8099`) and Caddy reverse-proxies `/mobile*` and
+`/api/mobile/*` to it so the Field Collector works on the LAN. Other `/api/*`
+gateway routes are not proxied by Caddy; reach them on `http://127.0.0.1:8099`
+or add an explicit route when exposing them externally.
 
 ## Request Flow
 
@@ -27,22 +28,31 @@ unknown method/path → protected fallback policy → usually 401 before 404
 ## Run And Check
 
 ```bash
+# Compose (preferred)
+docker compose up -d gateway
+curl http://127.0.0.1:8099/health
+curl -k https://localhost/mobile
+
+# Host process fallback
 python3 -m services.gateway.cli --serve --port 8099
 curl http://localhost:8099/health
 python3 -m services.gateway.cli --health
 ```
 
-`--serve` starts Uvicorn on `0.0.0.0`; the default port is `8099`. The CLI
-`--health` command runs `services.core.health.overall_health()` locally. It does
-not make an HTTP request to `http://localhost:8099/health`.
+`--serve` starts Uvicorn on `0.0.0.0`; the default port is `8099`. Compose binds
+that port to loopback only; LAN devices should use Caddy (`/mobile`,
+`/api/mobile/*`). The CLI `--health` command runs
+`services.core.health.overall_health()` locally. It does not make an HTTP request
+to `http://localhost:8099/health`.
 
 The HTTP application exposes:
 
 - `GET /health`
 - `GET /`
+- `GET /mobile` (Field Collector HTML)
 - FastAPI `GET /docs`
 - FastAPI `GET /openapi.json`
-- policy-controlled routes under `/api`
+- policy-controlled routes under `/api`, including `/api/mobile/*`
 
 ## Exact Route Policy
 
@@ -50,6 +60,12 @@ The public policy is defined in `services/gateway/router.py`.
 
 | Method | Path | Resource/action | Public |
 |--------|------|----------------|--------|
+| GET | `/mobile` | `mobile_app:read` | Yes |
+| GET | `/api/mobile/app` | `mobile_app:read` | Yes |
+| GET | `/api/mobile/forms` | `mobile_form:read` | Yes |
+| POST | `/api/mobile/register` | `mobile_device:register` | Yes |
+| POST | `/api/mobile/sync` | `offline_collection:write` | Yes (device token) |
+| GET | `/api/mobile/sync/status` | `offline_collection:read` | Yes (device token) |
 | GET | `/api/locations` | `location:read` | Yes |
 | GET | `/api/locations/{location_id}` | `location:read` | Yes |
 | GET | `/api/metrics/{location_id}` | `metric:read` | Yes |
