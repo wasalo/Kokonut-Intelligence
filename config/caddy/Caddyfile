@@ -1,9 +1,9 @@
 # Caddy reverse proxy for TLS termination and request logging
-# Development: uses internal self-signed CA
+# Development: uses self-signed cert with SANs for localhost and LAN IP
 # Production uses config/caddy/Caddyfile.production, which enables automatic HTTPS.
 
-{$CADDY_DOMAIN:localhost} {
-	tls internal
+:443 {
+	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
 
 	log {
 		output stdout

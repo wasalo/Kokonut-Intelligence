@@ -184,6 +184,7 @@ services:
       - "${CADDY_HTTPS_PORT:-443}:443"
     volumes:
       - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./config/caddy/certs:/etc/caddy/certs:ro
       - ./services/maps:/app/services/maps:ro
       - ./services/mobile:/app/services/mobile:ro
       - caddy-data:/data

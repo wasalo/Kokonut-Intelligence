@@ -86,3 +86,6 @@ PRD.md
 # MQTT TLS material is provisioned outside Git.
 config/mosquitto/certs/*
 !config/mosquitto/certs/README.md
+
+# Local dev TLS certs for Caddy
+config/caddy/certs/
