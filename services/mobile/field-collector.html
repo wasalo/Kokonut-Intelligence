@@ -117,19 +117,47 @@
       screen.prepend(node);
       window.setTimeout(() => node.remove(), 4500);
     };
+    const isSecure = () => window.isSecureContext || location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const httpsUrl = () => { const u = new URL(location.href); u.protocol = "https:"; return u.href; };
     const captureGps = () => {
-      if (!navigator.geolocation) return;
-      navigator.geolocation.getCurrentPosition(position => {
-        currentLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy_m: position.coords.accuracy };
-        const node = document.getElementById("locationValue");
-        if (node) node.textContent = `${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)} (accuracy ${Math.round(currentLocation.accuracy_m)}m)`;
-      }, () => {}, { enableHighAccuracy:true, timeout:10000, maximumAge:30000 });
+      const node = document.getElementById("locationValue");
+      if (!navigator.geolocation) { if (node) node.textContent = "GPS not available on this device."; return; }
+      if (!isSecure()) {
+        const url = httpsUrl();
+        if (node) node.textContent = "";
+        notify(`GPS requires HTTPS on iOS. Switch to: ${url} (accept the certificate warning, then GPS will work).`, true);
+        return;
+      }
+      if (node) node.textContent = "Acquiring location…";
+      const onGranted = () => {
+        navigator.geolocation.getCurrentPosition(position => {
+          currentLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy_m: position.coords.accuracy };
+          if (node) node.textContent = `${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)} (accuracy ${Math.round(currentLocation.accuracy_m)}m)`;
+        }, error => {
+          if (node) node.textContent = "";
+          const messages = { 1:"Location access denied. Enable it in Settings > Safari > Location Services, then tap Refresh GPS.", 2:"Location unavailable. Check your connection and try again.", 3:"Location request timed out. Tap Refresh GPS to retry." };
+          notify(messages[error.code] || "Could not get location. Tap Refresh GPS to retry.", true);
+        }, { enableHighAccuracy:true, timeout:15000, maximumAge:30000 });
+      };
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: "geolocation" }).then(result => {
+          if (result.state === "denied") {
+            if (node) node.textContent = "";
+            notify("Location access is blocked. Enable it in Settings > Safari > Location Services, then reload this page.", true);
+            return;
+          }
+          onGranted();
+        }).catch(() => onGranted());
+      } else {
+        onGranted();
+      }
     };
     const renderHome = () => {
       currentForm = null;
       const items = forms().map((form, index) => `<button class="form-card" data-form="${esc(form.form_id)}"><span class="form-mark">${index + 1}</span><span><strong>${esc(form.name)}</strong><small>${esc(form.description || "Field record")}</small></span><span class="arrow">&rsaquo;</span></button>`).join("");
       const count = queue().length;
-      screen.innerHTML = `<p class="eyebrow">Offline-first field records</p><h2>Collect what the field knows.</h2><p class="intro">Save observations now. The app will upload them when a connection returns.</p><div class="forms">${items}</div><section class="panel"><div class="panel-row"><strong>Pending records<small>${count ? "Waiting to sync" : "Everything is up to date"}</small></strong><span class="badge ${count ? "" : "empty"}">${count}</span></div><div class="panel-row"><strong>Device setup<small>${settings().locationId ? "Location configured" : "Add a location in settings"}</small></strong><button class="button secondary" style="width:auto" id="settingsButton">Open</button></div><div class="panel-row"><strong>Sync queue<small>Upload saved records when online</small></strong><button class="button" style="width:auto" id="syncButton">Sync now</button></div></section><p class="footer-note">Kokonut Intelligence Field Collector v1.0.0</p>`;
+      const insecureBanner = isSecure() ? "" : `<div class="notice" style="background:#fde8e5;color:#842c25;margin-bottom:16px"><strong>HTTPS required for GPS on iOS.</strong><br>Switch to <a href="${httpsUrl()}" style="color:#842c25">${httpsUrl()}</a> and accept the certificate warning.</div>`;
+      screen.innerHTML = `${insecureBanner}<p class="eyebrow">Offline-first field records</p><h2>Collect what the field knows.</h2><p class="intro">Save observations now. The app will upload them when a connection returns.</p><div class="forms">${items}</div><section class="panel"><div class="panel-row"><strong>Pending records<small>${count ? "Waiting to sync" : "Everything is up to date"}</small></strong><span class="badge ${count ? "" : "empty"}">${count}</span></div><div class="panel-row"><strong>Device setup<small>${settings().locationId ? "Location configured" : "Add a location in settings"}</small></strong><button class="button secondary" style="width:auto" id="settingsButton">Open</button></div><div class="panel-row"><strong>Sync queue<small>Upload saved records when online</small></strong><button class="button" style="width:auto" id="syncButton">Sync now</button></div></section><p class="footer-note">Kokonut Intelligence Field Collector v1.0.0</p>`;
       document.querySelectorAll("[data-form]").forEach(button => button.addEventListener("click", () => renderForm(forms().find(form => form.form_id === button.dataset.form))));
       document.getElementById("settingsButton").addEventListener("click", renderSettings);
       document.getElementById("syncButton").addEventListener("click", () => syncQueue(true));
@@ -155,7 +183,6 @@
       document.getElementById("photoButton").addEventListener("click", () => document.getElementById("photoInput").click());
       document.getElementById("photoInput").addEventListener("change", event => readPhoto(event.target.files[0]));
       document.getElementById("collectionForm").addEventListener("submit", saveRecord);
-      captureGps();
     };
     const readPhoto = file => {
       if (!file) return;

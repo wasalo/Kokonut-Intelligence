@@ -12,7 +12,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from services.common.database import get_connection
+from services.common.database import get_db
 
 try:
     from fastapi import APIRouter, Header, HTTPException
@@ -70,7 +70,8 @@ def _normalise_datetime(value: datetime | None) -> datetime:
 def _device_for_token(token: str | None) -> tuple[str, str | None, str | None]:
     if not token or len(token) > 256:
         raise HTTPException(status_code=401, detail="Device token required")
-    with get_connection() as conn:
+    conn = get_db()
+    try:
         cur = conn.cursor()
         cur.execute(
             """
@@ -82,6 +83,8 @@ def _device_for_token(token: str | None) -> tuple[str, str | None, str | None]:
         )
         row = cur.fetchone()
         cur.close()
+    finally:
+        conn.close()
     if not row:
         raise HTTPException(status_code=401, detail="Invalid device token")
     return row[0], row[1], row[2]
@@ -96,7 +99,8 @@ async def mobile_app():
 @router.get("/forms")
 async def list_forms(location_id: str | None = None):
     """Return active form definitions safe to cache on a device."""
-    with get_connection() as conn:
+    conn = get_db()
+    try:
         cur = conn.cursor()
         cur.execute(
             """
@@ -112,6 +116,8 @@ async def list_forms(location_id: str | None = None):
         columns = [item[0] for item in cur.description]
         rows = [dict(zip(columns, row)) for row in cur.fetchall()]
         cur.close()
+    finally:
+        conn.close()
     return {"forms": rows}
 
 
@@ -119,7 +125,8 @@ async def list_forms(location_id: str | None = None):
 async def register_device(request: RegisterRequest):
     """Register a browser/device and issue an opaque token."""
     token = secrets.token_urlsafe(32)
-    with get_connection() as conn:
+    conn = get_db()
+    try:
         cur = conn.cursor()
         cur.execute(
             """
@@ -156,6 +163,8 @@ async def register_device(request: RegisterRequest):
         )
         conn.commit()
         cur.close()
+    finally:
+        conn.close()
     return {"device_id": request.device_id, "device_token": token, "status": "registered"}
 
 
@@ -168,7 +177,8 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
 
     accepted_client_ids: list[str] = []
     duplicate_client_ids: list[str] = []
-    with get_connection() as conn:
+    conn = get_db()
+    try:
         cur = conn.cursor()
         for item in request.collections:
             if len(json.dumps(item.payload, separators=(",", ":"))) > 8_000_000:
@@ -220,6 +230,8 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
         )
         conn.commit()
         cur.close()
+    finally:
+        conn.close()
     return {
         "device_id": device_id,
         "accepted": len(accepted_client_ids),
@@ -233,7 +245,8 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
 async def sync_status(x_device_token: str | None = Header(default=None)):
     """Return pending and error counts for the authenticated device."""
     device_id, _, _ = _device_for_token(x_device_token)
-    with get_connection() as conn:
+    conn = get_db()
+    try:
         cur = conn.cursor()
         cur.execute(
             """
@@ -250,6 +263,8 @@ async def sync_status(x_device_token: str | None = Header(default=None)):
         cur.execute("SELECT last_sync_at FROM mobile_device WHERE device_id = %s", (device_id,))
         last_sync = cur.fetchone()[0]
         cur.close()
+    finally:
+        conn.close()
     return {
         "device_id": device_id,
         "pending": pending,
