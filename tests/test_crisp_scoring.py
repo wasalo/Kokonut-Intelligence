@@ -506,7 +506,7 @@ def test_score_network_strength() -> None:
 
 def test_score_transparency() -> None:
     from services.crisp.implementation_risk import _score_transparency
-    governance = {"representation_coverage_pct": 85, "decision_method": "consensus"}
+    governance = {"representation_coverage_pct": 85, "governance_body": "consensus"}
     feedback = {"feedback_count": 10, "published_count": 8}
     score = _score_transparency(governance, feedback)
     assert score >= 0.7
