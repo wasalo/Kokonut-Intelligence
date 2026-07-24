@@ -33,9 +33,9 @@ def _query_financial_sustainability(conn, location_id: str) -> Dict[str, Any]:
             reinvestment_pct,
             break_even_month,
             runway_months,
-            noi_projection_y1,
-            noi_projection_y2,
-            noi_projection_y3
+            projected_annual_noi_usd,
+            projected_annual_revenue_usd,
+            projected_annual_operating_cost_usd
         FROM financial_sustainability_plan
         WHERE location_id = %s
         ORDER BY created_at DESC NULLS LAST

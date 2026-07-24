@@ -83,7 +83,7 @@ def _query_community_governance(conn, location_id: str) -> Dict[str, Any]:
         SELECT
             representation_coverage_pct,
             marginalized_voice_count,
-            decision_method
+            governance_body
         FROM governance_inclusion_observation
         WHERE location_id = %s
         ORDER BY created_at DESC NULLS LAST
@@ -100,7 +100,7 @@ def _query_stakeholder_feedback_summary(conn, location_id: str) -> Dict[str, Any
     cur.execute("""
         SELECT
             COUNT(*) AS total_feedback,
-            COALESCE(AVG(satisfaction_score), 0) AS avg_satisfaction,
+            COUNT(*) FILTER (WHERE sentiment = 'positive') AS positive_feedback,
             COUNT(*) FILTER (WHERE consent_given = TRUE) AS consent_count
         FROM stakeholder_feedback
         WHERE location_id = %s
@@ -182,10 +182,11 @@ def _score_community_alignment(
     else:
         scores.append(0.0)
 
-    # Stakeholder satisfaction
-    satisfaction = float(feedback.get("avg_satisfaction", 0) or 0)
-    if satisfaction > 0:
-        scores.append(min(1.0, satisfaction / 10.0))
+    # Stakeholder satisfaction (positive feedback ratio)
+    total = int(feedback.get("total_feedback", 0) or 0)
+    positive = int(feedback.get("positive_feedback", 0) or 0)
+    if total > 0:
+        scores.append(positive / total)
 
     return sum(scores) / len(scores) if scores else 0.0
 

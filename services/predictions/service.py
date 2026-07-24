@@ -129,26 +129,77 @@ class PredictionService:
             cur.close()
             raise ValueError("Prediction not found")
         resolvers = {
-            "projected_revenue_usd": ("revenue_event", "amount_usd", "usd"),
+            "projected_revenue_usd": ("revenue_event", "amount", "usd"),
             "total_yield_tonnes": ("harvest_event", "quantity", "tonnes"),
             "loss_adjusted_yield_tonnes": ("harvest_event", "quantity", "tonnes"),
+            "projected_cash_flow_usd": ("revenue_event", "amount", "usd"),
+            "carbon_sequestration_tonnes": ("carbon_credit", "current_sequestration_tonnes", "tonnes"),
         }
         metric = prediction["metric_key"]
         if metric in resolvers:
             table, value_column, unit = resolvers[metric]
-            unit_filter = "AND unit = %s" if table == "harvest_event" else ""
-            params = [prediction["location_id"], prediction["target_start"], prediction["target_end"]]
-            if unit_filter != "":
-                params.append(unit)
-            cur.execute(
-                f"""SELECT COALESCE(SUM({value_column}),0) AS actual_value,
-                            ARRAY_AGG(id) AS source_ids, MAX(event_date) AS actual_at
-                     FROM {table}
-                     WHERE location_id=%s AND event_date BETWEEN %s AND %s
-                       AND status IN ('verified','published') {unit_filter}""",
-                tuple(params),
-            )
-            actual = dict(cur.fetchone())
+            if metric == "projected_cash_flow_usd":
+                # Cash flow = revenue - expenses (same structure as NOI)
+                cur.execute(
+                    """
+                    SELECT
+                      COALESCE((SELECT SUM(amount) FROM revenue_event
+                        WHERE location_id=%s AND revenue_date BETWEEN %s AND %s
+                          AND status IN ('verified','published')),0)
+                      - COALESCE((SELECT SUM(amount) FROM expense_event
+                        WHERE location_id=%s AND expense_date BETWEEN %s AND %s
+                          AND status IN ('verified','published')),0) AS actual_value,
+                      GREATEST(
+                        (SELECT MAX(revenue_date) FROM revenue_event WHERE location_id=%s),
+                        (SELECT MAX(expense_date) FROM expense_event WHERE location_id=%s)
+                      ) AS actual_at
+                    """,
+                    (prediction["location_id"], prediction["target_start"], prediction["target_end"],
+                     prediction["location_id"], prediction["target_start"], prediction["target_end"],
+                     prediction["location_id"], prediction["location_id"]),
+                )
+                actual = dict(cur.fetchone())
+                actual["source_ids"] = []
+                table, unit = "revenue_event+expense_event", "usd"
+            elif metric == "carbon_sequestration_tonnes":
+                # Sum carbon credit sequestration for the location
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(current_sequestration_tonnes),0) AS actual_value,
+                           ARRAY_AGG(id) AS source_ids, MAX(created_at) AS actual_at
+                    FROM carbon_credit
+                    WHERE location_id=%s
+                    """,
+                    (prediction["location_id"],),
+                )
+                actual = dict(cur.fetchone())
+            elif metric == "carbon_credit_value_usd":
+                # Value of available carbon credits at current pricing
+                cur.execute(
+                    """
+                    SELECT COALESCE(SUM(available_tonnes * pricing_usd_per_tonne),0) AS actual_value,
+                           ARRAY_AGG(id) AS source_ids, MAX(created_at) AS actual_at
+                    FROM carbon_credit
+                    WHERE location_id=%s
+                    """,
+                    (prediction["location_id"],),
+                )
+                actual = dict(cur.fetchone())
+                unit = "usd"
+            else:
+                unit_filter = "AND unit = %s" if table == "harvest_event" else ""
+                params = [prediction["location_id"], prediction["target_start"], prediction["target_end"]]
+                if unit_filter != "":
+                    params.append(unit)
+                cur.execute(
+                    f"""SELECT COALESCE(SUM({value_column}),0) AS actual_value,
+                                ARRAY_AGG(id) AS source_ids, MAX(event_date) AS actual_at
+                         FROM {table}
+                         WHERE location_id=%s AND event_date BETWEEN %s AND %s
+                           AND status IN ('verified','published') {unit_filter}""",
+                    tuple(params),
+                )
+                actual = dict(cur.fetchone())
         elif metric in {"projected_noi_usd", "risk_adjusted_noi_usd"}:
             cur.execute(
                 """
