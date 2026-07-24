@@ -72,6 +72,19 @@ def test_missing_secret_source_fails_for_ci(monkeypatch, tmp_path):
         env.load_dotenv()
 
 
+def test_injected_ci_environment_does_not_require_dotenv_file(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "ci")
+    monkeypatch.setenv("PG_HOST", "database")
+    monkeypatch.setenv("PG_DB", "kokonut_intelligence")
+    monkeypatch.setenv("PG_USER", "kokonut")
+    monkeypatch.setenv("PG_PASSWORD", "ci-password")
+
+    env.load_dotenv()
+
+    assert env._LOADED is True
+
+
 def test_plaintext_requires_explicit_opt_in_in_development(monkeypatch, tmp_path):
     _reset_loader(monkeypatch, tmp_path)
     monkeypatch.setenv("KOKONUT_ENV", "development")
