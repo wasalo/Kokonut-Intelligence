@@ -278,7 +278,7 @@ def fetch_job(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     attempts = []
     providers = [provider]
     fallback = _fallback_provider(provider, job)
-    for selected_provider in providers:
+    for selected_provider in list(providers):
         attempt_started = datetime.now(timezone.utc)
         try:
             if selected_provider == "gee":
