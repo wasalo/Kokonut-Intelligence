@@ -134,6 +134,48 @@ services:
       retries: 10
       start_period: 15s
 
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    restart: unless-stopped
+    expose:
+      - "8099"
+    ports:
+      - "127.0.0.1:8099:8099"
+    environment:
+      KOKONUT_ENV: ${KOKONUT_ENV:-development}
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      PG_USER: ${PG_USER:-kokonut}
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}
+      CH_HOST: clickhouse
+      CH_PORT: "8123"
+      CH_USER: ${CH_USER:-kokonut}
+      CH_DB: ${CH_DB:-kokonut_analytics}
+      DIRECTUS_URL: http://directus:8055
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      CORS_ORIGIN: "${CORS_ORIGIN:-*}"
+      GRPC_API_KEY: ${GRPC_API_KEY:-}
+      KOKONUT_API_KEYS: ${KOKONUT_API_KEYS:-}
+      KOKONUT_API_KEY_SCOPES: ${KOKONUT_API_KEY_SCOPES:-}
+    networks:
+      - databases
+      - apps
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8099/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
   caddy:
     image: caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648
     restart: unless-stopped
@@ -149,6 +191,7 @@ services:
     depends_on:
       - directus
       - metabase
+      - gateway
     networks:
       - apps
 

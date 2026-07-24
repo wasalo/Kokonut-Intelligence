@@ -78,14 +78,16 @@ Run the full local check with `./scripts/ci-check.sh` or `make ci`. For sandbox-
 
 ## Local Services
 
-Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus and MQTT to loopback, and keeps PostgreSQL, ClickHouse, and Metabase private. The optional worker overlay joins the private database network without turning metric computation into a persistent service.
+Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus, gateway, and MQTT to loopback, and keeps PostgreSQL, ClickHouse, and Metabase private. The optional worker overlay joins the private database network without turning metric computation into a persistent service.
 
 | Service | Base URL | Notes |
 |---------|----------|-------|
 | Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
+| Field Collector | `https://localhost/mobile` | Offline-first companion; LAN phones use `https://<lan-ip>/mobile` |
 | Directus API | `https://localhost/directus` | Canonical API and data access |
 | Directus admin | `https://localhost/admin` | Admin UI and data entry |
 | Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
+| Gateway | `http://127.0.0.1:8099` | FastAPI gateway (mobile API); Caddy proxies `/mobile` and `/api/mobile/*` |
 | Metabase | `https://localhost/metabase` | BI dashboards |
 | gRPC | `localhost:50051` | Host-exposed external API in base Compose; removed by the production overlay |
 | MQTT | `mqtts://127.0.0.1:8883` | Loopback-only TLS sensor broker |
@@ -94,6 +96,18 @@ Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus and
 | Worker | Compose service `kokonut-worker` | Cron/one-shot Python execution; `compute-metrics.sh` uses an ephemeral `run --rm` worker when the Compose database is running |
 
 The default local override may expose Metabase at `http://localhost:3001`. Use direct service URLs only when the effective Compose configuration maps them.
+
+### Field Collector on the LAN
+
+```bash
+docker compose up -d --build gateway caddy
+# Phone on the same Wi‑Fi:
+#   https://<host-lan-ip>/mobile
+```
+
+Caddy terminates TLS and proxies `/mobile` and `/api/mobile/*` to the gateway.
+Full deploy steps (local, production Caddy, Traefik) are in
+[Deployment — Field Collector](docs/deployment.md#field-collector-mobile-lan-access).
 
 ## Core Capabilities
 

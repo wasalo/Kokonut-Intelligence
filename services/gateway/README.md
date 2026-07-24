@@ -2,11 +2,18 @@
 
 `services.gateway` — Unified API Gateway — single entry point for all API traffic.
 
-## CLI Usage
+## Run
 
 ```bash
+# Compose (preferred; Caddy proxies /mobile and /api/mobile/*)
+docker compose up -d gateway
+
+# Host process
+python3 -m services.gateway.cli --serve --port 8099
 python3 -m services.gateway.cli --help
 ```
+
+Field Collector: `https://localhost/mobile` (or `https://<lan-ip>/mobile` on the LAN).
 
 ## Modules
 

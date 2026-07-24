@@ -48,6 +48,21 @@ services:
       - "traefik.http.routers.kokonut-metabase.tls.certresolver=${KOKONUT_TLS_RESOLVER:-letsencrypt}"
       - "traefik.http.services.kokonut-metabase.loadbalancer.server.port=3000"
 
+  gateway:
+    networks:
+      databases:
+      apps:
+      traefik:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${KOKONUT_TRAEFIK_NETWORK:-traefik}"
+      - "traefik.http.routers.kokonut-mobile.rule=Host(`${KOKONUT_DOMAIN:?KOKONUT_DOMAIN must be set}`) && (PathPrefix(`/mobile`) || PathPrefix(`/api/mobile`))"
+      - "traefik.http.routers.kokonut-mobile.entrypoints=websecure"
+      - "traefik.http.routers.kokonut-mobile.tls=true"
+      - "traefik.http.routers.kokonut-mobile.tls.certresolver=${KOKONUT_TLS_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.kokonut-mobile.priority=100"
+      - "traefik.http.services.kokonut-mobile.loadbalancer.server.port=8099"
+
 networks:
   traefik:
     external: true

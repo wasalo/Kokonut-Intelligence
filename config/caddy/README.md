@@ -29,9 +29,14 @@ Both files must define the same routes. When adding a new route, edit both files
 | `/directus/*` | `directus:8055` | Strip prefix, reverse proxy |
 | `/admin/*` | `directus:8055` | Strip prefix, reverse proxy |
 | `/maps/*` | Static files | Serve from `/app/services/maps` |
+| `/field/*` | Static files | Field collector HTML from `/app/services/mobile` |
+| `/mobile*` | `gateway:8099` | Field collector app via gateway |
+| `/api/mobile/*` | `gateway:8099` | Mobile register/forms/sync API |
 | `/metabase/*` | `metabase:3000` | Strip prefix, reverse proxy |
 | `/grpc/*` | `grpc:50051` | gRPC-Web proxy (h2c transport) |
 | **catch-all** | `directus:8055` | All other paths go to Directus |
+
+Field collector LAN URL (after `docker compose up -d`): `https://<host-lan-ip>/mobile`.
 
 ## Adding a Route
 
@@ -64,7 +69,7 @@ Global CORS headers are applied to all responses:
 header {
     Access-Control-Allow-Origin *
     Access-Control-Allow-Methods "GET, POST, OPTIONS"
-    Access-Control-Allow-Headers "Content-Type, Authorization, x-api-key, x-capability-token"
+    Access-Control-Allow-Headers "Content-Type, Authorization, x-api-key, x-capability-token, x-device-token"
 }
 ```
 

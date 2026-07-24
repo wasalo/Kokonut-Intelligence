@@ -65,10 +65,10 @@ Schemas are version-controlled as SQL files in `schemas/postgres/`. Directus sna
 | Directus SDK | JavaScript | Session | Application integration |
 | ClickHouse HTTP | HTTP | Basic auth | Analytical queries |
 | Directus MCP | MCP | Scoped token | AI agent access |
-| Kokonut gateway | HTTP REST | API key or capability token | Optional policy-aware routes under `/api`; separate process, not the Directus API |
+| Kokonut gateway | HTTP REST | API key, capability token, or device token (mobile) | Policy-aware routes under `/api`; Compose service `gateway`, not the Directus API |
 | Helper CLIs | Python modules | Local process auth | Registry validation, local CID prep, attestation request prep, agent manifest prep |
 
-The gateway is an optional service started with `python3 -m services.gateway.cli --serve`. Its `/health`, `/`, `/docs`, and `/openapi.json` discovery routes are public; route policies determine whether other gateway routes are public, and protected routes require `x-api-key` or `x-capability-token`. A Directus bearer token is not gateway authentication. Base Caddy configuration routes to Directus and Metabase, not to the gateway.
+The gateway runs as Compose service `gateway` (or host fallback `python3 -m services.gateway.cli --serve`). Its `/health`, `/`, `/docs`, `/openapi.json`, and Field Collector `/mobile` discovery routes are public; route policies determine whether other gateway routes are public, and protected routes require `x-api-key` or `x-capability-token`. Mobile sync uses `X-Device-Token`. A Directus bearer token is not gateway authentication. Base Caddy proxies `/mobile*` and `/api/mobile/*` to the gateway; other gateway `/api/*` routes remain on the gateway process (loopback `8099` in dev).
 
 ## Security Model
 

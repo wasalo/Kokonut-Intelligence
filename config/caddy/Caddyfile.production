@@ -31,6 +31,14 @@
 		file_server
 	}
 
+	handle /mobile* {
+		reverse_proxy gateway:8099
+	}
+
+	handle /api/mobile/* {
+		reverse_proxy gateway:8099
+	}
+
 	handle /metabase/* {
 		uri strip_prefix /metabase
 		reverse_proxy metabase:3000
