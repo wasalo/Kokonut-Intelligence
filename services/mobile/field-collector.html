@@ -118,12 +118,17 @@
       window.setTimeout(() => node.remove(), 4500);
     };
     const captureGps = () => {
-      if (!navigator.geolocation) return;
+      const node = document.getElementById("locationValue");
+      if (!navigator.geolocation) { if (node) node.textContent = "GPS not available on this device."; return; }
+      if (node) node.textContent = "Acquiring location…";
       navigator.geolocation.getCurrentPosition(position => {
         currentLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy_m: position.coords.accuracy };
-        const node = document.getElementById("locationValue");
         if (node) node.textContent = `${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)} (accuracy ${Math.round(currentLocation.accuracy_m)}m)`;
-      }, () => {}, { enableHighAccuracy:true, timeout:10000, maximumAge:30000 });
+      }, error => {
+        if (node) node.textContent = "";
+        const messages = { 1:"Location access denied. Enable it in Settings > Safari > Location Services, then tap Refresh GPS.", 2:"Location unavailable. Check your connection and try again.", 3:"Location request timed out. Tap Refresh GPS to retry." };
+        notify(messages[error.code] || "Could not get location. Tap Refresh GPS to retry.", true);
+      }, { enableHighAccuracy:true, timeout:15000, maximumAge:30000 });
     };
     const renderHome = () => {
       currentForm = null;
@@ -155,7 +160,6 @@
       document.getElementById("photoButton").addEventListener("click", () => document.getElementById("photoInput").click());
       document.getElementById("photoInput").addEventListener("change", event => readPhoto(event.target.files[0]));
       document.getElementById("collectionForm").addEventListener("submit", saveRecord);
-      captureGps();
     };
     const readPhoto = file => {
       if (!file) return;
