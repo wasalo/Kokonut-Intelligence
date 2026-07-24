@@ -14,6 +14,8 @@ def _reset_loader(monkeypatch, tmp_path):
     monkeypatch.delenv("KOKONUT_ENV", raising=False)
     monkeypatch.delenv("FALLBACK_SECRET", raising=False)
     monkeypatch.delenv("LOADED_SECRET", raising=False)
+    for key in env._PRODUCTION_REQUIRED:
+        monkeypatch.delenv(key, raising=False)
 
 
 def test_sops_failure_does_not_fall_back_in_production(monkeypatch, tmp_path):
