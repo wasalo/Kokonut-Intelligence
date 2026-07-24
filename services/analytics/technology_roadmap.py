@@ -21,6 +21,15 @@ def _conn():
     return get_db()
 
 
+# Valid status transitions for technology_roadmap
+_VALID_TRANSITIONS = {
+    "draft": {"submitted"},
+    "submitted": {"approved", "rejected"},
+    "approved": {"superseded"},
+    "rejected": {"draft"},
+}
+
+
 def _row(row) -> Optional[Dict[str, Any]]:
     if not row:
         return None
@@ -92,6 +101,19 @@ def update_roadmap(roadmap_id: str, **fields) -> Optional[Dict[str, Any]]:
         "detail_level", "sponsor", "owner", "review_cadence_days", "next_review_at",
         "status", "metadata",
     }
+    # Enforce status transitions
+    if "status" in fields:
+        roadmap = get_roadmap(roadmap_id)
+        if not roadmap:
+            raise ValueError(f"Roadmap {roadmap_id} not found")
+        current = roadmap.get("status", "draft")
+        target = fields["status"]
+        valid = _VALID_TRANSITIONS.get(current, set())
+        if target not in valid:
+            raise ValueError(
+                f"Invalid status transition: {current} → {target}. "
+                f"Allowed: {', '.join(sorted(valid)) or 'none'}"
+            )
     sets: List[str] = []
     params: List[Any] = []
     for key, value in fields.items():
@@ -189,6 +211,19 @@ def add_alternative(driver_id: str, name: str, **fields) -> Dict[str, Any]:
 
 
 def review_roadmap(roadmap_id: str, result: str, *, reviewed_by: Optional[str] = None, notes: str = "", evidence: Optional[List] = None) -> Dict[str, Any]:
+    if not reviewed_by:
+        raise ValueError("reviewed_by is required for human oversight")
+    roadmap = get_roadmap(roadmap_id)
+    if not roadmap:
+        raise ValueError(f"Roadmap {roadmap_id} not found")
+    current_status = roadmap.get("status", "draft")
+    if current_status != "submitted":
+        raise ValueError(
+            f"Roadmap must be in 'submitted' status to review (current: {current_status})"
+        )
+    valid_results = {"approved", "rejected", "superseded"}
+    if result not in valid_results:
+        raise ValueError(f"Invalid review result: {result}. Must be one of: {', '.join(sorted(valid_results))}")
     with _conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute(
             "INSERT INTO technology_roadmap_review (roadmap_id, reviewed_by, result, notes, evidence) "
