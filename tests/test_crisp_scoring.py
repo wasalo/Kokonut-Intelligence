@@ -440,6 +440,103 @@ def test_score_certification_risk_critical() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Article 6 scoring tests (unit logic only)
+# ---------------------------------------------------------------------------
+
+def test_score_article_6_no_data_returns_none() -> None:
+    from services.crisp.policy_risk import _score_article_6
+    indicators = {
+        "ndc_participation_status": None,
+        "corresponding_adjustment_status": None,
+        "article_6_4_registry_status": None,
+        "international_retirements": 0,
+        "article6_attestations": 0,
+        "registry_engagements": 0,
+    }
+    assert _score_article_6(indicators) is None
+
+
+def test_score_article_6_active_ndc_high_score() -> None:
+    from services.crisp.policy_risk import _score_article_6
+    indicators = {
+        "ndc_participation_status": "active",
+        "corresponding_adjustment_status": "confirmed",
+        "article_6_4_registry_status": "registered",
+        "international_retirements": 0,
+        "article6_attestations": 0,
+        "registry_engagements": 0,
+    }
+    score = _score_article_6(indicators)
+    assert score is not None
+    assert 0.0 <= score <= 1.0
+    assert score >= 0.8
+
+
+def test_score_article_6_partial_readiness() -> None:
+    from services.crisp.policy_risk import _score_article_6
+    indicators = {
+        "ndc_participation_status": "submitted",
+        "corresponding_adjustment_status": None,
+        "article_6_4_registry_status": None,
+        "international_retirements": 0,
+        "article6_attestations": 0,
+        "registry_engagements": 0,
+    }
+    score = _score_article_6(indicators)
+    assert score is not None
+    assert 0.0 <= score <= 1.0
+    assert 0.1 <= score <= 0.5
+
+
+def test_score_article_6_with_retirement_signals() -> None:
+    from services.crisp.policy_risk import _score_article_6
+    indicators = {
+        "ndc_participation_status": None,
+        "corresponding_adjustment_status": None,
+        "article_6_4_registry_status": None,
+        "international_retirements": 2,
+        "article6_attestations": 1,
+        "registry_engagements": 1,
+    }
+    score = _score_article_6(indicators)
+    assert score is not None
+    assert 0.0 <= score <= 1.0
+    assert score > 0.0
+
+
+def test_score_article_6_zero_when_no_ndc_no_signals() -> None:
+    from services.crisp.policy_risk import _score_article_6
+    indicators = {
+        "ndc_participation_status": "",
+        "corresponding_adjustment_status": "",
+        "article_6_4_registry_status": "",
+        "international_retirements": 0,
+        "article6_attestations": 0,
+        "registry_engagements": 0,
+    }
+    score = _score_article_6(indicators)
+    assert score is not None
+    assert score == 0.0
+
+
+def test_score_article_6_within_bounds() -> None:
+    from services.crisp.policy_risk import _score_article_6
+    # Test various combinations to ensure all stay within 0-1
+    test_cases = [
+        {"ndc_participation_status": "active", "corresponding_adjustment_status": "confirmed",
+         "article_6_4_registry_status": "registered", "international_retirements": 5,
+         "article6_attestations": 3, "registry_engagements": 2},
+        {"ndc_participation_status": "draft", "corresponding_adjustment_status": "pending",
+         "article_6_4_registry_status": "engaged", "international_retirements": 1,
+         "article6_attestations": 0, "registry_engagements": 0},
+    ]
+    for indicators in test_cases:
+        score = _score_article_6(indicators)
+        assert score is not None
+        assert 0.0 <= score <= 1.0, f"Score {score} out of bounds for {indicators}"
+
+
+# ---------------------------------------------------------------------------
 # Financial risk sub-factor tests (unit logic only)
 # ---------------------------------------------------------------------------
 
