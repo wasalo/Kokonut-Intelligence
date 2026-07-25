@@ -184,14 +184,6 @@ CREATE TRIGGER trg_agent_safety
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
 
--- delphi_diversity_assessment
-DROP TRIGGER IF EXISTS trg_agent_safety ON delphi_diversity_assessment;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON delphi_diversity_assessment
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
 -- delphi_minority_report
 DROP TRIGGER IF EXISTS trg_agent_safety ON delphi_minority_report;
 CREATE TRIGGER trg_agent_safety
@@ -312,14 +304,6 @@ CREATE TRIGGER trg_agent_safety
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
 
--- coordination_benefit
-DROP TRIGGER IF EXISTS trg_agent_safety ON coordination_benefit;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON coordination_benefit
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
 -- coordination_risk
 DROP TRIGGER IF EXISTS trg_agent_safety ON coordination_risk;
 CREATE TRIGGER trg_agent_safety
@@ -376,14 +360,6 @@ CREATE TRIGGER trg_agent_safety
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
 
--- coordination_minority_view
-DROP TRIGGER IF EXISTS trg_agent_safety ON coordination_minority_view;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON coordination_minority_view
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
 -- coordination_appeal
 DROP TRIGGER IF EXISTS trg_agent_safety ON coordination_appeal;
 CREATE TRIGGER trg_agent_safety
@@ -400,17 +376,9 @@ CREATE TRIGGER trg_agent_safety
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
 
--- coordination_approval
-DROP TRIGGER IF EXISTS trg_agent_safety ON coordination_approval;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON coordination_approval
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
 -- 3. Record schema version
 INSERT INTO schema_version (version, description, applied_by)
-VALUES ('agent-safety-triggers-v1', 'DB-level agent safety triggers for 47 governed tables with status columns', 'schema 350')
+VALUES ('agent-safety-triggers-v2', 'DB-level agent safety triggers for 43 governed tables with status columns', 'schema 350')
 ON CONFLICT (version) DO UPDATE SET
     description = EXCLUDED.description,
     applied_by = EXCLUDED.applied_by;
