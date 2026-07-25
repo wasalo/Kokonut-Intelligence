@@ -27,9 +27,13 @@ done
 if [ -f "$PROJECT_DIR/.env.sops" ]; then
     source "$SCRIPT_DIR/load-secrets.sh"
 elif [ -f "$PROJECT_DIR/.env" ]; then
-    set -a
-    source "$PROJECT_DIR/.env"
-    set +a
+    if [ "${KOKONUT_ALLOW_PLAINTEXT_ENV:-}" = "true" ]; then
+        set -a
+        source "$PROJECT_DIR/.env"
+        set +a
+    else
+        echo "WARNING: No .env.sops found. Set KOKONUT_ALLOW_PLAINTEXT_ENV=true to use plaintext .env." >&2
+    fi
 fi
 
 # Service endpoints
