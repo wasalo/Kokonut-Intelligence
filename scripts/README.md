@@ -44,7 +44,11 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 |--------|---------|---------|
 | `health-check.sh` | Verify all services healthy (PostgreSQL, Directus, ClickHouse, Metabase, Docker, disk/memory). Supports `--json` and `--alert`. | Manual, cron, programmatic |
 | `health-alert.sh` | Cron wrapper for `health-check.sh` — quiet on success, sends webhook/email alerts on failure | Cron (`*/5 * * * *`) |
-| `backup.sh` | Back up PostgreSQL + ClickHouse, compress, encrypt, clean old backups (>30 days) | Cron (`0 2 * * *`) |
+| `backup.sh` | Create an encrypted, checksum-verified PostgreSQL + ClickHouse upgrade checkpoint | Manual/upgrade workflow |
+| `verify-backup.sh` | Validate checkpoint manifest, files, sizes, and SHA-256 checksums | Manual/restore workflow |
+| `restore.sh` | Restore an explicit encrypted checkpoint after operator confirmation | Manual |
+| `rollback.sh` | Stop application services, restore a checkpoint, restart, and verify | Manual |
+| `upgrade.sh` | Plan and apply a checked-out release with backup, migration, health, and verification gates | Manual |
 | `schema-snapshot.sh` | Export Directus schema as JSON snapshot via API | Manual |
 
 ## Development & Analysis
