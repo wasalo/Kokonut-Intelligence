@@ -287,13 +287,14 @@ def persist_assessment(conn, rating: CompositeRating) -> str:
             cur.execute("""
                 INSERT INTO crisp_policy_risk (
                     assessment_id, location_id, risk_score,
-                    national_policy_score, carbon_rights_score, land_tenure_score,
+                    national_policy_score, article_6_score, carbon_rights_score, land_tenure_score,
                     community_alignment_score, certification_risk_score,
                     evidence_maturity_level, metadata
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 assessment_id, rating.location_id, dim.risk_score,
                 1.0 - f.get("policy_strength", 0),
+                f.get("article_6_readiness"),
                 1.0 - f.get("carbon_rights_clarity", 0),
                 1.0 - f.get("land_tenure_security", 0),
                 1.0 - f.get("community_alignment", 0),
