@@ -98,6 +98,7 @@ jobs:
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait directus
         echo "Directus is healthy according to its Compose healthcheck."
         echo "=== [step] Seeding database ==="
+        export KOKONUT_ALLOW_PLAINTEXT_ENV=true
         rm -f .env.sops
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
