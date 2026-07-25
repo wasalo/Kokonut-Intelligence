@@ -273,6 +273,34 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "writes": ["coordination_alliance:draft"],
         "high_risk": False,
     },
+    "organic_readiness_synthesis": {
+        "description": "Synthesize organic certification readiness, transition progress, input compliance, buffer zone adequacy, harvest segregation, and prohibited substance clearance data.",
+        "risk": "medium",
+        "inputs": {
+            "location_id": {"type": "string", "format": "uuid", "required": True},
+            "store": {"type": "boolean", "required": False},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "ai_summary_id": {"type": "string", "format": "uuid", "required": False},
+        },
+        "writes": ["ai_summary:draft"],
+        "high_risk": False,
+    },
+    "ecological_modeling_synthesis": {
+        "description": "Synthesize ecological interaction strength, energy flow efficiency, trophic balance, pest trends, soil input retention, biocontrol effectiveness, resource efficiency, conservation status, livestock feed, and reward calibration data.",
+        "risk": "medium",
+        "inputs": {
+            "location_id": {"type": "string", "format": "uuid", "required": True},
+            "store": {"type": "boolean", "required": False},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "ai_summary_id": {"type": "string", "format": "uuid", "required": False},
+        },
+        "writes": ["ai_summary:draft"],
+        "high_risk": False,
+    },
 }
 
 
