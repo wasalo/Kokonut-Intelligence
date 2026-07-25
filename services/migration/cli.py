@@ -62,7 +62,7 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
         tmp.close()
         psql_args = [
             "psql", "-X", "-U", PG_USER, "-d", PG_DB,
-            "-v", "ON_ERROR_STOP=1", "-A", "-t", "-F", "\\t",
+            "-v", "ON_ERROR_STOP=1", "-A", "-t",
             "-f", "-",
         ]
         for key, value in (variables or {}).items():
@@ -216,7 +216,7 @@ ORDER BY migration_id;
     for line in result.stdout.splitlines():
         if not line:
             continue
-        parts = line.split("\t")
+        parts = line.split("|")
         if len(parts) != 4 or not parts[0]:
             raise MigrationError(f"invalid schema_migration query output: {line!r}")
         migration_id, name, checksum, status = parts
