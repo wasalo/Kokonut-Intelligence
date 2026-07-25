@@ -26,6 +26,7 @@ def test_technology_roadmap_lifecycle():
             entity_type="platform",
             planning_horizon_start="2026-01-01",
             planning_horizon_end="2027-12-31",
+            status="submitted",
         )
         roadmap_id = roadmap["id"]
         requirement = tr.add_requirement(
@@ -60,7 +61,7 @@ def test_technology_roadmap_lifecycle():
         assert any(row["alternative_id"] == alternative["id"] for row in detail["technology_areas"])
         assert tr.recommend_alternatives(roadmap_id)[0]["alternative_id"] == alternative["id"]
 
-        tr.update_roadmap(roadmap_id, status="submitted")
+        tr.update_roadmap(roadmap_id, description="Updated description")
         review = tr.review_roadmap(roadmap_id, "approved", reviewed_by=str(uuid.uuid4()), notes="Reviewed test roadmap")
         assert review["result"] == "approved"
         assert tr.get_roadmap(roadmap_id)["status"] == "approved"
@@ -69,6 +70,42 @@ def test_technology_roadmap_lifecycle():
         if roadmap_id:
             with conn.cursor() as cur:
                 cur.execute("DELETE FROM technology_roadmap WHERE id = %s::uuid", (roadmap_id,))
+            conn.commit()
+        conn.close()
+
+
+def test_update_roadmap_rejects_status_transition():
+    conn = _db()
+    created_ids = []
+    try:
+        roadmap = tr.create_roadmap(
+            "Status Guard Test Roadmap",
+            description="Testing status guard",
+            entity_type="platform",
+        )
+        created_ids.append(roadmap["id"])
+        with pytest.raises(ValueError, match="Status transitions must use review_roadmap"):
+            tr.update_roadmap(roadmap["id"], status="approved")
+        tr.update_roadmap(roadmap["id"], name="Updated Name")
+        assert tr.get_roadmap(roadmap["id"])["name"] == "Updated Name"
+        submitted = tr.create_roadmap(
+            "Status Guard Review Path",
+            description="Testing review path",
+            entity_type="platform",
+            status="submitted",
+        )
+        created_ids.append(submitted["id"])
+        review = tr.review_roadmap(
+            submitted["id"], "approved", reviewed_by=str(uuid.uuid4()),
+            notes="Proper review path"
+        )
+        assert review["result"] == "approved"
+        assert tr.get_roadmap(submitted["id"])["status"] == "approved"
+    finally:
+        conn.rollback()
+        for rid in created_ids:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM technology_roadmap WHERE id = %s::uuid", (rid,))
             conn.commit()
         conn.close()
 

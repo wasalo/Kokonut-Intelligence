@@ -96,24 +96,15 @@ def list_roadmaps(*, status: Optional[str] = None, entity_type: Optional[str] = 
 
 
 def update_roadmap(roadmap_id: str, **fields) -> Optional[Dict[str, Any]]:
+    if "status" in fields:
+        raise ValueError(
+            "Status transitions must use review_roadmap(), not update_roadmap()"
+        )
     allowed = {
         "name", "description", "planning_horizon_start", "planning_horizon_end",
         "detail_level", "sponsor", "owner", "review_cadence_days", "next_review_at",
-        "status", "metadata",
+        "metadata",
     }
-    # Enforce status transitions
-    if "status" in fields:
-        roadmap = get_roadmap(roadmap_id)
-        if not roadmap:
-            raise ValueError(f"Roadmap {roadmap_id} not found")
-        current = roadmap.get("status", "draft")
-        target = fields["status"]
-        valid = _VALID_TRANSITIONS.get(current, set())
-        if target not in valid:
-            raise ValueError(
-                f"Invalid status transition: {current} → {target}. "
-                f"Allowed: {', '.join(sorted(valid)) or 'none'}"
-            )
     sets: List[str] = []
     params: List[Any] = []
     for key, value in fields.items():
