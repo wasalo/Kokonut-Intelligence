@@ -170,7 +170,7 @@ fi
 
 if [ "$SKIP_REFERENCE_SEEDS" != "true" ]; then
     echo "Applying idempotent reference setup..."
-    KOKONUT_RUN_CURATED_SEEDS=true "$SCRIPT_DIR/seed.sh"
+    KOKONUT_RUN_CURATED_SEEDS=true "$SCRIPT_DIR/seed.sh" --reference-only
 fi
 
 if [ "$SKIP_METRICS" != "true" ]; then
