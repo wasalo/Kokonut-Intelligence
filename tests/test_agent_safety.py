@@ -146,9 +146,9 @@ def test_trigger_applied_to_data_stream_post(db):
 
 
 @pytest.mark.skipif(not _db_available(), reason=DB_SKIP_REASON)
-def test_trigger_applied_to_threat(db):
-    """trg_agent_safety trigger exists on threat."""
-    assert _trigger_exists(db, "threat")
+def test_trigger_applied_to_threat_flag(db):
+    """trg_agent_safety trigger exists on threat_flag."""
+    assert _trigger_exists(db, "threat_flag")
 
 
 @pytest.mark.skipif(not _db_available(), reason=DB_SKIP_REASON)
