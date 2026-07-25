@@ -129,6 +129,7 @@ def create_app():
                 action=policy["action"],
                 location_id=location_id,
                 capability_token_id=auth_result.get("capability_token_id"),
+                scope_checked=auth_result.get("scope_checked"),
             )
             return JSONResponse(
                 status_code=denial_status,
@@ -153,6 +154,7 @@ def create_app():
                 action=policy["action"],
                 location_id=location_id,
                 capability_token_id=auth_result.get("capability_token_id"),
+                scope_checked=auth_result.get("scope_checked"),
             )
             raise
 
@@ -172,6 +174,7 @@ def create_app():
             action=policy["action"],
             location_id=location_id,
             capability_token_id=auth_result.get("capability_token_id"),
+            scope_checked=auth_result.get("scope_checked"),
         )
 
         return response

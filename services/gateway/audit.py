@@ -37,6 +37,7 @@ class GatewayAudit:
         action: str = "read",
         location_id: str | None = None,
         capability_token_id: str | None = None,
+        scope_checked: str | None = None,
     ) -> None:
         """Log a gateway request."""
         logger.info(
@@ -89,6 +90,7 @@ class GatewayAudit:
                     "path": path,
                     "http_method": method.upper(),
                     "route_action": action,
+                    "scope_checked": scope_checked,
                 },
             )
         except Exception as exc:
