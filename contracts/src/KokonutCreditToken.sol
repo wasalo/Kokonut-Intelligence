@@ -54,12 +54,7 @@ contract KokonutCreditToken is
         uint256 vintageYear,
         bytes32 evidenceHash
     );
-    event CreditRetired(
-        uint256 indexed tokenId,
-        address indexed account,
-        uint256 amount,
-        bytes32 reasonHash
-    );
+    event CreditRetired(uint256 indexed tokenId, address indexed account, uint256 amount, bytes32 reasonHash);
 
     constructor() {
         _disableInitializers();
@@ -73,8 +68,10 @@ contract KokonutCreditToken is
         address upgrader,
         string calldata initialURI
     ) external initializer {
-        if (admin == address(0) || issuer == address(0) || burner == address(0)
-            || pauser == address(0) || upgrader == address(0)) {
+        if (
+            admin == address(0) || issuer == address(0) || burner == address(0) || pauser == address(0)
+                || upgrader == address(0)
+        ) {
             revert ZeroAddress();
         }
 
@@ -139,11 +136,7 @@ contract KokonutCreditToken is
         emit CreditIssued(uint256(tokenId), batchId, recipient, amount, vintageYear, evidenceHash);
     }
 
-    function retire(
-        uint256 tokenId,
-        uint256 amount,
-        bytes32 reasonHash
-    ) external onlyRole(BURNER_ROLE) {
+    function retire(uint256 tokenId, uint256 amount, bytes32 reasonHash) external onlyRole(BURNER_ROLE) {
         if (amount == 0) revert ZeroAmount();
 
         uint256 available = totalIssued[tokenId] - totalRetired[tokenId];
@@ -172,8 +165,7 @@ contract KokonutCreditToken is
     function batchIssue(IssueParams[] calldata params) external onlyRole(ISSUER_ROLE) whenNotPaused {
         for (uint256 i = 0; i < params.length; i++) {
             IssueParams calldata p = params[i];
-            _issue(p.batchId, p.recipient, p.amount, p.vintageYear,
-                  p.jurisdiction, p.methodology, p.evidenceHash);
+            _issue(p.batchId, p.recipient, p.amount, p.vintageYear, p.jurisdiction, p.methodology, p.evidenceHash);
         }
     }
 
@@ -194,7 +186,9 @@ contract KokonutCreditToken is
     }
 
     function safeBatchTransferFrom(address, address, uint256[] memory, uint256[] memory, bytes memory)
-        public pure override
+        public
+        pure
+        override
     {
         revert NonTransferable();
     }
@@ -212,7 +206,10 @@ contract KokonutCreditToken is
     }
 
     function supportsInterface(bytes4 interfaceId)
-        public view override(ERC1155Upgradeable, AccessControlUpgradeable) returns (bool)
+        public
+        view
+        override(ERC1155Upgradeable, AccessControlUpgradeable)
+        returns (bool)
     {
         return super.supportsInterface(interfaceId);
     }

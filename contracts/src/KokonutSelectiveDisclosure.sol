@@ -9,12 +9,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 /// @title Kokonut Selective Disclosure
 /// @notice On-chain Merkle root verifier for selective field disclosure.
 /// @dev Stores disclosure roots per attestation and verifies inclusion proofs.
-contract KokonutSelectiveDisclosure is
-    Initializable,
-    AccessControlUpgradeable,
-    PausableUpgradeable,
-    UUPSUpgradeable
-{
+contract KokonutSelectiveDisclosure is Initializable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
     bytes32 public constant ATTESTER_ROLE = keccak256("ATTESTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -34,14 +29,8 @@ contract KokonutSelectiveDisclosure is
         _disableInitializers();
     }
 
-    function initialize(
-        address admin,
-        address attester,
-        address pauser,
-        address upgrader
-    ) external initializer {
-        if (admin == address(0) || attester == address(0)
-            || pauser == address(0) || upgrader == address(0)) {
+    function initialize(address admin, address attester, address pauser, address upgrader) external initializer {
+        if (admin == address(0) || attester == address(0) || pauser == address(0) || upgrader == address(0)) {
             revert ZeroAddress();
         }
 
@@ -55,10 +44,7 @@ contract KokonutSelectiveDisclosure is
         _grantRole(UPGRADER_ROLE, upgrader);
     }
 
-    function setRoot(
-        bytes32 attestationUid,
-        bytes32 root
-    ) external onlyRole(ATTESTER_ROLE) whenNotPaused {
+    function setRoot(bytes32 attestationUid, bytes32 root) external onlyRole(ATTESTER_ROLE) whenNotPaused {
         if (root == bytes32(0)) revert ZeroHash();
         if (isSet[attestationUid]) revert RootAlreadySet(attestationUid);
 
@@ -68,12 +54,11 @@ contract KokonutSelectiveDisclosure is
         emit RootSet(attestationUid, root, block.timestamp);
     }
 
-    function verifyProof(
-        bytes32 attestationUid,
-        bytes32 leaf,
-        bytes32[] calldata proof,
-        uint8[] calldata proofFlags
-    ) external view returns (bool) {
+    function verifyProof(bytes32 attestationUid, bytes32 leaf, bytes32[] calldata proof, uint8[] calldata proofFlags)
+        external
+        view
+        returns (bool)
+    {
         bytes32 root = disclosureRoots[attestationUid];
         if (root == bytes32(0)) return false;
 
@@ -97,9 +82,7 @@ contract KokonutSelectiveDisclosure is
         _unpause();
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public view override(AccessControlUpgradeable) returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(AccessControlUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 

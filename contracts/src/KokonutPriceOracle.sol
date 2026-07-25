@@ -9,12 +9,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 /// @title Kokonut Price Oracle
 /// @notice On-chain price feed with EAS attestation linkage.
 /// @dev Prices are updated by authorized updaters and linked to EAS attestations.
-contract KokonutPriceOracle is
-    Initializable,
-    AccessControlUpgradeable,
-    PausableUpgradeable,
-    UUPSUpgradeable
-{
+contract KokonutPriceOracle is Initializable, AccessControlUpgradeable, PausableUpgradeable, UUPSUpgradeable {
     bytes32 public constant UPDATER_ROLE = keccak256("UPDATER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
@@ -63,14 +58,8 @@ contract KokonutPriceOracle is
         _disableInitializers();
     }
 
-    function initialize(
-        address admin,
-        address updater,
-        address pauser,
-        address upgrader
-    ) external initializer {
-        if (admin == address(0) || updater == address(0)
-            || pauser == address(0) || upgrader == address(0)) {
+    function initialize(address admin, address updater, address pauser, address upgrader) external initializer {
+        if (admin == address(0) || updater == address(0) || pauser == address(0) || upgrader == address(0)) {
             revert ZeroAddress();
         }
 
@@ -121,12 +110,11 @@ contract KokonutPriceOracle is
             }
             entries.pop();
         }
-        entries.push(PriceHistoryEntry({
-            price: price,
-            timestamp: block.timestamp,
-            attestationUid: attestationUid,
-            confidence: confidence
-        }));
+        entries.push(
+            PriceHistoryEntry({
+                price: price, timestamp: block.timestamp, attestationUid: attestationUid, confidence: confidence
+            })
+        );
 
         emit PriceUpdated(feedKey, price, block.timestamp, source, attestationUid, confidence, feed.updateCount);
     }
@@ -168,9 +156,7 @@ contract KokonutPriceOracle is
         _unpause();
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public view override(AccessControlUpgradeable) returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(AccessControlUpgradeable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 

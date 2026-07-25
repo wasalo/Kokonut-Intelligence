@@ -29,10 +29,7 @@ contract DeployKokonutCreditToken is Script {
         TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
             address(impl),
             address(proxyAdmin),
-            abi.encodeCall(
-                KokonutCreditToken.initialize,
-                (admin, issuer, burner, pauser, upgrader, uri)
-            )
+            abi.encodeCall(KokonutCreditToken.initialize, (admin, issuer, burner, pauser, upgrader, uri))
         );
 
         console.log("KokonutCreditToken deployed at:", address(proxy));

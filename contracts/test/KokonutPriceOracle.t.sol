@@ -18,10 +18,7 @@ contract KokonutPriceOracleTest is Test {
 
     function setUp() public {
         KokonutPriceOracle impl = new KokonutPriceOracle();
-        bytes memory init = abi.encodeCall(
-            KokonutPriceOracle.initialize,
-            (admin, updater, pauser, upgrader)
-        );
+        bytes memory init = abi.encodeCall(KokonutPriceOracle.initialize, (admin, updater, pauser, upgrader));
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), init);
         oracle = KokonutPriceOracle(address(proxy));
     }

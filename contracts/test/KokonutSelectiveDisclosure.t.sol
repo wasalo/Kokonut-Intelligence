@@ -17,10 +17,7 @@ contract KokonutSelectiveDisclosureTest is Test {
 
     function setUp() public {
         KokonutSelectiveDisclosure impl = new KokonutSelectiveDisclosure();
-        bytes memory init = abi.encodeCall(
-            KokonutSelectiveDisclosure.initialize,
-            (admin, attester, pauser, upgrader)
-        );
+        bytes memory init = abi.encodeCall(KokonutSelectiveDisclosure.initialize, (admin, attester, pauser, upgrader));
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), init);
         disclosure = KokonutSelectiveDisclosure(address(proxy));
     }
