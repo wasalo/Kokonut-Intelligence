@@ -9,6 +9,17 @@ from typing import Any, Optional
 
 from services.agents.logging import log_agent_action
 
+
+def set_agent_context(conn, agent_id: str) -> None:
+    """Set the agent ID for the current transaction, enabling DB-level safety checks.
+
+    Must be called within an active transaction. Uses SET LOCAL so the setting
+    is scoped to the current transaction and automatically cleared on commit/rollback.
+    When this setting is present, DB-level triggers on governed tables will block
+    status escalation to 'verified' or 'published'.
+    """
+    conn.execute(conn.text("SET LOCAL app.agent_id = :agent_id"), {"agent_id": agent_id})
+
 HIGH_RISK_ACTIONS = {
     "publish",
     "attest",
