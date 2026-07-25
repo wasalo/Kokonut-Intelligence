@@ -56,6 +56,13 @@ def serve():
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=max_workers),
         interceptors=[logging_interceptor, auth_interceptor],
+        options=[
+            ("grpc.keepalive_time_ms", 30000),
+            ("grpc.keepalive_timeout_ms", 10000),
+            ("grpc.keepalive_permit_without_calls", True),
+            ("grpc.max_connection_age_ms", 3600000),
+            ("grpc.max_connection_age_grace_ms", 30000),
+        ],
     )
 
     # Register health service
