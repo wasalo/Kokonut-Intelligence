@@ -87,6 +87,29 @@ def get_current_auth() -> dict | None:
     return grpc_auth_context.get()
 
 
+def require_scope(resource: str, action: str) -> None:
+    """Abort the current RPC if the caller lacks the required scope.
+
+    Call this at the top of each service method:
+        require_scope("ecocredit:class", "read")
+
+    Raises grpc.PERMISSION_DENIED if the scope is missing.
+    """
+    auth = get_current_auth()
+    if auth is None:
+        raise grpc.StatusCode.UNAUTHENTICATED
+    scopes = auth.get("scopes") or []
+    for scope in scopes:
+        parts = scope.split(":")
+        scope_resource = parts[0] if len(parts) > 0 else "*"
+        scope_action = parts[1] if len(parts) > 1 else "*"
+        if scope_resource in ("*", resource) and scope_action in ("*", action):
+            return
+    raise grpc.PermissionDenied(
+        f"Scope '{resource}:{action}' required but not granted"
+    )
+
+
 def _abort(code: grpc.StatusCode, message: str):
     def abort_handler(request, context):
         context.abort(code, message)
