@@ -9,7 +9,6 @@ import pytest
 
 import services
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = PROJECT_ROOT / "scripts"
 
@@ -22,7 +21,9 @@ def test_release_identity_matches_version_file():
     assert all(part.isdigit() for part in version.split("."))
 
 
-@pytest.mark.parametrize("script", ["backup.sh", "restore.sh", "rollback.sh", "upgrade.sh"])
+@pytest.mark.parametrize(
+    "script", ["backup.sh", "restore.sh", "rollback.sh", "upgrade.sh", "verify-upgrade.sh"]
+)
 def test_upgrade_scripts_have_valid_shell_syntax(script):
     result = subprocess.run(
         ["bash", "-n", str(SCRIPTS / script)],
@@ -39,8 +40,11 @@ def test_upgrade_does_not_pull_or_load_pilot_data_by_default():
 
     assert "git pull" not in source
     assert "seed-pilot.sh" not in source
-    assert "--skip-backup" in source
-    assert "--confirm-risk" in source
+    assert "backup.sh" in source
+    assert "--skip-backup" not in source
+
+    seed_source = (SCRIPTS / "seed.sh").read_text(encoding="utf-8")
+    assert "113_pilot_organization.sql" not in seed_source
 
 
 def test_reference_only_seed_mode_skips_schema_bootstrap():
@@ -105,3 +109,15 @@ def test_verify_backup_rejects_tampered_artifact(tmp_path):
 
     assert result.returncode != 0
     assert "Checksum mismatch" in result.stderr
+
+
+def test_rollback_requires_explicit_confirmation(tmp_path):
+    result = subprocess.run(
+        [str(SCRIPTS / "rollback.sh"), "--checkpoint", str(tmp_path)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "--confirm" in result.stderr

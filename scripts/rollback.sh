@@ -7,6 +7,8 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 CHECKPOINT=""
 CONFIRM=false
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
+ROLLBACK_SERVICES="${ROLLBACK_SERVICES:-gateway grpc directus metabase caddy}"
+read -r -a ROLLBACK_SERVICE_ARGS <<< "$ROLLBACK_SERVICES"
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -38,13 +40,13 @@ db_query() {
 
 echo "Stopping application services..."
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}" \
-    docker compose --project-directory "$PROJECT_DIR" stop gateway grpc directus metabase caddy
+    docker compose --project-directory "$PROJECT_DIR" stop "${ROLLBACK_SERVICE_ARGS[@]}"
 
 "$SCRIPT_DIR/restore.sh" --checkpoint "$CHECKPOINT" --confirm
 
 echo "Restarting services..."
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}" \
-    docker compose --project-directory "$PROJECT_DIR" up -d
+    docker compose --project-directory "$PROJECT_DIR" up -d "${ROLLBACK_SERVICE_ARGS[@]}"
 
 VERIFY_CMD="${ROLLBACK_VERIFY_CMD:-$SCRIPT_DIR/health-check.sh}"
 for attempt in $(seq 1 30); do

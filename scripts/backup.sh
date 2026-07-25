@@ -10,6 +10,7 @@ CHECKPOINT="$BACKUP_ROOT/$BACKUP_ID"
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
 DB_SERVICE="${DB_SERVICE:-database}"
 CH_SERVICE="${CH_SERVICE:-clickhouse}"
+CLICKHOUSE_DATABASE="${BACKUP_CLICKHOUSE_DATABASE:-kokonut_analytics}"
 PG_DATABASES="${BACKUP_POSTGRES_DATABASES:-kokonut_intelligence}"
 
 usage() {
@@ -41,6 +42,11 @@ fi
 : "${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY must be set}"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
 : "${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}"
+
+if [[ ! "$CLICKHOUSE_DATABASE" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    echo "Invalid ClickHouse database name: $CLICKHOUSE_DATABASE" >&2
+    exit 2
+fi
 
 compose() {
     COMPOSE_FILE="$COMPOSE_FILE" docker compose --project-directory "$PROJECT_DIR" "$@"
@@ -80,7 +86,7 @@ schema_tmp="$CHECKPOINT/clickhouse/schema.sql"
 tables_tmp="$CHECKPOINT/clickhouse/tables.txt"
 compose exec -T "$CH_SERVICE" clickhouse-client \
     --user kokonut --password "$CLICKHOUSE_PASSWORD" \
-    --query "SELECT name FROM system.tables WHERE database = 'kokonut_analytics' AND engine NOT IN ('View', 'MaterializedView') ORDER BY name FORMAT TSVRaw" \
+    --query "SELECT name FROM system.tables WHERE database = '$CLICKHOUSE_DATABASE' AND engine NOT IN ('View', 'MaterializedView') ORDER BY name FORMAT TSVRaw" \
     > "$tables_tmp"
 
 : > "$schema_tmp"
@@ -92,13 +98,14 @@ while IFS= read -r table; do
     fi
     compose exec -T "$CH_SERVICE" clickhouse-client \
         --user kokonut --password "$CLICKHOUSE_PASSWORD" \
-        --query "SHOW CREATE TABLE kokonut_analytics.\`$table\`" >> "$schema_tmp"
+        --format TSVRaw \
+        --query "SHOW CREATE TABLE \`$CLICKHOUSE_DATABASE\`.\`$table\`" >> "$schema_tmp"
     printf '\n;\n' >> "$schema_tmp"
     data_output="$CHECKPOINT/clickhouse/data/${table}.csv.enc"
     data_temporary="$data_output.tmp"
     compose exec -T "$CH_SERVICE" clickhouse-client \
         --user kokonut --password "$CLICKHOUSE_PASSWORD" \
-        --query "SELECT * FROM kokonut_analytics.\`$table\` FORMAT CSVWithNames" \
+        --query "SELECT * FROM \`$CLICKHOUSE_DATABASE\`.\`$table\` FORMAT CSVWithNames" \
         | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_ENCRYPTION_KEY > "$data_temporary"
     mv "$data_temporary" "$data_output"
     chmod 600 "$data_output"

@@ -9,6 +9,7 @@ CONFIRM=false
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
 DB_SERVICE="${DB_SERVICE:-database}"
 CH_SERVICE="${CH_SERVICE:-clickhouse}"
+CLICKHOUSE_DATABASE="${BACKUP_CLICKHOUSE_DATABASE:-kokonut_analytics}"
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -35,6 +36,11 @@ fi
 : "${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY must be set}"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
 : "${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}"
+
+if [[ ! "$CLICKHOUSE_DATABASE" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    echo "Invalid ClickHouse database name: $CLICKHOUSE_DATABASE" >&2
+    exit 2
+fi
 
 compose() {
     COMPOSE_FILE="$COMPOSE_FILE" docker compose --project-directory "$PROJECT_DIR" "$@"
@@ -78,7 +84,7 @@ for archive in "$CHECKPOINT"/clickhouse/data/*.csv.enc; do
         -out "$temporary" -pass env:BACKUP_ENCRYPTION_KEY
     compose exec -T "$CH_SERVICE" clickhouse-client \
         --user kokonut --password "$CLICKHOUSE_PASSWORD" \
-        --query "INSERT INTO kokonut_analytics.\`$table\` FORMAT CSVWithNames" < "$temporary"
+        --query "INSERT INTO \`$CLICKHOUSE_DATABASE\`.\`$table\` FORMAT CSVWithNames" < "$temporary"
     rm -f "$temporary"
     trap - EXIT
 done

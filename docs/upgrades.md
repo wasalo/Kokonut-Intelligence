@@ -62,5 +62,5 @@ Schema changes use expand-contract discipline:
 - `services.migration`: tracked PostgreSQL migrations.
 - `scripts/seed.sh`: bootstrap and full reference setup.
 - `scripts/seed.sh --reference-only`: reference setup during upgrades.
-- `scripts/seed-pilot.sh`: optional pilot/demo data only.
+- `scripts/seed-pilot.sh`: optional pilot/demo data, including the pilot organization.
 - `scripts/compute-metrics.sh`: explicit derived draft metric computation.
