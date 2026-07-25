@@ -59,6 +59,7 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
     tmp_name = tmp.name
     try:
         tmp.write(input_sql)
+        tmp.flush()
         tmp.close()
         psql_args = [
             "psql", "-X", "-U", PG_USER, "-d", PG_DB,
