@@ -58,6 +58,7 @@ def test_technology_roadmap_lifecycle():
         assert any(row["alternative_id"] == alternative["id"] for row in detail["technology_areas"])
         assert tr.recommend_alternatives(roadmap_id)[0]["alternative_id"] == alternative["id"]
 
+        tr.update_roadmap(roadmap_id, status="submitted")
         review = tr.review_roadmap(roadmap_id, "approved", reviewed_by="test-user", notes="Reviewed test roadmap")
         assert review["result"] == "approved"
         assert tr.get_roadmap(roadmap_id)["status"] == "approved"

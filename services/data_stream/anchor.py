@@ -53,7 +53,7 @@ def anchor_post(conn, post_id: str, chain: str = "celo") -> dict:
     ).mappings().first()
 
     if existing:
-        return {"post_id": post_id, "attestation_request_id": str(existing["id"]), "already_pending": True}
+        return {"post_id": post_id, "attestation_request_id": str(existing["id"]), "already_pending": True, "chain": chain}
 
     attestation_result = conn.execute(
         conn.text(

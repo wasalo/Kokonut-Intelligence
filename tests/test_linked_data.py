@@ -948,6 +948,10 @@ class TestMarketplace:
              "retired_amount": 0, "escrowed_amount": 0},
             {"rowcount": 1},
             {"rowcount": 1},
+            {"param_value": "0.03"},  # buyer fee param
+            {"param_value": "0.03"},  # seller fee param
+            {"param_value": "0xpool"},  # fee pool address
+            {"id": str(uuid.uuid4())},  # marketplace_fee INSERT
         ])
         result = execute_buy_order(conn, buy_id)
         assert result["status"] == "completed"
