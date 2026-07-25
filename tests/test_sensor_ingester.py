@@ -6,35 +6,46 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+SENSOR_TYPE_RANGES = {
+    "soil_moisture": (0, 100),
+    "soil_temperature": (-40, 80),
+    "air_temperature": (-50, 60),
+    "humidity": (0, 100),
+    "light": (0, 200000),
+    "rainfall": (0, 500),
+    "water_level": (0, 10000),
+}
+
 
 def test_sensor_ingester_validate_reading_in_range():
-    from services.ingestion.sensor_ingester import validate_reading, SENSOR_TYPE_RANGES
+    from services.ingestion.field_validation import validate_sensor_reading
 
-    warnings = validate_reading(50.0, "soil_moisture", SENSOR_TYPE_RANGES)
-    assert warnings == []
+    result = validate_sensor_reading(50.0, "soil_moisture", "sensor", ranges=SENSOR_TYPE_RANGES)
+    assert result.status == "accepted"
 
 
 def test_sensor_ingester_validate_reading_below_min():
-    from services.ingestion.sensor_ingester import validate_reading, SENSOR_TYPE_RANGES
+    from services.ingestion.field_validation import validate_sensor_reading
 
-    warnings = validate_reading(-5.0, "soil_moisture", SENSOR_TYPE_RANGES)
-    assert len(warnings) == 1
-    assert "Below minimum" in warnings[0]
+    result = validate_sensor_reading(-5.0, "soil_moisture", "sensor", ranges=SENSOR_TYPE_RANGES)
+    assert result.status == "suspect"
+    assert any("outside configured range" in w for w in result.warnings)
 
 
 def test_sensor_ingester_validate_reading_above_max():
-    from services.ingestion.sensor_ingester import validate_reading, SENSOR_TYPE_RANGES
+    from services.ingestion.field_validation import validate_sensor_reading
 
-    warnings = validate_reading(150.0, "humidity", SENSOR_TYPE_RANGES)
-    assert len(warnings) == 1
-    assert "Above maximum" in warnings[0]
+    result = validate_sensor_reading(150.0, "humidity", "sensor", ranges=SENSOR_TYPE_RANGES)
+    assert result.status == "suspect"
+    assert any("outside configured range" in w for w in result.warnings)
 
 
 def test_sensor_ingester_validate_reading_nan():
-    from services.ingestion.sensor_ingester import validate_reading, SENSOR_TYPE_RANGES
+    from services.ingestion.field_validation import validate_sensor_reading
 
-    warnings = validate_reading(float("nan"), "air_temperature", SENSOR_TYPE_RANGES)
-    assert any("NaN" in w for w in warnings)
+    result = validate_sensor_reading(float("nan"), "air_temperature", "sensor", ranges=SENSOR_TYPE_RANGES)
+    assert result.status == "rejected"
+    assert any("finite" in e for e in result.errors)
 
 
 def test_sensor_ingester_get_sensor_type_ranges_returns_defaults():

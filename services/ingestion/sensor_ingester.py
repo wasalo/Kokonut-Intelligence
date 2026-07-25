@@ -94,21 +94,6 @@ def get_sensor_type_ranges(db) -> dict:
     return ranges
 
 
-def validate_reading(value: float, sensor_type: str, ranges: dict) -> list:
-    """Validate a sensor reading. Returns list of warnings."""
-    result = validate_sensor_reading(value, sensor_type, unit="sensor", ranges=ranges)
-    if not result.normalized.get("value") == result.normalized.get("value"):
-        return ["Value is NaN"]
-    warnings = []
-    if sensor_type in ranges:
-        min_val, max_val = ranges[sensor_type]
-        if value < min_val:
-            warnings.append(f"Below minimum ({min_val} {sensor_type}): {value}")
-        if value > max_val:
-            warnings.append(f"Above maximum ({max_val} {sensor_type}): {value}")
-    return warnings + [w for w in result.errors if w != "value must be finite"]
-
-
 def get_active_sensors(db) -> list:
     """Get all active sensor devices with type info."""
     with db.cursor() as cur:
