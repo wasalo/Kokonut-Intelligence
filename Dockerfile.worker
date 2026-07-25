@@ -28,6 +28,7 @@ COPY services/ ./services/
 COPY schemas/ ./schemas/
 COPY scripts/ ./scripts/
 COPY config/ ./config/
+COPY VERSION ./VERSION
 COPY Makefile ./Makefile
 COPY pyproject.toml ./pyproject.toml
 

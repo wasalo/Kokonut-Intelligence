@@ -19,6 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY services/ services/
 COPY schemas/ schemas/
 COPY config/ config/
+COPY VERSION VERSION
 COPY proto/ proto/
 COPY sdk/ sdk/
 COPY pyproject.toml .

@@ -182,14 +182,22 @@ def create_app():
     @app.get("/health")
     async def health():
         """Health check endpoint."""
-        return {"status": "ok", "service": "gateway", "timestamp": datetime.now(timezone.utc).isoformat()}
+        from services import __git_sha__, __version__
+
+        return {
+            "status": "ok",
+            "service": "gateway",
+            "version": __version__,
+            "git_sha": __git_sha__,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
 
     @app.get("/")
     async def root():
         """Root endpoint."""
         return {
             "service": "Kokonut Intelligence Gateway",
-            "version": "1.0.0",
+            "version": __import__("services").__version__,
             "docs": "/docs",
             "health": "/health",
         }
