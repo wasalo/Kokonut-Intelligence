@@ -19,7 +19,11 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
     Checks (in order):
     1. Capability token (x-capability-token header) — fine-grained, resource-scoped.
     2. API key (x-api-key header) — trusted service key, scope-enforced.
-    Returns a structured result with caller, scope, and capability metadata.
+
+    API key scopes support optional location scoping: ``name:resource:action``
+    or ``name:resource:action:location_id``. When a scope includes a
+    location_id, the request's location must match (or the scope must use
+    ``*``). Two-part scopes (no location segment) match any location.
     """
     headers = dict(request.headers)
 
@@ -77,7 +81,8 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
 
         # Service/custom keys are fail-closed: the route's resource/action
         # must be explicitly permitted by the key's configured scopes.
-        if _scope_allows(key_meta, resource, action):
+        # When location_id is present, the scope must also match (or be wildcard).
+        if _scope_allows(key_meta, resource, action, location_id):
             return {
                 "authenticated": True,
                 "caller": key_meta.get("name", "api-key"),
@@ -112,18 +117,31 @@ def _match_api_key(api_key: str) -> dict | None:
     return best
 
 
-def _scope_allows(key_meta: dict, resource: str, action: str) -> bool:
-    """Return True if the key's scopes permit the (resource, action).
+def _scope_allows(key_meta: dict, resource: str, action: str, location_id: str | None = None) -> bool:
+    """Return True if the key's scopes permit the (resource, action, location).
 
-    Scopes come from KOKONUT_API_KEY_SCOPES (format ``name:resource:action``,
-    where ``resource`` or ``action`` may be ``*``). A key with no configured
-    scopes is denied access to every non-public route (fail-closed).
+    Scopes come from KOKONUT_API_KEY_SCOPES (format ``name:resource:action``
+    or ``name:resource:action:location_id``, where ``resource``, ``action``,
+    or ``location_id`` may be ``*``). A key with no configured scopes is
+    denied access to every non-public route (fail-closed).
+
+    Location scoping is optional: a two-part scope (``resource:action``)
+    matches any location, preserving backward compatibility for service keys
+    that need platform-wide access.
     """
     scopes = key_meta.get("scopes") or []
     for scope in scopes:
-        scope_resource, _, scope_action = scope.partition(":")
-        if scope_resource in ("*", resource) and scope_action in ("*", action):
-            return True
+        parts = scope.split(":")
+        scope_resource = parts[0] if len(parts) > 0 else "*"
+        scope_action = parts[1] if len(parts) > 1 else "*"
+        scope_location = parts[2] if len(parts) > 2 else None
+        if scope_resource not in ("*", resource):
+            continue
+        if scope_action not in ("*", action):
+            continue
+        if scope_location and location_id and scope_location not in ("*", location_id):
+            continue
+        return True
     return False
 
 
@@ -132,7 +150,10 @@ def _get_valid_api_keys() -> dict:
 
     Keys are looked up by value at auth time (constant-time). Each entry
     carries a ``role`` and, for non-admin keys, a ``scopes`` list built from
-    ``KOKONUT_API_KEY_SCOPES`` (format ``name:resource:action[,name:resource:action]``).
+    ``KOKONUT_API_KEY_SCOPES`` (format ``name:resource:action`` or
+    ``name:resource:action:location_id``, comma-separated). The ``name``
+    prefix is stripped; ``meta["scopes"]`` contains ``["resource:action"]``
+    or ``["resource:action:location_id"]`` entries.
     """
     keys: dict[str, dict] = {}
     # Directus admin token — full access by design.
