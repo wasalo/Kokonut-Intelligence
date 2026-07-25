@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -13,6 +14,7 @@ import psycopg2.extras
 
 
 CALCULATION_VERSION = "v1"
+_MAX_CALIBRATION_AGE_DAYS = int(os.environ.get("CALIBRATION_MAX_AGE_DAYS", "90"))
 
 
 def _domain_for_metric(metric: str) -> str:
@@ -357,16 +359,34 @@ class PredictionService:
         if n < int(policy.get("minimum_sample_size", 20)):
             gate = "insufficient_data"
         else:
-            checks = (("mape", mape, policy.get("maximum_mape")),
-                      ("absolute_bias_pct", bias_pct, policy.get("maximum_abs_bias_pct")),
-                      ("brier_score", mean_brier, policy.get("maximum_brier_score")))
-            for name, value, maximum in checks:
-                if maximum is not None and value is not None and value > float(maximum):
-                    failures.append(name)
-            minimum_coverage = policy.get("minimum_interval_coverage")
-            if minimum_coverage is not None and coverage is not None and coverage < float(minimum_coverage):
-                failures.append("interval_coverage")
-            gate = "fail" if failures else "pass"
+            cur.execute(
+                """
+                SELECT computed_at FROM prediction_calibration_assessment
+                WHERE model_name=%s AND model_version=%s AND metric_key=%s
+                  AND (location_id IS NULL OR location_id=%s)
+                ORDER BY computed_at DESC LIMIT 1
+                """,
+                (model_name, model_version, metric_key,
+                 rows[0]["location_id"] if rows else None),
+            )
+            prev = cur.fetchone()
+            if prev and prev["computed_at"]:
+                age_days = (datetime.now(timezone.utc) - prev["computed_at"]).days
+                if age_days > _MAX_CALIBRATION_AGE_DAYS:
+                    gate = "stale"
+                    failures.append(f"last_calibration_age_{age_days}d_exceeds_{_MAX_CALIBRATION_AGE_DAYS}d")
+
+            if gate != "stale":
+                checks = (("mape", mape, policy.get("maximum_mape")),
+                          ("absolute_bias_pct", bias_pct, policy.get("maximum_abs_bias_pct")),
+                          ("brier_score", mean_brier, policy.get("maximum_brier_score")))
+                for name, value, maximum in checks:
+                    if maximum is not None and value is not None and value > float(maximum):
+                        failures.append(name)
+                minimum_coverage = policy.get("minimum_interval_coverage")
+                if minimum_coverage is not None and coverage is not None and coverage < float(minimum_coverage):
+                    failures.append("interval_coverage")
+                gate = "fail" if failures else "pass"
         bucket = _horizon_bucket(int(rows[0]["horizon_seconds"])) if rows else "unknown"
         cur.execute(
             """
@@ -414,24 +434,91 @@ class PredictionService:
         if deviation is not None and abs(deviation) > 10 and not (deviation_rationale or "").strip():
             cur.close()
             raise ValueError("Material inside/outside-view deviations require rationale")
+
+        fit_dimensions, fit_status = self._compute_fit_dimensions(cur, prediction_id, inside, median, deviation)
+
         cur.execute(
             """
             INSERT INTO outside_view_comparison (
                 prediction_id,reference_class_id,inside_estimate,reference_median,
                 reference_adverse,deviation_pct,selection_rationale,deviation_rationale,
-                disconfirming_evidence,fit_status
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'good')
+                disconfirming_evidence,fit_dimensions,fit_status
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb,%s)
             ON CONFLICT (prediction_id,reference_class_id) DO UPDATE SET
                 selection_rationale=EXCLUDED.selection_rationale,
                 deviation_rationale=EXCLUDED.deviation_rationale,
                 disconfirming_evidence=EXCLUDED.disconfirming_evidence,
-                deviation_pct=EXCLUDED.deviation_pct
+                deviation_pct=EXCLUDED.deviation_pct,
+                fit_dimensions=EXCLUDED.fit_dimensions,
+                fit_status=EXCLUDED.fit_status
             RETURNING *
             """,
             (prediction_id, reference_class_id, inside, median, row["p10"], deviation,
-             selection_rationale, deviation_rationale, disconfirming_evidence),
+             selection_rationale, deviation_rationale, disconfirming_evidence,
+             json.dumps(fit_dimensions), fit_status),
         )
         result = dict(cur.fetchone())
         self.conn.commit()
         cur.close()
         return result
+
+    def _compute_fit_dimensions(
+        self, cur, prediction_id: str,
+        inside: float, median: float, deviation: float,
+    ) -> tuple[dict, str]:
+        """Compute fit_dimensions and fit_status from evaluation data and outside-view comparison."""
+        cur.execute(
+            """
+            SELECT pe.signed_error, pe.absolute_error, pe.absolute_percentage_error,
+                   pe.within_interval, po.actual_value
+            FROM prediction_evaluation pe
+            JOIN prediction_outcome po ON po.id = pe.outcome_id
+            WHERE pe.prediction_id = %s AND po.status IN ('verified','published')
+            """,
+            (prediction_id,),
+        )
+        eval_rows = [dict(r) for r in cur.fetchall()]
+
+        apes = [float(r["absolute_percentage_error"]) for r in eval_rows if r["absolute_percentage_error"] is not None]
+        signed_errors = [float(r["signed_error"]) for r in eval_rows]
+        actuals = [float(r["actual_value"]) for r in eval_rows if r["actual_value"] is not None]
+        within_flags = [r["within_interval"] for r in eval_rows if r["within_interval"] is not None]
+
+        n = len(eval_rows)
+        mape = (sum(apes) / len(apes)) if apes else None
+        actual_mean = (sum(abs(a) for a in actuals) / len(actuals)) if actuals else 0
+        signed_bias = (sum(signed_errors) / len(signed_errors)) if signed_errors else None
+        bias_pct = (abs(signed_bias) / actual_mean * 100) if signed_errors and actual_mean else None
+        interval_coverage = (sum(1 for v in within_flags if v) / len(within_flags)) if within_flags else None
+        deviation_from_reference = abs(deviation) if deviation is not None else None
+
+        fit_dimensions = {
+            "mape": round(mape, 4) if mape is not None else None,
+            "bias_pct": round(bias_pct, 4) if bias_pct is not None else None,
+            "interval_coverage": round(interval_coverage, 4) if interval_coverage is not None else None,
+            "deviation_from_reference_pct": round(deviation_from_reference, 4) if deviation_from_reference is not None else None,
+            "evaluation_sample_size": n,
+        }
+
+        scores = []
+        if mape is not None:
+            scores.append(1.0 if mape <= 10 else (0.5 if mape <= 25 else 0.0))
+        if bias_pct is not None:
+            scores.append(1.0 if bias_pct <= 5 else (0.5 if bias_pct <= 15 else 0.0))
+        if deviation_from_reference is not None:
+            scores.append(1.0 if deviation_from_reference <= 10 else (0.5 if deviation_from_reference <= 25 else 0.0))
+        if interval_coverage is not None:
+            scores.append(1.0 if interval_coverage >= 0.8 else (0.5 if interval_coverage >= 0.6 else 0.0))
+
+        if not scores:
+            fit_status = "insufficient_evidence"
+        else:
+            avg_score = sum(scores) / len(scores)
+            if avg_score >= 0.7:
+                fit_status = "good"
+            elif avg_score >= 0.4:
+                fit_status = "partial"
+            else:
+                fit_status = "poor"
+
+        return fit_dimensions, fit_status
