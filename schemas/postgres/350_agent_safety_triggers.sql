@@ -80,26 +80,10 @@ CREATE TRIGGER trg_agent_safety
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
 
--- threat
-DROP TRIGGER IF EXISTS trg_agent_safety ON threat;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON threat
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
 -- threat_flag
 DROP TRIGGER IF EXISTS trg_agent_safety ON threat_flag;
 CREATE TRIGGER trg_agent_safety
     BEFORE UPDATE ON threat_flag
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
--- threat_horizon
-DROP TRIGGER IF EXISTS trg_agent_safety ON threat_horizon;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON threat_horizon
     FOR EACH ROW
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
@@ -204,14 +188,6 @@ CREATE TRIGGER trg_agent_safety
 DROP TRIGGER IF EXISTS trg_agent_safety ON delphi_diversity_assessment;
 CREATE TRIGGER trg_agent_safety
     BEFORE UPDATE ON delphi_diversity_assessment
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
--- delphi_stopping_evaluation
-DROP TRIGGER IF EXISTS trg_agent_safety ON delphi_stopping_evaluation;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON delphi_stopping_evaluation
     FOR EACH ROW
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
@@ -432,25 +408,9 @@ CREATE TRIGGER trg_agent_safety
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
 
--- coordination_partner_event
-DROP TRIGGER IF EXISTS trg_agent_safety ON coordination_partner_event;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON coordination_partner_event
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
--- coordination_market_observation
-DROP TRIGGER IF EXISTS trg_agent_safety ON coordination_market_observation;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON coordination_market_observation
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
 -- 3. Record schema version
 INSERT INTO schema_version (version, description, applied_by)
-VALUES ('agent-safety-triggers-v1', 'DB-level agent safety triggers for 51 governed tables with status columns', 'schema 350')
+VALUES ('agent-safety-triggers-v1', 'DB-level agent safety triggers for 47 governed tables with status columns', 'schema 350')
 ON CONFLICT (version) DO UPDATE SET
     description = EXCLUDED.description,
     applied_by = EXCLUDED.applied_by;
