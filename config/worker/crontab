@@ -2,6 +2,10 @@
 # All jobs run in /app with the Kokonut Python environment
 # Logs go to /var/log/cron.log
 # Adjust timing via environment variables in docker-compose.worker.yml if needed
+#
+# NOTE: Most ingestion/scheduling jobs are managed by the DB scheduler
+# (services.scheduler.worker + schemas/seeds/050_scheduled_tasks.sql).
+# Only jobs that cannot run as Python modules remain here.
 
 # ┌───────────── minute (0-59)
 # │ ┌───────────── hour (0-23)
@@ -11,38 +15,40 @@
 # │ │ │ │ │
 # │ │ │ │ │ ┌───────────── command
 
-# Weather ingestion — every 6 hours
-0 */6 * * * cd /app && python3 -m services.ingestion.weather >> /var/log/cron.log 2>&1
-
-# Market data — daily at 06:00 UTC
-0 6 * * * cd /app && python3 -m services.ingestion.market_data --source world_bank >> /var/log/cron.log 2>&1
-
-# EAS indexer — every 15 minutes
-*/15 * * * * cd /app && python3 -m services.ingestion.eas_indexer >> /var/log/cron.log 2>&1
-
-# RPC wallet indexer — every 30 minutes
-*/30 * * * * cd /app && python3 -m services.ingestion.rpc_indexer >> /var/log/cron.log 2>&1
-
-# Sensor ingester — every 5 minutes
-*/5 * * * * cd /app && python3 -m services.ingestion.sensor_ingester >> /var/log/cron.log 2>&1
-
-# Gnosis Chain indexer — every 2 hours
-0 */2 * * * cd /app && python3 -m services.ingestion.gnosis_indexer >> /var/log/cron.log 2>&1
-
-# Anomaly detection — every hour
-0 * * * * cd /app && python3 -m services.ingestion.anomaly_detector >> /var/log/cron.log 2>&1
-
-# Metrics computation — every 4 hours (draft values for independent review)
-0 */4 * * * cd /app && python3 -m services.metrics --compute --all-locations >> /var/log/cron.log 2>&1
-
-# Health check with alerting — every 5 minutes
+# Health check with alerting — every 5 minutes (bash script, not schedulable via DB engine)
 */5 * * * * cd /app && bash scripts/health-alert.sh >> /var/log/cron.log 2>&1
 
+# ── Jobs below are deprecated — managed by DB scheduler ──────────────
+# Uncomment only if the DB scheduler is not running.
+# Weather ingestion — every 6 hours
+# 0 */6 * * * cd /app && python3 -m services.ingestion.weather >> /var/log/cron.log 2>&1
+
+# Market data — daily at 06:00 UTC
+# 0 6 * * * cd /app && python3 -m services.ingestion.market_data --source world_bank >> /var/log/cron.log 2>&1
+
+# EAS indexer — every 15 minutes
+# */15 * * * * cd /app && python3 -m services.ingestion.eas_indexer >> /var/log/cron.log 2>&1
+
+# RPC wallet indexer — every 30 minutes
+# */30 * * * * cd /app && python3 -m services.ingestion.rpc_indexer >> /var/log/cron.log 2>&1
+
+# Sensor ingester — every 5 minutes
+# */5 * * * * cd /app && python3 -m services.ingestion.sensor_ingester >> /var/log/cron.log 2>&1
+
+# Gnosis Chain indexer — every 2 hours
+# 0 */2 * * * cd /app && python3 -m services.ingestion.gnosis_indexer >> /var/log/cron.log 2>&1
+
+# Anomaly detection — every hour
+# 0 * * * * cd /app && python3 -m services.ingestion.anomaly_detector >> /var/log/cron.log 2>&1
+
+# Metrics computation — every 4 hours (draft values for independent review)
+# 0 */4 * * * cd /app && python3 -m services.metrics --compute --all-locations >> /var/log/cron.log 2>&1
+
 # Dashboard dataset refresh — every 6 hours
-0 */6 * * * cd /app && python3 -m services.export.dataset_refresh --all >> /var/log/cron.log 2>&1
+# 0 */6 * * * cd /app && python3 -m services.export.dataset_refresh --all >> /var/log/cron.log 2>&1
 
 # Data freshness check — every hour
-0 * * * * cd /app && python3 -m services.ingestion.data_freshness --check >> /var/log/cron.log 2>&1
+# 0 * * * * cd /app && python3 -m services.ingestion.data_freshness --check >> /var/log/cron.log 2>&1
 
 # Climate data refresh — weekly (Sundays at 03:00 UTC)
-0 3 * * 0 cd /app && python3 -m services.ingestion.climate_data --all --location-id a0000000-0000-0000-0000-000000000001 >> /var/log/cron.log 2>&1
+# 0 3 * * 0 cd /app && python3 -m services.ingestion.climate_data --all >> /var/log/cron.log 2>&1

@@ -285,7 +285,20 @@ def compute_financial_risk(
         "payback_months": unit_economics.get("payback_months"),
         "total_revenue": float(revenue.get("total_revenue", 0) or 0),
         "total_expense": float(expense.get("total_expense", 0) or 0),
+        "vintage_year": vintage_year,
     }
+
+    # Apply vintage-specific risk adjustment: older vintages carry higher risk
+    # due to price decay, methodology obsolescence, or registry de-listing risk.
+    vintage_adjustment = 0.0
+    if vintage_year:
+        current_year = datetime.now(timezone.utc).year
+        age = current_year - vintage_year
+        if age > 0:
+            # 2% risk increase per year of age, capped at 15%
+            vintage_adjustment = min(age * 0.02, 0.15)
+            risk_score = clamp_risk_score(risk_score + vintage_adjustment * 100)
+            factors["vintage_risk_adjustment"] = round(vintage_adjustment, 4)
 
     return DimensionScore(
         dimension_key="financial",

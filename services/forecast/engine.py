@@ -36,6 +36,62 @@ from .risk import (
     calculate_confidence_interval,
 )
 
+# Thresholds for data staleness warnings (days)
+_STALE_THRESHOLDS = {
+    "price_observation": 180,
+    "crop_cycle": 365,
+    "expense_event": 180,
+    "harvest_event": 365,
+    "sensor_reading": 30,
+}
+
+
+def _check_data_freshness(location_id: str) -> List[str]:
+    """Check age of key input data and return staleness warnings."""
+    warnings = []
+    db = get_db()
+    with db.cursor() as cur:
+        for table, max_days in _STALE_THRESHOLDS.items():
+            try:
+                if table == "sensor_reading":
+                    cur.execute(
+                        "SELECT MAX(reading_date) FROM sensor_reading WHERE location_id = %s",
+                        (location_id,),
+                    )
+                elif table == "crop_cycle":
+                    cur.execute(
+                        "SELECT MAX(plant_date) FROM crop_cycle WHERE location_id = %s",
+                        (location_id,),
+                    )
+                elif table in ("expense_event", "harvest_event"):
+                    col = "expense_date" if table == "expense_event" else "harvest_date"
+                    cur.execute(
+                        f"SELECT MAX({col}) FROM {table} WHERE location_id = %s",
+                        (location_id,),
+                    )
+                elif table == "price_observation":
+                    cur.execute(
+                        "SELECT MAX(price_date) FROM price_observation po "
+                        "JOIN crop c ON po.crop_id = c.id "
+                        "JOIN crop_cycle cc ON cc.crop_id = c.id AND cc.location_id = %s",
+                        (location_id,),
+                    )
+                else:
+                    continue
+                row = cur.fetchone()
+                if row and row[0]:
+                    from datetime import date
+                    latest = row[0] if isinstance(row[0], date) else row[0].date()
+                    age_days = (date.today() - latest).days
+                    if age_days > max_days:
+                        warnings.append(
+                            f"{table}: latest data is {age_days} days old (threshold: {max_days} days)"
+                        )
+            except Exception:
+                pass
+    db.close()
+    return warnings
+
 
 def load_scenario(scenario_id: str) -> Optional[Dict[str, Any]]:
     """Load a scenario from the database."""
@@ -65,6 +121,9 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
 
     location_id = scenario["location_id"]
     scenario_type = scenario.get("scenario_type", "baseline")
+
+    # Check input data freshness before running projections
+    data_freshness_notes = _check_data_freshness(location_id)
 
     # Parse assumptions
     sa = ScenarioAssumptions.from_dict(scenario.get("assumptions", {}))
@@ -435,6 +494,7 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
         "total_bed_area_sqm": round(total_bed_area_sqm, 2),
         "calculation_path": "per_sqm" if per_sqm_data else "ha_fallback",
         "outputs_written": len(outputs),
+        "data_freshness_notes": data_freshness_notes,
     }
 
 

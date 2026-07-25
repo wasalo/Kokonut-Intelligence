@@ -363,13 +363,20 @@ def run_ml_check(
 
     all_anomalies = []
 
+    # Try loading saved models first (avoids expensive retraining)
+    saved = load_models(location_id, max_age_days=7)
+    prophet_cache = saved.get("prophet", {})
+    iforest_cache = saved.get("iforest")
+
     # Prophet: per-sensor univariate detection
     for sensor in sensors:
         sensor_type = sensor["sensor_type"]
         df = _query_sensor_timeseries(conn, location_id or str(sensors[0].get("location_id")), sensor_type, lookback_days=30)
 
         if len(df) >= 100:
-            model = fit_prophet(conn, location_id, sensor_type, lookback_days=90)
+            model = prophet_cache.get(sensor_type)
+            if not model:
+                model = fit_prophet(conn, location_id, sensor_type, lookback_days=90)
             if model:
                 anomalies = predict_anomalies_prophet(model, df, sensor_type)
                 for a in anomalies:
@@ -380,7 +387,9 @@ def run_ml_check(
     if location_id:
         all_sensors_df = _query_all_sensors_timeseries(conn, location_id, lookback_days=30)
         if not all_sensors_df.empty and len(all_sensors_df) >= 50:
-            iforest_tuple = fit_isolation_forest(conn, location_id, lookback_days=30)
+            iforest_tuple = iforest_cache
+            if not iforest_tuple:
+                iforest_tuple = fit_isolation_forest(conn, location_id, lookback_days=30)
             if iforest_tuple:
                 if_anomalies = score_anomalies_iforest(iforest_tuple, all_sensors_df)
                 for a in if_anomalies:
@@ -447,3 +456,52 @@ def save_models(conn, location_id: str) -> Dict[str, Any]:
             logger.error("Failed to save Isolation Forest model: %s", e)
 
     return {"status": "success", "models_saved": saved, "model_dir": str(MODEL_DIR)}
+
+
+def load_models(
+    location_id: str,
+    max_age_days: int = 7,
+) -> Dict[str, Any]:
+    """Load saved ML models from disk, skipping stale ones.
+
+    Returns:
+        {"prophet": {sensor_type: model}, "iforest": (model, scaler, features)}
+        Missing or stale models are omitted.
+    """
+    import time
+
+    result: Dict[str, Any] = {"prophet": {}, "iforest": None}
+    if not MODEL_DIR.exists():
+        return result
+
+    now = time.time()
+    max_age_secs = max_age_days * 86400
+
+    # Load Prophet models
+    prefix = f"prophet_{location_id[:8]}_"
+    for pkl_file in MODEL_DIR.glob(f"{prefix}*.pkl"):
+        sensor_type = pkl_file.name[len(prefix):-4]
+        try:
+            if now - pkl_file.stat().st_mtime > max_age_secs:
+                logger.info("Stale Prophet model for %s (age > %d days), skipping", sensor_type, max_age_days)
+                continue
+            import pickle
+            with open(pkl_file, "rb") as f:
+                result["prophet"][sensor_type] = pickle.load(f)
+        except Exception as e:
+            logger.warning("Failed to load Prophet model %s: %s", pkl_file.name, e)
+
+    # Load Isolation Forest
+    iforest_path = MODEL_DIR / f"iforest_{location_id[:8]}.pkl"
+    if iforest_path.exists():
+        try:
+            if now - iforest_path.stat().st_mtime > max_age_secs:
+                logger.info("Stale Isolation Forest model (age > %d days), skipping", max_age_days)
+            else:
+                import pickle
+                with open(iforest_path, "rb") as f:
+                    result["iforest"] = pickle.load(f)
+        except Exception as e:
+            logger.warning("Failed to load Isolation Forest model: %s", e)
+
+    return result
