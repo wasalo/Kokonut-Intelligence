@@ -8,6 +8,7 @@ import time
 import grpc
 
 from services.common.logging import get_logger
+from services.grpc.auth import require_scope
 
 logger = get_logger("grpc.data_service")
 
@@ -21,8 +22,12 @@ class DataServiceServicer:
     def _get_conn(self):
         return self._db_factory()
 
+    def _release_conn(self, conn):
+        self._db_factory.release(conn)
+
     def GenerateIRI(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "iri_registry", "write")
         conn = self._get_conn()
         try:
             from services.iri.resolver import generate_iri
@@ -34,11 +39,11 @@ class DataServiceServicer:
             )
             return data_pb2.GenerateIRIResponse(iri=iri)
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def ResolveIRI(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
-        from services.common.logging import get_logger
+        require_scope(context, "iri_registry", "read")
         conn = self._get_conn()
         try:
             from services.iri.resolver import resolve_metadata
@@ -53,10 +58,11 @@ class DataServiceServicer:
                 )
             )
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def GetVersionHistory(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "iri_registry", "read")
         conn = self._get_conn()
         try:
             from services.iri.resolver import get_version_history
@@ -68,7 +74,7 @@ class DataServiceServicer:
                 ) for v in versions]
             )
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def ComputeContentHash(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
@@ -82,6 +88,7 @@ class DataServiceServicer:
 
     def CreateContentHash(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "data_stream", "write")
         conn = self._get_conn()
         try:
             from services.data_module.content_hash import create_content_hash
@@ -95,10 +102,11 @@ class DataServiceServicer:
             )
             return data_pb2.CreateContentHashResponse(**result)
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def FindIRIByHash(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "data_stream", "read")
         conn = self._get_conn()
         try:
             from services.data_module.content_hash import find_iri_by_content_hash
@@ -112,10 +120,11 @@ class DataServiceServicer:
                 ) for r in results]
             )
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def DefineResolver(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "data_stream", "write")
         conn = self._get_conn()
         try:
             from services.data_module.resolver import define_resolver
@@ -123,10 +132,11 @@ class DataServiceServicer:
                                      request.description or None)
             return data_pb2.DefineResolverResponse(**result)
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def RegisterToResolver(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "data_stream", "write")
         conn = self._get_conn()
         try:
             from services.data_module.resolver import register_data_to_resolver
@@ -134,10 +144,11 @@ class DataServiceServicer:
                                                 request.registered_by or None)
             return data_pb2.RegisterToResolverResponse(**result)
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def GetResolversForIRI(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "data_stream", "read")
         conn = self._get_conn()
         try:
             from services.data_module.resolver import get_resolvers_for_iri
@@ -150,10 +161,11 @@ class DataServiceServicer:
                 ) for r in resolvers]
             )
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def ListResolvers(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "data_stream", "read")
         conn = self._get_conn()
         try:
             from services.data_module.resolver import list_resolvers
@@ -166,20 +178,22 @@ class DataServiceServicer:
                 ) for r in resolvers]
             )
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def AttestToIRI(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "data_stream", "write")
         conn = self._get_conn()
         try:
             from services.data_module.attestor import attest_to_iri
             result = attest_to_iri(conn, request.iri_id, request.attestor_address)
             return data_pb2.AttestToIRIResponse(**result)
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def GetAttestorsForIRI(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "data_stream", "read")
         conn = self._get_conn()
         try:
             from services.data_module.attestor import get_attestors_for_iri
@@ -191,10 +205,11 @@ class DataServiceServicer:
                 ) for a in attestors]
             )
         finally:
-            conn.close()
+            self._release_conn(conn)
 
     def StreamNewIRIs(self, request, context):
         from services.grpc.data.v1 import types_pb2 as data_pb2
+        require_scope(context, "iri_registry", "read")
         conn = self._get_conn()
         try:
             last_check = int(time.time())
@@ -219,4 +234,4 @@ class DataServiceServicer:
                     )
                 last_check = now
         finally:
-            conn.close()
+            self._release_conn(conn)

@@ -97,10 +97,23 @@ def serve():
 
     reflection.enable_server_reflection(service_names, server)
 
-    server.add_insecure_port(f"[::]:{port}")
-    server.start()
+    tls_cert = os.environ.get("GRPC_TLS_CERT")
+    tls_key = os.environ.get("GRPC_TLS_KEY")
 
-    logger.info("gRPC server started on port %d (workers=%d)", port, max_workers)
+    if tls_cert and tls_key:
+        with open(tls_cert, "rb") as f:
+            cert_chain = f.read()
+        with open(tls_key, "rb") as f:
+            private_key = f.read()
+        server_credentials = grpc.ssl_server_credentials(
+            [(private_key, cert_chain)],
+        )
+        server.add_secure_port(f"[::]:{port}", server_credentials)
+        logger.info("gRPC server started on port %d with TLS (workers=%d)", port, max_workers)
+    else:
+        logger.warning("gRPC TLS not configured (GRPC_TLS_CERT/GRPC_TLS_KEY not set) — using insecure port")
+        server.add_insecure_port(f"[::]:{port}")
+        logger.info("gRPC server started on port %d INSECURE (workers=%d)", port, max_workers)
     logger.info("Registered services: %s", ", ".join(service_names))
 
     def _shutdown(signum, frame):
