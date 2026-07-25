@@ -56,10 +56,10 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
     large ``BEGIN``/``COMMIT``-wrapped migrations and ``ON_ERROR_STOP=1``.
     """
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False)
-    tmp_name = tmp.name
     try:
         tmp.write(input_sql)
         tmp.flush()
+        tmp_name = tmp.name
         tmp.close()
         psql_args = [
             "psql", "-X", "-U", PG_USER, "-d", PG_DB,
