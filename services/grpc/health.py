@@ -17,6 +17,20 @@ class HealthServicer(health_pb2_grpc.HealthServicer):
 
     def Watch(self, request, context):
         from grpc_health.v1.health_pb2 import HealthCheckResponse
-        yield HealthCheckResponse(
-            status=HealthCheckResponse.SERVING
-        )
+        from services.common.logging import get_logger
+        import time
+
+        logger = get_logger("grpc.health")
+        logger.info("Health Watch stream opened for service: %s", request.service or "all")
+
+        try:
+            yield HealthCheckResponse(
+                status=HealthCheckResponse.SERVING
+            )
+            while context.is_active():
+                time.sleep(10)
+                yield HealthCheckResponse(
+                    status=HealthCheckResponse.SERVING
+                )
+        except grpc.RpcError:
+            pass

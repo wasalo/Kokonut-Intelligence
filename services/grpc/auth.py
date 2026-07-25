@@ -55,7 +55,7 @@ class APIKeyInterceptor(grpc.ServerInterceptor):
                     {"hash": key_hash},
                 ).mappings().first()
             finally:
-                conn.close()
+                self._db_factory.release(conn)
         except Exception as e:
             logger.error("API key lookup failed: %s", e)
             return _abort(grpc.StatusCode.INTERNAL, "Authentication service error")
@@ -87,17 +87,17 @@ def get_current_auth() -> dict | None:
     return grpc_auth_context.get()
 
 
-def require_scope(resource: str, action: str) -> None:
+def require_scope(context, resource: str, action: str) -> None:
     """Abort the current RPC if the caller lacks the required scope.
 
     Call this at the top of each service method:
-        require_scope("ecocredit:class", "read")
+        require_scope(context, "ecocredit:class", "read")
 
-    Raises grpc.PERMISSION_DENIED if the scope is missing.
+    Aborts with PERMISSION_DENIED if the scope is missing.
     """
     auth = get_current_auth()
     if auth is None:
-        raise grpc.StatusCode.UNAUTHENTICATED
+        context.abort(grpc.StatusCode.UNAUTHENTICATED, "Not authenticated")
     scopes = auth.get("scopes") or []
     for scope in scopes:
         parts = scope.split(":")
@@ -105,8 +105,9 @@ def require_scope(resource: str, action: str) -> None:
         scope_action = parts[1] if len(parts) > 1 else "*"
         if scope_resource in ("*", resource) and scope_action in ("*", action):
             return
-    raise grpc.PermissionDenied(
-        f"Scope '{resource}:{action}' required but not granted"
+    context.abort(
+        grpc.StatusCode.PERMISSION_DENIED,
+        f"Scope '{resource}:{action}' required but not granted",
     )
 
 
