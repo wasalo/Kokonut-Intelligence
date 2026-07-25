@@ -24,6 +24,7 @@ services:
       - databases
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: ${PG_DB:-kokonut_intelligence}
@@ -95,6 +96,7 @@ services:
       PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
       DIRECTUS_URL: http://directus:8055
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}

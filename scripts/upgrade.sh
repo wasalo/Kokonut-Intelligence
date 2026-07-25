@@ -8,9 +8,11 @@ COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
 UPGRADE_OPERATOR="${KOKONUT_OPERATOR:-$(id -un)}"
 TARGET_VERSION="$(tr -d '[:space:]' < "$PROJECT_DIR/VERSION")"
 TARGET_SHA="$(git -C "$PROJECT_DIR" rev-parse HEAD)"
+export KOKONUT_GIT_SHA="$TARGET_SHA"
+export KOKONUT_EXPECTED_VERSION="$TARGET_VERSION"
+export KOKONUT_EXPECTED_GIT_SHA="$TARGET_SHA"
 PLAN_ONLY=false
 CONFIRM=false
-SKIP_BACKUP=false
 SKIP_REFERENCE_SEEDS=false
 CHECKPOINT=""
 UPGRADE_ROW_CREATED=false
@@ -22,8 +24,6 @@ Usage: scripts/upgrade.sh [options]
 Options:
   --plan                    Validate and show pending migrations only
   --yes                     Confirm the upgrade after the plan is displayed
-  --skip-backup --confirm-risk
-                            Skip the checkpoint (unsafe and explicit)
   --skip-reference-seeds   Skip curated reference seed application
   --checkpoint ID           Use this checkpoint identifier
 EOF
@@ -33,12 +33,6 @@ while [ "$#" -gt 0 ]; do
     case "$1" in
         --plan) PLAN_ONLY=true; shift ;;
         --yes) CONFIRM=true; shift ;;
-        --skip-backup)
-            if [ "${2:-}" != "--confirm-risk" ]; then
-                echo "--skip-backup requires --confirm-risk" >&2
-                exit 2
-            fi
-            SKIP_BACKUP=true; shift 2 ;;
         --skip-reference-seeds) SKIP_REFERENCE_SEEDS=true; shift ;;
         --checkpoint) CHECKPOINT="$2"; shift 2 ;;
         --help) usage; exit 0 ;;
@@ -124,17 +118,13 @@ if [ "$CONFIRM" != "true" ]; then
     exit 1
 fi
 
-if [ "$SKIP_BACKUP" = "true" ]; then
-    echo "WARNING: checkpoint backup skipped by explicit operator request."
+if [ -n "$CHECKPOINT" ]; then
+    export BACKUP_ID="$CHECKPOINT"
 else
-    if [ -n "$CHECKPOINT" ]; then
-        export BACKUP_ID="$CHECKPOINT"
-    else
-        CHECKPOINT="checkpoint-${TARGET_VERSION}-$(date -u +%Y%m%dT%H%M%SZ)"
-        export BACKUP_ID="$CHECKPOINT"
-    fi
-    "$SCRIPT_DIR/backup.sh"
+    CHECKPOINT="checkpoint-${TARGET_VERSION}-$(date -u +%Y%m%dT%H%M%SZ)"
+    export BACKUP_ID="$CHECKPOINT"
 fi
+"$SCRIPT_DIR/backup.sh"
 
 if [ -f "$PROJECT_DIR/schemas/postgres/351_platform_upgrade.sql" ]; then
     # The history table is created by the migration itself on first upgrade.
@@ -175,7 +165,7 @@ echo "Metric recomputation remains operator-controlled; skipping."
 echo "Restarting services in the Compose maintenance window..."
 compose up -d --no-build
 
-VERIFY_CMD="${UPGRADE_VERIFY_CMD:-$SCRIPT_DIR/health-check.sh}"
+VERIFY_CMD="${UPGRADE_VERIFY_CMD:-$SCRIPT_DIR/verify-upgrade.sh}"
 for attempt in $(seq 1 30); do
     if "$VERIFY_CMD" >/dev/null 2>&1; then
         break

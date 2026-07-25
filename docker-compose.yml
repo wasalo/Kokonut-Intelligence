@@ -146,6 +146,7 @@ services:
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-development}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: ${PG_DB:-kokonut_intelligence}
@@ -212,6 +213,7 @@ services:
       - GRPC_PORT=50051
       - GRPC_MAX_WORKERS=10
       - KOKONUT_ENV=${KOKONUT_ENV:-dev}
+      - KOKONUT_GIT_SHA=${KOKONUT_GIT_SHA:-unknown}
     networks:
       - databases
       - apps

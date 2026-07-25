@@ -40,7 +40,8 @@ jobs:
         PG_DB=kokonut_intelligence
         PG_USER=kokonut
         PG_PASSWORD=ci-placeholder
-        CLICKHOUSE_PASSWORD=ci-placeholder
+         CLICKHOUSE_PASSWORD=ci-placeholder
+         BACKUP_ENCRYPTION_KEY=ci-backup-key
         REDIS_PASSWORD=ci-placeholder
         DIRECTUS_SECRET=ci-secret
         ADMIN_EMAIL=ci@@kokonut.network
@@ -75,6 +76,7 @@ jobs:
         echo "=== [step] Fast-fail: ci-check (imports + CLIs + TS build) ==="
         ./scripts/ci-check.sh
         echo "=== [step] Starting infrastructure ==="
+        export KOKONUT_GIT_SHA="$(git rev-parse HEAD)"
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache
         docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
@@ -102,6 +104,13 @@ jobs:
         rm -f .env.sops
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
+        echo "=== [step] Starting application services ==="
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait gateway grpc
+        COMPOSE_FILE=docker-compose.yml:docker-compose.ci.yml \
+          KOKONUT_EXPECTED_VERSION="$(cat VERSION)" \
+          KOKONUT_EXPECTED_GIT_SHA="$KOKONUT_GIT_SHA" \
+          CLICKHOUSE_PASSWORD=ci-placeholder \
+          ./scripts/verify-upgrade.sh
         echo "=== [step] Computing metrics ==="
         . .venv/bin/activate
         ./scripts/compute-metrics.sh
