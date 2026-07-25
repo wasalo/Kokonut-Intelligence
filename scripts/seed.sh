@@ -8,6 +8,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
+REFERENCE_ONLY=false
+if [ "${1:-}" = "--reference-only" ]; then
+    REFERENCE_ONLY=true
+elif [ "${1:-}" = "--help" ]; then
+    echo "Usage: $0 [--reference-only]"
+    exit 0
+elif [ "$#" -gt 0 ]; then
+    echo "Unknown argument: $1" >&2
+    exit 2
+fi
+
 echo "=== Kokonut Intelligence Platform — Seed Data ==="
 echo ""
 
@@ -50,45 +61,47 @@ echo "Waiting for PostgreSQL..."
 wait_for_postgres
 echo "PostgreSQL is ready."
 
-# Apply init.sql and extensions.sql (bind mounts removed from docker-compose.yml
-# to fix DinD failures where the source paths resolve to executor host directories).
-echo ""
-echo "Applying init.sql..."
-docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/config/postgres/init.sql"
-echo "Applying extensions.sql..."
-docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/config/postgres/extensions.sql"
+if [ "$REFERENCE_ONLY" = "false" ]; then
+    # Apply init.sql and extensions.sql (bind mounts removed from docker-compose.yml
+    # to fix DinD failures where the source paths resolve to executor host directories).
+    echo ""
+    echo "Applying init.sql..."
+    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/config/postgres/init.sql"
+    echo "Applying extensions.sql..."
+    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/config/postgres/extensions.sql"
 
-# Apply PostgreSQL schema and numbered seed migrations through the checksum-
-# tracked runner. Keep this as the only default PostgreSQL application path.
-echo ""
-echo "Applying PostgreSQL schema migrations..."
-python3 -m services.migration migrate --schemas-only
-echo "PostgreSQL schema migrations applied successfully."
+    # Apply PostgreSQL schema and numbered seed migrations through the checksum-
+    # tracked runner. Keep this as the only default PostgreSQL application path.
+    echo ""
+    echo "Applying PostgreSQL schema migrations..."
+    python3 -m services.migration migrate --schemas-only
+    echo "PostgreSQL schema migrations applied successfully."
 
-# Apply ClickHouse schemas
-echo ""
-echo "Applying ClickHouse schemas..."
-CH_SCHEMA_DIR="$PROJECT_DIR/schemas/clickhouse"
-if docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --query "SELECT 1" > /dev/null 2>&1; then
-    for ch_file in "$CH_SCHEMA_DIR"/*.sql; do
-        filename=$(basename "$ch_file")
-        echo "  Applying: $filename"
-        docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --multiquery < "$ch_file"
-    done
-    echo "ClickHouse schemas applied."
-else
-    echo "ClickHouse not running — skipping."
-fi
+    # Apply ClickHouse schemas
+    echo ""
+    echo "Applying ClickHouse schemas..."
+    CH_SCHEMA_DIR="$PROJECT_DIR/schemas/clickhouse"
+    if docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --query "SELECT 1" > /dev/null 2>&1; then
+        for ch_file in "$CH_SCHEMA_DIR"/*.sql; do
+            filename=$(basename "$ch_file")
+            echo "  Applying: $filename"
+            docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --multiquery < "$ch_file"
+        done
+        echo "ClickHouse schemas applied."
+    else
+        echo "ClickHouse not running — skipping."
+    fi
 
-# Apply Directus permissions
-echo ""
-echo "Applying Directus permissions..."
-PERMISSIONS_FILE="$PROJECT_DIR/config/directus/permissions.sql"
-if [ -f "$PERMISSIONS_FILE" ] && docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=0 -U kokonut -d kokonut_intelligence -c "SELECT 1 FROM directus_roles LIMIT 1" >/dev/null 2>&1; then
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PERMISSIONS_FILE"
-    echo "Directus permissions applied."
-else
-    echo "Directus not running or no permissions file — skipping."
+    # Apply Directus permissions
+    echo ""
+    echo "Applying Directus permissions..."
+    PERMISSIONS_FILE="$PROJECT_DIR/config/directus/permissions.sql"
+    if [ -f "$PERMISSIONS_FILE" ] && docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=0 -U kokonut -d kokonut_intelligence -c "SELECT 1 FROM directus_roles LIMIT 1" >/dev/null 2>&1; then
+        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PERMISSIONS_FILE"
+        echo "Directus permissions applied."
+    else
+        echo "Directus not running or no permissions file — skipping."
+    fi
 fi
 
 # Curated pilot/reference seeds remain separate from schema migrations until

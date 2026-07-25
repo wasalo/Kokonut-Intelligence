@@ -134,14 +134,13 @@ def test_legacy_reconciliation_requires_exact_version_and_name(monkeypatch):
     }
 
 
-def test_apply_batch_checks_applied_then_applies(tmp_path, monkeypatch):
+def test_apply_batch_locks_and_rechecks_before_applying(tmp_path, monkeypatch):
     migration = _sql_file(tmp_path / "001_o'hare.sql", "CREATE TABLE example (id int);")
     calls = []
 
     def fake_psql(sql, variables=None):
         calls.append({"sql": sql, "variables": variables})
-        # Simulate migration not yet applied (first call returns "f")
-        return type("Result", (), {"stdout": "f\n"})()
+        return type("Result", (), {"stdout": ""})()
 
     monkeypatch.setattr(cli, "_psql", fake_psql)
     cli._apply_files([{
@@ -151,19 +150,29 @@ def test_apply_batch_checks_applied_then_applies(tmp_path, monkeypatch):
         "checksum": "abc",
     }])
 
-    assert len(calls) == 2
+    assert len(calls) == 1
 
-    check_sql = calls[0]["sql"]
-    assert "schema_migration" in check_sql
-    assert "migration_applied" in check_sql
-    assert calls[0]["variables"] == {"migration_id": "schema:001_o'hare.sql"}
-
-    apply_sql = calls[1]["sql"]
+    apply_sql = calls[0]["sql"]
+    assert "pg_advisory_lock(777204681)" in apply_sql
+    assert "migration_applied" in apply_sql
+    assert "\\if :check_migration_applied" in apply_sql
     assert "CREATE TABLE example" in apply_sql
     assert "INSERT INTO schema_migration" in apply_sql
     assert "ON CONFLICT" in apply_sql
     assert "o'hare" not in apply_sql
-    assert calls[1]["variables"]["migration_id"] == "schema:001_o'hare.sql"
+    assert calls[0]["variables"]["migration_id"] == "schema:001_o'hare.sql"
+
+
+def test_plan_does_not_initialize_or_reconcile_tracking(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cli, "_discover_files", lambda include_seeds=True: [])
+    monkeypatch.setattr(cli, "_validate_sources", lambda files: calls.append("validate"))
+    monkeypatch.setattr(cli, "_get_applied", lambda: {})
+    monkeypatch.setattr(cli, "_validate_applied", lambda files, applied: calls.append("checksums"))
+
+    cli.cmd_plan()
+
+    assert calls == ["validate", "checksums"]
 
 
 def test_modified_applied_migration_is_rejected():

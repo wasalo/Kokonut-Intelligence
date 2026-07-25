@@ -144,12 +144,16 @@ def check_health(services: list[str] | None = None) -> list[HealthStatus]:
 
 def overall_health(services: list[str] | None = None) -> dict:
     """Get overall system health status."""
+    from services import __git_sha__, __version__
+
     results = check_health(services)
     critical_failures = [r for r in results if r.critical and not r.healthy]
     all_healthy = all(r.healthy for r in results)
 
     return {
         "healthy": all_healthy,
+        "version": __version__,
+        "git_sha": __git_sha__,
         "critical_failures": len(critical_failures),
         "services": [r.to_dict() for r in results],
     }

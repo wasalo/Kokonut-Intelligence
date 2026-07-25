@@ -14,7 +14,7 @@ discover schema files, then seed files
         -> ensure schema_migration tracking tables
         -> reconcile compatible legacy numeric rows
         -> validate applied SHA-256 checksums
-        -> acquire PostgreSQL advisory lock
+         -> acquire PostgreSQL advisory lock in the applying psql session
         -> recheck and apply each pending file
         -> record applied migration state
 ```
@@ -57,7 +57,7 @@ Applied migration IDs and checksums are immutable records of what was run.
 ```bash
 python3 -m services.migration status
 python3 -m services.migration validate
-python3 -m services.migration dry-run
+python3 -m services.migration plan
 python3 -m services.migration migrate
 python3 -m services.migration migrate --schemas-only
 ```
@@ -80,16 +80,18 @@ python3 -m services.migration validate
 python3 -m services.migration validate --schemas-only
 ```
 
-### Dry Run
+### Plan
 
-`dry-run` reports pending migrations without applying them. It still requires
-the Compose database because it must inspect tracking state, reconcile legacy
-rows, and validate checksums.
+`plan` reports pending migrations without changing database state. It requires
+the Compose database because it reads tracking state and validates checksums.
+It does not create tracking tables or reconcile legacy rows.
 
 ```bash
-python3 -m services.migration dry-run
-python3 -m services.migration dry-run --schemas-only
+python3 -m services.migration plan
+python3 -m services.migration plan --schemas-only
 ```
+
+`dry-run` remains an alias for `plan`.
 
 ### Migrate
 
@@ -121,10 +123,10 @@ The runner creates or upgrades:
 - `schema_migration_repair`: audited records for explicitly approved historical
   checksum corrections.
 
-The runner uses PostgreSQL advisory lock `777204681`. One psql session holds the
-lock across the pending batch. Each migration is rechecked inside that locked
-session immediately before its SQL runs, so a concurrent runner cannot execute
-a file already applied by the first runner.
+The runner uses PostgreSQL advisory lock `777204681`. Each migration acquires
+the lock and rechecks its applied state in the same psql session that executes
+the migration and tracking insert. A concurrent runner therefore cannot pass a
+check and execute the same migration concurrently.
 
 Tracking inserts occur after the migration SQL. The tracking operation uses an
 `ON CONFLICT` update for the namespaced migration ID.
@@ -168,7 +170,7 @@ operator decision, not an automatic retry:
 4. Do not blindly rerun destructive or non-idempotent SQL.
 5. Add a corrective migration, or make the never-tracked file safely idempotent
    when that is appropriate.
-6. Run `validate`, then `dry-run`, then `migrate`.
+6. Run `validate`, then `plan`, then `migrate`.
 7. Run the relevant schema and application tests.
 
 The advisory lock prevents concurrent runners; it does not make arbitrary SQL

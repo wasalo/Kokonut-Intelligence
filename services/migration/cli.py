@@ -346,18 +346,8 @@ def _apply_files(files: list[dict]) -> None:
     - A failure in one migration does not kill the pipe for subsequent ones.
     - On re-run, already-applied migrations are skipped via ``ON CONFLICT``.
     """
-    for index, file_info in enumerate(files):
+    for file_info in files:
         migration_id = file_info["id"]
-        sql_check = (
-            "SELECT EXISTS ("
-            "SELECT 1 FROM schema_migration "
-            f"WHERE migration_id = :'migration_id' AND status = 'applied'"
-            ") AS migration_applied \\gset check_"
-        )
-        result = _psql(sql_check, {"migration_id": migration_id})
-        if result.stdout.strip().lower() == "t":
-            logger.debug("Skipping already applied migration: %s", migration_id)
-            continue
         logger.info("Applying migration %s...", migration_id)
         sql_content = file_info["path"].read_text()
         sql_track = """
@@ -372,8 +362,25 @@ ON CONFLICT (migration_id) WHERE migration_id IS NOT NULL DO UPDATE SET
     execution_time_ms = EXCLUDED.execution_time_ms,
     applied_at = NOW();
 """
+        # The lock and applied-state recheck must be in the same psql session
+        # as the migration. Otherwise two runners can pass a check between
+        # separate subprocess sessions and both execute the same file.
+        guarded_sql = f"""
+SELECT pg_advisory_lock(777204681);
+SELECT EXISTS (
+    SELECT 1 FROM schema_migration
+    WHERE migration_id = :'migration_id' AND status = 'applied'
+) AS migration_applied \\gset check_
+\\if :check_migration_applied
+    SELECT pg_advisory_unlock(777204681);
+\\else
+{sql_content}
+{sql_track}
+    SELECT pg_advisory_unlock(777204681);
+\\endif
+"""
         _psql(
-            sql_content + "\n" + sql_track,
+            guarded_sql,
             {
                 "migration_id": migration_id,
                 "name": file_info["name"],
@@ -425,6 +432,26 @@ def cmd_migrate(dry_run: bool = False, schemas_only: bool = False) -> None:
     print(f"\n{'Would apply' if dry_run else 'Applied'}: {len(pending)}, Failed: 0")
 
 
+def cmd_plan(schemas_only: bool = False) -> None:
+    """Show pending migrations without changing database state."""
+    files = _discover_files(include_seeds=not schemas_only)
+    _validate_sources(files)
+    try:
+        applied = _get_applied()
+    except MigrationError as exc:
+        raise MigrationError(
+            "migration tracking tables are unavailable; run bootstrap before planning"
+        ) from exc
+    _validate_applied(files, applied)
+    pending = [
+        item for item in files
+        if applied.get(item["id"], {}).get("status") != "applied"
+    ]
+    print(f"{len(pending)} pending migration(s):")
+    for item in pending:
+        print(f"  {item['id']}")
+
+
 def cmd_validate(schemas_only: bool = False) -> None:
     """Validate migration source ordering and syntax boundaries without applying SQL."""
     files = _discover_files(include_seeds=not schemas_only)
@@ -437,7 +464,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Kokonut migration runner")
     parser.add_argument(
-        "command", choices=("status", "migrate", "dry-run", "validate", "repair")
+        "command", choices=("status", "migrate", "plan", "dry-run", "validate", "repair")
     )
     parser.add_argument("--migration-id", help="Migration ID for an audited checksum repair")
     parser.add_argument("--expected-old-checksum", help="Checksum currently recorded in the database")
@@ -472,8 +499,10 @@ def main() -> None:
                 args.migration_id, args.expected_old_checksum, args.reason, args.repaired_by
             )
             print(f"Checksum repair recorded: {repair_id}")
+        elif args.command in {"plan", "dry-run"}:
+            cmd_plan(schemas_only=args.schemas_only)
         else:
-            cmd_migrate(dry_run=args.command == "dry-run", schemas_only=args.schemas_only)
+            cmd_migrate(schemas_only=args.schemas_only)
     except MigrationError as exc:
         logger.error("Migration failed: %s", exc)
         raise SystemExit(1) from exc
