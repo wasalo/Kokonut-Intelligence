@@ -26,7 +26,8 @@ from datetime import datetime, timezone
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows
 from .clickhouse_outbox import enqueue
-from .field_validation import validate_sensor_reading
+from .field_validation import SENSOR_RANGES, validate_sensor_reading
+from .sensor_ingester import get_sensor_type_ranges
 
 logger = get_logger("ingestion.mqtt_subscriber")
 
@@ -201,8 +202,12 @@ class MQTTSensorSubscriber:
         else:
             reading_time = datetime.now(timezone.utc)
 
+        try:
+            ranges = get_sensor_type_ranges(self._db)
+        except Exception:
+            ranges = SENSOR_RANGES
         validation = validate_sensor_reading(
-            value, sensor_type, unit, reading_time, identity=device_id
+            value, sensor_type, unit, reading_time, ranges=ranges, identity=device_id
         )
         if validation.status == "rejected":
             logger.warning("Invalid MQTT reading for device %s: %s", device_id, validation.errors)

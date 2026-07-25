@@ -23,7 +23,8 @@ from typing import Any, Dict, List, Optional
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows
 from .clickhouse_outbox import enqueue
-from .field_validation import validate_sensor_reading
+from .field_validation import SENSOR_RANGES, validate_sensor_reading
+from .sensor_ingester import get_sensor_type_ranges
 
 logger = get_logger("ingestion.http_sensor_receiver")
 
@@ -113,9 +114,13 @@ def _get_app():
             else:
                 ts = datetime.now(timezone.utc)
 
+            try:
+                ranges = get_sensor_type_ranges(db)
+            except Exception:
+                ranges = SENSOR_RANGES
             validation = validate_sensor_reading(
                 reading.value, sensor_type, reading.unit, ts, reading.quality,
-                identity=reading.device_id,
+                ranges=ranges, identity=reading.device_id,
             )
             if validation.status == "rejected":
                 log_ingestion(
