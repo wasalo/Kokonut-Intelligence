@@ -36,7 +36,7 @@ INSERT INTO scheduled_task (name, module_path, command_args, cron_expression, pr
     ('dashboard_dataset_refresh', 'services.export.dataset_refresh', '["--all"]', '0 */6 * * *', 'normal', 900, 3, TRUE),
 
     -- Climate data refresh — weekly (Sundays at 03:00 UTC)
-    ('climate_data_refresh', 'services.ingestion.climate_data', '["--all", "--location-id", "a0000000-0000-0000-0000-000000000001"]', '0 3 * * 0', 'low', 3600, 2, TRUE),
+    ('climate_data_refresh', 'services.ingestion.climate_data', '["--all"]', '0 3 * * 0', 'low', 3600, 2, TRUE),
 
     -- Event bus processing — every 2 minutes
     ('event_bus_process', 'services.events', '["--process"]', '*/2 * * * *', 'high', 120, 3, TRUE),

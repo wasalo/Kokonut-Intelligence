@@ -73,6 +73,10 @@ def project_prices(
         "Cassava": assumptions.cassava_per_tonne_usd,
         "Beans": assumptions.beans_per_tonne_usd,
         "Sweet Potato": assumptions.sweet_potato_per_tonne_usd,
+        "Coffee": getattr(assumptions, "coffee_per_tonne_usd", 2500.0),
+        "Avocado": getattr(assumptions, "avocado_per_tonne_usd", 2000.0),
+        "Tomato": getattr(assumptions, "tomato_per_tonne_usd", 800.0),
+        "Banana": getattr(assumptions, "banana_per_tonne_usd", 400.0),
     }
     for crop_name, fallback_price in crop_map.items():
         base = base_prices.get(crop_name, fallback_price)
