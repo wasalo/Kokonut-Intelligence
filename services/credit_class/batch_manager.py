@@ -109,9 +109,17 @@ def issue_batch(conn, batch_id: str, issuer_address: str) -> dict:
     )
     from services.credit_class.balance import upsert_balance
     upsert_balance(conn, batch_id, issuer_address, tradable_delta=float(batch["total_quantity"]))
+
+    try:
+        from services.credit_class.chain_sync import sync_credits_to_chain
+        chain_result = sync_credits_to_chain(conn, batch_id)
+    except Exception as e:
+        logger.warning("On-chain sync failed for batch %s (non-blocking): %s", batch_id, e)
+        chain_result = {"error": str(e)}
+
     logger.info("Issued credit_batch %s (%s)", batch_id, batch["batch_code"])
     return {"id": batch_id, "batch_code": batch["batch_code"], "status": "published",
-            "issuer_address": issuer_address}
+            "issuer_address": issuer_address, "chain_sync": chain_result}
 
 
 def get_batch(conn, batch_id: str) -> dict | None:

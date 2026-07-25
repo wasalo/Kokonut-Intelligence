@@ -378,6 +378,36 @@ def main():
     p_br_list.add_argument("--status", default=None)
     p_br_list.set_defaults(func=lambda args: _print_list("bridge", lambda conn: __import__("services.credit_class.bridge", fromlist=["list_bridge_transactions"]).list_bridge_transactions(conn, args.direction, args.status)))
 
+    # --- chain-sync ---
+    p_cs = sub.add_parser("chain-sync", help="On-chain credit sync operations")
+    cs_sub = p_cs.add_subparsers(dest="subcommand")
+
+    p_cs_sync = cs_sub.add_parser("sync", help="Sync a credit batch to the chain")
+    p_cs_sync.add_argument("--batch-id", required=True)
+    p_cs_sync.add_argument("--chain", default="celo")
+    p_cs_sync.add_argument("--contract-address", default=None)
+    p_cs_sync.add_argument("--private-key", default=None)
+    p_cs_sync.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.chain_sync", fromlist=["sync_credits_to_chain"]).sync_credits_to_chain(
+        conn, args.batch_id, private_key=args.private_key, chain=args.chain, contract_address=args.contract_address)))
+
+    p_cs_retire = cs_sub.add_parser("retire-onchain", help="Retire credits on-chain")
+    p_cs_retire.add_argument("--retirement-id", required=True)
+    p_cs_retire.add_argument("--chain", default="celo")
+    p_cs_retire.add_argument("--private-key", default=None)
+    p_cs_retire.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.chain_sync", fromlist=["retire_onchain"]).retire_onchain(
+        conn, args.retirement_id, private_key=args.private_key, chain=args.chain)))
+
+    p_cs_verify = cs_sub.add_parser("verify", help="Verify on-chain balance vs PostgreSQL")
+    p_cs_verify.add_argument("--token-id", type=int, required=True)
+    p_cs_verify.add_argument("--account", required=True)
+    p_cs_verify.add_argument("--chain", default="celo")
+    p_cs_verify.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.chain_sync", fromlist=["verify_chain_balance"]).verify_chain_balance(
+        conn, args.token_id, args.account, chain=args.chain)))
+
+    p_cs_reconcile = cs_sub.add_parser("reconcile", help="Full reconciliation across all batches")
+    p_cs_reconcile.add_argument("--chain", default="celo")
+    p_cs_reconcile.set_defaults(func=lambda args: _print_json(lambda conn: __import__("services.credit_class.chain_sync", fromlist=["reconcile_all"]).reconcile_all(conn, chain=args.chain)))
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()

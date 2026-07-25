@@ -413,8 +413,19 @@ def review_retirement(
     """, (new_status, reviewer_id, review_notes, retirement_id))
     conn.commit()
     cur.close()
+
+    chain_result = None
+    if decision == "confirm":
+        try:
+            from services.credit_class.chain_sync import retire_onchain
+            chain_result = retire_onchain(conn, retirement_id)
+        except Exception as e:
+            logger.warning("On-chain retirement failed for %s (non-blocking): %s", retirement_id, e)
+            chain_result = {"error": str(e)}
+
     return {"status": "success", "retirement_id": retirement_id,
-            "retirement_status": new_status, "retired_tonnes": float(tonnes)}
+            "retirement_status": new_status, "retired_tonnes": float(tonnes),
+            "chain_sync": chain_result}
 
 
 def list_credits(conn, location_id: str = None, vintage_year: int = None) -> List[Dict[str, Any]]:
