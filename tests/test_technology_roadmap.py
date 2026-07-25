@@ -1,5 +1,7 @@
 """Integration tests for the governed technology roadmap."""
 
+import uuid
+
 import pytest
 
 from services.analytics import technology_roadmap as tr
@@ -58,7 +60,8 @@ def test_technology_roadmap_lifecycle():
         assert any(row["alternative_id"] == alternative["id"] for row in detail["technology_areas"])
         assert tr.recommend_alternatives(roadmap_id)[0]["alternative_id"] == alternative["id"]
 
-        review = tr.review_roadmap(roadmap_id, "approved", notes="Reviewed test roadmap")
+        tr.update_roadmap(roadmap_id, status="submitted")
+        review = tr.review_roadmap(roadmap_id, "approved", reviewed_by=str(uuid.uuid4()), notes="Reviewed test roadmap")
         assert review["result"] == "approved"
         assert tr.get_roadmap(roadmap_id)["status"] == "approved"
     finally:

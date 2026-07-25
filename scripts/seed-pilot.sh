@@ -28,10 +28,12 @@ DB_WAIT_ATTEMPTS="${DB_WAIT_ATTEMPTS:-60}"
 
 apply_pilot_seed() {
     local seed_file="$1"
-    {
-        printf "SET kokonut.seed_context = 'pilot';\n"
-        cat "$seed_file"
-    } | docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence
+    local tmp
+    tmp=$(mktemp)
+    printf "SET kokonut.seed_context = 'pilot';\n" > "$tmp"
+    cat "$seed_file" >> "$tmp"
+    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$tmp"
+    rm -f "$tmp"
 }
 
 wait_for_postgres() {

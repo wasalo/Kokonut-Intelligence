@@ -349,8 +349,29 @@ def execute_buy_order(conn, buy_order_id: str) -> dict:
         {"bid": buy_order_id},
     )
 
-    logger.info("Executed buy order %s", buy_order_id)
-    return {"buy_order_id": buy_order_id, "status": "completed"}
+    from services.credit_class.fees import collect_fee
+    fee_params = _get_fee_params(conn)
+    total_price = float(buy_order["total_price"])
+    buyer_fee = total_price * float(fee_params.get("buyer_fee", 0))
+    seller_fee = total_price * float(fee_params.get("seller_fee", 0))
+
+    fee_result = collect_fee(
+        conn,
+        transaction_type="buy",
+        transaction_id=buy_order_id,
+        buyer_fee=buyer_fee,
+        seller_fee=seller_fee,
+        fee_denom=buy_order.get("price_denom", "cusd"),
+    )
+
+    logger.info("Executed buy order %s with fee %s", buy_order_id, fee_result["id"])
+    return {
+        "buy_order_id": buy_order_id,
+        "status": "completed",
+        "fee_id": fee_result["id"],
+        "buyer_fee": buyer_fee,
+        "seller_fee": seller_fee,
+    }
 
 
 def _get_fee_params(conn) -> dict:

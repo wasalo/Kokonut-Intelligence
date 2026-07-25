@@ -114,6 +114,35 @@ def cmd_file_remove(args):
         print(f"Removed: {removed}")
 
 
+def cmd_anchor_batch(args):
+    with get_connection() as conn:
+        from services.data_stream.anchor import anchor_batch
+        post_ids = [pid.strip() for pid in args.post_ids.split(",")]
+        result = anchor_batch(conn, post_ids, chain=args.chain)
+        print(json.dumps(result, indent=2, default=str))
+
+
+def cmd_reconcile(args):
+    with get_connection() as conn:
+        from services.attestation.reconciliation import reconcile_data_stream_anchors
+        result = reconcile_data_stream_anchors(conn, chain=args.chain)
+        print(json.dumps(result, indent=2, default=str))
+
+
+def cmd_anchoring_status(args):
+    with get_connection() as conn:
+        from services.attestation.reconciliation import get_anchoring_status
+        result = get_anchoring_status(conn, chain=args.chain)
+        print(json.dumps(result, indent=2, default=str))
+
+
+def cmd_process_pending(args):
+    with get_connection() as conn:
+        from services.attestation.signer_service import process_pending_requests
+        result = process_pending_requests(conn, chain=args.chain, limit=args.limit)
+        print(json.dumps(result, indent=2, default=str))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Data Stream CLI")
     sub = parser.add_subparsers(dest="command")
@@ -179,6 +208,24 @@ def main():
     p_file_remove = file_sub.add_parser("remove", help="Remove a file")
     p_file_remove.add_argument("--file-id", required=True)
     p_file_remove.set_defaults(func=cmd_file_remove)
+
+    p_anchor_batch = sub.add_parser("anchor-batch", help="Anchor multiple posts in batch")
+    p_anchor_batch.add_argument("--post-ids", required=True, help="Comma-separated post IDs")
+    p_anchor_batch.add_argument("--chain", default="celo")
+    p_anchor_batch.set_defaults(func=cmd_anchor_batch)
+
+    p_reconcile = sub.add_parser("reconcile", help="Reconcile DB with onchain attestation state")
+    p_reconcile.add_argument("--chain", default="celo")
+    p_reconcile.set_defaults(func=cmd_reconcile)
+
+    p_status = sub.add_parser("status", help="Show anchoring pipeline status")
+    p_status.add_argument("--chain", default=None)
+    p_status.set_defaults(func=cmd_anchoring_status)
+
+    p_process = sub.add_parser("process", help="Process pending attestation requests")
+    p_process.add_argument("--chain", default="celo")
+    p_process.add_argument("--limit", type=int, default=10)
+    p_process.set_defaults(func=cmd_process_pending)
 
     args = parser.parse_args()
     if not args.command:

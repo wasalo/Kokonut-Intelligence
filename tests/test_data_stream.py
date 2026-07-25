@@ -38,6 +38,35 @@ def _fake_conn(rows=None, rowcount=1):
     return conn
 
 
+def _fake_conn_sequential(responses, rowcount=1):
+    """Create a mock that returns different data for each execute() call."""
+    conn = MagicMock()
+    call_count = [0]
+
+    def make_result(rows):
+        result = MagicMock()
+        mappings_result = MagicMock()
+        if rows is None:
+            rows = []
+        elif isinstance(rows, dict):
+            rows = [rows]
+        mappings_result.all.return_value = rows
+        mappings_result.first.return_value = rows[0] if rows else None
+        mappings_result.__iter__ = lambda self: iter(rows)
+        result.mappings.return_value = mappings_result
+        result.rowcount = rowcount
+        return result
+
+    def execute_side_effect(*args, **kwargs):
+        idx = min(call_count[0], len(responses) - 1)
+        call_count[0] += 1
+        return make_result(responses[idx])
+
+    conn.execute = MagicMock(side_effect=execute_side_effect)
+    conn.text = lambda sql: sql
+    return conn
+
+
 LOCATION_ID = str(uuid.uuid4())
 POST_ID = str(uuid.uuid4())
 
@@ -199,11 +228,13 @@ class TestStream:
 class TestAnchor:
     def test_anchor_post(self):
         from services.data_stream.anchor import anchor_post
-        conn = _fake_conn(rows=[
+        conn = _fake_conn_sequential([
             {"id": POST_ID, "location_id": LOCATION_ID, "post_type": "photo",
              "title": "Test", "content_hash": "abc123", "media_type": "image",
              "visibility": "public", "status": "published", "is_anchored": False, "attestation_uid": None},
+            {"rowcount": 1},
             {"schema_uid": "0x123"},
+            None,
             {"id": str(uuid.uuid4())},
         ])
         result = anchor_post(conn, POST_ID, chain="celo")

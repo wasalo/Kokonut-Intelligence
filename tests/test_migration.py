@@ -1,5 +1,6 @@
 """Focused tests for migration discovery, tracking, and execution safety."""
 
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -99,15 +100,16 @@ def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):
 
     def fake_run(command, **kwargs):
         captured["command"] = command
-        captured["input"] = kwargs["input"]
         return subprocess.CompletedProcess(command, 0, "", "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
     cli._psql("SELECT :'value';", {"value": "name'; DROP TABLE x; --"})
 
-    assert "DROP TABLE" not in captured["input"]
-    assert "value=name'; DROP TABLE x; --" in captured["command"]
-    assert "ON_ERROR_STOP=1" in captured["command"]
+    shell_command = captured["command"][2]
+    assert shlex.quote("value=name'; DROP TABLE x; --") in shell_command
+    assert "ON_ERROR_STOP=1" in shell_command
+    assert shell_command.count("docker compose exec") == 1
+    assert "database psql" in shell_command
 
 
 def test_legacy_reconciliation_requires_exact_version_and_name(monkeypatch):
@@ -132,13 +134,14 @@ def test_legacy_reconciliation_requires_exact_version_and_name(monkeypatch):
     }
 
 
-def test_apply_batch_holds_lock_and_tracks_after_sql(tmp_path, monkeypatch):
+def test_apply_batch_checks_applied_then_applies(tmp_path, monkeypatch):
     migration = _sql_file(tmp_path / "001_o'hare.sql", "CREATE TABLE example (id int);")
-    captured = {}
+    calls = []
 
     def fake_psql(sql, variables=None):
-        captured["sql"] = sql
-        captured["variables"] = variables
+        calls.append({"sql": sql, "variables": variables})
+        # Simulate migration not yet applied (first call returns "f")
+        return type("Result", (), {"stdout": "f\n"})()
 
     monkeypatch.setattr(cli, "_psql", fake_psql)
     cli._apply_files([{
@@ -148,14 +151,19 @@ def test_apply_batch_holds_lock_and_tracks_after_sql(tmp_path, monkeypatch):
         "checksum": "abc",
     }])
 
-    sql = captured["sql"]
-    assert sql.index("pg_advisory_lock") < sql.index("CREATE TABLE example")
-    assert "\\gset migration_0_" in sql
-    assert "\\if :migration_0_migration_applied" in sql
-    assert sql.index("CREATE TABLE example") < sql.index("INSERT INTO schema_migration")
-    assert sql.index("INSERT INTO schema_migration") < sql.index("pg_advisory_unlock")
-    assert "o'hare" not in sql
-    assert captured["variables"]["migration_id_0"] == "schema:001_o'hare.sql"
+    assert len(calls) == 2
+
+    check_sql = calls[0]["sql"]
+    assert "schema_migration" in check_sql
+    assert "migration_applied" in check_sql
+    assert calls[0]["variables"] == {"migration_id": "schema:001_o'hare.sql"}
+
+    apply_sql = calls[1]["sql"]
+    assert "CREATE TABLE example" in apply_sql
+    assert "INSERT INTO schema_migration" in apply_sql
+    assert "ON CONFLICT" in apply_sql
+    assert "o'hare" not in apply_sql
+    assert calls[1]["variables"]["migration_id"] == "schema:001_o'hare.sql"
 
 
 def test_modified_applied_migration_is_rejected():

@@ -940,7 +940,7 @@ class TestMarketplace:
         sell_id = str(uuid.uuid4())
         conn = _fake_conn_sequential([
             {"id": buy_id, "sell_order_id": sell_id, "buyer_address": "0xbuyer",
-             "quantity": 4, "auto_retire": False, "status": "pending"},
+             "quantity": 4, "total_price": 100.0, "auto_retire": False, "status": "pending"},
             {"id": sell_id, "credit_batch_id": BATCH_ID, "seller_address": "0xseller",
              "escrow_quantity": 10, "status": "active"},
             {"rowcount": 1},
@@ -948,6 +948,12 @@ class TestMarketplace:
              "retired_amount": 0, "escrowed_amount": 0},
             {"rowcount": 1},
             {"rowcount": 1},
+            {"param_value": "0.03"},   # marketplace._get_fee_params → buyer
+            {"param_value": "0.03"},   # marketplace._get_fee_params → seller
+            {"param_value": "0.03"},   # fees.get_fee_params → buyer
+            {"param_value": "0.03"},   # fees.get_fee_params → seller
+            {"param_value": "0xpool"}, # fees.get_fee_params → pool address
+            {"id": str(uuid.uuid4())}, # marketplace_fee INSERT
         ])
         result = execute_buy_order(conn, buy_id)
         assert result["status"] == "completed"

@@ -82,6 +82,13 @@ KOKONUT_BAAL_ADDRESSES = {
 
 # EAS contract addresses per chain
 EAS_CHAIN_CONFIG = {
+    "ethereum": {
+        "chain_id": 1,
+        "eas_address": "0xA1207C3B4412b0F54fd96ec50c53F0C1fA6E1B5C",
+        "schema_registry_address": "0xC2679fBD36d542273975aA0b330933605913a5dC",
+        "eas_explorer": "https://etherscan.io",
+        "graphql_endpoint": "https://eas.etherscan.io",
+    },
     "celo": {
         "chain_id": 42220,
         "eas_address": "0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92",

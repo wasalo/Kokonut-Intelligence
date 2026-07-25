@@ -56,6 +56,21 @@ def distribute_fee(
     if not fee:
         raise ValueError(f"Fee not found: {fee_id}")
 
+    total_fee = float(fee["total_fee"])
+    existing_distributed = conn.execute(
+        conn.text(
+            "SELECT COALESCE(SUM(amount), 0) AS total_distributed "
+            "FROM marketplace_fee_distribution WHERE fee_id = :fid"
+        ),
+        {"fid": fee_id},
+    ).mappings().first()
+    previously_distributed = float(existing_distributed["total_distributed"])
+
+    if previously_distributed + amount > total_fee + 0.001:
+        raise ValueError(
+            f"Over-distribution: {previously_distributed} + {amount} > {total_fee} total fee"
+        )
+
     result = conn.execute(
         conn.text(
             "INSERT INTO marketplace_fee_distribution "
