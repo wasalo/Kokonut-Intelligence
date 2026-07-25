@@ -56,14 +56,6 @@ CREATE TRIGGER trg_agent_safety
     WHEN (NEW.status IS DISTINCT FROM OLD.status)
     EXECUTE FUNCTION assert_agent_safety('status');
 
--- stakeholder_feedback_review
-DROP TRIGGER IF EXISTS trg_agent_safety ON stakeholder_feedback_review;
-CREATE TRIGGER trg_agent_safety
-    BEFORE UPDATE ON stakeholder_feedback_review
-    FOR EACH ROW
-    WHEN (NEW.status IS DISTINCT FROM OLD.status)
-    EXECUTE FUNCTION assert_agent_safety('status');
-
 -- data_stream_post
 DROP TRIGGER IF EXISTS trg_agent_safety ON data_stream_post;
 CREATE TRIGGER trg_agent_safety
@@ -458,7 +450,7 @@ CREATE TRIGGER trg_agent_safety
 
 -- 3. Record schema version
 INSERT INTO schema_version (version, description, applied_by)
-VALUES ('agent-safety-triggers-v1', 'DB-level agent safety triggers for 52 governed tables with status columns', 'schema 350')
+VALUES ('agent-safety-triggers-v1', 'DB-level agent safety triggers for 51 governed tables with status columns', 'schema 350')
 ON CONFLICT (version) DO UPDATE SET
     description = EXCLUDED.description,
     applied_by = EXCLUDED.applied_by;
