@@ -12,7 +12,6 @@ PLAN_ONLY=false
 CONFIRM=false
 SKIP_BACKUP=false
 SKIP_REFERENCE_SEEDS=false
-SKIP_METRICS=false
 CHECKPOINT=""
 UPGRADE_ROW_CREATED=false
 
@@ -26,7 +25,6 @@ Options:
   --skip-backup --confirm-risk
                             Skip the checkpoint (unsafe and explicit)
   --skip-reference-seeds   Skip curated reference seed application
-  --skip-metrics            Do not recompute metrics
   --checkpoint ID           Use this checkpoint identifier
 EOF
 }
@@ -42,7 +40,6 @@ while [ "$#" -gt 0 ]; do
             fi
             SKIP_BACKUP=true; shift 2 ;;
         --skip-reference-seeds) SKIP_REFERENCE_SEEDS=true; shift ;;
-        --skip-metrics) SKIP_METRICS=true; shift ;;
         --checkpoint) CHECKPOINT="$2"; shift 2 ;;
         --help) usage; exit 0 ;;
         *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -173,9 +170,7 @@ if [ "$SKIP_REFERENCE_SEEDS" != "true" ]; then
     KOKONUT_RUN_CURATED_SEEDS=true "$SCRIPT_DIR/seed.sh" --reference-only
 fi
 
-if [ "$SKIP_METRICS" != "true" ]; then
-    echo "Metric recomputation remains operator-controlled; skipping by default." 
-fi
+echo "Metric recomputation remains operator-controlled; skipping."
 
 echo "Restarting services in the Compose maintenance window..."
 compose up -d --no-build

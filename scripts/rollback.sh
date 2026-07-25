@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 CHECKPOINT=""
 CONFIRM=false
+COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -21,6 +22,20 @@ if [ "$CONFIRM" != "true" ] || [ -z "$CHECKPOINT" ]; then
     exit 2
 fi
 
+if [ -f "$PROJECT_DIR/.env.sops" ]; then
+    # shellcheck disable=SC1091
+    source "$SCRIPT_DIR/load-secrets.sh"
+elif [ "${KOKONUT_ALLOW_PLAINTEXT_ENV:-}" != "true" ]; then
+    echo "Encrypted .env.sops is required; set KOKONUT_ALLOW_PLAINTEXT_ENV=true for local fallback." >&2
+    exit 1
+fi
+
+db_query() {
+    COMPOSE_FILE="$COMPOSE_FILE" docker compose --project-directory "$PROJECT_DIR" \
+        exec -T database psql -X -U kokonut -d kokonut_intelligence \
+        -v ON_ERROR_STOP=1 -A -t "$@"
+}
+
 echo "Stopping application services..."
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}" \
     docker compose --project-directory "$PROJECT_DIR" stop gateway grpc directus metabase caddy
@@ -34,6 +49,11 @@ COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}" \
 VERIFY_CMD="${ROLLBACK_VERIFY_CMD:-$SCRIPT_DIR/health-check.sh}"
 for attempt in $(seq 1 30); do
     if "$VERIFY_CMD" >/dev/null 2>&1; then
+        if db_query -c "SELECT to_regclass('public.platform_upgrade')" | grep -q platform_upgrade; then
+            db_query -c "UPDATE platform_upgrade SET status = 'rolled_back', completed_at = NOW()
+                WHERE id = (SELECT id FROM platform_upgrade WHERE status = 'failed'
+                ORDER BY started_at DESC LIMIT 1)"
+        fi
         echo "Rollback complete: $CHECKPOINT"
         exit 0
     fi
