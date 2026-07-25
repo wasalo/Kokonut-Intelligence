@@ -57,6 +57,11 @@ def get_route_policy(method: str, path: str) -> dict:
                 "public": public,
                 "location_id": match.group(1) if match.groups() else None,
             }
+    logger.warning(
+        "Catch-all route hit: %s %s — no explicit policy defined",
+        method,
+        path,
+    )
     return {"resource": "gateway", "action": method.lower(), "public": False, "location_id": None}
 
 

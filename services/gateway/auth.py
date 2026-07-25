@@ -23,7 +23,9 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
     API key scopes support optional location scoping: ``name:resource:action``
     or ``name:resource:action:location_id``. When a scope includes a
     location_id, the request's location must match (or the scope must use
-    ``*``). Two-part scopes (no location segment) match any location.
+    ``*``). Two-part scopes (no location segment) match any location by
+    default; setting ``KOKONUT_STRICT_LOCATION_SCOPE=true`` requires
+    explicit location scoping for location-specific requests.
     """
     headers = dict(request.headers)
 
@@ -82,13 +84,15 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
         # Service/custom keys are fail-closed: the route's resource/action
         # must be explicitly permitted by the key's configured scopes.
         # When location_id is present, the scope must also match (or be wildcard).
-        if _scope_allows(key_meta, resource, action, location_id):
+        matched_scope = _scope_allows(key_meta, resource, action, location_id)
+        if matched_scope:
             return {
                 "authenticated": True,
                 "caller": key_meta.get("name", "api-key"),
                 "resource": resource,
                 "action": action,
                 "location_id": location_id,
+                "scope_checked": matched_scope,
             }
         return {
             "authenticated": False,
@@ -96,6 +100,7 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
             "resource": resource,
             "action": action,
             "location_id": location_id,
+            "scope_checked": None,
         }
 
     return {
@@ -117,18 +122,21 @@ def _match_api_key(api_key: str) -> dict | None:
     return best
 
 
-def _scope_allows(key_meta: dict, resource: str, action: str, location_id: str | None = None) -> bool:
-    """Return True if the key's scopes permit the (resource, action, location).
+def _scope_allows(key_meta: dict, resource: str, action: str, location_id: str | None = None) -> str | None:
+    """Return the matched scope string if the key's scopes permit the request, else None.
 
     Scopes come from KOKONUT_API_KEY_SCOPES (format ``name:resource:action``
     or ``name:resource:action:location_id``, where ``resource``, ``action``,
     or ``location_id`` may be ``*``). A key with no configured scopes is
     denied access to every non-public route (fail-closed).
 
-    Location scoping is optional: a two-part scope (``resource:action``)
-    matches any location, preserving backward compatibility for service keys
-    that need platform-wide access.
+    When ``KOKONUT_STRICT_LOCATION_SCOPE`` is truthy and the request carries
+    a ``location_id``, two-part scopes (no explicit location segment) are
+    **rejected** — the scope must name a specific location or ``*``.
     """
+    strict = os.environ.get("KOKONUT_STRICT_LOCATION_SCOPE", "").strip().lower() in (
+        "1", "true", "yes",
+    )
     scopes = key_meta.get("scopes") or []
     for scope in scopes:
         parts = scope.split(":")
@@ -139,10 +147,15 @@ def _scope_allows(key_meta: dict, resource: str, action: str, location_id: str |
             continue
         if scope_action not in ("*", action):
             continue
+        # Strict mode: a location-specific request must be satisfied by a
+        # scope that explicitly names a location (or wildcard).  Two-part
+        # scopes (scope_location is None) are not enough.
+        if strict and location_id and scope_location is None:
+            continue
         if scope_location and location_id and scope_location not in ("*", location_id):
             continue
-        return True
-    return False
+        return scope
+    return None
 
 
 def _get_valid_api_keys() -> dict:
