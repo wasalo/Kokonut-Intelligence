@@ -15,7 +15,7 @@ import psycopg2
 import psycopg2.extras
 
 from ..ingestion.base import get_db
-from .config import CALCULATION_VERSION, CONFIDENCE_LEVEL
+from .config import CALCULATION_VERSION, CONFIDENCE_LEVEL, AUTO_CALIBRATION_ENABLED
 from .models import (
     PriceAssumptions, YieldAssumptions, CostAssumptions,
     GrowthAssumptions, ScenarioAssumptions,
@@ -460,6 +460,10 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     # Write outputs to database
     _write_outputs(outputs)
 
+    # Optionally trigger calibration assessment if a policy exists for any metric
+    if AUTO_CALIBRATION_ENABLED:
+        _maybe_trigger_calibration(location_id, outputs)
+
     # Write dashboard dataset for BI integration
     _write_dashboard_dataset(scenario_id, location_id, outputs, scenario_type)
 
@@ -597,6 +601,42 @@ def _write_outputs(outputs: List[Dict[str, Any]]) -> None:
             ))
     db.commit()
     db.close()
+
+
+def _maybe_trigger_calibration(location_id: str, outputs: List[Dict[str, Any]]) -> None:
+    """Trigger calibration assessment for metrics that have an active policy."""
+    try:
+        from services.predictions.service import PredictionService, _domain_for_metric
+        db = get_db()
+        with db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            seen = set()
+            for out in outputs:
+                metric = out["metric_name"]
+                model_version = out["calculation_version"]
+                key = (metric, model_version)
+                if key in seen:
+                    continue
+                seen.add(key)
+                cur.execute(
+                    """
+                    SELECT 1 FROM prediction_calibration_policy
+                    WHERE active=TRUE AND domain=%s
+                      AND (metric_key IS NULL OR metric_key=%s)
+                    LIMIT 1
+                    """,
+                    (_domain_for_metric(metric), metric),
+                )
+                if cur.fetchone():
+                    svc = PredictionService(db)
+                    try:
+                        svc.assess_calibration(
+                            "kokonut_forecast_engine", model_version, metric,
+                        )
+                    except Exception:
+                        pass
+        db.close()
+    except Exception:
+        pass
 
 
 def _write_dashboard_dataset(
