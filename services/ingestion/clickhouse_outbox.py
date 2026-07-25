@@ -163,6 +163,48 @@ def reconcile_pending(conn, limit: int = 1000) -> dict[str, int]:
     return {"pending": pending or 0, "dead_letter": dead or 0, "succeeded": succeeded or 0, "limit": limit}
 
 
+def replay_dead_letter(conn, row_id: str) -> dict[str, Any]:
+    """Re-enqueue a dead-lettered row for retry.
+
+    Resets attempt_count to 0 and status to 'pending' so the next worker
+    cycle picks it up. Only works on rows with status='dead_letter'.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE clickhouse_outbox
+            SET status = 'pending', attempt_count = 0,
+                available_at = NOW(), updated_at = NOW(),
+                last_error = NULL
+            WHERE id = %s AND status = 'dead_letter'
+            RETURNING id, event_key
+            """,
+            (row_id,),
+        )
+        row = cur.fetchone()
+    conn.commit()
+    if not row:
+        return {"status": "error", "message": f"Row {row_id} not found or not dead-lettered"}
+    return {"status": "replayed", "id": str(row[0]), "event_key": row[1]}
+
+
+def list_dead_letters(conn, limit: int = 50) -> list[dict[str, Any]]:
+    """List dead-lettered rows for operator review."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, event_key, source_table, source_id, target_table,
+                   attempt_count, last_error, created_at, updated_at
+            FROM clickhouse_outbox
+            WHERE status = 'dead_letter'
+            ORDER BY updated_at DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        return [dict(zip([desc[0] for desc in cur.description], row)) for row in cur.fetchall()]
+
+
 if __name__ == "__main__":
     import argparse
     import json
@@ -172,12 +214,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Deliver PostgreSQL-to-ClickHouse outbox rows")
     parser.add_argument("--run-once", action="store_true")
     parser.add_argument("--reconcile", action="store_true")
+    parser.add_argument("--list-dead-letter", action="store_true", help="List dead-lettered rows")
+    parser.add_argument("--replay-dead-letter", metavar="ROW_ID", help="Re-enqueue a dead-lettered row for retry")
     parser.add_argument("--worker-id", default=f"clickhouse-{uuid.uuid4().hex[:8]}")
     parser.add_argument("--limit", type=int, default=100)
     args = parser.parse_args()
     conn = get_db()
     try:
-        if args.reconcile:
+        if args.replay_dead_letter:
+            result = replay_dead_letter(conn, args.replay_dead_letter)
+        elif args.list_dead_letter:
+            result = list_dead_letters(conn, args.limit)
+        elif args.reconcile:
             result = reconcile_pending(conn, args.limit)
         elif args.run_once:
             result = deliver_batch(conn, args.worker_id, args.limit)
