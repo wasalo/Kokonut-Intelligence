@@ -121,11 +121,18 @@ jobs:
           exit 1
         fi
         echo "=== [step] Verifying upgraded services ==="
-        COMPOSE_FILE=docker-compose.yml:docker-compose.ci.yml \
-          KOKONUT_EXPECTED_VERSION="$(cat VERSION)" \
-          KOKONUT_EXPECTED_GIT_SHA="$KOKONUT_GIT_SHA" \
-          CLICKHOUSE_PASSWORD=ci-placeholder \
-          bash ./scripts/verify-upgrade.sh
+        EXPECTED_VERSION="$(cat VERSION)"
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+          exec -T gateway python3 - "$EXPECTED_VERSION" "$KOKONUT_GIT_SHA" <<'PY'
+        import sys
+        import services
+        expected_version, expected_sha = sys.argv[1:]
+        if services.__version__ != expected_version:
+            raise SystemExit(f"version mismatch: {services.__version__} != {expected_version}")
+        if services.__git_sha__ != expected_sha:
+            raise SystemExit(f"git SHA mismatch: {services.__git_sha__} != {expected_sha}")
+        print(f"Upgrade verification passed: {expected_version} ({expected_sha})")
+        PY
         echo "=== [step] Computing metrics ==="
         . .venv/bin/activate
         ./scripts/compute-metrics.sh
