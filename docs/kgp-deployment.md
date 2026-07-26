@@ -141,14 +141,13 @@ The script deploys a fresh implementation and an `ERC1967Proxy`, then calls
 deploy the upgrade timelock and does not itself verify that the upgrader code is
 the intended timelock or that it already holds `UPGRADER_ROLE`.
 
-There is a deployment-order constraint in the current scripts: the KGP script
-requires `KGP_UPGRADER` to already contain code, while the timelock constructor
-requires the approved KGP proxy to already contain code. The scripts do not
-provide a turnkey CREATE2/predicted-proxy sequence to resolve this circular
-dependency. Production operators must use an approved staged deployment
-procedure or update the deployment tooling before broadcasting. Do not claim a
-production deployment is complete until the final timelock/proxy binding and
-`UPGRADER_ROLE` handoff have been verified.
+There is a deployment-order constraint: the timelock requires the KGP proxy
+address, while KGP must initially have an upgrader. The repository resolves this
+with a staged deployment. Set `KGP_ALLOW_TEMPORARY_UPGRADER=true`, deploy KGP
+with a disposable temporary EOA, deploy the timelock, then use that temporary
+EOA to grant the timelock `UPGRADER_ROLE` and revoke its own role. The role is
+self-administered by KGP, so the Protocol Admin multisig cannot perform this
+handoff directly.
 
 Deploy KGP after the operational domain registry exists:
 
@@ -190,12 +189,38 @@ Verify:
 - the deployment operator no longer has production upgrade authority;
 - admin, proposer, and executor are separate durable authorities.
 
-There is no repository deployment script for the timelock itself; use an
-approved Foundry deployment procedure and record the resulting address.
+The repository deployment script is:
+
+```bash
+cd contracts
+forge script script/DeployKokonutGuildUpgradeTimelock.s.sol:DeployKokonutGuildUpgradeTimelock \
+  --rpc-url "$GNOSIS_RPC_URL" \
+  --account "$DEPLOYER_ACCOUNT" \
+  --sender "$KGP_DEPLOYER" \
+  --broadcast
+```
+
+The deployed Gnosis Mainnet timelock is
+`0xefAeF01B3DDeF2041A1dbdCEbcA352eD2240920A`, bound to KGP proxy
+`0x136247fCad81c4BE6560754AF440D7B1A320516f` with a 48-hour delay.
+
+## Gnosis Mainnet Deployment Record
+
+The operational Guild protocol, KGP, timelock, Credit Token, Selective
+Disclosure, and Price Oracle are deployed on Gnosis Mainnet (chain ID `100`).
+The complete address and transaction record is maintained in
+[`gnosis-mainnet-deployment.md`](gnosis-mainnet-deployment.md).
+
+The final KGP authority state is verified:
+
+- The timelock has `UPGRADER_ROLE`.
+- The temporary upgrader has no `UPGRADER_ROLE`.
+- The timelock delay is `172800` seconds.
+- No implementation upgrade transaction has been executed yet.
 
 ## Mainnet Readiness
 
-Before Gnosis deployment:
+For a new production deployment:
 
 - run `forge test`;
 - complete contract security review;

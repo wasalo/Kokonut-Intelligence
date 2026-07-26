@@ -385,6 +385,26 @@ cd contracts && forge script script/DeployKokonutResolver.s.sol \
   --verify
 ```
 
+The production Gnosis Mainnet deployment record, role matrix, verified contract
+addresses, and transaction history are maintained in
+[`gnosis-mainnet-deployment.md`](gnosis-mainnet-deployment.md). The Celo EAS
+schema and resolver record are maintained in
+[`attestation-guide.md`](attestation-guide.md).
+
+For a deployed Gnosis contract, use the Etherscan-compatible verifier with the
+API key supplied through the environment; never place the key in source or shell
+history:
+
+```bash
+cd contracts
+forge verify-contract CONTRACT_ADDRESS \
+  src/Contract.sol:Contract \
+  --chain 100 \
+  --verifier etherscan \
+  --etherscan-api-key "$ETHERSCAN_API_KEY" \
+  --watch
+```
+
 **Celo EAS Contracts:**
 
 | Contract | Address |

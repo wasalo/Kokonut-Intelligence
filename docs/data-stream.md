@@ -424,12 +424,13 @@ The Celo seed entry for `Kokonut Data Post` currently has:
 
 - chain `celo`
 - resolver `0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`
-- an all-zero placeholder schema UID
-- `active = FALSE`
+- schema UID `0xf0de37f5c4a441aedb794d5585201c6ef150543dc53f894e1212f7e330205045`
+- `active = TRUE`
 
-Therefore anchoring is not ready on a fresh database unless an operator
-registers and activates the schema separately. Do not describe the local anchor
-command as proof of a completed on-chain attestation.
+The schema was registered on Celo mainnet at block `73193060` in transaction
+`0x6b6a5a1c5f23cfe6dd1e0fb13c60200a45f6bd49b476c4d7716d718ad818b5e5`.
+The local anchor command still creates a pending request; it is not proof of a
+completed onchain attestation until the signer service confirms the EAS UID.
 
 ## Report Integration
 
