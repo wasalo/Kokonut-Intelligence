@@ -69,6 +69,18 @@ def test_gateway_audit_closes_owned_connection():
     conn.close.assert_called_once()
 
 
+def test_gateway_audit_does_not_reuse_closed_owned_connection():
+    conn = MagicMock()
+    audit_logger = MagicMock()
+    with patch("services.common.database.get_db", return_value=conn):
+        with patch("services.security.audit.AuditLogger", return_value=audit_logger):
+            audit = GatewayAudit()
+            audit.log(caller="caller", path="/health", method="GET", status="allowed")
+            audit.log(caller="caller", path="/health", method="GET", status="allowed")
+
+    assert conn.close.call_count == 2
+
+
 def test_request_identity_does_not_return_raw_credentials():
     request = MagicMock()
     request.headers.get.side_effect = lambda key: "secret" if key == "x-api-key" else None

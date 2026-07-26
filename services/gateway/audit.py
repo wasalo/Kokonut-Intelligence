@@ -99,4 +99,7 @@ class GatewayAudit:
             logger.exception("Durable gateway audit failed: %s", exc)
         finally:
             if owns_conn and conn is not None:
+                # The connection was cached by _get_conn; clear it before closing
+                # so the next request cannot reuse a closed connection.
+                self._conn = None
                 conn.close()

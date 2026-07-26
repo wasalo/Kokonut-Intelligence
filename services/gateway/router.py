@@ -27,6 +27,7 @@ logger = get_logger("gateway.router")
 
 # Public access is deliberately opt-in. Unknown routes remain protected.
 _ROUTE_POLICIES = (
+    ("GET", re.compile(r"^/health$"), "gateway", "read", True),
     ("GET", re.compile(r"^/mobile/?$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/app$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/forms$"), "mobile_form", "read", True),
