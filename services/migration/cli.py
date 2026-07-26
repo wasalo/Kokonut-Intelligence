@@ -38,6 +38,9 @@ APPROVED_CHECKSUM_REPAIRS = {
     "schema:298_consent_privacy_p0.sql": "d6b7aa4f5317ec65756461b08233530e243cf3531a43c3faba51d867ef05cd12",
     "seed:046_ecological_modeling.sql": "220f6fe668d63a997f7ef4dbc01f773ee8e9d3755c9ab0872d3acb1fef7a9f3d",
     "seed:029_pilot_impact_accountability.sql": "688934bec47685f3d353283e8202e8ac887d392fe46ec24fb3c694e34b5a9fe7",
+    # The live database contains the historical checksum from the original
+    # pilot seed; repair it explicitly before applying the UID correction seed.
+    "seed:014_pilot_celo_eas.sql": "2b7f95344a6453cb77fafc591255cb81e3c298553ea227241362d0c12183e9c8",
 }
 
 
