@@ -25,6 +25,18 @@ class TestAPIKeyInterceptor:
         result = interceptor.intercept_service(continuation, details)
         continuation.assert_called_once_with(details)
 
+    def test_exempt_methods_accept_wire_format_with_leading_slash(self):
+        from services.grpc.auth import APIKeyInterceptor
+        interceptor = APIKeyInterceptor(db_factory=lambda: MagicMock())
+        continuation = MagicMock(return_value="handler")
+
+        details = MagicMock()
+        details.method = "/grpc.health.v1.Health/Check"
+        details.invocation_metadata = []
+
+        assert interceptor.intercept_service(continuation, details) == "handler"
+        continuation.assert_called_once_with(details)
+
     def test_missing_api_key_rejected(self):
         from services.grpc.auth import APIKeyInterceptor
         interceptor = APIKeyInterceptor(db_factory=lambda: MagicMock())

@@ -29,7 +29,7 @@ class APIKeyInterceptor(grpc.ServerInterceptor):
         self._db_factory = db_factory
 
     def intercept_service(self, continuation, handler_call_details):
-        method = handler_call_details.method
+        method = handler_call_details.method.lstrip("/")
         if method in self.EXEMPT_METHODS:
             return continuation(handler_call_details)
 
