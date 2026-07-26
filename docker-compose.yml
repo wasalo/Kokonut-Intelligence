@@ -209,7 +209,9 @@ services:
       - PG_PORT=5432
       - PG_DB=kokonut_intelligence
       - PG_USER=kokonut
+      - PG_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}
       - GRPC_PORT=50051
       - GRPC_MAX_WORKERS=10
       - KOKONUT_ENV=${KOKONUT_ENV:-dev}
