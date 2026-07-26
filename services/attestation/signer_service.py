@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 
 from services.common.logging import get_logger
 
@@ -25,7 +24,6 @@ def process_pending_requests(
         {"processed": int, "confirmed": int, "failed": int, "results": list[dict]}
     """
     from services.attestation.eas_client import EASClient
-    from services.attestation.schemas import KOKONUT_SCHEMAS, SCHEMA_DB_NAMES
 
     pending = conn.execute(
         conn.text(
@@ -77,6 +75,7 @@ def process_pending_requests(
 
 def _submit_attestation(conn, client, request, chain: str) -> dict:
     """Submit a single attestation request onchain and update DB."""
+    from services.attestation.config import KOKONUT_MULTISIG
     from services.attestation.publisher import _resolve_schema_uid
     from services.attestation.schemas import prepare_data_post_attestation_data
 
@@ -109,7 +108,7 @@ def _submit_attestation(conn, client, request, chain: str) -> dict:
 
     result = client.attest(
         schema_uid=schema_uid,
-        recipient=KOKONUT_RECIPIENT,
+        recipient=KOKONUT_MULTISIG,
         data=data,
         revocable=True,
     )
@@ -162,6 +161,3 @@ def _handle_failure(conn, request_id: str, error_message: str) -> None:
         ),
         {"err": error_message, "rid": request_id},
     )
-
-
-KOKONUT_RECIPIENT = "0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5"

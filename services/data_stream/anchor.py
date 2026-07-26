@@ -58,8 +58,8 @@ def anchor_post(conn, post_id: str, chain: str = "celo") -> dict:
     attestation_result = conn.execute(
         conn.text(
             "INSERT INTO attestation_request "
-            "(subject_type, subject_id, schema_name, chain, execution_status, metadata) "
-            "VALUES ('data_stream_post', :subject_id, :schema_name, :chain, 'pending', :metadata) "
+            "(subject_type, subject_id, schema_name, event_type, chain, execution_status, metadata) "
+            "VALUES ('data_stream_post', :subject_id, :schema_name, 'data_stream_anchor', :chain, 'pending', :metadata) "
             "RETURNING id"
         ),
         {

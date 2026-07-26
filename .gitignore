@@ -75,6 +75,9 @@ logs/
 # Foundry
 contracts/out/
 contracts/cache/
+contracts/broadcast/**/dry-run/
+contracts/broadcast/**/run-*.json
+!contracts/broadcast/**/run-latest.json
 
 # Backups
 backups/

@@ -22,12 +22,14 @@ def anchor_metadata(conn, iri: str, chain: str = "celo") -> dict:
         ),
         {"name": "kokonut-data-post", "chain": chain},
     ).mappings().first()
+    if not schema_result:
+        raise ValueError(f"Attestation schema not found: kokonut-data-post on {chain}")
 
     attestation_result = conn.execute(
         conn.text(
             "INSERT INTO attestation_request "
-            "(subject_type, subject_id, schema_name, chain, execution_status, metadata) "
-            "VALUES ('iri_registry', :subject_id, :schema_name, :chain, 'pending', :metadata) "
+            "(subject_type, subject_id, schema_name, event_type, chain, execution_status, metadata) "
+            "VALUES ('iri_registry', :subject_id, :schema_name, 'metadata_anchor', :chain, 'pending', :metadata) "
             "RETURNING id"
         ),
         {

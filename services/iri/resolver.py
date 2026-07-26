@@ -186,8 +186,8 @@ def anchor_iri(conn, iri: str, chain: str = "celo") -> dict:
         conn.execute(
             conn.text(
                 "INSERT INTO attestation_request "
-                "(subject_type, subject_id, schema_name, chain, execution_status, metadata) "
-                "VALUES ('iri_registry', :subject_id, :schema_name, :chain, 'pending', :metadata) "
+                "(subject_type, subject_id, schema_name, event_type, chain, execution_status, metadata) "
+                "VALUES ('iri_registry', :subject_id, :schema_name, 'iri_anchor', :chain, 'pending', :metadata) "
                 "RETURNING id"
             ),
             {

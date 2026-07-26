@@ -16,33 +16,53 @@ contract DeployKokonutGuildPoints is Script {
     uint256 private constant GNOSIS_CHAIN_ID = 100;
     uint256 private constant CHIADO_CHAIN_ID = 10200;
 
+    struct Config {
+        address deployer;
+        address admin;
+        address awarder;
+        address claimSigner;
+        address reverser;
+        address pauser;
+        address upgrader;
+        address domainRegistry;
+        string uri;
+    }
+
     function run() external returns (KokonutGuildPoints points) {
         require(block.chainid == GNOSIS_CHAIN_ID || block.chainid == CHIADO_CHAIN_ID, "Unsupported Gnosis network");
 
-        address deployer = vm.envAddress("KGP_DEPLOYER");
-        address admin = vm.envAddress("KGP_ADMIN");
-        address awarder = vm.envAddress("KGP_AWARDER");
-        address claimSigner = vm.envAddress("KGP_CLAIM_SIGNER");
-        address reverser = vm.envAddress("KGP_REVERSER");
-        address pauser = vm.envAddress("KGP_PAUSER");
-        address upgrader = vm.envAddress("KGP_UPGRADER");
-        KokonutGuildDomain domains = KokonutGuildDomain(vm.envAddress("KGP_DOMAIN_REGISTRY"));
-        require(upgrader.code.length > 0, "KGP upgrader must be a timelock contract");
-        require(address(domains).code.length > 0, "KGP domain registry has no code");
+        Config memory config = _readConfig();
+        KokonutGuildDomain domains = KokonutGuildDomain(config.domainRegistry);
+        bool temporaryUpgrader = vm.envOr("KGP_ALLOW_TEMPORARY_UPGRADER", false);
+        require(temporaryUpgrader || config.upgrader.code.length > 0, "KGP upgrader must be a timelock contract");
+        if (temporaryUpgrader) {
+            require(config.upgrader != address(0) && config.upgrader != config.admin, "Invalid temporary KGP upgrader");
+        }
+        require(config.domainRegistry.code.length > 0, "KGP domain registry has no code");
         require(address(domains.registry()).code.length > 0, "KGP Guild registry has no code");
         require(
-            deployer != address(0) && deployer != admin && deployer != awarder && deployer != claimSigner
-                && deployer != reverser && deployer != pauser && deployer != upgrader,
+            config.deployer != address(0) && config.deployer != config.admin && config.deployer != config.awarder
+                && config.deployer != config.claimSigner && config.deployer != config.reverser
+                && config.deployer != config.pauser && config.deployer != config.upgrader,
             "KGP deployer cannot hold a privileged role"
         );
-        string memory uri = vm.envOr("KGP_URI", string("ipfs://kokonut-kgp/{id}.json"));
 
         vm.startBroadcast();
         (, address broadcaster,) = vm.readCallers();
-        require(broadcaster == deployer, "Deployer does not match broadcast sender");
+        require(broadcaster == config.deployer, "Deployer does not match broadcast sender");
         KokonutGuildPoints implementation = new KokonutGuildPoints();
         bytes memory initialization = abi.encodeCall(
-            KokonutGuildPoints.initialize, (admin, awarder, claimSigner, reverser, pauser, upgrader, domains, uri)
+            KokonutGuildPoints.initialize,
+            (
+                config.admin,
+                config.awarder,
+                config.claimSigner,
+                config.reverser,
+                config.pauser,
+                config.upgrader,
+                domains,
+                config.uri
+            )
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), initialization);
         vm.stopBroadcast();
@@ -51,11 +71,23 @@ contract DeployKokonutGuildPoints is Script {
         console.log("KokonutGuildPoints proxy:", address(points));
         console.log("KokonutGuildPoints implementation:", address(implementation));
         console.log("Chain ID:", block.chainid);
-        console.log("Admin:", admin);
-        console.log("Awarder:", awarder);
-        console.log("Claim signer:", claimSigner);
-        console.log("Reverser:", reverser);
-        console.log("Pauser:", pauser);
-        console.log("Upgrader:", upgrader);
+        console.log("Admin:", config.admin);
+        console.log("Awarder:", config.awarder);
+        console.log("Claim signer:", config.claimSigner);
+        console.log("Reverser:", config.reverser);
+        console.log("Pauser:", config.pauser);
+        console.log("Upgrader:", config.upgrader);
+    }
+
+    function _readConfig() internal view returns (Config memory config) {
+        config.deployer = vm.envAddress("KGP_DEPLOYER");
+        config.admin = vm.envAddress("KGP_ADMIN");
+        config.awarder = vm.envAddress("KGP_AWARDER");
+        config.claimSigner = vm.envAddress("KGP_CLAIM_SIGNER");
+        config.reverser = vm.envAddress("KGP_REVERSER");
+        config.pauser = vm.envAddress("KGP_PAUSER");
+        config.upgrader = vm.envAddress("KGP_UPGRADER");
+        config.domainRegistry = vm.envAddress("KGP_DOMAIN_REGISTRY");
+        config.uri = vm.envOr("KGP_URI", string("ipfs://kokonut-kgp/{id}.json"));
     }
 }
