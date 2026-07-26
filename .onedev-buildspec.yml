@@ -77,6 +77,7 @@ jobs:
         ./scripts/ci-check.sh
         echo "=== [step] Starting infrastructure ==="
         export KOKONUT_GIT_SHA="$(git rev-parse HEAD)"
+        echo "Checked-out commit: $KOKONUT_GIT_SHA"
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache
         docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
@@ -105,7 +106,7 @@ jobs:
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
         echo "=== [step] Starting application services ==="
-        if ! docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait gateway grpc; then
+        if ! docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait gateway grpc; then
           echo "=== [diagnostic] Application container status ==="
           docker compose -f docker-compose.yml -f docker-compose.ci.yml ps || true
           echo "=== [diagnostic] Application container logs ==="
