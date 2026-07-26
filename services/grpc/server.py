@@ -113,6 +113,10 @@ def serve():
     else:
         logger.warning("gRPC TLS not configured (GRPC_TLS_CERT/GRPC_TLS_KEY not set) — using insecure port")
         server.add_insecure_port(f"[::]:{port}")
+    server.start()
+    if tls_cert and tls_key:
+        logger.info("gRPC server started on port %d with TLS (workers=%d)", port, max_workers)
+    else:
         logger.info("gRPC server started on port %d INSECURE (workers=%d)", port, max_workers)
     logger.info("Registered services: %s", ", ".join(service_names))
 

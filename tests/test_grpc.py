@@ -162,6 +162,26 @@ class TestHealthServicer:
         assert responses[0].status == HealthCheckResponse.SERVING
 
 
+class TestGrpcHealthCli:
+    def test_health_uses_bounded_rpc_without_channel_ready_preflight(self):
+        from services.grpc import cli
+        from grpc_health.v1 import health_pb2, health_pb2_grpc
+
+        serving = health_pb2.HealthCheckResponse.SERVING
+        with patch("grpc.insecure_channel") as insecure_channel:
+            channel = MagicMock()
+            insecure_channel.return_value = channel
+            stub = MagicMock()
+            stub.Check.return_value = health_pb2.HealthCheckResponse(status=serving)
+            with patch.object(health_pb2_grpc, "HealthStub", return_value=stub):
+                cli.cmd_health(MagicMock(target="127.0.0.1:50051"))
+
+        stub.Check.assert_called_once()
+        assert stub.Check.call_args.kwargs["timeout"] == 5
+        assert stub.Check.call_args.kwargs["wait_for_ready"] is True
+        channel.close.assert_called_once_with()
+
+
 class TestRequireScope:
     def test_scope_check_passes_with_matching_scope(self):
         from services.grpc.auth import require_scope, grpc_auth_context
@@ -397,6 +417,7 @@ class TestTLSConfig:
                                 assert mock_server.add_secure_port.called
                             elif mock_server.add_insecure_port.called:
                                 pass
+                            mock_server.start.assert_called_once_with()
         finally:
             if os.path.exists(cert_path):
                 os.unlink(cert_path)
@@ -435,6 +456,7 @@ class TestTLSConfig:
                     if mock_server.add_insecure_port.called:
                         args = mock_server.add_insecure_port.call_args
                         assert "[::]" in str(args)
+                    mock_server.start.assert_called_once_with()
 
 
 class TestProtoDefinitions:

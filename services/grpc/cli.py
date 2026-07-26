@@ -19,11 +19,6 @@ def cmd_health(args):
     channel = grpc.insecure_channel(target)
     stub = health_pb2_grpc.HealthStub(channel)
     try:
-        try:
-            grpc.channel_ready_future(channel).result(timeout=3)
-        except grpc.FutureTimeoutError:
-            print(f"Health check failed: gRPC server is not ready at {target}")
-            sys.exit(1)
         response = stub.Check(
             health_pb2.HealthCheckRequest(),
             timeout=5,
