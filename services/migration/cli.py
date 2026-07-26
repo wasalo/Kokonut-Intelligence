@@ -8,7 +8,6 @@ import os
 import re
 import shlex
 import subprocess
-import sys
 import tempfile
 import uuid
 from pathlib import Path
@@ -151,6 +150,7 @@ def _validate_sources(files: list[dict]) -> None:
 def _ensure_tracking_table() -> None:
     """Create or upgrade tracking without treating legacy numeric IDs as new IDs."""
     _psql("""
+SELECT pg_advisory_lock(777204681);
 CREATE TABLE IF NOT EXISTS schema_migration (
     version VARCHAR(512) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -175,6 +175,7 @@ CREATE TABLE IF NOT EXISTS schema_migration_repair (
     repaired_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (migration_id, old_checksum, new_checksum)
 );
+SELECT pg_advisory_unlock(777204681);
 """)
 
 
@@ -195,12 +196,14 @@ def _reconcile_legacy(files: list[dict]) -> None:
         })
     _psql(
         f"""
+SELECT pg_advisory_lock(777204681);
 UPDATE schema_migration tracked
 SET migration_id = candidates.migration_id
 FROM (VALUES {', '.join(values)}) AS candidates(migration_id, legacy_version, name)
 WHERE tracked.migration_id IS NULL
   AND tracked.version = candidates.legacy_version
   AND tracked.name = candidates.name;
+SELECT pg_advisory_unlock(777204681);
 """,
         variables,
     )

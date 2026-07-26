@@ -146,6 +146,7 @@ services:
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-development}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: ${PG_DB:-kokonut_intelligence}
@@ -208,10 +209,13 @@ services:
       - PG_PORT=5432
       - PG_DB=kokonut_intelligence
       - PG_USER=kokonut
+      - PG_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}
       - GRPC_PORT=50051
       - GRPC_MAX_WORKERS=10
       - KOKONUT_ENV=${KOKONUT_ENV:-dev}
+      - KOKONUT_GIT_SHA=${KOKONUT_GIT_SHA:-unknown}
     networks:
       - databases
       - apps
@@ -219,7 +223,7 @@ services:
       database:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python3", "-c", "import grpc; from services.grpc.server import serve; print('ok')"]
+      test: ["CMD", "python3", "-m", "services.grpc.cli", "health", "--target", "127.0.0.1:50051"]
       interval: 30s
       timeout: 10s
       retries: 3

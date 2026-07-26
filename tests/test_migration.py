@@ -134,6 +134,16 @@ def test_legacy_reconciliation_requires_exact_version_and_name(monkeypatch):
     }
 
 
+def test_tracking_initialization_uses_advisory_lock(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cli, "_psql", lambda sql, variables=None: calls.append(sql))
+
+    cli._ensure_tracking_table()
+
+    assert "pg_advisory_lock(777204681)" in calls[0]
+    assert "pg_advisory_unlock(777204681)" in calls[0]
+
+
 def test_apply_batch_locks_and_rechecks_before_applying(tmp_path, monkeypatch):
     migration = _sql_file(tmp_path / "001_o'hare.sql", "CREATE TABLE example (id int);")
     calls = []

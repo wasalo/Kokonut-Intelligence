@@ -19,7 +19,14 @@ def cmd_health(args):
     channel = grpc.insecure_channel(target)
     stub = health_pb2_grpc.HealthStub(channel)
     try:
-        response = stub.Check(health_pb2.HealthCheckRequest())
+        response = stub.Check(
+            health_pb2.HealthCheckRequest(),
+            timeout=5,
+            wait_for_ready=True,
+        )
+        if response.status != health_pb2.HealthCheckResponse.SERVING:
+            print(f"Health check returned non-serving status: {response.status}")
+            sys.exit(1)
         print(f"Status: {response.status}")
     except grpc.RpcError as e:
         print(f"Health check failed: {e}")

@@ -40,7 +40,8 @@ jobs:
         PG_DB=kokonut_intelligence
         PG_USER=kokonut
         PG_PASSWORD=ci-placeholder
-        CLICKHOUSE_PASSWORD=ci-placeholder
+         CLICKHOUSE_PASSWORD=ci-placeholder
+         BACKUP_ENCRYPTION_KEY=ci-backup-key
         REDIS_PASSWORD=ci-placeholder
         DIRECTUS_SECRET=ci-secret
         ADMIN_EMAIL=ci@@kokonut.network
@@ -75,6 +76,8 @@ jobs:
         echo "=== [step] Fast-fail: ci-check (imports + CLIs + TS build) ==="
         ./scripts/ci-check.sh
         echo "=== [step] Starting infrastructure ==="
+        export KOKONUT_GIT_SHA="$(git rev-parse HEAD)"
+        echo "Checked-out commit: $KOKONUT_GIT_SHA"
         docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache
         docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
@@ -102,6 +105,34 @@ jobs:
         rm -f .env.sops
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
+        echo "=== [step] Starting application services ==="
+        if ! docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait gateway grpc; then
+          echo "=== [diagnostic] Application container status ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps || true
+          echo "=== [diagnostic] Application container logs ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color --tail=200 gateway grpc || true
+          for service in gateway grpc; do
+            container=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q "$service" || true)
+            if [ -n "$container" ]; then
+              echo "=== [diagnostic] $service health state ==="
+              docker inspect --format '{{json .State.Health}}' "$container" || true
+            fi
+          done
+          exit 1
+        fi
+        echo "=== [step] Verifying upgraded services ==="
+        EXPECTED_VERSION="$(cat VERSION)"
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+          exec -T gateway python3 - "$EXPECTED_VERSION" "$KOKONUT_GIT_SHA" <<'PY'
+        import sys
+        import services
+        expected_version, expected_sha = sys.argv[1:]
+        if services.__version__ != expected_version:
+            raise SystemExit(f"version mismatch: {services.__version__} != {expected_version}")
+        if services.__git_sha__ != expected_sha:
+            raise SystemExit(f"git SHA mismatch: {services.__git_sha__} != {expected_sha}")
+        print(f"Upgrade verification passed: {expected_version} ({expected_sha})")
+        PY
         echo "=== [step] Computing metrics ==="
         . .venv/bin/activate
         ./scripts/compute-metrics.sh

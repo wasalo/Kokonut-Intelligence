@@ -17,6 +17,14 @@ def test_anonymous_public_read_is_allowed():
     assert response.status_code != 401
 
 
+def test_anonymous_gateway_health_is_allowed():
+    with TestClient(create_app()) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
 def test_anonymous_write_is_denied():
     with TestClient(create_app()) as client:
         response = client.post("/api/data-stream/post", json={"location_id": "location-1"})
