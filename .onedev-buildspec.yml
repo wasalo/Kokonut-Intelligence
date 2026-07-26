@@ -120,11 +120,12 @@ jobs:
           done
           exit 1
         fi
+        echo "=== [step] Verifying upgraded services ==="
         COMPOSE_FILE=docker-compose.yml:docker-compose.ci.yml \
           KOKONUT_EXPECTED_VERSION="$(cat VERSION)" \
           KOKONUT_EXPECTED_GIT_SHA="$KOKONUT_GIT_SHA" \
           CLICKHOUSE_PASSWORD=ci-placeholder \
-          ./scripts/verify-upgrade.sh
+          bash ./scripts/verify-upgrade.sh
         echo "=== [step] Computing metrics ==="
         . .venv/bin/activate
         ./scripts/compute-metrics.sh
