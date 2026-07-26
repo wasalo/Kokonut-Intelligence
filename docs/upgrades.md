@@ -64,3 +64,24 @@ Schema changes use expand-contract discipline:
 - `scripts/seed.sh --reference-only`: reference setup during upgrades.
 - `scripts/seed-pilot.sh`: optional pilot/demo data, including the pilot organization.
 - `scripts/compute-metrics.sh`: explicit derived draft metric computation.
+
+## Onchain Deployment And Upgrade History
+
+The current production deployment is recorded in
+[`gnosis-mainnet-deployment.md`](gnosis-mainnet-deployment.md). It includes the
+Gnosis Mainnet Guild protocol, KGP proxy, 48-hour upgrade timelock, Credit Token,
+Selective Disclosure, and Price Oracle deployments.
+
+The Celo EAS deployment record is maintained in
+[`attestation-guide.md`](attestation-guide.md), including the deployed resolver
+and the registered `kokonut-data-post` schema.
+
+The first KGP authority handoff granted `UPGRADER_ROLE` to the timelock and
+revoked it from the temporary deployment EOA. No implementation upgrade has
+been executed yet. Future KGP upgrades must follow this sequence:
+
+1. Deploy and test a new implementation.
+2. Queue the upgrade through the timelock proposer.
+3. Wait 48 hours.
+4. Execute through the separate timelock executor.
+5. Verify implementation, storage, roles, and database/indexer reconciliation.

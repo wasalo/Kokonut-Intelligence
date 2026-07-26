@@ -103,6 +103,7 @@ Stores request metadata before an attestation is signed or submitted. This lets 
 | `report_snapshot_id` | UUID | FK to `report_snapshot` (if applicable) |
 | `value_flow_id` | UUID | FK to `value_flow` (if applicable) |
 | `schema_id` | UUID | FK to `attestation_schema` |
+| `schema_name` | VARCHAR(100) | Denormalized schema key used by the anchor signer |
 | `event_type` | VARCHAR(100) | `mrv_submission`, `impact_report`, `value_flow`, `agent_task` |
 | `chain` | VARCHAR(50) | Target chain for on-chain submission |
 | `payload_cid` | TEXT | Public payload CID/reference |
@@ -120,6 +121,7 @@ Stores request metadata before an attestation is signed or submitted. This lets 
 | `reviewed_at` | TIMESTAMPTZ | When reviewed |
 | `submitted_at` | TIMESTAMPTZ | When submitted on-chain |
 | `confirmed_at` | TIMESTAMPTZ | When confirmed on-chain |
+| `block_number` | BIGINT | Confirmation block for the submitted attestation |
 | `metadata` | JSONB | Additional request metadata |
 | `created_at` | TIMESTAMPTZ | When the request was created |
 | `updated_at` | TIMESTAMPTZ | When the request was last updated |
@@ -323,7 +325,7 @@ Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Ce
 | `kokonut-harvest` | `0xb359f9756e3cb3597e4048dccae2842083359906fbae8dc8c0e9af8ac1b3ccff` | Harvest verification (quantity, quality, date) | Yes |
 | `kokonut-compliance` | `0x59632edcf1d04be0c2dcfd572282bbd4dac518e7a92872ec45ade29876ef95f5` | Partner compliance and audit trails | Yes |
 | `kokonut-bio-batch` | `0x9306a4cf...38ff29` | Bio-organic fertilizer batch production (LAC) | Yes |
-| `kokonut-data-post` | `0x0000...0000` | Data stream posts for environmental project tracking | No (not yet registered onchain) |
+| `kokonut-data-post` | `0xf0de37f5c4a441aedb794d5585201c6ef150543dc53f894e1212f7e330205045` | Data stream posts for environmental project tracking | Yes |
 
 ### Supported Chains
 
@@ -341,6 +343,14 @@ Celo is the primary chain for Kokonut attestations. EAS v1.3.0 is deployed on Ce
 | Deployer | `0x3394C45b5938127EB56603A6051dF26CFAF08C26` | Schema registration, initial attestations |
 | Kokonut Multisig | `0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5` | Resolver owner, governance attestations |
 
+`kokonut-data-post` was registered on Celo mainnet at block `73193060` in
+transaction `0x6b6a5a1c5f23cfe6dd1e0fb13c60200a45f6bd49b476c4d7716d718ad818b5e5`.
+Schema registration uses the deployed KokonutResolver
+`0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`.
+The resolver deployment transaction was
+`0x6f1608e009e62eaf33ebb56000dcf65c2de38141d260bbdd08ec096d6f597c63` at
+block `70395880`.
+
 ### CLI Usage
 
 ```bash
@@ -350,9 +360,9 @@ python3 -m services.attestation.cli info --chain celo
 # List available schema definitions
 python3 -m services.attestation.cli schema list
 
-# Register a new schema onchain
+# Register one known Kokonut schema onchain
 python3 -m services.attestation.cli schema register \
-  --name "My Schema" \
+  --name kokonut-data-post \
   --chain celo
 
 # Get an onchain schema by UID

@@ -22,16 +22,49 @@ Chain ID: `100`
 | Price Oracle implementation | `0x78B1697D3C25bE6F165e8Ed359FF313F381DA3f0` | `0x351ac9041af21f5031e90eddeb0173824242fefe5f7a55094d5c66387e37693c` |
 | Price Oracle proxy | `0xA6D24A665FB2f41C07c54b145034576e9BC6826a` | `0x818eae4ee8d1c29e1ba3065b144e2f04e81889f4a532cee1ea323898c139f305` |
 
-## Pending KGP Handoff
+## KGP Authority Handoff
 
-The temporary upgrader `0x0ea26051F7657d59418da186137141CeA90D0652` still has
-`UPGRADER_ROLE`. The Protocol Admin multisig must execute these two calls on the
-KGP proxy before the deployment is considered production-ready:
+The KGP proxy was initially deployed with a temporary upgrader because the
+timelock must bind to the proxy address. The temporary upgrader then performed
+the role handoff directly because `UPGRADER_ROLE` is self-administered by the
+KGP contract; the Protocol Admin multisig is not the role administrator.
 
-1. `grantRole(UPGRADER_ROLE, 0xefAeF01B3DDeF2041A1dbdCEbcA352eD2240920A)`
-   Calldata: `0x2f2ff15d189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e3000000000000000000000000efaef01b3ddef2041a1dbdcebca352ed2240920a`
-2. `revokeRole(UPGRADER_ROLE, 0x0ea26051F7657d59418da186137141CeA90D0652)`
-   Calldata: `0xd547741f189ab7a9244df0848122154315af71fe140f3db0fe014031783b0946b8c9d2e30000000000000000000000000ea26051f7657d59418da186137141cea90d0652`
+| Action | Transaction | Block |
+|---|---|---:|
+| Grant `UPGRADER_ROLE` to timelock | `0x93ce23efd4b81cd4bbe9e65e4989121be2ac309962bc1c75575ab21fdba142dd` | 47406899 |
+| Revoke `UPGRADER_ROLE` from temporary EOA | `0x3c545ad99cdbed25804162b80d502462781bd36608b5d5c6136a12579f7f0841` | 47406919 |
 
-Current verification: timelock is bound to the KGP proxy and has a 172,800-second
-delay; the timelock does not yet have `UPGRADER_ROLE`; the temporary EOA still does.
+Final verification:
+
+- Timelock `approvedProxy()` equals `0x136247fCad81c4BE6560754AF440D7B1A320516f`.
+- Timelock `minDelay` is `172800` seconds (48 hours).
+- Timelock has `UPGRADER_ROLE` on the KGP proxy.
+- Temporary upgrader `0x0ea26051F7657d59418da186137141CeA90D0652` no longer has `UPGRADER_ROLE`.
+
+## Authority Matrix
+
+| Authority | Address | Scope |
+|---|---|---|
+| Protocol Admin multisig | `0x03779B674CbCBfc0B801c4cAc9DFaC8aACbbD5c5` | Default administration and Credit Token ProxyAdmin ownership |
+| Guild role admin | `0x50AFcd6CE9E3aE15ae5731FF8c1d255289ca203B` | Guild protocol role administration and evidence review |
+| Domain/task admin | `0x50b4d652a69F2a67Ee1fb7C383Ab1125Bdc93fCb` | Domains, tasks, KGP awards, and selective disclosure attestation |
+| Governance proposer | `0x318C9bAfa423Aa5869FFd7CC61F3A6D7e4fa21a6` | Guild governance proposals |
+| Governance objector | `0x5893f4cfD15edd8B7E92D436043Ab48F343D6559` | Guild governance objections |
+| Governance executor | `0x5c3a27860ed28C28007b385963d07353b2825417` | Guild governance execution |
+| Emergency pauser/oracle updater | `0xe09B0f3ad5b3789820d6945D41Bf3a317e6E2De9` | Pause controls, Credit Token burning, and price updates |
+| Credit issuer | `0xf8D008aEbf360104E900664D7cc31A0cf0C0963a` | Credit issuance |
+| KGP claim signer | `0xd58bB7Ae72B5b2FDc980C908baB75013a3628820` | KGP voucher signing |
+| KGP reverser | `0xba55C7eb8EEE6aE6e5645Ac982c4a25859862f07` | KGP reversals |
+| Upgrade proposer | `0xb122E6C7C36944dB10aD86D6c05A08f33AD4a9B9` | Queue KGP upgrades |
+| Upgrade executor | `0x8cEA432e1be2C2E060fb05E3B015eDd3d581A983` | Execute delayed KGP upgrades |
+
+## Verification
+
+All Gnosis deployments are verified through the Etherscan-compatible GnosisScan
+verifier, including implementations, ERC1967 proxies, the Transparent proxy, and
+ProxyAdmin. Public verification records are retained in
+`contracts/broadcast/*/100/run-latest.json`.
+
+No implementation upgrade transaction has been executed yet. The recorded
+onchain changes are deployments, initialization, role handoff, and timelock
+configuration.
