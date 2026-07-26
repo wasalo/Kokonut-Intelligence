@@ -105,7 +105,20 @@ jobs:
         ./scripts/seed.sh
         ./scripts/seed-pilot.sh
         echo "=== [step] Starting application services ==="
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait gateway grpc
+        if ! docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait gateway grpc; then
+          echo "=== [diagnostic] Application container status ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps || true
+          echo "=== [diagnostic] Application container logs ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color --tail=200 gateway grpc || true
+          for service in gateway grpc; do
+            container=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q "$service" || true)
+            if [ -n "$container" ]; then
+              echo "=== [diagnostic] $service health state ==="
+              docker inspect --format '{{json .State.Health}}' "$container" || true
+            fi
+          done
+          exit 1
+        fi
         COMPOSE_FILE=docker-compose.yml:docker-compose.ci.yml \
           KOKONUT_EXPECTED_VERSION="$(cat VERSION)" \
           KOKONUT_EXPECTED_GIT_SHA="$KOKONUT_GIT_SHA" \
