@@ -7,7 +7,8 @@ by hand:
 * argument parsing — subcommands are declared, an argparse parser is built
   from the declarations (identical flags, defaults, dests);
 * database lifecycle — one connection is opened per invocation and always
-  closed, even when the handler raises;
+  closed, even when the handler raises; commands that are pure computations
+  opt out with ``run(handler, needs_db=False)``;
 * output — results are rendered with the canonical ``print_json`` by default;
   commands with human-readable output provide their own ``render``;
 * error handling — ``CommandLine.run`` wraps dispatch with
