@@ -13,7 +13,7 @@ from typing import Any
 
 from services.common.logging import get_logger
 from services.ingestion.base import get_clickhouse
-
+from services.common.cli import print_json
 logger = get_logger("ingestion.clickhouse_outbox")
 
 MAX_ATTEMPTS = 8
@@ -232,6 +232,6 @@ if __name__ == "__main__":
         else:
             parser.print_help()
             result = {}
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
     finally:
         conn.close()

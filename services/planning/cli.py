@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.common.database import get_db
 from services.planning import budget, performance, portfolio, sandop
-
+from services.common.cli import print_json
 
 def _dump(rows):
     if rows is None:
@@ -16,7 +15,7 @@ def _dump(rows):
         return
     if isinstance(rows, dict):
         rows = [rows]
-    print(json.dumps([dict(r) for r in rows], default=str, indent=2))
+    print_json([dict(r) for r in rows])
 
 
 def _cmd_plan_create(args):

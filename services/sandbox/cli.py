@@ -12,9 +12,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
-
+from services.common.cli import print_json
 
 def cmd_create(args):
     from services.sandbox.environment import AnalysisEnvironment
@@ -47,7 +46,7 @@ def cmd_run(args):
         module_path=args.module,
         timeout_seconds=args.timeout,
     )
-    print(json.dumps(result, indent=2))
+    print_json(result)
     return 0 if result.get("status") == "completed" else 1
 
 
@@ -95,7 +94,7 @@ def cmd_limits(args):
 
     monitor = ResourceMonitor()
     limits = monitor.check_limits(args.env_id)
-    print(json.dumps(limits, indent=2))
+    print_json(limits)
     return 0
 
 

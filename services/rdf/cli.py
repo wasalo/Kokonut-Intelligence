@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.common.database import get_connection
-
+from services.common.cli import print_json
 
 def cmd_build(args):
     with get_connection() as conn:
@@ -38,7 +37,7 @@ def cmd_serialize(args):
             print(to_ntriples(triples))
         elif args.format == "jsonld":
             from services.rdf.serializers import to_jsonld
-            print(json.dumps(to_jsonld(triples), indent=2))
+            print_json(to_jsonld(triples))
         else:
             print(f"Unknown format: {args.format}")
             sys.exit(1)

@@ -27,7 +27,7 @@ from datetime import datetime, date, timezone, timedelta
 from typing import Optional
 
 from ..common.logging import get_logger
-
+from services.common.cli import print_json
 logger = get_logger("analytics.precision_irrigation")
 
 
@@ -1221,7 +1221,7 @@ def main():
             parser.print_help()
             return
 
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
     finally:
         db.close()
 

@@ -11,16 +11,15 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
-
+from services.common.cli import print_json
 
 def cmd_run(args):
     from services.stream.processor import StreamProcessor
 
     processor = StreamProcessor()
     stats = processor.process_buffer(batch_size=args.batch_size)
-    print(json.dumps(stats, indent=2))
+    print_json(stats)
     return 0
 
 
@@ -29,7 +28,7 @@ def cmd_stats(args):
 
     processor = StreamProcessor()
     stats = processor.stats()
-    print(json.dumps(stats, indent=2))
+    print_json(stats)
     return 0
 
 

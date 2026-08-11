@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 
 from services.analytics.governance_proposals import (
     add_objection,
@@ -17,6 +16,7 @@ from services.analytics.governance_proposals import (
     start_review,
     submit_proposal,
 )
+from services.common.cli import print_json
 
 
 def _connection():
@@ -25,7 +25,7 @@ def _connection():
 
 
 def _out(value):
-    print(json.dumps(value, indent=2, default=str))
+    print_json(value)
 
 
 def main() -> None:

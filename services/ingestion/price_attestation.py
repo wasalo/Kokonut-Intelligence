@@ -16,7 +16,7 @@ from typing import Any, Dict, Optional
 
 from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload
-
+from services.common.cli import print_json
 logger = get_logger("ingestion.price_attestation")
 
 # New EAS schema for price feeds
@@ -138,10 +138,10 @@ if __name__ == "__main__":
     try:
         if args.run_daily:
             result = attest_daily_prices(conn)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.commodity and args.price:
             result = attest_price(conn, args.commodity, args.price, args.source)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             parser.print_help()
     finally:

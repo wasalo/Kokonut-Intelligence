@@ -17,7 +17,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 # The 9 BMC building blocks in canonical order
 BMC_BLOCKS = [
     "key_partners", "key_activities", "key_resources",
@@ -547,7 +547,7 @@ def _cmd(args) -> None:
             out = compute_health(conn, args.canvas_id)
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

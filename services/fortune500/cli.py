@@ -8,11 +8,10 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 
 from .calculator import calculate_all_farms, get_farm_metrics, calculate_score
-
+from services.common.cli import print_json
 
 def print_score_table(results):
     """Print formatted score table."""
@@ -95,7 +94,7 @@ def main():
             "breakdown": score.breakdown,
         }
         if args.json:
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             print_detailed(result)
         return
@@ -103,7 +102,7 @@ def main():
     if args.all:
         results = calculate_all_farms()
         if args.json:
-            print(json.dumps(results, indent=2, default=str))
+            print_json(results)
         else:
             print_score_table(results)
         return

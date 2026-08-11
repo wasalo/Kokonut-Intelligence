@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.analytics.strategy_map import (
@@ -13,10 +12,11 @@ from services.analytics.strategy_map import (
     map_capability, get_strategy_capabilities,
     get_execution_dashboard, get_perspective_summary,
 )
+from services.common.cli import print_json
 
 
 def _out(data):
-    print(json.dumps(data, indent=2, default=str))
+    print_json(data)
 
 
 def cmd_create(args):

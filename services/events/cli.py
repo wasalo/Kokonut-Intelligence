@@ -17,11 +17,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 import time
-
+from services.common.cli import print_json
 
 def cmd_process(args):
     from services.events.bus import EventBus
@@ -31,7 +30,7 @@ def cmd_process(args):
         batch_size=args.batch_size,
         worker_id=args.worker_id,
     )
-    print(json.dumps(result, indent=2))
+    print_json(result)
     return 0 if result["failed"] == 0 else 1
 
 
@@ -251,7 +250,7 @@ def cmd_fork_opportunities(args):
     from services.events.fork_detector import detect_fork_opportunities
 
     result = detect_fork_opportunities(_get_conn(), location_id=args.location_id)
-    print(json.dumps(result, indent=2, default=str))
+    print_json(result)
     return 0
 
 
@@ -261,7 +260,7 @@ def cmd_propose_fork(args):
     result = propose_fork_opportunities(
         _get_conn(), location_id=args.location_id, actor=args.actor
     )
-    print(json.dumps(result, indent=2, default=str))
+    print_json(result)
     return 0
 
 
@@ -275,7 +274,7 @@ def cmd_process_event(args):
     transfers = engine.process_event(
         args.source_domain, args.event_type, data, source_event_id=args.event_id
     )
-    print(json.dumps(transfers, indent=2, default=str))
+    print_json(transfers)
     return 0
 
 
@@ -284,7 +283,7 @@ def cmd_pending_transfers(args):
 
     engine = InsightTransferEngine(conn=_get_conn())
     transfers = engine.get_pending_transfers(target_domain=args.target_domain)
-    print(json.dumps(transfers, indent=2, default=str))
+    print_json(transfers)
     return 0
 
 
@@ -293,7 +292,7 @@ def cmd_resolve_transfer(args):
 
     engine = InsightTransferEngine(conn=_get_conn())
     result = engine.resolve_transfer(args.transfer_id, args.outcome, args.reason)
-    print(json.dumps(result, indent=2, default=str))
+    print_json(result)
     return 0
 
 
@@ -304,7 +303,7 @@ def cmd_add_rule(args):
     result = engine.add_rule(
         args.source_domain, args.target_domain, args.pattern, {}
     )
-    print(json.dumps(result, indent=2, default=str))
+    print_json(result)
     return 0
 
 

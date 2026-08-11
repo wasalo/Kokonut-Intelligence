@@ -10,7 +10,6 @@ writes. All table/column identifiers below are constants, not user input.
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -18,7 +17,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 # (table, lifecycle_column) for the governed publication pipeline (5-state
 # vocabulary). Most tables carry a location_id (enabling per-location scoping);
 # agent_task does not, so it is excluded from location-scoped queries.
@@ -229,7 +228,7 @@ def _cmd(args) -> None:
             out = bottleneck_ranking(conn, args.location_id)
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.analytics.value_stream_defs import (
@@ -12,10 +11,11 @@ from services.analytics.value_stream_defs import (
     record_observation, get_observations,
     get_stream_performance, get_stream_summary, get_stream_with_stages,
 )
+from services.common.cli import print_json
 
 
 def _out(data):
-    print(json.dumps(data, indent=2, default=str))
+    print_json(data)
 
 
 def cmd_create(args):

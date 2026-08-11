@@ -6,12 +6,11 @@ Drafts calibration memo structure. Human approval is required for decisions.
 from __future__ import annotations
 
 import argparse
-import json
 from typing import Any
 
 from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import validate_output
-
+from services.common.cli import print_json
 
 def draft_calibration_memo(session_id: str) -> dict[str, Any]:
     assert_agent_action_allowed("create", "ebf_calibration_decision", {"decision_status": "draft"})
@@ -34,7 +33,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the EBF calibration memo agent")
     parser.add_argument("--session-id", required=True, help="EBF calibration session UUID")
     args = parser.parse_args()
-    print(json.dumps(draft_calibration_memo(args.session_id), indent=2))
+    print_json(draft_calibration_memo(args.session_id))
 
 
 if __name__ == "__main__":

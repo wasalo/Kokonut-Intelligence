@@ -7,14 +7,14 @@ import json
 import sys
 
 from services.common.database import get_connection
-
+from services.common.cli import print_json
 
 def cmd_resolve(args):
     with get_connection() as conn:
         from services.metadata_api.resolver import resolve_metadata_graph
         result = resolve_metadata_graph(conn, args.iri)
         if result:
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             print(f"IRI not found: {args.iri}")
             sys.exit(1)
@@ -25,7 +25,7 @@ def cmd_generate(args):
         from services.metadata_api.resolver import generate_iri_from_metadata
         metadata = json.loads(args.metadata)
         iri = generate_iri_from_metadata(conn, metadata)
-        print(json.dumps({"iri": iri}, indent=2))
+        print_json({"iri": iri})
 
 
 def cmd_serve(args):

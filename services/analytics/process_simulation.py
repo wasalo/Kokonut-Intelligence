@@ -22,6 +22,7 @@ from services.analytics.process_gap import (
     _compute_actual, _compute_gap, _assign_maturity,
     _has_workflow_spec, _has_conformance, _has_spc, _has_feedback,
 )
+from services.common.cli import print_json
 
 
 def _conn():
@@ -462,7 +463,7 @@ def main():
             out = simulate_automation_impact(conn, args.process_key, args.pct)
         else:
             out = {"error": "unknown command"}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

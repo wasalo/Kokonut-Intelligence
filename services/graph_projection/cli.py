@@ -1,12 +1,11 @@
 """Graph projection command line interface."""
 
 import argparse
-import json
 
 from services.common.database import get_db
 from .kernel import PROJECTION_KEY, PROJECTION_VERSION, rebuild, validate_generation
 from .query import query_graph
-
+from services.common.cli import print_json
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Governed graph projection")
@@ -22,5 +21,5 @@ def main(argv=None):
         elif args.command == "query": result = query_graph(conn, args.entity_key, args.depth, args.node_cap, args.edge_type, args.location_id, args.audience)
         else:
             cur = conn.cursor(); cur.execute("""SELECT p.projection_key, p.projection_version, p.active_generation_id, g.status, g.source_cutoff, g.node_count, g.edge_count, g.content_hash FROM graph_projection p LEFT JOIN graph_projection_generation g ON g.id = p.active_generation_id WHERE p.projection_key = %s AND p.projection_version = %s""", (PROJECTION_KEY, PROJECTION_VERSION)); row = cur.fetchone(); columns = [column[0] for column in cur.description]; result = dict(zip(columns, row)) if row else {"projection_key": PROJECTION_KEY, "projection_version": PROJECTION_VERSION, "status": "missing"}; cur.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
     finally: conn.close()

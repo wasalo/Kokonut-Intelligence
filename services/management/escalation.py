@@ -12,7 +12,6 @@ Reads lifecycle_transition via predictive_bpm; writes process_escalation
 from __future__ import annotations
 
 import argparse
-import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -26,7 +25,7 @@ psycopg2.extras.register_uuid()
 
 from services.common.database import get_db
 from services.analytics import predictive_bpm as pp
-
+from services.common.cli import print_json
 
 def _distinct_entity_types(conn) -> List[str]:
     """Every governed entity type actually present in the lifecycle ledger."""
@@ -183,7 +182,7 @@ def _cmd(args) -> None:
             out = {"resolved": resolve_escalation(conn, args.escalation_id, args.resolved_by)}
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

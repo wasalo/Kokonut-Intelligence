@@ -13,7 +13,7 @@ from typing import Any
 from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import validate_output
 from services.registry.cids_export import export_location, get_connection, _json_default
-
+from services.common.cli import print_json
 
 def run_cids_export(location_id: str) -> dict[str, Any]:
     """Return a validated CIDS export task output."""
@@ -44,7 +44,7 @@ def main() -> None:
 
     output = run_cids_export(args.location_id)
     if args.summary:
-        print(json.dumps({k: output[k] for k in ("graph_count", "alignment_tier", "cids_version")}, indent=2))
+        print_json({k: output[k] for k in ("graph_count", "alignment_tier", "cids_version")})
     else:
         print(json.dumps(output, indent=2, default=_json_default))
 

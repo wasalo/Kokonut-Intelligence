@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.common.database import get_connection
-
+from services.common.cli import print_json
 
 def cmd_hash(args):
     with get_connection() as conn:
         from services.data_module.content_hash import compute_content_hash
         result = compute_content_hash(args.data, algorithm=args.algorithm, content_type=args.type)
-        print(json.dumps(result, indent=2))
+        print_json(result)
 
 
 def cmd_create_hash(args):
@@ -24,7 +23,7 @@ def cmd_create_hash(args):
             hash_algorithm=args.algorithm, content_type=args.type,
             media_type=args.media_type,
         )
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_find_by_hash(args):
@@ -40,14 +39,14 @@ def cmd_define_resolver(args):
     with get_connection() as conn:
         from services.data_module.resolver import define_resolver
         result = define_resolver(conn, args.url, args.manager, args.description)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_register_data(args):
     with get_connection() as conn:
         from services.data_module.resolver import register_data_to_resolver
         result = register_data_to_resolver(conn, args.resolver_id, args.iri_id)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_resolvers_for_iri(args):
@@ -63,7 +62,7 @@ def cmd_attest(args):
     with get_connection() as conn:
         from services.data_module.attestor import attest_to_iri
         result = attest_to_iri(conn, args.iri_id, args.attestor)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_attestors(args):

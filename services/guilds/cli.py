@@ -9,7 +9,7 @@ from ..ingestion.base import get_db
 from .kgp import build_claim_voucher, compute_award_id
 from .moloch import MolochReadClient, link_guild_motion_to_moloch
 from .reputation import canonical_balance
-
+from services.common.cli import print_json
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kokonut Guild protocol tools")
@@ -30,7 +30,7 @@ def main() -> None:
 
     args = parser.parse_args()
     if args.command == "moloch-balance":
-        print(json.dumps(MolochReadClient().token_balance(args.wallet, args.token), indent=2))
+        print_json(MolochReadClient().token_balance(args.wallet, args.token))
         return
 
     db = get_db()

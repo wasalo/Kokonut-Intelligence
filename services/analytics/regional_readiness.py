@@ -13,7 +13,7 @@ import psycopg2.extras
 
 from services.common.database import get_db
 from services.common.logging import get_logger
-
+from services.common.cli import print_json
 logger = get_logger(__name__)
 
 DIMENSIONS = {
@@ -768,7 +768,7 @@ def main():
             result = {"error": "assessment not found"}
         else:
             result = {"error": "unknown command"}
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
     finally:
         conn.close()
 
