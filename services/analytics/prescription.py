@@ -12,13 +12,13 @@ Usage:
     python -m services.analytics.prescription --estimate --prescription-id UUID
 """
 
-import argparse
 import json
 import math
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.prescription")
@@ -554,72 +554,11 @@ def get_material_estimate(conn, prescription_id: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Prescription map management (VRT)")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("prescription", "Prescription map management (VRT)")
 
-    # Generate
-    gen = sub.add_parser("generate", help="Generate a prescription map")
-    gen.add_argument("--location-id", required=True)
-    gen.add_argument("--plot-id")
-    gen.add_argument("--input", default="fertilizer", help="fertilizer, irrigation, seed")
-    gen.add_argument("--basis", default="soil_nitrogen", help="soil_nitrogen, soil_moisture, ndvi, soil_ph")
-    gen.add_argument("--crop-cycle-id")
-    gen.add_argument("--json", action="store_true")
 
-    # List
-    ls = sub.add_parser("list", help="List prescriptions")
-    ls.add_argument("--location-id", required=True)
-    ls.add_argument("--status")
-    ls.add_argument("--json", action="store_true")
-
-    # Approve
-    ap = sub.add_parser("approve", help="Approve a prescription")
-    ap.add_argument("--prescription-id", required=True)
-    ap.add_argument("--approved-by", required=True)
-    ap.add_argument("--json", action="store_true")
-
-    # Estimate
-    est = sub.add_parser("estimate", help="Material estimate")
-    est.add_argument("--prescription-id", required=True)
-    est.add_argument("--json", action="store_true")
-
-    args = parser.parse_args()
-
-    from services.common.database import get_db
-
-    if args.command in ("generate", "list", "approve", "estimate"):
-        db = get_db()
-    else:
-        parser.print_help()
-        return
-
-    try:
-        if args.command == "generate":
-            result = generate_prescription_map(
-                db, args.location_id, args.plot_id,
-                args.input, args.basis, args.crop_cycle_id,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_prescription(result)
-            print(output)
-
-        elif args.command == "list":
-            results = list_prescriptions(db, args.location_id, args.status)
-            output = json.dumps(results, indent=2, default=str) if args.json else _format_list(results)
-            print(output)
-
-        elif args.command == "approve":
-            result = approve_prescription(db, args.prescription_id, args.approved_by)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_prescription(result)
-            print(output)
-
-        elif args.command == "estimate":
-            result = get_material_estimate(db, args.prescription_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_estimate(result)
-            print(output)
-
-    finally:
-        db.close()
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
 
 def _format_prescription(r: dict) -> str:
@@ -661,6 +600,48 @@ def _format_estimate(r: dict) -> str:
     if r.get("total_cost_usd"):
         lines.append(f"  Total cost: ${r['total_cost_usd']:.2f}")
     return "\n".join(lines)
+
+
+def _cmd_generate(db, a):
+    return generate_prescription_map(
+        db, a.location_id, a.plot_id,
+        a.input, a.basis, a.crop_cycle_id,
+    )
+
+
+cli.subcommand("generate", "Generate a prescription map") \
+    .add("--location-id", required=True) \
+    .add("--plot-id") \
+    .add("--input", default="fertilizer", help="fertilizer, irrigation, seed") \
+    .add("--basis", default="soil_nitrogen", help="soil_nitrogen, soil_moisture, ndvi, soil_ph") \
+    .add("--crop-cycle-id") \
+    .add("--json", action="store_true") \
+    .run(_cmd_generate) \
+    .render_with(lambda r, a: _render(r, a, _format_prescription))
+
+cli.subcommand("list", "List prescriptions") \
+    .add("--location-id", required=True) \
+    .add("--status") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: list_prescriptions(db, a.location_id, a.status)) \
+    .render_with(lambda r, a: _render(r, a, _format_list))
+
+cli.subcommand("approve", "Approve a prescription") \
+    .add("--prescription-id", required=True) \
+    .add("--approved-by", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: approve_prescription(db, a.prescription_id, a.approved_by)) \
+    .render_with(lambda r, a: _render(r, a, _format_prescription))
+
+cli.subcommand("estimate", "Material estimate") \
+    .add("--prescription-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_material_estimate(db, a.prescription_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_estimate))
+
+
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

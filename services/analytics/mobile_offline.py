@@ -13,13 +13,13 @@ Usage:
     python -m services.analytics.mobile_offline devices
 """
 
-import argparse
 import hashlib
 import json
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.mobile_offline")
@@ -371,90 +371,11 @@ def get_sync_status(conn) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Mobile/offline data collection")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("mobile_offline", "Mobile/offline data collection")
 
-    # Register
-    reg = sub.add_parser("register", help="Register device")
-    reg.add_argument("--device-id", required=True)
-    reg.add_argument("--name")
-    reg.add_argument("--type", default="phone")
-    reg.add_argument("--user")
-    reg.add_argument("--location-id")
-    reg.add_argument("--json", action="store_true")
 
-    # Queue
-    q = sub.add_parser("queue", help="Queue collection")
-    q.add_argument("--device-id", required=True)
-    q.add_argument("--type", required=True, help="Collection type")
-    q.add_argument("--location-id")
-    q.add_argument("--payload", default="{}", help="JSON payload")
-    q.add_argument("--latitude", type=float)
-    q.add_argument("--longitude", type=float)
-    q.add_argument("--json", action="store_true")
-
-    # Sync
-    sy = sub.add_parser("sync", help="Sync pending collections")
-    sy.add_argument("--device-id", required=True)
-    sy.add_argument("--json", action="store_true")
-
-    # Status
-    st = sub.add_parser("status", help="Sync status")
-    st.add_argument("--json", action="store_true")
-
-    # Devices
-    dv = sub.add_parser("devices", help="List devices")
-    dv.add_argument("--user")
-    dv.add_argument("--location-id")
-    dv.add_argument("--json", action="store_true")
-
-    args = parser.parse_args()
-
-    from services.common.database import get_db
-
-    if args.command in ("register", "queue", "sync", "status", "devices"):
-        db = get_db()
-    else:
-        parser.print_help()
-        return
-
-    try:
-        if args.command == "register":
-            result = register_device(
-                db, args.device_id, args.name, args.type,
-                user_id=args.user, location_id=args.location_id,
-            )
-            output = json.dumps(result, indent=2) if args.json else f"Device {result['device_id']}: {result['status']}"
-            print(output)
-
-        elif args.command == "queue":
-            payload = json.loads(args.payload)
-            result = queue_collection(
-                db, args.device_id, args.type, payload,
-                location_id=args.location_id,
-                latitude=args.latitude, longitude=args.longitude,
-            )
-            output = json.dumps(result, indent=2) if args.json else f"Queued: {result.get('collection_id', 'N/A')[:8]}... ({result['sync_status']})"
-            print(output)
-
-        elif args.command == "sync":
-            result = sync_collections(db, args.device_id)
-            output = json.dumps(result, indent=2) if args.json else f"Synced {result['synced']}, conflicts={result['conflicts']}, errors={result['errors']} ({result['duration_ms']}ms)"
-            print(output)
-
-        elif args.command == "status":
-            result = get_sync_status(db)
-            output = json.dumps(result, indent=2) if args.json else _format_status(result)
-            print(output)
-
-        elif args.command == "devices":
-            results = list_devices(db, args.user, args.location_id)
-            output = json.dumps(results, indent=2, default=str) if args.json else _format_devices(results)
-            print(output)
-
-    finally:
-        db.close()
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
 
 def _format_status(r: dict) -> str:
@@ -475,6 +396,66 @@ def _format_devices(results: list) -> str:
     for d in results:
         lines.append(f"  {d['device_id']:30s} {d['device_type']:10s} pending={d.get('pending_count', 0)}")
     return "\n".join(lines)
+
+
+def _cmd_register(db, a):
+    return register_device(
+        db, a.device_id, a.name, a.type,
+        user_id=a.user, location_id=a.location_id,
+    )
+
+
+def _cmd_queue(db, a):
+    payload = json.loads(a.payload)
+    return queue_collection(
+        db, a.device_id, a.type, payload,
+        location_id=a.location_id,
+        latitude=a.latitude, longitude=a.longitude,
+    )
+
+
+cli.subcommand("register", "Register device") \
+    .add("--device-id", required=True) \
+    .add("--name") \
+    .add("--type", default="phone") \
+    .add("--user") \
+    .add("--location-id") \
+    .add("--json", action="store_true") \
+    .run(_cmd_register) \
+    .render_with(lambda r, a: _render(r, a, lambda x: f"Device {x['device_id']}: {x['status']}"))
+
+cli.subcommand("queue", "Queue collection") \
+    .add("--device-id", required=True) \
+    .add("--type", required=True, help="Collection type") \
+    .add("--location-id") \
+    .add("--payload", default="{}", help="JSON payload") \
+    .add("--latitude", type=float) \
+    .add("--longitude", type=float) \
+    .add("--json", action="store_true") \
+    .run(_cmd_queue) \
+    .render_with(lambda r, a: _render(r, a, lambda x: f"Queued: {x.get('collection_id', 'N/A')[:8]}... ({x['sync_status']})"))
+
+cli.subcommand("sync", "Sync pending collections") \
+    .add("--device-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: sync_collections(db, a.device_id)) \
+    .render_with(lambda r, a: _render(r, a, lambda x: f"Synced {x['synced']}, conflicts={x['conflicts']}, errors={x['errors']} ({x['duration_ms']}ms)"))
+
+cli.subcommand("status", "Sync status") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_sync_status(db)) \
+    .render_with(lambda r, a: _render(r, a, _format_status))
+
+cli.subcommand("devices", "List devices") \
+    .add("--user") \
+    .add("--location-id") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: list_devices(db, a.user, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_devices))
+
+
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

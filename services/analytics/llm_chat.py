@@ -12,7 +12,6 @@ Usage:
     python -m services.analytics.llm_chat history --session-id UUID
 """
 
-import argparse
 import hashlib
 import json
 import re
@@ -20,6 +19,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.llm_chat")
@@ -481,67 +481,61 @@ def list_intents(conn) -> list:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="LLM Chat interface")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("llm_chat", "LLM Chat interface")
 
-    # Chat
-    ch = sub.add_parser("chat", help="Send a message")
-    ch.add_argument("--session-id", required=True)
-    ch.add_argument("--message", required=True)
-    ch.add_argument("--json", action="store_true")
 
-    # Session
-    se = sub.add_parser("session", help="Create session")
-    se.add_argument("--create", action="store_true")
-    se.add_argument("--location-id")
-    se.add_argument("--user")
-    se.add_argument("--json", action="store_true")
+def _render_chat(result, args):
+    print(json.dumps(result, indent=2, default=str) if args.json else result["response"])
 
-    # Intents
-    it = sub.add_parser("intents", help="List intents")
-    it.add_argument("--json", action="store_true")
 
-    # History
-    hi = sub.add_parser("history", help="Chat history")
-    hi.add_argument("--session-id", required=True)
-    hi.add_argument("--limit", type=int, default=50)
-    hi.add_argument("--json", action="store_true")
-
-    args = parser.parse_args()
-
-    from services.common.database import get_db
-
-    if args.command in ("chat", "session", "intents", "history"):
-        db = get_db()
-    else:
-        parser.print_help()
+def _render_session(result, args):
+    if result is None:
         return
+    print(json.dumps(result, indent=2) if args.json else f"Session: {result['session_id'][:8]}...")
 
-    try:
-        if args.command == "chat":
-            result = process_message(db, args.session_id, args.message)
-            output = json.dumps(result, indent=2, default=str) if args.json else result["response"]
-            print(output)
 
-        elif args.command == "session":
-            if args.create:
-                result = create_session(db, args.location_id, args.user)
-                output = json.dumps(result, indent=2) if args.json else f"Session: {result['session_id'][:8]}..."
-                print(output)
+def _render_intents(result, args):
+    print(json.dumps(result, indent=2, default=str) if args.json else _format_intents(result))
 
-        elif args.command == "intents":
-            results = list_intents(db)
-            output = json.dumps(results, indent=2, default=str) if args.json else _format_intents(results)
-            print(output)
 
-        elif args.command == "history":
-            results = get_chat_history(db, args.session_id, args.limit)
-            output = json.dumps(results, indent=2, default=str) if args.json else _format_history(results)
-            print(output)
+def _render_history(result, args):
+    print(json.dumps(result, indent=2, default=str) if args.json else _format_history(result))
 
-    finally:
-        db.close()
+
+cli.subcommand("chat", "Send a message") \
+    .add("--session-id", required=True) \
+    .add("--message", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: process_message(db, a.session_id, a.message)) \
+    .render_with(_render_chat)
+
+cli.subcommand("session", "Create session") \
+    .add("--create", action="store_true") \
+    .add("--location-id") \
+    .add("--user") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: create_session(db, a.location_id, a.user) if a.create else None) \
+    .render_with(_render_session)
+
+cli.subcommand("intents", "List intents") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: list_intents(db)) \
+    .render_with(_render_intents)
+
+cli.subcommand("history", "Chat history") \
+    .add("--session-id", required=True) \
+    .add("--limit", type=int, default=50) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_chat_history(db, a.session_id, a.limit)) \
+    .render_with(_render_history)
+
+
+def main(argv=None):
+    cli.run(argv)
+
+
+if __name__ == "__main__":
+    main()
 
 
 def _format_intents(results: list) -> str:

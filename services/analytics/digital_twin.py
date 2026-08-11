@@ -14,13 +14,13 @@ Usage:
     python -m services.analytics.digital_twin list --location-id UUID
 """
 
-import argparse
 import json
 import math
 import uuid
 from datetime import datetime, date, timedelta, timezone
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.digital_twin")
@@ -631,99 +631,11 @@ def monte_carlo_yield(
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Digital twin simulation")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("digital_twin", "Digital twin simulation")
 
-    # Create
-    cr = sub.add_parser("create", help="Create digital twin")
-    cr.add_argument("--location-id", required=True)
-    cr.add_argument("--name", required=True)
-    cr.add_argument("--description")
-    cr.add_argument("--horizon", type=int, default=365, help="Days to simulate")
-    cr.add_argument("--json", action="store_true")
 
-    # Configure
-    cfg = sub.add_parser("configure", help="Configure twin parameters")
-    cfg.add_argument("--twin-id", required=True)
-    cfg.add_argument("--key", required=True)
-    cfg.add_argument("--value", required=True, help="JSON value")
-    cfg.add_argument("--json", action="store_true")
-
-    # Simulate
-    sim = sub.add_parser("simulate", help="Run simulation")
-    sim.add_argument("--twin-id", required=True)
-    sim.add_argument("--json", action="store_true")
-
-    # Scenario
-    sc = sub.add_parser("scenario", help="Create and run what-if scenario")
-    sc.add_argument("--twin-id", required=True)
-    sc.add_argument("--name", required=True)
-    sc.add_argument("--params", required=True, help="JSON parameters")
-    sc.add_argument("--json", action="store_true")
-
-    # Compare
-    cmp = sub.add_parser("compare", help="Compare scenarios")
-    cmp.add_argument("--twin-id", required=True)
-    cmp.add_argument("--json", action="store_true")
-
-    # List
-    ls = sub.add_parser("list", help="List twins")
-    ls.add_argument("--location-id")
-    ls.add_argument("--json", action="store_true")
-
-    args = parser.parse_args()
-
-    from services.common.database import get_db
-
-    if args.command in ("create", "configure", "simulate", "scenario", "compare", "list"):
-        db = get_db()
-    else:
-        parser.print_help()
-        return
-
-    try:
-        if args.command == "create":
-            result = create_digital_twin(
-                db, args.location_id, args.name, args.description,
-                time_horizon_days=args.horizon,
-            )
-            output = json.dumps(result, indent=2) if args.json else f"Created: {result['name']} ({result['twin_id'][:8]}...)"
-            print(output)
-
-        elif args.command == "configure":
-            val = json.loads(args.value)
-            result = configure_twin(db, args.twin_id, args.key, val)
-            output = json.dumps(result, indent=2) if args.json else f"Set {result['key']} = {result['value']}"
-            print(output)
-
-        elif args.command == "simulate":
-            result = run_simulation(db, args.twin_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_sim(result)
-            print(output)
-
-        elif args.command == "scenario":
-            params = json.loads(args.params)
-            result = create_scenario(db, args.twin_id, args.name, params)
-            if "scenario_id" in result:
-                run_result = run_scenario(db, result["scenario_id"])
-                output = json.dumps(run_result, indent=2, default=str) if args.json else _format_scenario(run_result)
-            else:
-                output = json.dumps(result, indent=2)
-            print(output)
-
-        elif args.command == "compare":
-            result = compare_scenarios(db, args.twin_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_compare(result)
-            print(output)
-
-        elif args.command == "list":
-            results = list_twins(db, args.location_id)
-            output = json.dumps(results, indent=2, default=str) if args.json else _format_list(results)
-            print(output)
-
-    finally:
-        db.close()
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
 
 def _format_sim(r: dict) -> str:
@@ -761,6 +673,82 @@ def _format_list(results: list) -> str:
     for r in results:
         lines.append(f"  {r['name']:30s} {r['twin_type']:20s} runs={r['run_count']}")
     return "\n".join(lines)
+
+
+def _cmd_create(db, a):
+    return create_digital_twin(
+        db, a.location_id, a.name, a.description,
+        time_horizon_days=a.horizon,
+    )
+
+
+def _cmd_configure(db, a):
+    val = json.loads(a.value)
+    return configure_twin(db, a.twin_id, a.key, val)
+
+
+def _cmd_scenario(db, a):
+    params = json.loads(a.params)
+    result = create_scenario(db, a.twin_id, a.name, params)
+    if "scenario_id" in result:
+        return ("run", run_scenario(db, result["scenario_id"]))
+    return result
+
+
+def _render_scenario(result, args):
+    if isinstance(result, tuple) and result[0] == "run":
+        data = result[1]
+        print(json.dumps(data, indent=2, default=str) if args.json else _format_scenario(data))
+    else:
+        print(json.dumps(result, indent=2))
+
+
+cli.subcommand("create", "Create digital twin") \
+    .add("--location-id", required=True) \
+    .add("--name", required=True) \
+    .add("--description") \
+    .add("--horizon", type=int, default=365, help="Days to simulate") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create) \
+    .render_with(lambda r, a: _render(r, a, lambda x: f"Created: {x['name']} ({x['twin_id'][:8]}...)"))
+
+cli.subcommand("configure", "Configure twin parameters") \
+    .add("--twin-id", required=True) \
+    .add("--key", required=True) \
+    .add("--value", required=True, help="JSON value") \
+    .add("--json", action="store_true") \
+    .run(_cmd_configure) \
+    .render_with(lambda r, a: _render(r, a, lambda x: f"Set {x['key']} = {x['value']}"))
+
+cli.subcommand("simulate", "Run simulation") \
+    .add("--twin-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: run_simulation(db, a.twin_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_sim))
+
+cli.subcommand("scenario", "Create and run what-if scenario") \
+    .add("--twin-id", required=True) \
+    .add("--name", required=True) \
+    .add("--params", required=True, help="JSON parameters") \
+    .add("--json", action="store_true") \
+    .run(_cmd_scenario) \
+    .render_with(_render_scenario)
+
+cli.subcommand("compare", "Compare scenarios") \
+    .add("--twin-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: compare_scenarios(db, a.twin_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_compare))
+
+cli.subcommand("list", "List twins") \
+    .add("--location-id") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: list_twins(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_list))
+
+
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

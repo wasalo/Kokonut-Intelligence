@@ -22,12 +22,12 @@ Usage:
     python -m services.analytics.cooperative member-dashboard --farmer-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import date, datetime
 from typing import Optional
 
+from ..common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.cooperative")
@@ -1133,236 +1133,225 @@ def _format_dashboard(r: dict) -> str:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Digital cooperative services")
-    sub = parser.add_subparsers(dest="command")
-
-    # Create cooperative
-    cc = sub.add_parser("create-coop", help="Create cooperative")
-    cc.add_argument("--name", required=True)
-    cc.add_argument("--type", required=True, help="Type: marketing, input_purchase, equipment_sharing, processing")
-    cc.add_argument("--location-id", required=True)
-    cc.add_argument("--governance", default="one_member_one_vote",
-                    help="Governance model: one_member_one_vote, proportional, board_directors, delegated, hybrid")
-    cc.add_argument("--description")
-    cc.add_argument("--mission")
-    cc.add_argument("--json", action="store_true")
-
-    # Add member
-    am = sub.add_parser("add-member", help="Add member")
-    am.add_argument("--cooperative-id", required=True)
-    am.add_argument("--farmer-id", required=True, help="Farmer name or ID")
-    am.add_argument("--role", default="member", help="Role: member, board_member, treasurer, secretary, chairperson, manager")
-    am.add_argument("--shares", type=int, default=1)
-    am.add_argument("--member-type", default="farmer", help="Type: farmer, associate, youth, women_group")
-    am.add_argument("--party-id", help="Canonical stakeholder party UUID")
-    am.add_argument("--json", action="store_true")
-
-    # Summary
-    sm = sub.add_parser("summary", help="Cooperative summary")
-    sm.add_argument("--cooperative-id", required=True)
-    sm.add_argument("--json", action="store_true")
-
-    # List
-    ls = sub.add_parser("list", help="List cooperatives")
-    ls.add_argument("--location-id", required=True)
-    ls.add_argument("--json", action="store_true")
-
-    # Add asset
-    aa = sub.add_parser("add-asset", help="Add shared asset")
-    aa.add_argument("--cooperative-id", required=True)
-    aa.add_argument("--name", required=True)
-    aa.add_argument("--type", required=True,
-                    help="Asset type: tractor, harvester, irrigation_system, storage_facility, processing_equipment, transport_vehicle, other")
-    aa.add_argument("--daily-rate", type=float, required=True)
-    aa.add_argument("--description")
-    aa.add_argument("--capacity")
-    aa.add_argument("--capacity-unit")
-    aa.add_argument("--hourly-rate", type=float)
-    aa.add_argument("--purchase-price", type=float)
-    aa.add_argument("--json", action="store_true")
-
-    # Book asset
-    ba = sub.add_parser("book-asset", help="Book shared asset")
-    ba.add_argument("--asset-id", required=True)
-    ba.add_argument("--membership-id", required=True)
-    ba.add_argument("--start", required=True, help="Start datetime YYYY-MM-DDTHH:MM")
-    ba.add_argument("--end", required=True, help="End datetime YYYY-MM-DDTHH:MM")
-    ba.add_argument("--purpose")
-    ba.add_argument("--field-location")
-    ba.add_argument("--json", action="store_true")
-
-    # Asset utilization
-    au = sub.add_parser("asset-utilization", help="Asset utilization")
-    au.add_argument("--cooperative-id", required=True)
-    au.add_argument("--json", action="store_true")
-
-    # Create purchase
-    cp = sub.add_parser("create-purchase", help="Create collective purchase")
-    cp.add_argument("--cooperative-id", required=True)
-    cp.add_argument("--order-name", required=True)
-    cp.add_argument("--category", required=True,
-                    help="Category: seeds, fertilizer, pesticide, herbicide, tools, fuel, feed, organic_inputs, other")
-    cp.add_argument("--target-qty", type=float, required=True)
-    cp.add_argument("--unit", required=True)
-    cp.add_argument("--target-price", type=float, required=True)
-    cp.add_argument("--description")
-    cp.add_argument("--deadline")
-    cp.add_argument("--json", action="store_true")
-
-    # Add purchase participant
-    app = sub.add_parser("add-purchase-participant", help="Add purchase participant")
-    app.add_argument("--purchase-id", required=True)
-    app.add_argument("--membership-id", required=True)
-    app.add_argument("--quantity", type=float, required=True)
-    app.add_argument("--commitment", type=float, required=True)
-    app.add_argument("--json", action="store_true")
-
-    # Create market order
-    cmo = sub.add_parser("create-market-order", help="Create collective market order")
-    cmo.add_argument("--cooperative-id", required=True)
-    cmo.add_argument("--order-name", required=True)
-    cmo.add_argument("--crop", required=True)
-    cmo.add_argument("--quantity", type=float, required=True)
-    cmo.add_argument("--unit", default="kg")
-    cmo.add_argument("--grade")
-    cmo.add_argument("--target-price", type=float, required=True)
-    cmo.add_argument("--description")
-    cmo.add_argument("--delivery-date")
-    cmo.add_argument("--json", action="store_true")
-
-    # Add market participant
-    amp = sub.add_parser("add-market-participant", help="Add market order participant")
-    amp.add_argument("--market-order-id", required=True)
-    amp.add_argument("--membership-id", required=True)
-    amp.add_argument("--quantity", type=float, required=True)
-    amp.add_argument("--json", action="store_true")
-
-    # Collective orders
-    co = sub.add_parser("collective-orders", help="Active collective orders")
-    co.add_argument("--cooperative-id", required=True)
-    co.add_argument("--json", action="store_true")
-
-    # Member dashboard
-    md = sub.add_parser("member-dashboard", help="Member dashboard")
-    md.add_argument("--farmer-id", required=True)
-    md.add_argument("--json", action="store_true")
-
-    args = parser.parse_args()
-
-    from services.common.database import get_db
-
-    if args.command in (
-        "create-coop", "add-member", "summary", "list",
-        "add-asset", "book-asset", "asset-utilization",
-        "create-purchase", "add-purchase-participant",
-        "create-market-order", "add-market-participant",
-        "collective-orders", "member-dashboard",
-    ):
-        db = get_db()
+def _render(result, a, fmt):
+    if a.json:
+        print(json.dumps(result, indent=2, default=str))
     else:
-        parser.print_help()
-        return
+        print(fmt(result))
 
-    try:
-        if args.command == "create-coop":
-            result = create_cooperative(
-                db, args.name, args.type, args.location_id,
-                governance_model=args.governance, description=args.description,
-                mission_statement=args.mission,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_coop(result)
-            print(output)
 
-        elif args.command == "add-member":
-            result = add_member(
-                db, args.cooperative_id, args.farmer_id,
-                role=args.role, shares=args.shares, member_type=args.member_type,
-                party_id=args.party_id,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_member(result)
-            print(output)
+def _cmd_create_coop(db, a):
+    return create_cooperative(
+        db, a.name, a.type, a.location_id,
+        governance_model=a.governance, description=a.description,
+        mission_statement=a.mission,
+    )
 
-        elif args.command == "summary":
-            result = get_cooperative_summary(db, args.cooperative_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_summary(result)
-            print(output)
 
-        elif args.command == "list":
-            result = list_cooperatives(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_list(result)
-            print(output)
+def _cmd_add_member(db, a):
+    return add_member(
+        db, a.cooperative_id, a.farmer_id,
+        role=a.role, shares=a.shares, member_type=a.member_type,
+        party_id=a.party_id,
+    )
 
-        elif args.command == "add-asset":
-            result = add_shared_asset(
-                db, args.cooperative_id, args.name, args.type,
-                args.daily_rate, description=args.description,
-                capacity=args.capacity, capacity_unit=args.capacity_unit,
-                hourly_rate=args.hourly_rate, purchase_price=args.purchase_price,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_asset(result)
-            print(output)
 
-        elif args.command == "book-asset":
-            result = book_asset(
-                db, args.asset_id, args.membership_id,
-                args.start, args.end, purpose=args.purpose,
-                field_location=args.field_location,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_booking(result)
-            print(output)
+def _cmd_summary(db, a):
+    return get_cooperative_summary(db, a.cooperative_id)
 
-        elif args.command == "asset-utilization":
-            result = get_asset_utilization(db, args.cooperative_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_utilization(result)
-            print(output)
 
-        elif args.command == "create-purchase":
-            result = create_collective_purchase(
-                db, args.cooperative_id, args.order_name, args.category,
-                args.target_qty, args.unit, args.target_price,
-                description=args.description, deadline=args.deadline,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_purchase(result)
-            print(output)
+def _cmd_list(db, a):
+    return list_cooperatives(db, a.location_id)
 
-        elif args.command == "add-purchase-participant":
-            result = add_purchase_participant(
-                db, args.purchase_id, args.membership_id,
-                args.quantity, args.commitment,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_participant(result)
-            print(output)
 
-        elif args.command == "create-market-order":
-            result = create_market_order(
-                db, args.cooperative_id, args.order_name, args.crop,
-                args.quantity, args.unit, args.target_price,
-                quality_grade=args.grade, description=args.description,
-                delivery_date=args.delivery_date,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_market_order(result)
-            print(output)
+def _cmd_add_asset(db, a):
+    return add_shared_asset(
+        db, a.cooperative_id, a.name, a.type,
+        a.daily_rate, description=a.description,
+        capacity=a.capacity, capacity_unit=a.capacity_unit,
+        hourly_rate=a.hourly_rate, purchase_price=a.purchase_price,
+    )
 
-        elif args.command == "add-market-participant":
-            result = add_market_participant(
-                db, args.market_order_id, args.membership_id, args.quantity,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_market_participant(result)
-            print(output)
 
-        elif args.command == "collective-orders":
-            result = get_collective_orders(db, args.cooperative_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_orders(result)
-            print(output)
+def _cmd_book_asset(db, a):
+    return book_asset(
+        db, a.asset_id, a.membership_id,
+        a.start, a.end, purpose=a.purpose,
+        field_location=a.field_location,
+    )
 
-        elif args.command == "member-dashboard":
-            result = get_member_dashboard(db, args.farmer_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_dashboard(result)
-            print(output)
 
-    finally:
-        db.close()
+def _cmd_asset_utilization(db, a):
+    return get_asset_utilization(db, a.cooperative_id)
+
+
+def _cmd_create_purchase(db, a):
+    return create_collective_purchase(
+        db, a.cooperative_id, a.order_name, a.category,
+        a.target_qty, a.unit, a.target_price,
+        description=a.description, deadline=a.deadline,
+    )
+
+
+def _cmd_add_purchase_participant(db, a):
+    return add_purchase_participant(
+        db, a.purchase_id, a.membership_id,
+        a.quantity, a.commitment,
+    )
+
+
+def _cmd_create_market_order(db, a):
+    return create_market_order(
+        db, a.cooperative_id, a.order_name, a.crop,
+        a.quantity, a.unit, a.target_price,
+        quality_grade=a.grade, description=a.description,
+        delivery_date=a.delivery_date,
+    )
+
+
+def _cmd_add_market_participant(db, a):
+    return add_market_participant(
+        db, a.market_order_id, a.membership_id, a.quantity,
+    )
+
+
+def _cmd_collective_orders(db, a):
+    return get_collective_orders(db, a.cooperative_id)
+
+
+def _cmd_member_dashboard(db, a):
+    return get_member_dashboard(db, a.farmer_id)
+
+
+cli = CommandLine("cooperative", "Digital cooperative services")
+
+cli.subcommand("create-coop", "Create cooperative") \
+    .add("--name", required=True) \
+    .add("--type", required=True, help="Type: marketing, input_purchase, equipment_sharing, processing") \
+    .add("--location-id", required=True) \
+    .add("--governance", default="one_member_one_vote",
+         help="Governance model: one_member_one_vote, proportional, board_directors, delegated, hybrid") \
+    .add("--description") \
+    .add("--mission") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_coop) \
+    .render_with(lambda r, a: _render(r, a, _format_coop))
+
+cli.subcommand("add-member", "Add member") \
+    .add("--cooperative-id", required=True) \
+    .add("--farmer-id", required=True, help="Farmer name or ID") \
+    .add("--role", default="member", help="Role: member, board_member, treasurer, secretary, chairperson, manager") \
+    .add("--shares", type=int, default=1) \
+    .add("--member-type", default="farmer", help="Type: farmer, associate, youth, women_group") \
+    .add("--party-id", help="Canonical stakeholder party UUID") \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_member) \
+    .render_with(lambda r, a: _render(r, a, _format_member))
+
+cli.subcommand("summary", "Cooperative summary") \
+    .add("--cooperative-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_summary) \
+    .render_with(lambda r, a: _render(r, a, _format_summary))
+
+cli.subcommand("list", "List cooperatives") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_list) \
+    .render_with(lambda r, a: _render(r, a, _format_list))
+
+cli.subcommand("add-asset", "Add shared asset") \
+    .add("--cooperative-id", required=True) \
+    .add("--name", required=True) \
+    .add("--type", required=True,
+         help="Asset type: tractor, harvester, irrigation_system, storage_facility, processing_equipment, transport_vehicle, other") \
+    .add("--daily-rate", type=float, required=True) \
+    .add("--description") \
+    .add("--capacity") \
+    .add("--capacity-unit") \
+    .add("--hourly-rate", type=float) \
+    .add("--purchase-price", type=float) \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_asset) \
+    .render_with(lambda r, a: _render(r, a, _format_asset))
+
+cli.subcommand("book-asset", "Book shared asset") \
+    .add("--asset-id", required=True) \
+    .add("--membership-id", required=True) \
+    .add("--start", required=True, help="Start datetime YYYY-MM-DDTHH:MM") \
+    .add("--end", required=True, help="End datetime YYYY-MM-DDTHH:MM") \
+    .add("--purpose") \
+    .add("--field-location") \
+    .add("--json", action="store_true") \
+    .run(_cmd_book_asset) \
+    .render_with(lambda r, a: _render(r, a, _format_booking))
+
+cli.subcommand("asset-utilization", "Asset utilization") \
+    .add("--cooperative-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_asset_utilization) \
+    .render_with(lambda r, a: _render(r, a, _format_utilization))
+
+cli.subcommand("create-purchase", "Create collective purchase") \
+    .add("--cooperative-id", required=True) \
+    .add("--order-name", required=True) \
+    .add("--category", required=True,
+         help="Category: seeds, fertilizer, pesticide, herbicide, tools, fuel, feed, organic_inputs, other") \
+    .add("--target-qty", type=float, required=True) \
+    .add("--unit", required=True) \
+    .add("--target-price", type=float, required=True) \
+    .add("--description") \
+    .add("--deadline") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_purchase) \
+    .render_with(lambda r, a: _render(r, a, _format_purchase))
+
+cli.subcommand("add-purchase-participant", "Add purchase participant") \
+    .add("--purchase-id", required=True) \
+    .add("--membership-id", required=True) \
+    .add("--quantity", type=float, required=True) \
+    .add("--commitment", type=float, required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_purchase_participant) \
+    .render_with(lambda r, a: _render(r, a, _format_participant))
+
+cli.subcommand("create-market-order", "Create collective market order") \
+    .add("--cooperative-id", required=True) \
+    .add("--order-name", required=True) \
+    .add("--crop", required=True) \
+    .add("--quantity", type=float, required=True) \
+    .add("--unit", default="kg") \
+    .add("--grade") \
+    .add("--target-price", type=float, required=True) \
+    .add("--description") \
+    .add("--delivery-date") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_market_order) \
+    .render_with(lambda r, a: _render(r, a, _format_market_order))
+
+cli.subcommand("add-market-participant", "Add market order participant") \
+    .add("--market-order-id", required=True) \
+    .add("--membership-id", required=True) \
+    .add("--quantity", type=float, required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_market_participant) \
+    .render_with(lambda r, a: _render(r, a, _format_market_participant))
+
+cli.subcommand("collective-orders", "Active collective orders") \
+    .add("--cooperative-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_collective_orders) \
+    .render_with(lambda r, a: _render(r, a, _format_orders))
+
+cli.subcommand("member-dashboard", "Member dashboard") \
+    .add("--farmer-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_member_dashboard) \
+    .render_with(lambda r, a: _render(r, a, _format_dashboard))
+
+
+def main(argv=None):
+    return cli.run(argv)
 
 
 if __name__ == "__main__":

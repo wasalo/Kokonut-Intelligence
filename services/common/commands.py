@@ -71,6 +71,7 @@ class Subcommand:
     help: str = ""
     argspecs: list[Argument] = field(default_factory=list)
     handler: Optional[Callable[[Any, argparse.Namespace], Any]] = None
+    needs_db: bool = True
     render: Callable[[Any, argparse.Namespace], None] = staticmethod(
         _default_render
     )
@@ -80,9 +81,18 @@ class Subcommand:
         self.argspecs.append(Argument(tuple(names), kwargs))
         return self
 
-    def run(self, handler: Callable[[Any, argparse.Namespace], Any]) -> "Subcommand":
-        """Bind the handler. Signature: ``handler(conn, args) -> result``."""
+    def run(
+        self,
+        handler: Callable[[Any, argparse.Namespace], Any],
+        needs_db: bool = True,
+    ) -> "Subcommand":
+        """Bind the handler. Signature: ``handler(conn, args) -> result``.
+
+        Set ``needs_db=False`` for pure-computation commands that should run
+        without opening a database connection (``conn`` is passed as ``None``).
+        """
         self.handler = handler
+        self.needs_db = needs_db
         return self
 
     def render_with(self, render: Callable[[Any, argparse.Namespace], None]) -> "Subcommand":
@@ -135,11 +145,12 @@ class CommandLine:
             parser.print_help()
             return
         command = next(c for c in self._commands if c.name == command_name)
-        conn = self._connection_factory()
+        conn = self._connection_factory() if command.needs_db else None
         try:
             result = command.handler(conn, args)
         finally:
-            conn.close()
+            if conn is not None:
+                conn.close()
         command.render(result, args)
 
     def run(self, argv: Optional[list[str]] = None) -> None:

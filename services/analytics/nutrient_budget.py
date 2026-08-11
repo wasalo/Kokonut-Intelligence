@@ -18,12 +18,12 @@ Usage:
     python -m services.analytics.nutrient_budget efficiency --location-id UUID --season 2026S1
 """
 
-import argparse
 import json
 import uuid
 from datetime import date
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.nutrient_budget")
@@ -648,179 +648,138 @@ def get_efficiency_ratio(conn, location_id: str, season: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Nutrient budget tracking")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("nutrient_budget", "Nutrient budget tracking")
 
-    # create-budget
-    cb = sub.add_parser("create-budget", help="Create nutrient budget")
-    cb.add_argument("--location-id", required=True)
-    cb.add_argument("--season", required=True)
-    cb.add_argument("--crop")
-    cb.add_argument("--area", type=float, help="Area in hectares")
-    cb.add_argument("--plot-id")
-    cb.add_argument("--json", action="store_true")
 
-    # record-input
-    ri = sub.add_parser("record-input", help="Record nutrient input")
-    ri.add_argument("--budget-id", required=True)
-    ri.add_argument("--date", help="Input date YYYY-MM-DD")
-    ri.add_argument("--type", required=True, dest="input_type",
-                    choices=["fertilizer", "manure", "compost", "biochar",
-                             "green_manure", "rainfall", "irrigation", "seed", "other"])
-    ri.add_argument("--product", help="Product name")
-    ri.add_argument("--n", type=float, default=0, help="Nitrogen kg")
-    ri.add_argument("--p", type=float, default=0, help="Phosphorus kg")
-    ri.add_argument("--k", type=float, default=0, help="Potassium kg")
-    ri.add_argument("--rate", type=float, help="Application rate")
-    ri.add_argument("--rate-unit", help="Rate unit (kg/ha, L/ha, etc)")
-    ri.add_argument("--cost", type=float, help="Cost")
-    ri.add_argument("--notes")
-    ri.add_argument("--json", action="store_true")
+def _cmd_record_input(db, a):
+    d = date.fromisoformat(a.date) if a.date else None
+    return record_input(
+        db, a.budget_id, d, a.input_type,
+        product_name=a.product,
+        n_kg=a.n, p_kg=a.p, k_kg=a.k,
+        application_rate=a.rate, rate_unit=a.rate_unit,
+        cost=a.cost, notes=a.notes,
+    )
 
-    # record-removal
-    rr = sub.add_parser("record-removal", help="Record nutrient removal at harvest")
-    rr.add_argument("--budget-id", required=True)
-    rr.add_argument("--date", help="Harvest date YYYY-MM-DD")
-    rr.add_argument("--crop", required=True)
-    rr.add_argument("--yield", type=float, required=True, dest="yield_amount", help="Yield in tonnes")
-    rr.add_argument("--n", type=float, default=0, help="Nitrogen removed kg")
-    rr.add_argument("--p", type=float, default=0, help="Phosphorus removed kg")
-    rr.add_argument("--k", type=float, default=0, help="Potassium removed kg")
-    rr.add_argument("--yield-unit", default="tonnes")
-    rr.add_argument("--source", help="Removal factor source")
-    rr.add_argument("--notes")
-    rr.add_argument("--json", action="store_true")
 
-    # balance
-    ba = sub.add_parser("balance", help="Get nutrient balance")
-    ba.add_argument("--location-id", required=True)
-    ba.add_argument("--json", action="store_true")
+def _cmd_record_removal(db, a):
+    d = date.fromisoformat(a.date) if a.date else None
+    return record_removal(
+        db, a.budget_id, d, a.crop, a.yield_amount,
+        n_kg=a.n, p_kg=a.p, k_kg=a.k,
+        yield_unit=a.yield_unit, removal_factor_source=a.source,
+        notes=a.notes,
+    )
 
-    # input-summary
-    is_ = sub.add_parser("input-summary", help="Get input summary by type")
-    is_.add_argument("--budget-id", required=True)
-    is_.add_argument("--json", action="store_true")
 
-    # soil-test
-    st = sub.add_parser("soil-test", help="Record soil test")
-    st.add_argument("--location-id", required=True)
-    st.add_argument("--plot-id")
-    st.add_argument("--date", help="Test date YYYY-MM-DD")
-    st.add_argument("--ph", type=float, dest="soil_ph")
-    st.add_argument("--om", type=float, dest="organic_matter_pct", help="Organic matter %")
-    st.add_argument("--n", type=float, dest="n_ppm", help="Nitrogen ppm")
-    st.add_argument("--p", type=float, dest="p_ppm", help="Phosphorus ppm")
-    st.add_argument("--k", type=float, dest="k_ppm", help="Potassium ppm")
-    st.add_argument("--cec", type=float)
-    st.add_argument("--rec-n", type=float, dest="recommended_n_kg_ha", help="Recommended N kg/ha")
-    st.add_argument("--rec-p", type=float, dest="recommended_p_kg_ha", help="Recommended P kg/ha")
-    st.add_argument("--rec-k", type=float, dest="recommended_k_kg_ha", help="Recommended K kg/ha")
-    st.add_argument("--notes")
-    st.add_argument("--json", action="store_true")
+def _cmd_soil_test(db, a):
+    d = date.fromisoformat(a.date) if a.date else None
+    return record_soil_test(
+        db, a.location_id, plot_id=a.plot_id,
+        test_date=d,
+        soil_ph=a.soil_ph,
+        organic_matter_pct=a.organic_matter_pct,
+        n_ppm=a.n_ppm, p_ppm=a.p_ppm, k_ppm=a.k_ppm,
+        cec=a.cec,
+        recommended_n_kg_ha=a.recommended_n_kg_ha,
+        recommended_p_kg_ha=a.recommended_p_kg_ha,
+        recommended_k_kg_ha=a.recommended_k_kg_ha,
+        notes=a.notes,
+    )
 
-    # recommendation
-    re = sub.add_parser("recommendation", help="Get soil-test recommendation")
-    re.add_argument("--plot-id", required=True)
-    re.add_argument("--json", action="store_true")
 
-    # dashboard
-    da = sub.add_parser("dashboard", help="Nutrient dashboard")
-    da.add_argument("--location-id", required=True)
-    da.add_argument("--json", action="store_true")
+cli.subcommand("create-budget", "Create nutrient budget") \
+    .add("--location-id", required=True) \
+    .add("--season", required=True) \
+    .add("--crop") \
+    .add("--area", type=float, help="Area in hectares") \
+    .add("--plot-id") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: create_budget(db, a.location_id, a.season, crop_name=a.crop, area_ha=a.area, plot_id=a.plot_id))
 
-    # removal (compute)
-    rc = sub.add_parser("removal", help="Compute removal from yield")
-    rc.add_argument("--crop", required=True)
-    rc.add_argument("--yield", type=float, required=True, dest="yield_amount", help="Yield in tonnes")
-    rc.add_argument("--json", action="store_true")
+cli.subcommand("record-input", "Record nutrient input") \
+    .add("--budget-id", required=True) \
+    .add("--date", help="Input date YYYY-MM-DD") \
+    .add("--type", required=True, dest="input_type",
+         choices=["fertilizer", "manure", "compost", "biochar",
+                  "green_manure", "rainfall", "irrigation", "seed", "other"]) \
+    .add("--product", help="Product name") \
+    .add("--n", type=float, default=0, help="Nitrogen kg") \
+    .add("--p", type=float, default=0, help="Phosphorus kg") \
+    .add("--k", type=float, default=0, help="Potassium kg") \
+    .add("--rate", type=float, help="Application rate") \
+    .add("--rate-unit", help="Rate unit (kg/ha, L/ha, etc)") \
+    .add("--cost", type=float, help="Cost") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_input)
 
-    # efficiency
-    ef = sub.add_parser("efficiency", help="Nutrient use efficiency")
-    ef.add_argument("--location-id", required=True)
-    ef.add_argument("--season", required=True)
-    ef.add_argument("--json", action="store_true")
+cli.subcommand("record-removal", "Record nutrient removal at harvest") \
+    .add("--budget-id", required=True) \
+    .add("--date", help="Harvest date YYYY-MM-DD") \
+    .add("--crop", required=True) \
+    .add("--yield", type=float, required=True, dest="yield_amount", help="Yield in tonnes") \
+    .add("--n", type=float, default=0, help="Nitrogen removed kg") \
+    .add("--p", type=float, default=0, help="Phosphorus removed kg") \
+    .add("--k", type=float, default=0, help="Potassium removed kg") \
+    .add("--yield-unit", default="tonnes") \
+    .add("--source", help="Removal factor source") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_removal)
 
-    args = parser.parse_args()
+cli.subcommand("balance", "Get nutrient balance") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_nutrient_balance(db, a.location_id))
 
-    from services.common.database import get_db
+cli.subcommand("input-summary", "Get input summary by type") \
+    .add("--budget-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_input_summary(db, a.budget_id))
 
-    if args.command is None:
-        parser.print_help()
-        return
+cli.subcommand("soil-test", "Record soil test") \
+    .add("--location-id", required=True) \
+    .add("--plot-id") \
+    .add("--date", help="Test date YYYY-MM-DD") \
+    .add("--ph", type=float, dest="soil_ph") \
+    .add("--om", type=float, dest="organic_matter_pct", help="Organic matter %") \
+    .add("--n", type=float, dest="n_ppm", help="Nitrogen ppm") \
+    .add("--p", type=float, dest="p_ppm", help="Phosphorus ppm") \
+    .add("--k", type=float, dest="k_ppm", help="Potassium ppm") \
+    .add("--cec", type=float) \
+    .add("--rec-n", type=float, dest="recommended_n_kg_ha", help="Recommended N kg/ha") \
+    .add("--rec-p", type=float, dest="recommended_p_kg_ha", help="Recommended P kg/ha") \
+    .add("--rec-k", type=float, dest="recommended_k_kg_ha", help="Recommended K kg/ha") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_soil_test)
 
-    db = get_db()
-    try:
-        if args.command == "create-budget":
-            result = create_budget(
-                db, args.location_id, args.season,
-                crop_name=args.crop, area_ha=args.area, plot_id=args.plot_id,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("recommendation", "Get soil-test recommendation") \
+    .add("--plot-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_recommendation(db, a.plot_id))
 
-        elif args.command == "record-input":
-            d = date.fromisoformat(args.date) if args.date else None
-            result = record_input(
-                db, args.budget_id, d, args.input_type,
-                product_name=args.product,
-                n_kg=args.n, p_kg=args.p, k_kg=args.k,
-                application_rate=args.rate, rate_unit=args.rate_unit,
-                cost=args.cost, notes=args.notes,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("dashboard", "Nutrient dashboard") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_nutrient_dashboard(db, a.location_id))
 
-        elif args.command == "record-removal":
-            d = date.fromisoformat(args.date) if args.date else None
-            result = record_removal(
-                db, args.budget_id, d, args.crop, args.yield_amount,
-                n_kg=args.n, p_kg=args.p, k_kg=args.k,
-                yield_unit=args.yield_unit, removal_factor_source=args.source,
-                notes=args.notes,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("removal", "Compute removal from yield") \
+    .add("--crop", required=True) \
+    .add("--yield", type=float, required=True, dest="yield_amount", help="Yield in tonnes") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: compute_removal(db, a.crop, a.yield_amount))
 
-        elif args.command == "balance":
-            result = get_nutrient_balance(db, args.location_id)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("efficiency", "Nutrient use efficiency") \
+    .add("--location-id", required=True) \
+    .add("--season", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_efficiency_ratio(db, a.location_id, a.season))
 
-        elif args.command == "input-summary":
-            result = get_input_summary(db, args.budget_id)
-            print(json.dumps(result, indent=2, default=str))
 
-        elif args.command == "soil-test":
-            d = date.fromisoformat(args.date) if args.date else None
-            result = record_soil_test(
-                db, args.location_id, plot_id=args.plot_id,
-                test_date=d,
-                soil_ph=args.soil_ph,
-                organic_matter_pct=args.organic_matter_pct,
-                n_ppm=args.n_ppm, p_ppm=args.p_ppm, k_ppm=args.k_ppm,
-                cec=args.cec,
-                recommended_n_kg_ha=args.recommended_n_kg_ha,
-                recommended_p_kg_ha=args.recommended_p_kg_ha,
-                recommended_k_kg_ha=args.recommended_k_kg_ha,
-                notes=args.notes,
-            )
-            print(json.dumps(result, indent=2, default=str))
-
-        elif args.command == "recommendation":
-            result = get_recommendation(db, args.plot_id)
-            print(json.dumps(result, indent=2, default=str))
-
-        elif args.command == "dashboard":
-            result = get_nutrient_dashboard(db, args.location_id)
-            print(json.dumps(result, indent=2, default=str))
-
-        elif args.command == "removal":
-            result = compute_removal(db, args.crop, args.yield_amount)
-            print(json.dumps(result, indent=2, default=str))
-
-        elif args.command == "efficiency":
-            result = get_efficiency_ratio(db, args.location_id, args.season)
-            print(json.dumps(result, indent=2, default=str))
-
-    finally:
-        db.close()
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

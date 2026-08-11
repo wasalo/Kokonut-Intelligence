@@ -22,12 +22,12 @@ Usage:
     python -m services.analytics.traceability cold-chain --batch-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import datetime, date, timezone
 from typing import Optional
 
+from ..common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.traceability")
@@ -821,184 +821,191 @@ def get_cold_chain_log(conn, batch_id: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Supply chain traceability")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("traceability", "Supply chain traceability")
 
-    # create-batch
-    cb = sub.add_parser("create-batch", help="Create produce batch")
-    cb.add_argument("--location-id", required=True)
-    cb.add_argument("--crop", required=True, help="Crop name")
-    cb.add_argument("--quantity", type=float, required=True)
-    cb.add_argument("--harvest-date", help="Harvest date YYYY-MM-DD")
-    cb.add_argument("--variety")
-    cb.add_argument("--organic", action="store_true")
-    cb.add_argument("--unit", default="kg")
-    cb.add_argument("--field-id")
-    cb.add_argument("--notes")
-    cb.add_argument("--json", action="store_true")
 
-    # custody
-    ct = sub.add_parser("custody", help="Record custody transfer")
-    ct.add_argument("--batch-id", required=True)
-    ct.add_argument("--from", dest="from_actor", required=True)
-    ct.add_argument("--to", dest="to_actor", required=True)
-    ct.add_argument("--type", dest="transfer_type", default="sale")
-    ct.add_argument("--location")
-    ct.add_argument("--quantity", type=float)
-    ct.add_argument("--notes")
-    ct.add_argument("--json", action="store_true")
+def _cmd_create_batch(db, a):
+    return create_produce_batch(
+        db, a.location_id, a.crop, a.quantity,
+        harvest_date=a.harvest_date, variety=a.variety,
+        organic=a.organic, unit=a.unit,
+        field_id=a.field_id, notes=a.notes,
+    )
 
-    # quality
-    qi = sub.add_parser("quality", help="Record quality inspection")
-    qi.add_argument("--batch-id", required=True)
-    qi.add_argument("--type", dest="inspection_type", required=True)
-    qi.add_argument("--result", required=True)
-    qi.add_argument("--grade")
-    qi.add_argument("--inspector")
-    qi.add_argument("--notes")
-    qi.add_argument("--json", action="store_true")
 
-    # certification
-    cf = sub.add_parser("certification", help="Verify certification")
-    cf.add_argument("--batch-id", required=True)
-    cf.add_argument("--type", dest="cert_type", required=True)
-    cf.add_argument("--cert-number", required=True)
-    cf.add_argument("--issuer", required=True)
-    cf.add_argument("--expiry", help="Expiry date YYYY-MM-DD")
-    cf.add_argument("--notes")
-    cf.add_argument("--json", action="store_true")
+def _cmd_custody(db, a):
+    return record_custody_transfer(
+        db, a.batch_id, a.from_actor, a.to_actor,
+        transfer_type=a.transfer_type, location=a.location,
+        quantity=a.quantity, notes=a.notes,
+    )
 
-    # provenance
-    pv = sub.add_parser("provenance", help="Log provenance event")
-    pv.add_argument("--batch-id", required=True)
-    pv.add_argument("--event", dest="event_type", required=True)
-    pv.add_argument("--actor", required=True)
-    pv.add_argument("--location")
-    pv.add_argument("--description")
-    pv.add_argument("--evidence-url")
-    pv.add_argument("--json", action="store_true")
 
-    # provenance-log
-    pl = sub.add_parser("provenance-log", help="Get provenance chain")
-    pl.add_argument("--batch-id", required=True)
-    pl.add_argument("--json", action="store_true")
+def _cmd_quality(db, a):
+    return record_quality_inspection(
+        db, a.batch_id, a.inspection_type, a.result,
+        grade=a.grade, inspector=a.inspector, notes=a.notes,
+    )
 
-    # status
-    st = sub.add_parser("status", help="Get batch status")
-    st.add_argument("--batch-id", required=True)
-    st.add_argument("--json", action="store_true")
 
-    # list
-    ls = sub.add_parser("list", help="List batches")
-    ls.add_argument("--location-id")
-    ls.add_argument("--status")
-    ls.add_argument("--limit", type=int, default=50)
-    ls.add_argument("--json", action="store_true")
+def _cmd_certification(db, a):
+    return verify_certification(
+        db, a.batch_id, a.cert_type, a.cert_number,
+        a.issuer, expiry_date=a.expiry, notes=a.notes,
+    )
 
-    # food-safety
-    fs = sub.add_parser("food-safety", help="Record food safety check")
-    fs.add_argument("--batch-id", required=True)
-    fs.add_argument("--type", dest="check_type", required=True)
-    fs.add_argument("--result", required=True)
-    fs.add_argument("--temperature", type=float)
-    fs.add_argument("--inspector")
-    fs.add_argument("--notes")
-    fs.add_argument("--json", action="store_true")
 
-    # certs
-    cs = sub.add_parser("certs", help="Get certification status")
-    cs.add_argument("--location-id", required=True)
-    cs.add_argument("--json", action="store_true")
+def _cmd_provenance(db, a):
+    return log_provenance_event(
+        db, a.batch_id, a.event_type, a.actor,
+        location=a.location, description=a.description,
+        evidence_url=a.evidence_url,
+    )
 
-    # trace-forward
-    tf = sub.add_parser("trace-forward", help="Trace downstream")
-    tf.add_argument("--batch-id", required=True)
-    tf.add_argument("--json", action="store_true")
 
-    # trace-backward
-    tb = sub.add_parser("trace-backward", help="Trace to origin")
-    tb.add_argument("--batch-id", required=True)
-    tb.add_argument("--json", action="store_true")
+def _cmd_provenance_log(db, a):
+    return get_batch_provenance(db, a.batch_id)
 
-    # cold-chain
-    cc = sub.add_parser("cold-chain", help="Get cold chain log")
-    cc.add_argument("--batch-id", required=True)
-    cc.add_argument("--json", action="store_true")
 
-    args = parser.parse_args()
+def _cmd_status(db, a):
+    return get_batch_status(db, a.batch_id)
 
-    from services.common.database import get_db
 
-    if args.command in (
-        "create-batch", "custody", "quality", "certification",
-        "provenance", "provenance-log", "status", "list",
-        "food-safety", "certs", "trace-forward", "trace-backward",
-        "cold-chain",
-    ):
-        db = get_db()
-    else:
-        parser.print_help()
-        return
+def _cmd_list(db, a):
+    return list_batches(
+        db, location_id=a.location_id,
+        status=a.status, limit=a.limit,
+    )
 
-    try:
-        if args.command == "create-batch":
-            result = create_produce_batch(
-                db, args.location_id, args.crop, args.quantity,
-                harvest_date=args.harvest_date, variety=args.variety,
-                organic=args.organic, unit=args.unit,
-                field_id=args.field_id, notes=args.notes,
-            )
-        elif args.command == "custody":
-            result = record_custody_transfer(
-                db, args.batch_id, args.from_actor, args.to_actor,
-                transfer_type=args.transfer_type, location=args.location,
-                quantity=args.quantity, notes=args.notes,
-            )
-        elif args.command == "quality":
-            result = record_quality_inspection(
-                db, args.batch_id, args.inspection_type, args.result,
-                grade=args.grade, inspector=args.inspector, notes=args.notes,
-            )
-        elif args.command == "certification":
-            result = verify_certification(
-                db, args.batch_id, args.cert_type, args.cert_number,
-                args.issuer, expiry_date=args.expiry, notes=args.notes,
-            )
-        elif args.command == "provenance":
-            result = log_provenance_event(
-                db, args.batch_id, args.event_type, args.actor,
-                location=args.location, description=args.description,
-                evidence_url=args.evidence_url,
-            )
-        elif args.command == "provenance-log":
-            result = get_batch_provenance(db, args.batch_id)
-        elif args.command == "status":
-            result = get_batch_status(db, args.batch_id)
-        elif args.command == "list":
-            result = list_batches(
-                db, location_id=args.location_id,
-                status=args.status, limit=args.limit,
-            )
-        elif args.command == "food-safety":
-            result = record_food_safety(
-                db, args.batch_id, args.check_type, args.result,
-                temperature=args.temperature, inspector=args.inspector,
-                notes=args.notes,
-            )
-        elif args.command == "certs":
-            result = get_certification_status(db, args.location_id)
-        elif args.command == "trace-forward":
-            result = trace_forward(db, args.batch_id)
-        elif args.command == "trace-backward":
-            result = trace_backward(db, args.batch_id)
-        elif args.command == "cold-chain":
-            result = get_cold_chain_log(db, args.batch_id)
 
-        print(json.dumps(result, indent=2, default=str))
+def _cmd_food_safety(db, a):
+    return record_food_safety(
+        db, a.batch_id, a.check_type, a.result,
+        temperature=a.temperature, inspector=a.inspector,
+        notes=a.notes,
+    )
 
-    finally:
-        db.close()
+
+def _cmd_certs(db, a):
+    return get_certification_status(db, a.location_id)
+
+
+def _cmd_trace_forward(db, a):
+    return trace_forward(db, a.batch_id)
+
+
+def _cmd_trace_backward(db, a):
+    return trace_backward(db, a.batch_id)
+
+
+def _cmd_cold_chain(db, a):
+    return get_cold_chain_log(db, a.batch_id)
+
+
+cli.subcommand("create-batch", "Create produce batch") \
+    .add("--location-id", required=True) \
+    .add("--crop", required=True, help="Crop name") \
+    .add("--quantity", type=float, required=True) \
+    .add("--harvest-date", help="Harvest date YYYY-MM-DD") \
+    .add("--variety") \
+    .add("--organic", action="store_true") \
+    .add("--unit", default="kg") \
+    .add("--field-id") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_batch)
+
+cli.subcommand("custody", "Record custody transfer") \
+    .add("--batch-id", required=True) \
+    .add("--from", dest="from_actor", required=True) \
+    .add("--to", dest="to_actor", required=True) \
+    .add("--type", dest="transfer_type", default="sale") \
+    .add("--location") \
+    .add("--quantity", type=float) \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_custody)
+
+cli.subcommand("quality", "Record quality inspection") \
+    .add("--batch-id", required=True) \
+    .add("--type", dest="inspection_type", required=True) \
+    .add("--result", required=True) \
+    .add("--grade") \
+    .add("--inspector") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_quality)
+
+cli.subcommand("certification", "Verify certification") \
+    .add("--batch-id", required=True) \
+    .add("--type", dest="cert_type", required=True) \
+    .add("--cert-number", required=True) \
+    .add("--issuer", required=True) \
+    .add("--expiry", help="Expiry date YYYY-MM-DD") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_certification)
+
+cli.subcommand("provenance", "Log provenance event") \
+    .add("--batch-id", required=True) \
+    .add("--event", dest="event_type", required=True) \
+    .add("--actor", required=True) \
+    .add("--location") \
+    .add("--description") \
+    .add("--evidence-url") \
+    .add("--json", action="store_true") \
+    .run(_cmd_provenance)
+
+cli.subcommand("provenance-log", "Get provenance chain") \
+    .add("--batch-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_provenance_log)
+
+cli.subcommand("status", "Get batch status") \
+    .add("--batch-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_status)
+
+cli.subcommand("list", "List batches") \
+    .add("--location-id") \
+    .add("--status") \
+    .add("--limit", type=int, default=50) \
+    .add("--json", action="store_true") \
+    .run(_cmd_list)
+
+cli.subcommand("food-safety", "Record food safety check") \
+    .add("--batch-id", required=True) \
+    .add("--type", dest="check_type", required=True) \
+    .add("--result", required=True) \
+    .add("--temperature", type=float) \
+    .add("--inspector") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_food_safety)
+
+cli.subcommand("certs", "Get certification status") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_certs)
+
+cli.subcommand("trace-forward", "Trace downstream") \
+    .add("--batch-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_trace_forward)
+
+cli.subcommand("trace-backward", "Trace to origin") \
+    .add("--batch-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_trace_backward)
+
+cli.subcommand("cold-chain", "Get cold chain log") \
+    .add("--batch-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_cold_chain)
+
+
+def main(argv=None):
+    return cli.run(argv)
 
 
 if __name__ == "__main__":

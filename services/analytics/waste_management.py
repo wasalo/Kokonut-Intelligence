@@ -17,12 +17,12 @@ Usage:
     python -m services.analytics.waste_management dashboard --location-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import date, datetime, timezone
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.waste_management")
@@ -518,159 +518,135 @@ def get_waste_dashboard(conn, location_id: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Waste management")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("waste_management", "Waste management")
 
-    # Record waste
-    rw = sub.add_parser("record-waste", help="Record waste stream")
-    rw.add_argument("--location-id", required=True)
-    rw.add_argument("--waste-type", required=True, help="organic, plastic, metal, chemical, electronic, other")
-    rw.add_argument("--waste-name", required=True)
-    rw.add_argument("--quantity", type=float, required=True, help="Quantity in kg")
-    rw.add_argument("--disposal-method", required=True, help="composting, recycling, landfill, incineration")
-    rw.add_argument("--source")
-    rw.add_argument("--notes")
-    rw.add_argument("--json", action="store_true")
 
-    # Record composting
-    rc = sub.add_parser("record-composting", help="Record composting operation")
-    rc.add_argument("--location-id", required=True)
-    rc.add_argument("--feedstock", required=True, help="Feedstock type description")
-    rc.add_argument("--feedstock-kg", type=float, required=True)
-    rc.add_argument("--method", required=True, help="vermicomposting, aerobic, anaerobic, bokashi")
-    rc.add_argument("--duration", type=int, help="Duration in days")
-    rc.add_argument("--output-kg", type=float, help="Output in kg")
-    rc.add_argument("--temperature", type=float, help="Temperature in C")
-    rc.add_argument("--ph", type=float)
-    rc.add_argument("--moisture", type=float, help="Moisture percentage")
-    rc.add_argument("--notes")
-    rc.add_argument("--json", action="store_true")
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
-    # Record recycling
-    rr = sub.add_parser("record-recycling", help="Record recycling activity")
-    rr.add_argument("--location-id", required=True)
-    rr.add_argument("--material", required=True, help="plastic, glass, metal, paper, organic")
-    rr.add_argument("--quantity", type=float, required=True, help="Quantity in kg")
-    rr.add_argument("--destination", required=True)
-    rr.add_argument("--revenue", type=float)
-    rr.add_argument("--notes")
-    rr.add_argument("--json", action="store_true")
 
-    # Report incident
-    ri = sub.add_parser("report-incident", help="Report pollution incident")
-    ri.add_argument("--location-id", required=True)
-    ri.add_argument("--incident-type", required=True, help="chemical_spill, water_contamination, soil_contamination, air_pollution, waste_dumping")
-    ri.add_argument("--severity", required=True, choices=["low", "medium", "high", "critical"])
-    ri.add_argument("--description", required=True)
-    ri.add_argument("--affected-area", required=True)
-    ri.add_argument("--reported-by")
-    ri.add_argument("--json", action="store_true")
+def _cmd_record_waste(db, a):
+    return record_waste(
+        db, a.location_id, a.waste_type, a.waste_name,
+        a.quantity, a.disposal_method, source=a.source, notes=a.notes,
+    )
 
-    # Resolve incident
-    res = sub.add_parser("resolve-incident", help="Resolve pollution incident")
-    res.add_argument("--incident-id", required=True)
-    res.add_argument("--remedial-action", required=True)
-    res.add_argument("--resolution-date", help="YYYY-MM-DD")
-    res.add_argument("--json", action="store_true")
 
-    # Waste summary
-    ws = sub.add_parser("waste-summary", help="Waste totals by type and disposal")
-    ws.add_argument("--location-id", required=True)
-    ws.add_argument("--days", type=int, default=30)
-    ws.add_argument("--json", action="store_true")
+def _cmd_record_composting(db, a):
+    return record_composting(
+        db, a.location_id, a.feedstock, a.feedstock_kg, a.method,
+        duration_days=a.duration, output_kg=a.output_kg,
+        temperature_c=a.temperature, ph=a.ph, moisture_pct=a.moisture,
+        notes=a.notes,
+    )
 
-    # Composting efficiency
-    ce = sub.add_parser("composting-efficiency", help="Composting yield and quality")
-    ce.add_argument("--location-id", required=True)
-    ce.add_argument("--json", action="store_true")
 
-    # Open incidents
-    oi = sub.add_parser("open-incidents", help="Unresolved pollution incidents")
-    oi.add_argument("--location-id", required=True)
-    oi.add_argument("--json", action="store_true")
+def _cmd_record_recycling(db, a):
+    return record_recycling(
+        db, a.location_id, a.material, a.quantity,
+        a.destination, revenue=a.revenue, notes=a.notes,
+    )
 
-    # Dashboard
-    db_cmd = sub.add_parser("dashboard", help="Waste management dashboard")
-    db_cmd.add_argument("--location-id", required=True)
-    db_cmd.add_argument("--json", action="store_true")
 
-    args = parser.parse_args()
+def _cmd_report_incident(db, a):
+    return report_incident(
+        db, a.location_id, a.incident_type, a.severity,
+        a.description, a.affected_area, reported_by=a.reported_by,
+    )
 
-    from services.common.database import get_db
 
-    if args.command is None:
-        parser.print_help()
-        return
+def _cmd_resolve_incident(db, a):
+    return resolve_incident(
+        db, a.incident_id, a.remedial_action,
+        resolution_date=a.resolution_date,
+    )
 
-    db = get_db()
 
-    try:
-        if args.command == "record-waste":
-            result = record_waste(
-                db, args.location_id, args.waste_type, args.waste_name,
-                args.quantity, args.disposal_method,
-                source=args.source, notes=args.notes,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_waste_record(result)
-            print(output)
+cli.subcommand("record-waste", "Record waste stream") \
+    .add("--location-id", required=True) \
+    .add("--waste-type", required=True, help="organic, plastic, metal, chemical, electronic, other") \
+    .add("--waste-name", required=True) \
+    .add("--quantity", type=float, required=True, help="Quantity in kg") \
+    .add("--disposal-method", required=True, help="composting, recycling, landfill, incineration") \
+    .add("--source") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_waste) \
+    .render_with(lambda r, a: _render(r, a, _format_waste_record))
 
-        elif args.command == "record-composting":
-            result = record_composting(
-                db, args.location_id, args.feedstock, args.feedstock_kg,
-                args.method, duration_days=args.duration, output_kg=args.output_kg,
-                temperature_c=args.temperature, ph=args.ph, moisture_pct=args.moisture,
-                notes=args.notes,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_composting_record(result)
-            print(output)
+cli.subcommand("record-composting", "Record composting operation") \
+    .add("--location-id", required=True) \
+    .add("--feedstock", required=True, help="Feedstock type description") \
+    .add("--feedstock-kg", type=float, required=True) \
+    .add("--method", required=True, help="vermicomposting, aerobic, anaerobic, bokashi") \
+    .add("--duration", type=int, help="Duration in days") \
+    .add("--output-kg", type=float, help="Output in kg") \
+    .add("--temperature", type=float, help="Temperature in C") \
+    .add("--ph", type=float) \
+    .add("--moisture", type=float, help="Moisture percentage") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_composting) \
+    .render_with(lambda r, a: _render(r, a, _format_composting_record))
 
-        elif args.command == "record-recycling":
-            result = record_recycling(
-                db, args.location_id, args.material, args.quantity,
-                args.destination, revenue=args.revenue, notes=args.notes,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_recycling_record(result)
-            print(output)
+cli.subcommand("record-recycling", "Record recycling activity") \
+    .add("--location-id", required=True) \
+    .add("--material", required=True, help="plastic, glass, metal, paper, organic") \
+    .add("--quantity", type=float, required=True, help="Quantity in kg") \
+    .add("--destination", required=True) \
+    .add("--revenue", type=float) \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_recycling) \
+    .render_with(lambda r, a: _render(r, a, _format_recycling_record))
 
-        elif args.command == "report-incident":
-            result = report_incident(
-                db, args.location_id, args.incident_type, args.severity,
-                args.description, args.affected_area, reported_by=args.reported_by,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_incident(result)
-            print(output)
+cli.subcommand("report-incident", "Report pollution incident") \
+    .add("--location-id", required=True) \
+    .add("--incident-type", required=True, help="chemical_spill, water_contamination, soil_contamination, air_pollution, waste_dumping") \
+    .add("--severity", required=True, choices=["low", "medium", "high", "critical"]) \
+    .add("--description", required=True) \
+    .add("--affected-area", required=True) \
+    .add("--reported-by") \
+    .add("--json", action="store_true") \
+    .run(_cmd_report_incident) \
+    .render_with(lambda r, a: _render(r, a, _format_incident))
 
-        elif args.command == "resolve-incident":
-            result = resolve_incident(
-                db, args.incident_id, args.remedial_action,
-                resolution_date=args.resolution_date,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_resolve(result)
-            print(output)
+cli.subcommand("resolve-incident", "Resolve pollution incident") \
+    .add("--incident-id", required=True) \
+    .add("--remedial-action", required=True) \
+    .add("--resolution-date", help="YYYY-MM-DD") \
+    .add("--json", action="store_true") \
+    .run(_cmd_resolve_incident) \
+    .render_with(lambda r, a: _render(r, a, _format_resolve))
 
-        elif args.command == "waste-summary":
-            result = get_waste_summary(db, args.location_id, days=args.days)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_waste_summary(result)
-            print(output)
+cli.subcommand("waste-summary", "Waste totals by type and disposal") \
+    .add("--location-id", required=True) \
+    .add("--days", type=int, default=30) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_waste_summary(db, a.location_id, days=a.days)) \
+    .render_with(lambda r, a: _render(r, a, _format_waste_summary))
 
-        elif args.command == "composting-efficiency":
-            result = get_composting_efficiency(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_composting_efficiency(result)
-            print(output)
+cli.subcommand("composting-efficiency", "Composting yield and quality") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_composting_efficiency(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_composting_efficiency))
 
-        elif args.command == "open-incidents":
-            result = get_open_incidents(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_open_incidents(result)
-            print(output)
+cli.subcommand("open-incidents", "Unresolved pollution incidents") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_open_incidents(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_open_incidents))
 
-        elif args.command == "dashboard":
-            result = get_waste_dashboard(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_dashboard(result)
-            print(output)
+cli.subcommand("dashboard", "Waste management dashboard") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_waste_dashboard(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_dashboard))
 
-    finally:
-        db.close()
+
+def main(argv=None):
+    cli.run(argv)
 
 
 # ============================================================

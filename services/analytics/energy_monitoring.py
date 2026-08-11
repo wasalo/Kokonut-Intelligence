@@ -17,12 +17,12 @@ Usage:
     python -m services.analytics.energy_monitoring cost-analysis --location-id UUID --days 30
 """
 
-import argparse
 import json
 import uuid
 from datetime import date, timedelta
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.energy_monitoring")
@@ -651,149 +651,118 @@ def get_cost_analysis(conn, location_id: str, days: int = 30) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Energy monitoring")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("energy_monitoring", "Energy monitoring")
 
-    # add-source
-    as_ = sub.add_parser("add-source", help="Add energy source")
-    as_.add_argument("--location-id", required=True)
-    as_.add_argument("--name", required=True)
-    as_.add_argument("--type", required=True, dest="source_type",
-                     choices=["grid", "diesel_generator", "solar", "wind", "biogas", "biomass", "battery"])
-    as_.add_argument("--capacity", type=float, help="Capacity in kW")
-    as_.add_argument("--installation-date", help="YYYY-MM-DD")
-    as_.add_argument("--json", action="store_true")
 
-    # record
-    rd = sub.add_parser("record", help="Record energy reading")
-    rd.add_argument("--source-id", required=True)
-    rd.add_argument("--date", default=None, help="Reading date YYYY-MM-DD")
-    rd.add_argument("--type", required=True, dest="reading_type",
-                    choices=["consumption", "production"])
-    rd.add_argument("--kwh", type=float, required=True)
-    rd.add_argument("--cost", type=float, dest="cost_per_kwh", help="Cost per kWh")
-    rd.add_argument("--activity", dest="activity_type",
-                    choices=["irrigation", "processing", "storage", "lighting", "pump", "other"])
-    rd.add_argument("--equipment-id")
-    rd.add_argument("--notes")
-    rd.add_argument("--json", action="store_true")
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
-    # consumption
-    co = sub.add_parser("consumption", help="Consumption summary")
-    co.add_argument("--location-id", required=True)
-    co.add_argument("--days", type=int, default=30)
-    co.add_argument("--json", action="store_true")
 
-    # efficiency
-    ef = sub.add_parser("efficiency", help="Efficiency metrics")
-    ef.add_argument("--location-id", required=True)
-    ef.add_argument("--period", default="daily", choices=["daily", "weekly", "monthly"])
-    ef.add_argument("--json", action="store_true")
+def _cmd_add_source(db, a):
+    inst = date.fromisoformat(a.installation_date) if a.installation_date else None
+    return add_source(
+        db, a.location_id, a.name, a.source_type,
+        capacity_kw=a.capacity, installation_date=inst,
+    )
 
-    # add-renewable
-    ar = sub.add_parser("add-renewable", help="Register renewable source")
-    ar.add_argument("--location-id", required=True)
-    ar.add_argument("--source-id", required=True)
-    ar.add_argument("--renewable-type", required=True,
-                    choices=["solar_pv", "solar_thermal", "wind", "biogas", "micro_hydro"])
-    ar.add_argument("--capacity", type=float, required=True, dest="rated_capacity_kw")
-    ar.add_argument("--annual-generation", type=float, help="Annual generation kWh")
-    ar.add_argument("--carbon-offset", type=float, help="Carbon offset kg/year")
-    ar.add_argument("--json", action="store_true")
 
-    # renewable-summary
-    rs = sub.add_parser("renewable-summary", help="Renewable energy summary")
-    rs.add_argument("--location-id", required=True)
-    rs.add_argument("--json", action="store_true")
+def _cmd_record_reading(db, a):
+    rd = date.fromisoformat(a.date) if a.date else date.today()
+    return record_reading(
+        db, a.source_id, rd, a.reading_type, a.kwh,
+        cost_per_kwh=a.cost_per_kwh, activity_type=a.activity_type,
+        equipment_id=a.equipment_id, notes=a.notes,
+    )
 
-    # dashboard
-    db = sub.add_parser("dashboard", help="Energy dashboard")
-    db.add_argument("--location-id", required=True)
-    db.add_argument("--json", action="store_true")
 
-    # carbon-intensity
-    ci = sub.add_parser("carbon-intensity", help="Compute carbon intensity")
-    ci.add_argument("--location-id", required=True)
-    ci.add_argument("--json", action="store_true")
+def _cmd_add_renewable(db, a):
+    return add_renewable(
+        db, a.location_id, a.source_id, a.renewable_type,
+        a.rated_capacity_kw, annual_generation_kwh=a.annual_generation,
+        carbon_offset_kg=a.carbon_offset,
+    )
 
-    # cost-analysis
-    ca = sub.add_parser("cost-analysis", help="Energy cost analysis")
-    ca.add_argument("--location-id", required=True)
-    ca.add_argument("--days", type=int, default=30)
-    ca.add_argument("--json", action="store_true")
 
-    args = parser.parse_args()
+cli.subcommand("add-source", "Add energy source") \
+    .add("--location-id", required=True) \
+    .add("--name", required=True) \
+    .add("--type", required=True, dest="source_type",
+         choices=["grid", "diesel_generator", "solar", "wind", "biogas", "biomass", "battery"]) \
+    .add("--capacity", type=float, help="Capacity in kW") \
+    .add("--installation-date", help="YYYY-MM-DD") \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_source) \
+    .render_with(lambda r, a: _render(r, a, _format_source))
 
-    from services.common.database import get_db
+cli.subcommand("record", "Record energy reading") \
+    .add("--source-id", required=True) \
+    .add("--date", default=None, help="Reading date YYYY-MM-DD") \
+    .add("--type", required=True, dest="reading_type",
+         choices=["consumption", "production"]) \
+    .add("--kwh", type=float, required=True) \
+    .add("--cost", type=float, dest="cost_per_kwh", help="Cost per kWh") \
+    .add("--activity", dest="activity_type",
+         choices=["irrigation", "processing", "storage", "lighting", "pump", "other"]) \
+    .add("--equipment-id") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_reading) \
+    .render_with(lambda r, a: _render(r, a, _format_reading))
 
-    if args.command is None:
-        parser.print_help()
-        return
+cli.subcommand("consumption", "Consumption summary") \
+    .add("--location-id", required=True) \
+    .add("--days", type=int, default=30) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_consumption(db, a.location_id, a.days)) \
+    .render_with(lambda r, a: _render(r, a, _format_consumption))
 
-    db = get_db()
+cli.subcommand("efficiency", "Efficiency metrics") \
+    .add("--location-id", required=True) \
+    .add("--period", default="daily", choices=["daily", "weekly", "monthly"]) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_efficiency(db, a.location_id, a.period)) \
+    .render_with(lambda r, a: _render(r, a, _format_efficiency))
 
-    try:
-        if args.command == "add-source":
-            inst = date.fromisoformat(args.installation_date) if args.installation_date else None
-            result = add_source(
-                db, args.location_id, args.name, args.source_type,
-                capacity_kw=args.capacity, installation_date=inst,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_source(result)
-            print(output)
+cli.subcommand("add-renewable", "Register renewable source") \
+    .add("--location-id", required=True) \
+    .add("--source-id", required=True) \
+    .add("--renewable-type", required=True,
+         choices=["solar_pv", "solar_thermal", "wind", "biogas", "micro_hydro"]) \
+    .add("--capacity", type=float, required=True, dest="rated_capacity_kw") \
+    .add("--annual-generation", type=float, help="Annual generation kWh") \
+    .add("--carbon-offset", type=float, help="Carbon offset kg/year") \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_renewable) \
+    .render_with(lambda r, a: _render(r, a, _format_renewable))
 
-        elif args.command == "record":
-            rd = date.fromisoformat(args.date) if args.date else date.today()
-            result = record_reading(
-                db, args.source_id, rd, args.reading_type, args.kwh,
-                cost_per_kwh=args.cost_per_kwh, activity_type=args.activity_type,
-                equipment_id=args.equipment_id, notes=args.notes,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_reading(result)
-            print(output)
+cli.subcommand("renewable-summary", "Renewable energy summary") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_renewable_summary(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_renewable_summary))
 
-        elif args.command == "consumption":
-            result = get_consumption(db, args.location_id, args.days)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_consumption(result)
-            print(output)
+cli.subcommand("dashboard", "Energy dashboard") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_energy_dashboard(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_dashboard))
 
-        elif args.command == "efficiency":
-            result = get_efficiency(db, args.location_id, args.period)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_efficiency(result)
-            print(output)
+cli.subcommand("carbon-intensity", "Compute carbon intensity") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: compute_carbon_intensity(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_carbon))
 
-        elif args.command == "add-renewable":
-            result = add_renewable(
-                db, args.location_id, args.source_id, args.renewable_type,
-                args.rated_capacity_kw, annual_generation_kwh=args.annual_generation,
-                carbon_offset_kg=args.carbon_offset,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_renewable(result)
-            print(output)
+cli.subcommand("cost-analysis", "Energy cost analysis") \
+    .add("--location-id", required=True) \
+    .add("--days", type=int, default=30) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_cost_analysis(db, a.location_id, a.days)) \
+    .render_with(lambda r, a: _render(r, a, _format_cost))
 
-        elif args.command == "renewable-summary":
-            result = get_renewable_summary(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_renewable_summary(result)
-            print(output)
 
-        elif args.command == "dashboard":
-            result = get_energy_dashboard(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_dashboard(result)
-            print(output)
-
-        elif args.command == "carbon-intensity":
-            result = compute_carbon_intensity(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_carbon(result)
-            print(output)
-
-        elif args.command == "cost-analysis":
-            result = get_cost_analysis(db, args.location_id, args.days)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_cost(result)
-            print(output)
-
-    finally:
-        db.close()
+def main(argv=None):
+    cli.run(argv)
 
 
 # ============================================================

@@ -24,12 +24,12 @@ Usage:
     python3 -m services.analytics.farmer_identity directory --location-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import datetime, date, timezone
 from typing import Optional, List, Dict, Any
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.farmer_identity")
@@ -886,324 +886,295 @@ def get_farmer_directory(conn, location_id: str = None) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Farmer identity & access management")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("farmer_identity", "Farmer identity & access management")
 
-    # create-profile
-    cp = sub.add_parser("create-profile", help="Create farmer profile")
-    cp.add_argument("--first-name", required=True)
-    cp.add_argument("--last-name")
-    cp.add_argument("--dob", help="Date of birth YYYY-MM-DD")
-    cp.add_argument("--gender")
-    cp.add_argument("--phone")
-    cp.add_argument("--email")
-    cp.add_argument("--national-id-type")
-    cp.add_argument("--national-id-number")
-    cp.add_argument("--national-id-country")
-    cp.add_argument("--location-id")
-    cp.add_argument("--village")
-    cp.add_argument("--district")
-    cp.add_argument("--province")
-    cp.add_argument("--country")
-    cp.add_argument("--postal-code")
-    cp.add_argument("--farm-size", type=float, help="Farm size in hectares")
-    cp.add_argument("--crops", nargs="+", help="Primary crops")
-    cp.add_argument("--farming-type")
-    cp.add_argument("--years-farming", type=int)
-    cp.add_argument("--json", action="store_true")
 
-    # update-profile
-    up = sub.add_parser("update-profile", help="Update farmer profile")
-    up.add_argument("--farmer-id", required=True)
-    up.add_argument("--first-name")
-    up.add_argument("--last-name")
-    up.add_argument("--dob", help="Date of birth YYYY-MM-DD")
-    up.add_argument("--gender")
-    up.add_argument("--phone")
-    up.add_argument("--email")
-    up.add_argument("--national-id-type")
-    up.add_argument("--national-id-number")
-    up.add_argument("--national-id-country")
-    up.add_argument("--village")
-    up.add_argument("--district")
-    up.add_argument("--province")
-    up.add_argument("--country")
-    up.add_argument("--postal-code")
-    up.add_argument("--farm-size", type=float)
-    up.add_argument("--crops", nargs="+")
-    up.add_argument("--farming-type")
-    up.add_argument("--years-farming", type=int)
-    up.add_argument("--status")
-    up.add_argument("--json", action="store_true")
+def _cmd_create_profile(db, a):
+    dob = date.fromisoformat(a.dob) if a.dob else None
+    return create_profile(
+        db, a.first_name,
+        last_name=a.last_name,
+        date_of_birth=dob,
+        gender=a.gender,
+        phone=a.phone,
+        email=a.email,
+        national_id_type=a.national_id_type,
+        national_id_number=a.national_id_number,
+        national_id_country=a.national_id_country,
+        location_id=a.location_id,
+        village=a.village,
+        district=a.district,
+        province=a.province,
+        country=a.country,
+        postal_code=a.postal_code,
+        farm_size_ha=a.farm_size,
+        primary_crops=a.crops,
+        farming_type=a.farming_type,
+        years_farming=a.years_farming,
+    )
 
-    # get-profile
-    gp = sub.add_parser("get-profile", help="Get farmer profile")
-    gp.add_argument("--farmer-id", required=True)
-    gp.add_argument("--json", action="store_true")
 
-    # list-farmers
-    lf = sub.add_parser("list-farmers", help="List farmers")
-    lf.add_argument("--location-id")
-    lf.add_argument("--status", default="active")
-    lf.add_argument("--limit", type=int, default=100)
-    lf.add_argument("--offset", type=int, default=0)
-    lf.add_argument("--json", action="store_true")
+def _cmd_update_profile(db, a):
+    updates = {}
+    for field in ("first_name", "last_name", "gender", "phone", "email",
+                  "national_id_type", "national_id_number", "national_id_country",
+                  "village", "district", "province", "country", "postal_code",
+                  "farming_type", "status"):
+        val = getattr(a, field.replace("-", "_"), None)
+        if val is not None:
+            updates[field] = val
+    if a.dob:
+        updates["date_of_birth"] = date.fromisoformat(a.dob)
+    if a.farm_size is not None:
+        updates["farm_size_ha"] = a.farm_size
+    if a.crops is not None:
+        updates["primary_crops"] = a.crops
+    if a.years_farming is not None:
+        updates["years_farming"] = a.years_farming
+    return update_profile(db, a.farmer_id, updates)
 
-    # add-credential
-    ac = sub.add_parser("add-credential", help="Add credential")
-    ac.add_argument("--farmer-id", required=True)
-    ac.add_argument("--type", required=True, dest="credential_type")
-    ac.add_argument("--name", required=True, dest="credential_name")
-    ac.add_argument("--issuing-authority")
-    ac.add_argument("--number", dest="credential_number")
-    ac.add_argument("--url", dest="credential_url")
-    ac.add_argument("--issued-date", help="Issued date YYYY-MM-DD")
-    ac.add_argument("--expiry-date", help="Expiry date YYYY-MM-DD")
-    ac.add_argument("--json", action="store_true")
 
-    # verify-credential
-    vc = sub.add_parser("verify-credential", help="Verify credential")
-    vc.add_argument("--credential-id", required=True)
-    vc.add_argument("--verified-by")
-    vc.add_argument("--json", action="store_true")
+def _cmd_add_credential(db, a):
+    issued = date.fromisoformat(a.issued_date) if a.issued_date else None
+    expiry = date.fromisoformat(a.expiry_date) if a.expiry_date else None
+    return add_credential(
+        db, a.farmer_id, a.credential_type, a.credential_name,
+        issuing_authority=a.issuing_authority,
+        credential_number=a.credential_number,
+        credential_url=a.credential_url,
+        issued_date=issued,
+        expiry_date=expiry,
+    )
 
-    # get-credentials
-    gc = sub.add_parser("get-credentials", help="Get credentials")
-    gc.add_argument("--farmer-id", required=True)
-    gc.add_argument("--json", action="store_true")
 
-    # create-kyc
-    ck = sub.add_parser("create-kyc", help="Create KYC record")
-    ck.add_argument("--farmer-id", required=True)
-    ck.add_argument("--method", required=True, dest="verification_method")
-    ck.add_argument("--document-type")
-    ck.add_argument("--document-url")
-    ck.add_argument("--document-hash")
-    ck.add_argument("--provider")
-    ck.add_argument("--did-identifier")
-    ck.add_argument("--credential-jwt")
-    ck.add_argument("--json", action="store_true")
+def _cmd_create_kyc(db, a):
+    return create_kyc(
+        db, a.farmer_id, a.verification_method,
+        document_type=a.document_type,
+        document_url=a.document_url,
+        document_hash=a.document_hash,
+        provider=a.provider,
+        did_identifier=a.did_identifier,
+        credential_jwt=a.credential_jwt,
+    )
 
-    # verify-kyc
-    vk = sub.add_parser("verify-kyc", help="Verify KYC")
-    vk.add_argument("--kyc-id", required=True)
-    vk.add_argument("--status", required=True, choices=["approved", "rejected"])
-    vk.add_argument("--verified-by")
-    vk.add_argument("--notes")
-    vk.add_argument("--confidence", type=float)
-    vk.add_argument("--json", action="store_true")
 
-    # assign-role
-    ar = sub.add_parser("assign-role", help="Assign role")
-    ar.add_argument("--farmer-id", required=True)
-    ar.add_argument("--role", required=True)
-    ar.add_argument("--scope", default="location")
-    ar.add_argument("--location-id")
-    ar.add_argument("--permissions", nargs="+")
-    ar.add_argument("--expires-at", help="ISO datetime")
-    ar.add_argument("--assigned-by")
-    ar.add_argument("--json", action="store_true")
+def _cmd_verify_kyc(db, a):
+    return verify_kyc(
+        db, a.kyc_id, a.status,
+        verified_by=a.verified_by,
+        notes=a.notes,
+        confidence_score=a.confidence,
+    )
 
-    # check-permission
-    cper = sub.add_parser("check-permission", help="Check permission")
-    cper.add_argument("--farmer-id", required=True)
-    cper.add_argument("--resource", required=True)
-    cper.add_argument("--action", required=True)
-    cper.add_argument("--json", action="store_true")
 
-    # record-consent
-    rc = sub.add_parser("record-consent", help="Record data sharing consent")
-    rc.add_argument("--farmer-id", required=True)
-    rc.add_argument("--data-type", required=True)
-    rc.add_argument("--recipient-type", required=True)
-    rc.add_argument("--recipient-id")
-    rc.add_argument("--recipient-name")
-    rc.add_argument("--purpose")
-    rc.add_argument("--legal-basis", default="consent")
-    rc.add_argument("--retention-days", type=int, default=365)
-    rc.add_argument("--reciprocal", action="store_true")
-    rc.add_argument("--no-consent", action="store_true")
-    rc.add_argument("--data-scope")
-    rc.add_argument("--json", action="store_true")
+def _cmd_assign_role(db, a):
+    expires = datetime.fromisoformat(a.expires_at) if a.expires_at else None
+    return assign_role(
+        db, a.farmer_id, a.role,
+        scope=a.scope,
+        location_id=a.location_id,
+        permissions=a.permissions,
+        expires_at=expires,
+        assigned_by=a.assigned_by,
+    )
 
-    # register-device
-    rd = sub.add_parser("register-device", help="Register device")
-    rd.add_argument("--farmer-id", required=True)
-    rd.add_argument("--device-id", required=True)
-    rd.add_argument("--device-type", required=True)
-    rd.add_argument("--location-id")
-    rd.add_argument("--device-name")
-    rd.add_argument("--os-type")
-    rd.add_argument("--os-version")
-    rd.add_argument("--app-version")
-    rd.add_argument("--camera", action="store_true")
-    rd.add_argument("--gps", action="store_true")
-    rd.add_argument("--no-offline", action="store_true")
-    rd.add_argument("--storage-mb", type=int)
-    rd.add_argument("--json", action="store_true")
 
-    # access-matrix
-    am = sub.add_parser("access-matrix", help="Get access matrix")
-    am.add_argument("--location-id")
-    am.add_argument("--json", action="store_true")
+def _cmd_record_consent(db, a):
+    return record_data_sharing_consent(
+        db, a.farmer_id, a.data_type, a.recipient_type,
+        recipient_id=a.recipient_id,
+        recipient_name=a.recipient_name,
+        purpose=a.purpose,
+        legal_basis=a.legal_basis,
+        retention_days=a.retention_days,
+        is_reciprocal=a.reciprocal,
+        consent_given=not a.no_consent,
+        data_scope=a.data_scope,
+    )
 
-    # directory
-    dr = sub.add_parser("directory", help="Get farmer directory")
-    dr.add_argument("--location-id")
-    dr.add_argument("--json", action="store_true")
 
-    args = parser.parse_args()
+def _cmd_register_device(db, a):
+    return register_device(
+        db, a.farmer_id, a.device_id, a.device_type,
+        location_id=a.location_id,
+        device_name=a.device_name,
+        os_type=a.os_type,
+        os_version=a.os_version,
+        app_version=a.app_version,
+        has_camera=a.camera,
+        has_gps=a.gps,
+        has_offline=not a.no_offline,
+        storage_mb=a.storage_mb,
+    )
 
-    from services.common.database import get_db
 
-    if args.command is None:
-        parser.print_help()
-        return
+cli.subcommand("create-profile", "Create farmer profile") \
+    .add("--first-name", required=True) \
+    .add("--last-name") \
+    .add("--dob", help="Date of birth YYYY-MM-DD") \
+    .add("--gender") \
+    .add("--phone") \
+    .add("--email") \
+    .add("--national-id-type") \
+    .add("--national-id-number") \
+    .add("--national-id-country") \
+    .add("--location-id") \
+    .add("--village") \
+    .add("--district") \
+    .add("--province") \
+    .add("--country") \
+    .add("--postal-code") \
+    .add("--farm-size", type=float, help="Farm size in hectares") \
+    .add("--crops", nargs="+", help="Primary crops") \
+    .add("--farming-type") \
+    .add("--years-farming", type=int) \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_profile)
 
-    db = get_db()
+cli.subcommand("update-profile", "Update farmer profile") \
+    .add("--farmer-id", required=True) \
+    .add("--first-name") \
+    .add("--last-name") \
+    .add("--dob", help="Date of birth YYYY-MM-DD") \
+    .add("--gender") \
+    .add("--phone") \
+    .add("--email") \
+    .add("--national-id-type") \
+    .add("--national-id-number") \
+    .add("--national-id-country") \
+    .add("--village") \
+    .add("--district") \
+    .add("--province") \
+    .add("--country") \
+    .add("--postal-code") \
+    .add("--farm-size", type=float) \
+    .add("--crops", nargs="+") \
+    .add("--farming-type") \
+    .add("--years-farming", type=int) \
+    .add("--status") \
+    .add("--json", action="store_true") \
+    .run(_cmd_update_profile)
 
-    try:
-        result = None
+cli.subcommand("get-profile", "Get farmer profile") \
+    .add("--farmer-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_profile(db, a.farmer_id))
 
-        if args.command == "create-profile":
-            dob = date.fromisoformat(args.dob) if args.dob else None
-            result = create_profile(
-                db, args.first_name,
-                last_name=args.last_name,
-                date_of_birth=dob,
-                gender=args.gender,
-                phone=args.phone,
-                email=args.email,
-                national_id_type=args.national_id_type,
-                national_id_number=args.national_id_number,
-                national_id_country=args.national_id_country,
-                location_id=args.location_id,
-                village=args.village,
-                district=args.district,
-                province=args.province,
-                country=args.country,
-                postal_code=args.postal_code,
-                farm_size_ha=args.farm_size,
-                primary_crops=args.crops,
-                farming_type=args.farming_type,
-                years_farming=args.years_farming,
-            )
+cli.subcommand("list-farmers", "List farmers") \
+    .add("--location-id") \
+    .add("--status", default="active") \
+    .add("--limit", type=int, default=100) \
+    .add("--offset", type=int, default=0) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: list_farmers(db, a.location_id, a.status, a.limit, a.offset))
 
-        elif args.command == "update-profile":
-            updates = {}
-            for field in ("first_name", "last_name", "gender", "phone", "email",
-                          "national_id_type", "national_id_number", "national_id_country",
-                          "village", "district", "province", "country", "postal_code",
-                          "farming_type", "status"):
-                val = getattr(args, field.replace("-", "_"), None)
-                if val is not None:
-                    updates[field] = val
-            if args.dob:
-                updates["date_of_birth"] = date.fromisoformat(args.dob)
-            if args.farm_size is not None:
-                updates["farm_size_ha"] = args.farm_size
-            if args.crops is not None:
-                updates["primary_crops"] = args.crops
-            if args.years_farming is not None:
-                updates["years_farming"] = args.years_farming
-            result = update_profile(db, args.farmer_id, updates)
+cli.subcommand("add-credential", "Add credential") \
+    .add("--farmer-id", required=True) \
+    .add("--type", required=True, dest="credential_type") \
+    .add("--name", required=True, dest="credential_name") \
+    .add("--issuing-authority") \
+    .add("--number", dest="credential_number") \
+    .add("--url", dest="credential_url") \
+    .add("--issued-date", help="Issued date YYYY-MM-DD") \
+    .add("--expiry-date", help="Expiry date YYYY-MM-DD") \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_credential)
 
-        elif args.command == "get-profile":
-            result = get_profile(db, args.farmer_id)
+cli.subcommand("verify-credential", "Verify credential") \
+    .add("--credential-id", required=True) \
+    .add("--verified-by") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: verify_credential(db, a.credential_id, a.verified_by))
 
-        elif args.command == "list-farmers":
-            result = list_farmers(db, args.location_id, args.status, args.limit, args.offset)
+cli.subcommand("get-credentials", "Get credentials") \
+    .add("--farmer-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_credentials(db, a.farmer_id))
 
-        elif args.command == "add-credential":
-            issued = date.fromisoformat(args.issued_date) if args.issued_date else None
-            expiry = date.fromisoformat(args.expiry_date) if args.expiry_date else None
-            result = add_credential(
-                db, args.farmer_id, args.credential_type, args.credential_name,
-                issuing_authority=args.issuing_authority,
-                credential_number=args.credential_number,
-                credential_url=args.credential_url,
-                issued_date=issued,
-                expiry_date=expiry,
-            )
+cli.subcommand("create-kyc", "Create KYC record") \
+    .add("--farmer-id", required=True) \
+    .add("--method", required=True, dest="verification_method") \
+    .add("--document-type") \
+    .add("--document-url") \
+    .add("--document-hash") \
+    .add("--provider") \
+    .add("--did-identifier") \
+    .add("--credential-jwt") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_kyc)
 
-        elif args.command == "verify-credential":
-            result = verify_credential(db, args.credential_id, args.verified_by)
+cli.subcommand("verify-kyc", "Verify KYC") \
+    .add("--kyc-id", required=True) \
+    .add("--status", required=True, choices=["approved", "rejected"]) \
+    .add("--verified-by") \
+    .add("--notes") \
+    .add("--confidence", type=float) \
+    .add("--json", action="store_true") \
+    .run(_cmd_verify_kyc)
 
-        elif args.command == "get-credentials":
-            result = get_credentials(db, args.farmer_id)
+cli.subcommand("assign-role", "Assign role") \
+    .add("--farmer-id", required=True) \
+    .add("--role", required=True) \
+    .add("--scope", default="location") \
+    .add("--location-id") \
+    .add("--permissions", nargs="+") \
+    .add("--expires-at", help="ISO datetime") \
+    .add("--assigned-by") \
+    .add("--json", action="store_true") \
+    .run(_cmd_assign_role)
 
-        elif args.command == "create-kyc":
-            result = create_kyc(
-                db, args.farmer_id, args.verification_method,
-                document_type=args.document_type,
-                document_url=args.document_url,
-                document_hash=args.document_hash,
-                provider=args.provider,
-                did_identifier=args.did_identifier,
-                credential_jwt=args.credential_jwt,
-            )
+cli.subcommand("check-permission", "Check permission") \
+    .add("--farmer-id", required=True) \
+    .add("--resource", required=True) \
+    .add("--action", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: check_permission(db, a.farmer_id, a.resource, a.action))
 
-        elif args.command == "verify-kyc":
-            result = verify_kyc(
-                db, args.kyc_id, args.status,
-                verified_by=args.verified_by,
-                notes=args.notes,
-                confidence_score=args.confidence,
-            )
+cli.subcommand("record-consent", "Record data sharing consent") \
+    .add("--farmer-id", required=True) \
+    .add("--data-type", required=True) \
+    .add("--recipient-type", required=True) \
+    .add("--recipient-id") \
+    .add("--recipient-name") \
+    .add("--purpose") \
+    .add("--legal-basis", default="consent") \
+    .add("--retention-days", type=int, default=365) \
+    .add("--reciprocal", action="store_true") \
+    .add("--no-consent", action="store_true") \
+    .add("--data-scope") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_consent)
 
-        elif args.command == "assign-role":
-            expires = datetime.fromisoformat(args.expires_at) if args.expires_at else None
-            result = assign_role(
-                db, args.farmer_id, args.role,
-                scope=args.scope,
-                location_id=args.location_id,
-                permissions=args.permissions,
-                expires_at=expires,
-                assigned_by=args.assigned_by,
-            )
+cli.subcommand("register-device", "Register device") \
+    .add("--farmer-id", required=True) \
+    .add("--device-id", required=True) \
+    .add("--device-type", required=True) \
+    .add("--location-id") \
+    .add("--device-name") \
+    .add("--os-type") \
+    .add("--os-version") \
+    .add("--app-version") \
+    .add("--camera", action="store_true") \
+    .add("--gps", action="store_true") \
+    .add("--no-offline", action="store_true") \
+    .add("--storage-mb", type=int) \
+    .add("--json", action="store_true") \
+    .run(_cmd_register_device)
 
-        elif args.command == "check-permission":
-            result = check_permission(db, args.farmer_id, args.resource, args.action)
+cli.subcommand("access-matrix", "Get access matrix") \
+    .add("--location-id") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_access_matrix(db, a.location_id))
 
-        elif args.command == "record-consent":
-            result = record_data_sharing_consent(
-                db, args.farmer_id, args.data_type, args.recipient_type,
-                recipient_id=args.recipient_id,
-                recipient_name=args.recipient_name,
-                purpose=args.purpose,
-                legal_basis=args.legal_basis,
-                retention_days=args.retention_days,
-                is_reciprocal=args.reciprocal,
-                consent_given=not args.no_consent,
-                data_scope=args.data_scope,
-            )
+cli.subcommand("directory", "Get farmer directory") \
+    .add("--location-id") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_farmer_directory(db, a.location_id))
 
-        elif args.command == "register-device":
-            result = register_device(
-                db, args.farmer_id, args.device_id, args.device_type,
-                location_id=args.location_id,
-                device_name=args.device_name,
-                os_type=args.os_type,
-                os_version=args.os_version,
-                app_version=args.app_version,
-                has_camera=args.camera,
-                has_gps=args.gps,
-                has_offline=not args.no_offline,
-                storage_mb=args.storage_mb,
-            )
 
-        elif args.command == "access-matrix":
-            result = get_access_matrix(db, args.location_id)
-
-        elif args.command == "directory":
-            result = get_farmer_directory(db, args.location_id)
-
-        if result is not None:
-            print(json.dumps(result, indent=2, default=str))
-
-    finally:
-        db.close()
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

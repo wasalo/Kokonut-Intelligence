@@ -12,12 +12,12 @@ Usage:
         --humidity 65 --wind 12 --solar 18 --elevation 1500 --lat -1.2 --doy 180
 """
 
-import argparse
 import json
 import math
 from datetime import datetime, timezone, date, timedelta
 from typing import Optional
 
+from ..common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.evapotranspiration")
@@ -481,83 +481,91 @@ def store_et_forecast(conn, location_id: str) -> int:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Evapotranspiration computation (FAO-56 Penman-Monteith)"
+cli = CommandLine(
+    "evapotranspiration",
+    "Evapotranspiration computation (FAO-56 Penman-Monteith)",
+)
+
+
+def _cmd_et0(db, a):
+    doy = a.doy or datetime.now().timetuple().tm_yday
+    return compute_et0_penman_monteith(
+        temp_max=a.temp_max,
+        temp_min=a.temp_min,
+        humidity=a.humidity,
+        wind_speed=a.wind,
+        solar_radiation=a.solar,
+        elevation_m=a.elevation,
+        latitude=a.lat,
+        day_of_year=doy,
     )
-    sub = parser.add_subparsers(dest="command")
 
-    # Direct ET₀ calculation
-    et0_parser = sub.add_parser("et0", help="Compute ET₀ from weather parameters")
-    et0_parser.add_argument("--temp-max", type=float, required=True, help="Max temp (°C)")
-    et0_parser.add_argument("--temp-min", type=float, required=True, help="Min temp (°C)")
-    et0_parser.add_argument("--humidity", type=float, default=65, help="Relative humidity (%)")
-    et0_parser.add_argument("--wind", type=float, default=5, help="Wind speed (km/h)")
-    et0_parser.add_argument("--solar", type=float, default=None, help="Solar radiation (MJ/m²/d)")
-    et0_parser.add_argument("--elevation", type=float, default=0, help="Elevation (m)")
-    et0_parser.add_argument("--lat", type=float, default=0, help="Latitude (decimal degrees)")
-    et0_parser.add_argument("--doy", type=int, default=None, help="Day of year")
-    et0_parser.add_argument("--json", action="store_true", help="JSON output")
 
-    # Water balance
-    wb_parser = sub.add_parser("water-balance", help="Compute water balance for a location")
-    wb_parser.add_argument("--location-id", required=True, help="Location UUID")
-    wb_parser.add_argument("--plot-id", help="Plot UUID (optional)")
-    wb_parser.add_argument("--crop-cycle-id", help="Crop cycle UUID (optional)")
-    wb_parser.add_argument("--period", type=int, default=30, help="Period in days")
-    wb_parser.add_argument("--json", action="store_true", help="JSON output")
+def _render_et0(result, a):
+    if a.json:
+        print(json.dumps(result, indent=2))
+        return
+    print(f"ET₀: {result['et0_mm']} mm/day ({result['method']})")
+    print(f"  VPD: {result['vpd']:.3f} kPa")
+    print(f"  Wind: {result['wind_speed_ms']:.1f} m/s")
 
-    # Store ET₀ for forecasts
-    store_parser = sub.add_parser("store-et", help="Compute and store ET₀ for weather forecasts")
-    store_parser.add_argument("--location-id", required=True, help="Location UUID")
 
-    args = parser.parse_args()
+def _cmd_water_balance(db, a):
+    return compute_water_balance(
+        db, a.location_id, a.plot_id, a.crop_cycle_id, a.period
+    )
 
-    if args.command == "et0":
-        doy = args.doy or datetime.now().timetuple().tm_yday
-        result = compute_et0_penman_monteith(
-            temp_max=args.temp_max,
-            temp_min=args.temp_min,
-            humidity=args.humidity,
-            wind_speed=args.wind,
-            solar_radiation=args.solar,
-            elevation_m=args.elevation,
-            latitude=args.lat,
-            day_of_year=doy,
-        )
-        if args.json:
-            print(json.dumps(result, indent=2))
-        else:
-            print(f"ET₀: {result['et0_mm']} mm/day ({result['method']})")
-            print(f"  VPD: {result['vpd']:.3f} kPa")
-            print(f"  Wind: {result['wind_speed_ms']:.1f} m/s")
 
-    elif args.command == "water-balance":
-        from services.common.database import get_db
-        db = get_db()
-        result = compute_water_balance(
-            db, args.location_id, args.plot_id, args.crop_cycle_id, args.period
-        )
-        db.close()
-        if args.json:
-            print(json.dumps(result, indent=2, default=str))
-        else:
-            print(f"Water Balance — {result['crop_name']} ({result['growth_stage']})")
-            print(f"  Rainfall: {result['total_rainfall_mm']} mm")
-            print(f"  ET₀: {result['total_et0_mm']} mm")
-            print(f"  ETc: {result['total_etc_mm']} mm")
-            print(f"  Deficit: {result['water_deficit_mm']} mm")
-            print(f"  Status: {result['water_status']}")
+def _render_water_balance(result, a):
+    if a.json:
+        print(json.dumps(result, indent=2, default=str))
+        return
+    print(f"Water Balance — {result['crop_name']} ({result['growth_stage']})")
+    print(f"  Rainfall: {result['total_rainfall_mm']} mm")
+    print(f"  ET₀: {result['total_et0_mm']} mm")
+    print(f"  ETc: {result['total_etc_mm']} mm")
+    print(f"  Deficit: {result['water_deficit_mm']} mm")
+    print(f"  Status: {result['water_status']}")
 
-    elif args.command == "store-et":
-        from services.common.database import get_db
-        db = get_db()
-        updated = store_et_forecast(db, args.location_id)
-        db.close()
-        print(f"Updated {updated} forecast records with ET₀ estimates")
 
-    else:
-        parser.print_help()
+def _cmd_store_et(db, a):
+    return store_et_forecast(db, a.location_id)
+
+
+def _render_store_et(result, a):
+    print(f"Updated {result} forecast records with ET₀ estimates")
+
+
+cli.subcommand("et0", "Compute ET₀ from weather parameters") \
+    .add("--temp-max", type=float, required=True, help="Max temp (°C)") \
+    .add("--temp-min", type=float, required=True, help="Min temp (°C)") \
+    .add("--humidity", type=float, default=65, help="Relative humidity (%)") \
+    .add("--wind", type=float, default=5, help="Wind speed (km/h)") \
+    .add("--solar", type=float, default=None, help="Solar radiation (MJ/m²/d)") \
+    .add("--elevation", type=float, default=0, help="Elevation (m)") \
+    .add("--lat", type=float, default=0, help="Latitude (decimal degrees)") \
+    .add("--doy", type=int, default=None, help="Day of year") \
+    .add("--json", action="store_true", help="JSON output") \
+    .run(_cmd_et0, needs_db=False) \
+    .render_with(_render_et0)
+
+cli.subcommand("water-balance", "Compute water balance for a location") \
+    .add("--location-id", required=True, help="Location UUID") \
+    .add("--plot-id", help="Plot UUID (optional)") \
+    .add("--crop-cycle-id", help="Crop cycle UUID (optional)") \
+    .add("--period", type=int, default=30, help="Period in days") \
+    .add("--json", action="store_true", help="JSON output") \
+    .run(_cmd_water_balance) \
+    .render_with(_render_water_balance)
+
+cli.subcommand("store-et", "Compute and store ET₀ for weather forecasts") \
+    .add("--location-id", required=True, help="Location UUID") \
+    .run(_cmd_store_et) \
+    .render_with(_render_store_et)
+
+
+def main(argv=None):
+    return cli.run(argv)
 
 
 if __name__ == "__main__":

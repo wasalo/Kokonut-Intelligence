@@ -13,12 +13,12 @@ Usage:
     python -m services.analytics.advisor --run-cycle --location-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.advisor")
@@ -551,77 +551,11 @@ def run_advisory_cycle(conn, location_id: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Advisory / Recommendation Engine")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("advisor", "Advisory / Recommendation Engine")
 
-    # Evaluate
-    ev = sub.add_parser("evaluate", help="Evaluate rules for a location")
-    ev.add_argument("--location-id", required=True)
-    ev.add_argument("--json", action="store_true")
 
-    # List
-    ls = sub.add_parser("list", help="List recommendations")
-    ls.add_argument("--location-id", required=True)
-    ls.add_argument("--status")
-    ls.add_argument("--domain")
-    ls.add_argument("--json", action="store_true")
-
-    # Accept
-    ac = sub.add_parser("accept", help="Accept a recommendation")
-    ac.add_argument("--recommendation-id", required=True)
-    ac.add_argument("--user-id", required=True)
-    ac.add_argument("--json", action="store_true")
-
-    # Dismiss
-    di = sub.add_parser("dismiss", help="Dismiss a recommendation")
-    di.add_argument("--recommendation-id", required=True)
-    di.add_argument("--reason", default="")
-    di.add_argument("--json", action="store_true")
-
-    # Run cycle
-    rc = sub.add_parser("run-cycle", help="Run full advisory cycle")
-    rc.add_argument("--location-id", required=True)
-    rc.add_argument("--json", action="store_true")
-
-    args = parser.parse_args()
-
-    from services.common.database import get_db
-
-    if args.command in ("evaluate", "list", "accept", "dismiss", "run-cycle"):
-        db = get_db()
-    else:
-        parser.print_help()
-        return
-
-    try:
-        if args.command == "evaluate":
-            triggered = evaluate_rules(db, args.location_id)
-            output = json.dumps(triggered, indent=2, default=str) if args.json else _format_triggered(triggered)
-            print(output)
-
-        elif args.command == "list":
-            results = list_recommendations(db, args.location_id, args.status, args.domain)
-            output = json.dumps(results, indent=2, default=str) if args.json else _format_list(results)
-            print(output)
-
-        elif args.command == "accept":
-            result = accept_recommendation(db, args.recommendation_id, args.user_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_action(result)
-            print(output)
-
-        elif args.command == "dismiss":
-            result = dismiss_recommendation(db, args.recommendation_id, args.reason)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_action(result)
-            print(output)
-
-        elif args.command == "run-cycle":
-            result = run_advisory_cycle(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_cycle(result)
-            print(output)
-
-    finally:
-        db.close()
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
 
 def _format_triggered(triggered: list) -> str:
@@ -654,6 +588,45 @@ def _format_cycle(r: dict) -> str:
     for rec in r.get("recommendations", []):
         lines.append(f"  → [{rec['severity'].upper()}] {rec['title'][:60]}")
     return "\n".join(lines)
+
+
+cli.subcommand("evaluate", "Evaluate rules for a location") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: evaluate_rules(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_triggered))
+
+cli.subcommand("list", "List recommendations") \
+    .add("--location-id", required=True) \
+    .add("--status") \
+    .add("--domain") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: list_recommendations(db, a.location_id, a.status, a.domain)) \
+    .render_with(lambda r, a: _render(r, a, _format_list))
+
+cli.subcommand("accept", "Accept a recommendation") \
+    .add("--recommendation-id", required=True) \
+    .add("--user-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: accept_recommendation(db, a.recommendation_id, a.user_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_action))
+
+cli.subcommand("dismiss", "Dismiss a recommendation") \
+    .add("--recommendation-id", required=True) \
+    .add("--reason", default="") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: dismiss_recommendation(db, a.recommendation_id, a.reason)) \
+    .render_with(lambda r, a: _render(r, a, _format_action))
+
+cli.subcommand("run-cycle", "Run full advisory cycle") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: run_advisory_cycle(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_cycle))
+
+
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":
