@@ -599,7 +599,7 @@ def monte_carlo_yield(
         Distribution dict from ``services.simulation.resolution.monte_carlo``.
     """
     from ..simulation.resolution import monte_carlo
-    from .base import get_db
+    from services.common.database import get_db
 
     params = get_twin_config(conn, twin_id)
     base = {
@@ -674,7 +674,7 @@ def main():
 
     args = parser.parse_args()
 
-    from .base import get_db
+    from services.common.database import get_db
 
     if args.command in ("create", "configure", "simulate", "scenario", "compare", "list"):
         db = get_db()

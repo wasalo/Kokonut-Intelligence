@@ -411,7 +411,7 @@ def main():
 
     args = parser.parse_args()
 
-    from .base import get_db
+    from services.common.database import get_db
 
     if args.command in ("register", "queue", "sync", "status", "devices"):
         db = get_db()

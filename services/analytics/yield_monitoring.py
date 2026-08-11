@@ -427,7 +427,7 @@ def main():
 
     args = parser.parse_args()
 
-    from .base import get_db
+    from services.common.database import get_db
 
     if args.command in ("record", "summary", "trend", "predict", "benchmark"):
         db = get_db()

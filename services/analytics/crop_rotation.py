@@ -874,7 +874,7 @@ def main():
 
     args = parser.parse_args()
 
-    from .base import get_db
+    from services.common.database import get_db
 
     if args.command not in ("create-plan", "add-slot", "get-plan", "list-plans",
                             "record-impact", "impact-summary", "family-usage",

@@ -533,7 +533,7 @@ def main():
             print(f"  Wind: {result['wind_speed_ms']:.1f} m/s")
 
     elif args.command == "water-balance":
-        from .base import get_db
+        from services.common.database import get_db
         db = get_db()
         result = compute_water_balance(
             db, args.location_id, args.plot_id, args.crop_cycle_id, args.period
@@ -550,7 +550,7 @@ def main():
             print(f"  Status: {result['water_status']}")
 
     elif args.command == "store-et":
-        from .base import get_db
+        from services.common.database import get_db
         db = get_db()
         updated = store_et_forecast(db, args.location_id)
         db.close()

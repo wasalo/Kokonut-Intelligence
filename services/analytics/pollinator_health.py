@@ -733,7 +733,7 @@ def main():
 
     args = parser.parse_args()
 
-    from .base import get_db
+    from services.common.database import get_db
 
     write_commands = ("record-observation", "create-habitat", "record-pesticide", "add-hive", "record-inspection")
     read_commands = ("summary", "habitat-inventory", "pesticide-risk", "hive-status", "dashboard")

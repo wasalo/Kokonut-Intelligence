@@ -586,7 +586,7 @@ def main():
 
     args = parser.parse_args()
 
-    from .base import get_db
+    from services.common.database import get_db
 
     if args.command in ("generate", "list", "approve", "estimate"):
         db = get_db()

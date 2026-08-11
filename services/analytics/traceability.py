@@ -928,7 +928,7 @@ def main():
 
     args = parser.parse_args()
 
-    from .base import get_db
+    from services.common.database import get_db
 
     if args.command in (
         "create-batch", "custody", "quality", "certification",
