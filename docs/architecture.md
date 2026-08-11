@@ -1,5 +1,7 @@
 # Architecture
 
+> **Visual companion:** an interactive, self-contained visual explanation of this document is available at [architecture-visual.html](architecture-visual.html).
+
 ## System Overview
 
 The Kokonut Intelligence Platform is a governed, open-source data operating system for regenerative farm operations, financial performance, ecological outcomes, and Web3 verification.
