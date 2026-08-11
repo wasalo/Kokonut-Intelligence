@@ -21,8 +21,10 @@ from typing import Any, Dict, Optional
 
 import requests
 
+from services.common.http import http
+
 from ..common.logging import get_logger
-from .base import log_ingestion, hash_payload, post_clickhouse_rows
+from .base import hash_payload, log_ingestion, post_clickhouse_rows
 from .clickhouse_outbox import enqueue
 
 logger = get_logger("ingestion.copernicus_remote_sensing")
@@ -46,7 +48,7 @@ def _get_token() -> Optional[str]:
     # Method 1: Email/password (Resource Owner Password Credentials)
     if email and password:
         try:
-            resp = requests.post(
+            resp = http.post(
                 TOKEN_URL,
                 data={
                     "grant_type": "password",
@@ -66,7 +68,7 @@ def _get_token() -> Optional[str]:
     # Method 2: Client Credentials
     if client_id and client_secret:
         try:
-            resp = requests.post(
+            resp = http.post(
                 TOKEN_URL,
                 data={
                     "grant_type": "client_credentials",
@@ -129,7 +131,7 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     try:
-        resp = requests.get(CATALOG_URL, params=params, timeout=30)
+        resp = http.get(CATALOG_URL, params=params, timeout=30)
         resp.raise_for_status()
         products = resp.json().get("value", [])
     except Exception as e:

@@ -16,7 +16,8 @@ from typing import Any, Optional
 
 import psycopg2
 import psycopg2.extras
-import requests
+
+from services.common.http import http
 
 from ..common.logging import get_logger
 from .config import (
@@ -108,7 +109,7 @@ def post_clickhouse_rows(table: str, columns: list[str], rows: list[list]) -> bo
     )
     response = None
     try:
-        response = requests.post(
+        response = http.post(
             f"http://{CH_HOST}:{CH_PORT}",
             params={"query": query},
             data=payload.encode("utf-8"),

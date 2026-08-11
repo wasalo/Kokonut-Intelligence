@@ -17,12 +17,12 @@ import sys
 import time
 from datetime import datetime, timezone
 
-import requests
+from services.common.http import http
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, retry, update_indexer_status, post_clickhouse_rows
+from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry, update_indexer_status
 from .clickhouse_outbox import enqueue
-from .config import EAS_GRAPHQL_URL, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .config import CH_HOST, CH_PASSWORD, CH_PORT, CH_USER, EAS_GRAPHQL_URL
 
 logger = get_logger("ingestion.subgraph")
 
@@ -83,7 +83,7 @@ query GetSchemas($lastBlock: Int!, $first: Int!) {
 @retry(max_retries=3, backoff=2.0)
 def query_subgraph(endpoint: str, query: str, variables: dict) -> dict:
     """Execute a GraphQL query against a subgraph."""
-    resp = requests.post(
+    resp = http.post(
         endpoint,
         json={"query": query, "variables": variables},
         timeout=30,

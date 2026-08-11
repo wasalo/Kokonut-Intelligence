@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import ipaddress
+import json
 import os
 import socket
 from typing import Any
@@ -43,8 +43,8 @@ def harvest_from_url(conn, location_id: str, source_url: str,
 
     try:
         _validate_external_url(source_url)
-        import requests
-        response = requests.get(source_url, timeout=30, allow_redirects=False)
+        from services.common.http import http
+        response = http.get(source_url, timeout=30, allow_redirects=False)
         if 300 <= response.status_code < 400:
             raise ValueError("source_url redirects are not allowed")
         response.raise_for_status()
@@ -53,8 +53,8 @@ def harvest_from_url(conn, location_id: str, source_url: str,
             data = response.json()
             records_count = len(data) if isinstance(data, list) else 1
         elif source_format == "csv":
-            import io
             import csv
+            import io
             reader = csv.DictReader(io.StringIO(response.text))
             records_count = sum(1 for _ in reader)
         else:

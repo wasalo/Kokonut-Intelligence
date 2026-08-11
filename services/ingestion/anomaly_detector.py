@@ -29,13 +29,13 @@ import os
 import smtplib
 import sys
 import time
-from datetime import datetime, timezone, timedelta
-from email.mime.text import MIMEText
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Optional
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
+from .base import get_db, hash_payload, log_ingestion
 
 # Lazy event bus
 _event_bus = None
@@ -493,7 +493,7 @@ def send_directus_notification(alert_data: dict) -> bool:
         return False
 
     try:
-        import requests
+        from services.common.http import http
         notification_payload = {
             "subject": f"Sensor Alert: {alert_data['sensor_name']}",
             "message": alert_data["message"],
@@ -502,7 +502,7 @@ def send_directus_notification(alert_data: dict) -> bool:
             "status": "unread",
         }
 
-        resp = requests.post(
+        resp = http.post(
             f"{DIRECTUS_URL}/notifications",
             json=notification_payload,
             headers={"Authorization": f"Bearer {DIRECTUS_TOKEN}"},
@@ -947,8 +947,8 @@ if __name__ == "__main__":
     elif args.baseline_check:
         run_baseline_check()
     elif args.ml_check or args.ml_train:
-        from .ml_anomaly_detector import run_ml_check, save_models
         from .base import get_db
+        from .ml_anomaly_detector import run_ml_check, save_models
 
         conn = get_db()
         try:

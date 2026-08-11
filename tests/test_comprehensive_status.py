@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from services.export import report_generator as rg
+from services.export.reports import state as state_module
 
 
 def test_registered():
@@ -36,9 +37,9 @@ def test_comprehensive_status_network_wide_rolls_up():
         {"location_id": loc_rows[1]["id"], "name": "Other", "sections": _fake_section(50.0, 20.0, 3.0)},
     ]
     conn = MagicMock()
-    with patch.object(rg, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
-         patch.object(rg, "generate_foundational_wellbeing", return_value={"ok": True}), \
-         patch.object(rg, "generate_stakeholder_outcomes", return_value={"ok": True}):
+    with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
+         patch.object(state_module, "generate_foundational_wellbeing", return_value={"ok": True}), \
+         patch.object(state_module, "generate_stakeholder_outcomes", return_value={"ok": True}):
         report = rg.generate_comprehensive_status(conn, "all", "2021-01-01", "2024-12-31")
 
     assert report["report_type"] == "comprehensive_status"
@@ -61,9 +62,9 @@ def test_comprehensive_status_selected_location():
         {"location_id": loc_rows[0]["id"], "name": "Adelphi", "sections": _fake_section(10.0, 5.0, 1.0)},
     ]
     conn = MagicMock()
-    with patch.object(rg, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
-         patch.object(rg, "generate_foundational_wellbeing", return_value={"ok": True}), \
-         patch.object(rg, "generate_stakeholder_outcomes", return_value={"ok": True}):
+    with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
+         patch.object(state_module, "generate_foundational_wellbeing", return_value={"ok": True}), \
+         patch.object(state_module, "generate_stakeholder_outcomes", return_value={"ok": True}):
         report = rg.generate_comprehensive_status(conn, "a0000000-0000-0000-0000-000000000001")
 
     assert report["scope"] == "selected_locations"
@@ -79,9 +80,9 @@ def test_comprehensive_status_isolates_section_errors():
         {"location_id": loc_rows[0]["id"], "name": "Adelphi", "sections": _fake_section()},
     ]
     conn = MagicMock()
-    with patch.object(rg, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
-         patch.object(rg, "generate_foundational_wellbeing", side_effect=RuntimeError("boom")), \
-         patch.object(rg, "generate_stakeholder_outcomes", return_value={"ok": True}):
+    with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
+         patch.object(state_module, "generate_foundational_wellbeing", side_effect=RuntimeError("boom")), \
+         patch.object(state_module, "generate_stakeholder_outcomes", return_value={"ok": True}):
         report = rg.generate_comprehensive_status(conn, "all")
 
     section = report["locations"][0]["sections"]["foundational_wellbeing"]

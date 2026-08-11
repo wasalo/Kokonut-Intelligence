@@ -11,6 +11,8 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from services.export import report_generator as rg
+from services.export.reports import common as reports_common
+from services.export.reports import state as state_module
 
 
 def test_registered():
@@ -19,11 +21,11 @@ def test_registered():
 
 
 def test_looks_like_uuid_guard():
-    assert rg._looks_like_uuid("a0000000-0000-0000-0000-000000000001") is True
-    assert rg._looks_like_uuid("all") is False
-    assert rg._looks_like_uuid("a,b,c") is False
-    assert rg._looks_like_uuid("") is False
-    assert rg._looks_like_uuid(None) is False
+    assert reports_common._looks_like_uuid("a0000000-0000-0000-0000-000000000001") is True
+    assert reports_common._looks_like_uuid("all") is False
+    assert reports_common._looks_like_uuid("a,b,c") is False
+    assert reports_common._looks_like_uuid("") is False
+    assert reports_common._looks_like_uuid(None) is False
 
 
 def _fake_section(financial_total_revenue=0.0, financial_total_expenses=0.0, harvest_qty=0.0):
@@ -52,8 +54,8 @@ def test_composes_all_locations_and_rolls_up():
     actor_view = {"by_actor": [], "by_source": [], "participation": [], "rounds": [], "total_raised": 815000.0}
 
     conn = MagicMock()
-    with patch.object(rg, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
-         patch.object(rg, "_state_of_kokonut_actors", return_value=actor_view):
+    with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
+         patch.object(state_module, "_state_of_kokonut_actors", return_value=actor_view):
         report = rg.generate_state_of_kokonut(conn, "all", "2021-01-01", "2024-12-31")
 
     assert report["report_type"] == "state_of_kokonut"
@@ -79,8 +81,8 @@ def test_composes_selected_locations_from_comma_list():
         {"location_id": loc_rows[0]["id"], "name": "Adelphi", "sections": _fake_section(100.0, 40.0, 5.0)},
     ]
     conn = MagicMock()
-    with patch.object(rg, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
-         patch.object(rg, "_state_of_kokonut_actors", return_value={"total_raised": 0.0}):
+    with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
+         patch.object(state_module, "_state_of_kokonut_actors", return_value={"total_raised": 0.0}):
         report = rg.generate_state_of_kokonut(
             conn, "a0000000-0000-0000-0000-000000000001", None, None
         )
@@ -105,18 +107,18 @@ def test_isolates_failing_section():
     cur.fetchall.return_value = loc_rows
     cur.fetchone.return_value = {}
     conn.cursor.return_value = cur
-    with patch.object(rg, "generate_crop_noi", side_effect=RuntimeError("boom")), \
-         patch.object(rg, "generate_farm_summary", return_value={"report_type": "farm_summary"}), \
-         patch.object(rg, "generate_environmental", return_value={"report_type": "environmental"}), \
-         patch.object(rg, "generate_climate_impact", return_value={"report_type": "climate_impact"}), \
-         patch.object(rg, "generate_financial_sustainability", return_value={"report_type": "financial_sustainability"}), \
-         patch.object(rg, "generate_capital_efficiency", return_value={"report_type": "capital_efficiency"}), \
-         patch.object(rg, "generate_holistic_wellbeing", return_value={"report_type": "holistic_wellbeing"}), \
-         patch.object(rg, "generate_community_governance", return_value={"report_type": "community_governance"}), \
-         patch.object(rg, "generate_gnh_alignment", return_value={"report_type": "gnh_alignment"}), \
-         patch.object(rg, "generate_training_impact", return_value={"report_type": "training_impact"}), \
-         patch.object(rg, "generate_regenerative_outcomes", return_value={"report_type": "regenerative_outcomes"}):
-        _, composed = rg._state_of_kokonut_locations(conn, [loc_id], None, None)
+    with patch.object(state_module, "generate_crop_noi", side_effect=RuntimeError("boom")), \
+         patch.object(state_module, "generate_farm_summary", return_value={"report_type": "farm_summary"}), \
+         patch.object(state_module, "generate_environmental", return_value={"report_type": "environmental"}), \
+         patch.object(state_module, "generate_climate_impact", return_value={"report_type": "climate_impact"}), \
+         patch.object(state_module, "generate_financial_sustainability", return_value={"report_type": "financial_sustainability"}), \
+         patch.object(state_module, "generate_capital_efficiency", return_value={"report_type": "capital_efficiency"}), \
+         patch.object(state_module, "generate_holistic_wellbeing", return_value={"report_type": "holistic_wellbeing"}), \
+         patch.object(state_module, "generate_community_governance", return_value={"report_type": "community_governance"}), \
+         patch.object(state_module, "generate_gnh_alignment", return_value={"report_type": "gnh_alignment"}), \
+         patch.object(state_module, "generate_training_impact", return_value={"report_type": "training_impact"}), \
+         patch.object(state_module, "generate_regenerative_outcomes", return_value={"report_type": "regenerative_outcomes"}):
+        _, composed = state_module._state_of_kokonut_locations(conn, [loc_id], None, None)
     entry = composed[0]
     assert "crop_noi" in entry["sections"]
     assert "error" in entry["sections"]["crop_noi"]

@@ -22,13 +22,13 @@ import os
 import re
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 
-import requests
+from services.common.http import http
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, retry
+from .base import get_db, hash_payload, log_ingestion, retry
 
 logger = get_logger("ingestion.market")
 
@@ -188,7 +188,7 @@ def download_pink_sheet(url: str = None) -> bytes:
     target_url = url or WORLD_BANK_FALLBACK_URL
     logger.info("Downloading Pink Sheet from %s...", target_url)
 
-    resp = requests.get(target_url, timeout=60)
+    resp = http.get(target_url, timeout=60)
     resp.raise_for_status()
 
     content_type = resp.headers.get("Content-Type", "")

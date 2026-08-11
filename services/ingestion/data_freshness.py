@@ -327,9 +327,9 @@ def _send_alert(
     webhook_url = os.environ.get("ALERT_WEBHOOK_URL")
     if webhook_url:
         try:
-            import requests
+            from services.common.http import http
 
-            response = requests.post(
+            response = http.post(
                 webhook_url,
                 json={"text": alert_msg, "source": source_system, "status": status},
                 timeout=10,
