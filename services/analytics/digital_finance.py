@@ -20,11 +20,11 @@ Usage:
     python -m services.analytics.digital_finance eligibility --location-id UUID --amount 75000
 """
 
-import argparse
 import json
 import uuid
 from datetime import datetime, date, timedelta, timezone
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.digital_finance")
@@ -1225,209 +1225,171 @@ def _crisp_rating(score: float) -> str:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Digital financial services")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("digital_finance", "Digital financial services")
 
-    # create-account
-    ca = sub.add_parser("create-account", help="Create financial account")
-    ca.add_argument("--location-id", required=True)
-    ca.add_argument("--type", required=True, dest="account_type")
-    ca.add_argument("--currency", default="KES")
-    ca.add_argument("--holder", dest="holder_name")
-    ca.add_argument("--provider")
-    ca.add_argument("--account-number")
-    ca.add_argument("--credit-limit", type=float, default=0)
-    ca.add_argument("--json", action="store_true")
 
-    # record-tx
-    rt = sub.add_parser("record-tx", help="Record transaction")
-    rt.add_argument("--account-id", required=True)
-    rt.add_argument("--type", required=True, dest="tx_type")
-    rt.add_argument("--amount", type=float, required=True)
-    rt.add_argument("--direction", required=True)
-    rt.add_argument("--currency", default="KES")
-    rt.add_argument("--description")
-    rt.add_argument("--external-ref")
-    rt.add_argument("--fee", type=float, default=0)
-    rt.add_argument("--json", action="store_true")
+def _cmd_create_account(db, a):
+    return create_account(
+        db, a.location_id, a.account_type,
+        currency=a.currency, holder_name=a.holder_name,
+        provider=a.provider, account_number=a.account_number,
+        credit_limit=a.credit_limit,
+    )
 
-    # balance
-    bl = sub.add_parser("balance", help="Get account balance")
-    bl.add_argument("--account-id", required=True)
-    bl.add_argument("--json", action="store_true")
 
-    # list
-    ls = sub.add_parser("list", help="List accounts")
-    ls.add_argument("--location-id", required=True)
-    ls.add_argument("--json", action="store_true")
+def _cmd_record_tx(db, a):
+    return record_transaction(
+        db, a.account_id, a.tx_type, a.amount, a.direction,
+        currency=a.currency, description=a.description,
+        external_ref=a.external_ref, fee_amount=a.fee,
+    )
 
-    # create-insurance
-    ci = sub.add_parser("create-insurance", help="Create insurance policy")
-    ci.add_argument("--location-id", required=True)
-    ci.add_argument("--product", required=True, dest="product_type")
-    ci.add_argument("--coverage", type=float, required=True)
-    ci.add_argument("--premium", type=float, required=True)
-    ci.add_argument("--risk-score", type=float)
-    ci.add_argument("--crop")
-    ci.add_argument("--area", type=float)
-    ci.add_argument("--start")
-    ci.add_argument("--end")
-    ci.add_argument("--deductible", type=float, default=0)
-    ci.add_argument("--json", action="store_true")
 
-    # file-claim
-    fc = sub.add_parser("file-claim", help="File insurance claim")
-    fc.add_argument("--policy-id", required=True)
-    fc.add_argument("--type", required=True, dest="claim_type")
-    fc.add_argument("--amount", type=float, required=True)
-    fc.add_argument("--evidence", help="JSON evidence data")
-    fc.add_argument("--event-date")
-    fc.add_argument("--description")
-    fc.add_argument("--json", action="store_true")
+def _cmd_create_insurance(db, a):
+    return create_insurance_policy(
+        db, a.location_id, a.product_type, a.coverage, a.premium,
+        risk_score=a.risk_score, crop_type=a.crop, area_hectares=a.area,
+        coverage_start=a.start, coverage_end=a.end,
+        deductible_pct=a.deductible,
+    )
 
-    # evaluate-claim
-    ec = sub.add_parser("evaluate-claim", help="Evaluate insurance claim")
-    ec.add_argument("--claim-id", required=True)
-    ec.add_argument("--status", required=True)
-    ec.add_argument("--adjustment", type=float, default=0)
-    ec.add_argument("--notes")
-    ec.add_argument("--payout", type=float)
-    ec.add_argument("--json", action="store_true")
 
-    # create-loan
-    cl = sub.add_parser("create-loan", help="Create digital loan")
-    cl.add_argument("--location-id", required=True)
-    cl.add_argument("--amount", type=float, required=True)
-    cl.add_argument("--rate", type=float, required=True)
-    cl.add_argument("--term", type=int, required=True)
-    cl.add_argument("--purpose")
-    cl.add_argument("--eligibility", type=float)
-    cl.add_argument("--currency", default="KES")
-    cl.add_argument("--json", action="store_true")
+def _cmd_file_claim(db, a):
+    evidence = json.loads(a.evidence) if a.evidence else None
+    return file_insurance_claim(
+        db, a.policy_id, a.claim_type, a.amount,
+        evidence=evidence, event_date=a.event_date, description=a.description,
+    )
 
-    # repay
-    rp = sub.add_parser("repay", help="Record loan repayment")
-    rp.add_argument("--loan-id", required=True)
-    rp.add_argument("--amount", type=float, required=True)
-    rp.add_argument("--method", default="mobile_money")
-    rp.add_argument("--external-ref")
-    rp.add_argument("--json", action="store_true")
 
-    # portfolio
-    pf = sub.add_parser("portfolio", help="Portfolio summary")
-    pf.add_argument("--location-id", required=True)
-    pf.add_argument("--json", action="store_true")
+def _cmd_evaluate_claim(db, a):
+    return evaluate_insurance_claim(
+        db, a.claim_id, a.status,
+        adjustment=a.adjustment, notes=a.notes, payout_amount=a.payout,
+    )
 
-    # premium
-    pr = sub.add_parser("premium", help="Calculate insurance premium")
-    pr.add_argument("--location-id", required=True)
-    pr.add_argument("--product", required=True)
-    pr.add_argument("--coverage", type=float, required=True)
-    pr.add_argument("--json", action="store_true")
 
-    # eligibility
-    el = sub.add_parser("eligibility", help="Evaluate loan eligibility")
-    el.add_argument("--location-id", required=True)
-    el.add_argument("--amount", type=float, required=True)
-    el.add_argument("--json", action="store_true")
+def _cmd_create_loan(db, a):
+    return create_loan(
+        db, a.location_id, a.amount, a.rate, a.term,
+        a.purpose or "working_capital",
+        eligibility_score=a.eligibility, currency=a.currency,
+    )
 
-    args = parser.parse_args()
 
-    from .base import get_db
+def _cmd_repay(db, a):
+    return record_repayment(
+        db, a.loan_id, a.amount,
+        payment_method=a.method, external_ref=a.external_ref,
+    )
 
-    if args.command is None:
-        parser.print_help()
-        return
 
-    db = get_db()
+cli.subcommand("create-account", "Create financial account") \
+    .add("--location-id", required=True) \
+    .add("--type", required=True, dest="account_type") \
+    .add("--currency", default="KES") \
+    .add("--holder", dest="holder_name") \
+    .add("--provider") \
+    .add("--account-number") \
+    .add("--credit-limit", type=float, default=0) \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_account)
 
-    try:
-        if args.command == "create-account":
-            result = create_account(
-                db, args.location_id, args.account_type,
-                currency=args.currency, holder_name=args.holder_name,
-                provider=args.provider, account_number=args.account_number,
-                credit_limit=args.credit_limit,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("record-tx", "Record transaction") \
+    .add("--account-id", required=True) \
+    .add("--type", required=True, dest="tx_type") \
+    .add("--amount", type=float, required=True) \
+    .add("--direction", required=True) \
+    .add("--currency", default="KES") \
+    .add("--description") \
+    .add("--external-ref") \
+    .add("--fee", type=float, default=0) \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_tx)
 
-        elif args.command == "record-tx":
-            result = record_transaction(
-                db, args.account_id, args.tx_type, args.amount,
-                args.direction, currency=args.currency,
-                description=args.description, external_ref=args.external_ref,
-                fee_amount=args.fee,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("balance", "Get account balance") \
+    .add("--account-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_account_balance(db, a.account_id))
 
-        elif args.command == "balance":
-            result = get_account_balance(db, args.account_id)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("list", "List accounts") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: list_accounts(db, a.location_id))
 
-        elif args.command == "list":
-            result = list_accounts(db, args.location_id)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("create-insurance", "Create insurance policy") \
+    .add("--location-id", required=True) \
+    .add("--product", required=True, dest="product_type") \
+    .add("--coverage", type=float, required=True) \
+    .add("--premium", type=float, required=True) \
+    .add("--risk-score", type=float) \
+    .add("--crop") \
+    .add("--area", type=float) \
+    .add("--start") \
+    .add("--end") \
+    .add("--deductible", type=float, default=0) \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_insurance)
 
-        elif args.command == "create-insurance":
-            result = create_insurance_policy(
-                db, args.location_id, args.product_type, args.coverage,
-                args.premium, risk_score=args.risk_score, crop_type=args.crop,
-                area_hectares=args.area, coverage_start=args.start,
-                coverage_end=args.end, deductible_pct=args.deductible,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("file-claim", "File insurance claim") \
+    .add("--policy-id", required=True) \
+    .add("--type", required=True, dest="claim_type") \
+    .add("--amount", type=float, required=True) \
+    .add("--evidence", help="JSON evidence data") \
+    .add("--event-date") \
+    .add("--description") \
+    .add("--json", action="store_true") \
+    .run(_cmd_file_claim)
 
-        elif args.command == "file-claim":
-            evidence = json.loads(args.evidence) if args.evidence else None
-            result = file_insurance_claim(
-                db, args.policy_id, args.claim_type, args.amount,
-                evidence=evidence, event_date=args.event_date,
-                description=args.description,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("evaluate-claim", "Evaluate insurance claim") \
+    .add("--claim-id", required=True) \
+    .add("--status", required=True) \
+    .add("--adjustment", type=float, default=0) \
+    .add("--notes") \
+    .add("--payout", type=float) \
+    .add("--json", action="store_true") \
+    .run(_cmd_evaluate_claim)
 
-        elif args.command == "evaluate-claim":
-            result = evaluate_insurance_claim(
-                db, args.claim_id, args.status,
-                adjustment=args.adjustment, notes=args.notes,
-                payout_amount=args.payout,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("create-loan", "Create digital loan") \
+    .add("--location-id", required=True) \
+    .add("--amount", type=float, required=True) \
+    .add("--rate", type=float, required=True) \
+    .add("--term", type=int, required=True) \
+    .add("--purpose") \
+    .add("--eligibility", type=float) \
+    .add("--currency", default="KES") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_loan)
 
-        elif args.command == "create-loan":
-            result = create_loan(
-                db, args.location_id, args.amount, args.rate,
-                args.term, args.purpose or "working_capital",
-                eligibility_score=args.eligibility, currency=args.currency,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("repay", "Record loan repayment") \
+    .add("--loan-id", required=True) \
+    .add("--amount", type=float, required=True) \
+    .add("--method", default="mobile_money") \
+    .add("--external-ref") \
+    .add("--json", action="store_true") \
+    .run(_cmd_repay)
 
-        elif args.command == "repay":
-            result = record_repayment(
-                db, args.loan_id, args.amount,
-                payment_method=args.method, external_ref=args.external_ref,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("portfolio", "Portfolio summary") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_portfolio_summary(db, a.location_id))
 
-        elif args.command == "portfolio":
-            result = get_portfolio_summary(db, args.location_id)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("premium", "Calculate insurance premium") \
+    .add("--location-id", required=True) \
+    .add("--product", required=True) \
+    .add("--coverage", type=float, required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: calculate_insurance_premium(db, a.location_id, a.product, a.coverage))
 
-        elif args.command == "premium":
-            result = calculate_insurance_premium(
-                db, args.location_id, args.product, args.coverage,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("eligibility", "Evaluate loan eligibility") \
+    .add("--location-id", required=True) \
+    .add("--amount", type=float, required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: evaluate_loan_eligibility(db, a.location_id, a.amount))
 
-        elif args.command == "eligibility":
-            result = evaluate_loan_eligibility(
-                db, args.location_id, args.amount,
-            )
-            print(json.dumps(result, indent=2, default=str))
 
-    finally:
-        db.close()
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

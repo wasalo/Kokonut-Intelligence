@@ -13,13 +13,13 @@ Usage:
     python -m services.analytics.yield_monitoring benchmark --location-id UUID --crop maize
 """
 
-import argparse
 import json
 import math
 import uuid
 from datetime import datetime, date, timezone
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.yield_monitoring")
@@ -385,88 +385,11 @@ def compare_benchmark(conn, location_id: str, crop_name: str = None) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Yield monitoring")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("yield_monitoring", "Yield monitoring")
 
-    # Record
-    rec = sub.add_parser("record", help="Record yield observation")
-    rec.add_argument("--location-id", required=True)
-    rec.add_argument("--yield-amount", type=float, required=True, help="Yield in kg/ha")
-    rec.add_argument("--area", type=float, default=1.0, help="Area in hectares")
-    rec.add_argument("--crop", default="maize")
-    rec.add_argument("--variety")
-    rec.add_argument("--date", help="Harvest date YYYY-MM-DD")
-    rec.add_argument("--moisture", type=float, help="Moisture content %")
-    rec.add_argument("--grade")
-    rec.add_argument("--json", action="store_true")
 
-    # Summary
-    sm = sub.add_parser("summary", help="Yield summary")
-    sm.add_argument("--location-id", required=True)
-    sm.add_argument("--json", action="store_true")
-
-    # Trend
-    tr = sub.add_parser("trend", help="Yield trend")
-    tr.add_argument("--location-id", required=True)
-    tr.add_argument("--crop")
-    tr.add_argument("--json", action="store_true")
-
-    # Predict
-    pr = sub.add_parser("predict", help="Predict yield")
-    pr.add_argument("--location-id", required=True)
-    pr.add_argument("--crop", default="maize")
-    pr.add_argument("--days", type=int, default=60)
-    pr.add_argument("--json", action="store_true")
-
-    # Benchmark
-    bm = sub.add_parser("benchmark", help="Compare benchmarks")
-    bm.add_argument("--location-id", required=True)
-    bm.add_argument("--crop")
-    bm.add_argument("--json", action="store_true")
-
-    args = parser.parse_args()
-
-    from .base import get_db
-
-    if args.command in ("record", "summary", "trend", "predict", "benchmark"):
-        db = get_db()
-    else:
-        parser.print_help()
-        return
-
-    try:
-        if args.command == "record":
-            hd = date.fromisoformat(args.date) if args.date else None
-            result = record_yield_observation(
-                db, args.location_id, args.yield_amount, args.area, args.crop,
-                harvest_date=hd, moisture_pct=args.moisture, grade=args.grade,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_record(result)
-            print(output)
-
-        elif args.command == "summary":
-            result = get_yield_summary(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_summary(result)
-            print(output)
-
-        elif args.command == "trend":
-            result = compute_yield_trend(db, args.location_id, args.crop)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_trend(result)
-            print(output)
-
-        elif args.command == "predict":
-            result = predict_yield(db, args.location_id, args.crop, args.days)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_predict(result)
-            print(output)
-
-        elif args.command == "benchmark":
-            result = compare_benchmark(db, args.location_id, args.crop)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_benchmark(result)
-            print(output)
-
-    finally:
-        db.close()
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
 
 def _format_record(r: dict) -> str:
@@ -511,6 +434,60 @@ def _format_benchmark(r: dict) -> str:
         icon = "▲" if comp["status"] == "above" else "▼" if comp["status"] == "below" else "="
         lines.append(f"  {icon} {btype}: {comp['current']:.0f} vs {comp['benchmark']:.0f} ({comp['difference_pct']:+.1f}%)")
     return "\n".join(lines)
+
+
+def _cmd_record(db, a):
+    hd = date.fromisoformat(a.date) if a.date else None
+    return record_yield_observation(
+        db, a.location_id, a.yield_amount, a.area, a.crop,
+        harvest_date=hd, moisture_pct=a.moisture, grade=a.grade,
+    )
+
+
+cli.subcommand("record", "Record yield observation") \
+    .add("--location-id", required=True) \
+    .add("--yield-amount", type=float, required=True, help="Yield in kg/ha") \
+    .add("--area", type=float, default=1.0, help="Area in hectares") \
+    .add("--crop", default="maize") \
+    .add("--variety") \
+    .add("--date", help="Harvest date YYYY-MM-DD") \
+    .add("--moisture", type=float, help="Moisture content %") \
+    .add("--grade") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record) \
+    .render_with(lambda r, a: _render(r, a, _format_record))
+
+cli.subcommand("summary", "Yield summary") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_yield_summary(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_summary))
+
+cli.subcommand("trend", "Yield trend") \
+    .add("--location-id", required=True) \
+    .add("--crop") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: compute_yield_trend(db, a.location_id, a.crop)) \
+    .render_with(lambda r, a: _render(r, a, _format_trend))
+
+cli.subcommand("predict", "Predict yield") \
+    .add("--location-id", required=True) \
+    .add("--crop", default="maize") \
+    .add("--days", type=int, default=60) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: predict_yield(db, a.location_id, a.crop, a.days)) \
+    .render_with(lambda r, a: _render(r, a, _format_predict))
+
+cli.subcommand("benchmark", "Compare benchmarks") \
+    .add("--location-id", required=True) \
+    .add("--crop") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: compare_benchmark(db, a.location_id, a.crop)) \
+    .render_with(lambda r, a: _render(r, a, _format_benchmark))
+
+
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

@@ -21,12 +21,12 @@ Usage:
     python -m services.analytics.data_governance governance-summary --location-id UUID
 """
 
-import argparse
 import json
 import re
 import uuid
 from datetime import datetime, date, timezone, timedelta
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.data_governance")
@@ -970,246 +970,204 @@ def get_governance_summary(conn, location_id: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Data governance & interoperability")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("data_governance", "Data governance & interoperability")
 
-    # record-consent
-    rc = sub.add_parser("record-consent", help="Record consent grant/withdrawal")
-    rc.add_argument("--farmer-id", required=True)
-    rc.add_argument("--data-category", required=True)
-    rc.add_argument("--scope", required=True)
-    rc.add_argument("--status", default="granted", choices=["granted", "withdrawn", "pending"])
-    rc.add_argument("--method", default="digital_form")
-    rc.add_argument("--location-id")
-    rc.add_argument("--expires-at", help="Expiry datetime ISO format")
-    rc.add_argument("--evidence-ref")
-    rc.add_argument("--legal-basis")
-    rc.add_argument("--json", action="store_true")
 
-    # withdraw-consent
-    wc = sub.add_parser("withdraw-consent", help="Withdraw consent")
-    wc.add_argument("--consent-id", required=True)
-    wc.add_argument("--reason")
-    wc.add_argument("--actor-id", required=True)
-    wc.add_argument("--json", action="store_true")
+def _cmd_record_consent(db, a):
+    exp = datetime.fromisoformat(a.expires_at) if a.expires_at else None
+    return record_consent(
+        db, a.farmer_id, a.data_category, a.scope,
+        status=a.status, method=a.method,
+        location_id=a.location_id, expires_at=exp,
+        evidence_ref=a.evidence_ref, legal_basis=a.legal_basis,
+    )
 
-    # consent-status
-    cs = sub.add_parser("consent-status", help="Get consent status per category")
-    cs.add_argument("--farmer-id", required=True)
-    cs.add_argument("--json", action="store_true")
 
-    # check-consent
-    cc = sub.add_parser("check-consent", help="Check specific consent")
-    cc.add_argument("--farmer-id", required=True)
-    cc.add_argument("--data-category", required=True)
-    cc.add_argument("--scope", required=True)
-    cc.add_argument("--json", action="store_true")
+def _cmd_log_access(db, a):
+    return log_access(
+        db, a.accessor_id, a.data_category, a.resource_type,
+        a.access_type, purpose=a.purpose,
+        resource_id=a.resource_id, location_id=a.location_id,
+        accessor_role=a.accessor_role, accessor_type=a.accessor_type,
+        access_method=a.access_method, consent_id=a.consent_id,
+        status=a.status, denial_reason=a.denial_reason,
+        records_affected=a.records_affected,
+    )
 
-    # log-access
-    la = sub.add_parser("log-access", help="Log data access event")
-    la.add_argument("--accessor-id", required=True)
-    la.add_argument("--data-category", required=True)
-    la.add_argument("--resource-type", required=True)
-    la.add_argument("--access-type", required=True,
-                    choices=["read", "write", "export", "share", "delete", "list", "aggregate", "download"])
-    la.add_argument("--purpose")
-    la.add_argument("--resource-id")
-    la.add_argument("--location-id")
-    la.add_argument("--accessor-role")
-    la.add_argument("--accessor-type", default="user")
-    la.add_argument("--access-method")
-    la.add_argument("--consent-id")
-    la.add_argument("--status", default="success", choices=["success", "denied", "partial", "error"])
-    la.add_argument("--denial-reason")
-    la.add_argument("--records-affected", type=int, default=0)
-    la.add_argument("--json", action="store_true")
 
-    # access-audit
-    aa = sub.add_parser("access-audit", help="Get access audit trail")
-    aa.add_argument("--farmer-id", required=True)
-    aa.add_argument("--days", type=int, default=30)
-    aa.add_argument("--json", action="store_true")
+def _cmd_request_portability(db, a):
+    cats = a.data_categories.split(",") if a.data_categories else None
+    return request_portability(
+        db, a.farmer_id, format_type=a.format_type,
+        scope=a.scope, data_categories=cats,
+        location_id=a.location_id,
+        requested_by=a.requested_by,
+        authorization_ref=a.authorization_ref,
+        include_metadata=a.include_metadata,
+    )
 
-    # request-portability
-    rp = sub.add_parser("request-portability", help="Request data export")
-    rp.add_argument("--farmer-id", required=True)
-    rp.add_argument("--format", dest="format_type", default="json",
-                    choices=["json", "csv", "geojson", "xml", "rdf_turtle", "jsonld", "parquet", "excel"])
-    rp.add_argument("--scope", default="all", choices=["all", "location", "category", "filtered"])
-    rp.add_argument("--data-categories", help="Comma-separated categories")
-    rp.add_argument("--location-id")
-    rp.add_argument("--requested-by")
-    rp.add_argument("--authorization-ref")
-    rp.add_argument("--include-metadata", action="store_true", default=True)
-    rp.add_argument("--json", action="store_true")
 
-    # fulfill-portability
-    fp = sub.add_parser("fulfill-portability", help="Mark portability request as fulfilled")
-    fp.add_argument("--request-id", required=True)
-    fp.add_argument("--file-path")
-    fp.add_argument("--output-hash")
-    fp.add_argument("--output-size", type=int)
-    fp.add_argument("--record-count", type=int, default=0)
-    fp.add_argument("--owner-id", required=True)
-    fp.add_argument("--fulfilled-by", required=True)
-    fp.add_argument("--authorization-ref", required=True)
-    fp.add_argument("--json", action="store_true")
+def _cmd_fulfill_portability(db, a):
+    return fulfill_portability(
+        db, a.request_id, file_path=a.file_path,
+        output_hash=a.output_hash,
+        output_size_bytes=a.output_size,
+        record_count=a.record_count,
+        owner_id=a.owner_id,
+        fulfilled_by=a.fulfilled_by,
+        authorization_ref=a.authorization_ref,
+    )
 
-    # portability-requests
-    pr = sub.add_parser("portability-requests", help="List portability requests")
-    pr.add_argument("--farmer-id", required=True)
-    pr.add_argument("--actor-id", required=True)
-    pr.add_argument("--json", action="store_true")
 
-    # create-agreement
-    ca = sub.add_parser("create-agreement", help="Create data sharing agreement")
-    ca.add_argument("--provider-id", required=True)
-    ca.add_argument("--consumer-id", required=True)
-    ca.add_argument("--data-categories", required=True, help="Comma-separated categories")
-    ca.add_argument("--purpose", required=True)
-    ca.add_argument("--provider-type", default="farmer")
-    ca.add_argument("--consumer-type", default="organization")
-    ca.add_argument("--legal-basis")
-    ca.add_argument("--commercial-use", action="store_true")
-    ca.add_argument("--retention-days", type=int)
-    ca.add_argument("--json", action="store_true")
+def _cmd_create_agreement(db, a):
+    cats = a.data_categories.split(",")
+    return create_sharing_agreement(
+        db, a.provider_id, a.consumer_id, cats, a.purpose,
+        provider_type=a.provider_type, consumer_type=a.consumer_type,
+        legal_basis=a.legal_basis, commercial_use=a.commercial_use,
+        retention_days=a.retention_days,
+    )
 
-    # sharing-agreements
-    sa = sub.add_parser("sharing-agreements", help="List sharing agreements")
-    sa.add_argument("--farmer-id", required=True)
-    sa.add_argument("--json", action="store_true")
 
-    # set-retention
-    sr = sub.add_parser("set-retention", help="Set retention policy")
-    sr.add_argument("--data-category", required=True)
-    sr.add_argument("--retention-days", type=int, required=True)
-    sr.add_argument("--action", default="soft_delete",
-                    choices=["soft_delete", "hard_delete", "anonymize", "archive", "none"])
-    sr.add_argument("--entity-type")
-    sr.add_argument("--location-id")
-    sr.add_argument("--policy-owner")
-    sr.add_argument("--json", action="store_true")
+def _cmd_set_retention(db, a):
+    return set_retention_policy(
+        db, a.data_category, a.retention_days,
+        action=a.action, entity_type=a.entity_type,
+        location_id=a.location_id, policy_owner=a.policy_owner,
+    )
 
-    es = sub.add_parser("enforce-retention", help="Run governed retention sweep")
-    es.add_argument("--actor", required=True)
-    es.add_argument("--dry-run", action="store_true")
-    es.add_argument("--json", action="store_true")
 
-    # governance-summary
-    gs = sub.add_parser("governance-summary", help="Aggregated governance metrics")
-    gs.add_argument("--location-id", required=True)
-    gs.add_argument("--json", action="store_true")
+cli.subcommand("record-consent", "Record consent grant/withdrawal") \
+    .add("--farmer-id", required=True) \
+    .add("--data-category", required=True) \
+    .add("--scope", required=True) \
+    .add("--status", default="granted", choices=["granted", "withdrawn", "pending"]) \
+    .add("--method", default="digital_form") \
+    .add("--location-id") \
+    .add("--expires-at", help="Expiry datetime ISO format") \
+    .add("--evidence-ref") \
+    .add("--legal-basis") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_consent)
 
-    args = parser.parse_args()
+cli.subcommand("withdraw-consent", "Withdraw consent") \
+    .add("--consent-id", required=True) \
+    .add("--reason") \
+    .add("--actor-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: withdraw_consent(db, a.consent_id, reason=a.reason, actor_id=a.actor_id))
 
-    from .base import get_db
+cli.subcommand("consent-status", "Get consent status per category") \
+    .add("--farmer-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_consent_status(db, a.farmer_id))
 
-    if args.command is None:
-        parser.print_help()
-        return
+cli.subcommand("check-consent", "Check specific consent") \
+    .add("--farmer-id", required=True) \
+    .add("--data-category", required=True) \
+    .add("--scope", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: check_consent(db, a.farmer_id, a.data_category, a.scope))
 
-    db = get_db()
+cli.subcommand("log-access", "Log data access event") \
+    .add("--accessor-id", required=True) \
+    .add("--data-category", required=True) \
+    .add("--resource-type", required=True) \
+    .add("--access-type", required=True,
+         choices=["read", "write", "export", "share", "delete", "list", "aggregate", "download"]) \
+    .add("--purpose") \
+    .add("--resource-id") \
+    .add("--location-id") \
+    .add("--accessor-role") \
+    .add("--accessor-type", default="user") \
+    .add("--access-method") \
+    .add("--consent-id") \
+    .add("--status", default="success", choices=["success", "denied", "partial", "error"]) \
+    .add("--denial-reason") \
+    .add("--records-affected", type=int, default=0) \
+    .add("--json", action="store_true") \
+    .run(_cmd_log_access)
 
-    try:
-        if args.command == "record-consent":
-            exp = datetime.fromisoformat(args.expires_at) if args.expires_at else None
-            result = record_consent(
-                db, args.farmer_id, args.data_category, args.scope,
-                status=args.status, method=args.method,
-                location_id=args.location_id, expires_at=exp,
-                evidence_ref=args.evidence_ref, legal_basis=args.legal_basis,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("access-audit", "Get access audit trail") \
+    .add("--farmer-id", required=True) \
+    .add("--days", type=int, default=30) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_access_audit(db, a.farmer_id, days=a.days))
 
-        elif args.command == "withdraw-consent":
-            result = withdraw_consent(db, args.consent_id, reason=args.reason, actor_id=args.actor_id)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("request-portability", "Request data export") \
+    .add("--farmer-id", required=True) \
+    .add("--format", dest="format_type", default="json",
+         choices=["json", "csv", "geojson", "xml", "rdf_turtle", "jsonld", "parquet", "excel"]) \
+    .add("--scope", default="all", choices=["all", "location", "category", "filtered"]) \
+    .add("--data-categories", help="Comma-separated categories") \
+    .add("--location-id") \
+    .add("--requested-by") \
+    .add("--authorization-ref") \
+    .add("--include-metadata", action="store_true", default=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_request_portability)
 
-        elif args.command == "consent-status":
-            result = get_consent_status(db, args.farmer_id)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("fulfill-portability", "Mark portability request as fulfilled") \
+    .add("--request-id", required=True) \
+    .add("--file-path") \
+    .add("--output-hash") \
+    .add("--output-size", type=int) \
+    .add("--record-count", type=int, default=0) \
+    .add("--owner-id", required=True) \
+    .add("--fulfilled-by", required=True) \
+    .add("--authorization-ref", required=True) \
+    .add("--json", action="store_true") \
+    .run(_cmd_fulfill_portability)
 
-        elif args.command == "check-consent":
-            result = check_consent(db, args.farmer_id, args.data_category, args.scope)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("portability-requests", "List portability requests") \
+    .add("--farmer-id", required=True) \
+    .add("--actor-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_portability_requests(db, a.farmer_id, actor_id=a.actor_id))
 
-        elif args.command == "log-access":
-            result = log_access(
-                db, args.accessor_id, args.data_category, args.resource_type,
-                args.access_type, purpose=args.purpose,
-                resource_id=args.resource_id, location_id=args.location_id,
-                accessor_role=args.accessor_role, accessor_type=args.accessor_type,
-                access_method=args.access_method, consent_id=args.consent_id,
-                status=args.status, denial_reason=args.denial_reason,
-                records_affected=args.records_affected,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("create-agreement", "Create data sharing agreement") \
+    .add("--provider-id", required=True) \
+    .add("--consumer-id", required=True) \
+    .add("--data-categories", required=True, help="Comma-separated categories") \
+    .add("--purpose", required=True) \
+    .add("--provider-type", default="farmer") \
+    .add("--consumer-type", default="organization") \
+    .add("--legal-basis") \
+    .add("--commercial-use", action="store_true") \
+    .add("--retention-days", type=int) \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_agreement)
 
-        elif args.command == "access-audit":
-            result = get_access_audit(db, args.farmer_id, days=args.days)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("sharing-agreements", "List sharing agreements") \
+    .add("--farmer-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_sharing_agreements(db, a.farmer_id))
 
-        elif args.command == "request-portability":
-            cats = args.data_categories.split(",") if args.data_categories else None
-            result = request_portability(
-                db, args.farmer_id, format_type=args.format_type,
-                scope=args.scope, data_categories=cats,
-                location_id=args.location_id,
-                requested_by=args.requested_by,
-                authorization_ref=args.authorization_ref,
-                include_metadata=args.include_metadata,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("set-retention", "Set retention policy") \
+    .add("--data-category", required=True) \
+    .add("--retention-days", type=int, required=True) \
+    .add("--action", default="soft_delete",
+         choices=["soft_delete", "hard_delete", "anonymize", "archive", "none"]) \
+    .add("--entity-type") \
+    .add("--location-id") \
+    .add("--policy-owner") \
+    .add("--json", action="store_true") \
+    .run(_cmd_set_retention)
 
-        elif args.command == "fulfill-portability":
-            result = fulfill_portability(
-                db, args.request_id, file_path=args.file_path,
-                output_hash=args.output_hash,
-                output_size_bytes=args.output_size,
-                record_count=args.record_count,
-                owner_id=args.owner_id,
-                fulfilled_by=args.fulfilled_by,
-                authorization_ref=args.authorization_ref,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("enforce-retention", "Run governed retention sweep") \
+    .add("--actor", required=True) \
+    .add("--dry-run", action="store_true") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: enforce_retention_policies(db, a.actor, dry_run=a.dry_run))
 
-        elif args.command == "portability-requests":
-            result = get_portability_requests(db, args.farmer_id, actor_id=args.actor_id)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("governance-summary", "Aggregated governance metrics") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_governance_summary(db, a.location_id))
 
-        elif args.command == "create-agreement":
-            cats = args.data_categories.split(",")
-            result = create_sharing_agreement(
-                db, args.provider_id, args.consumer_id, cats, args.purpose,
-                provider_type=args.provider_type, consumer_type=args.consumer_type,
-                legal_basis=args.legal_basis, commercial_use=args.commercial_use,
-                retention_days=args.retention_days,
-            )
-            print(json.dumps(result, indent=2, default=str))
 
-        elif args.command == "sharing-agreements":
-            result = get_sharing_agreements(db, args.farmer_id)
-            print(json.dumps(result, indent=2, default=str))
-
-        elif args.command == "set-retention":
-            result = set_retention_policy(
-                db, args.data_category, args.retention_days,
-                action=args.action, entity_type=args.entity_type,
-                location_id=args.location_id, policy_owner=args.policy_owner,
-            )
-            print(json.dumps(result, indent=2, default=str))
-
-        elif args.command == "governance-summary":
-            result = get_governance_summary(db, args.location_id)
-            print(json.dumps(result, indent=2, default=str))
-
-        elif args.command == "enforce-retention":
-            result = enforce_retention_policies(db, args.actor, dry_run=args.dry_run)
-            print(json.dumps(result, indent=2, default=str))
-
-    finally:
-        db.close()
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

@@ -18,12 +18,12 @@ Usage:
     python -m services.analytics.pollinator_health dashboard --location-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import date, datetime, timezone
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.pollinator_health")
@@ -629,211 +629,177 @@ def get_pollinator_dashboard(conn, location_id: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Pollinator health monitoring")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("pollinator_health", "Pollinator health monitoring")
 
-    # record-observation
-    ro = sub.add_parser("record-observation", help="Record pollinator observation")
-    ro.add_argument("--location-id", required=True)
-    ro.add_argument("--type", required=True, dest="pollinator_type",
-                     help="Pollinator type (honeybee, bumblebee, butterfly, etc.)")
-    ro.add_argument("--count", type=int, required=True)
-    ro.add_argument("--method", default="visual", dest="observation_method")
-    ro.add_argument("--duration", type=int, default=15, dest="duration_minutes")
-    ro.add_argument("--habitat-area-id")
-    ro.add_argument("--weather")
-    ro.add_argument("--temperature", type=float)
-    ro.add_argument("--notes")
-    ro.add_argument("--json", action="store_true")
 
-    # create-habitat
-    ch = sub.add_parser("create-habitat", help="Create pollinator habitat")
-    ch.add_argument("--location-id", required=True)
-    ch.add_argument("--name", required=True)
-    ch.add_argument("--type", required=True, dest="habitat_type")
-    ch.add_argument("--area", type=float, required=True, dest="area_m2")
-    ch.add_argument("--plant-species", nargs="*", default=[])
-    ch.add_argument("--bloom-start", type=int, dest="bloom_start_month")
-    ch.add_argument("--bloom-end", type=int, dest="bloom_end_month")
-    ch.add_argument("--water-source", action="store_true")
-    ch.add_argument("--nesting-sites")
-    ch.add_argument("--notes", dest="management_notes")
-    ch.add_argument("--json", action="store_true")
+def _cmd_record_observation(db, a):
+    return record_observation(
+        db, a.location_id, a.pollinator_type, a.count,
+        observation_method=a.observation_method,
+        duration_minutes=a.duration_minutes,
+        habitat_area_id=a.habitat_area_id,
+        weather_conditions=a.weather,
+        temperature_c=a.temperature,
+        notes=a.notes,
+    )
 
-    # record-pesticide
-    rp = sub.add_parser("record-pesticide", help="Record pesticide impact")
-    rp.add_argument("--location-id", required=True)
-    rp.add_argument("--date", required=True, dest="application_date")
-    rp.add_argument("--product", required=True, dest="product_name")
-    rp.add_argument("--ingredient", required=True, dest="active_ingredient")
-    rp.add_argument("--toxicity", required=True, dest="toxicity_class")
-    rp.add_argument("--rate", type=float, dest="application_rate")
-    rp.add_argument("--rate-unit", dest="rate_unit")
-    rp.add_argument("--area", type=float, dest="area_treated_m2")
-    rp.add_argument("--bloom-stage", dest="bloom_stage_at_application")
-    rp.add_argument("--distance", type=float, dest="pollinator_distance_m")
-    rp.add_argument("--notes")
-    rp.add_argument("--json", action="store_true")
 
-    # add-hive
-    ah = sub.add_parser("add-hive", help="Add managed hive")
-    ah.add_argument("--location-id", required=True)
-    ah.add_argument("--hive-id", required=True)
-    ah.add_argument("--colony-strength", type=int, default=5)
-    ah.add_argument("--queen-status", default="present")
-    ah.add_argument("--hive-type", default="langstroth")
-    ah.add_argument("--frames", type=int, default=10, dest="frame_count")
-    ah.add_argument("--queen-year", type=int)
-    ah.add_argument("--notes")
-    ah.add_argument("--json", action="store_true")
+def _cmd_create_habitat(db, a):
+    return create_habitat(
+        db, a.location_id, a.name, a.habitat_type, a.area_m2,
+        plant_species=a.plant_species,
+        bloom_start_month=a.bloom_start_month,
+        bloom_end_month=a.bloom_end_month,
+        water_source=a.water_source,
+        nesting_sites=a.nesting_sites,
+        management_notes=a.management_notes,
+    )
 
-    # record-inspection
-    ri = sub.add_parser("record-inspection", help="Record hive inspection")
-    ri.add_argument("--hive-id", required=True)
-    ri.add_argument("--colony-strength", type=int)
-    ri.add_argument("--queen-status")
-    ri.add_argument("--queen-seen", type=bool)
-    ri.add_argument("--varroa-count", type=int)
-    ri.add_argument("--brood-pattern")
-    ri.add_argument("--honey-stores")
-    ri.add_argument("--disease-signs")
-    ri.add_argument("--temperament")
-    ri.add_argument("--population", type=int, dest="population_estimate")
-    ri.add_argument("--swarm-cells", action="store_true")
-    ri.add_argument("--notes")
-    ri.add_argument("--json", action="store_true")
 
-    # summary
-    su = sub.add_parser("summary", help="Pollinator summary")
-    su.add_argument("--location-id", required=True)
-    su.add_argument("--days", type=int, default=30)
-    su.add_argument("--json", action="store_true")
+def _cmd_record_pesticide(db, a):
+    app_date = date.fromisoformat(a.application_date)
+    return record_pesticide_impact(
+        db, a.location_id, app_date, a.product_name,
+        a.active_ingredient, a.toxicity_class,
+        application_rate=a.application_rate,
+        rate_unit=a.rate_unit,
+        area_treated_m2=a.area_treated_m2,
+        bloom_stage_at_application=a.bloom_stage_at_application,
+        pollinator_distance_m=a.pollinator_distance_m,
+        notes=a.notes,
+    )
 
-    # habitat-inventory
-    hi = sub.add_parser("habitat-inventory", help="Habitat inventory")
-    hi.add_argument("--location-id", required=True)
-    hi.add_argument("--json", action="store_true")
 
-    # pesticide-risk
-    pr = sub.add_parser("pesticide-risk", help="Pesticide risk")
-    pr.add_argument("--location-id", required=True)
-    pr.add_argument("--days", type=int, default=90)
-    pr.add_argument("--json", action="store_true")
+def _cmd_add_hive(db, a):
+    return add_hive(
+        db, a.location_id, a.hive_id,
+        colony_strength=a.colony_strength,
+        queen_status=a.queen_status,
+        hive_type=a.hive_type,
+        frame_count=a.frame_count,
+        queen_year=a.queen_year,
+        notes=a.notes,
+    )
 
-    # hive-status
-    hs = sub.add_parser("hive-status", help="Hive status")
-    hs.add_argument("--location-id", required=True)
-    hs.add_argument("--json", action="store_true")
 
-    # dashboard
-    db_cmd = sub.add_parser("dashboard", help="Pollinator dashboard")
-    db_cmd.add_argument("--location-id", required=True)
-    db_cmd.add_argument("--json", action="store_true")
+def _cmd_record_inspection(db, a):
+    return record_hive_inspection(
+        db, a.hive_id,
+        colony_strength=a.colony_strength,
+        queen_status=a.queen_status,
+        queen_seen=a.queen_seen,
+        varroa_count=a.varroa_count,
+        brood_pattern=a.brood_pattern,
+        honey_stores=a.honey_stores,
+        disease_signs=a.disease_signs,
+        temperament=a.temperament,
+        population_estimate=a.population_estimate,
+        swarm_cells=a.swarm_cells,
+        notes=a.notes,
+    )
 
-    args = parser.parse_args()
 
-    from .base import get_db
+cli.subcommand("record-observation", "Record pollinator observation") \
+    .add("--location-id", required=True) \
+    .add("--type", required=True, dest="pollinator_type",
+         help="Pollinator type (honeybee, bumblebee, butterfly, etc.)") \
+    .add("--count", type=int, required=True) \
+    .add("--method", default="visual", dest="observation_method") \
+    .add("--duration", type=int, default=15, dest="duration_minutes") \
+    .add("--habitat-area-id") \
+    .add("--weather") \
+    .add("--temperature", type=float) \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_observation)
 
-    write_commands = ("record-observation", "create-habitat", "record-pesticide", "add-hive", "record-inspection")
-    read_commands = ("summary", "habitat-inventory", "pesticide-risk", "hive-status", "dashboard")
+cli.subcommand("create-habitat", "Create pollinator habitat") \
+    .add("--location-id", required=True) \
+    .add("--name", required=True) \
+    .add("--type", required=True, dest="habitat_type") \
+    .add("--area", type=float, required=True, dest="area_m2") \
+    .add("--plant-species", nargs="*", default=[]) \
+    .add("--bloom-start", type=int, dest="bloom_start_month") \
+    .add("--bloom-end", type=int, dest="bloom_end_month") \
+    .add("--water-source", action="store_true") \
+    .add("--nesting-sites") \
+    .add("--notes", dest="management_notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_habitat)
 
-    if args.command in write_commands + read_commands:
-        db = get_db()
-    else:
-        parser.print_help()
-        return
+cli.subcommand("record-pesticide", "Record pesticide impact") \
+    .add("--location-id", required=True) \
+    .add("--date", required=True, dest="application_date") \
+    .add("--product", required=True, dest="product_name") \
+    .add("--ingredient", required=True, dest="active_ingredient") \
+    .add("--toxicity", required=True, dest="toxicity_class") \
+    .add("--rate", type=float, dest="application_rate") \
+    .add("--rate-unit", dest="rate_unit") \
+    .add("--area", type=float, dest="area_treated_m2") \
+    .add("--bloom-stage", dest="bloom_stage_at_application") \
+    .add("--distance", type=float, dest="pollinator_distance_m") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_pesticide)
 
-    try:
-        if args.command == "record-observation":
-            result = record_observation(
-                db, args.location_id, args.pollinator_type, args.count,
-                observation_method=args.observation_method,
-                duration_minutes=args.duration_minutes,
-                habitat_area_id=args.habitat_area_id,
-                weather_conditions=args.weather,
-                temperature_c=args.temperature,
-                notes=args.notes,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("add-hive", "Add managed hive") \
+    .add("--location-id", required=True) \
+    .add("--hive-id", required=True) \
+    .add("--colony-strength", type=int, default=5) \
+    .add("--queen-status", default="present") \
+    .add("--hive-type", default="langstroth") \
+    .add("--frames", type=int, default=10, dest="frame_count") \
+    .add("--queen-year", type=int) \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_hive)
 
-        elif args.command == "create-habitat":
-            result = create_habitat(
-                db, args.location_id, args.name, args.habitat_type, args.area_m2,
-                plant_species=args.plant_species,
-                bloom_start_month=args.bloom_start_month,
-                bloom_end_month=args.bloom_end_month,
-                water_source=args.water_source,
-                nesting_sites=args.nesting_sites,
-                management_notes=args.management_notes,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("record-inspection", "Record hive inspection") \
+    .add("--hive-id", required=True) \
+    .add("--colony-strength", type=int) \
+    .add("--queen-status") \
+    .add("--queen-seen", type=bool) \
+    .add("--varroa-count", type=int) \
+    .add("--brood-pattern") \
+    .add("--honey-stores") \
+    .add("--disease-signs") \
+    .add("--temperament") \
+    .add("--population", type=int, dest="population_estimate") \
+    .add("--swarm-cells", action="store_true") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_inspection)
 
-        elif args.command == "record-pesticide":
-            app_date = date.fromisoformat(args.application_date)
-            result = record_pesticide_impact(
-                db, args.location_id, app_date, args.product_name,
-                args.active_ingredient, args.toxicity_class,
-                application_rate=args.application_rate,
-                rate_unit=args.rate_unit,
-                area_treated_m2=args.area_treated_m2,
-                bloom_stage_at_application=args.bloom_stage_at_application,
-                pollinator_distance_m=args.pollinator_distance_m,
-                notes=args.notes,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("summary", "Pollinator summary") \
+    .add("--location-id", required=True) \
+    .add("--days", type=int, default=30) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_pollinator_summary(db, a.location_id, a.days))
 
-        elif args.command == "add-hive":
-            result = add_hive(
-                db, args.location_id, args.hive_id,
-                colony_strength=args.colony_strength,
-                queen_status=args.queen_status,
-                hive_type=args.hive_type,
-                frame_count=args.frame_count,
-                queen_year=args.queen_year,
-                notes=args.notes,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("habitat-inventory", "Habitat inventory") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_habitat_inventory(db, a.location_id))
 
-        elif args.command == "record-inspection":
-            result = record_hive_inspection(
-                db, args.hive_id,
-                colony_strength=args.colony_strength,
-                queen_status=args.queen_status,
-                queen_seen=args.queen_seen,
-                varroa_count=args.varroa_count,
-                brood_pattern=args.brood_pattern,
-                honey_stores=args.honey_stores,
-                disease_signs=args.disease_signs,
-                temperament=args.temperament,
-                population_estimate=args.population_estimate,
-                swarm_cells=args.swarm_cells,
-                notes=args.notes,
-            )
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("pesticide-risk", "Pesticide risk") \
+    .add("--location-id", required=True) \
+    .add("--days", type=int, default=90) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_pesticide_risk(db, a.location_id, a.days))
 
-        elif args.command == "summary":
-            result = get_pollinator_summary(db, args.location_id, args.days)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("hive-status", "Hive status") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_hive_status(db, a.location_id))
 
-        elif args.command == "habitat-inventory":
-            result = get_habitat_inventory(db, args.location_id)
-            print(json.dumps(result, indent=2, default=str))
+cli.subcommand("dashboard", "Pollinator dashboard") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_pollinator_dashboard(db, a.location_id))
 
-        elif args.command == "pesticide-risk":
-            result = get_pesticide_risk(db, args.location_id, args.days)
-            print(json.dumps(result, indent=2, default=str))
 
-        elif args.command == "hive-status":
-            result = get_hive_status(db, args.location_id)
-            print(json.dumps(result, indent=2, default=str))
-
-        elif args.command == "dashboard":
-            result = get_pollinator_dashboard(db, args.location_id)
-            print(json.dumps(result, indent=2, default=str))
-
-    finally:
-        db.close()
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

@@ -13,12 +13,12 @@ Usage:
     python -m services.analytics.equipment --cost --location-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import datetime, timezone, date, timedelta
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.equipment")
@@ -383,90 +383,11 @@ def equipment_cost_analysis(conn, location_id: str, period_days: int = 30) -> di
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Equipment usage logging and OEE")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("equipment", "Equipment usage logging and OEE")
 
-    # Log usage
-    lg = sub.add_parser("log", help="Log equipment usage")
-    lg.add_argument("--location-id", required=True)
-    lg.add_argument("--asset-id", required=True)
-    lg.add_argument("--start", required=True, help="ISO datetime")
-    lg.add_argument("--end", help="ISO datetime")
-    lg.add_argument("--operation", help="Operation type")
-    lg.add_argument("--output", type=float, help="Output produced")
-    lg.add_argument("--output-unit", help="Output unit")
-    lg.add_argument("--fuel", type=float, help="Fuel consumed (liters)")
-    lg.add_argument("--energy", type=float, help="Energy consumed (kWh)")
-    lg.add_argument("--operator", help="Operator name")
-    lg.add_argument("--json", action="store_true")
 
-    # Status
-    st = sub.add_parser("status", help="Equipment status")
-    st.add_argument("--location-id", required=True)
-    st.add_argument("--json", action="store_true")
-
-    # OEE
-    oee = sub.add_parser("oee", help="Compute OEE")
-    oee.add_argument("--asset-id", required=True)
-    oee.add_argument("--period", type=int, default=30)
-    oee.add_argument("--json", action="store_true")
-
-    # Maintenance
-    mt = sub.add_parser("maintenance", help="Maintenance schedule")
-    mt.add_argument("--location-id", required=True)
-    mt.add_argument("--json", action="store_true")
-
-    # Cost
-    cs = sub.add_parser("cost", help="Cost analysis")
-    cs.add_argument("--location-id", required=True)
-    cs.add_argument("--period", type=int, default=30)
-    cs.add_argument("--json", action="store_true")
-
-    args = parser.parse_args()
-
-    from .base import get_db
-
-    if args.command in ("log", "status", "oee", "maintenance", "cost"):
-        db = get_db()
-    else:
-        parser.print_help()
-        return
-
-    try:
-        if args.command == "log":
-            start = datetime.fromisoformat(args.start)
-            end = datetime.fromisoformat(args.end) if args.end else None
-            result = log_equipment_usage(
-                db, args.location_id, args.asset_id, start, end,
-                args.operation, args.output, args.output_unit,
-                args.fuel, args.energy, args.operator,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_log(result)
-            print(output)
-
-        elif args.command == "status":
-            results = get_equipment_status(db, args.location_id)
-            output = json.dumps(results, indent=2, default=str) if args.json else _format_status(results)
-            print(output)
-
-        elif args.command == "oee":
-            result = compute_oee(db, args.asset_id, args.period)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_oee(result)
-            print(output)
-
-        elif args.command == "maintenance":
-            results = get_maintenance_schedule(db, args.location_id)
-            output = json.dumps(results, indent=2, default=str) if args.json else _format_maintenance(results)
-            print(output)
-
-        elif args.command == "cost":
-            result = equipment_cost_analysis(db, args.location_id, args.period)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_cost(result)
-            print(output)
-
-    finally:
-        db.close()
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
 
 def _format_log(r: dict) -> str:
@@ -518,6 +439,62 @@ def _format_cost(r: dict) -> str:
         f"  $/hour:    ${r['cost_per_hour']:.2f}",
     ]
     return "\n".join(lines)
+
+
+def _cmd_log(db, a):
+    start = datetime.fromisoformat(a.start)
+    end = datetime.fromisoformat(a.end) if a.end else None
+    return log_equipment_usage(
+        db, a.location_id, a.asset_id, start, end,
+        a.operation, a.output, a.output_unit,
+        a.fuel, a.energy, a.operator,
+    )
+
+
+cli.subcommand("log", "Log equipment usage") \
+    .add("--location-id", required=True) \
+    .add("--asset-id", required=True) \
+    .add("--start", required=True, help="ISO datetime") \
+    .add("--end", help="ISO datetime") \
+    .add("--operation", help="Operation type") \
+    .add("--output", type=float, help="Output produced") \
+    .add("--output-unit", help="Output unit") \
+    .add("--fuel", type=float, help="Fuel consumed (liters)") \
+    .add("--energy", type=float, help="Energy consumed (kWh)") \
+    .add("--operator", help="Operator name") \
+    .add("--json", action="store_true") \
+    .run(_cmd_log) \
+    .render_with(lambda r, a: _render(r, a, _format_log))
+
+cli.subcommand("status", "Equipment status") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_equipment_status(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_status))
+
+cli.subcommand("oee", "Compute OEE") \
+    .add("--asset-id", required=True) \
+    .add("--period", type=int, default=30) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: compute_oee(db, a.asset_id, a.period)) \
+    .render_with(lambda r, a: _render(r, a, _format_oee))
+
+cli.subcommand("maintenance", "Maintenance schedule") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_maintenance_schedule(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_maintenance))
+
+cli.subcommand("cost", "Cost analysis") \
+    .add("--location-id", required=True) \
+    .add("--period", type=int, default=30) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: equipment_cost_analysis(db, a.location_id, a.period)) \
+    .render_with(lambda r, a: _render(r, a, _format_cost))
+
+
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":

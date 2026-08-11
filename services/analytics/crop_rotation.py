@@ -19,12 +19,12 @@ Usage:
     python -m services.analytics.crop_rotation dashboard --location-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import date, timezone
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.crop_rotation")
@@ -795,164 +795,126 @@ def get_rotation_dashboard(conn, location_id: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Crop rotation planning")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("crop_rotation", "Crop rotation planning")
 
-    # create-plan
-    cp = sub.add_parser("create-plan", help="Create rotation plan")
-    cp.add_argument("--location-id", required=True)
-    cp.add_argument("--name", required=True)
-    cp.add_argument("--plot-id")
-    cp.add_argument("--zone-id")
-    cp.add_argument("--duration", type=int, default=4, help="Duration in seasons")
-    cp.add_argument("--start-season", help="Starting season label")
-    cp.add_argument("--notes")
-    cp.add_argument("--json", action="store_true")
 
-    # add-slot
-    as_ = sub.add_parser("add-slot", help="Add season slot")
-    as_.add_argument("--plan-id", required=True)
-    as_.add_argument("--season", type=int, required=True, help="Season number")
-    as_.add_argument("--crop", required=True)
-    as_.add_argument("--purpose", choices=["cash_crop", "cover_crop", "nitrogen_fixer", "green_manure", "break_crop"])
-    as_.add_argument("--area", type=float, help="Expected area in hectares")
-    as_.add_argument("--season-name", help="Season name label")
-    as_.add_argument("--notes")
-    as_.add_argument("--json", action="store_true")
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
 
-    # get-plan
-    gp = sub.add_parser("get-plan", help="Get plan with crop sequence")
-    gp.add_argument("--plan-id", required=True)
-    gp.add_argument("--json", action="store_true")
 
-    # list-plans
-    lp = sub.add_parser("list-plans", help="List rotation plans")
-    lp.add_argument("--location-id", required=True)
-    lp.add_argument("--json", action="store_true")
+def _cmd_record_impact(db, a):
+    rd = date.fromisoformat(a.date) if a.date else None
+    return record_impact(
+        db, plan_id=a.plan_id, slot_id=a.slot_id, location_id=a.location_id,
+        impact_type=a.impact_type, impact_direction=a.direction,
+        severity_pct=a.severity, measurement_value=a.value,
+        measurement_unit=a.unit, record_date=rd, notes=a.notes,
+    )
 
-    # record-impact
-    ri = sub.add_parser("record-impact", help="Record rotation impact")
-    ri.add_argument("--plan-id")
-    ri.add_argument("--slot-id")
-    ri.add_argument("--location-id")
-    ri.add_argument("--type", dest="impact_type", default="soil_health",
-                    choices=["disease_pressure", "pest_pressure", "soil_health", "yield_effect", "weed_pressure"])
-    ri.add_argument("--direction", default="positive", choices=["positive", "neutral", "negative"])
-    ri.add_argument("--severity", type=float, help="Severity percentage")
-    ri.add_argument("--value", type=float, help="Measurement value")
-    ri.add_argument("--unit", help="Measurement unit")
-    ri.add_argument("--date", help="Record date YYYY-MM-DD")
-    ri.add_argument("--notes")
-    ri.add_argument("--json", action="store_true")
 
-    # impact-summary
-    is_ = sub.add_parser("impact-summary", help="Impact summary")
-    is_.add_argument("--plan-id", required=True)
-    is_.add_argument("--json", action="store_true")
+def _cmd_create_plan(db, a):
+    return create_plan(
+        db, a.location_id, a.name,
+        plot_id=a.plot_id, zone_id=a.zone_id,
+        duration_seasons=a.duration, start_season=a.start_season,
+        notes=a.notes,
+    )
 
-    # family-usage
-    fu = sub.add_parser("family-usage", help="Crop family usage")
-    fu.add_argument("--location-id", required=True)
-    fu.add_argument("--json", action="store_true")
 
-    # recommend
-    rc = sub.add_parser("recommend", help="Recommend rotation")
-    rc.add_argument("--location-id", required=True)
-    rc.add_argument("--plot-id")
-    rc.add_argument("--json", action="store_true")
+def _cmd_add_slot(db, a):
+    return add_slot(
+        db, a.plan_id, a.season, a.crop,
+        purpose=a.purpose, expected_area_ha=a.area,
+        season_name=a.season_name, notes=a.notes,
+    )
 
-    # validate
-    vl = sub.add_parser("validate", help="Validate plan")
-    vl.add_argument("--plan-id", required=True)
-    vl.add_argument("--json", action="store_true")
 
-    # dashboard
-    db_ = sub.add_parser("dashboard", help="Rotation dashboard")
-    db_.add_argument("--location-id", required=True)
-    db_.add_argument("--json", action="store_true")
+cli.subcommand("create-plan", "Create rotation plan") \
+    .add("--location-id", required=True) \
+    .add("--name", required=True) \
+    .add("--plot-id") \
+    .add("--zone-id") \
+    .add("--duration", type=int, default=4, help="Duration in seasons") \
+    .add("--start-season", help="Starting season label") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_plan) \
+    .render_with(lambda r, a: _render(r, a, _format_plan_created))
 
-    args = parser.parse_args()
+cli.subcommand("add-slot", "Add season slot") \
+    .add("--plan-id", required=True) \
+    .add("--season", type=int, required=True, help="Season number") \
+    .add("--crop", required=True) \
+    .add("--purpose", choices=["cash_crop", "cover_crop", "nitrogen_fixer", "green_manure", "break_crop"]) \
+    .add("--area", type=float, help="Expected area in hectares") \
+    .add("--season-name", help="Season name label") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_add_slot) \
+    .render_with(lambda r, a: _render(r, a, _format_slot_added))
 
-    from .base import get_db
+cli.subcommand("get-plan", "Get plan with crop sequence") \
+    .add("--plan-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_plan(db, a.plan_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_plan))
 
-    if args.command not in ("create-plan", "add-slot", "get-plan", "list-plans",
-                            "record-impact", "impact-summary", "family-usage",
-                            "recommend", "validate", "dashboard"):
-        parser.print_help()
-        return
+cli.subcommand("list-plans", "List rotation plans") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: list_plans(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_plan_list))
 
-    db = get_db()
+cli.subcommand("record-impact", "Record rotation impact") \
+    .add("--plan-id") \
+    .add("--slot-id") \
+    .add("--location-id") \
+    .add("--type", dest="impact_type", default="soil_health",
+         choices=["disease_pressure", "pest_pressure", "soil_health", "yield_effect", "weed_pressure"]) \
+    .add("--direction", default="positive", choices=["positive", "neutral", "negative"]) \
+    .add("--severity", type=float, help="Severity percentage") \
+    .add("--value", type=float, help="Measurement value") \
+    .add("--unit", help="Measurement unit") \
+    .add("--date", help="Record date YYYY-MM-DD") \
+    .add("--notes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_impact) \
+    .render_with(lambda r, a: _render(r, a, _format_impact_recorded))
 
-    try:
-        if args.command == "create-plan":
-            result = create_plan(
-                db, args.location_id, args.name,
-                plot_id=args.plot_id, zone_id=args.zone_id,
-                duration_seasons=args.duration, start_season=args.start_season,
-                notes=args.notes,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_plan_created(result)
-            print(output)
+cli.subcommand("impact-summary", "Impact summary") \
+    .add("--plan-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_impact_summary(db, a.plan_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_impact_summary))
 
-        elif args.command == "add-slot":
-            result = add_slot(
-                db, args.plan_id, args.season, args.crop,
-                purpose=args.purpose, expected_area_ha=args.area,
-                season_name=args.season_name, notes=args.notes,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_slot_added(result)
-            print(output)
+cli.subcommand("family-usage", "Crop family usage") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_crop_family_usage(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_family_usage))
 
-        elif args.command == "get-plan":
-            result = get_plan(db, args.plan_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_plan(result)
-            print(output)
+cli.subcommand("recommend", "Recommend rotation") \
+    .add("--location-id", required=True) \
+    .add("--plot-id") \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: recommend_rotation(db, a.location_id, a.plot_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_recommendation))
 
-        elif args.command == "list-plans":
-            result = list_plans(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_plan_list(result)
-            print(output)
+cli.subcommand("validate", "Validate plan") \
+    .add("--plan-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: validate_plan(db, a.plan_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_validation))
 
-        elif args.command == "record-impact":
-            rd = date.fromisoformat(args.date) if args.date else None
-            result = record_impact(
-                db, plan_id=args.plan_id, slot_id=args.slot_id,
-                location_id=args.location_id,
-                impact_type=args.impact_type, impact_direction=args.direction,
-                severity_pct=args.severity, measurement_value=args.value,
-                measurement_unit=args.unit, record_date=rd, notes=args.notes,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_impact_recorded(result)
-            print(output)
+cli.subcommand("dashboard", "Rotation dashboard") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_rotation_dashboard(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_dashboard))
 
-        elif args.command == "impact-summary":
-            result = get_impact_summary(db, args.plan_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_impact_summary(result)
-            print(output)
 
-        elif args.command == "family-usage":
-            result = get_crop_family_usage(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_family_usage(result)
-            print(output)
-
-        elif args.command == "recommend":
-            result = recommend_rotation(db, args.location_id, args.plot_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_recommendation(result)
-            print(output)
-
-        elif args.command == "validate":
-            result = validate_plan(db, args.plan_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_validation(result)
-            print(output)
-
-        elif args.command == "dashboard":
-            result = get_rotation_dashboard(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_dashboard(result)
-            print(output)
-
-    finally:
-        db.close()
+def main(argv=None):
+    cli.run(argv)
 
 
 def _format_plan_created(r: dict) -> str:

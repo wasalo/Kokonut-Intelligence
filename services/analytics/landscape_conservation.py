@@ -18,12 +18,12 @@ Usage:
     python -m services.analytics.landscape_conservation dashboard --location-id UUID
 """
 
-import argparse
 import json
 import uuid
 from datetime import date, timezone
 from typing import Optional
 
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.landscape_conservation")
@@ -530,200 +530,168 @@ def get_landscape_dashboard(conn, location_id: str) -> dict:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(description="Landscape conservation & connectivity")
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("landscape_conservation", "Landscape conservation & connectivity")
 
-    # create-habitat
-    ch = sub.add_parser("create-habitat", help="Create habitat zone")
-    ch.add_argument("--location-id", required=True)
-    ch.add_argument("--name", required=True)
-    ch.add_argument("--type", required=True, choices=[
+
+def _render(result, args, human):
+    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
+
+
+def _cmd_create_habitat(db, a):
+    return create_habitat_zone(
+        db, a.location_id, a.name, a.type, a.area,
+        biodiversity_value=a.biodiversity,
+        perimeter_m=a.perimeter, description=a.description,
+    )
+
+
+def _cmd_create_corridor(db, a):
+    return create_corridor(
+        db, a.location_id, a.name,
+        source_habitat_id=a.source,
+        target_habitat_id=a.target,
+        width_m=a.width, length_m=a.length,
+        vegetation_type=a.vegetation,
+    )
+
+
+def _cmd_record_hedgerow(db, a):
+    species = json.loads(a.species) if a.species else []
+    purpose = json.loads(a.purpose) if a.purpose else []
+    pd = date.fromisoformat(a.planting_date) if a.planting_date else None
+    return record_hedgerow(
+        db, a.location_id, hedgerow_name=a.name,
+        species_mix=species, length_m=a.length,
+        height_m=a.height, age_years=a.age,
+        planting_date=pd, purpose=purpose,
+    )
+
+
+def _cmd_record_buffer_check(db, a):
+    cd = date.fromisoformat(a.check_date) if a.check_date else None
+    return record_buffer_check(
+        db, a.location_id,
+        habitat_zone_id=a.habitat_zone,
+        buffer_width_m=a.buffer_width,
+        minimum_required_m=a.minimum_required,
+        vegetation_coverage_pct=a.vegetation_pct,
+        erosion_observed=a.erosion,
+        check_date=cd,
+    )
+
+
+def _cmd_record_biodiversity(db, a):
+    ad = date.fromisoformat(a.date) if a.date else None
+    return record_biodiversity_score(
+        db, a.location_id,
+        species_richness=a.richness,
+        shannon_index=a.shannon,
+        habitat_diversity_index=a.habitat_diversity,
+        connectivity_score=a.connectivity,
+        overall_score=a.overall,
+        assessor=a.assessor,
+        assessment_date=ad,
+    )
+
+
+cli.subcommand("create-habitat", "Create habitat zone") \
+    .add("--location-id", required=True) \
+    .add("--name", required=True) \
+    .add("--type", required=True, choices=[
         "wetland", "riparian", "forest_patch", "grassland",
         "hedgerow", "orchard", "agroforestry", "other",
-    ])
-    ch.add_argument("--area", type=float, required=True, help="Area in hectares")
-    ch.add_argument("--biodiversity", default="medium", choices=["low", "medium", "high", "critical"])
-    ch.add_argument("--perimeter", type=float, help="Perimeter in metres")
-    ch.add_argument("--description")
-    ch.add_argument("--json", action="store_true")
+    ]) \
+    .add("--area", type=float, required=True, help="Area in hectares") \
+    .add("--biodiversity", default="medium", choices=["low", "medium", "high", "critical"]) \
+    .add("--perimeter", type=float, help="Perimeter in metres") \
+    .add("--description") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_habitat) \
+    .render_with(lambda r, a: _render(r, a, _format_habitat))
 
-    # create-corridor
-    cc = sub.add_parser("create-corridor", help="Create wildlife corridor")
-    cc.add_argument("--location-id", required=True)
-    cc.add_argument("--name", required=True)
-    cc.add_argument("--source", help="Source habitat zone ID")
-    cc.add_argument("--target", help="Target habitat zone ID")
-    cc.add_argument("--width", type=float, help="Width in metres")
-    cc.add_argument("--length", type=float, help="Length in metres")
-    cc.add_argument("--vegetation", help="Vegetation type")
-    cc.add_argument("--json", action="store_true")
+cli.subcommand("create-corridor", "Create wildlife corridor") \
+    .add("--location-id", required=True) \
+    .add("--name", required=True) \
+    .add("--source", help="Source habitat zone ID") \
+    .add("--target", help="Target habitat zone ID") \
+    .add("--width", type=float, help="Width in metres") \
+    .add("--length", type=float, help="Length in metres") \
+    .add("--vegetation", help="Vegetation type") \
+    .add("--json", action="store_true") \
+    .run(_cmd_create_corridor) \
+    .render_with(lambda r, a: _render(r, a, _format_corridor))
 
-    # record-hedgerow
-    rh = sub.add_parser("record-hedgerow", help="Record hedgerow")
-    rh.add_argument("--location-id", required=True)
-    rh.add_argument("--name")
-    rh.add_argument("--species", help="JSON array of species")
-    rh.add_argument("--length", type=float, help="Length in metres")
-    rh.add_argument("--height", type=float, help="Height in metres")
-    rh.add_argument("--age", type=int, help="Age in years")
-    rh.add_argument("--planting-date", help="Planting date YYYY-MM-DD")
-    rh.add_argument("--purpose", help="JSON array of purposes")
-    rh.add_argument("--json", action="store_true")
+cli.subcommand("record-hedgerow", "Record hedgerow") \
+    .add("--location-id", required=True) \
+    .add("--name") \
+    .add("--species", help="JSON array of species") \
+    .add("--length", type=float, help="Length in metres") \
+    .add("--height", type=float, help="Height in metres") \
+    .add("--age", type=int, help="Age in years") \
+    .add("--planting-date", help="Planting date YYYY-MM-DD") \
+    .add("--purpose", help="JSON array of purposes") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_hedgerow) \
+    .render_with(lambda r, a: _render(r, a, _format_hedgerow))
 
-    # record-buffer-check
-    rb = sub.add_parser("record-buffer-check", help="Record buffer zone check")
-    rb.add_argument("--location-id", required=True)
-    rb.add_argument("--habitat-zone", help="Habitat zone ID")
-    rb.add_argument("--buffer-width", type=float, help="Buffer width in metres")
-    rb.add_argument("--minimum-required", type=float, help="Minimum required width")
-    rb.add_argument("--vegetation-pct", type=float, help="Vegetation coverage %")
-    rb.add_argument("--erosion", action="store_true", help="Erosion observed")
-    rb.add_argument("--check-date", help="Check date YYYY-MM-DD")
-    rb.add_argument("--json", action="store_true")
+cli.subcommand("record-buffer-check", "Record buffer zone check") \
+    .add("--location-id", required=True) \
+    .add("--habitat-zone", help="Habitat zone ID") \
+    .add("--buffer-width", type=float, help="Buffer width in metres") \
+    .add("--minimum-required", type=float, help="Minimum required width") \
+    .add("--vegetation-pct", type=float, help="Vegetation coverage %") \
+    .add("--erosion", action="store_true", help="Erosion observed") \
+    .add("--check-date", help="Check date YYYY-MM-DD") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_buffer_check) \
+    .render_with(lambda r, a: _render(r, a, _format_buffer))
 
-    # record-biodiversity
-    rbd = sub.add_parser("record-biodiversity", help="Record biodiversity assessment")
-    rbd.add_argument("--location-id", required=True)
-    rbd.add_argument("--richness", type=int, help="Species richness")
-    rbd.add_argument("--shannon", type=float, help="Shannon index")
-    rbd.add_argument("--habitat-diversity", type=float, help="Habitat diversity index")
-    rbd.add_argument("--connectivity", type=float, help="Connectivity score")
-    rbd.add_argument("--overall", type=float, help="Overall score")
-    rbd.add_argument("--assessor")
-    rbd.add_argument("--date", help="Assessment date YYYY-MM-DD")
-    rbd.add_argument("--json", action="store_true")
+cli.subcommand("record-biodiversity", "Record biodiversity assessment") \
+    .add("--location-id", required=True) \
+    .add("--richness", type=int, help="Species richness") \
+    .add("--shannon", type=float, help="Shannon index") \
+    .add("--habitat-diversity", type=float, help="Habitat diversity index") \
+    .add("--connectivity", type=float, help="Connectivity score") \
+    .add("--overall", type=float, help="Overall score") \
+    .add("--assessor") \
+    .add("--date", help="Assessment date YYYY-MM-DD") \
+    .add("--json", action="store_true") \
+    .run(_cmd_record_biodiversity) \
+    .render_with(lambda r, a: _render(r, a, _format_biodiversity))
 
-    # habitat-summary
-    hs = sub.add_parser("habitat-summary", help="Habitat zone summary")
-    hs.add_argument("--location-id", required=True)
-    hs.add_argument("--json", action="store_true")
+cli.subcommand("habitat-summary", "Habitat zone summary") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_habitat_summary(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_habitat_summary))
 
-    # corridor-status
-    cs = sub.add_parser("corridor-status", help="Corridor status")
-    cs.add_argument("--location-id", required=True)
-    cs.add_argument("--json", action="store_true")
+cli.subcommand("corridor-status", "Corridor status") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_corridor_status(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_corridor_status))
 
-    # buffer-compliance
-    bc = sub.add_parser("buffer-compliance", help="Buffer zone compliance")
-    bc.add_argument("--location-id", required=True)
-    bc.add_argument("--json", action="store_true")
+cli.subcommand("buffer-compliance", "Buffer zone compliance") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_buffer_compliance(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_buffer_compliance))
 
-    # biodiversity-trends
-    bt = sub.add_parser("biodiversity-trends", help="Biodiversity trends")
-    bt.add_argument("--location-id", required=True)
-    bt.add_argument("--json", action="store_true")
+cli.subcommand("biodiversity-trends", "Biodiversity trends") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_biodiversity_trends(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_biodiversity_trends))
 
-    # dashboard
-    db_cmd = sub.add_parser("dashboard", help="Landscape dashboard")
-    db_cmd.add_argument("--location-id", required=True)
-    db_cmd.add_argument("--json", action="store_true")
+cli.subcommand("dashboard", "Landscape dashboard") \
+    .add("--location-id", required=True) \
+    .add("--json", action="store_true") \
+    .run(lambda db, a: get_landscape_dashboard(db, a.location_id)) \
+    .render_with(lambda r, a: _render(r, a, _format_dashboard))
 
-    args = parser.parse_args()
 
-    from .base import get_db
-
-    if args.command not in (
-        "create-habitat", "create-corridor", "record-hedgerow",
-        "record-buffer-check", "record-biodiversity",
-        "habitat-summary", "corridor-status", "buffer-compliance",
-        "biodiversity-trends", "dashboard",
-    ):
-        parser.print_help()
-        return
-
-    db = get_db()
-
-    try:
-        if args.command == "create-habitat":
-            result = create_habitat_zone(
-                db, args.location_id, args.name, args.type, args.area,
-                biodiversity_value=args.biodiversity,
-                perimeter_m=args.perimeter, description=args.description,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_habitat(result)
-            print(output)
-
-        elif args.command == "create-corridor":
-            result = create_corridor(
-                db, args.location_id, args.name,
-                source_habitat_id=args.source,
-                target_habitat_id=args.target,
-                width_m=args.width, length_m=args.length,
-                vegetation_type=args.vegetation,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_corridor(result)
-            print(output)
-
-        elif args.command == "record-hedgerow":
-            species = json.loads(args.species) if args.species else []
-            purpose = json.loads(args.purpose) if args.purpose else []
-            pd = date.fromisoformat(args.planting_date) if args.planting_date else None
-            result = record_hedgerow(
-                db, args.location_id, hedgerow_name=args.name,
-                species_mix=species, length_m=args.length,
-                height_m=args.height, age_years=args.age,
-                planting_date=pd, purpose=purpose,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_hedgerow(result)
-            print(output)
-
-        elif args.command == "record-buffer-check":
-            cd = date.fromisoformat(args.check_date) if args.check_date else None
-            result = record_buffer_check(
-                db, args.location_id,
-                habitat_zone_id=args.habitat_zone,
-                buffer_width_m=args.buffer_width,
-                minimum_required_m=args.minimum_required,
-                vegetation_coverage_pct=args.vegetation_pct,
-                erosion_observed=args.erosion,
-                check_date=cd,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_buffer(result)
-            print(output)
-
-        elif args.command == "record-biodiversity":
-            ad = date.fromisoformat(args.date) if args.date else None
-            result = record_biodiversity_score(
-                db, args.location_id,
-                species_richness=args.richness,
-                shannon_index=args.shannon,
-                habitat_diversity_index=args.habitat_diversity,
-                connectivity_score=args.connectivity,
-                overall_score=args.overall,
-                assessor=args.assessor,
-                assessment_date=ad,
-            )
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_biodiversity(result)
-            print(output)
-
-        elif args.command == "habitat-summary":
-            result = get_habitat_summary(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_habitat_summary(result)
-            print(output)
-
-        elif args.command == "corridor-status":
-            result = get_corridor_status(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_corridor_status(result)
-            print(output)
-
-        elif args.command == "buffer-compliance":
-            result = get_buffer_compliance(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_buffer_compliance(result)
-            print(output)
-
-        elif args.command == "biodiversity-trends":
-            result = get_biodiversity_trends(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_biodiversity_trends(result)
-            print(output)
-
-        elif args.command == "dashboard":
-            result = get_landscape_dashboard(db, args.location_id)
-            output = json.dumps(result, indent=2, default=str) if args.json else _format_dashboard(result)
-            print(output)
-
-    finally:
-        db.close()
+def main(argv=None):
+    cli.run(argv)
 
 
 def _format_habitat(r: dict) -> str:

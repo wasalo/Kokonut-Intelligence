@@ -6,19 +6,20 @@ Computes accumulated GDD from weather data, detects current crop growth stages,
 projects future stage dates, and identifies schedule anomalies.
 
 Usage:
-    python -m services.analytics.crop_phenology --accumulate --crop-cycle-id <uuid>
-    python -m services.analytics.crop_phenology --detect-stage --crop-cycle-id <uuid>
-    python -m services.analytics.crop_phenology --project --crop-cycle-id <uuid>
-    python -m services.analytics.crop_phenology --anomalies --location-id <uuid>
-    python -m services.analytics.crop_phenology --list-stages --crop maize
-    python -m services.analytics.crop_phenology --current --location-id <uuid>
+    python -m services.analytics.crop_phenology accumulate --crop-cycle-id <uuid>
+    python -m services.analytics.crop_phenology detect-stage --crop-cycle-id <uuid>
+    python -m services.analytics.crop_phenology project --crop-cycle-id <uuid>
+    python -m services.analytics.crop_phenology anomalies --location-id <uuid>
+    python -m services.analytics.crop_phenology list-stages --crop maize
+    python -m services.analytics.crop_phenology current --location-id <uuid>
 """
 
-import argparse
 import json
 from datetime import datetime, timezone, date, timedelta
 from typing import Optional
 
+from services.common.cli import print_json
+from services.common.commands import CommandLine
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.crop_phenology")
@@ -550,126 +551,118 @@ def get_current_stages_all(conn, location_id: str) -> list[dict]:
 # CLI
 # ============================================================
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Crop phenology — GDD tracking and growth stage detection"
-    )
-    sub = parser.add_subparsers(dest="command")
+cli = CommandLine("crop_phenology", "Crop phenology — GDD tracking and growth stage detection")
 
-    # Accumulate GDD
-    acc_parser = sub.add_parser("accumulate", help="Accumulate GDD for a crop cycle")
-    acc_parser.add_argument("--crop-cycle-id", required=True, help="Crop cycle UUID")
-    acc_parser.add_argument("--json", action="store_true", help="JSON output")
 
-    # Detect stage
-    detect_parser = sub.add_parser("detect-stage", help="Detect and update current growth stage")
-    detect_parser.add_argument("--crop-cycle-id", required=True, help="Crop cycle UUID")
-    detect_parser.add_argument("--json", action="store_true", help="JSON output")
+def _render_accumulate(result, args):
+    if args.json:
+        print_json(result)
+        return
+    print(f"Crop: {result.get('crop_name', '?')}")
+    print(f"  Planting date: {result.get('planting_date', '?')}")
+    print(f"  Days elapsed: {result.get('days_elapsed', 0)}")
+    print(f"  Accumulated GDD: {result.get('accumulated_gdd', 0)}")
+    print(f"  Total GDD required: {result.get('total_gdd_required', '?')}")
+    print(f"  % Complete: {result.get('pct_gdd_complete', 0)}%")
+    print(f"  GDD rate: {result.get('gdd_rate', 0)}/day")
 
-    # Project stages
-    proj_parser = sub.add_parser("project", help="Project future stage dates")
-    proj_parser.add_argument("--crop-cycle-id", required=True, help="Crop cycle UUID")
-    proj_parser.add_argument("--json", action="store_true", help="JSON output")
 
-    # Anomalies
-    anom_parser = sub.add_parser("anomalies", help="Detect schedule anomalies")
-    anom_parser.add_argument("--location-id", required=True, help="Location UUID")
-    anom_parser.add_argument("--json", action="store_true", help="JSON output")
+def _render_detect_stage(result, args):
+    if args.json:
+        print_json(result)
+        return
+    print(f"Current stage: {result.get('current_stage', '?')}")
+    print(f"  Accumulated GDD: {result.get('accumulated_gdd', 0)}")
+    print(f"  Stages created: {result.get('stages_created', 0)}")
+    print(f"  Stages updated: {result.get('stages_updated', 0)}")
 
-    # List stages
-    list_parser = sub.add_parser("list-stages", help="List growth stages for a crop")
-    list_parser.add_argument("--crop", required=True, help="Crop name")
-    list_parser.add_argument("--json", action="store_true", help="JSON output")
 
-    # Current stages
-    current_parser = sub.add_parser("current", help="Current stage for all active crops")
-    current_parser.add_argument("--location-id", required=True, help="Location UUID")
-    current_parser.add_argument("--json", action="store_true", help="JSON output")
+def _render_project(result, args):
+    if args.json:
+        print_json(result)
+        return
+    print(f"Crop: {result.get('crop_name', '?')}")
+    print(f"  Accumulated GDD: {result.get('accumulated_gdd', 0)}")
+    print(f"  GDD/day: {result.get('gdd_per_day', 0)}")
+    for proj in result.get("projections", []):
+        status = "✓" if proj["status"] == "reached" else "→"
+        date_str = proj.get("estimated_date", "done")
+        print(f"  {status} {proj['stage']}: {proj['expected_gdd']} GDD"
+              f" — {date_str} ({proj.get('days_remaining', 0)} days)")
 
-    args = parser.parse_args()
 
-    from .base import get_db
+def _render_anomalies(result, args):
+    if args.json:
+        print_json(result)
+        return
+    if not result:
+        print("No schedule anomalies detected.")
+    for a in result:
+        icon = "⚠" if a["severity"] == "warning" else "🔴"
+        print(f"  {icon} {a['message']}")
+        print(f"    Expected: {a['expected_progress_pct']}%, "
+              f"Actual: {a['actual_progress_pct']}%")
 
-    if args.command in ("accumulate", "detect-stage", "project", "anomalies", "current"):
-        db = get_db()
 
-    try:
-        if args.command == "accumulate":
-            result = accumulate_gdd(db, args.crop_cycle_id)
-            if args.json:
-                print(json.dumps(result, indent=2, default=str))
-            else:
-                print(f"Crop: {result.get('crop_name', '?')}")
-                print(f"  Planting date: {result.get('planting_date', '?')}")
-                print(f"  Days elapsed: {result.get('days_elapsed', 0)}")
-                print(f"  Accumulated GDD: {result.get('accumulated_gdd', 0)}")
-                print(f"  Total GDD required: {result.get('total_gdd_required', '?')}")
-                print(f"  % Complete: {result.get('pct_gdd_complete', 0)}%")
-                print(f"  GDD rate: {result.get('gdd_rate', 0)}/day")
+def _render_list_stages(result, args):
+    if args.json:
+        print_json(result)
+        return
+    print(f"Growth stages for {args.crop}:")
+    for s in result:
+        print(f"  {s['order']}. {s['stage']}: {s['gdd_threshold']} GDD")
 
-        elif args.command == "detect-stage":
-            result = detect_and_update_stages(db, args.crop_cycle_id)
-            if args.json:
-                print(json.dumps(result, indent=2, default=str))
-            else:
-                print(f"Current stage: {result.get('current_stage', '?')}")
-                print(f"  Accumulated GDD: {result.get('accumulated_gdd', 0)}")
-                print(f"  Stages created: {result.get('stages_created', 0)}")
-                print(f"  Stages updated: {result.get('stages_updated', 0)}")
 
-        elif args.command == "project":
-            result = estimate_stage_dates(db, args.crop_cycle_id)
-            if args.json:
-                print(json.dumps(result, indent=2, default=str))
-            else:
-                print(f"Crop: {result.get('crop_name', '?')}")
-                print(f"  Accumulated GDD: {result.get('accumulated_gdd', 0)}")
-                print(f"  GDD/day: {result.get('gdd_per_day', 0)}")
-                for proj in result.get("projections", []):
-                    status = "✓" if proj["status"] == "reached" else "→"
-                    date_str = proj.get("estimated_date", "done")
-                    print(f"  {status} {proj['stage']}: {proj['expected_gdd']} GDD"
-                          f" — {date_str} ({proj.get('days_remaining', 0)} days)")
+def _render_current(result, args):
+    if args.json:
+        print_json(result)
+        return
+    if not result:
+        print("No active crop cycles found.")
+    for r in result:
+        print(f"{r['crop_name']}: {r['stage_name']}"
+              f" ({r['accumulated_gdd']} GDD, {r['pct_gdd_complete']}%)")
 
-        elif args.command == "anomalies":
-            anomalies = detect_schedule_anomalies(db, args.location_id)
-            if args.json:
-                print(json.dumps(anomalies, indent=2, default=str))
-            else:
-                if not anomalies:
-                    print("No schedule anomalies detected.")
-                for a in anomalies:
-                    icon = "⚠" if a["severity"] == "warning" else "🔴"
-                    print(f"  {icon} {a['message']}")
-                    print(f"    Expected: {a['expected_progress_pct']}%, "
-                          f"Actual: {a['actual_progress_pct']}%")
 
-        elif args.command == "list-stages":
-            stages = list_stages(db, args.crop)
-            if args.json:
-                print(json.dumps(stages, indent=2))
-            else:
-                print(f"Growth stages for {args.crop}:")
-                for s in stages:
-                    print(f"  {s['order']}. {s['stage']}: {s['gdd_threshold']} GDD")
+cli.subcommand("accumulate", "Accumulate GDD for a crop cycle") \
+    .add("--crop-cycle-id", required=True, help="Crop cycle UUID") \
+    .add("--json", action="store_true", help="JSON output") \
+    .run(lambda db, a: accumulate_gdd(db, a.crop_cycle_id)) \
+    .render_with(_render_accumulate)
 
-        elif args.command == "current":
-            results = get_current_stages_all(db, args.location_id)
-            if args.json:
-                print(json.dumps(results, indent=2, default=str))
-            else:
-                if not results:
-                    print("No active crop cycles found.")
-                for r in results:
-                    print(f"{r['crop_name']}: {r['stage_name']}"
-                          f" ({r['accumulated_gdd']} GDD, {r['pct_gdd_complete']}%)")
+cli.subcommand("detect-stage", "Detect and update current growth stage") \
+    .add("--crop-cycle-id", required=True, help="Crop cycle UUID") \
+    .add("--json", action="store_true", help="JSON output") \
+    .run(lambda db, a: detect_and_update_stages(db, a.crop_cycle_id)) \
+    .render_with(_render_detect_stage)
 
-        else:
-            parser.print_help()
+cli.subcommand("project", "Project future stage dates") \
+    .add("--crop-cycle-id", required=True, help="Crop cycle UUID") \
+    .add("--json", action="store_true", help="JSON output") \
+    .run(lambda db, a: estimate_stage_dates(db, a.crop_cycle_id)) \
+    .render_with(_render_project)
 
-    finally:
-        if args.command in ("accumulate", "detect-stage", "project", "anomalies", "current"):
-            db.close()
+cli.subcommand("anomalies", "Detect schedule anomalies") \
+    .add("--location-id", required=True, help="Location UUID") \
+    .add("--json", action="store_true", help="JSON output") \
+    .run(lambda db, a: detect_schedule_anomalies(db, a.location_id)) \
+    .render_with(_render_anomalies)
+
+cli.subcommand("list-stages", "List growth stages for a crop") \
+    .add("--crop", required=True, help="Crop name") \
+    .add("--json", action="store_true", help="JSON output") \
+    .run(lambda db, a: list_stages(db, a.crop)) \
+    .render_with(_render_list_stages)
+
+cli.subcommand("current", "Current stage for all active crops") \
+    .add("--location-id", required=True, help="Location UUID") \
+    .add("--json", action="store_true", help="JSON output") \
+    .run(lambda db, a: get_current_stages_all(db, a.location_id)) \
+    .render_with(_render_current)
+
+
+def main(argv=None):
+    cli.run(argv)
 
 
 if __name__ == "__main__":
