@@ -27,9 +27,8 @@ Usage:
 """
 
 import argparse
-import json
 import sys
-
+from services.common.cli import print_json
 
 def main():
     parser = argparse.ArgumentParser(description="Kokonut Intelligence Ecology Analytics")
@@ -74,7 +73,7 @@ def main():
         conn = get_db()
         result = compare_soil_carbon(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.biodiversity:
@@ -84,13 +83,13 @@ def main():
         conn = get_db()
         result = compute_biodiversity(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.compare_scenarios:
         from .ecology import compare_scenarios
         result = compare_scenarios(args.compare_scenarios)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.sensitivity:
@@ -98,7 +97,7 @@ def main():
             parser.error("--sensitivity requires --scenario-id")
         from .ecology import sensitivity_analysis
         result = sensitivity_analysis(args.scenario_id, args.variable, args.range_pct, args.steps)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.ndvi_trends:
@@ -108,7 +107,7 @@ def main():
         conn = get_db()
         result = ndvi_trends(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.water_resilience:
@@ -118,7 +117,7 @@ def main():
         conn = get_db()
         result = water_resilience(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.crop_diversity:
@@ -128,7 +127,7 @@ def main():
         conn = get_db()
         result = crop_diversity(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.intervention_impact:
@@ -138,7 +137,7 @@ def main():
         conn = get_db()
         result = intervention_impact(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.soil_health:
@@ -148,7 +147,7 @@ def main():
         conn = get_db()
         result = soil_health(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.water_access:
@@ -158,7 +157,7 @@ def main():
         conn = get_db()
         result = water_access_summary(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.environmental_baseline:
@@ -168,7 +167,7 @@ def main():
         conn = get_db()
         result = environmental_baseline(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.carbon_balance:
@@ -178,7 +177,7 @@ def main():
         conn = get_db()
         result = compute_carbon_balance(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.ghg_emissions:
@@ -188,7 +187,7 @@ def main():
         conn = get_db()
         result = compute_ghg_emissions(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.tree_carbon:
@@ -198,7 +197,7 @@ def main():
         conn = get_db()
         result = compute_tree_carbon(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.regenerative_score:
@@ -208,7 +207,7 @@ def main():
         conn = get_db()
         result = compute_regenerative_score(conn, args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.emission_factors:
@@ -216,7 +215,7 @@ def main():
         conn = get_db()
         result = list_emission_factors(conn)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.carbon_benchmarks:
@@ -224,7 +223,7 @@ def main():
         conn = get_db()
         result = list_carbon_benchmarks(conn)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.portfolio_summary:
@@ -232,7 +231,7 @@ def main():
         conn = get_db()
         result = portfolio_theme_summary(conn)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.ebf_portfolio_summary:
@@ -240,7 +239,7 @@ def main():
         conn = get_db()
         result = ebf_portfolio_summary(conn)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.pin_dependency:
@@ -250,7 +249,7 @@ def main():
         conn = get_db()
         result = detect_pin_blocks(conn, location_id=args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.propose_pin:
@@ -260,7 +259,7 @@ def main():
         conn = get_db()
         result = propose_pin_blocks(conn, location_id=args.location_id, actor="cli")
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.promotion_ladder:
@@ -268,7 +267,7 @@ def main():
         conn = get_db()
         result = compute_promotion_ladder(conn, location_id=args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.zwischenzug:
@@ -277,7 +276,7 @@ def main():
         conn = get_db()
         result = automation.detect_zwischenzug(conn, location_id=args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.propose_zwischenzug:
@@ -286,7 +285,7 @@ def main():
         conn = get_db()
         result = automation.propose_zwischenzug(conn, location_id=args.location_id, actor="cli")
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.tactical_layer:
@@ -295,7 +294,7 @@ def main():
         conn = get_db()
         result = generate_tactical_layer(conn, location_id=args.location_id)
         conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     parser.print_help()

@@ -11,7 +11,6 @@ Reads lifecycle_transition; writes process_kpi_snapshot when capturing.
 from __future__ import annotations
 
 import argparse
-import json
 import statistics
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -20,7 +19,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 
 def control_limits(values: List[float], k: float = 3.0) -> Dict[str, float]:
     """Return mean, sample stdev, UCL/LCL (mean +/- k*sigma), and 2-sigma warns."""
@@ -449,7 +448,7 @@ def _cmd(args) -> None:
             out = ctq_report(conn, args.process)
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

@@ -9,11 +9,11 @@ human must approve before any outcome is published.
 from __future__ import annotations
 
 import argparse
-import json
 from typing import Any, Dict, List, Optional
 
 from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import validate_output
+from services.common.cli import print_json
 from services.delphi.facilitator import Facilitator
 
 
@@ -111,10 +111,9 @@ def main() -> None:
     parser.add_argument("--recommendation-text", help="Custom recommendation text (with --draft)")
     args = parser.parse_args()
 
-    print(json.dumps(
+    print_json(
         run_delphi_facilitation(args.study_id, draft=args.draft, recommendation_text=args.recommendation_text),
-        indent=2, default=str,
-    ))
+    )
 
 
 if __name__ == "__main__":

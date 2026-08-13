@@ -12,7 +12,6 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 
 from services.common.database import get_db
@@ -24,6 +23,7 @@ from services.office import (
     run_full_cycle,
     run_landscape_refresh,
 )
+from services.common.cli import print_json
 
 
 def get_pg():
@@ -47,7 +47,7 @@ def main():
     try:
         if args.status:
             result = get_run_status(conn, args.status)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
             return
 
         if args.alerts:
@@ -69,7 +69,7 @@ def main():
             result = run_landscape_refresh(conn)
         else:
             parser.error(f"Unknown run type: {args.run}")
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
     finally:
         conn.close()
 

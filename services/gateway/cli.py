@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-
+from services.common.cli import print_json
 
 def cmd_serve(args):
     """Start the gateway server."""
@@ -28,9 +28,8 @@ def cmd_serve(args):
 def cmd_health(args):
     """Check gateway health."""
     from services.core.health import overall_health
-    import json
     result = overall_health()
-    print(json.dumps(result, indent=2))
+    print_json(result)
     return 0 if result.get("healthy") else 1
 
 

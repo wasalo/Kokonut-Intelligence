@@ -22,7 +22,7 @@ import psycopg2.extras
 
 from ..common.logging import get_logger
 from .base import get_db
-
+from services.common.cli import print_json
 logger = get_logger("ingestion.remote_sensing_fetcher")
 
 PROVIDERS = ("gee", "copernicus")
@@ -404,15 +404,15 @@ if __name__ == "__main__":
     try:
         if args.run_jobs:
             result = run_due_jobs(conn)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.list_jobs:
             result = list_jobs(conn)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.job_id:
             job = _query_job(conn, args.job_id)
             if job:
                 result = fetch_job(conn, job)
-                print(json.dumps(result, indent=2, default=str))
+                print_json(result)
             else:
                 print(f"Job {args.job_id} not found")
         elif args.location_id:

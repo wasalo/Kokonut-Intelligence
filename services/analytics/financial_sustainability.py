@@ -16,7 +16,7 @@ from datetime import datetime, date, timedelta, timezone
 from typing import Optional
 
 from ..common.logging import get_logger
-
+from services.common.cli import print_json
 logger = get_logger("analytics.financial_sustainability")
 
 
@@ -511,7 +511,7 @@ def main():
             dry_run=args.dry_run,
         )
         if args.json:
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             _print_result(result)
     finally:

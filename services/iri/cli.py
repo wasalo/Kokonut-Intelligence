@@ -7,14 +7,14 @@ import json
 import sys
 
 from services.common.database import get_connection
-
+from services.common.cli import print_json
 
 def cmd_generate(args):
     with get_connection() as conn:
         from services.iri.resolver import generate_iri
         content = json.loads(args.content) if args.content else None
         iri = generate_iri(conn, args.entity_type, args.entity_id, content=content)
-        print(json.dumps({"iri": iri}, indent=2))
+        print_json({"iri": iri})
 
 
 def cmd_resolve(args):
@@ -22,7 +22,7 @@ def cmd_resolve(args):
         from services.iri.resolver import resolve_metadata
         result = resolve_metadata(conn, args.iri)
         if result:
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             print(f"IRI not found: {args.iri}")
             sys.exit(1)
@@ -42,7 +42,7 @@ def cmd_anchor(args):
     with get_connection() as conn:
         from services.iri.resolver import anchor_iri
         result = anchor_iri(conn, args.iri, chain=args.chain)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def main():

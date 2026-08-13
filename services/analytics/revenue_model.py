@@ -15,7 +15,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 
 # ──────────────────────────────────────────────
 # Revenue Stream Definitions
@@ -417,7 +417,7 @@ def _cmd(args) -> None:
             out = revenue_forecast(conn, args.location_id, periods=args.periods)
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

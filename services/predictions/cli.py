@@ -1,16 +1,12 @@
 """CLI for prediction ledger and calibration operations."""
 
 import argparse
-import json
 from datetime import datetime
 
-
+from services.common.cli import print_json
 from services.common.database import get_db
+
 from .service import PredictionService
-
-
-def get_db():
-    return get_db()
 
 
 def main():
@@ -66,4 +62,4 @@ def main():
         result = service.compare_outside_view(args.prediction_id, args.reference_class_id,
                                               args.selection_rationale, args.deviation_rationale,
                                               args.disconfirming_evidence)
-    print(json.dumps(result, default=str, indent=2))
+    print_json(result)

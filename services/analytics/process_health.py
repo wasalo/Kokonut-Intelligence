@@ -10,13 +10,12 @@ report type and exposed via a CLI board command.
 from __future__ import annotations
 
 import argparse
-import json
 from typing import Any, Dict, List, Optional
 
 from services.common.database import get_db
 from services.analytics import value_stream, process_mining as pm, predictive_bpm
 from services.analytics.process_gap import assess_maturity
-
+from services.common.cli import print_json
 
 DEFAULT_SLA_HOURS = 72.0
 
@@ -137,7 +136,7 @@ def _cmd(args) -> None:
             )
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

@@ -15,7 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-
+from services.common.cli import print_json
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -120,12 +120,12 @@ def _handle_schema(args: argparse.Namespace) -> None:
             private_key=args.private_key,
             schema_name=args.name,
         )
-        print(json.dumps(results, indent=2))
+        print_json(results)
 
     elif args.schema_command == "get":
         from .publisher import get_schema
         result = get_schema(args.uid, args.chain)
-        print(json.dumps(result, indent=2))
+        print_json(result)
 
     else:
         print("Usage: schema {list|register|get}", file=sys.stderr)
@@ -144,7 +144,7 @@ def _handle_attest(args: argparse.Namespace) -> None:
         revocable=args.revocable,
         ref_uid=args.ref_uid,
     )
-    print(json.dumps(result, indent=2))
+    print_json(result)
 
 
 def _handle_offchain_attest(args: argparse.Namespace) -> None:
@@ -157,7 +157,7 @@ def _handle_offchain_attest(args: argparse.Namespace) -> None:
         chain=args.chain,
         private_key=args.private_key,
     )
-    print(json.dumps(result, indent=2, default=str))
+    print_json(result)
 
 
 def _handle_revoke(args: argparse.Namespace) -> None:
@@ -168,13 +168,13 @@ def _handle_revoke(args: argparse.Namespace) -> None:
         chain=args.chain,
         private_key=args.private_key,
     )
-    print(json.dumps(result, indent=2))
+    print_json(result)
 
 
 def _handle_query(args: argparse.Namespace) -> None:
     from .publisher import get_attestation
     result = get_attestation(args.uid, args.chain)
-    print(json.dumps(result, indent=2))
+    print_json(result)
 
 
 def _handle_info(args: argparse.Namespace) -> None:

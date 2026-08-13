@@ -6,19 +6,13 @@ Read-only helper that summarizes EBF evidence gaps for a scorecard.
 from __future__ import annotations
 
 import argparse
-import json
 from typing import Any
 
 import psycopg2
 import psycopg2.extras
 
-from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
-from services.common.database import get_db
-
-
-def get_connection():
-    return get_db()
+from services.agents.base import run_fetch
+from services.common.cli import print_json
 
 
 def analyze_evidence_gaps(conn, scorecard_id: str) -> dict[str, Any]:
@@ -49,23 +43,20 @@ def analyze_evidence_gaps(conn, scorecard_id: str) -> dict[str, Any]:
 
 
 def run_ebf_evidence_gap(scorecard_id: str) -> dict[str, Any]:
-    assert_agent_action_allowed("read", "ebf_scorecard", {"scorecard_id": scorecard_id})
-    conn = get_connection()
-    try:
-        output = analyze_evidence_gaps(conn, scorecard_id)
-    finally:
-        conn.close()
-    errors = validate_output("ebf_evidence_gap", output)
-    if errors:
-        raise ValueError("; ".join(errors))
-    return output
+    """Summarize evidence gaps; delegates to the shared read-only agent flow."""
+    return run_fetch(
+        "ebf_evidence_gap",
+        "ebf_scorecard",
+        analyze_evidence_gaps,
+        scorecard_id=scorecard_id,
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the EBF evidence gap agent")
     parser.add_argument("--scorecard-id", required=True, help="EBF scorecard UUID")
     args = parser.parse_args()
-    print(json.dumps(run_ebf_evidence_gap(args.scorecard_id), indent=2, default=str))
+    print_json(run_ebf_evidence_gap(args.scorecard_id))
 
 
 if __name__ == "__main__":

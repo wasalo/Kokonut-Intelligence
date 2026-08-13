@@ -19,7 +19,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 AUDIENCES = ("funders", "operators", "developers", "refi", "impact", "elevator")
 
 
@@ -630,7 +630,7 @@ def _cmd(args) -> None:
             print(render_cli(pitch))
         elif args.command == "evidence":
             evidence = gather_evidence(conn, args.location_id)
-            print(json.dumps(evidence, indent=2, default=str))
+            print_json(evidence)
         elif args.command == "templates":
             _cmd_templates(args, conn)
         else:
@@ -642,10 +642,10 @@ def _cmd(args) -> None:
 def _cmd_templates(args, conn) -> None:
     if args.templates_command == "list":
         out = get_templates(conn)
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     elif args.templates_command == "get":
         out = get_template(conn, args.audience)
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     elif args.templates_command == "create":
         sections = None
         if args.sections:
@@ -655,7 +655,7 @@ def _cmd_templates(args, conn) -> None:
             args.solution, args.proof, args.cta_label,
             args.cta_url, sections=sections,
         )
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
 
 
 def main() -> None:

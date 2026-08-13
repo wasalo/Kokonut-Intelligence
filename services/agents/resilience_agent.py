@@ -2,21 +2,12 @@
 
 from __future__ import annotations
 
-import argparse
-import json
-import uuid
 from typing import Any
 
 import psycopg2
 import psycopg2.extras
 
-from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
-from services.common.database import get_db
-
-
-def get_connection():
-    return get_db()
+from services.agents.base import SynthesisAgent, agent_cli
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -123,58 +114,27 @@ def synthesize_resilience(conn, location_id: str | None = None) -> dict[str, Any
     }
 
 
-def store_resilience_summary(conn, summary: dict[str, Any], model_version: str = "resilience-agent-v1") -> str:
-    """Store a draft AI summary for human review."""
-    assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
-    summary_id = str(uuid.uuid4())
-    subject_id = summary.get("location_id") or "00000000-0000-0000-0000-000000000000"
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO ai_summary
-            (id, subject_type, subject_id, summary_type, content,
-             source_tables, model_version, status)
-        VALUES (%s, 'location', %s, 'financial_resilience', %s, %s, %s, 'draft')
-        RETURNING id
-        """,
-        (
-            summary_id,
-            subject_id,
-            summary["synthesis"],
-            ["financial_sustainability_plan", "risk_mitigation_register", "scaling_roadmap_milestone", "green_paper_publication_review"],
-            model_version,
-        ),
-    )
-    stored_id = str(cur.fetchone()[0])
-    conn.commit()
-    cur.close()
-    return stored_id
+class ResilienceSynthesisAgent(SynthesisAgent):
+    task_key = "financial_resilience_synthesis"
+    summary_type = "financial_resilience"
+    read_collection = "financial_sustainability_plan"
+    model_version = "resilience-agent-v1"
+    source_tables = ["financial_sustainability_plan", "risk_mitigation_register", "scaling_roadmap_milestone", "green_paper_publication_review"]
+
+    def synthesize(self, conn, location_id=None):
+        return synthesize_resilience(conn, location_id)
+
+
+agent = ResilienceSynthesisAgent()
 
 
 def run_resilience_synthesis(location_id: str | None = None, store: bool = False) -> dict[str, Any]:
-    assert_agent_action_allowed("read", "financial_sustainability_plan", {"location_id": location_id})
-    conn = get_connection()
-    try:
-        summary = synthesize_resilience(conn, location_id)
-        output: dict[str, Any] = {"summary": summary}
-        if store:
-            output["ai_summary_id"] = store_resilience_summary(conn, summary)
-    finally:
-        conn.close()
-
-    errors = validate_output("financial_resilience_synthesis", output)
-    if errors:
-        raise ValueError("; ".join(errors))
-    return output
+    """Run the agent; delegates to the shared :class:`ResilienceSynthesisAgent` flow."""
+    return agent.run(location_id, store=store)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the Kokonut financial resilience synthesis agent")
-    parser.add_argument("--location-id", help="Optional location UUID")
-    parser.add_argument("--store", action="store_true", help="Store draft ai_summary output for human review")
-    args = parser.parse_args()
-
-    print(json.dumps(run_resilience_synthesis(args.location_id, store=args.store), indent=2, default=str))
+    agent_cli(agent, description="Run the Kokonut financial resilience synthesis agent", location_required=False)
 
 
 if __name__ == "__main__":

@@ -9,14 +9,13 @@ is unavailable degrades to an empty list rather than raising.
 from __future__ import annotations
 
 import argparse
-import json
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 
 def _entity(org_id: Optional[str], location_id: Optional[str]):
     if org_id and not location_id:
@@ -198,7 +197,7 @@ def _cmd(args) -> None:
             out = _cmd_action(args, conn)
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

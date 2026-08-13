@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.analytics.consent_resolver import (
     check_consent, list_effective_consent, record_consent, withdraw_consent,
 )
 from services.common.database import get_db
-
+from services.common.cli import print_json
 
 def _out(data):
-    print(json.dumps(data, indent=2, default=str))
+    print_json(data)
 
 
 def main():
