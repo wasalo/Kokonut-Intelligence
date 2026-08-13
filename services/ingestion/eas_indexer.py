@@ -16,12 +16,12 @@ import sys
 import time
 from datetime import datetime, timezone
 
-import requests
+from services.common.http import http
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, retry, post_clickhouse_rows
+from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry
 from .clickhouse_outbox import enqueue
-from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .config import CH_HOST, CH_PASSWORD, CH_PORT, CH_USER
 
 logger = get_logger("ingestion.eas")
 
@@ -82,7 +82,7 @@ def query_eas(chain: str, query: str, variables: dict) -> dict:
     endpoint = EAS_ENDPOINTS.get(chain)
     if not endpoint:
         raise ValueError(f"No EAS endpoint configured for chain: {chain}")
-    resp = requests.post(
+    resp = http.post(
         f"{endpoint}/graphql",
         json={"query": query, "variables": variables},
         timeout=30,

@@ -1,18 +1,24 @@
 """
-Crop NOI Calculator
+Crop NOI Calculator (location-level aggregate)
 
 Formula: net_crop_revenue - direct_crop_cost - allocated_shared_cost
 Definition: Net crop revenue minus direct crop costs minus allocated shared operating costs
+
+Note: this is the per-location aggregate metric (``metric_value`` rows). The
+per-crop-cycle NOI formula lives in the shared PostgreSQL view
+``v_crop_cycle_noi`` (migration 353), which the Directus hook
+(``extensions/kokonut-hooks/src/metrics-calculator.ts``) reads — do not
+re-implement the crop-cycle SQL here.
 """
 
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from .net_crop_revenue import compute_net_crop_revenue
-from .direct_crop_cost import compute_direct_crop_cost
 from .allocated_shared_cost import compute_allocated_shared_cost
+from .direct_crop_cost import compute_direct_crop_cost
+from .net_crop_revenue import compute_net_crop_revenue
 
 
 def compute_crop_noi(

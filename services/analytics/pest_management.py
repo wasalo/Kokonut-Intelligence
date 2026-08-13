@@ -22,11 +22,11 @@ Usage:
 
 import json
 import uuid
-from datetime import datetime, date, timezone, timedelta
-from typing import Optional
+from datetime import date, datetime, timedelta, timezone
 
 from ..common.commands import CommandLine
 from ..common.logging import get_logger
+from ..scoring.normalization import clamp, weighted_score
 
 logger = get_logger("analytics.pest_management")
 
@@ -872,6 +872,64 @@ def get_pest_dashboard(conn, location_id: str) -> dict:
     }
 
 
+def get_pest_management_report(
+    conn, location_id: str, period_start: str = None, period_end: str = None
+) -> dict:
+    """Build the pest management report data from public-safe pest views.
+
+    Single owner for the pest report analysis; the export report generator
+    calls this instead of re-querying views itself.
+    """
+    import psycopg2.extras
+
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT name FROM location WHERE id = %s", (location_id,))
+    location = cur.fetchone()
+    cur.execute(
+        """
+        SELECT * FROM v_public_pest_trends
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR observation_date >= %s::date)
+          AND (%s::date IS NULL OR observation_date <= %s::date)
+        ORDER BY observation_date DESC
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    pest_trends = [dict(r) for r in cur.fetchall()]
+    cur.execute(
+        """
+        SELECT * FROM v_public_biocontrol_effectiveness
+        WHERE location_id = %s
+          AND (%s::date IS NULL OR release_date >= %s::date)
+          AND (%s::date IS NULL OR release_date <= %s::date)
+        ORDER BY release_date DESC
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    biocontrol = [dict(r) for r in cur.fetchall()]
+    cur.close()
+    severe_count = sum(1 for p in pest_trends if p.get("severity") in ("high", "critical"))
+    avg_outbreak_prob = sum(p.get("outbreak_probability_pct", 0) or 0 for p in pest_trends) / max(len(pest_trends), 1)
+    return {
+        "report_type": "pest_management",
+        "location_id": location_id,
+        "location_name": location["name"] if location else None,
+        "pest_trends": [dict(r) for r in pest_trends],
+        "biocontrol_releases": [dict(r) for r in biocontrol],
+        "total_observations": len(pest_trends),
+        "severe_observations": severe_count,
+        "avg_outbreak_probability_pct": round(avg_outbreak_prob, 2),
+        "biocontrol_release_count": len(biocontrol),
+        "limitations": [
+            "Pest outbreak probability is a model estimate based on historical incidence and weather.",
+            "Biocontrol effectiveness depends on environmental conditions and timing.",
+            "Pest identification may require expert verification.",
+            "Natural enemy counts are observational estimates.",
+        ],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 # ============================================================
 # Pest Biology Reference
 # ============================================================
@@ -1354,7 +1412,7 @@ def compute_ipm_compliance_score(
         )
         on_time = cur.fetchone()[0]
         expected = total_schedules * max(1, (period_end - period_start).days // 7)
-        scouting_score = min(100.0, 100.0 * on_time / max(1, expected))
+        scouting_score = clamp(100.0 * on_time / max(1, expected))
     elif total_scouts > 0:
         scouting_score = 70.0
 
@@ -1387,7 +1445,7 @@ def compute_ipm_compliance_score(
     total_interventions = cur.fetchone()[0]
 
     if total_interventions > 0:
-        threshold_score = max(0, 100.0 - (100.0 * premature_chem / total_interventions))
+        threshold_score = clamp(100.0 - (100.0 * premature_chem / total_interventions))
     else:
         threshold_score = 80.0
 
@@ -1411,7 +1469,7 @@ def compute_ipm_compliance_score(
         elif non_chem >= chem_count:
             ladder_score = 70.0
         else:
-            ladder_score = max(20.0, 70.0 - 20.0 * (chem_count - non_chem) / len(types_used))
+            ladder_score = clamp(70.0 - 20.0 * (chem_count - non_chem) / len(types_used), minimum=20.0)
     else:
         ladder_score = 80.0
 
@@ -1428,15 +1486,25 @@ def compute_ipm_compliance_score(
     with_evidence = cur.fetchone()[0]
 
     if total_scouts > 0:
-        completeness_score = min(100.0, 100.0 * with_evidence / total_scouts)
+        completeness_score = clamp(100.0 * with_evidence / total_scouts)
     else:
         completeness_score = 50.0
 
     overall = round(
-        0.25 * scouting_score
-        + 0.25 * threshold_score
-        + 0.25 * ladder_score
-        + 0.25 * completeness_score,
+        weighted_score(
+            {
+                "scouting_score": scouting_score,
+                "threshold_score": threshold_score,
+                "ladder_score": ladder_score,
+                "completeness_score": completeness_score,
+            },
+            {
+                "scouting_score": 0.25,
+                "threshold_score": 0.25,
+                "ladder_score": 0.25,
+                "completeness_score": 0.25,
+            },
+        ),
         1,
     )
 
@@ -2127,7 +2195,7 @@ def compute_organic_pest_score(
 
     total = bio_count + chem_count
     if total > 0:
-        biocontrol_score = min(100.0, 100.0 * bio_count / total)
+        biocontrol_score = clamp(100.0 * bio_count / total)
     else:
         biocontrol_score = 60.0
 
@@ -2175,7 +2243,7 @@ def compute_organic_pest_score(
             ladder_score = 100.0
         else:
             ratio = non_chemical / len(all_types)
-            ladder_score = min(100.0, ratio * 100 + 20)
+            ladder_score = clamp(ratio * 100 + 20)
     else:
         ladder_score = 50.0
 
@@ -2199,17 +2267,27 @@ def compute_organic_pest_score(
 
     if schedules > 0:
         expected = schedules * ((period_end - period_start).days // 7)
-        scouting_score = min(100.0, 100.0 * scouts / max(1, expected))
+        scouting_score = clamp(100.0 * scouts / max(1, expected))
     elif scouts > 0:
         scouting_score = 70.0
     else:
         scouting_score = 20.0
 
     overall = round(
-        0.25 * biocontrol_score
-        + 0.25 * chemical_reduction_score
-        + 0.25 * ladder_score
-        + 0.25 * scouting_score,
+        weighted_score(
+            {
+                "biocontrol_score": biocontrol_score,
+                "chemical_reduction_score": chemical_reduction_score,
+                "ladder_score": ladder_score,
+                "scouting_score": scouting_score,
+            },
+            {
+                "biocontrol_score": 0.25,
+                "chemical_reduction_score": 0.25,
+                "ladder_score": 0.25,
+                "scouting_score": 0.25,
+            },
+        ),
         1,
     )
 

@@ -16,10 +16,10 @@ import sys
 import time
 from datetime import datetime, timezone
 
-import requests
+from services.common.http import http
 
 from ..common.logging import get_logger
-from .base import get_db, insert_clickhouse_rows, log_ingestion, hash_payload, retry
+from .base import get_db, hash_payload, insert_clickhouse_rows, log_ingestion, retry
 from .clickhouse_outbox import enqueue
 from .config import OPENWEATHERMAP_API_KEY
 
@@ -32,7 +32,7 @@ API_BASE = "https://api.openweathermap.org/data/2.5/weather"
 @retry(max_retries=3, backoff=2.0)
 def fetch_weather(lat: float, lon: float) -> dict:
     """Fetch current weather from OpenWeatherMap API."""
-    resp = requests.get(
+    resp = http.get(
         API_BASE,
         params={
             "lat": lat,

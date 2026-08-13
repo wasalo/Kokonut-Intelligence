@@ -6,7 +6,9 @@
  *
  * Net Revenue = Gross Sales - Returns - Discounts
  *
- * Also calculates loss rate and operating margin.
+ * The NOI formula lives in the PostgreSQL view `v_crop_cycle_noi`
+ * (migration 353) so Python and TypeScript share one implementation;
+ * this module reads the view rather than re-implementing the SQL.
  */
 
 // Database client set by the hook initialization
@@ -34,7 +36,8 @@ interface NoiCalculation {
 }
 
 /**
- * Main NOI calculation function with actual database queries
+ * Main NOI calculation: reads the shared v_crop_cycle_noi view
+ * (single formula owner) and maps it onto the calculation shape.
  */
 export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation> {
   const calculation: NoiCalculation = {
@@ -54,73 +57,30 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
     inputs: {},
   };
 
-  // Get crop cycle info
-  const cropCycle = await db('crop_cycle')
-    .where('id', cropCycleId)
+  const row = await db('v_crop_cycle_noi')
+    .where('crop_cycle_id', cropCycleId)
     .first();
 
-  if (cropCycle) {
-    calculation.locationId = cropCycle.location_id || '';
-    calculation.periodStart = cropCycle.planting_date || new Date();
-    calculation.periodEnd = cropCycle.actual_harvest_date || cropCycle.expected_harvest_date || new Date();
+  if (!row) {
+    return calculation;
   }
 
-  // Step 1: Get all sales for this crop cycle
-  const salesResult = await db('sales_event')
-    .where('crop_cycle_id', cropCycleId)
-    .whereIn('status', ['verified', 'published'])
-    .select(
-      db.raw('COALESCE(SUM(total_amount), 0) as gross'),
-      db.raw('COALESCE(SUM(return_amount), 0) as returns'),
-      db.raw('COALESCE(SUM(discount_amount), 0) as discounts')
-    )
-    .first();
-
-  calculation.grossRevenue = parseFloat(salesResult?.gross || '0');
-  calculation.returnsAndDiscounts =
-    parseFloat(salesResult?.returns || '0') +
-    parseFloat(salesResult?.discounts || '0');
-
-  // Step 2: Get all direct expenses for this crop cycle
-  const expenseResult = await db('expense_event')
-    .where('crop_cycle_id', cropCycleId)
-    .whereIn('status', ['verified', 'published'])
-    .select(db.raw('COALESCE(SUM(amount), 0) as total'))
-    .first();
-
-  calculation.directCropCosts = parseFloat(expenseResult?.total || '0');
-
-  // Step 3: Get allocated shared expenses
-  const allocationResult = await db('crop_cost_allocation')
-    .where('crop_cycle_id', cropCycleId)
-    .select(db.raw('COALESCE(SUM(allocated_amount), 0) as total'))
-    .first();
-
-  calculation.allocatedSharedCosts = parseFloat(allocationResult?.total || '0');
-
-  // Step 4: Get harvest data for loss rate
-  const harvestResult = await db('harvest_event')
-    .where('crop_cycle_id', cropCycleId)
-    .whereIn('status', ['verified', 'published'])
-    .select(
-      db.raw('COALESCE(SUM(quantity), 0) as total_harvest'),
-      db.raw('COALESCE(SUM(loss_amount), 0) as total_loss')
-    )
-    .first();
-
-  const totalHarvest = parseFloat(harvestResult?.total_harvest || '0');
-  const totalLoss = parseFloat(harvestResult?.total_loss || '0');
-  calculation.lossRatePct = totalHarvest > 0
-    ? (totalLoss / totalHarvest) * 100
-    : 0;
-
-  // Calculate outputs
-  calculation.netRevenue = calculation.grossRevenue - calculation.returnsAndDiscounts;
-  calculation.totalCosts = calculation.directCropCosts + calculation.allocatedSharedCosts;
-  calculation.noi = calculation.netRevenue - calculation.totalCosts;
-  calculation.operatingMarginPct = calculation.netRevenue > 0
-    ? (calculation.noi / calculation.netRevenue) * 100
-    : 0;
+  calculation.locationId = row.location_id || '';
+  if (row.period_start) {
+    calculation.periodStart = new Date(row.period_start);
+  }
+  if (row.period_end) {
+    calculation.periodEnd = new Date(row.period_end);
+  }
+  calculation.grossRevenue = parseFloat(row.gross_revenue ?? '0');
+  calculation.returnsAndDiscounts = parseFloat(row.returns_discounts ?? '0');
+  calculation.netRevenue = parseFloat(row.net_revenue ?? '0');
+  calculation.directCropCosts = parseFloat(row.direct_crop_costs ?? '0');
+  calculation.allocatedSharedCosts = parseFloat(row.allocated_shared_costs ?? '0');
+  calculation.totalCosts = parseFloat(row.total_costs ?? '0');
+  calculation.noi = parseFloat(row.noi ?? '0');
+  calculation.operatingMarginPct = parseFloat(row.operating_margin_pct ?? '0');
+  calculation.lossRatePct = parseFloat(row.loss_rate_pct ?? '0');
 
   return calculation;
 }
@@ -195,22 +155,13 @@ export async function batchCalculateNoi(locationId?: string): Promise<NoiCalcula
 }
 
 /**
- * Calculate loss rate for a single crop cycle
+ * Calculate loss rate for a single crop cycle (reads the shared view).
  */
 export async function calculateLossRate(cropCycleId: string): Promise<number> {
-  const harvestResult = await db('harvest_event')
+  const row = await db('v_crop_cycle_noi')
     .where('crop_cycle_id', cropCycleId)
-    .whereIn('status', ['verified', 'published'])
-    .select(
-      db.raw('COALESCE(SUM(quantity), 0) as total_harvest'),
-      db.raw('COALESCE(SUM(loss_amount), 0) as total_loss')
-    )
     .first();
-
-  const totalHarvest = parseFloat(harvestResult?.total_harvest || '0');
-  const totalLoss = parseFloat(harvestResult?.total_loss || '0');
-
-  return totalHarvest > 0 ? (totalLoss / totalHarvest) * 100 : 0;
+  return row ? parseFloat(row.loss_rate_pct ?? '0') : 0;
 }
 
 /**
