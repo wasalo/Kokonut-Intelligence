@@ -4,13 +4,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from services.common.http import http
 from services.ingestion import base
 from services.ingestion.base import retry
 
 
 def test_http_insert_keeps_malicious_values_out_of_query_text():
     response = MagicMock()
-    with patch("requests.post", return_value=response) as post:
+    with patch.object(http, "post", return_value=response) as post:
         assert base.post_clickhouse_rows(
             "sensor_readings",
             ["sensor_id", "metadata"],
@@ -27,7 +28,7 @@ def test_http_insert_keeps_malicious_values_out_of_query_text():
 def test_http_insert_closes_response_after_partial_failure():
     response = MagicMock()
     response.raise_for_status.side_effect = ConnectionError("connection dropped")
-    with patch("requests.post", return_value=response):
+    with patch.object(http, "post", return_value=response):
         with pytest.raises(ConnectionError):
             base.post_clickhouse_rows("sensor_readings", ["sensor_id"], [["sensor-1"]])
     response.close.assert_called_once()
@@ -44,7 +45,7 @@ def test_native_insert_closes_client_when_insert_fails():
 
 def test_transient_http_write_can_be_retried_without_reusing_response():
     response = MagicMock()
-    with patch("requests.post", side_effect=[ConnectionError("temporary outage"), response]) as post:
+    with patch.object(http, "post", side_effect=[ConnectionError("temporary outage"), response]) as post:
         write = retry(max_retries=2, backoff=0, jitter=0)(
             lambda: base.post_clickhouse_rows("sensor_readings", ["sensor_id"], [["sensor-1"]])
         )
@@ -54,7 +55,7 @@ def test_transient_http_write_can_be_retried_without_reusing_response():
 
 
 def test_http_insert_rejects_dynamic_identifiers_before_network_call():
-    with patch("requests.post") as post:
+    with patch.object(http, "post") as post:
         with pytest.raises(ValueError):
             base.post_clickhouse_rows("sensor_readings; DROP TABLE x", ["sensor_id"], [["x"]])
     post.assert_not_called()
