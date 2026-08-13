@@ -276,3 +276,17 @@ def retry(
 def now_utc() -> datetime:
     """Current UTC time."""
     return datetime.now(timezone.utc)
+
+
+def batch_ranges(start: int, end: int, batch_size: int):
+    """Yield ``(batch_start, batch_end)`` inclusive block ranges over [start, end].
+
+    Shared by the block-based indexers (gnosis, baal, rpc) so the
+    ``while cur <= end: batch_end = min(...)`` loop is not re-implemented
+    in each indexer.
+    """
+    current = start
+    while current <= end:
+        yield current, min(current + batch_size - 1, end)
+        current = current + batch_size
+

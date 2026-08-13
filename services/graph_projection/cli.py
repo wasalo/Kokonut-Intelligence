@@ -2,7 +2,9 @@
 
 import argparse
 
+from services.common.cli import print_json
 from services.common.database import get_db
+
 from .kernel import PROJECTION_KEY, PROJECTION_VERSION, rebuild, validate_generation
 from .query import query_graph
 from services.common.cli import print_json

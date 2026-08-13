@@ -132,8 +132,13 @@ def _validate_sources(files: list[dict]) -> None:
     versions: set[tuple[str, str]] = set()
     for file_info in files:
         version_key = (file_info["kind"], file_info["version"])
-        # Seeds historically use several independent 000 files. Schema
-        # migrations, however, must have one unambiguous numeric version.
+        # Seeds intentionally share version prefixes: the version is a coarse
+        # grouping and ordering is enforced by the full ``seed:<filename>``
+        # migration ID (checksummed per file). Examples: multiple ``000_*``
+        # bootstrap seeds, ``038_pilot_commons_liberation`` vs
+        # ``038_commons_liberation_and_stewardship``, ``101_adaptation_velocity_config``
+        # vs ``101_pilot_data_stream_posts``. Schema migrations, however, must
+        # have one unambiguous numeric version.
         if file_info["kind"] == "schema" and version_key in versions:
             raise MigrationError(
                 "duplicate migration version discovered: "

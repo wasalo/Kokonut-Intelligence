@@ -12,7 +12,6 @@ Usage:
 
 import argparse
 import csv
-import hashlib
 import json
 import os
 import re
@@ -36,6 +35,7 @@ from ..common.db import (
     PG_PORT,
     PG_USER,
 )
+from ..common.utils import serialize_value
 
 ALLOWED_COLLECTIONS = frozenset(
     {
@@ -286,15 +286,10 @@ class Exporter:
 
     @staticmethod
     def _clean_row(row):
-        clean = {}
-        for k, v in dict(row).items():
-            if hasattr(v, "isoformat"):
-                clean[k] = v.isoformat()
-            elif isinstance(v, (bytes, memoryview)):
-                clean[k] = hashlib.sha256(bytes(v)).hexdigest()[:16]
-            else:
-                clean[k] = v
-        return clean
+        return {
+            k: serialize_value(v)
+            for k, v in dict(row).items()
+        }
 
     def _apply_default_governance_filter(
         self, collection: str, filters: Optional[dict], include_drafts: bool

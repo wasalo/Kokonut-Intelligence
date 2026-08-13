@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from services.common.cli import print_json
 from services.common.database import get_connection
 from services.common.cli import print_json
 

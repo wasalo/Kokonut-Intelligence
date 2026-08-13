@@ -26,6 +26,7 @@ from web3 import Web3
 from ..common.logging import get_logger
 from ..governance.baal import BaalReadClient
 from .base import (
+    batch_ranges,
     get_db,
     get_last_synced_block,
     update_indexer_status,
@@ -196,9 +197,7 @@ def run(from_block: int | None = None, to_block: int | None = None) -> int:
     protocol_id = _get_protocol_id(db)
     processed = 0
     try:
-        cur_block = start
-        while cur_block <= end:
-            batch_end = min(cur_block + BLOCK_BATCH - 1, end)
+        for cur_block, batch_end in batch_ranges(start, end, BLOCK_BATCH):
             for event_name in EVENT_DECODERS:
                 try:
                     logs = baal.events[event_name]().get_logs(
@@ -221,7 +220,6 @@ def run(from_block: int | None = None, to_block: int | None = None) -> int:
                 KOKONUT_DAO_CHAIN, INDEXER_TYPE, batch_end, "syncing"
             )
             logger.info("Baal indexed through block %s (%s events)", batch_end, processed)
-            cur_block = batch_end + 1
         update_indexer_status(KOKONUT_DAO_CHAIN, INDEXER_TYPE, end, "healthy")
     except Exception as exc:
         db.rollback()
