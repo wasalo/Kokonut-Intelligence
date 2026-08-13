@@ -6,12 +6,11 @@ Prepares a draft scorecard workspace summary. It does not verify or publish.
 from __future__ import annotations
 
 import argparse
-import json
 from typing import Any
 
 from services.agents.safety import assert_agent_action_allowed
 from services.agents.tasks import validate_output
-
+from services.common.cli import print_json
 
 def draft_scorecard(location_id: str, period_start: str, period_end: str) -> dict[str, Any]:
     assert_agent_action_allowed("create", "ebf_scorecard", {"status": "draft", "evidence_maturity_level": 1})
@@ -38,7 +37,7 @@ def main() -> None:
     parser.add_argument("--period-start", required=True, help="Period start YYYY-MM-DD")
     parser.add_argument("--period-end", required=True, help="Period end YYYY-MM-DD")
     args = parser.parse_args()
-    print(json.dumps(draft_scorecard(args.location_id, args.period_start, args.period_end), indent=2))
+    print_json(draft_scorecard(args.location_id, args.period_start, args.period_end))
 
 
 if __name__ == "__main__":

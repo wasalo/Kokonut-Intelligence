@@ -16,7 +16,7 @@ from typing import Any, Dict, List
 
 from services.common.database import get_db
 from services.workflow_specs.registry import list_specs, load_builtin_specs
-
+from services.common.cli import print_json
 # Terminal states that represent failure rather than successful completion.
 _FAILURE_TERMINALS = {"cancelled", "rejected"}
 
@@ -101,7 +101,7 @@ def main() -> None:
     conn = get_db()
     try:
         n = sync_process_models(conn)
-        print(json.dumps({"synced_rows": n}, indent=2))
+        print_json({"synced_rows": n})
     finally:
         conn.close()
 

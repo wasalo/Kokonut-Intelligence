@@ -14,7 +14,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
@@ -24,7 +23,7 @@ import requests
 
 from ..common.logging import get_logger
 from .base import get_db, log_ingestion, hash_payload
-
+from services.common.cli import print_json
 logger = get_logger("ingestion.climate_data")
 
 
@@ -314,6 +313,6 @@ if __name__ == "__main__":
         else:
             parser.print_help()
             sys.exit(1)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
     finally:
         conn.close()

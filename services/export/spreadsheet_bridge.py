@@ -11,7 +11,7 @@ from typing import Any, Iterable
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 FARM_ACTIVITY_FIELDS = [
     "location_id",
     "plot_id",
@@ -268,23 +268,23 @@ def main() -> None:
             write_csv(args.template, ebf_evidence_template_rows(), EBF_EVIDENCE_FIELDS)
         else:
             write_csv(args.template, template_rows())
-        print(json.dumps({"template": args.template}, indent=2))
+        print_json({"template": args.template})
         return
 
     if args.import_file:
         if args.template_type == "ebf_scorecard":
             conn = get_connection()
             try:
-                print(json.dumps(import_ebf_scorecard_csv(conn, args.import_file, dry_run=args.dry_run), indent=2))
+                print_json(import_ebf_scorecard_csv(conn, args.import_file, dry_run=args.dry_run))
             finally:
                 conn.close()
             return
         if args.template_type == "ebf_evidence":
-            print(json.dumps(validate_ebf_csv(args.import_file, args.template_type), indent=2))
+            print_json(validate_ebf_csv(args.import_file, args.template_type))
             return
         conn = get_connection()
         try:
-            print(json.dumps(import_farm_activity_csv(conn, args.import_file, dry_run=args.dry_run), indent=2))
+            print_json(import_farm_activity_csv(conn, args.import_file, dry_run=args.dry_run))
         finally:
             conn.close()
         return
@@ -294,7 +294,7 @@ def main() -> None:
             parser.error("--export-file requires --location-id")
         conn = get_connection()
         try:
-            print(json.dumps(export_farm_activity_csv(conn, args.export_file, args.location_id), indent=2))
+            print_json(export_farm_activity_csv(conn, args.export_file, args.location_id))
         finally:
             conn.close()
         return

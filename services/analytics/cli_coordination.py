@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import argparse
-import json
 
 from services.analytics.coordination import (
     activate_alliance, activate_participant, add_benefit, add_contribution,
     add_knowledge_exchange, add_objective, add_participant, add_risk,
     approve_alliance, create_alliance, get_coordination_health, list_alliances,
 )
+from services.common.cli import print_json
 
 
 def _out(value):
-    print(json.dumps(value, indent=2, default=str))
+    print_json(value)
 
 
 def build_parser(parser: argparse.ArgumentParser) -> None:

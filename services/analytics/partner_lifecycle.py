@@ -7,7 +7,6 @@ for formal partnership management beyond the flat partner table.
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -15,7 +14,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 
 # ──────────────────────────────────────────────
 # Partner Lifecycle
@@ -311,7 +310,7 @@ def _cmd(args) -> None:
             out = list_scorecards(conn, args.lifecycle_id)
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

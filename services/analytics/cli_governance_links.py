@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import json
 
 from services.analytics.governance_links import approve_link, create_link, end_link, list_links
-
+from services.common.cli import print_json
 
 def _connection():
     from services.common.database import get_db
@@ -14,7 +13,7 @@ def _connection():
 
 
 def _out(value):
-    print(json.dumps(value, indent=2, default=str))
+    print_json(value)
 
 
 def main() -> None:

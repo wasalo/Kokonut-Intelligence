@@ -16,11 +16,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from ..ingestion.base import get_db
-
+from services.common.cli import print_json
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kokonut Intelligence CRISP Risk Scoring")
@@ -47,7 +46,7 @@ def main() -> None:
         conn = get_db()
         result = compute_carbon_yield_risk(conn, args.location_id, ex_ante_estimate=args.ex_ante)
         conn.close()
-        print(json.dumps(result.__dict__, indent=2, default=str))
+        print_json(result.__dict__)
         return
 
     if args.climate:
@@ -57,7 +56,7 @@ def main() -> None:
         conn = get_db()
         result = compute_climate_risk(conn, args.location_id, ssp_scenario=args.ssp)
         conn.close()
-        print(json.dumps(result.__dict__, indent=2, default=str))
+        print_json(result.__dict__)
         return
 
     if args.policy:
@@ -67,7 +66,7 @@ def main() -> None:
         conn = get_db()
         result = compute_policy_risk(conn, args.location_id)
         conn.close()
-        print(json.dumps(result.__dict__, indent=2, default=str))
+        print_json(result.__dict__)
         return
 
     if args.financial:
@@ -77,7 +76,7 @@ def main() -> None:
         conn = get_db()
         result = compute_financial_risk(conn, args.location_id)
         conn.close()
-        print(json.dumps(result.__dict__, indent=2, default=str))
+        print_json(result.__dict__)
         return
 
     if args.implementation:
@@ -87,7 +86,7 @@ def main() -> None:
         conn = get_db()
         result = compute_implementation_risk(conn, args.location_id)
         conn.close()
-        print(json.dumps(result.__dict__, indent=2, default=str))
+        print_json(result.__dict__)
         return
 
     if args.composite:
@@ -103,7 +102,7 @@ def main() -> None:
             ssp_scenario=args.ssp,
         )
         conn.close()
-        print(json.dumps(result.to_dict(), indent=2, default=str))
+        print_json(result.to_dict())
         return
 
     if args.rate:
@@ -123,7 +122,7 @@ def main() -> None:
             output = result.to_dict()
             output["assessment_id"] = assessment_id
             output["persisted"] = True
-            print(json.dumps(output, indent=2, default=str))
+            print_json(output)
         finally:
             conn.close()
         return
@@ -135,7 +134,7 @@ def main() -> None:
         conn = get_db()
         weights = _query_location_weights(conn, args.location_id)
         conn.close()
-        print(json.dumps({"location_id": args.location_id, "weights": weights}, indent=2))
+        print_json({"location_id": args.location_id, "weights": weights})
         return
 
     parser.print_help()

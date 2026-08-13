@@ -22,7 +22,7 @@ import psycopg2.extras
 
 from ..common.logging import get_logger
 from .base import get_db
-
+from services.common.cli import print_json
 logger = get_logger("ingestion.data_freshness")
 
 
@@ -545,10 +545,10 @@ if __name__ == "__main__":
     try:
         if args.check:
             result = check_freshness(conn, source=args.source)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.summary:
             result = get_freshness_summary(conn)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             parser.print_help()
     finally:

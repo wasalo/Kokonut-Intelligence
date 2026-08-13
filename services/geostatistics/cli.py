@@ -17,9 +17,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
-
+from services.common.cli import print_json
 
 def main():
     parser = argparse.ArgumentParser(
@@ -224,7 +223,7 @@ def main():
             return
 
         if args.json:
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             _print_result(args.command, result)
 
@@ -305,7 +304,7 @@ def _print_result(command: str, result: dict):
             print(f"  Persisted:   {result['persisted_design_id']}")
 
     elif command in ("residual-kriging", "spatial-cv-soc"):
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 if __name__ == "__main__":

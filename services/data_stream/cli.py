@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.common.database import get_connection
-
+from services.common.cli import print_json
 
 def cmd_post(args):
     with get_connection() as conn:
@@ -23,7 +22,7 @@ def cmd_post(args):
             file_ids=[args.file_id] if args.file_id else None,
             media_type=args.media_type,
         )
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_stream(args):
@@ -53,7 +52,7 @@ def cmd_anchor(args):
     with get_connection() as conn:
         from services.data_stream.anchor import anchor_post
         result = anchor_post(conn, args.post_id, chain=args.chain)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_verify(args):
@@ -94,7 +93,7 @@ def cmd_file_add(args):
             latitude=args.latitude,
             longitude=args.longitude,
         )
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_file_list(args):
@@ -119,28 +118,28 @@ def cmd_anchor_batch(args):
         from services.data_stream.anchor import anchor_batch
         post_ids = [pid.strip() for pid in args.post_ids.split(",")]
         result = anchor_batch(conn, post_ids, chain=args.chain)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_reconcile(args):
     with get_connection() as conn:
         from services.attestation.reconciliation import reconcile_data_stream_anchors
         result = reconcile_data_stream_anchors(conn, chain=args.chain)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_anchoring_status(args):
     with get_connection() as conn:
         from services.attestation.reconciliation import get_anchoring_status
         result = get_anchoring_status(conn, chain=args.chain)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_process_pending(args):
     with get_connection() as conn:
         from services.attestation.signer_service import process_pending_requests
         result = process_pending_requests(conn, chain=args.chain, limit=args.limit)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def main():

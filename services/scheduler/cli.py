@@ -13,9 +13,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
-
+from services.common.cli import print_json
 
 def cmd_status(args):
     from services.common.database import get_db
@@ -58,7 +57,7 @@ def cmd_tick(args):
     try:
         engine = SchedulerEngine(conn, worker_id=args.worker_id)
         stats = engine.tick()
-        print(json.dumps(stats, indent=2))
+        print_json(stats)
         return 0
     finally:
         conn.close()

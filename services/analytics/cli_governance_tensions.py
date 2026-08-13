@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 
 from services.analytics.governance_tensions import (
     attach_work_item,
@@ -17,6 +16,7 @@ from services.analytics.governance_tensions import (
     submit_tension,
     triage_tension,
 )
+from services.common.cli import print_json
 
 
 def _connection():
@@ -25,7 +25,7 @@ def _connection():
 
 
 def _out(value):
-    print(json.dumps(value, indent=2, default=str))
+    print_json(value)
 
 
 def main() -> None:

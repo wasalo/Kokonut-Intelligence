@@ -24,7 +24,7 @@ import psycopg2.extras
 
 from ..common.logging import get_logger
 from .carbon_balance import compute_carbon_balance
-
+from services.common.cli import print_json
 logger = get_logger("analytics.carbon_credits")
 
 
@@ -547,7 +547,7 @@ if __name__ == "__main__":
             if not args.location_id or not args.vintage_year:
                 parser.error("--issue requires --location-id and --vintage-year")
             result = issue_credit(conn, args.location_id, args.vintage_year, args.methodology)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.adjust:
             if not args.location_id:
                 parser.error("--adjust requires --location-id")
@@ -557,31 +557,31 @@ if __name__ == "__main__":
                 if c["status"] in ("verified", "published"):
                     r = adjust_credit(conn, c["id"], "manual_override")
                     results.append(r)
-            print(json.dumps(results, indent=2, default=str))
+            print_json(results)
         elif args.retire:
             if not args.credit_id or not args.tonnes or not args.reason or not args.requested_by:
                 parser.error("--retire requires --credit-id, --tonnes, --reason, and --requested-by")
             result = retire_credit(conn, args.credit_id, args.tonnes, args.reason,
                                    args.beneficiary, args.statement, args.requested_by,
                                    args.idempotency_key)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.confirm_retirement or args.reject_retirement or args.cancel_retirement:
             if not args.retirement_id or not args.reviewer_id:
                 parser.error("retirement review requires --retirement-id and --reviewer-id")
             decision = "confirm" if args.confirm_retirement else "reject" if args.reject_retirement else "cancel"
             result = review_retirement(conn, args.retirement_id, args.reviewer_id, decision, args.review_notes)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.list:
             credits = list_credits(conn, location_id=args.location_id, vintage_year=args.vintage_year)
-            print(json.dumps(credits, indent=2, default=str))
+            print_json(credits)
         elif args.balance:
             if not args.location_id:
                 parser.error("--balance requires --location-id")
             balance = get_balance(conn, args.location_id)
-            print(json.dumps(balance, indent=2, default=str))
+            print_json(balance)
         elif args.check_adjustments:
             results = check_adjustments(conn, location_id=args.location_id)
-            print(json.dumps(results, indent=2, default=str))
+            print_json(results)
         else:
             parser.print_help()
     finally:

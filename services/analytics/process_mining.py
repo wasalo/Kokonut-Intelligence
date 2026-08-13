@@ -25,7 +25,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
-
+from services.common.cli import print_json
 
 # --- model loading ----------------------------------------------------------
 
@@ -490,7 +490,7 @@ def _cmd(args) -> None:
             out = cross_entity_conformance(conn, args.location_id)
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

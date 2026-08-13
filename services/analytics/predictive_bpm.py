@@ -11,7 +11,6 @@ Reads lifecycle_transition; persist_forecasts() may cache predictions.
 from __future__ import annotations
 
 import argparse
-import json
 import statistics
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -21,7 +20,7 @@ import psycopg2.extras
 
 from services.common.database import get_db
 from services.analytics.process_mining import get_traces, load_model, goal_state
-
+from services.common.cli import print_json
 
 MODEL_VERSION = "v2026.07"
 
@@ -230,7 +229,7 @@ def _cmd(args) -> None:
                 conn, args.entity_type, args.sla_target_hours)}
         else:
             out = {}
-        print(json.dumps(out, indent=2, default=str))
+        print_json(out)
     finally:
         conn.close()
 

@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.analytics import cooperative_governance as governance
 from services.analytics import stakeholder_trust as trust
 from services.common.database import get_db
-
+from services.common.cli import print_json
 
 def out(value):
-    print(json.dumps(value, indent=2, default=str))
+    print_json(value)
 
 
 def main():

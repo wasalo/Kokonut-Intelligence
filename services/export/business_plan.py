@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
-
+from services.common.cli import print_json
 
 def _section(conn, fn):
     try:
@@ -198,7 +198,6 @@ def _summarize(plan: Dict[str, Any]) -> str:
 
 def main() -> None:
     import argparse
-    import json
 
     from services.common.database import get_db
 
@@ -211,7 +210,7 @@ def main() -> None:
         out = generate_business_plan(conn, org_id=args.org_id, location_id=args.location_id)
     finally:
         conn.close()
-    print(json.dumps(out, indent=2, default=str))
+    print_json(out)
 
 
 if __name__ == "__main__":

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.common.database import get_connection
-
+from services.common.cli import print_json
 
 def cmd_class_create(args):
     with get_connection() as conn:
@@ -16,7 +15,7 @@ def cmd_class_create(args):
             conn, name=args.name, methodology=args.methodology, credit_type=args.type,
             description=args.description, url=args.url,
         )
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_class_get(args):
@@ -24,7 +23,7 @@ def cmd_class_get(args):
         from services.credit_class.class_manager import get_class_full
         result = get_class_full(conn, args.class_id)
         if result:
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             print(f"Credit class not found: {args.class_id}")
             sys.exit(1)
@@ -46,21 +45,21 @@ def cmd_batch_create(args):
             conn, credit_class_id=args.class_id, location_id=args.location_id,
             vintage_year=args.vintage, total_quantity=args.quantity,
         )
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_batch_issue(args):
     with get_connection() as conn:
         from services.credit_class.batch_manager import issue_batch
         result = issue_batch(conn, args.batch_id, args.issuer)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_batch_balance(args):
     with get_connection() as conn:
         from services.credit_class.batch_manager import get_batch_balance
         result = get_batch_balance(conn, args.batch_id)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_batch_list(args):
@@ -77,7 +76,7 @@ def _entity_add(entity_name, add_fn):
         with get_connection() as conn:
             kwargs = {k: v for k, v in vars(args).items() if v is not None and k not in ("command", "subcommand", "entity_subcommand", "func")}
             result = add_fn(conn, **kwargs)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
     return handler
 
 
@@ -103,7 +102,7 @@ def _entity_delete(entity_name, delete_fn):
 def _print_json(fn):
     with get_connection() as conn:
         result = fn(conn)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def _print_list(label, fn):

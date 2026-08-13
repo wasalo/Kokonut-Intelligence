@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from ..common.logging import get_logger
-
+from services.common.cli import print_json
 logger = get_logger("analytics.extension")
 
 
@@ -1151,7 +1151,7 @@ def main():
         elif args.command == "recommend":
             result = recommend_modules(db, args.farmer_id, args.location_id)
 
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
     finally:
         db.close()

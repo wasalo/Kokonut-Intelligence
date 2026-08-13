@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-
+from services.common.cli import print_json
 
 def cmd_issue(args):
     from services.security.capabilities import CapabilityManager
@@ -28,7 +28,7 @@ def cmd_issue(args):
         max_usage=args.max_usage,
         created_by=args.created_by,
     )
-    print(json.dumps(result, indent=2))
+    print_json(result)
     return 0
 
 
@@ -38,7 +38,7 @@ def cmd_verify(args):
     manager = CapabilityManager()
     result = manager.verify(args.token, args.resource, args.action, args.location_id)
     if result:
-        print(json.dumps(result, indent=2))
+        print_json(result)
         return 0
     else:
         print("Token verification failed")
@@ -113,7 +113,7 @@ def cmd_audit_stats(args):
 
     audit = AuditLogger()
     stats = audit.stats()
-    print(json.dumps(stats, indent=2))
+    print_json(stats)
     return 0
 
 

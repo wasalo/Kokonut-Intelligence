@@ -12,11 +12,10 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 
 from .engine import run_forecast, run_all_scenarios, load_scenario, load_scenario_by_name
-
+from services.common.cli import print_json
 
 def list_scenarios():
     """List all forecast scenarios."""
@@ -56,15 +55,15 @@ def show_scenario_details(scenario_id: str):
     print(f"{'='*60}")
 
     print(f"\nAssumptions:")
-    print(json.dumps(scenario.get("assumptions", {}), indent=2))
+    print_json(scenario.get("assumptions", {}))
     print(f"\nPrice Assumptions:")
-    print(json.dumps(scenario.get("price_assumptions", {}), indent=2))
+    print_json(scenario.get("price_assumptions", {}))
     print(f"\nYield Assumptions:")
-    print(json.dumps(scenario.get("yield_assumptions", {}), indent=2))
+    print_json(scenario.get("yield_assumptions", {}))
     print(f"\nCost Assumptions:")
-    print(json.dumps(scenario.get("cost_assumptions", {}), indent=2))
+    print_json(scenario.get("cost_assumptions", {}))
     print(f"\nGrowth Assumptions:")
-    print(json.dumps(scenario.get("growth_assumptions", {}), indent=2))
+    print_json(scenario.get("growth_assumptions", {}))
 
     # Show outputs
     from ..ingestion.base import get_db
@@ -124,7 +123,7 @@ def main():
 
     if args.scenario_id:
         result = run_forecast(args.scenario_id)
-        print(json.dumps(result, indent=2))
+        print_json(result)
         return
 
     if args.name:
@@ -133,7 +132,7 @@ def main():
             print(f"Scenario '{args.name}' not found.")
             sys.exit(1)
         result = run_forecast(str(sc["id"]))
-        print(json.dumps(result, indent=2))
+        print_json(result)
         return
 
     if args.all:
@@ -145,7 +144,7 @@ def main():
     if args.compare:
         from ..analytics.ecology import compare_scenarios
         result = compare_scenarios(args.compare)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.sensitivity:
@@ -153,7 +152,7 @@ def main():
             parser.error("--sensitivity requires --scenario-id")
         from ..analytics.ecology import sensitivity_analysis
         result = sensitivity_analysis(args.scenario_id, args.variable, args.range_pct, args.sensitivity_steps)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     if args.reference_class:
@@ -166,7 +165,7 @@ def main():
             result = apply_reference_class(conn, args.location_id, args.rc_metric, args.rc_alpha)
         finally:
             conn.close()
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
         return
 
     parser.print_help()

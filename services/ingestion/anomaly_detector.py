@@ -34,6 +34,8 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
+from services.common.cli import print_json
+
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion
 
@@ -954,12 +956,12 @@ if __name__ == "__main__":
         try:
             if args.ml_check:
                 result = run_ml_check(conn, location_id=args.location_id, sensor_id=args.sensor)
-                print(json.dumps(result, indent=2, default=str))
+                print_json(result)
             elif args.ml_train:
                 if not args.location_id:
                     parser.error("--ml-train requires --location-id")
                 result = save_models(conn, args.location_id)
-                print(json.dumps(result, indent=2, default=str))
+                print_json(result)
         finally:
             conn.close()
     else:

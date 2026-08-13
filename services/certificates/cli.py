@@ -3,24 +3,23 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from services.common.database import get_connection
-
+from services.common.cli import print_json
 
 def cmd_generate(args):
     with get_connection() as conn:
         from services.certificates.generator import generate_certificate
         result = generate_certificate(conn, args.retirement_id)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_verify(args):
     with get_connection() as conn:
         from services.certificates.generator import verify_certificate
         result = verify_certificate(conn, args.certificate_number)
-        print(json.dumps(result, indent=2, default=str))
+        print_json(result)
 
 
 def cmd_list(args):
