@@ -38,6 +38,7 @@ CLI_REGISTRY: list[tuple[str, list[str]]] = [
     ("services.governance.cli", ["framework list"]),
     ("services.analytics.cli_governance_links", []),
     ("services.analytics.cli_governance_proposals", []),
+    ("services.analytics.cli_pest_management", []),
     ("services.analytics.cli_governance_roles", []),
     ("services.analytics.cli_governance_tactical", []),
     ("services.analytics.cli_governance_tensions", []),
