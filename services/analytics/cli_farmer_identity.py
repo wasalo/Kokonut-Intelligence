@@ -6,15 +6,24 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_farmer_identity --help
 """
 
+from datetime import date, datetime
+
 from ..common.commands import CommandLine
 from .farmer_identity import (
     add_credential,
     assign_role,
+    check_permission,
     create_kyc,
     create_profile,
+    get_access_matrix,
+    get_credentials,
+    get_farmer_directory,
+    get_profile,
+    list_farmers,
     record_data_sharing_consent,
     register_device,
     update_profile,
+    verify_credential,
     verify_kyc,
 )
 

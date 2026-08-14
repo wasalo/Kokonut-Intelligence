@@ -6,8 +6,12 @@ import argparse
 import sys
 
 from services.analytics.vision_mission import (
-    create_statement, get_statement, list_statements,
-    approve_statement, archive_statement, get_current_statements,
+    approve_statement,
+    archive_statement,
+    create_statement,
+    get_current_statements,
+    get_statement,
+    list_statements,
 )
 from services.common.cli import print_json
 

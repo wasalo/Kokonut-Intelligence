@@ -7,6 +7,7 @@ import argparse
 from services.analytics.governance_links import approve_link, create_link, end_link, list_links
 from services.common.cli import print_json
 
+
 def _connection():
     from services.common.database import get_db
     return get_db()

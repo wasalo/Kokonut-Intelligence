@@ -6,10 +6,18 @@ import argparse
 import sys
 
 from services.analytics.value_stream_defs import (
-    create_stream, get_stream, list_streams, update_stream,
-    create_stage, get_stage, list_stages, update_stage,
-    record_observation, get_observations,
-    get_stream_performance, get_stream_summary, get_stream_with_stages,
+    create_stage,
+    create_stream,
+    get_observations,
+    get_stage,
+    get_stream,
+    get_stream_performance,
+    get_stream_summary,
+    get_stream_with_stages,
+    list_stages,
+    list_streams,
+    record_observation,
+    update_stream,
 )
 from services.common.cli import print_json
 

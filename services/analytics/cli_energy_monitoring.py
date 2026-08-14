@@ -6,10 +6,19 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_energy_monitoring --help
 """
 
+import json
+from datetime import date
+
 from ..common.commands import CommandLine
 from .energy_monitoring import (
     add_renewable,
     add_source,
+    compute_carbon_intensity,
+    get_consumption,
+    get_cost_analysis,
+    get_efficiency,
+    get_energy_dashboard,
+    get_renewable_summary,
     record_reading,
 )
 

@@ -6,17 +6,27 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_data_governance --help
 """
 
+from datetime import datetime
+
 from ..common.commands import CommandLine
 from .data_governance import (
+    check_consent,
     create_sharing_agreement,
+    enforce_retention_policies,
     fulfill_portability,
+    get_access_audit,
+    get_consent_status,
+    get_governance_summary,
+    get_portability_requests,
+    get_sharing_agreements,
     log_access,
     record_consent,
     request_portability,
     set_retention_policy,
+    withdraw_consent,
 )
 
-# ============================================================
+# ==
 # CLI
 # ============================================================
 

@@ -6,12 +6,16 @@ import argparse
 import sys
 
 from services.analytics.stakeholder_representation import (
-    list_distribution_summary, record_accessibility_request,
-    record_distribution, record_minority_view, record_participation,
+    list_distribution_summary,
+    record_accessibility_request,
+    record_distribution,
+    record_minority_view,
+    record_participation,
     representation_metrics,
 )
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 
 def _out(data):
     print_json(data)

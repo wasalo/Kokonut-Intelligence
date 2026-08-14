@@ -6,14 +6,24 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_crop_rotation --help
 """
 
+import json
+from datetime import date
+
 from ..common.commands import CommandLine
 from .crop_rotation import (
     add_slot,
     create_plan,
+    get_crop_family_usage,
+    get_impact_summary,
+    get_plan,
+    get_rotation_dashboard,
+    list_plans,
+    recommend_rotation,
     record_impact,
+    validate_plan,
 )
 
-# ============================================================
+# ==
 # CLI
 # ============================================================
 

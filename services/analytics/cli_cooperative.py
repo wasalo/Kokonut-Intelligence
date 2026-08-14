@@ -7,6 +7,8 @@ focused on queries/business logic. Reachable via:
 """
 
 
+import json
+
 from ..common.commands import CommandLine
 from .cooperative import (
     add_market_participant,

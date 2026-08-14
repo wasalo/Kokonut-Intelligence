@@ -6,10 +6,17 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_pollinator_health --help
 """
 
+from datetime import date
+
 from ..common.commands import CommandLine
 from .pollinator_health import (
     add_hive,
     create_habitat,
+    get_habitat_inventory,
+    get_hive_status,
+    get_pesticide_risk,
+    get_pollinator_dashboard,
+    get_pollinator_summary,
     record_hive_inspection,
     record_observation,
     record_pesticide_impact,

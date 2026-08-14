@@ -6,18 +6,25 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_digital_finance --help
 """
 
+import json
+
 from ..common.commands import CommandLine
 from .digital_finance import (
+    calculate_insurance_premium,
     create_account,
     create_insurance_policy,
     create_loan,
     evaluate_insurance_claim,
+    evaluate_loan_eligibility,
     file_insurance_claim,
+    get_account_balance,
+    get_portfolio_summary,
+    list_accounts,
     record_repayment,
     record_transaction,
 )
 
-# ============================================================
+# ==
 # CLI
 # ============================================================
 
