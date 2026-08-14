@@ -8,17 +8,19 @@ from services.gateway.rate_limiter import RateLimiter
 
 
 def test_gateway_audit_maps_http_method_to_database_action():
+    conn = MagicMock()
     audit_logger = MagicMock()
-    with patch("services.security.audit.AuditLogger", return_value=audit_logger):
-        GatewayAudit().log(
-            caller="caller",
-            path="/api/metrics/location",
-            method="GET",
-            status="allowed",
-            ip="127.0.0.1",
-            resource="metric",
-            action="read",
-        )
+    with patch("services.gateway.audit.GatewayAudit._get_conn", return_value=conn):
+        with patch("services.security.audit.AuditLogger", return_value=audit_logger):
+            GatewayAudit().log(
+                caller="caller",
+                path="/api/metrics/location",
+                method="GET",
+                status="allowed",
+                ip="127.0.0.1",
+                resource="metric",
+                action="read",
+            )
 
     assert audit_logger.log_access.call_args.kwargs["action"] == "read"
     assert audit_logger.log_access.call_args.kwargs["resource_id"] is None
@@ -26,30 +28,34 @@ def test_gateway_audit_maps_http_method_to_database_action():
 
 
 def test_gateway_audit_rejects_invalid_ip_without_failing_request():
+    conn = MagicMock()
     audit_logger = MagicMock()
-    with patch("services.security.audit.AuditLogger", return_value=audit_logger):
-        GatewayAudit().log(
-            caller="caller",
-            path="/health",
-            method="GET",
-            status="allowed",
-            ip="testclient",
-        )
+    with patch("services.gateway.audit.GatewayAudit._get_conn", return_value=conn):
+        with patch("services.security.audit.AuditLogger", return_value=audit_logger):
+            GatewayAudit().log(
+                caller="caller",
+                path="/health",
+                method="GET",
+                status="allowed",
+                ip="testclient",
+            )
 
     assert audit_logger.log_access.call_args.kwargs["ip_address"] is None
 
 
 def test_gateway_audit_marks_handler_failures_as_errors():
+    conn = MagicMock()
     audit_logger = MagicMock()
-    with patch("services.security.audit.AuditLogger", return_value=audit_logger):
-        GatewayAudit().log(
-            caller="caller",
-            path="/api/data-stream/post",
-            method="POST",
-            status="error",
-            status_code=500,
-            reason="RuntimeError",
-        )
+    with patch("services.gateway.audit.GatewayAudit._get_conn", return_value=conn):
+        with patch("services.security.audit.AuditLogger", return_value=audit_logger):
+            GatewayAudit().log(
+                caller="caller",
+                path="/api/data-stream/post",
+                method="POST",
+                status="error",
+                status_code=500,
+                reason="RuntimeError",
+            )
 
     assert audit_logger.log_access.call_args.kwargs["metadata"]["outcome"] == "error"
 
