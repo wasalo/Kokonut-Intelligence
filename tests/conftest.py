@@ -6,13 +6,10 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, List, Optional
-from unittest.mock import MagicMock
 
 import psycopg2
 import psycopg2.extras
 import pytest
-
 
 PROJECT_DIR = Path(__file__).parent.parent
 
@@ -133,6 +130,23 @@ def db():
         conn.close()
     except Exception as exc:
         pytest.skip(f"no database available: {exc}")
+
+
+# Canonical Kokonut Adelphi location used across the analytics test suite.
+ADELPHI_LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
+
+
+@pytest.fixture
+def location_id() -> str:
+    """Return the canonical Adelphi location UUID."""
+    return ADELPHI_LOCATION_ID
+
+
+def assert_sql_contains(path, *fragments: str) -> None:
+    """Assert a SQL file contains each fragment (schema-integrity tests)."""
+    text = path.read_text()
+    missing = [frag for frag in fragments if frag not in text]
+    assert not missing, f"{path.name} missing expected fragments: {missing}"
 
 
 @pytest.fixture
