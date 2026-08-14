@@ -17,9 +17,11 @@ PROJECT_DIR = Path(__file__).parent.parent
 # into encrypted secrets. CI still requires KOKONUT_ALLOW_PLAINTEXT_ENV=true
 # (or injected secrets) via ci-check.sh; this default only makes `pytest`
 # on a dev machine behave like the documented plaintext fallback.
+# NOTE: do not hardcode POSTGRES_PASSWORD here — credentials must be resolved
+# from .env via services.common.db.load_dotenv() so the same value (local or
+# CI's ci-placeholder) wins. A hardcoded default would shadow .env and break
+# auth against a DB whose password differs.
 os.environ.setdefault("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")
-# Ensure services.common.db resolves the same credentials the compose DB uses.
-os.environ.setdefault("POSTGRES_PASSWORD", "dev-kokonut-postgres-2026")
 
 
 def pytest_sessionfinish(session, exitstatus):
