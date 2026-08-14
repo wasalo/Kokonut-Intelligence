@@ -25,6 +25,11 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+# Re-exported exception types so callers can catch retryable failures without
+# importing `requests` directly (e.g. copernicus_remote_sensing).
+Timeout = requests.Timeout
+ConnectionError = requests.ConnectionError
+
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_RETRIES = 3
 DEFAULT_BACKOFF = 1.0

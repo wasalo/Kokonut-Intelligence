@@ -74,12 +74,15 @@ def _internal_error(exc: Exception, message: str = "Gateway request failed"):
 @router.get("/locations")
 async def list_locations():
     """Proxy to Directus locations endpoint."""
-    import os, urllib.request
+    import os
+
+    from services.common.http import http
+
     directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        req = urllib.request.Request(f"{directus_url}/items/location?limit=100")
-        resp = urllib.request.urlopen(req, timeout=10)
-        return JSONResponse(content={"data": resp.read().decode()})
+        resp = http.get(f"{directus_url}/items/location?limit=100")
+        resp.raise_for_status()
+        return JSONResponse(content={"data": resp.text})
     except Exception as exc:
         logger.exception("Directus locations request failed", exc_info=exc)
         return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
@@ -88,8 +91,10 @@ async def list_locations():
 @router.get("/locations/{location_id}")
 async def get_location(location_id: str):
     """Proxy to Directus single location endpoint."""
-    import os, urllib.request
+    import os
     from uuid import UUID
+
+    from services.common.http import http
 
     try:
         UUID(location_id)
@@ -98,9 +103,9 @@ async def get_location(location_id: str):
 
     directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        req = urllib.request.Request(f"{directus_url}/items/location/{location_id}")
-        resp = urllib.request.urlopen(req, timeout=10)
-        return JSONResponse(content={"data": resp.read().decode()})
+        resp = http.get(f"{directus_url}/items/location/{location_id}")
+        resp.raise_for_status()
+        return JSONResponse(content={"data": resp.text})
     except Exception as exc:
         logger.exception("Directus location request failed", exc_info=exc)
         return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})

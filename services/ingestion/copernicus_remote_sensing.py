@@ -19,9 +19,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-import requests
-
-from services.common.http import http
+from services.common.http import ConnectionError, Timeout, http
 
 from ..common.logging import get_logger
 from .base import hash_payload, log_ingestion, post_clickhouse_rows
@@ -137,7 +135,7 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         logger.error("Copernicus catalog query failed: %s", e)
         status_code = getattr(getattr(e, "response", None), "status_code", None)
-        retryable = isinstance(e, (requests.Timeout, requests.ConnectionError)) or status_code in (429, 500, 502, 503, 504)
+        retryable = isinstance(e, (Timeout, ConnectionError)) or status_code in (429, 500, 502, 503, 504)
         return {"status": "error", "message": str(e), "observations": 0, "retryable": retryable}
 
     if not products:

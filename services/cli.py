@@ -68,6 +68,9 @@ _MOUNTED = [
     ("agents", "services.agents.cli", "Agent task catalogue"),
     ("export", "services.export.cli", "Report generation & exports"),
     ("systems", "services.systems.cli", "Systems-thinking tooling"),
+    # Off-chain governance: stakeholder/circle/tactical records backed by
+    # PostgreSQL (argparse). Distinct from the on-chain `dao` group below;
+    # see services/governance/README.md for the boundary.
     ("governance", "services.analytics.cli_governance_roles", "Governance role commands"),
 ]
 

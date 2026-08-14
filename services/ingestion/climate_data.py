@@ -14,16 +14,16 @@ Usage:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import psycopg2
 import psycopg2.extras
-import requests
+
+from services.common.cli import print_json
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
-from services.common.cli import print_json
+from .base import get_db, hash_payload, log_ingestion
+
 logger = get_logger("ingestion.climate_data")
 
 
