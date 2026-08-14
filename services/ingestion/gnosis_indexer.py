@@ -17,10 +17,7 @@ Usage:
 
 import argparse
 import json
-import os
 import re
-import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -29,13 +26,19 @@ from web3 import Web3
 
 from ..common.logging import get_logger
 from .base import (
-    get_db, log_ingestion, hash_payload, retry, post_clickhouse_rows,
-    update_indexer_status, get_last_synced_block, now_utc,
+    batch_ranges,
+    get_db,
+    get_last_synced_block,
+    hash_payload,
+    now_utc,
+    post_clickhouse_rows,
+    update_indexer_status,
 )
 from .clickhouse_outbox import enqueue
 from .config import (
-    GNOSIS_RPC_URL, KOKONUT_DAO_CHAIN, KOKONUT_MOLOCH_ADDRESSES,
-    CH_HOST, CH_PORT, CH_USER, CH_PASSWORD,
+    GNOSIS_RPC_URL,
+    KOKONUT_DAO_CHAIN,
+    KOKONUT_MOLOCH_ADDRESSES,
 )
 
 logger = get_logger("ingestion.gnosis")
@@ -497,10 +500,8 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
     topic_list = list(EVENT_TOPICS.keys())
 
     total_events = 0
-    batch_start = start_block
 
-    while batch_start <= end_block:
-        batch_end = min(batch_start + BLOCK_BATCH - 1, end_block)
+    for batch_start, batch_end in batch_ranges(start_block, end_block, BLOCK_BATCH):
         logger.info("  Scanning blocks %d → %d...", batch_start, batch_end)
 
         try:
@@ -616,8 +617,6 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
         except Exception as e:
             logger.error("  Block range %d-%d failed: %s", batch_start, batch_end, e)
             update_indexer_status(chain, "rpc", batch_start, "error", str(e))
-
-        batch_start = batch_end + 1
 
     # Update indexer status
     update_indexer_status(chain, "rpc", end_block, "healthy")

@@ -13,10 +13,12 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
+
+from services.common.database import query
 
 from ..common.logging import get_logger
 
@@ -178,9 +180,7 @@ def compute_oee(conn, asset_id: str, days: int = 30) -> Dict[str, Any]:
 
 def compute_capacity_trend(conn, asset_id: str, periods: int = 6) -> List[Dict[str, Any]]:
     """Compute utilization trend over monthly periods."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             DATE_TRUNC('month', observation_date) AS month,
             AVG(utilization_pct) AS avg_utilization,
@@ -193,8 +193,6 @@ def compute_capacity_trend(conn, asset_id: str, periods: int = 6) -> List[Dict[s
         GROUP BY DATE_TRUNC('month', observation_date)
         ORDER BY month
     """, (asset_id, periods))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     # Get target
     cur2 = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -220,9 +218,7 @@ def compute_capacity_trend(conn, asset_id: str, periods: int = 6) -> List[Dict[s
 
 def compute_underutilized_assets(conn, location_id: str, threshold_pct: float = 30.0) -> List[Dict[str, Any]]:
     """Find assets with utilization below threshold."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT DISTINCT ON (ia.id)
             ia.id AS asset_id,
             ia.asset_name,
@@ -246,8 +242,6 @@ def compute_underutilized_assets(conn, location_id: str, threshold_pct: float = 
         AND (uo.utilization_pct IS NULL OR uo.utilization_pct < %s)
         ORDER BY ia.id, uo.observation_date DESC
     """, (location_id, threshold_pct))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     return [
         {
@@ -265,9 +259,7 @@ def compute_underutilized_assets(conn, location_id: str, threshold_pct: float = 
 
 def compute_overcapacity_risk(conn, location_id: str) -> List[Dict[str, Any]]:
     """Find assets approaching or exceeding capacity."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT DISTINCT ON (ia.id)
             ia.id AS asset_id,
             ia.asset_name,
@@ -293,8 +285,6 @@ def compute_overcapacity_risk(conn, location_id: str) -> List[Dict[str, Any]]:
         AND uo.utilization_pct >= COALESCE(ct.warning_pct, 80)
         ORDER BY ia.id, uo.utilization_pct DESC
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     return [
         {

@@ -1,33 +1,21 @@
 """Shared context and serialization helpers for report generators."""
 
-import hashlib
 from typing import Optional
 
 import psycopg2
 import psycopg2.extras
 
-from ...common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+from ...common.database import get_db
+from ...common.utils import serialize_rows, serialize_value
+
+# Canonical serializers live in services.common.utils; keep the private
+# aliases so the ~70 call sites in this package keep working unchanged.
+_serialize_value = serialize_value
+_serialize_rows = serialize_rows
 
 
 def get_pg():
-    return psycopg2.connect(host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)
-
-
-# ---------------------------------------------------------------------------
-# Shared serialization + context helpers
-# ---------------------------------------------------------------------------
-
-
-def _serialize_value(obj):
-    if hasattr(obj, "isoformat"):
-        return obj.isoformat()
-    if isinstance(obj, (bytes, memoryview)):
-        return hashlib.sha256(bytes(obj)).hexdigest()[:16]
-    return obj
-
-
-def _serialize_rows(rows: list[dict]) -> list[dict]:
-    return [{k: _serialize_value(v) for k, v in row.items()} for row in rows]
+    return get_db()
 
 
 def _looks_like_uuid(value: str) -> bool:

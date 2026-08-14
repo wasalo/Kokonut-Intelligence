@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Optional
 
 import psycopg2
 import psycopg2.extras
+from services.common.database import query
 
 
 def compute_ghg_emissions(
@@ -75,9 +76,7 @@ def compute_tree_carbon(conn, location_id: str) -> Dict[str, Any]:
 
     Returns per-species carbon and total above-ground carbon stock.
     """
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             species_name,
             COALESCE(SUM(tree_count), 0) AS total_trees,
@@ -91,8 +90,6 @@ def compute_tree_carbon(conn, location_id: str) -> Dict[str, Any]:
         GROUP BY species_name
         ORDER BY total_co2e_tonnes DESC
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     species = []
     total_trees = 0
@@ -236,9 +233,7 @@ def compute_regenerative_score(conn, location_id: str) -> Dict[str, Any]:
 
     Returns per-principle scores, total, and percentage.
     """
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             rpc.principle_key,
             rp.name AS principle_name,
@@ -252,8 +247,6 @@ def compute_regenerative_score(conn, location_id: str) -> Dict[str, Any]:
           AND rpc.status IN ('verified', 'published')
         ORDER BY rp.sort_order
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     principles = []
     total_score = 0

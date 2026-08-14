@@ -12,16 +12,14 @@ Usage:
 
 import argparse
 import json
-import sys
 import time
 from datetime import datetime, timezone
 
 from services.common.http import http
 
 from ..common.logging import get_logger
-from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry
+from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry, update_indexer_status
 from .clickhouse_outbox import enqueue
-from .config import CH_HOST, CH_PASSWORD, CH_PORT, CH_USER
 
 logger = get_logger("ingestion.eas")
 
@@ -202,36 +200,6 @@ def get_last_attestation_time(db, chain: str) -> int:
     return int(row[0]) if row and row[0] else 0
 
 
-def update_eas_indexer_status(chain: str, last_attestation_time: int, status: str, error_message: str = None) -> None:
-    """Update EAS sync status without treating timestamps as block numbers."""
-    status_db = get_db()
-    try:
-        with status_db.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO chain_indexer_status
-                    (chain, indexer_type, last_synced_block, last_synced_at, status, error_message, metadata)
-                VALUES (%s, 'eas', NULL, NOW(), %s, %s, %s::jsonb)
-                ON CONFLICT (chain, indexer_type) DO UPDATE SET
-                    last_synced_block = NULL,
-                    last_synced_at = NOW(),
-                    status = EXCLUDED.status,
-                    error_message = EXCLUDED.error_message,
-                    metadata = COALESCE(chain_indexer_status.metadata, '{}'::jsonb) || EXCLUDED.metadata,
-                    updated_at = NOW()
-                """,
-                (
-                    chain,
-                    status,
-                    error_message,
-                    json.dumps({"last_attestation_time": last_attestation_time}),
-                ),
-            )
-        status_db.commit()
-    finally:
-        status_db.close()
-
-
 def run(chain: str = None):
     """Main ingestion entry point."""
     db = get_db()
@@ -296,11 +264,13 @@ def run(chain: str = None):
 
                         time.sleep(0.5)
 
-                    update_eas_indexer_status(c, max_attestation_time, "healthy")
+                    update_indexer_status(c, "eas", status="healthy",
+                                          metadata={"last_attestation_time": max_attestation_time})
                     logger.info("  ✓ Wallet %s...: indexed", w_addr[:10])
 
                 except Exception as e:
-                    update_eas_indexer_status(c, last_attestation_time, "error", str(e))
+                    update_indexer_status(c, "eas", status="error", error_message=str(e),
+                                          metadata={"last_attestation_time": last_attestation_time})
                     logger.error("  ✗ Wallet %s...: %s", w_addr[:10], e)
 
             log_ingestion(

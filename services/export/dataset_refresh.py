@@ -18,11 +18,11 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
+from services.common.database import get_db
+
 
 def get_pg():
-    from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
-
-    return psycopg2.connect(host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)
+    return get_db()
 
 
 def list_datasets(conn, dataset_id: str = None):
