@@ -66,6 +66,9 @@ def query(conn, sql: str, params=None):
     cur = _cursor_for(conn)
     try:
         cur.execute(sql, params or ())
+        # Mocks in tests may not expose ``description``; still honor fetchall().
+        if getattr(cur, "description", None) is None:
+            return [dict(r) for r in cur.fetchall()]
         return [dict(r) for r in cur.fetchall()] if cur.description else []
     finally:
         cur.close()
