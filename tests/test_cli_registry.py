@@ -27,6 +27,7 @@ CLI_REGISTRY: list[tuple[str, list[str]]] = [
     ("services.certificates.cli", []),
     ("services.analytics.cli_consent", ["list"]),
     ("services.analytics.cli_coordination", []),
+    ("services.analytics.cli_cooperative", []),
     ("services.credit_class.cli", ["class list", "batch list", "balance all", "params list"]),
     ("services.crisp.cli", ["list", "weights"]),
     ("services.data_module.cli", []),
