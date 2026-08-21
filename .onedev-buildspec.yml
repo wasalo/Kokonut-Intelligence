@@ -68,6 +68,12 @@ jobs:
         ADMIN_PASSWORD=ci-password
         PUBLIC_URL=http://localhost:8055
         METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
+        # CI namespace isolation: tests reach databases via the Compose network
+        # (PG_HOST=database / CH_HOST=clickhouse), so the published ports are
+        # only for host-side debugging. Use high host ports to avoid conflicts
+        # with other stacks on shared CI hosts (e.g. 'work' on 5432/8123).
+        CI_PG_HOST_PORT=127.0.0.1:15432
+        CI_CH_HOST_PORT=127.0.0.1:18123
         EOF
         echo "=== [step] Supply-chain gates ==="
         ./scripts/check-tracked-secrets.sh
