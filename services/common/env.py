@@ -44,7 +44,10 @@ def _load_via_sops(sops_path: Path) -> bool:
     # Check sops is available
     try:
         result = subprocess.run(
-            ["sops", "-d", "--input-type", "dotenv", "--output-type", "dotenv", str(sops_path)],
+            # No --input-type/--output-type: sops stores the original format in its
+            # metadata and auto-detects it on decrypt. Forcing dotenv here makes
+            # sops re-parse its own JSON envelope as dotenv and fail.
+            ["sops", "-d", str(sops_path)],
             capture_output=True,
             text=True,
             check=True,
