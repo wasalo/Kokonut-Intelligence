@@ -74,3 +74,13 @@ git add deploy/staging/.env.staging.sops && git commit -m "chore(staging): updat
 
 The age public key that can decrypt this file is recorded in
 `deploy/staging/.sops.yaml`. Staging and production use **different** keys.
+
+## Mosquitto (IoT broker) notes
+
+- TLS certs live in `config/mosquitto/certs/` (gitignored). The server cert
+  MUST include `subjectAltName=DNS:localhost,IP:127.0.0.1` — the Docker
+  healthcheck connects to localhost and rejects certs without it.
+- Key files must be readable by the container's `mosquitto` user (uid 1883):
+  `chmod 644 config/mosquitto/certs/*.key` on the host (bind-mount perms apply).
+- The healthcheck identity (`healthcheck.crt` → CN=healthcheck) must appear
+  in `config/mosquitto/acl`.
