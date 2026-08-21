@@ -259,12 +259,10 @@ jobs:
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
         # The staging checkout, age key, and encrypted env live on the HOST at
         # /opt/ki-staging — not inside this job container. Deploy via a helper
-        # container (ki-deploy-helper: sops + age + docker compose) mounted on
-        # the host checkout and the docker socket. The helper runs
-        # deploy-staging.sh with STAGING_SKIP_PULL=1: the host checkout is
-        # fast-forwarded first from this job's checked-out commit.
+        # container (ki-deploy-helper: sops + age + docker compose + git) mounted
+        # on the host checkout and the docker socket. The helper fast-forwards
+        # the host checkout to origin/main, then runs deploy-staging.sh.
         HOST_ROOT=/opt/ki-staging
-        DEPLOYED_SHA="$(git rev-parse --short HEAD)"
         docker run --rm \
           -v "$HOST_ROOT":/opt/ki-staging \
           -v /var/run/docker.sock:/var/run/docker.sock \
@@ -274,7 +272,6 @@ jobs:
             && git fetch origin main --quiet \
             && git reset --hard origin/main --quiet \
             && ./deploy/scripts/deploy-staging.sh"
-        echo "staging deployed at ${DEPLOYED_SHA} (helper verified reset to origin/main)"
     runAs: 0:0
     useTTY: false
     condition: SUCCESSFUL
