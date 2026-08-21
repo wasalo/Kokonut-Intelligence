@@ -2,6 +2,10 @@
 .env
 .env.local
 .env.*.local
+# Plaintext staging/production env files must never be committed.
+# Encrypted *.sops variants are explicitly allowed below.
+deploy/staging/.env.staging
+deploy/production/.env.production
 
 # SOPS encrypted files ARE tracked (safe to commit)
 !.env.sops

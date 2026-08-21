@@ -1,0 +1,44 @@
+# Staging overlay — cerberus host.
+#
+# Usage:
+#   docker compose -p ki-staging \
+#     -f docker-compose.yml \
+#     -f deploy/staging/docker-compose.staging.yml \
+#     up -d
+#
+# Isolated from CI (ki-ci) and production (ki-prod) by Compose project name
+# AND host ports. See docs/deployment-topology.md for the port allocation
+# table and the namespace-isolation invariant.
+#
+# Port allocation (staging): 13001 (metabase), 18056 (directus),
+# 18098 (gateway), 50053 (grpc). All bound to loopback only — staging is
+# not publicly exposed; use an SSH tunnel or a Cloudflare tunnel if remote
+# access is needed.
+#
+# NOTE on `ports: []`: older Compose versions do not remove base-file ports
+# on overlay merge. This file relies on `!override` where base ports would
+# otherwise leak. Verified with: docker compose ... config
+
+services:
+  database:
+    ports: !override []
+  clickhouse:
+    ports: !override []
+  cache:
+    ports: !override []
+  directus:
+    ports: !override
+      - "127.0.0.1:18056:8055"
+  metabase:
+    ports: !override
+      - "127.0.0.1:13001:3000"
+  gateway:
+    ports: !override
+      - "127.0.0.1:18098:8099"
+  grpc:
+    ports: !override
+      - "127.0.0.1:50053:50051"
+  caddy:
+    ports: !override []   # no public TLS on staging yet
+  mosquitto:
+    ports: !override []   # no external MQTT broker on staging

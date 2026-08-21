@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: .*staging.*
+    age: >-
+      age1ptv22fhcprvyg0j482whhfcmdzfmjd9tg7sp9v67wa0qezft2cvqv6s7xr
