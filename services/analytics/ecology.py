@@ -11,6 +11,7 @@ from typing import Dict, Any, List, Optional
 
 import psycopg2
 import psycopg2.extras
+from services.common.database import query
 
 
 def compare_soil_carbon(conn, location_id: str) -> Dict[str, Any]:
@@ -18,9 +19,7 @@ def compare_soil_carbon(conn, location_id: str) -> Dict[str, Any]:
 
     Uses baseline (earliest) vs latest measurements per plot.
     """
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             plot_id,
             p.name as plot_name,
@@ -33,8 +32,6 @@ def compare_soil_carbon(conn, location_id: str) -> Dict[str, Any]:
         WHERE sc.location_id = %s
         ORDER BY sc.plot_id, sc.measurement_date
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     if not rows:
         return {"location_id": location_id, "plots": [], "summary": None}
@@ -100,9 +97,7 @@ def compute_biodiversity(conn, location_id: str) -> Dict[str, Any]:
 
     Returns species count and Shannon diversity index per observation date.
     """
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             observation_date,
             plot_id,
@@ -114,8 +109,6 @@ def compute_biodiversity(conn, location_id: str) -> Dict[str, Any]:
         WHERE location_id = %s
         ORDER BY observation_date
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     if not rows:
         return {"location_id": location_id, "observations": [], "summary": None}
@@ -313,9 +306,7 @@ def ndvi_trends(conn, location_id: str) -> Dict[str, Any]:
 
     Computes per-plot trajectory and overall summary.
     """
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             plot_id,
             p.name as plot_name,
@@ -327,8 +318,6 @@ def ndvi_trends(conn, location_id: str) -> Dict[str, Any]:
         WHERE rs.location_id = %s AND rs.ndvi IS NOT NULL
         ORDER BY rs.plot_id, rs.observation_date
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     if not rows:
         return {"location_id": location_id, "plots": [], "summary": None}
@@ -494,9 +483,7 @@ def water_resilience(conn, location_id: str) -> Dict[str, Any]:
 
 def crop_diversity(conn, location_id: str) -> Dict[str, Any]:
     """Compute crop diversity using Shannon index from crop_cycle joined with crop."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             cc.plot_id,
             p.name as plot_name,
@@ -508,8 +495,6 @@ def crop_diversity(conn, location_id: str) -> Dict[str, Any]:
         WHERE cc.location_id = %s
         ORDER BY cc.season, cc.plot_id
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     if not rows:
         return {"location_id": location_id, "per_plot": [], "summary": None}
@@ -590,9 +575,7 @@ def crop_diversity(conn, location_id: str) -> Dict[str, Any]:
 
 def intervention_impact(conn, location_id: str) -> Dict[str, Any]:
     """Analyze intervention impact from farm_activity records."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             activity_type,
             COUNT(*) as intervention_count,
@@ -604,8 +587,6 @@ def intervention_impact(conn, location_id: str) -> Dict[str, Any]:
         GROUP BY activity_type
         ORDER BY activity_type
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     interventions = []
     total_interventions = 0
@@ -781,9 +762,7 @@ def water_access_summary(conn, location_id: str) -> Dict[str, Any]:
     Computes source types, reliability/quality averages, total monthly cost,
     and an accessibility score (0-100).
     """
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    cur.execute("""
+    sources = query(conn, """
         SELECT
             source_type,
             source_name,
@@ -797,8 +776,6 @@ def water_access_summary(conn, location_id: str) -> Dict[str, Any]:
         WHERE location_id = %s
         ORDER BY reliability_score DESC
     """, (location_id,))
-    sources = [dict(r) for r in cur.fetchall()]
-    cur.close()
 
     if not sources:
         return {

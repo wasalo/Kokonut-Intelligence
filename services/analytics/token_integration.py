@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
+
+from services.common.database import query
 
 from ..common.logging import get_logger
 
@@ -95,8 +97,7 @@ def unbind_tree(conn, binding_id: str, unbinding_tx_hash: str = None) -> bool:
 
 def get_tree_bound_tokens(conn, location_id: str) -> List[Dict[str, Any]]:
     """Query all bound tokens for a farm."""
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
+    rows = query(conn, """
         SELECT
             ttb.id AS binding_id,
             ttb.token_id_onchain,
@@ -116,8 +117,6 @@ def get_tree_bound_tokens(conn, location_id: str) -> List[Dict[str, Any]]:
         WHERE tr.location_id = %s AND ttb.status = 'bound'
         ORDER BY gt.symbol, ttb.binding_date
     """, (location_id,))
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
     return rows
 
 

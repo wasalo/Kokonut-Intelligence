@@ -15,6 +15,9 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- Trigram similarity (useful for search)
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
+-- Query analytics
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
 -- Create application schema
 CREATE SCHEMA IF NOT EXISTS kokonut;
 

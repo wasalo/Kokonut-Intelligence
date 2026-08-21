@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 
+from services.common.cli import print_json
 from services.common.database import get_connection
 from services.common.cli import print_json
 
@@ -30,6 +31,7 @@ def cmd_generate(args):
 
 def cmd_serve(args):
     import uvicorn
+
     from services.metadata_api.app import app
     uvicorn.run(app, host="0.0.0.0", port=args.port)
 

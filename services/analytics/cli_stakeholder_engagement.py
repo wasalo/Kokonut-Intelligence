@@ -6,11 +6,18 @@ import argparse
 import sys
 
 from services.analytics.stakeholder_engagement import (
-    add_objective, create_commitment, create_plan, list_commitment_health,
-    list_plans, record_outcome, schedule_touchpoint, update_commitment,
+    add_objective,
+    create_commitment,
+    create_plan,
+    list_commitment_health,
+    list_plans,
+    record_outcome,
+    schedule_touchpoint,
+    update_commitment,
 )
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 
 def _out(data):
     print_json(data)

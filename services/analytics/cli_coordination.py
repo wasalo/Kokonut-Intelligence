@@ -5,9 +5,18 @@ from __future__ import annotations
 import argparse
 
 from services.analytics.coordination import (
-    activate_alliance, activate_participant, add_benefit, add_contribution,
-    add_knowledge_exchange, add_objective, add_participant, add_risk,
-    approve_alliance, create_alliance, get_coordination_health, list_alliances,
+    activate_alliance,
+    activate_participant,
+    add_benefit,
+    add_contribution,
+    add_knowledge_exchange,
+    add_objective,
+    add_participant,
+    add_risk,
+    approve_alliance,
+    create_alliance,
+    get_coordination_health,
+    list_alliances,
 )
 from services.common.cli import print_json
 

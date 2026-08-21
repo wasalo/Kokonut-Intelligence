@@ -6,8 +6,9 @@ import argparse
 import sys
 
 from services.analytics import stakeholder_identity_resolution as identity
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 
 def _out(value):
     print_json(value)

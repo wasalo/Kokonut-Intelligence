@@ -190,24 +190,32 @@ def update_indexer_status(
     last_synced_block: Optional[int] = None,
     status: str = "syncing",
     error_message: Optional[str] = None,
+    metadata: Optional[dict] = None,
 ) -> None:
-    """Update chain_indexer_status table."""
+    """Update chain_indexer_status table.
+
+    ``metadata`` (optional) is merged into the existing JSONB metadata
+    column; used by indexers that track non-block positions (e.g. EAS
+    attestation time) without writing a fake block number.
+    """
     db = None
     try:
         db = get_db()
         with db.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO chain_indexer_status (chain, indexer_type, last_synced_block, last_synced_at, status, error_message)
-                VALUES (%s, %s, %s, NOW(), %s, %s)
+                INSERT INTO chain_indexer_status (chain, indexer_type, last_synced_block, last_synced_at, status, error_message, metadata)
+                VALUES (%s, %s, %s, NOW(), %s, %s, %s)
                 ON CONFLICT (chain, indexer_type) DO UPDATE SET
                     last_synced_block = EXCLUDED.last_synced_block,
                     last_synced_at = NOW(),
                     status = EXCLUDED.status,
                     error_message = EXCLUDED.error_message,
+                    metadata = COALESCE(chain_indexer_status.metadata, '{}'::jsonb) || EXCLUDED.metadata,
                     updated_at = NOW()
                 """,
-                (chain, indexer_type, last_synced_block, status, error_message),
+                (chain, indexer_type, last_synced_block, status, error_message,
+                 json.dumps(metadata or {})),
             )
         db.commit()
     except Exception as e:
@@ -276,3 +284,17 @@ def retry(
 def now_utc() -> datetime:
     """Current UTC time."""
     return datetime.now(timezone.utc)
+
+
+def batch_ranges(start: int, end: int, batch_size: int):
+    """Yield ``(batch_start, batch_end)`` inclusive block ranges over [start, end].
+
+    Shared by the block-based indexers (gnosis, baal, rpc) so the
+    ``while cur <= end: batch_end = min(...)`` loop is not re-implemented
+    in each indexer.
+    """
+    current = start
+    while current <= end:
+        yield current, min(current + batch_size - 1, end)
+        current = current + batch_size
+

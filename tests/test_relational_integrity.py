@@ -27,4 +27,4 @@ def test_trusted_pilot_seed_reconciliation_is_explicit():
     script = Path("scripts/seed-pilot.sh").read_text()
     assert "kokonut.seed_context" in sql
     assert "Pilot context reconciled to crop_cycle" in seed
-    assert "apply_pilot_seed" in script
+    assert "seed_apply" in script

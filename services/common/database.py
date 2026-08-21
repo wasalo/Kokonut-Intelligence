@@ -47,6 +47,39 @@ def get_db():
     )
 
 
+def _cursor_for(conn):
+    """Return a RealDictCursor from a raw psycopg2 connection."""
+    return conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+
+def query(conn, sql: str, params=None):
+    """Run *sql* and return all rows as a list of dicts.
+
+    Accepts either a raw psycopg2 connection (from :func:`get_db`) or a
+    :class:`DatabaseConnection` (from :func:`get_connection`), so both
+    worlds converge on one query helper. This replaces the pervasive
+    ``conn.cursor(cursor_factory=RealDictCursor)`` +
+    ``[dict(r) for r in cur.fetchall()]`` boilerplate.
+    """
+    if isinstance(conn, DatabaseConnection):
+        return conn.execute(sql, params or {}).all()
+    cur = _cursor_for(conn)
+    try:
+        cur.execute(sql, params or ())
+        # Mocks in tests may not expose ``description``; still honor fetchall().
+        if getattr(cur, "description", None) is None:
+            return [dict(r) for r in cur.fetchall()]
+        return [dict(r) for r in cur.fetchall()] if cur.description else []
+    finally:
+        cur.close()
+
+
+def query_one(conn, sql: str, params=None):
+    """Like :func:`query` but return the first row dict (or None)."""
+    rows = query(conn, sql, params)
+    return rows[0] if rows else None
+
+
 class MappingResult:
     """Eager result wrapper exposing the subset used by credit services."""
 

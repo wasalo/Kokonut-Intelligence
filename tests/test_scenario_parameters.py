@@ -100,9 +100,13 @@ def test_scenario_param_sample_triangular() -> None:
     p = ScenarioParam(key="test", category="yield", name="Test", unit="ratio",
                       base_value=0.05, worst_value=0.15, best_value=0.02,
                       distribution="triangular")
-    samples = [p.sample() for _ in range(100)]
+    samples = [p.sample() for _ in range(2000)]
     assert all(0.02 <= s <= 0.15 for s in samples)
-    assert abs(statistics.mean(samples) - 0.05) < 0.03
+    # Triangular(a=0.02, b=0.15, c=0.05) has mean (a+b+c)/3 ≈ 0.0733, not the
+    # mode. Assert against the true distribution mean with a tolerance sized
+    # for n=2000 (std ≈ 0.028 → SE ≈ 0.0006; 0.01 is ~16 SE, no flaky tails).
+    expected_mean = (0.02 + 0.15 + 0.05) / 3
+    assert abs(statistics.mean(samples) - expected_mean) < 0.01
 
 
 def test_scenario_param_sample_normal() -> None:

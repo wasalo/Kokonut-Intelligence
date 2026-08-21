@@ -7,8 +7,9 @@ import sys
 
 from services.analytics import cooperative_governance as governance
 from services.analytics import stakeholder_trust as trust
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 
 def out(value):
     print_json(value)

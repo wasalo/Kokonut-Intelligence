@@ -12,7 +12,6 @@ Usage:
 
 import argparse
 import csv
-import hashlib
 import json
 import os
 import re
@@ -24,18 +23,15 @@ from typing import Optional
 import psycopg2
 import psycopg2.extras
 
+from ..common.database import get_db
 from ..common.db import (
     CH_DB,
     CH_HOST,
     CH_PASSWORD,
     CH_PORT,
     CH_USER,
-    PG_DB,
-    PG_HOST,
-    PG_PASSWORD,
-    PG_PORT,
-    PG_USER,
 )
+from ..common.utils import serialize_value
 
 ALLOWED_COLLECTIONS = frozenset(
     {
@@ -127,7 +123,7 @@ def _sanitize_filename(name: str) -> str:
 
 
 def get_pg():
-    return psycopg2.connect(host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD)
+    return get_db()
 
 
 def get_ch():
@@ -286,15 +282,10 @@ class Exporter:
 
     @staticmethod
     def _clean_row(row):
-        clean = {}
-        for k, v in dict(row).items():
-            if hasattr(v, "isoformat"):
-                clean[k] = v.isoformat()
-            elif isinstance(v, (bytes, memoryview)):
-                clean[k] = hashlib.sha256(bytes(v)).hexdigest()[:16]
-            else:
-                clean[k] = v
-        return clean
+        return {
+            k: serialize_value(v)
+            for k, v in dict(row).items()
+        }
 
     def _apply_default_governance_filter(
         self, collection: str, filters: Optional[dict], include_drafts: bool

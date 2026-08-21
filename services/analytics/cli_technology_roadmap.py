@@ -6,9 +6,15 @@ import argparse
 import sys
 
 from services.analytics.technology_roadmap import (
-    add_alternative, add_area, add_driver, add_requirement,
-    create_roadmap, get_roadmap_detail, list_roadmaps,
-    recommend_alternatives, review_roadmap,
+    add_alternative,
+    add_area,
+    add_driver,
+    add_requirement,
+    create_roadmap,
+    get_roadmap_detail,
+    list_roadmaps,
+    recommend_alternatives,
+    review_roadmap,
 )
 from services.common.cli import print_json
 

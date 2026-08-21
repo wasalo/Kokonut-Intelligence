@@ -6,11 +6,18 @@ import argparse
 import sys
 
 from services.analytics.strategy_map import (
-    create_strategy_entry, get_strategy_entry, list_strategy_entries,
-    update_strategy_entry, create_initiative, get_initiative,
-    list_initiatives, update_initiative,
-    map_capability, get_strategy_capabilities,
-    get_execution_dashboard, get_perspective_summary,
+    create_initiative,
+    create_strategy_entry,
+    get_execution_dashboard,
+    get_initiative,
+    get_perspective_summary,
+    get_strategy_capabilities,
+    get_strategy_entry,
+    list_initiatives,
+    list_strategy_entries,
+    map_capability,
+    update_initiative,
+    update_strategy_entry,
 )
 from services.common.cli import print_json
 

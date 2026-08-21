@@ -6,10 +6,14 @@ import argparse
 import sys
 
 from services.analytics.consent_resolver import (
-    check_consent, list_effective_consent, record_consent, withdraw_consent,
+    check_consent,
+    list_effective_consent,
+    record_consent,
+    withdraw_consent,
 )
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 
 def _out(data):
     print_json(data)

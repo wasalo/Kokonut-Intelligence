@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import subprocess
 import socket
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
 
 from services.common.logging import get_logger
 
@@ -72,14 +70,16 @@ def _check_clickhouse() -> HealthStatus:
 
 def _check_directus() -> HealthStatus:
     """Check Directus API health."""
+    import os
     import time
+
+    from services.common.http import http
+
     start = time.monotonic()
     try:
-        import urllib.request
-        import os
         url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
-        req = urllib.request.Request(f"{url}/server/ping")
-        resp = urllib.request.urlopen(req, timeout=5)
+        resp = http.get(f"{url}/server/ping", timeout=5)
+        resp.raise_for_status()
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("directus", True, True, "Directus responding", latency)
     except Exception:
@@ -118,7 +118,7 @@ def check_health(services: list[str] | None = None) -> list[HealthStatus]:
     Returns:
         List of HealthStatus results.
     """
-    from services.core.features import FEATURES, is_enabled
+    from services.core.features import FEATURES
 
     results = []
     targets = services or [name for name, cfg in FEATURES.items() if cfg["enabled"]]

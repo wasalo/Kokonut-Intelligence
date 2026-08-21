@@ -4,6 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/common.sh"
 CHECKPOINT=""
 CONFIRM=false
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
@@ -25,13 +27,7 @@ if [ "$CONFIRM" != "true" ] || [ -z "$CHECKPOINT" ]; then
     exit 2
 fi
 
-if [ -f "$PROJECT_DIR/.env.sops" ]; then
-    # shellcheck disable=SC1091
-    source "$SCRIPT_DIR/load-secrets.sh"
-elif [ "${KOKONUT_ALLOW_PLAINTEXT_ENV:-}" != "true" ]; then
-    echo "Encrypted .env.sops is required; set KOKONUT_ALLOW_PLAINTEXT_ENV=true for local fallback." >&2
-    exit 1
-fi
+source_secrets strict
 
 : "${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY must be set}"
 : "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}"
@@ -42,9 +38,6 @@ if [[ ! "$CLICKHOUSE_DATABASE" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
     exit 2
 fi
 
-compose() {
-    COMPOSE_FILE="$COMPOSE_FILE" docker compose --project-directory "$PROJECT_DIR" "$@"
-}
 
 "$SCRIPT_DIR/verify-backup.sh" "$CHECKPOINT"
 

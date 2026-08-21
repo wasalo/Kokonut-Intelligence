@@ -4,6 +4,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/common.sh"
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
 UPGRADE_OPERATOR="${KOKONUT_OPERATOR:-$(id -un)}"
 TARGET_VERSION="$(tr -d '[:space:]' < "$PROJECT_DIR/VERSION")"
@@ -50,17 +52,8 @@ if [ -n "$(git -C "$PROJECT_DIR" status --porcelain)" ]; then
     exit 1
 fi
 
-if [ -f "$PROJECT_DIR/.env.sops" ]; then
-    # shellcheck disable=SC1091
-    source "$SCRIPT_DIR/load-secrets.sh"
-elif [ "${KOKONUT_ALLOW_PLAINTEXT_ENV:-}" != "true" ]; then
-    echo "Encrypted .env.sops is required; set KOKONUT_ALLOW_PLAINTEXT_ENV=true for local fallback." >&2
-    exit 1
-fi
+source_secrets strict
 
-compose() {
-    COMPOSE_FILE="$COMPOSE_FILE" docker compose --project-directory "$PROJECT_DIR" "$@"
-}
 
 db_query() {
     compose exec -T database psql -X -U kokonut -d kokonut_intelligence \

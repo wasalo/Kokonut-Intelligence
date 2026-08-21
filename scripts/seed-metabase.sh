@@ -6,22 +6,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/common.sh"
 
 echo "=== Kokonut Intelligence Platform — Metabase Setup ==="
 echo ""
 
 # Source secrets (SOPS encrypted .env.sops, or plaintext .env fallback)
-if [ -f "$PROJECT_DIR/.env.sops" ]; then
-    source "$SCRIPT_DIR/load-secrets.sh"
-elif [ -f "$PROJECT_DIR/.env" ]; then
-    if [ "${KOKONUT_ALLOW_PLAINTEXT_ENV:-}" = "true" ]; then
-        set -a
-        source "$PROJECT_DIR/.env"
-        set +a
-    else
-        echo "WARNING: No .env.sops found. Set KOKONUT_ALLOW_PLAINTEXT_ENV=true to use plaintext .env." >&2
-    fi
-fi
+source_secrets warn
 
 # Wait for Metabase
 echo "Waiting for Metabase to start (this may take a few minutes)..."

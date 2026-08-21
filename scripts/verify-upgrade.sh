@@ -4,13 +4,12 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/common.sh"
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
 EXPECTED_VERSION="${KOKONUT_EXPECTED_VERSION:-$(tr -d '[:space:]' < "$PROJECT_DIR/VERSION")}"
 EXPECTED_GIT_SHA="${KOKONUT_EXPECTED_GIT_SHA:-$(git -C "$PROJECT_DIR" rev-parse HEAD)}"
 
-compose() {
-    COMPOSE_FILE="$COMPOSE_FILE" docker compose --project-directory "$PROJECT_DIR" "$@"
-}
 
 running() {
     [ -n "$(compose ps --status running --services "$1")" ]

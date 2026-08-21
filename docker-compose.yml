@@ -32,7 +32,7 @@ services:
     image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8055:8055"
+      - "${DIRECTUS_HOST_PORT:-127.0.0.1:8055}:8055"
     volumes:
       - directus-uploads:/directus/uploads
       - ./extensions:/directus/extensions
@@ -142,7 +142,7 @@ services:
     expose:
       - "8099"
     ports:
-      - "0.0.0.0:8099:8099"
+      - "${GATEWAY_HOST_PORT:-0.0.0.0:8099}:8099"
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-development}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
@@ -203,7 +203,7 @@ services:
       dockerfile: Dockerfile.grpc
     restart: unless-stopped
     ports:
-      - "127.0.0.1:50051:50051"
+      - "${GRPC_HOST_PORT:-127.0.0.1:50051}:50051"
     environment:
       - PG_HOST=database
       - PG_PORT=5432

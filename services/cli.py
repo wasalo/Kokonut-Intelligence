@@ -19,7 +19,7 @@ shared helpers in :mod:`services.common.cli` (``run``, ``print_json``,
 from __future__ import annotations
 
 import importlib
-from typing import Callable
+from typing import Any, Callable
 
 import typer
 
@@ -68,7 +68,30 @@ _MOUNTED = [
     ("agents", "services.agents.cli", "Agent task catalogue"),
     ("export", "services.export.cli", "Report generation & exports"),
     ("systems", "services.systems.cli", "Systems-thinking tooling"),
+    # Off-chain governance: stakeholder/circle/tactical records backed by
+    # PostgreSQL (argparse). Distinct from the on-chain `dao` group below;
+    # see services/governance/README.md for the boundary.
     ("governance", "services.analytics.cli_governance_roles", "Governance role commands"),
+    # analytics/cli_*.py — the per-domain analytics CLIs (argparse). Each is
+    # reachable standalone via python3 -m and mounted here for the unified tree.
+    ("stakeholders", "services.analytics.cli_stakeholders", "Stakeholder registry"),
+    ("consent", "services.analytics.cli_consent", "Stakeholder consent"),
+    ("coordination", "services.analytics.cli_coordination", "Coordination records"),
+    ("capability-map", "services.analytics.cli_capability_map", "Capability map"),
+    ("strategy-map", "services.analytics.cli_strategy_map", "Strategy map"),
+    ("vision-mission", "services.analytics.cli_vision_mission", "Vision/mission/values"),
+    ("value-stream-defs", "services.analytics.cli_value_stream_defs", "Value stream definitions"),
+    ("technology-roadmap", "services.analytics.cli_technology_roadmap", "Technology roadmap"),
+    ("governance-links", "services.analytics.cli_governance_links", "Governance links"),
+    ("governance-proposals", "services.analytics.cli_governance_proposals", "Governance proposals"),
+    ("governance-tactical", "services.analytics.cli_governance_tactical", "Governance tactical"),
+    ("governance-tensions", "services.analytics.cli_governance_tensions", "Governance tensions"),
+    ("stakeholder-decisions", "services.analytics.cli_stakeholder_decisions", "Stakeholder decisions"),
+    ("stakeholder-engagement", "services.analytics.cli_stakeholder_engagement", "Stakeholder engagement"),
+    ("stakeholder-grievances", "services.analytics.cli_stakeholder_grievances", "Stakeholder grievances"),
+    ("stakeholder-identity", "services.analytics.cli_stakeholder_identity", "Stakeholder identity"),
+    ("stakeholder-representation", "services.analytics.cli_stakeholder_representation", "Stakeholder representation"),
+    ("stakeholder-trust", "services.analytics.cli_stakeholder_trust", "Stakeholder trust"),
 ]
 
 for _name, _mod, _help in _MOUNTED:

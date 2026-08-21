@@ -27,8 +27,26 @@ Usage:
 """
 
 import argparse
-import sys
-from services.common.cli import print_json
+
+from services.common.cli import get_connection, print_json
+
+# (argparse_attr, module, function) — all take (conn, location_id).
+_DB_LOCATION_COMMANDS = [
+    ("soil_carbon", "ecology", "compare_soil_carbon"),
+    ("biodiversity", "ecology", "compute_biodiversity"),
+    ("ndvi_trends", "ecology", "ndvi_trends"),
+    ("water_resilience", "ecology", "water_resilience"),
+    ("crop_diversity", "ecology", "crop_diversity"),
+    ("intervention_impact", "ecology", "intervention_impact"),
+    ("soil_health", "ecology", "soil_health"),
+    ("water_access", "ecology", "water_access_summary"),
+    ("environmental_baseline", "ecology", "environmental_baseline"),
+    ("carbon_balance", "carbon_balance", "compute_carbon_balance"),
+    ("ghg_emissions", "carbon_balance", "compute_ghg_emissions"),
+    ("tree_carbon", "carbon_balance", "compute_tree_carbon"),
+    ("regenerative_score", "carbon_balance", "compute_regenerative_score"),
+]
+
 
 def main():
     parser = argparse.ArgumentParser(description="Kokonut Intelligence Ecology Analytics")
@@ -64,237 +82,109 @@ def main():
     parser.add_argument("--tactical-layer", action="store_true", help="Composite tactical-layer report (fork, double-check, pin, zwischenzug, promotion)")
     args = parser.parse_args()
 
-    from ..ingestion.base import get_db
+    # --- Standard (conn, location_id) commands via dispatch table ----------
+    for attr, module_name, func_name in _DB_LOCATION_COMMANDS:
+        if getattr(args, attr):
+            if not args.location_id:
+                parser.error(f"--{attr.replace('_', '-')} requires --location-id")
+            from importlib import import_module
 
-    if args.soil_carbon:
-        if not args.location_id:
-            parser.error("--soil-carbon requires --location-id")
-        from .ecology import compare_soil_carbon
-        conn = get_db()
-        result = compare_soil_carbon(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
+            mod = import_module(f"services.analytics.{module_name}")
+            with get_connection() as conn:
+                result = getattr(mod, func_name)(conn, args.location_id)
+            print_json(result)
+            return
 
-    if args.biodiversity:
-        if not args.location_id:
-            parser.error("--biodiversity requires --location-id")
-        from .ecology import compute_biodiversity
-        conn = get_db()
-        result = compute_biodiversity(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
+    # --- No-connection commands ---------------------------------------------
     if args.compare_scenarios:
         from .ecology import compare_scenarios
-        result = compare_scenarios(args.compare_scenarios)
-        print_json(result)
+
+        print_json(compare_scenarios(args.compare_scenarios))
         return
 
     if args.sensitivity:
         if not args.scenario_id:
             parser.error("--sensitivity requires --scenario-id")
         from .ecology import sensitivity_analysis
+
         result = sensitivity_analysis(args.scenario_id, args.variable, args.range_pct, args.steps)
         print_json(result)
         return
 
-    if args.ndvi_trends:
-        if not args.location_id:
-            parser.error("--ndvi-trends requires --location-id")
-        from .ecology import ndvi_trends
-        conn = get_db()
-        result = ndvi_trends(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.water_resilience:
-        if not args.location_id:
-            parser.error("--water-resilience requires --location-id")
-        from .ecology import water_resilience
-        conn = get_db()
-        result = water_resilience(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.crop_diversity:
-        if not args.location_id:
-            parser.error("--crop-diversity requires --location-id")
-        from .ecology import crop_diversity
-        conn = get_db()
-        result = crop_diversity(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.intervention_impact:
-        if not args.location_id:
-            parser.error("--intervention-impact requires --location-id")
-        from .ecology import intervention_impact
-        conn = get_db()
-        result = intervention_impact(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.soil_health:
-        if not args.location_id:
-            parser.error("--soil-health requires --location-id")
-        from .ecology import soil_health
-        conn = get_db()
-        result = soil_health(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.water_access:
-        if not args.location_id:
-            parser.error("--water-access requires --location-id")
-        from .ecology import water_access_summary
-        conn = get_db()
-        result = water_access_summary(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.environmental_baseline:
-        if not args.location_id:
-            parser.error("--environmental-baseline requires --location-id")
-        from .ecology import environmental_baseline
-        conn = get_db()
-        result = environmental_baseline(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.carbon_balance:
-        if not args.location_id:
-            parser.error("--carbon-balance requires --location-id")
-        from .carbon_balance import compute_carbon_balance
-        conn = get_db()
-        result = compute_carbon_balance(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.ghg_emissions:
-        if not args.location_id:
-            parser.error("--ghg-emissions requires --location-id")
-        from .carbon_balance import compute_ghg_emissions
-        conn = get_db()
-        result = compute_ghg_emissions(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.tree_carbon:
-        if not args.location_id:
-            parser.error("--tree-carbon requires --location-id")
-        from .carbon_balance import compute_tree_carbon
-        conn = get_db()
-        result = compute_tree_carbon(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
-    if args.regenerative_score:
-        if not args.location_id:
-            parser.error("--regenerative-score requires --location-id")
-        from .carbon_balance import compute_regenerative_score
-        conn = get_db()
-        result = compute_regenerative_score(conn, args.location_id)
-        conn.close()
-        print_json(result)
-        return
-
+    # --- Connection-only commands (no location_id required) -----------------
     if args.emission_factors:
         from .carbon_balance import list_emission_factors
-        conn = get_db()
-        result = list_emission_factors(conn)
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(list_emission_factors(conn))
         return
 
     if args.carbon_benchmarks:
         from .carbon_balance import list_carbon_benchmarks
-        conn = get_db()
-        result = list_carbon_benchmarks(conn)
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(list_carbon_benchmarks(conn))
         return
 
     if args.portfolio_summary:
         from .portfolio import portfolio_theme_summary
-        conn = get_db()
-        result = portfolio_theme_summary(conn)
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(portfolio_theme_summary(conn))
         return
 
     if args.ebf_portfolio_summary:
         from .portfolio import ebf_portfolio_summary
-        conn = get_db()
-        result = ebf_portfolio_summary(conn)
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(ebf_portfolio_summary(conn))
         return
 
+    # --- Custom-argument commands -------------------------------------------
     if args.pin_dependency:
         if not args.location_id:
             parser.error("--pin-dependency requires --location-id")
         from .pin_dependency import detect_pin_blocks
-        conn = get_db()
-        result = detect_pin_blocks(conn, location_id=args.location_id)
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(detect_pin_blocks(conn, location_id=args.location_id))
         return
 
     if args.propose_pin:
         if not args.location_id:
             parser.error("--propose-pin requires --location-id")
         from .pin_dependency import propose_pin_blocks
-        conn = get_db()
-        result = propose_pin_blocks(conn, location_id=args.location_id, actor="cli")
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(propose_pin_blocks(conn, location_id=args.location_id, actor="cli"))
         return
 
     if args.promotion_ladder:
         from .promotion_ladder import compute_promotion_ladder
-        conn = get_db()
-        result = compute_promotion_ladder(conn, location_id=args.location_id)
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(compute_promotion_ladder(conn, location_id=args.location_id))
         return
 
     if args.zwischenzug:
-        from ..common.env import get_db
         from . import automation
-        conn = get_db()
-        result = automation.detect_zwischenzug(conn, location_id=args.location_id)
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(automation.detect_zwischenzug(conn, location_id=args.location_id))
         return
 
     if args.propose_zwischenzug:
-        from ..common.env import get_db
         from . import automation
-        conn = get_db()
-        result = automation.propose_zwischenzug(conn, location_id=args.location_id, actor="cli")
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(automation.propose_zwischenzug(conn, location_id=args.location_id, actor="cli"))
         return
 
     if args.tactical_layer:
-        from ..common.env import get_db
         from ..export.report_generator import generate_tactical_layer
-        conn = get_db()
-        result = generate_tactical_layer(conn, location_id=args.location_id)
-        conn.close()
-        print_json(result)
+
+        with get_connection() as conn:
+            print_json(generate_tactical_layer(conn, location_id=args.location_id))
         return
 
     parser.print_help()

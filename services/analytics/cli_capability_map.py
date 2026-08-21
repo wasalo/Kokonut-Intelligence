@@ -6,11 +6,21 @@ import argparse
 import sys
 
 from services.analytics.capability_map import (
-    create_capability, get_capability, list_capabilities, update_capability,
-    map_process, unmap_process, get_capability_processes,
-    map_service, unmap_service, get_capability_services,
-    record_maturity, get_maturity_history,
-    get_capability_dashboard, get_coverage_analysis, get_hierarchy,
+    create_capability,
+    get_capability,
+    get_capability_dashboard,
+    get_capability_processes,
+    get_capability_services,
+    get_coverage_analysis,
+    get_hierarchy,
+    get_maturity_history,
+    list_capabilities,
+    map_process,
+    map_service,
+    record_maturity,
+    unmap_process,
+    unmap_service,
+    update_capability,
 )
 from services.common.cli import print_json
 

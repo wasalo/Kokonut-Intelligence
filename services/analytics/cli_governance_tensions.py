@@ -6,7 +6,6 @@ import argparse
 
 from services.analytics.governance_tensions import (
     attach_work_item,
-    defer_tension,
     get_tension,
     link_record,
     list_tensions,

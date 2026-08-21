@@ -6,6 +6,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/common.sh"
 
 echo "=== Kokonut Intelligence — Pilot Farm Data ==="
 echo ""
@@ -27,31 +29,8 @@ else
     exit 1
 fi
 
-COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
-DB_SERVICE="${DB_SERVICE:-database}"
-DB_WAIT_ATTEMPTS="${DB_WAIT_ATTEMPTS:-60}"
 
-apply_pilot_seed() {
-    local seed_file="$1"
-    local tmp
-    tmp=$(mktemp)
-    printf "SET kokonut.seed_context = 'pilot';\n" > "$tmp"
-    cat "$seed_file" >> "$tmp"
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$tmp"
-    rm -f "$tmp"
-}
 
-wait_for_postgres() {
-    local attempt=1
-    until docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" pg_isready -U kokonut -d kokonut_intelligence > /dev/null 2>&1; do
-        if [ "$attempt" -ge "$DB_WAIT_ATTEMPTS" ]; then
-            echo "ERROR: PostgreSQL service '$DB_SERVICE' is not ready after $((DB_WAIT_ATTEMPTS * 2)) seconds."
-            return 1
-        fi
-        attempt=$((attempt + 1))
-        sleep 2
-    done
-}
 
 # Wait for database
 echo "Waiting for PostgreSQL..."
@@ -73,14 +52,14 @@ for seed_file in \
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        apply_pilot_seed "$seed_file"
+        seed_apply "$seed_file" pilot
     fi
 done
 
 for seed_file in "$SEED_DIR"/*_pilot_*.sql; do
     filename=$(basename "$seed_file")
     echo "  Applying: $filename"
-    apply_pilot_seed "$seed_file"
+    seed_apply "$seed_file" pilot
 done
 
 # MVP support seeds whose filenames are not *_pilot_*.sql.
@@ -94,7 +73,7 @@ for seed_file in \
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        apply_pilot_seed "$seed_file"
+        seed_apply "$seed_file" pilot
     fi
 done
 
@@ -106,7 +85,7 @@ for seed_file in \
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        apply_pilot_seed "$seed_file"
+        seed_apply "$seed_file" pilot
     fi
 done
 

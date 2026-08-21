@@ -6,15 +6,22 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, List, Optional
-from unittest.mock import MagicMock
 
 import psycopg2
 import psycopg2.extras
 import pytest
 
-
 PROJECT_DIR = Path(__file__).parent.parent
+
+# Local test runs load the plaintext .env fallback unless CI explicitly opts
+# into encrypted secrets. CI still requires KOKONUT_ALLOW_PLAINTEXT_ENV=true
+# (or injected secrets) via ci-check.sh; this default only makes `pytest`
+# on a dev machine behave like the documented plaintext fallback.
+# NOTE: do not hardcode POSTGRES_PASSWORD here — credentials must be resolved
+# from .env via services.common.db.load_dotenv() so the same value (local or
+# CI's ci-placeholder) wins. A hardcoded default would shadow .env and break
+# auth against a DB whose password differs.
+os.environ.setdefault("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -133,6 +140,23 @@ def db():
         conn.close()
     except Exception as exc:
         pytest.skip(f"no database available: {exc}")
+
+
+# Canonical Kokonut Adelphi location used across the analytics test suite.
+ADELPHI_LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
+
+
+@pytest.fixture
+def location_id() -> str:
+    """Return the canonical Adelphi location UUID."""
+    return ADELPHI_LOCATION_ID
+
+
+def assert_sql_contains(path, *fragments: str) -> None:
+    """Assert a SQL file contains each fragment (schema-integrity tests)."""
+    text = path.read_text()
+    missing = [frag for frag in fragments if frag not in text]
+    assert not missing, f"{path.name} missing expected fragments: {missing}"
 
 
 @pytest.fixture
