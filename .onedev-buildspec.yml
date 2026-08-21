@@ -21,6 +21,26 @@ jobs:
       commands: |
         set -euo pipefail
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+        # ── Compose namespace isolation (mandatory) ─────────────────────────
+        # CI must never share a Compose project with any long-running stack.
+        # The default project name derives from the workspace directory name,
+        # which can collide with deployed stacks (historically: project "work").
+        # Pin the namespace so every docker compose call below targets an
+        # isolated, disposable project.
+        export COMPOSE_PROJECT_NAME=ki-ci
+        echo "=== [step] Pre-flight: compose namespace guard ==="
+        if docker compose ls 2>/dev/null | grep -qE "^work[[:space:]]"; then
+          if docker compose -p work ps --format '{{.Name}}' 2>/dev/null | grep -q .; then
+            echo "GUARD: a 'work' Compose project exists on this host. CI is namespace-isolated"
+            echo "under 'ki-ci' and will not touch it. Proceeding with isolated project."
+          fi
+        fi
+        if [ "${COMPOSE_PROJECT_NAME}" != "ki-ci" ]; then
+          echo "FATAL: COMPOSE_PROJECT_NAME must be 'ki-ci' in CI. Aborting to prevent" >&2
+          echo "cross-project contamination with non-CI Compose stacks." >&2
+          exit 1
+        fi
+        echo "Compose namespace: ${COMPOSE_PROJECT_NAME} (isolated from host stacks)"
         echo "=== [step] Installing Docker CLI ==="
         apt-get update -qq && apt-get install -y -qq curl ca-certificates git >/dev/null
         install -m 0755 -d /etc/apt/keyrings
