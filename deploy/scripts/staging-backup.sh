@@ -10,6 +10,9 @@ BACKUP_ROOT="${BACKUP_DIR:-$STAGING_ROOT/backups}"
 COMPOSE_PROJECT="ki-staging"
 KEEP="${STAGING_BACKUP_KEEP:-7}"
 export BACKUP_DIR="$BACKUP_ROOT"
+# backup.sh decrypts .env.sops via sops; cron has no env, so point it at
+# the staging age key explicitly.
+export SOPS_AGE_KEY_FILE="$STAGING_ROOT/.age-key"
 
 log() { printf '[staging-backup] %s\n' "$*"; }
 
