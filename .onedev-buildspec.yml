@@ -74,6 +74,9 @@ jobs:
         # with other stacks on shared CI hosts (e.g. 'work' on 5432/8123).
         CI_PG_HOST_PORT=127.0.0.1:15432
         CI_CH_HOST_PORT=127.0.0.1:18123
+        DIRECTUS_HOST_PORT=127.0.0.1:18055
+        GATEWAY_HOST_PORT=127.0.0.1:18099
+        GRPC_HOST_PORT=127.0.0.1:50052
         EOF
         echo "=== [step] Supply-chain gates ==="
         ./scripts/check-tracked-secrets.sh
