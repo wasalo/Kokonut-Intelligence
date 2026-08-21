@@ -63,7 +63,10 @@ umask 077
 cleanup() { rm -f "$ENV_PLAIN"; }
 trap cleanup EXIT
 export SOPS_AGE_KEY_FILE="$AGE_KEY_FILE"
-sops -d --input-type dotenv --output-type dotenv "$ENV_FILE" > "$ENV_PLAIN"
+# No --input-type/--output-type on decrypt: sops stores the original format
+# in metadata and auto-detects it. Forcing dotenv here makes sops re-parse
+# its own JSON envelope as dotenv and fail with "invalid dotenv input".
+sops -d "$ENV_FILE" > "$ENV_PLAIN"
 log "Environment decrypted ($(grep -c '=' "$ENV_PLAIN") vars)"
 
 # ── 3. Compose up ───────────────────────────────────────────────────────
