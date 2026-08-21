@@ -1,10 +1,4 @@
-# SOPS configuration for staging secrets.
-# Encrypts .env.staging.sops to the staging age key. The private key lives
-# ONLY on the staging host (/opt/ki-staging/.age-key) — never in the repo.
-#
-# Rotate by adding the new recipient, re-encrypting with `sops updatekeys`,
-# and only then removing the old recipient.
 creation_rules:
-  - path_regex: \.env\.staging\.sops$
+  - path_regex: .*staging.*
     age: >-
-      age1 REPLACE_WITH_STAGING_AGE_PUBLIC_KEY
+      age1ptv22fhcprvyg0j482whhfcmdzfmjd9tg7sp9v67wa0qezft2cvqv6s7xr
