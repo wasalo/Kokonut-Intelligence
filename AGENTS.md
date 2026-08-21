@@ -1284,3 +1284,12 @@ Commands:
 - Agent high-risk actions (`publish`, `attest`, `onchain_submit`, `delete`, `bulk_update`, `financial_write`, `status_change_to_published`) must be logged with human approval required.
 - `dashboard_dataset` refresh executes stored SQL queries from `dashboard_dataset.sql_query`.
 - `report_snapshot` `--auto` flag generates all 42 report types in one run.
+
+## Deployment
+
+- Environments: CI (`ki-ci`, disposable), staging (`ki-staging`, cerberus, auto-deploys on merge to main), production (`ki-prod`, dedicated host, manual promotion with `DEPLOY_CONFIRM=yes`). Full matrix: `docs/deployment-topology.md`.
+- **Namespace invariant**: every Compose project pins its project name (`-p`/`COMPOSE_PROJECT_NAME`); never derive it from a directory name on a shared host (KI-390).
+- Staging deploy: `deploy/scripts/deploy-staging.sh` (idempotent; secrets via SOPS+age, key on host only).
+- Production deploy: `deploy/scripts/deploy-production.sh` — takes a backup checkpoint first; requires `DEPLOY_CONFIRM=yes`; on failed health check it prints rollback instructions and never auto-rolls back.
+- Host port allocations are documented in `docs/deployment-topology.md`; new environments must take unused high ports and update that table.
+- Plaintext env files (`deploy/*/\.env.*` without `.sops`) are gitignored; only encrypted `.sops` variants are committed.
