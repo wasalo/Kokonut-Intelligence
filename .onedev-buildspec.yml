@@ -257,11 +257,24 @@ jobs:
       commands: |
         set -euo pipefail
         export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
-        apt-get update -qq && apt-get install -y -qq curl >/dev/null
-        # The OneDev agent mounts the host docker socket and the checkout at
-        # /onedev-build — same trust boundary as the staging host itself, so
-        # this deploy is a local exec, not SSH.
+        apt-get update -qq && apt-get install -y -qq curl sops age >/dev/null 2>&1 || \
+            apt-get update -qq && apt-get install -y -qq curl >/dev/null
+        # sops may not be in the distro repo; install from GitHub releases if missing
+        command -v sops >/dev/null 2>&1 || {
+          curl -fsSL https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64 -o /usr/local/bin/sops
+          chmod +x /usr/local/bin/sops
+        }
+        command -v age-keygen >/dev/null 2>&1 || {
+          curl -fsSL https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin --strip-components=1 age/age age/age-keygen
+        }
+        # The OneDev agent mounts the host docker socket — compose calls hit
+        # the host daemon. The job's own checkout IS the commit being deployed
+        # (deploy-staging.sh skips git pull in CI), and the age key + encrypted
+        # env live in the host checkout mounted at /opt/ki-staging.
         export COMPOSE_PROJECT_NAME=ki-staging
+        export STAGING_SKIP_PULL=1
+        export STAGING_ROOT=/opt/ki-staging
         ./deploy/scripts/deploy-staging.sh
     runAs: 0:0
     useTTY: false

@@ -13,7 +13,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-STAGING_ROOT="${STAGING_ROOT:-/opt/ki-staging}"
+# Defaults to this checkout. On the staging host, set STAGING_ROOT=/opt/ki-staging.
+# In CI, the job's own checkout is used and git reset is skipped (the job
+# checkout already IS the commit being deployed).
+STAGING_ROOT="${STAGING_ROOT:-$PROJECT_DIR}"
 COMPOSE_PROJECT="ki-staging"
 BRANCH="main"
 AGE_KEY_FILE="$STAGING_ROOT/.age-key"
@@ -47,13 +50,19 @@ fail() { printf '[deploy-staging] FATAL: %s\n' "$*" >&2; exit 1; }
 command -v sops >/dev/null 2>&1 || fail "sops not installed"
 command -v docker >/dev/null 2>&1 || fail "docker not installed"
 
-# ── 1. Pull latest main ─────────────────────────────────────────────────
+# ── 1. Pull latest main (host checkout only — CI checkout is pinned) ────
 cd "$STAGING_ROOT"
-CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-[ "$CURRENT_BRANCH" = "$BRANCH" ] || fail "staging checkout is on '$CURRENT_BRANCH', expected '$BRANCH'"
-log "Pulling origin/$BRANCH..."
-git fetch origin "$BRANCH" --quiet
-git reset --hard "origin/$BRANCH" --quiet
+if [ "${STAGING_SKIP_PULL:-}" = "1" ]; then
+    log "STAGING_SKIP_PULL=1 — using this checkout as-is"
+elif [ "$STAGING_ROOT" = "$PROJECT_DIR" ] && [ -n "${CI:-}" ]; then
+    log "CI context: skipping git pull (checkout is the deployed commit)"
+else
+    CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    [ "$CURRENT_BRANCH" = "$BRANCH" ] || fail "staging checkout is on '$CURRENT_BRANCH', expected '$BRANCH'"
+    log "Pulling origin/$BRANCH..."
+    git fetch origin "$BRANCH" --quiet
+    git reset --hard "origin/$BRANCH" --quiet
+fi
 DEPLOYED_SHA="$(git rev-parse --short HEAD)"
 log "Deploying commit $DEPLOYED_SHA"
 
