@@ -11,10 +11,14 @@
 #   age: age1_dev_key,age1_prod_server_key
 
 creation_rules:
+  # Staging server key — decrypts .env.sops on the staging host (cerberus).
+  - path_regex: '^\.env\.sops$'
+    age: age1ptv22fhcprvyg0j482whhfcmdzfmjd9tg7sp9v67wa0qezft2cvqv6s7xr
+
   # Encrypt .env and .env.sops files to the dev machine key.
   # Add more keys (comma-separated) as team members or servers are onboarded.
   - path_regex: '\.env(\.sops)?$'
-    age: age1ql43n065tcfs7tcwkt7s9c54np5phu9rgez4agw0chf08wapns2scjtppx
+    age: age1ql43n065tcfs7tcwkt7s9c54np5phu9rgez4agw0chf08wapns2scjtppx,age1ptv22fhcprvyg0j482whhfcmdzfmjd9tg7sp9v67wa0qezft2cvqv6s7xr
 
   # Future: per-environment rules
   # - path_regex: 'secrets/prod/.*\.sops$'
