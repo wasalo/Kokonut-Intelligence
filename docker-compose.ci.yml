@@ -10,10 +10,16 @@
 #     CLICKHOUSE_DB to "kokonut_analytics" in the base compose file.
 #   - KOKONUT_ENV should be "development" so services/common/db.py falls
 #     back to dev-mode placeholder secrets when variables are unset.
+#
+# Host ports are configurable so CI runs on hosts where the defaults are
+# already taken by a deployed stack (e.g. the OneDev CI host runs a 'work'
+# stack on 5432/8123). Set CI_PG_HOST_PORT / CI_CH_HOST_PORT to override;
+# empty value disables the publish entirely (container-network access via
+# PG_HOST=database / CH_HOST=clickhouse needs no published port).
 services:
   database:
     ports:
-      - "127.0.0.1:5432:5432"
+      - "${CI_PG_HOST_PORT:-127.0.0.1:5432}:5432"
   clickhouse:
     ports:
-      - "127.0.0.1:8123:8123"
+      - "${CI_CH_HOST_PORT:-127.0.0.1:8123}:8123"
