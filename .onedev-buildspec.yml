@@ -72,6 +72,18 @@ jobs:
         echo "=== [step] Supply-chain gates ==="
         ./scripts/check-tracked-secrets.sh
         ./scripts/check-image-digests.sh
+        echo "=== [step] Start CI database (for bootstrap check) ==="
+        # ci-check.sh runs verify-clean-bootstrap.sh, which needs a PostgreSQL
+        # reachable via docker compose. With the isolated ki-ci namespace no
+        # container exists yet, so start the database service now. The infra
+        # step later runs 'down -v' + 'up' fresh, so this is disposable.
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database
+        for i in $(seq 1 30); do
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break
+          sleep 1
+        done
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
+        echo "CI database ready (project: ${COMPOSE_PROJECT_NAME})"
         echo "=== [step] Installing Python deps + security tools ==="
         apt-get update -qq && apt-get install -y -qq ca-certificates curl openssl libpq-dev gcc xz-utils >/dev/null
         curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
