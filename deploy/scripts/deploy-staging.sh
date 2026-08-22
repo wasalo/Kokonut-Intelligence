@@ -78,6 +78,23 @@ export SOPS_AGE_KEY_FILE="$AGE_KEY_FILE"
 sops -d "$ENV_FILE" > "$ENV_PLAIN"
 log "Environment decrypted ($(grep -c '=' "$ENV_PLAIN") vars)"
 
+# Regenerate root .env.sops for runtime tooling (services.migration, CLIs)
+# encrypted to THIS host's key. The committed root .env.sops is encrypted to
+# dev keys only and git reset restores it on every deploy, so re-wrap here.
+# The plaintext env carries a comment-free copy for sops dotenv input.
+grep -v '^#' "$ENV_PLAIN" > "$ENV_PLAIN.nocomment"
+if [ -f /opt/ki-staging/.age-key ]; then
+    STAGING_PUBKEY="$(age-keygen -y /opt/ki-staging/.age-key 2>/dev/null)"
+    if [ -n "$STAGING_PUBKEY" ]; then
+        sops -e --input-type dotenv --output-type dotenv \
+            --age "$STAGING_PUBKEY" \
+            "$ENV_PLAIN.nocomment" > "$STAGING_ROOT/.env.sops"
+        chmod 600 "$STAGING_ROOT/.env.sops"
+        log "Root .env.sops re-wrapped to host key (runtime tooling enabled)"
+    fi
+fi
+rm -f "$ENV_PLAIN.nocomment"
+
 # ── 3. Compose up ───────────────────────────────────────────────────────
 UP_ARGS=(up -d)
 if [ "$SKIP_BUILD" = true ]; then UP_ARGS+=(--no-build); else UP_ARGS+=(--build); fi
