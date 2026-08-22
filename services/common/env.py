@@ -58,8 +58,9 @@ def _sops_decrypt(sops_path: Path) -> str:
                 check=True,
                 timeout=10,
             )
-            if result.stdout.strip():
-                return result.stdout
+            # A successful decrypt with empty output is valid (empty secret
+            # file); only a non-zero exit triggers the next attempt.
+            return result.stdout
         except FileNotFoundError as exc:
             raise SecretLoadError("sops is not installed") from exc
         except subprocess.TimeoutExpired as exc:
