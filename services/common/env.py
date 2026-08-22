@@ -36,31 +36,47 @@ def _parse_dotenv(content: str) -> None:
             os.environ.setdefault(key, value)
 
 
+def _sops_decrypt(sops_path: Path) -> str:
+    """Decrypt a sops file, trying both envelope formats.
+
+    Flag semantics (learned on staging 2026-08-21): flags describe the
+    ENCRYPTED INPUT file, not the desired output. A JSON-envelope
+    .env.sops decrypts with no flags; a dotenv-envelope file needs
+    --input-type dotenv. Try plain first, fall back to the hint.
+    """
+    attempts = (
+        ["sops", "-d", str(sops_path)],
+        ["sops", "-d", "--input-type", "dotenv", "--output-type", "dotenv", str(sops_path)],
+    )
+    last_exc: Exception | None = None
+    for cmd in attempts:
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10,
+            )
+            # A successful decrypt with empty output is valid (empty secret
+            # file); only a non-zero exit triggers the next attempt.
+            return result.stdout
+        except FileNotFoundError as exc:
+            raise SecretLoadError("sops is not installed") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise SecretLoadError("SOPS decryption timed out") from exc
+        except subprocess.CalledProcessError as exc:
+            last_exc = exc
+    raise SecretLoadError("SOPS decryption failed") from last_exc
+
+
 def _load_via_sops(sops_path: Path) -> bool:
     """Decrypt .env.sops via sops CLI and load variables."""
     if not sops_path.exists():
         return False
 
-    # Check sops is available
-    try:
-        result = subprocess.run(
-            # No --input-type/--output-type: sops stores the original format in its
-            # metadata and auto-detects it on decrypt. Forcing dotenv here makes
-            # sops re-parse its own JSON envelope as dotenv and fail.
-            ["sops", "-d", str(sops_path)],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=10,
-        )
-        _parse_dotenv(result.stdout)
-        return True
-    except FileNotFoundError as exc:
-        raise SecretLoadError("sops is not installed") from exc
-    except subprocess.CalledProcessError as exc:
-        raise SecretLoadError("SOPS decryption failed") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise SecretLoadError("SOPS decryption timed out") from exc
+    _parse_dotenv(_sops_decrypt(sops_path))
+    return True
 
 
 def _load_via_dotenv(env_path: Path) -> bool:
