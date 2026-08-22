@@ -86,9 +86,15 @@ grep -v '^#' "$ENV_PLAIN" > "$ENV_PLAIN.nocomment"
 if [ -f /opt/ki-staging/.age-key ]; then
     STAGING_PUBKEY="$(age-keygen -y /opt/ki-staging/.age-key 2>/dev/null)"
     if [ -n "$STAGING_PUBKEY" ]; then
+        # Run from a config-free dir: a .sops.yaml in CWD must match the
+        # input path or sops aborts before --age is considered. Encrypting
+        # to an explicit --age key needs no creation rules.
+        REWRAP_DIR="$(mktemp -d)"
+        cp "$ENV_PLAIN.nocomment" "$REWRAP_DIR/.env"
         sops -e --input-type dotenv --output-type dotenv \
             --age "$STAGING_PUBKEY" \
-            "$ENV_PLAIN.nocomment" > "$STAGING_ROOT/.env.sops"
+            "$REWRAP_DIR/.env" > "$STAGING_ROOT/.env.sops"
+        rm -rf "$REWRAP_DIR"
         chmod 600 "$STAGING_ROOT/.env.sops"
         log "Root .env.sops re-wrapped to host key (runtime tooling enabled)"
     fi
