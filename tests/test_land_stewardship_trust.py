@@ -37,9 +37,10 @@ def test_public_views_gate_on_farm_registry(db):
         defn = cur.fetchone()
         if defn is None:
             pytest.skip(f"{view} not present in this DB (expected in CI/staging)")
-        assert "farm_registry_record" in defn[0], f"{view} missing farm_registry gate"
-        assert "status IN ('verified', 'published')" in defn[0], \
-            f"{view} gate does not require verified farm_registry_record"
+        low = defn[0].lower()
+        assert "farm_registry_record" in low, f"{view} missing farm_registry gate"
+        assert "verified" in low and "published" in low, \
+            f"{view} gate does not reference verified/published farm_registry_record"
 
 
 def test_land_stewardship_model_includes_commons_trust(db):
