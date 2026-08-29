@@ -1,4 +1,4 @@
-version: 52
+version: 53
 jobs:
 - name: ci
   steps:
@@ -235,6 +235,8 @@ jobs:
   retryCondition: never
   maxRetries: 3
   retryDelay: 30
+  includeUpstreamWhenRebuild: false
+  includeDownstreamWhenRebuild: false
   timeout: 3600
 - name: deploy-staging
   steps:
@@ -273,6 +275,7 @@ jobs:
           -v "$HOST_ROOT":/opt/ki-staging \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -e STAGING_SKIP_PULL=1 \
+          -e COMPOSE_PROJECT_NAME=ki-staging \
           ki-deploy-helper \
           bash -c "cd /opt/ki-staging \
             && git fetch origin main --quiet \
@@ -289,6 +292,8 @@ jobs:
   retryCondition: never
   maxRetries: 1
   retryDelay: 60
+  includeUpstreamWhenRebuild: false
+  includeDownstreamWhenRebuild: false
   timeout: 1800
 - name: deploy-production
   steps:
@@ -319,4 +324,7 @@ jobs:
     optional: false
   retryCondition: never
   maxRetries: 0
+  retryDelay: 30
+  includeUpstreamWhenRebuild: false
+  includeDownstreamWhenRebuild: false
   timeout: 1800
