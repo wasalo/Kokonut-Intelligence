@@ -270,7 +270,15 @@ jobs:
         # container (ki-deploy-helper: sops + age + docker compose + git) mounted
         # on the host checkout and the docker socket. The helper fast-forwards
         # the host checkout to origin/main, then runs deploy-staging.sh.
+        #
+        # The helper image is versioned in-repo (deploy/helper/Dockerfile) and
+        # may be pruned by the docker executor between runs — build it on the
+        # host daemon when missing (context-independent Dockerfile, no COPY).
         HOST_ROOT=/opt/ki-staging
+        if ! docker image inspect ki-deploy-helper >/dev/null 2>&1; then
+          echo "ki-deploy-helper missing on host — building from deploy/helper/Dockerfile"
+          docker build -t ki-deploy-helper -f deploy/helper/Dockerfile deploy/helper
+        fi
         docker run --rm \
           -v "$HOST_ROOT":/opt/ki-staging \
           -v /var/run/docker.sock:/var/run/docker.sock \
