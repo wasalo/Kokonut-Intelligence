@@ -92,5 +92,47 @@ def safe_transactions(
         }, indent=2, default=str))
 
 
+@app.command("propose")
+def safe_propose(
+    location_id: str = typer.Argument(..., help="Farm location UUID"),
+    chain: str = typer.Option("gnosis", help="Chain: gnosis, celo, mainnet, ..."),
+    stewards: str = typer.Option("", help="Comma-separated steward addresses"),
+    threshold: int = typer.Option(1, help="Signature threshold"),
+    name: str | None = typer.Option(None, help="SAFE name"),
+) -> None:
+    """Agent proposes a new farm SAFE (draft record, human approval required)."""
+    from services.treasury.provisioning import cli_propose
+
+    cli_propose(
+        location_id=location_id,
+        chain=chain,
+        stewards=[s.strip() for s in stewards.split(",") if s.strip()],
+        threshold=threshold,
+        name=name,
+    )
+
+
+@app.command("approve")
+def safe_approve(
+    safe_id: str = typer.Argument(..., help="safe_account id"),
+    safe_address: str | None = typer.Option(
+        None, help="Deployed SAFE address (human enters after Factory deploy)"),
+) -> None:
+    """Human approves a proposed farm SAFE (optionally with deployed address)."""
+    from services.treasury.provisioning import cli_approve
+
+    cli_approve(safe_id, safe_address)
+
+
+@app.command("farms")
+def safe_farms(
+    location_id: str | None = typer.Option(None, help="Filter by location UUID"),
+) -> None:
+    """List farm SAFEs (proposed, approved, active)."""
+    from services.treasury.provisioning import cli_list
+
+    cli_list(location_id)
+
+
 if __name__ == "__main__":
     app()

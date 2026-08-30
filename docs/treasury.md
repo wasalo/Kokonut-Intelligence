@@ -54,11 +54,36 @@ KI already reads the **governance half** (Baal proposals/votes/members) via
 - Transactions: pending (proposed/confirmed), executed, nonce
 - Per-farm SAFEs (sidecars) once Phase C provisions them
 
-### Write model (human-gated, later phases)
-- Agents hold a SAFE **"propose function role"** — they may *propose*
-  transactions, never sign/execute
-- Humans are the approval gate (signers confirm via SAFE app/API)
-- Farm provisioning: official SAFE Factory + APIs only
+### Write model (human-gated, Phase C)
+- **Agent proposes** a farm SAFE via `services/treasury/provisioning.py`
+  (`propose_farm_safe`): location_id, chain, steward addresses, threshold →
+  inserts a `safe_account` row with `provisioning_status='proposed'`,
+  `status='draft'`.
+- **Human approves** (`approve_farm_safe`): advances to `approved`/`verified`,
+  or `active`/`published` once the SAFE Factory deployment returns a real
+  address.
+- **SAFE "propose function role"** gives the agent the ability to *propose*
+  transactions on the deployed SAFE; only humans sign/execute.
+- Farm provisioning uses the **official SAFE Factory + APIs** — no custom
+  deployments.
+
+### Schema (Phase C, migration 354)
+- `safe_account`: SAFE registry — address, chain, role
+  (core_team/dao_treasury/farm), location_id/farm_id links, threshold,
+  owners, modules, provisioning_status (proposed→approved→deployed→active),
+  governed lifecycle. Seeded with the two canonical Kokonut SAFEs.
+- `safe_transaction`: indexed SAFE multisig txs for reporting/evidence,
+  governed lifecycle.
+
+### CLI (mounted in meta-CLI as `kokonut treasury …`)
+```
+kokonut treasury status                     # both SAFEs' config
+kokonut treasury balances --address 0x…     # token balances
+kokonut treasury transactions --limit 10    # multisig tx history
+kokonut treasury propose <location_id> --stewards A,B --threshold 2
+kokonut treasury approve <safe_id> --safe-address 0x…   # human gate
+kokonut treasury farms [--location-id …]    # farm SAFEs
+```
 
 ## Chain strategy (chain-agnostic)
 
