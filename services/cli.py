@@ -109,6 +109,17 @@ except Exception as exc:  # noqa: BLE001 - CLI boundary
     print(f"Error: cannot load services.governance.cli: {exc}", file=sys.stderr)
 
 
+# --- Native typer group: SAFE treasury queries (read-only) -------------------
+try:
+    from services.treasury.cli import app as _treasury_app
+
+    app.add_typer(_treasury_app, name="treasury", help="SAFE smart account treasury queries (read-only)")
+except Exception as exc:  # noqa: BLE001 - CLI boundary
+    import sys
+
+    print(f"Error: cannot load services.treasury.cli: {exc}", file=sys.stderr)
+
+
 # --- Example native typer group using shared helpers -------------------------
 @app.command()
 def health() -> None:
