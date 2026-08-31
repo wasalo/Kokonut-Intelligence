@@ -136,22 +136,24 @@ class _FakeEASClient:
 def test_propose_attestation(monkeypatch, pending_request, data_stream_post):
     # Block the attestation module chain from loading (imports trigger SOPS).
     # Provide fake modules so lazy imports inside propose_attestation work.
+    # monkeypatch.setitem auto-restores sys.modules after the test — critical,
+    # otherwise the fake leaks into the rest of the suite (test pollution).
     import sys
     import types
 
     fake_eas = types.ModuleType("services.attestation.eas_client")
     fake_eas.EASClient = _FakeEASClient
-    sys.modules["services.attestation.eas_client"] = fake_eas
+    monkeypatch.setitem(sys.modules, "services.attestation.eas_client", fake_eas)
 
     fake_pub = types.ModuleType("services.attestation.publisher")
     fake_pub._resolve_schema_uid = lambda *a, **kw: "0x" + "12" * 32
-    sys.modules["services.attestation.publisher"] = fake_pub
+    monkeypatch.setitem(sys.modules, "services.attestation.publisher", fake_pub)
 
     fake_schemas = types.ModuleType("services.attestation.schemas")
     fake_schemas.prepare_data_post_attestation_data = (
         lambda **kw: [{"name": "x", "type": "string", "value": "y"}]
     )
-    sys.modules["services.attestation.schemas"] = fake_schemas
+    monkeypatch.setitem(sys.modules, "services.attestation.schemas", fake_schemas)
 
     conn = _FakeConn(rows=[pending_request, data_stream_post])
 
