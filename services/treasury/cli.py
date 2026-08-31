@@ -134,5 +134,33 @@ def safe_farms(
     cli_list(location_id)
 
 
+@app.command("ops-propose")
+def safe_ops_propose(
+    safe_id: str = typer.Argument(..., help="safe_account id of the farm SAFE"),
+    to: str = typer.Argument(..., help="Target address"),
+    value: str = typer.Option("0", help="Value in wei (or decimal ether)"),
+    memo: str = typer.Option("", help="Human-readable memo"),
+    data: str = typer.Option("0x", help="Call data"),
+    safe_address: str | None = typer.Option(None, help="Farm SAFE address (default: from safe_account)"),
+    safe_chain: str | None = typer.Option(None, help="Farm SAFE chain (default: from safe_account)"),
+) -> None:
+    """Agent proposes an operation on a farm SAFE (payroll, inputs, expenses).
+
+    Humans (farm stewards) confirm in the Safe app — the agent's delegate key
+    can only propose, never execute.
+    """
+    from services.treasury.ops import cli_propose
+
+    cli_propose(
+        safe_id=safe_id,
+        to=to,
+        value=value,
+        memo=memo,
+        data=data,
+        safe_address=safe_address,
+        safe_chain=safe_chain,
+    )
+
+
 if __name__ == "__main__":
     app()
