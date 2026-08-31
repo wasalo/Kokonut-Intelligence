@@ -83,7 +83,36 @@ kokonut treasury transactions --limit 10    # multisig tx history
 kokonut treasury propose <location_id> --stewards A,B --threshold 2
 kokonut treasury approve <safe_id> --safe-address 0x…   # human gate
 kokonut treasury farms [--location-id …]    # farm SAFEs
+kokonut treasury ops-propose <safe_id> <to> --value 1.5 --memo "payroll"  # agent proposes farm op
 ```
+
+## Write-path (Phase D — KI-14)
+
+The server holds a **delegate key that can only propose** transactions via the
+SAFE Transaction Service API (never signs/executes). Humans confirm in the
+Safe app. Even a full delegate-key leak can only propose, never move funds.
+
+### Attestation signing via SAFE (D2, Celo)
+`services/attestation/safe_flow.py`: builds the EAS `attest()` call
+(`EASClient.build_attest_call`), wraps it in a Safe tx, and proposes it to the
+Core Team SAFE on Celo. `reconcile_attestation_executions()` marks requests
+executed once humans confirm. `ATTESTER_PRIVATE_KEY` is now propose-only.
+
+### Escrow settlement via SAFE (D3, Gnosis)
+`services/credit_class/safe_settlement.py`: marketplace value moves (credit
+transfer seller→buyer, fee→treasury) are proposed as Safe txs on the Core
+Team SAFE (2-of-3) instead of raw DB-only escrow updates. Order book stays in
+DB as source of truth; `safe_transaction` indexes the proposals.
+
+### Farm treasury ops (D4)
+`services/treasury/ops.py`: the agent proposes ops (payroll, inputs, expenses)
+on a deployed farm SAFE (from Phase C provisioning); farm stewards confirm.
+Address/chain resolve from the `safe_account` record.
+
+### Security invariant
+Agent (delegate) proposes → humans confirm → SAFE executes. The delegate key
+is propose-only at the Safe contract level; execution requires m-of-n human
+signatures on the SAFE.
 
 ## Chain strategy (chain-agnostic)
 
