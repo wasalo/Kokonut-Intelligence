@@ -220,8 +220,13 @@ jobs:
           echo "WARNING: staging gateway not responding on 127.0.0.1:18098" >&2
           echo "(non-fatal: staging may be intentionally down; deploy via deploy-staging job)" >&2
         fi
-        echo "=== [step] Done ==="
+        echo "=== [step] Done === "
         echo "All CI checks complete"
+        echo "=== [step] Cleanup CI infrastructure === "
+        # Tear down the disposable ki-ci stack so it does not linger on the
+        # host between builds (was consuming ~1-2 GB RAM 24/7 as leftovers).
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
+        docker compose -p ki-ci ps 2>/dev/null || echo "ki-ci stack fully removed"
     runAs: 0:0
     useTTY: false
     condition: SUCCESSFUL
