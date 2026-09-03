@@ -13,10 +13,12 @@ Chain-agnostic: farms on any SAFE-supported chain.
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 def _db():
@@ -62,7 +64,6 @@ def propose_farm_safe(req: SafeProvisioningRequest) -> dict[str, Any]:
         )
 
     safe_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
 
     # Validate location exists (quick check via DB) and insert the draft
     # safe_account in the same transaction so a rollback on error cleans up.
@@ -71,9 +72,14 @@ def propose_farm_safe(req: SafeProvisioningRequest) -> dict[str, Any]:
             "SELECT id, name FROM location WHERE id = %s", (req.location_id,)
         ).fetchone()
         if not loc:
+            logger.error("propose_farm_safe: location not found: %s", req.location_id)
             raise ValueError(f"Location not found: {req.location_id}")
 
         name = req.name or f"{loc.name} Farm SAFE"
+        logger.info(
+            "propose_farm_safe: creating draft safe_account for location=%s chain=%s threshold=%d",
+            req.location_id, req.chain, req.threshold,
+        )
         conn.execute(
             """
                 INSERT INTO safe_account
@@ -119,6 +125,7 @@ def approve_farm_safe(safe_id: str, safe_address: str | None = None) -> dict[str
             (safe_id,),
         ).fetchone()
         if not row:
+            logger.error("approve_farm_safe: safe_account not found: %s", safe_id)
             raise ValueError(f"safe_account not found: {safe_id}")
         if row.provisioning_status != "proposed":
             raise ValueError(
@@ -126,6 +133,11 @@ def approve_farm_safe(safe_id: str, safe_address: str | None = None) -> dict[str
                 f"'{row.provisioning_status}', expected 'proposed'"
             )
 
+        logger.info(
+            "approve_farm_safe: transitioning safe_id=%s from '%s' to '%s' (deployed=%s)",
+            safe_id, row.provisioning_status, "active" if safe_address else "approved",
+            safe_address is not None,
+        )
         if safe_address:
             conn.execute(
                 """

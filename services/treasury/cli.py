@@ -14,12 +14,16 @@ Examples:
 
 from __future__ import annotations
 
+import logging
+
 import typer
 
 from services.treasury.safe import (
     KOKONUT_SAFES,
     SafeReadClient,
 )
+
+logger = logging.getLogger(__name__)
 
 app = typer.Typer(name="treasury", help="SAFE smart account queries (read-only)")
 
@@ -103,6 +107,10 @@ def safe_propose(
     """Agent proposes a new farm SAFE (draft record, human approval required)."""
     from services.treasury.provisioning import cli_propose
 
+    logger.info(
+        "agent proposes farm SAFE (location=%s chain=%s stewards=%d threshold=%d)",
+        location_id, chain, len(stewards.split(",")), threshold,
+    )
     cli_propose(
         location_id=location_id,
         chain=chain,
@@ -121,6 +129,10 @@ def safe_approve(
     """Human approves a proposed farm SAFE (optionally with deployed address)."""
     from services.treasury.provisioning import cli_approve
 
+    logger.info(
+        "human approves farm SAFE (safe_id=%s deployed=%s)",
+        safe_id, safe_address is not None,
+    )
     cli_approve(safe_id, safe_address)
 
 
