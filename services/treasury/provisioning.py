@@ -64,7 +64,8 @@ def propose_farm_safe(req: SafeProvisioningRequest) -> dict[str, Any]:
     safe_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
 
-    # Validate location exists (quick check via DB)
+    # Validate location exists (quick check via DB) and insert the draft
+    # safe_account in the same transaction so a rollback on error cleans up.
     with _db() as conn:
         loc = conn.execute(
             "SELECT id, name FROM location WHERE id = %s", (req.location_id,)
@@ -73,23 +74,23 @@ def propose_farm_safe(req: SafeProvisioningRequest) -> dict[str, Any]:
             raise ValueError(f"Location not found: {req.location_id}")
 
         name = req.name or f"{loc.name} Farm SAFE"
-    conn.execute(
-        """
-            INSERT INTO safe_account
-                (id, address, chain, account_role, location_id, name,
-                 threshold, owners, provisioning_status, status)
-            VALUES (%s, %s, %s, 'farm', %s, %s, %s, %s, 'proposed', 'draft')
-        """,
-        (
-            safe_id,
-            f"pending-{safe_id[:8]}",  # placeholder until deployed
-            req.chain,
-            req.location_id,
-            name,
-            req.threshold,
-            req.stewards,
-        ),
-    )
+        conn.execute(
+            """
+                INSERT INTO safe_account
+                    (id, address, chain, account_role, location_id, name,
+                     threshold, owners, provisioning_status, status)
+                VALUES (%s, %s, %s, 'farm', %s, %s, %s, %s, 'proposed', 'draft')
+            """,
+            (
+                safe_id,
+                f"pending-{safe_id[:8]}",  # placeholder until deployed
+                req.chain,
+                req.location_id,
+                name,
+                req.threshold,
+                req.stewards,
+            ),
+        )
 
     return {
         "safe_id": safe_id,
