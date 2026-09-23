@@ -25,27 +25,41 @@ class _FakeRow:
 
 
 class _FakeCursor:
-    def __init__(self, rows=None):
+    def __init__(self, rows=None, connection=None):
         self.rows = rows or []
         self.calls = []
+        self.connection = connection
+
+    def _assert_context_active(self):
+        if self.connection and self.connection.context_exited:
+            raise AssertionError("database cursor used after its transaction context exited")
 
     def execute(self, sql, params=None):
+        self._assert_context_active()
         self.calls.append((sql, params))
         return self
 
     def fetchone(self):
+        self._assert_context_active()
         return self.rows[0] if self.rows else None
 
     def fetchall(self):
+        self._assert_context_active()
         return self.rows
 
 
 class _FakeConn:
     def __init__(self, rows=None):
-        self.cursor_ = _FakeCursor(rows)
+        self.context_exited = False
+        self.cursor_ = _FakeCursor(rows, self)
         self.committed = False
 
+    def _assert_context_active(self):
+        if self.context_exited:
+            raise AssertionError("database connection used after its transaction context exited")
+
     def execute(self, sql, params=None):
+        self._assert_context_active()
         self.cursor_.execute(sql, params)
         return self
 
@@ -56,18 +70,20 @@ class _FakeConn:
         return self.cursor_.fetchall()
 
     def commit(self):
+        self._assert_context_active()
         self.committed = True
 
     def rollback(self):
         pass
 
     def close(self):
-        pass
+        self.context_exited = True
 
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
+        self.context_exited = True
         return False
 
 

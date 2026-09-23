@@ -9,20 +9,26 @@ Schema: 193_process_simulation.sql
 from __future__ import annotations
 
 import math
-import statistics
-from datetime import datetime, timezone
+import uuid
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
-from services.analytics import process_mining as pm, value_stream
+from services.analytics import process_mining as pm
+from services.analytics import value_stream
 from services.analytics.process_gap import (
-    _compute_actual, _compute_gap, _assign_maturity,
-    _has_workflow_spec, _has_conformance, _has_spc, _has_feedback,
+    _assign_maturity,
+    _compute_actual,
+    _compute_gap,
+    _has_conformance,
+    _has_feedback,
+    _has_spc,
+    _has_workflow_spec,
 )
 from services.common.cli import print_json
+from services.common.database import get_db
 
 
 def _conn():
@@ -49,7 +55,6 @@ def create_simulation(
     location_id=None,
 ) -> Dict[str, Any]:
     """Create a what-if simulation scenario."""
-    import json
     sql = """
         INSERT INTO process_simulation
             (name, description, process_key, scenario_params, status,
@@ -371,7 +376,7 @@ def simulate_automation_impact(
     automation_pct: float,
 ) -> Dict[str, Any]:
     """Simulate impact of automating a percentage of process steps."""
-    from services.analytics.process_costing import process_cost_per_instance, total_process_cost
+    from services.analytics.process_costing import process_cost_per_instance
 
     cost_info = process_cost_per_instance(conn, process_key)
     total_cost = cost_info.get("total_cost", 0)
@@ -406,7 +411,6 @@ def simulate_automation_impact(
 def main():
     import argparse
     import json
-    from datetime import datetime, timezone
 
     parser = argparse.ArgumentParser(description="Process simulation and what-if analysis")
     sub = parser.add_subparsers(dest="command")

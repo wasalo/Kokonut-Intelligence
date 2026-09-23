@@ -12,11 +12,12 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from ..common.logging import get_logger
-from .base import log_ingestion, hash_payload
+from .base import hash_payload, log_ingestion
 
 logger = get_logger("ingestion.gee_climate")
 

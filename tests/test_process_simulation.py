@@ -10,11 +10,11 @@ import pytest
 
 from services.analytics.process_simulation import (
     create_simulation,
-    run_simulation,
-    list_simulations,
     get_simulation_results,
-    simulate_bottleneck_relief,
+    list_simulations,
+    run_simulation,
     simulate_automation_impact,
+    simulate_bottleneck_relief,
 )
 
 
@@ -45,6 +45,53 @@ class TestImports:
         assert callable(get_simulation_results)
         assert callable(simulate_bottleneck_relief)
         assert callable(simulate_automation_impact)
+
+
+# --- Regression Tests (no DB required) ---
+
+class _InsertCursor:
+    def __init__(self):
+        self.params = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return False
+
+    def execute(self, _sql, params):
+        self.params = params
+
+    def fetchone(self):
+        return {"name": self.params[0], "created_by": self.params[4]}
+
+
+class _InsertConn:
+    def __init__(self):
+        self.cursor_ = _InsertCursor()
+        self.committed = False
+
+    def cursor(self, **_kwargs):
+        return self.cursor_
+
+    def commit(self):
+        self.committed = True
+
+
+def test_create_simulation_accepts_valid_creator_uuid():
+    creator_id = str(uuid.uuid4())
+    conn = _InsertConn()
+
+    result = create_simulation(
+        conn,
+        name="UUID creator regression",
+        scenario_params={},
+        created_by=creator_id,
+    )
+
+    assert result["created_by"] == creator_id
+    assert conn.cursor_.params[4] == creator_id
+    assert conn.committed
 
 
 # --- DB-Dependent Tests ---

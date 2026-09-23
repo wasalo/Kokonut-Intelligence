@@ -27,12 +27,13 @@ import argparse
 import json
 import os
 import smtplib
-import sys
-import time
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
+
+import psycopg2
+import psycopg2.extras
 
 from services.common.cli import print_json
 

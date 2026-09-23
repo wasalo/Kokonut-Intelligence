@@ -160,8 +160,8 @@ ARCHETYPES: Dict[str, Dict[str, Any]] = {
         "description": "Individual actors deplete a shared resource acting in their own self-interest",
         "structure": {
             "shared_resource": "limited_capacity",
-            "individual_use": "benefit_private",
-            "individual_use": "cost_shared",
+            "individual_benefit": "benefit_private",
+            "collective_cost": "cost_shared",
         },
         "detection_signals": [
             "declining shared resource levels",

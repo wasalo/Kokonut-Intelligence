@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 KOKONUT_SCHEMAS: dict[str, dict[str, Any]] = {
     "kokonut-mrv": {
         "schema": "string locationId, string farmId, string cropType, string activityType, uint256 quantity, string unit, uint256 measurementDate, string evidenceHash, string payloadCid",
