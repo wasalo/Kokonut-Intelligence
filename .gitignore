@@ -95,5 +95,8 @@ PRD.md
 config/mosquitto/certs/*
 !config/mosquitto/certs/README.md
 
+# Agent-local plans and session artifacts (not repository source)
+.hermes/
+
 # Local dev TLS certs for Caddy
 config/caddy/certs/
