@@ -12,14 +12,14 @@ from __future__ import annotations
 
 import argparse
 import statistics
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 
 def control_limits(values: List[float], k: float = 3.0) -> Dict[str, float]:
     """Return mean, sample stdev, UCL/LCL (mean +/- k*sigma), and 2-sigma warns."""
@@ -386,18 +386,27 @@ def persist_capability(
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING *
     """
-    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(sql, (
-            entity_type, metric,
-            caps["cp"], caps["cpk"], caps["pp"], caps["ppk"],
-            caps["sigma_level"], period,
-        ))
+    try:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(sql, (
+                entity_type, metric,
+                caps["cp"], caps["cpk"], caps["pp"], caps["ppk"],
+                caps["sigma_level"], period,
+            ))
+            row = cur.fetchone()
+            if row is None:
+                raise RuntimeError("process_capability INSERT RETURNING produced no row")
+            record = dict(row)
         conn.commit()
-        return {
-            "persisted": True,
-            "capability": caps,
-            "record": _row_to_dict(cur.fetchone()),
-        }
+    except Exception:
+        conn.rollback()
+        raise
+
+    return {
+        "persisted": True,
+        "capability": caps,
+        "record": record,
+    }
 
 
 def capability_report(

@@ -9,30 +9,20 @@ from services.analytics.ecological_modeling_v2 import (
     compute_resource_efficiency,
     compute_soil_input_retention,
 )
-from services.analytics.resource_efficiency import (
-    compute_labor_efficiency,
-    compute_resource_consumption_by_crop,
-)
 from services.analytics.economic_performance import (
     compute_revenue_per_acre,
     compute_revenue_stream_contribution,
     compute_training_impact,
 )
 from services.analytics.model_validation import (
-    compute_rmse,
     compute_mae,
-    compute_me,
-    compute_r_squared,
     compute_regression_metrics,
+    compute_rmse,
 )
-from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
 from services.export.report_generator import (
     REPORT_GENERATORS,
     generate_pest_management,
     generate_resource_efficiency,
-    generate_training_impact,
-    generate_revenue_streams,
-    generate_model_validation,
 )
 
 SCHEMA_V2 = Path("schemas/postgres/047_ecological_modeling_v2.sql")
@@ -468,8 +458,9 @@ def test_model_validation_report_registered() -> None:
 # ---------------------------------------------------------------------------
 
 def test_agent_imports_v2_functions() -> None:
-    from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
     import inspect
+
+    from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
     source = inspect.getsource(synthesize_ecological_modeling)
     assert "compute_soil_input_retention" in source
     assert "compute_pest_trends" in source
@@ -483,40 +474,6 @@ def test_agent_imports_v2_functions() -> None:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    test_v2_schema_defines_tables()
-    test_v2_schema_defines_views()
-    test_v2_schema_has_constraints()
-    test_v2_schema_has_conservation_status()
-    test_v2_seed_has_metrics()
-    test_v2_seed_has_dashboards()
-    test_v2_seed_has_adelphi_pilot_data()
-    test_soil_input_retention_analytics()
-    test_pest_trends_analytics()
-    test_biocontrol_effectiveness_analytics()
-    test_resource_efficiency_analytics()
-    test_conservation_status_analytics()
-    test_pest_management_report_registered()
-    test_resource_efficiency_report_registered()
-    test_pest_management_report_public_safe()
-    test_resource_efficiency_report_public_safe()
-    test_econ_schema_defines_tables()
-    test_econ_schema_defines_views()
-    test_econ_schema_has_constraints()
-    test_econ_seed_has_metrics()
-    test_econ_seed_has_adelphi_data()
-    test_revenue_per_acre_analytics()
-    test_revenue_stream_contribution_analytics()
-    test_training_impact_analytics()
-    test_training_impact_report_registered()
-    test_revenue_streams_report_registered()
-    test_validation_schema_defines_tables()
-    test_validation_schema_defines_views()
-    test_validation_schema_has_constraints()
-    test_validation_seed_has_metrics()
-    test_validation_seed_has_adelphi_data()
-    test_prediction_accuracy_analytics()
-    test_feature_importance_analytics()
-    test_backtest_summary_analytics()
-    test_model_validation_report_registered()
-    test_agent_imports_v2_functions()
-    print("All tests passed.")
+    import pytest
+
+    raise SystemExit(pytest.main([__file__]))

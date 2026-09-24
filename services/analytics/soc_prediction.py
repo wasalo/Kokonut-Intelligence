@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import json
-from datetime import date
+from importlib.util import find_spec
 from typing import Any, Optional
 
 from services.common.logging import get_logger
@@ -132,7 +131,6 @@ def prepare_feature_matrix(
 
     for record in training_data:
         features = []
-        skip = False
         for name in feature_names:
             val = record.get(name)
             if val is None:
@@ -160,10 +158,10 @@ def train_xgboost_model(
     pickled and stored separately).
     """
     try:
-        import xgboost as xgb
-        from sklearn.model_selection import cross_val_score, KFold
-        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
         import numpy as np
+        import xgboost as xgb
+        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+        from sklearn.model_selection import KFold, cross_val_score
     except ImportError:
         logger.warning("xgboost/scikit-learn not installed — returning placeholder model metadata")
         return {
@@ -301,8 +299,16 @@ def residual_kriging_correction(
     This complements the pixel-based XGBoost model by adding spatial structure
     to the prediction errors.
     """
-    from services.geostatistics.variogram import VariogramAnalyzer
+    try:
+        import numpy as np
+    except ImportError:
+        return {
+            "error": "NumPy is required for residual kriging",
+            "corrected_soc_pct": None,
+        }
+
     from services.geostatistics.kriging import KrigingEngine
+    from services.geostatistics.variogram import VariogramAnalyzer
 
     training_data = extract_training_data(conn, location_id)
     if len(training_data) < 10:
@@ -326,7 +332,6 @@ def residual_kriging_correction(
     residuals = y_actual - y_pred
 
     # Extract coordinates
-    import numpy as np
     lats = np.array([float(d.get("gps_latitude", 0) or 0) for d in training_data])
     lons = np.array([float(d.get("gps_longitude", 0) or 0) for d in training_data])
 
@@ -438,8 +443,7 @@ def spatial_block_cv_for_soc(
 
     try:
         import xgboost as xgb
-        from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-        has_xgb = True
+        has_xgb = find_spec("sklearn") is not None
     except ImportError:
         has_xgb = False
 

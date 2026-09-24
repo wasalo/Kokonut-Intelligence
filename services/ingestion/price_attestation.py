@@ -12,11 +12,15 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
+
+import psycopg2.extras
+
+from services.common.cli import print_json
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
-from services.common.cli import print_json
+from .base import get_db
+
 logger = get_logger("ingestion.price_attestation")
 
 # New EAS schema for price feeds
@@ -70,7 +74,6 @@ def attest_price(
     attestation_uid = None
     try:
         from ..attestation.eas_client import get_eas_client
-        from ..attestation.config import EAS_CONFIG
 
         w3 = get_eas_client(chain)
         if w3:

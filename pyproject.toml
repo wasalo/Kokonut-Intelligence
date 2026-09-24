@@ -12,10 +12,11 @@ ignore = ["E501"]
 # (S102 exec, S103 perms, S601/S604 subprocess-shell, S701/702 jinja, etc.).
 # Accepted S/BLE noise: S101 asserts (tests), S104 bind-all (internal ingestion
 # receivers/CLIs), S105 var-name false positives (pass_fail, TOKEN_URL), S110/S112
-# except hygiene, S301 pickle (local-only), S310/S311 urllib, S320 XML (defusedxml),
-# S404 SSL (internal disable), S603/S607 subprocess (no shell), S608 SQL f-string
-# (parameterized values + hardcoded identifiers; dynamic identifiers validated
-# separately, e.g. data_governance entity_type), RUF012, BLE001.
+# except hygiene, S310/S311 urllib, S404 SSL (internal disable), S603/S607 subprocess
+# (no shell), S608 SQL f-string (parameterized values + hardcoded identifiers;
+# dynamic identifiers validated separately, e.g. data_governance entity_type),
+# RUF012, BLE001. S301 is not globally suppressed: pickle loading is guarded by
+# an owner-controlled model-directory check and locally exempted only at those calls.
 
 [tool.ruff.lint.isort]
 known-first-party = ["services", "tests"]

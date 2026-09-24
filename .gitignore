@@ -88,7 +88,8 @@ backups/
 
 # Snapshots (managed separately)
 schemas/directus/snapshots/
-migrations/baserow_to_postgres/config.json
+# Baserow migration code, extracts, and local config are maintained outside Git.
+migrations/baserow_to_postgres/
 PRD.md
 # MQTT TLS material is provisioned outside Git.
 config/mosquitto/certs/*

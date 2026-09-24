@@ -14,7 +14,8 @@ Usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+import argparse
+from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -283,9 +284,8 @@ def run_all(conn, location_id: str) -> Dict[str, Any]:
     }
 
 
-if __name__ == "__main__":
-    import argparse
-
+def main(argv: Optional[List[str]] = None) -> int:
+    """Run the climate-data CLI and return its process status."""
     parser = argparse.ArgumentParser(description="Climate data ingestion")
     parser.add_argument("--worldclim", action="store_true", help="Fetch WorldClim data")
     parser.add_argument("--ncep", action="store_true", help="Fetch NCEP data")
@@ -294,7 +294,11 @@ if __name__ == "__main__":
     parser.add_argument("--sentinel1", action="store_true", help="Fetch Sentinel-1 data")
     parser.add_argument("--all", action="store_true", help="Fetch all climate data")
     parser.add_argument("--location-id", required=True, help="Location UUID")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    if not any((args.all, args.worldclim, args.ncep, args.modis, args.smap, args.sentinel1)):
+        parser.print_help()
+        return 1
 
     conn = get_db()
     try:
@@ -308,11 +312,13 @@ if __name__ == "__main__":
             result = fetch_modis(conn, args.location_id)
         elif args.smap:
             result = fetch_smap(conn, args.location_id)
-        elif args.sentinel1:
-            result = fetch_sentinel1(conn, args.location_id)
         else:
-            parser.print_help()
-            sys.exit(1)
+            result = fetch_sentinel1(conn, args.location_id)
         print_json(result)
     finally:
         conn.close()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

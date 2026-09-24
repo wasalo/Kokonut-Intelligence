@@ -1,29 +1,28 @@
 """Tests for time-series feature aggregation and SOC prediction."""
 
+import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
-from services.analytics.time_series_features import (
-    aggregate_remote_sensing_seasonal,
-    aggregate_weather_seasonal,
-    build_complete_feature_set,
-    compute_window,
-    get_season,
-)
-from services.analytics.soc_prediction import (
-    extract_training_data,
-    prepare_feature_matrix,
-    train_xgboost_model,
-)
+import services.analytics.soc_prediction as soc
 from services.analytics.model_validation import (
     aggregate_to_field_level,
-    compute_mec,
-    compute_me,
     compute_mae,
+    compute_me,
+    compute_mec,
     compute_r_squared,
     compute_regression_metrics,
     compute_rmse,
     geographic_cross_validation,
+)
+from services.analytics.soc_prediction import (
+    prepare_feature_matrix,
+    train_xgboost_model,
+)
+from services.analytics.time_series_features import (
+    compute_window,
+    get_season,
 )
 
 SCHEMA_FE = Path("schemas/postgres/075_feature_engineering.sql")
@@ -204,6 +203,72 @@ def test_train_xgboost_insufficient_data() -> None:
     result = train_xgboost_model(X, y, ["f1"])
     # Either returns insufficient data error or xgboost placeholder
     assert "error" in result
+
+
+def test_residual_kriging_supports_ten_training_samples(monkeypatch):
+    training_data = [
+        {
+            "gps_latitude": 18.0 + i * 0.001,
+            "gps_longitude": -69.0 + i * 0.001,
+        }
+        for i in range(10)
+    ]
+    matrix = [[float(i)] for i in range(10)]
+    observed = [1.0 + i * 0.1 for i in range(10)]
+
+    class _Variogram:
+        def __init__(self, conn):
+            self.conn = conn
+
+        def fit_variogram(self, _values, _coordinates, model_type):
+            assert model_type == "exponential"
+            return {"model_type": model_type}
+
+    class _Kriging:
+        def __init__(self, conn):
+            self.conn = conn
+
+        def ordinary_kriging(self, _coordinates, _values, _model, resolution_m):
+            assert resolution_m == 100.0
+            return {"n_points": 10}
+
+    monkeypatch.setattr(soc, "extract_training_data", lambda *_args: training_data)
+    monkeypatch.setattr(soc, "prepare_feature_matrix", lambda _data: (matrix, observed, ["feature"]))
+    monkeypatch.setattr(soc, "train_xgboost_model", lambda *_args: {"model_type": "test"})
+    monkeypatch.setattr(soc, "predict_soc", lambda *_args: {"predicted_soc_pct": 1.5})
+    monkeypatch.setattr("services.geostatistics.variogram.VariogramAnalyzer", _Variogram)
+    monkeypatch.setattr("services.geostatistics.kriging.KrigingEngine", _Kriging)
+
+    result = soc.residual_kriging_correction(object(), "location-123")
+
+    assert result["method"] == "residual_kriging"
+    assert result["n_samples"] == 10
+    assert result["kriging_grid_points"] == 10
+
+
+def test_soc_prediction_uses_graceful_fallback_without_numpy():
+    code = """
+import builtins
+real_import = builtins.__import__
+def guarded_import(name, *args, **kwargs):
+    if name == "numpy":
+        raise ModuleNotFoundError("simulated missing numpy")
+    return real_import(name, *args, **kwargs)
+builtins.__import__ = guarded_import
+import services.analytics.soc_prediction as module
+result = module.residual_kriging_correction(None, "location-123")
+assert result == {
+    "error": "NumPy is required for residual kriging",
+    "corrected_soc_pct": None,
+}
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
 
 
 # ---------------------------------------------------------------------------

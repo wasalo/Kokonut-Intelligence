@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import psycopg2
 import psycopg2.extras
@@ -72,7 +71,7 @@ def evaluate_impact(
     if metrics:
         # Metrics completeness contributes to confidence
         metric_completeness = min(100, len(metrics) * 5)
-        scores.append(metric_completescore)
+        scores.append(metric_completeness)
 
     impact_score = sum(scores) / len(scores) if scores else 0
     confidence = min(1.0, len(summaries) * 0.2 + len(metrics) * 0.05)
