@@ -298,10 +298,6 @@ jobs:
     useTTY: false
     condition: SUCCESSFUL
     optional: false
-  triggers:
-  - type: BranchUpdateTrigger
-    branches: main
-    userMatch: anyone
   retryCondition: never
   maxRetries: 1
   retryDelay: 60
