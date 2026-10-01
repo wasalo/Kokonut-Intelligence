@@ -3,6 +3,7 @@
 - **Status:** Proposed hybrid placement; local no-user-data Worker prototype implemented; Gitea control-plane transition planned by Wasabi; user-reported Gitea 1.27.1 requires upgrade and strict migration-egress verification before import; not architecture approval or Cloudflare deployment authorization
 - **Evidence date:** 2026-09-30
 - **Baseline:** [`Phase 0 capability and data baseline`](phase0-capability-baseline.md), source revision `18ae8cf`
+- **Staging volume inventory:** [`Read-only retained-volume inventory`](phase1-staging-volume-inventory.md) captured 2026-10-01. The live `.env.sops` access blocker was corrected to `0640 root:ubuntu`, and non-disclosing decryption as `ubuntu` passed; no new checkpoint or restore was performed because Staging services are absent. Durable deploy-script repair and backup recovery remain open; no volume disposition is authorized.
 - **Scope:** Recommend where each capability should run and define compatibility, security, data, cost, and rollback gates. A local synthetic Worker prototype was added; no Cloudflare account resource, service, secret, route, database, retained volume, CI job, or deployment was changed.
 - **Cloudflare documentation checked:** 2026-09-27; account inventory is reconnaissance only, not proof that existing resources are reusable or that a product/plan is enabled.
 

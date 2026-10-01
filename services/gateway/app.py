@@ -63,15 +63,12 @@ def create_app():
     )
     cors_origins = [
         origin.strip()
-        for origin in os.environ.get("CORS_ORIGIN", "*").split(",")
+        for origin in os.environ.get("CORS_ORIGIN", "").split(",")
         if origin.strip()
     ]
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=cors_origins or ["*"],
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["Content-Type", "Authorization", "x-api-key", "x-capability-token", "x-device-token"],
-    )
+    if "*" in cors_origins:
+        logger.warning("Ignoring wildcard CORS origin; configure explicit trusted origins")
+        cors_origins = [origin for origin in cors_origins if origin != "*"]
 
     rate_limiter = RateLimiter()
     audit = GatewayAudit()
@@ -79,6 +76,8 @@ def create_app():
     @app.middleware("http")
     async def gateway_middleware(request: Request, call_next):
         """Global middleware for auth, rate limiting, and audit."""
+        if request.method == "OPTIONS":
+            return await call_next(request)
         start_time = datetime.now(timezone.utc)
         client_ip = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "")
@@ -106,6 +105,55 @@ def create_app():
             )
 
         policy = get_route_policy(request.method, request.url.path)
+        max_body_bytes = 2_000_000 if request.url.path == "/api/mobile/media/uploads" else 8_000_000
+        if request.method in {"POST", "PUT", "PATCH"}:
+            def reject_body(status_code: int, reason: str, message: str):
+                audit.log(
+                    caller=auth_result_caller,
+                    path=request.url.path,
+                    method=request.method,
+                    status="denied",
+                    ip=client_ip,
+                    user_agent=user_agent,
+                    status_code=status_code,
+                    reason=reason,
+                    resource=policy["resource"],
+                    action=policy["action"],
+                )
+                return JSONResponse(status_code=status_code, content={"error": message})
+
+            auth_result_caller = caller
+            content_length = request.headers.get("content-length")
+            if content_length is not None:
+                try:
+                    declared_size = int(content_length)
+                except ValueError:
+                    return reject_body(400, "invalid_content_length", "Invalid Content-Length")
+                if declared_size < 0:
+                    return reject_body(400, "invalid_content_length", "Invalid Content-Length")
+                if declared_size > max_body_bytes:
+                    return reject_body(413, "request_body_too_large", "Request body too large")
+
+            body_chunks = []
+            body_size = 0
+            async for chunk in request.stream():
+                body_size += len(chunk)
+                if body_size > max_body_bytes:
+                    return reject_body(413, "request_body_too_large", "Request body too large")
+                body_chunks.append(chunk)
+            body = b"".join(body_chunks)
+            request._body = body
+            delivered = False
+
+            async def replay_body():
+                nonlocal delivered
+                if delivered:
+                    return {"type": "http.disconnect"}
+                delivered = True
+                return {"type": "http.request", "body": body, "more_body": False}
+
+            request._receive = replay_body
+
         location_id = await _request_location(request, policy)
         auth_result = {"authenticated": True, "caller": "anonymous", **policy, "location_id": location_id} \
             if policy["public"] else verify_request(
@@ -212,8 +260,38 @@ def create_app():
 
         return FileResponse(APP_PATH, media_type="text/html")
 
+    @app.get("/field-collector-vault.js")
+    async def field_collector_vault_script():
+        """Serve the encryption helper relative to the /mobile entry point."""
+        from fastapi.responses import FileResponse
+
+        from services.mobile.api import VAULT_SCRIPT_PATH
+
+        return FileResponse(VAULT_SCRIPT_PATH, media_type="application/javascript")
+
+    @app.get("/mobile/field-collector-vault.js")
+    async def mobile_vault_script_alias():
+        """Serve the encryption helper when the app is opened with a trailing slash."""
+        from fastapi.responses import FileResponse
+
+        from services.mobile.api import VAULT_SCRIPT_PATH
+
+        return FileResponse(VAULT_SCRIPT_PATH, media_type="application/javascript")
+
     app.include_router(router, prefix="/api")
     app.include_router(mobile_router, prefix="/api")
+
+    # Add CORS last so it wraps the gateway and also decorates auth, rate-limit,
+    # and request-size responses. No origins are trusted unless explicitly set.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Content-Type", "Authorization", "x-api-key", "x-capability-token",
+            "x-device-token", "x-collection-client-id",
+        ],
+    )
 
     logger.info("Gateway application created")
     return app
