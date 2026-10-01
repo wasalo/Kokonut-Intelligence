@@ -29,9 +29,16 @@ logger = get_logger("gateway.router")
 _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/health$"), "gateway", "read", True),
     ("GET", re.compile(r"^/mobile/?$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/field-collector-vault\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/app$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/api/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/forms$"), "mobile_form", "read", True),
+    ("POST", re.compile(r"^/api/mobile/media/uploads$"), "mobile_media", "upload", True),
     ("POST", re.compile(r"^/api/mobile/register$"), "mobile_device", "register", True),
+    ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/enrollments$"), "mobile_device", "enroll", False),
+    ("DELETE", re.compile(r"^/api/mobile/locations/([^/]+)/enrollments/([^/]+)$"), "mobile_device", "revoke", False),
+    ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/devices/([^/]+)/revoke$"), "mobile_device", "revoke", False),
     # These endpoints perform their own opaque device-token authentication.
     ("POST", re.compile(r"^/api/mobile/sync$"), "offline_collection", "write", True),
     ("GET", re.compile(r"^/api/mobile/sync/status$"), "offline_collection", "read", True),

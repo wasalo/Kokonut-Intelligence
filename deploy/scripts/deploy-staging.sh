@@ -95,8 +95,11 @@ if [ -f /opt/ki-staging/.age-key ]; then
             --age "$STAGING_PUBKEY" \
             "$REWRAP_DIR/.env" > "$STAGING_ROOT/.env.sops"
         rm -rf "$REWRAP_DIR"
-        chmod 600 "$STAGING_ROOT/.env.sops"
-        log "Root .env.sops re-wrapped to host key (runtime tooling enabled)"
+        # Preserve root ownership, but let the age-key group read the encrypted
+        # file so the Staging backup cron can decrypt it without broader access.
+        bash "$SCRIPT_DIR/set-staging-env-permissions.sh" \
+            "$AGE_KEY_FILE" "$STAGING_ROOT/.env.sops"
+        log "Root .env.sops re-wrapped to host key; age-key group has read-only access"
     fi
 fi
 rm -f "$ENV_PLAIN.nocomment"

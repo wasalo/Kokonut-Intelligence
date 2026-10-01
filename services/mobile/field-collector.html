@@ -71,10 +71,12 @@
     <header>
       <button class="icon-button" id="homeButton" aria-label="Home">K</button>
       <h1>Kokonut Field Collector</h1>
+      <button class="icon-button" id="lockButton" aria-label="Lock offline data">🔒</button>
       <div class="connection"><span class="dot" id="connectionDot"></span><span id="connectionText">Offline ready</span></div>
     </header>
     <main id="screen"></main>
   </div>
+  <script src="field-collector-vault.js"></script>
   <script>
     "use strict";
     const STORAGE = { queue:"kokonut_field_queue", device:"kokonut_field_device", forms:"kokonut_field_forms", settings:"kokonut_field_settings" };
@@ -89,13 +91,42 @@
     let currentForm = null;
     let currentLocation = null;
     let currentPhotos = [];
+    let enrollmentCode = "";
+    let vaultState = null;
+    let vault = null;
+    let vaultAdapter = null;
+    let vaultError = "";
+    let stateWrite = null;
+    let vaultLocking = false;
+    try {
+      vaultAdapter = window.FieldCollectorVault.createIndexedDbAdapter();
+      vault = new window.FieldCollectorVault.EncryptedVault(vaultAdapter);
+    } catch (error) {
+      vaultError = error.message || "Encrypted browser storage is unavailable.";
+    }
 
-    const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch (_) { return fallback; } };
-    const write = (key, value) => localStorage.setItem(key, JSON.stringify(value));
-    const settings = () => read(STORAGE.settings, { apiBase:"", locationId:"", userId:"", deviceName:"" });
-    const queue = () => read(STORAGE.queue, []);
-    const forms = () => read(STORAGE.forms, FALLBACK_FORMS);
+    const fieldForStorageKey = Object.fromEntries(Object.entries(STORAGE).map(([field, key]) => [key, field]));
+    const read = (key, fallback) => vaultState?.[fieldForStorageKey[key]] ?? fallback;
+    const write = (key, value) => {
+      if (!stateWrite || !vaultState || !vault?.isUnlocked() || vaultLocking) return Promise.reject(new Error("Offline vault is locked."));
+      const field = fieldForStorageKey[key];
+      return stateWrite(state => {
+        const nextValue = typeof value === "function" ? value(state[field]) : value;
+        return { ...state, [field]:nextValue };
+      }).then(state => { vaultState = state; return state; });
+    };
+    const settings = () => vaultState?.settings || { apiBase:"", deviceName:"" };
+    const queue = () => vaultState?.queue || [];
+    const forms = () => vaultState?.forms?.length ? vaultState.forms : FALLBACK_FORMS;
+    const legacyStorage = () => { try { return window.localStorage; } catch (_) { return null; } };
     const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    const isMediaId = value => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    const dataURLToBlob = value => {
+      const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+=*)$/.exec(String(value || ""));
+      if (!match) throw new Error("Stored photo is not a valid JPEG.");
+      const bytes = Uint8Array.from(atob(match[1]), char => char.charCodeAt(0));
+      return new Blob([bytes], {type:"image/jpeg"});
+    };
     const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
     const today = () => new Date().toISOString().slice(0,10);
     const apiBase = () => {
@@ -153,11 +184,14 @@
       }
     };
     const renderHome = () => {
+      if (!vault?.isUnlocked() || !vaultState) { void renderVaultGate(); return; }
       currentForm = null;
       const items = forms().map((form, index) => `<button class="form-card" data-form="${esc(form.form_id)}"><span class="form-mark">${index + 1}</span><span><strong>${esc(form.name)}</strong><small>${esc(form.description || "Field record")}</small></span><span class="arrow">&rsaquo;</span></button>`).join("");
       const count = queue().length;
+      const enrolledDevice = read(STORAGE.device, null);
+      const deviceSummary = enrolledDevice?.location_id ? `Enrolled for location ${enrolledDevice.location_id}` : "Enter a single-use enrollment code";
       const insecureBanner = isSecure() ? "" : `<div class="notice" style="background:#fde8e5;color:#842c25;margin-bottom:16px"><strong>HTTPS required for GPS on iOS.</strong><br>Switch to <a href="${httpsUrl()}" style="color:#842c25">${httpsUrl()}</a> and accept the certificate warning.</div>`;
-      screen.innerHTML = `${insecureBanner}<p class="eyebrow">Offline-first field records</p><h2>Collect what the field knows.</h2><p class="intro">Save observations now. The app will upload them when a connection returns.</p><div class="forms">${items}</div><section class="panel"><div class="panel-row"><strong>Pending records<small>${count ? "Waiting to sync" : "Everything is up to date"}</small></strong><span class="badge ${count ? "" : "empty"}">${count}</span></div><div class="panel-row"><strong>Device setup<small>${settings().locationId ? "Location configured" : "Add a location in settings"}</small></strong><button class="button secondary" style="width:auto" id="settingsButton">Open</button></div><div class="panel-row"><strong>Sync queue<small>Upload saved records when online</small></strong><button class="button" style="width:auto" id="syncButton">Sync now</button></div></section><p class="footer-note">Kokonut Intelligence Field Collector v1.0.0</p>`;
+      screen.innerHTML = `${insecureBanner}<p class="eyebrow">Offline-first field records</p><h2>Collect what the field knows.</h2><p class="intro">Save observations now. The app will upload them when a connection returns.</p><div class="forms">${items}</div><section class="panel"><div class="panel-row"><strong>Pending records<small>${count ? "Waiting to sync" : "Everything is up to date"}</small></strong><span class="badge ${count ? "" : "empty"}">${count}</span></div><div class="panel-row"><strong>Device setup<small>${esc(deviceSummary)}</small></strong><button class="button secondary" style="width:auto" id="settingsButton">Open</button></div><div class="panel-row"><strong>Sync queue<small>Upload saved records when online</small></strong><button class="button" style="width:auto" id="syncButton">Sync now</button></div></section><p class="footer-note">Kokonut Intelligence Field Collector v1.0.0</p>`;
       document.querySelectorAll("[data-form]").forEach(button => button.addEventListener("click", () => renderForm(forms().find(form => form.form_id === button.dataset.form))));
       document.getElementById("settingsButton").addEventListener("click", renderSettings);
       document.getElementById("syncButton").addEventListener("click", () => syncQueue(true));
@@ -186,6 +220,7 @@
     };
     const readPhoto = file => {
       if (!file) return;
+      if (currentPhotos.length >= 5) return notify("A record can include up to 5 photos.", true);
       if (file.size > 2_000_000) return notify("Please choose a photo smaller than 2 MB.", true);
       const reader = new FileReader();
       reader.onload = () => {
@@ -203,43 +238,169 @@
       };
       reader.readAsDataURL(file);
     };
-    const saveRecord = event => {
+    const saveRecord = async event => {
       event.preventDefault();
       const formData = new FormData(event.target); const payload = {};
       for (const [key, value] of formData.entries()) payload[key] = value === "" ? null : (event.target.elements[key].type === "number" ? Number(value) : value);
-      payload.photos = currentPhotos.map(photo => photo.data);
-      const item = { client_id:uid(), collection_type:currentForm.collection_type, form_id:currentForm.form_id, form_version:currentForm.version || "1.0.0", payload, photo_refs:currentPhotos.map(photo => photo.name), ...currentLocation, collected_at:new Date().toISOString(), sync_status:"pending" };
-      const items = queue(); items.push(item);
-      try { write(STORAGE.queue, items); renderHome(); notify("Saved on this device. It will sync when online."); syncQueue(false); } catch (_) { notify("Storage is full. Remove older queued records first.", true); }
+      const item = { client_id:uid(), collection_type:currentForm.collection_type, form_id:currentForm.form_id, form_version:currentForm.version || "1.0.0", payload, photo_refs:[], offline_photos:currentPhotos.map(photo => ({name:photo.name,data:photo.data})), ...currentLocation, collected_at:new Date().toISOString(), sync_status:"pending" };
+      try { await write(STORAGE.queue, items => [...(Array.isArray(items) ? items : []), item]); renderHome(); notify("Saved on this device. It will sync when online."); void syncQueue(false); } catch (_) { notify("Encrypted storage could not save this record. Keep this page open and try again.", true); }
     };
-    const ensureDevice = async () => {
+    const ensureDevice = async (oneTimeCode = enrollmentCode) => {
       const base = apiBase(); if (!base) throw new Error("Set the API URL in Settings before syncing.");
       let device = read(STORAGE.device, null); if (device && device.device_token) return device;
+      const code = String(oneTimeCode || "").trim();
+      if (!code) throw new Error("This browser is not enrolled. Enter a single-use enrollment code in Device setup.");
       const config = settings();
-      const response = await fetch(`${base}/register`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ device_id:device?.device_id || `browser-${uid()}`, device_name:config.deviceName || "Field browser", user_id:config.userId || null, location_id:config.locationId || null, app_version:"1.0.0", os:navigator.platform }) });
+      const response = await fetch(`${base}/register`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ device_id:`browser-${uid()}`, enrollment_code:code, device_name:config.deviceName || "Field browser", app_version:"1.0.0", os:navigator.platform }) });
       if (!response.ok) throw new Error(`Device registration failed (${response.status})`);
-      device = await response.json(); write(STORAGE.device, device); return device;
+      device = await response.json(); enrollmentCode = ""; await write(STORAGE.device, device); return device;
+    };
+    const migrateQueueMedia = async items => {
+      const migrated = items.map(item => {
+        const payload = {...(item.payload || {})};
+        const embeddedPhotos = Array.isArray(payload.photos)
+          ? payload.photos.map((data, index) => ({name:`legacy-${index + 1}.jpg`, data}))
+          : [];
+        delete payload.photos;
+        const offlinePhotos = [...(Array.isArray(item.offline_photos) ? item.offline_photos : []), ...embeddedPhotos];
+        const refs = Array.isArray(item.photo_refs) ? item.photo_refs : [];
+        const validRefs = refs.filter(isMediaId);
+        const unresolvableNames = [...(Array.isArray(item.legacy_photo_refs) ? item.legacy_photo_refs : []), ...refs.filter(ref => !isMediaId(ref))];
+        return {
+          ...item,
+          payload,
+          photo_refs:validRefs,
+          offline_photos:offlinePhotos,
+          legacy_photo_refs:offlinePhotos.length ? [] : [...new Set(unresolvableNames)],
+          media_review_required:(offlinePhotos.length + validRefs.length) > 5 || item.media_review_required === true,
+        };
+      });
+      const changed = migrated.some((item, index) => JSON.stringify(item) !== JSON.stringify(items[index]));
+      if (changed) {
+        const byClientId = new Map(migrated.map(item => [item.client_id, item]));
+        await write(STORAGE.queue, current => current.map(item => byClientId.get(item.client_id) || item));
+      }
+      return migrated;
     };
     const syncQueue = async manual => {
+      if (!vault?.isUnlocked() || !vaultState) return;
       if (!navigator.onLine) { if (manual) notify("You are offline. Records remain safely on this device."); return; }
-      const items = queue(); if (!items.length) { if (manual) notify("Nothing is waiting to sync."); return; }
       try {
+        let items = await migrateQueueMedia(queue());
+        if (!items.length) { if (manual) notify("Nothing is waiting to sync."); return; }
         const device = await ensureDevice(); const base = apiBase();
-        const response = await fetch(`${base}/sync`, { method:"POST", headers:{"Content-Type":"application/json","X-Device-Token":device.device_token}, body:JSON.stringify({ device_id:device.device_id, collections:items.map(item => ({ client_id:item.client_id, collection_type:item.collection_type, form_id:item.form_id, form_version:item.form_version, payload:item.payload, photo_refs:item.photo_refs, latitude:item.latitude, longitude:item.longitude, accuracy_m:item.accuracy_m, collected_at:item.collected_at })) }) });
-        if (!response.ok) throw new Error(`Sync failed (${response.status})`);
-        const result = await response.json(); const accepted = Number(result.accepted || 0); const acceptedIds = new Set(result.accepted_client_ids || []); const duplicateIds = new Set(result.duplicate_client_ids || []); const remaining = items.filter(item => !acceptedIds.has(item.client_id) && !duplicateIds.has(item.client_id));
-        write(STORAGE.queue, remaining); write(STORAGE.settings, {...settings(), lastSyncAt:new Date().toISOString()});
-        if (manual) { renderHome(); notify(`${accepted} record${accepted === 1 ? "" : "s"} uploaded.`); }
-      } catch (error) { if (manual) notify(error.message || "Sync unavailable. Records remain queued.", true); }
+        const syncableItems = []; let unrecoverable = 0; let mediaReview = 0;
+        for (let item of items) {
+          const existingRefs = Array.isArray(item.photo_refs) ? item.photo_refs : [];
+          const existingPhotos = Array.isArray(item.offline_photos) ? item.offline_photos : [];
+          if (item.media_review_required || existingRefs.length + existingPhotos.length > 5) { mediaReview++; continue; }
+          if (item.legacy_photo_refs?.length) { unrecoverable++; continue; }
+          let refs = [...existingRefs];
+          let photos = [...existingPhotos];
+          while (photos.length) {
+            const photo = photos[0];
+            const upload = await fetch(`${base}/media/uploads`, {
+              method:"POST",
+              headers:{"Content-Type":"image/jpeg","X-Device-Token":device.device_token,"X-Collection-Client-ID":item.client_id},
+              body:dataURLToBlob(photo.data),
+            });
+            if (!upload.ok) { const error = new Error(`Photo upload failed (${upload.status})`); error.status = upload.status; throw error; }
+            const uploaded = await upload.json();
+            if (!isMediaId(uploaded.media_id)) throw new Error("Photo upload returned an invalid media reference.");
+            refs.push(uploaded.media_id); photos = photos.slice(1);
+            item = {...item, photo_refs:refs, offline_photos:photos};
+            await write(STORAGE.queue, current => current.map(candidate => candidate.client_id === item.client_id ? item : candidate));
+          }
+          syncableItems.push({...item, photo_refs:refs, offline_photos:[]});
+        }
+        if (!syncableItems.length) {
+          if (manual) {
+            const warnings = [];
+            if (mediaReview) warnings.push(`${mediaReview} record(s) have more than five photos; they remain encrypted and were not uploaded.`);
+            if (unrecoverable) warnings.push(`${unrecoverable} record(s) have legacy photo names but no local photo data; they remain encrypted and were not synced.`);
+            notify(warnings.join(" ") || "Nothing is ready to sync.", warnings.length > 0);
+          }
+          return;
+        }
+        const response = await fetch(`${base}/sync`, {
+          method:"POST",
+          headers:{"Content-Type":"application/json","X-Device-Token":device.device_token},
+          body:JSON.stringify({device_id:device.device_id,collections:syncableItems.map(item => ({
+            client_id:item.client_id, collection_type:item.collection_type, form_id:item.form_id,
+            form_version:item.form_version, payload:item.payload, photo_refs:item.photo_refs,
+            latitude:item.latitude, longitude:item.longitude, accuracy_m:item.accuracy_m,
+            collected_at:item.collected_at,
+          }))}),
+        });
+        if (!response.ok) { const error = new Error(`Sync failed (${response.status})`); error.status = response.status; throw error; }
+        const result = await response.json(); const accepted = Number(result.accepted || 0); const acceptedIds = new Set(result.accepted_client_ids || []); const duplicateIds = new Set(result.duplicate_client_ids || []);
+        await write(STORAGE.queue, current => current.filter(item => !acceptedIds.has(item.client_id) && !duplicateIds.has(item.client_id)));
+        await write(STORAGE.settings, current => ({...current, lastSyncAt:new Date().toISOString()}));
+        if (manual) {
+          renderHome();
+          const warnings = [];
+          if (unrecoverable) warnings.push(`${unrecoverable} record(s) with legacy photo names remain queued for recovery.`);
+          if (mediaReview) warnings.push(`${mediaReview} record(s) exceed the five-photo limit; their encrypted local images were not uploaded.`);
+          notify(`${accepted} record${accepted === 1 ? "" : "s"} uploaded.${warnings.length ? ` ${warnings.join(" ")}` : ""}`, warnings.length > 0);
+        }
+      } catch (error) {
+        if (error.status === 401 && vault?.isUnlocked() && vaultState) {
+          await write(STORAGE.device, null); await write(STORAGE.forms, []); renderSettings();
+          notify("Device access was revoked. Request a new enrollment code; queued records remain encrypted on this browser.", true);
+        } else if (manual) notify(error.message || "Sync unavailable. Records remain queued.", true);
+      }
     };
-    const renderQueue = () => { const items = queue(); screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Local queue</p><h2>${items.length} pending</h2><p class="intro">These records are stored in this browser until the server accepts them.</p>${items.length ? `<div class="panel">${items.map((item, index) => `<div class="queue-item"><span class="badge">${index + 1}</span><div><strong>${esc(item.collection_type)}</strong><small>${new Date(item.collected_at).toLocaleString()}${item.latitude ? ` | GPS ${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}` : ""}</small></div><button class="remove" data-remove="${esc(item.client_id)}">Remove</button></div>`).join("")}</div><button class="button" id="syncButton">Sync now</button>` : `<div class="empty">No pending records.</div>`}`; document.getElementById("backButton").addEventListener("click", renderHome); document.querySelectorAll("[data-remove]").forEach(button => button.addEventListener("click", () => { write(STORAGE.queue, queue().filter(item => item.client_id !== button.dataset.remove)); renderQueue(); })); const sync = document.getElementById("syncButton"); if (sync) sync.addEventListener("click", () => syncQueue(true)); };
-    const renderSettings = () => { const config = settings(); screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Device setup</p><h2>Settings</h2><p class="intro">The app can collect offline without these values. Add them to enable automatic sync.</p><form id="settingsForm"><label>API URL<input name="apiBase" value="${esc(config.apiBase)}" placeholder="https://data.example.org"></label><label>Location ID<input name="locationId" value="${esc(config.locationId)}" placeholder="Location UUID"></label><label>Worker ID<input name="userId" value="${esc(config.userId)}" placeholder="Your name or staff ID"></label><label>Device name<input name="deviceName" value="${esc(config.deviceName)}" placeholder="Field phone 1"></label><button class="button" type="submit">Save settings and register</button></form><button class="button ghost" id="queueButton">View pending queue</button>`; document.getElementById("backButton").addEventListener("click", renderHome); document.getElementById("queueButton").addEventListener("click", renderQueue); document.getElementById("settingsForm").addEventListener("submit", async event => { event.preventDefault(); const values = Object.fromEntries(new FormData(event.target).entries()); write(STORAGE.settings, values); localStorage.removeItem(STORAGE.device); if (navigator.onLine && values.apiBase) { try { await ensureDevice(); notify("Settings saved and device registered."); } catch (error) { notify(error.message, true); } } else notify("Settings saved. Registration will happen when online."); }); };
-    const loadForms = async () => { const base = apiBase(); if (!base || !navigator.onLine) return; try { const response = await fetch(`${base}/forms?location_id=${encodeURIComponent(settings().locationId || "")}`); if (response.ok) { const fetched = (await response.json()).forms || []; if (fetched.length) write(STORAGE.forms, fetched); } } catch (_) {} };
+    const renderQueue = () => { const items = queue(); screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Local queue</p><h2>${items.length} pending</h2><p class="intro">These records are stored encrypted in this browser until the server accepts them.</p>${items.length ? `<div class="panel">${items.map((item, index) => `<div class="queue-item"><span class="badge">${index + 1}</span><div><strong>${esc(item.collection_type)}</strong><small>${new Date(item.collected_at).toLocaleString()}${item.latitude ? ` | GPS ${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}` : ""}</small>${item.media_review_required ? `<small style="color:var(--danger)">This record exceeds the five-photo limit. It remains encrypted and cannot sync; remove and recollect with no more than five photos.</small>` : ""}</div><button class="remove" data-remove="${esc(item.client_id)}">Remove</button></div>`).join("")}</div><button class="button" id="syncButton">Sync now</button>` : `<div class="empty">No pending records.</div>`}`; document.getElementById("backButton").addEventListener("click", renderHome); document.querySelectorAll("[data-remove]").forEach(button => button.addEventListener("click", async () => { await write(STORAGE.queue, current => current.filter(item => item.client_id !== button.dataset.remove)); renderQueue(); })); const sync = document.getElementById("syncButton"); if (sync) sync.addEventListener("click", () => syncQueue(true)); };
+    const renderSettings = () => { const config = settings(); const device = read(STORAGE.device, null); const enrollmentField = device?.device_token ? `<div class="location">This browser is enrolled. Its location is assigned by the server.</div>` : `<label class="required">Single-use enrollment code<input name="enrollmentCode" autocomplete="one-time-code" required></label>`; screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Device setup</p><h2>Settings</h2><p class="intro">Records can be collected offline. Enrollment is required before location forms or sync are available.</p><form id="settingsForm"><label>API URL<input name="apiBase" value="${esc(config.apiBase)}" placeholder="https://data.example.org"></label><label>Device name<input name="deviceName" value="${esc(config.deviceName)}" placeholder="Field phone 1"></label>${enrollmentField}<button class="button" type="submit">${device?.device_token ? "Save settings" : "Save settings and enroll"}</button></form><button class="button ghost" id="queueButton">View pending queue</button>`; document.getElementById("backButton").addEventListener("click", renderHome); document.getElementById("queueButton").addEventListener("click", renderQueue); document.getElementById("settingsForm").addEventListener("submit", async event => { event.preventDefault(); const values = Object.fromEntries(new FormData(event.target).entries()); enrollmentCode = String(values.enrollmentCode || "").trim(); delete values.enrollmentCode; await write(STORAGE.settings, values); if (device?.device_token) { notify("Settings saved. Device enrollment remains server-managed."); return; } if (!enrollmentCode) { notify("Enter a single-use enrollment code to register this browser.", true); return; } if (navigator.onLine && values.apiBase) { try { await ensureDevice(enrollmentCode); notify("Settings saved and device enrolled."); renderHome(); } catch (error) { notify(error.message, true); } } else notify("Settings saved. Connect to the network to complete enrollment."); }); };
+    const loadForms = async () => { if (!vault?.isUnlocked() || !vaultState) return; const base = apiBase(); if (!base || !navigator.onLine) return; try { const device = read(STORAGE.device, null); const headers = device?.device_token ? {"X-Device-Token":device.device_token} : {}; const response = await fetch(`${base}/forms`, {headers}); if (response.status === 401 && device?.device_token) { await write(STORAGE.device, null); await write(STORAGE.forms, []); renderHome(); notify("Device access was revoked. Request a new enrollment code.", true); return; } if (response.ok) { const fetched = (await response.json()).forms || []; await write(STORAGE.forms, fetched); } } catch (_) {} };
+
+    const renderVaultGate = async (message = "") => {
+      if (!vault || !vaultAdapter) {
+        screen.innerHTML = `<div class="panel"><p class="eyebrow">Encrypted offline storage unavailable</p><h2>Secure storage is required.</h2><p class="intro">${esc(message || vaultError || "Open this app in a browser with IndexedDB and Web Crypto enabled, using HTTPS, localhost, or a local file.")}</p></div>`;
+        return;
+      }
+      let existing;
+      try { existing = await vaultAdapter.get(); } catch (error) {
+        screen.innerHTML = `<div class="panel"><p class="eyebrow">Offline vault</p><h2>Storage could not be opened.</h2><p class="intro">${esc(error.message || "Try reloading this page.")}</p></div>`;
+        return;
+      }
+      const fields = existing
+        ? `<label class="required">Vault passphrase<input name="passphrase" type="password" autocomplete="current-password" required minlength="12"></label>`
+        : `<label class="required">Create a passphrase<input name="passphrase" type="password" autocomplete="new-password" required minlength="12"></label><label class="required">Confirm passphrase<input name="confirmation" type="password" autocomplete="new-password" required minlength="12"></label>`;
+      const intro = existing
+        ? "Unlock the encrypted records and device credential stored in this browser."
+        : "Create a passphrase to encrypt records and credentials in this browser. Existing localStorage data will be removed only after encrypted migration is verified.";
+      screen.innerHTML = `<section class="panel"><p class="eyebrow">${existing ? "Offline vault locked" : "Protect this browser"}</p><h2>${existing ? "Unlock Field Collector" : "Create your offline vault"}</h2><p class="intro">${esc(message || intro)}</p><form id="vaultForm">${fields}<button class="button" type="submit">${existing ? "Unlock" : "Create encrypted vault"}</button></form></section>`;
+      document.getElementById("vaultForm").addEventListener("submit", async event => {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(event.target).entries());
+        if (!existing && values.passphrase !== values.confirmation) { await renderVaultGate("Passphrases do not match."); return; }
+        try {
+          vaultState = await vault.unlock(values.passphrase, legacyStorage());
+          stateWrite = window.FieldCollectorVault.createStateWriter(vault);
+          renderHome();
+          await loadForms();
+          if (vault.legacyDataPreserved) notify("Additional legacy browser data was preserved, not imported or deleted. Arrange a verified recovery and cleanup before reusing this browser for sensitive work.", true);
+          void syncQueue(false);
+        } catch (error) {
+          await renderVaultGate(error.message || "Could not unlock encrypted offline data.");
+        }
+      });
+    };
+    const lockVault = async () => {
+      if (!vault?.isUnlocked() || vaultLocking) return;
+      vaultLocking = true;
+      if (stateWrite) await stateWrite.flush();
+      vault.lock(); vaultState = null; stateWrite = null; enrollmentCode = ""; currentPhotos = []; currentLocation = null; currentForm = null;
+      vaultLocking = false;
+      await renderVaultGate();
+    };
     document.getElementById("homeButton").addEventListener("click", renderHome);
+    document.getElementById("lockButton").addEventListener("click", () => { void lockVault(); });
     window.addEventListener("online", () => { setConnection(); loadForms().then(() => syncQueue(false)); });
     window.addEventListener("offline", setConnection);
-    setConnection(); renderHome(); loadForms().then(() => renderHome());
-    window.setInterval(() => syncQueue(false), 30000);
+    setConnection(); void renderVaultGate();
+    window.setInterval(() => { void syncQueue(false); }, 30000);
   </script>
 </body>
 </html>

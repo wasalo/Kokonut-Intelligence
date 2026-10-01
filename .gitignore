@@ -50,6 +50,9 @@ venv/
 *.egg-info/
 .env.venv
 
+# uv lockfile (the repository currently installs dependencies from requirements.txt)
+uv.lock
+
 # ClickHouse
 data/clickhouse/
 
