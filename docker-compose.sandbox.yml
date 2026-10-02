@@ -1,11 +1,9 @@
-# Usage: docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox up -d
+# Usage: docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox --profile metabase up -d
 
 services:
   metabase:
-    environment:
-      MB_ENABLE_EMBEDDING: "true"
-      MB_EMBEDDING_APP_ORIGIN: "http://localhost:3001"
-      MB_EMBEDDING_SECRET_KEY: "${METABASE_EMBEDDING_SECRET_KEY:-sandbox-dev-secret-key-change-in-production}"
+    ports:
+      - "127.0.0.1:3001:3000"
 
   sandbox-seed:
     image: postgis/postgis:14-3.4@sha256:d803ac7dab61c5e5c36b8597e4a77d4a60be075507672e08da8aaba022dd9aaa
@@ -26,6 +24,5 @@ services:
       DIRECTUS_URL: "http://directus:8055"
       ADMIN_EMAIL: "${ADMIN_EMAIL}"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
-      METABASE_URL: "http://metabase:3000"
     profiles:
       - sandbox

@@ -30,8 +30,8 @@ source_secrets warn
 
 # Service endpoints
 DIRECTUS_URL="${DIRECTUS_URL:-http://localhost:8055}"
-METABASE_URL="${METABASE_URL:-http://localhost:3001}"
 CLICKHOUSE_URL="${CLICKHOUSE_URL:-http://localhost:8123}"
+HEALTH_CHECK_METABASE="${HEALTH_CHECK_METABASE:-false}"
 PG_HOST="${PG_HOST:-localhost}"
 PG_PORT="${PG_PORT:-5432}"
 PG_DB="${PG_DB:-kokonut_intelligence}"
@@ -93,10 +93,12 @@ check "clickhouse_ping" "curl -sf '${CLICKHOUSE_URL}/ping'"
 check "clickhouse_query" "curl -sf '${CLICKHOUSE_URL}/?query=SELECT%201'"
 if [ "$JSON_OUTPUT" = "false" ]; then echo ""; fi
 
-# ── Metabase ──
-if [ "$JSON_OUTPUT" = "false" ]; then echo "Metabase ($METABASE_URL):"; fi
-check "metabase_health" "curl -sf ${METABASE_URL}/api/health"
-if [ "$JSON_OUTPUT" = "false" ]; then echo ""; fi
+if [ "$HEALTH_CHECK_METABASE" = "true" ]; then
+    METABASE_URL="${METABASE_URL:-http://localhost:3001}"
+    if [ "$JSON_OUTPUT" = "false" ]; then echo "Optional Metabase ($METABASE_URL):"; fi
+    check "metabase_health" "curl -sf '${METABASE_URL}/api/health'"
+    if [ "$JSON_OUTPUT" = "false" ]; then echo ""; fi
+fi
 
 # ── Docker containers ──
 CHECK_DOCKER="${HEALTH_CHECK_DOCKER:-true}"
@@ -105,7 +107,9 @@ if [ "$CHECK_DOCKER" = "true" ]; then
     check "container_database" "docker ps --format '{{.Names}}' | grep -q 'database'"
     check "container_directus" "docker ps --format '{{.Names}}' | grep -q 'directus'"
     check "container_clickhouse" "docker ps --format '{{.Names}}' | grep -q 'clickhouse'"
-    check "container_metabase" "docker ps --format '{{.Names}}' | grep -q 'metabase'"
+    if [ "$HEALTH_CHECK_METABASE" = "true" ]; then
+        check "container_metabase" "docker ps --format '{{.Names}}' | grep -q 'metabase'"
+    fi
 
     # Check for exited (crashed) containers
     EXITED=$(docker ps -a --filter "status=exited" --filter "status=dead" --format '{{.Names}}' 2>/dev/null | head -5 || true)

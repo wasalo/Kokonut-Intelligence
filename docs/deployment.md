@@ -6,7 +6,7 @@
 
 - Docker Desktop (with Docker Compose v2)
 - 4GB+ RAM available for Docker
-- Ports available for base Compose: 80, 443, and 50051; loopback ports 8055, 8099, and 8883 must also be available. PostgreSQL, ClickHouse, and Metabase are internal-only. Directus is bound to `127.0.0.1:8055`, gateway to `127.0.0.1:8099`, MQTT TLS to `127.0.0.1:8883`, and gRPC to host port `50051` in base Compose.
+- Ports available for base Compose: 80, 443, and 50051; loopback ports 8055, 8099, and 8883 must also be available. PostgreSQL and ClickHouse are internal-only. Directus is bound to `127.0.0.1:8055`, gateway to `127.0.0.1:8099`, MQTT TLS to `127.0.0.1:8883`, and gRPC to host port `50051` in base Compose. Metabase is excluded unless its profile is explicitly enabled.
 
 ### Quick Start
 
@@ -40,7 +40,7 @@ docker compose ps
 | Field Collector | `https://localhost/mobile` or `https://localhost/field/field-collector.html` | Offline-first mobile companion (LAN: `https://<lan-ip>/mobile`) |
 | Directus | `https://localhost` or `https://localhost/directus` | Schema management, API, admin |
 | Directus admin | `https://localhost/admin` | Admin UI route through Caddy |
-| Metabase | `https://localhost/metabase` | Internal BI dashboards |
+| Metabase (opt-in) | `http://localhost:3001` when enabled | BI dashboards; not routed through default Caddy |
 | Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
 | Gateway | `http://127.0.0.1:8099` | Loopback FastAPI gateway; Caddy proxies `/mobile` and `/api/mobile/*` |
 | gRPC | `localhost:50051` | gRPC service; host exposure is removed by the production overlay |
@@ -49,7 +49,7 @@ docker compose ps
 | ClickHouse HTTP | Docker service `clickhouse:8123` | Analytical queries |
 | ClickHouse Native | Docker service `clickhouse:9000` | Native protocol |
 
-Metabase has no host binding in base Compose. A local override may expose it at `http://localhost:3001`.
+To enable Metabase locally, run `docker compose --profile metabase up -d metabase`. The default local override maps it to `http://localhost:3001`; default Compose and Caddy do not start or route it. Public sharing and static embedding are disabled by default. Enabling either requires a separate security decision; static embedding also requires a signing key injected through the approved secret path.
 
 ### Field Collector (mobile LAN access)
 
@@ -224,7 +224,7 @@ The platform includes `scripts/health-check.sh` for continuous health monitoring
 - PostgreSQL connection and key tables
 - Directus server ping and health endpoint
 - ClickHouse HTTP ping and query
-- Metabase health endpoint
+- Metabase health endpoint (only when `HEALTH_CHECK_METABASE=true`)
 - Docker container status (running + no crashed containers)
 - Disk usage (alert at 90% by default, configurable via `DISK_THRESHOLD`)
 - Memory usage (alert at 90% by default, configurable via `MEM_THRESHOLD`)
@@ -261,7 +261,7 @@ Before deploying to production:
 - [ ] Backup cron job configured (`scripts/backup.sh`)
 - [ ] Resource limits reviewed for your VM size
 - [ ] Directus `ADMIN_PASSWORD` changed from default
-- [ ] `METABASE_EMBEDDING_SECRET_KEY` set to a strong value
+- [ ] If optional Metabase embedding is enabled, `METABASE_EMBEDDING_SECRET_KEY` is set to a strong value
 
 ### Recommended VM Specs
 
@@ -315,14 +315,17 @@ For production deployments, use the production overlay to apply memory limits an
 # With built-in Caddy
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-# With external Traefik
+# With external Traefik; Metabase stays off unless its profile is enabled
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
+
+# Optional BI exception, only when separately justified and approved
+docker compose --profile metabase -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
 
 # With worker container for ingestion
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d
 ```
 
-The production overlay does not expose Directus or Metabase directly to the host. All traffic goes through the reverse proxy (Caddy or Traefik). For temporary direct access during troubleshooting, create a local override:
+The production overlay does not expose Directus or optional Metabase directly to the host. Default Caddy routes do not include Metabase; use the Traefik overlay if the optional service is separately approved and enabled. For temporary direct access during troubleshooting, create a local override:
 
 ```bash
 echo 'services:

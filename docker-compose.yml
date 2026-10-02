@@ -75,11 +75,14 @@ services:
       LOGIN_RATELIMIT_ENABLED: "true"
       LOGIN_RATELIMIT_POINTS: "5"
       LOGIN_RATELIMIT_DURATION: "900000"
-      CORS_ORIGIN: ${CORS_ORIGIN:-"http://localhost,http://localhost:8055,http://localhost:3001"}
+      CORS_ORIGIN: ${CORS_ORIGIN:-"http://localhost,http://localhost:8055"}
       PUBLIC_RESTRICT: "true"
 
   metabase:
     image: metabase/metabase:v0.62.4@sha256:22ddc782a45f8aecf47c0f039b86a323435565595643e429fb33d29939b41675
+    # BI is opt-in; it is not part of the default Backend Brain deployment.
+    profiles:
+      - metabase
     restart: unless-stopped
     expose:
       - "3000"
@@ -95,10 +98,8 @@ services:
       MB_DB_USER: "kokonut"
       MB_DB_PASS: ${POSTGRES_PASSWORD}
       MB_DB_HOST: "database"
-      MB_ENABLE_EMBEDDING: "true"
-      MB_APPLICATION_ROOT: "/metabase"
-      MB_EMBEDDING_APP_ORIGIN: "${CORS_ORIGIN:-http://localhost}"
-      MB_EMBEDDING_SECRET_KEY: ${METABASE_EMBEDDING_SECRET_KEY:?Set METABASE_EMBEDDING_SECRET_KEY in .env}
+      MB_ENABLE_PUBLIC_SHARING: "${METABASE_ENABLE_PUBLIC_SHARING:-false}"
+      MB_ENABLE_EMBEDDING_STATIC: "${METABASE_ENABLE_EMBEDDING_STATIC:-false}"
     depends_on:
       database:
         condition: service_healthy
@@ -197,7 +198,6 @@ services:
       - caddy-config:/config
     depends_on:
       - directus
-      - metabase
       - gateway
     networks:
       - apps

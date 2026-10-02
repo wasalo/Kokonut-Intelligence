@@ -34,7 +34,6 @@ fi
 echo "Creating data directories..."
 mkdir -p "$PROJECT_DIR/data/postgres"
 mkdir -p "$PROJECT_DIR/data/uploads"
-mkdir -p "$PROJECT_DIR/data/metabase"
 mkdir -p "$PROJECT_DIR/data/clickhouse"
 
 # Start services
@@ -62,6 +61,7 @@ echo ""
 echo "Next steps:"
 echo "  1. Edit .env with your secrets"
 echo "  2. Access Directus at http://localhost:8055"
-echo "  3. Access Metabase at http://localhost:3001"
+echo "  3. Optional BI: start Metabase with docker compose --profile metabase up -d metabase"
+echo "     The local override exposes it at http://localhost:3001"
 echo "  4. Run: ./scripts/seed.sh (to load pilot data)"
 echo ""

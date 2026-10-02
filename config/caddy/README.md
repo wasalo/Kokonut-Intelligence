@@ -32,11 +32,15 @@ Both files must define the same routes. When adding a new route, edit both files
 | `/field/*` | Static files | Field collector HTML from `/app/services/mobile` |
 | `/mobile*` | `gateway:8099` | Field collector app via gateway |
 | `/api/mobile/*` | `gateway:8099` | Mobile register/forms/sync API |
-| `/metabase/*` | `metabase:3000` | Strip prefix, reverse proxy |
 | `/grpc/*` | `grpc:50051` | gRPC-Web proxy (h2c transport) |
 | **catch-all** | `directus:8055` | All other paths go to Directus |
 
 Field collector LAN URL (after `docker compose up -d`): `https://<host-lan-ip>/mobile`.
+
+Metabase is not routed through the default Caddy configuration. Start its
+Compose profile explicitly for local or Staging use; production Traefik labels
+are available in `docker-compose.traefik.yml` when that optional service is
+approved and enabled.
 
 ## Adding a Route
 
