@@ -10,7 +10,7 @@
 # AND host ports. See docs/deployment-topology.md for the port allocation
 # table and the namespace-isolation invariant.
 #
-# Port allocation (staging): 13001 (metabase), 18056 (directus),
+# Port allocation (staging): 13001 (optional Metabase profile), 18056 (directus),
 # 18098 (gateway), 50053 (grpc). All bound to loopback only — staging is
 # not publicly exposed; use an SSH tunnel or a Cloudflare tunnel if remote
 # access is needed.

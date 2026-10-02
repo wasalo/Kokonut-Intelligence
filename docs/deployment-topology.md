@@ -21,10 +21,10 @@ deployed stack and CI's `down -v` recreated that stack's data volumes.
 
 | Range | Owner | Notes |
 |---|---|---|
-| 13001 | staging metabase | loopback |
 | 15432 / 18123 | CI postgres / clickhouse | loopback, high ports to avoid host conflicts |
 | 18055 / 18099 / 50052 | CI directus / gateway / grpc | loopback |
-| 18056 / 13001 / 18098 / 50053 | staging directus / metabase / gateway / grpc | loopback |
+| 18056 / 18098 / 50053 | staging directus / gateway / grpc | loopback |
+| 13001 | optional staging Metabase profile | loopback; only when explicitly enabled |
 | 80 / 443 | production Traefik only | public |
 
 Rule: new environments take unused high ports and document them here.
@@ -32,8 +32,8 @@ Rule: new environments take unused high ports and document them here.
 ## Deploy flow
 
 ```
-push/PR ──► CI (ki-ci) ──► merge main ──► deploy-staging (auto)
-                                             │
+push/PR ──► CI (ki-ci) ──► merge main ──► Staging deployment remains paused/manual
+                                             │       until data/recovery gates and approval
                               release/* tag ─┴──► deploy-production (manual,
                                                    DEPLOY_CONFIRM=yes)
 ```

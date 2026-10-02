@@ -141,7 +141,7 @@ fi
 log "─────────────────────────────────────────────"
 log "Staging deployed: commit $DEPLOYED_SHA"
 log "Directus : http://127.0.0.1:18056"
-log "Metabase : http://127.0.0.1:13001"
+log "Metabase : not started by default; enable explicitly with COMPOSE_PROFILES=metabase (loopback port 13001)"
 log "Gateway  : http://127.0.0.1:18098"
 log "Backups  : nightly 03:30 → $STAGING_ROOT/backups"
 log "─────────────────────────────────────────────"

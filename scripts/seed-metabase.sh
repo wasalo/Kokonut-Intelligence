@@ -11,6 +11,8 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 echo "=== Kokonut Intelligence Platform — Metabase Setup ==="
 echo ""
+echo "Metabase must be enabled separately with the Compose profile: --profile metabase."
+echo ""
 
 # Source secrets (SOPS encrypted .env.sops, or plaintext .env fallback)
 source_secrets warn

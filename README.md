@@ -91,7 +91,7 @@ Run the full local check with `./scripts/ci-check.sh` or `make ci`. For sandbox-
 
 ## Local Services
 
-Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus, gateway, and MQTT to loopback, and keeps PostgreSQL, ClickHouse, Redis, and Metabase private. The optional worker overlay joins the private database network without turning metric computation into a persistent service.
+Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus, gateway, and MQTT to loopback, and keeps PostgreSQL, ClickHouse, and Redis private. Metabase remains available under the opt-in `metabase` profile and is excluded from the default stack. The optional worker overlay joins the private database network without turning metric computation into a persistent service.
 
 | Service | Base URL | Notes |
 |---------|----------|-------|
@@ -101,14 +101,14 @@ Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus, ga
 | Directus admin | `https://localhost/admin` | Admin UI and data entry |
 | Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
 | Gateway | `http://127.0.0.1:8099` | FastAPI gateway (mobile API); Caddy proxies `/mobile` and `/api/mobile/*` |
-| Metabase | `https://localhost/metabase` | BI dashboards |
+| Metabase (opt-in) | `http://localhost:3001` when enabled | BI dashboards; start with `docker compose --profile metabase up -d metabase` |
 | gRPC | `localhost:50051` | Host-exposed external API in base Compose; removed by the production overlay |
 | MQTT | `mqtts://127.0.0.1:8883` | Loopback-only TLS sensor broker |
 | PostgreSQL | Docker service `database:5432` | Canonical data store; use `docker compose exec database ...` |
 | ClickHouse | Docker service `clickhouse:8123` | Analytical store; use Docker network or `docker compose exec clickhouse ...` |
 | Worker | Compose service `kokonut-worker` | Cron/one-shot Python execution; `compute-metrics.sh` uses an ephemeral `run --rm` worker when the Compose database is running |
 
-The default local override may expose Metabase at `http://localhost:3001`. Use direct service URLs only when the effective Compose configuration maps them.
+The local override maps Metabase to `http://localhost:3001` only when the `metabase` profile is enabled. Metabase is not routed through default Caddy.
 
 ### Field Collector on the LAN
 
@@ -450,7 +450,7 @@ tests/              382 test files covering platform services and invariants
 Dockerfile.worker       Worker container for cron-based ingestion
 Dockerfile.gateway      FastAPI gateway / Field Collector app
 Dockerfile.grpc         gRPC server container
-docker-compose.yml      Base services (PostgreSQL 16, ClickHouse 25.8, Redis 7, Directus 12.1.1, Metabase 0.62.4, Caddy, Mosquitto 2)
+docker-compose.yml      Base services (PostgreSQL 16, ClickHouse 25.8, Redis 7, Directus 12.1.1, Caddy, Mosquitto 2; Metabase is opt-in)
 docker-compose.prod.yml     Production overlay (resource limits, no direct port exposure)
 docker-compose.traefik.yml  Traefik overlay (disables Caddy, adds Traefik labels)
 docker-compose.worker.yml   Worker overlay (cron-based Python ingestion container)

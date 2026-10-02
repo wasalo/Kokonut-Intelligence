@@ -1,26 +1,26 @@
 # Partner Dashboard Guide
 
-Kokonut Intelligence supports Directus dashboards, Metabase dashboards, and custom partner applications. These are presentation and integration layers over the canonical PostgreSQL/Directus records. They do not replace lifecycle review, evidence gates, consent controls, or server-side authorization.
+Kokonut Intelligence supports Directus dashboards, optional Metabase dashboards, and custom partner applications. These are presentation and integration layers over the canonical PostgreSQL/Directus records. They do not replace lifecycle review, evidence gates, consent controls, or server-side authorization. Metabase is excluded from default Compose deployments; the repository dashboard assets remain available for product discovery.
 
 ## Deployment Topology
 
 - PostgreSQL and ClickHouse remain private to the Compose networks.
 - Directus is the canonical schema/API layer.
-- Metabase is the BI layer and stores its own application metadata in the separate `metabase` database.
+- When explicitly enabled, Metabase is an optional BI layer and stores its own application metadata in the separate `metabase` database.
 - Partner analytics connect Metabase to the `kokonut_intelligence` PostgreSQL database.
 - Base Compose exposes Caddy, not Directus or Metabase database ports.
-- Caddy routes Directus through `/directus/*` and `/admin/*`, and Metabase through `/metabase/*`.
+- Default Caddy routes Directus through `/directus/*` and `/admin/*`; Metabase is not routed through default Caddy.
 - A separately launched gateway on port `8099` is an API integration surface, not the default dashboard proxy.
 
-Typical base-Compose URLs are:
+Default Compose and optional Metabase URLs are:
 
 | Service | URL |
 |---|---|
 | Directus API | `https://localhost/directus` |
 | Directus admin | `https://localhost/admin` |
-| Metabase | `https://localhost/metabase` |
+| Metabase (opt-in) | `http://localhost:3001` after enabling `--profile metabase` |
 
-Use the effective Compose or reverse-proxy configuration for the deployment. `http://localhost:3000`, `http://localhost:3001`, and `http://localhost:8055` require an explicit local/debug port mapping or override.
+Use the effective Compose or reverse-proxy configuration for the deployment. Enable local Metabase with `docker compose --profile metabase up -d metabase`; `http://localhost:3001` is available through the local override. Production routing is a separate opt-in through the Traefik overlay.
 
 ## Approaches At A Glance
 

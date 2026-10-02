@@ -48,11 +48,6 @@
 		reverse_proxy gateway:8099
 	}
 
-	# Metabase dashboards
-	handle /metabase/* {
-		uri strip_prefix /metabase
-		reverse_proxy metabase:3000
-	}
 
 	# gRPC-Web proxy (h2c transport for gRPC services)
 	handle /grpc/* {

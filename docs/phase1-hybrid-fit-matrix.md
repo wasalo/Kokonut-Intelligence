@@ -18,6 +18,8 @@ Adopt a **hybrid boundary, not a wholesale migration**:
 5. Wasabi has decided to migrate Kokonut source control and project tracking from OneDev to the existing Gitea organization. OneDev remains the source of truth until Wasabi completes the migration and verifies the imported repository/tracking data. Then use Gitea as the control plane; validate/recreate its CI runner, workflows, secrets, branch protections, and approvals separately. Do not treat those as part of repository-item migration or trigger a Staging deployment.
 6. Keep Metabase outside the default Backend Brain target. Preserve its present configuration/data until an explicit archive/removal decision is made.
 
+**Repository-only Compose follow-up:** Metabase is now assigned to an opt-in Compose profile, embedding defaults off, and default Caddy routes no longer include it. The Metabase database/volume declarations and dashboard assets remain. No local or Staging services were started, no deployment or migration was run, and no volume/data disposition was performed.
+
 This uses Cloudflare's edge and serverless capabilities without moving canonical data, bypassing the existing governed API, or creating a second source of truth. The future Kokonut App remains the presentation layer over modular, farm- and chain-agnostic backend capabilities.
 
 ## 2. Service-fit matrix

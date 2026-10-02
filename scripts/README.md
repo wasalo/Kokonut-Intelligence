@@ -42,7 +42,7 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 
 | Script | Purpose | Context |
 |--------|---------|---------|
-| `health-check.sh` | Verify all services healthy (PostgreSQL, Directus, ClickHouse, Metabase, Docker, disk/memory). Supports `--json` and `--alert`. | Manual, cron, programmatic |
+| `health-check.sh` | Verify core services (PostgreSQL, Directus, ClickHouse, Docker, disk/memory); optional Metabase checks require `HEALTH_CHECK_METABASE=true`. Supports `--json` and `--alert`. | Manual, cron, programmatic |
 | `health-alert.sh` | Cron wrapper for `health-check.sh` — quiet on success, sends webhook/email alerts on failure | Cron (`*/5 * * * *`) |
 | `backup.sh` | Create an encrypted, checksum-verified PostgreSQL + ClickHouse upgrade checkpoint | Manual/upgrade workflow |
 | `verify-backup.sh` | Validate checkpoint manifest, files, sizes, and SHA-256 checksums | Manual/restore workflow |
@@ -83,4 +83,4 @@ All scripts use Docker Compose service names (not container names):
 - `database` (PostgreSQL)
 - `clickhouse`
 - `directus`
-- `metabase`
+- `metabase` (only when the `metabase` Compose profile is enabled)

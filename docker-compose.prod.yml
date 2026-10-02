@@ -29,7 +29,8 @@ services:
       LOG_LEVEL: "warn"
 
   metabase:
-    # No ports exposed to host in production — accessible only through reverse proxy
+    # Optional profile only; this limit applies only when Metabase is explicitly enabled.
+    # No ports exposed to host in production — use the Traefik overlay for routing.
     ports: []
     deploy:
       resources:

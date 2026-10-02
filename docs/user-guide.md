@@ -211,7 +211,7 @@ Every user is assigned a **role** that determines what they can see and do. Your
 
 **Your typical day:**
 1. Log in and browse verified/published data
-2. Use the Metabase dashboards (`https://localhost/metabase` in base Compose) for visual analysis
+2. If the optional Metabase profile is enabled, use its dashboards at the configured BI URL for visual analysis
 3. Export data to CSV/JSON for deeper analysis
 4. Run reports via the CLI or SDK
 
@@ -780,7 +780,7 @@ To access the Dashboard module:
 
 ### Metabase Dashboards
 
-Access Metabase at `https://localhost/metabase` in base Compose, or at your organization's Metabase URL, and log in with your credentials.
+Metabase is an optional BI service, not part of the default Compose stack. Enable it with `docker compose --profile metabase up -d metabase`; use the configured BI URL (locally, `http://localhost:3001`) and log in with your credentials.
 
 The platform ships with **53 Metabase dashboards** organized by domain:
 
@@ -849,7 +849,7 @@ For details on building custom dashboards, see the [Partner Dashboards](partner-
 | Dashboard | URL | Login |
 |-----------|-----|-------|
 | Directus | `https://localhost/admin` or organization URL | Your Directus credentials |
-| Metabase | `https://localhost/metabase` or organization URL | Your Metabase credentials |
+| Metabase (opt-in) | `http://localhost:3001` locally after enabling the `metabase` profile, or organization URL | Your Metabase credentials |
 
 ---
 
@@ -1853,7 +1853,7 @@ python3 -m services.metadata_api.cli serve --port 8099
 | Can't submit a record | You may not have permission. Ask a Supervisor to submit it for you. |
 | Can't verify a record | Only Managers and Finance can verify. Check your role. |
 | Expense category looks wrong | The auto-categorization is keyword-based. Manually override the category if needed. |
-| Metabase dashboards not loading | Ensure Metabase is running: `docker compose ps` |
+| Metabase dashboards not loading | Start the optional service with `docker compose --profile metabase up -d metabase`, then check `docker compose ps` |
 | Directus not accessible | Ensure Directus is running: `docker compose ps` |
 | Export fails | Check that the collection name is valid and you have read access |
 | Attestation fails | Verify your private key is in `.env` and the chain is accessible |

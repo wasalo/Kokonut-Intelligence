@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 CHECKPOINT=""
 CONFIRM=false
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}"
-ROLLBACK_SERVICES="${ROLLBACK_SERVICES:-gateway grpc directus metabase caddy}"
+ROLLBACK_SERVICES="${ROLLBACK_SERVICES:-gateway grpc directus caddy}"
 read -r -a ROLLBACK_SERVICE_ARGS <<< "$ROLLBACK_SERVICES"
 
 while [ "$#" -gt 0 ]; do

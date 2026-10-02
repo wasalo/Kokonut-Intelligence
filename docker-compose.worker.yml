@@ -37,7 +37,6 @@ services:
       CH_DB: ${CH_DB:-kokonut_analytics}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}
       DIRECTUS_URL: http://directus:8055
-      METABASE_URL: http://metabase:3000
       CLICKHOUSE_URL: http://clickhouse:8123
       DISK_THRESHOLD: ${DISK_THRESHOLD:-90}
       MEM_THRESHOLD: ${MEM_THRESHOLD:-90}

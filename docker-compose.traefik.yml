@@ -3,13 +3,14 @@
 #
 # This overlay:
 # - Disables the built-in Caddy reverse proxy (freeing ports 80/443 for external Traefik)
-# - Adds Traefik labels to Directus and Metabase for automatic route discovery
+# - Adds Traefik labels to Directus and the optional Metabase profile
 # - Requires an external Traefik container on the same Docker network
 #
 # Prerequisites:
 # 1. Set KOKONUT_DOMAIN in .env (e.g., KOKONUT_DOMAIN=kokonut.example.com)
 # 2. External Traefik must be on a shared Docker network (KOKONUT_TRAEFIK_NETWORK, default: traefik)
-# 3. Traefik entrypoints: websecure (443) with TLS resolver configured
+# 3. Add --profile metabase only when explicitly enabling Metabase
+# 4. Traefik entrypoints: websecure (443) with TLS resolver configured
 
 services:
   caddy:

@@ -309,11 +309,11 @@ forwarded with their original parsed status/body contract.
 
 ## Deployment Boundaries
 
-- No gateway service is defined in the Compose files.
-- Base Caddy routes `/directus/*`, `/admin/*`, `/maps/*`, and `/metabase/*`;
-  it does not route `/api/*` to port 8099.
-- Port 8099 is for a separately launched gateway process unless deployment
-  configuration adds a service/proxy.
+- The base Compose stack defines the gateway on loopback port 8099; the
+  production overlay removes that direct host mapping.
+- Base Caddy routes `/directus/*`, `/admin/*`, `/maps/*`, and mobile-specific
+  paths to the gateway; it does not route general `/api/*` traffic to port 8099.
+- Metabase is excluded by default and has no route in the default Caddyfiles.
 - `CORS_ORIGIN` configures Directus; the gateway does not install FastAPI CORS
   middleware.
 - `PUBLIC_RESTRICT=true` configures Directus and is not read by gateway policy.

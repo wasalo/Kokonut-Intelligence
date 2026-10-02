@@ -11,17 +11,17 @@ cp .env.example .env
 # Alternatively load encrypted secrets into the environment:
 # source scripts/load-secrets.sh
 
-# 2. Start the stack with the sandbox profile. The sandbox-seed service runs once
-#    after PostgreSQL and Directus become healthy, then exits successfully.
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox up -d
+# 2. Start the sandbox seeder and opt-in Metabase profiles. The seed service runs
+#    once after PostgreSQL and Directus become healthy, then exits successfully.
+docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox --profile metabase up -d
 
 # 3. Inspect the one-shot seed output
-docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox logs sandbox-seed
+docker compose -f docker-compose.yml -f docker-compose.sandbox.yml --profile sandbox --profile metabase logs sandbox-seed
 
-# 4. Open the UIs through Caddy. The local certificate is self-signed.
+# 4. Open Directus through Caddy. The local certificate is self-signed.
 open https://localhost/admin       # Directus admin
 open https://localhost/directus    # Directus API
-open https://localhost/metabase    # Metabase
+open http://localhost:3001         # Optional Metabase profile
 ```
 
 The seed container waits up to two minutes for Directus, authenticates using
@@ -40,11 +40,11 @@ Do not commit `.env`, printed tokens, or other local secrets.
 |-----------|--------|---------|
 | Directus API | `https://localhost/directus` through Caddy, or `http://localhost:8055` from the base Compose port | REST/GraphQL API and permissions |
 | Directus admin | `https://localhost/admin` through Caddy | Admin UI |
-| Metabase | `https://localhost/metabase` through Caddy | BI dashboards |
+| Metabase (opt-in) | `http://localhost:3001` | BI dashboards; started only with the `metabase` profile |
 | PostgreSQL | Docker service `database:5432` | Canonical data store |
 | ClickHouse | Docker service `clickhouse:8123` | Analytical event store |
 
-The base Compose file publishes Directus on `127.0.0.1:8055`; Metabase is only exposed to the Compose networks and should normally be accessed through Caddy. A local override may publish Metabase on `localhost:3001`. PostgreSQL and ClickHouse are not published to the host by default; use the Compose service names from containers.
+The base Compose file publishes Directus on `127.0.0.1:8055`. Metabase is excluded by default; the sandbox overlay maps it to loopback port `3001` only when the `metabase` profile is enabled. Embedding is disabled by default. PostgreSQL and ClickHouse are not published to the host by default; use the Compose service names from containers.
 
 ### Pre-seeded Data
 
