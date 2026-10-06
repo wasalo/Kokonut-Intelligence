@@ -57,6 +57,8 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 |--------|---------|---------|
 | `check-er-model.sh` | Read-only ER risk report via `services.schema_introspection` | Manual |
 | `render-workflow-specs.py` | Render workflow specifications into Markdown + Mermaid in `docs/` | Manual |
+| `baserow_reconciliation_dry_run.py` | Offline, no-write Baserow snapshot/manifest/crosswalk preflight; emits aggregate-only JSON | Manual, local-only |
+| `baserow_reconciliation_projection.py` | Explicit allow-list projection into isolated scratch PostgreSQL; verifies constraints and always rolls back; never imports to live KI | Manual, local-only |
 | `sandbox-setup.sh` | Bootstrap developer sandbox: Directus auth, sandbox role, Metabase dashboards, sample data | Manual (Docker entrypoint) |
 | `fork-rehearsal.sh` | Fork Chiado chain, run Solidity tests, build contracts, dry-run deployment, gas snapshots | Manual |
 
