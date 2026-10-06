@@ -78,6 +78,8 @@ All metrics include `validation_tests` (JSONB), `report_usage` (TEXT[]), and `de
 | Entity | Description | Key Fields |
 |--------|-------------|------------|
 | `financial_transaction` | Canonical cash/crypto transaction | transaction_type, amount, currency |
+| `external_grant_tranche` | Source-keyed external grant-round tranche metadata; separate from a cash transaction | location_id, program_name, program_date, composite source identity |
+| `external_grant_tranche_funder` | Many-to-many funder-to-tranche relation with source-edge provenance | tranche_id, organization_id, composite source-edge identity |
 | `expense_category` | Governed expense taxonomy | name, code, is_direct |
 | `crop_cost_allocation` | Shared cost allocation | allocation_method, allocated_amount |
 | `value_flow_event` | Governed value-flow record | flow_type, amount, verified |

@@ -28,12 +28,13 @@ class OrganizationMappingSchemaTests(unittest.TestCase):
         self.assertIn("owner approves `other` for all 8 source rows without a source-backed type", crosswalk)
         self.assertIn("derive required `org_key` from the composite source identity", crosswalk)
 
-    def test_funding_relationship_remains_held_until_funding_target_is_resolved(self):
+    def test_funding_relationship_uses_typed_join_but_endpoints_remain_held(self):
         crosswalk = CROSSWALK.read_text(encoding="utf-8")
-        self.assertIn("`Organization` (`4446734`) | `link_row` → `Organizations` | — | `HOLD_RELATIONSHIP`", crosswalk)
-        self.assertIn("`Funding` (`4446757`) | `link_row` → `Funding` | — | `HOLD_RELATIONSHIP`", crosswalk)
+        self.assertIn("`Organization` (`4446734`) | `link_row` → `Organizations` | `external_grant_tranche_funder(tranche_id, organization_id)` | `RELATIONSHIP`", crosswalk)
+        self.assertIn("`Funding` (`4446757`) | `link_row` → `Funding` | `external_grant_tranche_funder(tranche_id, organization_id)` | `RELATIONSHIP`", crosswalk)
         self.assertIn("16 exact reciprocal edges", crosswalk)
-        self.assertIn("Funding target is unresolved", crosswalk)
+        self.assertIn("endpoints remain unprojected", crosswalk)
+        self.assertIn("Parent tranche rows remain held until per-record location mapping", crosswalk)
 
 
 if __name__ == "__main__":

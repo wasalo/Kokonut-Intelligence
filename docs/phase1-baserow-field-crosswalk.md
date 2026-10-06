@@ -2,12 +2,12 @@
 
 **Source:** owner-confirmed Baserow database `115056`; supplied JSON export.
 
-**Status:** owner-reviewed (feedback: “this document seems right,” 2026-10-05), with Batch 1 decisions, Batch 2/3/4/5/6/7 technical allocations, and the 2026-10-06 owner-confirmed organization-type fallback recorded below; migrations 359–362 were validated only in isolated scratch rehearsals. No source data import or live schema change is approved by this inventory.
+**Status:** owner-reviewed with Batch 1–27 decisions/allocations recorded, including the owner-approved external grant-tranche model; migrations 359–367 were validated only in isolated scratch rehearsals. The Batch 25 scratch projection used only its previously approved allow-list. No additional source projection/import or live schema change is approved by this inventory.
 **Scope:** no source row values are included. Mapping decisions use field definitions, current target DDL, and owner-confirmed semantics.
 
 Every source field receives an explicit proposed mapping, exclusion, manual-curation, provenance, or hold disposition. Target columns are checked against current `schemas/postgres/*.sql`; conditions remain blocking until reviewed. The separate media rule is owner-directed: no bulk files, only individually selected manual intake if later needed.
 
-## Owner-confirmed decisions (2026-10-05)
+## Owner-confirmed decisions (through 2026-10-06)
 
 - Locations are in the Dominican Republic; `Province` maps to `location.region`. Use `Dominican Republic` as the country transform, but do not invent coordinates or boundaries.
 - Farm and plot areas are in square meters. Preserve numeric values without conversion and set the corresponding `area_unit` to `square_meters`.
@@ -19,11 +19,12 @@ Every source field receives an explicit proposed mapping, exclusion, manual-cura
 - Batch 1 — F003 outputs are a distinct output entity linked through `farm_activity_output_activity`, not impact claims. Map name, description, and only safety-validated proof URLs; keep file attachments under manual curation and F004/Impact links held for later review.
 - F002 amounts are actual payments in DOP; set `expense_event.currency = 'DOP'`. The `US$ Rate` is the DOP/USD rate associated with USD grant receipts; preserve the source value in the explicit source-field allowlist, but do not apply it to expense amounts or calculate USD totals without a tranche association and validated direction. `Expense Status` is not `expense_event.status`.
 - `Harvest & Sales.Avg Sale Price` is forecast-only, with no realized sales; owner confirms DOP per production unit. Use the reviewed `Production Metric` unit and record currency in `crop_cycle.metadata.expected_price_currency = 'DOP'` because the schema has no typed expected-price currency column. Do not create a `sales_event`.
-- Funding rows represent a tranche received through participation in a grants round. Evaluate `capital_source` and `financial_transaction` as grant-source/receipt candidates; do not force-map to `funding_round` / `project_funding`, create duplicate representations, or load until source-versus-receipt mapping and required links are resolved.
+- Funding rows represent source-keyed received grant-round tranches. Owner confirms `Date` is the grant-round/program date, not a cash-receipt date, and each linked Organization is a funder/source. The approved typed mapping is `external_grant_tranche(program_name, program_date, location_id)` plus the `external_grant_tranche_funder` join; `location_id` is required but needs an owner-supplied per-tranche mapping. Keep Grant Amount and Crowdfunding Amount held, separate, and out of the target/allow-list until an exact accounting rule is supplied. Do not map the program date to `financial_transaction.transaction_date`, create duplicate representations, project Funding source rows, or import.
 - Impact rows are work/evidence records, not formal impact claims. Do not create `impact_claim` rows; retain their source relationships for a later evidence/work-record mapping.
 - New F004 metric definitions are welcome as reviewed proposals. Do not auto-create definitions from indicator text; each proposal needs a stable key, meaning, unit, data type, and sufficient context. Imported metric values remain `verified = FALSE`.
 - Biofactory rows represent production batches. Batch creation remains conditional on required values being available; do not invent batch names, methods, or date semantics.
 - 2026-10-06 — Owner approves `organization.org_type = 'other'` for any entity without a source-backed type. The source Organizations table has no type field, so this mapping applies to its 8 rows unless separate source evidence is reviewed; do not infer a type from display names or rely on the schema default `cooperative`. This mapping decision does not authorize canonical entity merges, row creation, or import.
+- 2026-10-06 — Owner approves the `external_grant_tranche` and `external_grant_tranche_funder` schema draft for repository-only implementation and synthetic scratch validation. This does not authorize source-row projection or import; required tranche locations and canonical Organization identities remain unresolved.
 
 ## Batch 2 technical allocation — Departments, Job roles, and Staff role links (2026-10-05)
 
@@ -99,15 +100,15 @@ Every source field receives an explicit proposed mapping, exclusion, manual-cura
 
 ## Disposition totals
 
-- `CANDIDATE`: 60 fields
-- `CONDITIONAL`: 34 fields
+- `CANDIDATE`: 68 fields
+- `CONDITIONAL`: 29 fields
 - `EXCLUDE_DERIVED`: 85 fields
 - `EXCLUDE_SENSITIVE`: 3 fields
-- `HOLD_FIELD`: 85 fields
-- `HOLD_RELATIONSHIP`: 54 fields
+- `HOLD_FIELD`: 82 fields
+- `HOLD_RELATIONSHIP`: 48 fields
 - `MANUAL_CURATION`: 10 fields
-- `PROVENANCE_ONLY`: 20 fields
-- `RELATIONSHIP`: 38 fields
+- `PROVENANCE_ONLY`: 24 fields
+- `RELATIONSHIP`: 40 fields
 
 ## Field-by-field inventory
 
@@ -312,18 +313,18 @@ Every source field receives an explicit proposed mapping, exclusion, manual-cura
 
 | Source field (ID) | Type / linked table | KI target candidate | Disposition | Rule / unresolved condition |
 |---|---|---|---|---|
-| `Program` (`4446732`) | `text` | `capital_source.name` (candidate) | `HOLD_FIELD` | Owner confirms each record is a received grant-round tranche. All 12 Program values are distinct, but that does not establish a canonical source entity or tranche cardinality. `capital_source` models a source; `financial_transaction` models a cash transaction. Keep held until the external-source/receipt representation and its links are defined; do not duplicate records. |
-| `Overview` (`4446733`) | `long_text` | — | `HOLD_FIELD` | Populated in 3/12 rows; text was not emitted. `financial_transaction.description` is viable only if that transaction model is selected and required location/date/amount semantics are resolved. Review content before assigning a canonical description; otherwise retain source-only. |
-| `Organization` (`4446734`) | `link_row` → `Organizations` | — | `HOLD_RELATIONSHIP` | 16 exact reciprocal edges across 12 Funding rows and 7 Organizations, with up to 3 linked Organizations per Funding row. Neither `capital_source` nor `financial_transaction` has a typed Organization FK/join. Preserve every edge by composite source row ID; keep held until an external-funding association target is defined. |
+| `Program` (`4446732`) | `text` | `external_grant_tranche.program_name` | `CANDIDATE` | Owner approved a source-keyed `external_grant_tranche` row for each received grant-round tranche, with a program name. All 12 Program values are distinct; keep each source row distinct and never merge by display name. The required per-tranche `location_id` still has no source mapping, so no tranche row is eligible for projection or import. Candidate is not import approval. |
+| `Overview` (`4446733`) | `long_text` | — | `HOLD_FIELD` | Populated in 3/12 rows; text was not emitted. Migration 367 intentionally has no overview/description field. Review content before assigning a canonical destination; otherwise retain source-only. Do not map to `financial_transaction.description` without an approved cash-transaction representation. |
+| `Organization` (`4446734`) | `link_row` → `Organizations` | `external_grant_tranche_funder(tranche_id, organization_id)` | `RELATIONSHIP` | Owner confirms linked Organizations are the funder/source of money; 16 exact reciprocal edges span 12 Funding rows and 7 Organizations, with up to 3 funders per tranche. Preserve every reciprocal edge and its composite source-edge identity. The join is typed, but endpoints remain unprojected until per-tranche locations and Organization identities are resolved; this relationship disposition is not import approval. |
 | `Blockchain` (`4446791`) | `multiple_select` | — | `HOLD_FIELD` | Zero populated values. Do not map a future value to `payment_method`, currency, or chain by label alone; define the intended domain if values are supplied. |
 | `Funding Proposal` (`4446799`) | `url` | — | `HOLD_FIELD` | Zero populated values. If supplied later, distinguish proposal provenance from evidence of a completed receipt; no canonical destination is approved. |
-| `Grant Amount` (`4446800`) | `number` | `capital_source.amount` or `financial_transaction.amount` (candidate) | `HOLD_FIELD` | Populated in 10/12 rows; all populated values are positive and have at most 2 decimal places. Owner confirms grant receipts are USD. Nine of these rows also contain `Crowdfunding Amount`; one contains Grant Amount only; 2 rows have neither amount, with no Crowdfunding-only rows. Do not sum or duplicate amounts. `financial_transaction` requires location, transaction date, type, and amount; the source has no location field. `capital_source.amount` is source-level, so target semantics remain unresolved. |
+| `Grant Amount` (`4446800`) | `number` | — | `HOLD_FIELD` | Populated in 10/12 rows; all populated values are positive and have at most 2 decimal places. Owner confirms grant receipts are USD. Nine of these rows also contain `Crowdfunding Amount`; one contains Grant Amount only; 2 rows have neither amount, with no Crowdfunding-only rows. Owner directs keeping both amount fields held until an exact accounting rule is supplied; do not sum, choose, duplicate, or project them. Migration 367 intentionally excludes amounts and cash-transaction modeling. |
 | `Impact Criteria` (`4447192`) | `long_text` | — | `HOLD_FIELD` | Zero populated values; no criteria text or formal impact claim is present to map. Keep the source field held rather than manufacturing a claim or verification record. |
 | `Objectives` (`4447364`) | `link_row` → `Objectives` | — | `HOLD_RELATIONSHIP` | Zero source edges; the inverse Objectives.Funding field is also empty, so the reciprocal relationship is exactly empty. No funding-to-objective FK/join is approved for an external tranche; preserve the field definition and keep held until target semantics are defined. |
 | `Funding Milestones` (`4447367`) | `link_row` → `Funding Milestones` | — | `HOLD_RELATIONSHIP` | Zero source edges; the inverse Funding Milestones.Source of Funding field is also empty. `solution_funding_tranche` models milestone-conditioned releases for an approved internal solution-funding case, not receipt of an external grant tranche. Do not force-map by label; hold pending an external grant milestone target. |
 | `UUID` (`4457708`) | `uuid` | `source crosswalk.source_uuid` | `PROVENANCE_ONLY` | All 12 values are populated and unique within this source table. Retain as a table-scoped alternate provenance key, not as a canonical primary key. |
-| `Crowdfunding Amount` (`4638640`) | `number` | — | `HOLD_FIELD` | Populated in 9/12 rows (7 positive, 2 zero); all 9 overlap rows with `Grant Amount`, whose field is also populated. Currency and whether this is an additional component of the same received tranche are unresolved. Do not add to Grant Amount or create a second transaction without an approved split rule. |
-| `Date` (`4638641`) | `date` | — | `HOLD_FIELD` | All 12 values are valid and distinct dates, but the field's meaning (receipt, award, or another grant-round date) is not confirmed. `financial_transaction.transaction_date` is required, and its required `location_id` has no source location/link on Funding; do not infer either. |
+| `Crowdfunding Amount` (`4638640`) | `number` | — | `HOLD_FIELD` | Populated in 9/12 rows (7 positive, 2 zero); all 9 overlap rows with `Grant Amount`, whose field is also populated. Owner directs keeping both amount fields held until an exact accounting rule is supplied; do not add to Grant Amount, create a second transaction, or project this field. |
+| `Date` (`4638641`) | `date` | `external_grant_tranche.program_date` | `CANDIDATE` | Owner confirms all 12 values represent a grant-round/program date, not a cash-receipt date. Store only in `program_date`; never map to `financial_transaction.transaction_date`. The required per-tranche `location_id` has no source location/link, so no row is eligible for projection or import. Candidate is not import approval. |
 | `Results` (`4646240`) | `url` | — | `HOLD_FIELD` | Populated in 8/12 rows; URLs were not emitted. A results link is not automatically reviewed evidence or proof of receipt. Keep held pending content/access review and a compatible evidence destination. |
 
 ### Funding Milestones (table ID `554723`; 8 fields)
@@ -595,7 +596,7 @@ Every source field receives an explicit proposed mapping, exclusion, manual-cura
 | `Name` (`4446750`) | `text` | `organization.name` | `CANDIDATE` | Direct organization label; resolve identity before insert. |
 | `Notes` (`4446751`) | `long_text` | `organization.description` | `CANDIDATE` | Direct descriptive text. |
 | `Active` (`4446752`) | `boolean` | `organization.status` | `CANDIDATE` | Strict Boolean parse: true -> `active`; false -> `inactive`; null or unrecognized values stay held; never infer `dissolved`. All 8 source values were recognized (5 true, 3 false); source UUID remains provenance only. |
-| `Funding` (`4446757`) | `link_row` → `Funding` | — | `HOLD_RELATIONSHIP` | 16 exact reciprocal edges with Funding.Organization (12 Funding rows, 7 linked Organizations). Funding target is unresolved and has no canonical FK/join; retain the link by source row ID until tranche placement is resolved. |
+| `Funding` (`4446757`) | `link_row` → `Funding` | `external_grant_tranche_funder(tranche_id, organization_id)` | `RELATIONSHIP` | 16 exact reciprocal edges with Funding.Organization (12 Funding rows, 7 linked Organizations). Map each reciprocal source edge once using its composite source-edge identity. Parent tranche rows remain held until per-record location mapping; Organization identities remain unresolved. Relationship disposition is not import approval. |
 | `UUID` (`4457710`) | `uuid` | `source crosswalk.source_uuid` | `PROVENANCE_ONLY` | Retain as table-scoped alternate provenance key, not as canonical primary key. |
 
 ### SDGs (table ID `487994`; 3 fields)

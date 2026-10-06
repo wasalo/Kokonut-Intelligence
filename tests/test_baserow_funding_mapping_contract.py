@@ -33,14 +33,16 @@ class FundingMappingContractTests(unittest.TestCase):
         self.assertIn("Nine of these rows also contain `Crowdfunding Amount`", grant[4])
         self.assertIn("one contains Grant Amount only", grant[4])
         self.assertIn("2 rows have neither amount", grant[4])
-        self.assertIn("Do not sum or duplicate amounts", grant[4])
-        self.assertIn("Currency and whether this is an additional component", crowdfunding[4])
+        self.assertIn("do not sum, choose, duplicate, or project them", grant[4])
+        self.assertIn("Owner directs keeping both amount fields held", crowdfunding[4])
 
-    def test_receipt_model_keeps_required_location_and_date_blockers(self):
+    def test_tranche_model_keeps_program_date_separate_from_cash_date(self):
         date = self.row("4638641")
-        self.assertEqual(date[3], "`HOLD_FIELD`")
-        self.assertIn("meaning (receipt, award, or another grant-round date) is not confirmed", date[4])
-        self.assertIn("required `location_id` has no source location/link", date[4])
+        self.assertEqual(date[2], "`external_grant_tranche.program_date`")
+        self.assertEqual(date[3], "`CANDIDATE`")
+        self.assertIn("represent a grant-round/program date, not a cash-receipt date", date[4])
+        self.assertIn("never map to `financial_transaction.transaction_date`", date[4])
+        self.assertIn("required per-tranche `location_id` has no source location/link", date[4])
         for column in (
             "location_id UUID NOT NULL REFERENCES location(id)",
             "transaction_date DATE NOT NULL",
@@ -49,20 +51,30 @@ class FundingMappingContractTests(unittest.TestCase):
         ):
             self.assertIn(column, self.schema)
 
-    def test_organization_edges_are_held_without_a_typed_finance_relation(self):
+    def test_funder_edges_use_the_owner_approved_typed_association(self):
         row = self.row("4446734")
-        self.assertEqual(row[3], "`HOLD_RELATIONSHIP`")
+        self.assertEqual(row[2], "`external_grant_tranche_funder(tranche_id, organization_id)`")
+        self.assertEqual(row[3], "`RELATIONSHIP`")
         self.assertIn("16 exact reciprocal edges", row[4])
-        self.assertIn("up to 3 linked Organizations per Funding row", row[4])
-        self.assertIn("Neither `capital_source` nor `financial_transaction` has a typed Organization FK/join", row[4])
+        self.assertIn("up to 3 funders per tranche", row[4])
+        self.assertIn("Owner confirms linked Organizations are the funder/source of money", row[4])
+        self.assertIn("endpoints remain unprojected", row[4])
 
-    def test_program_and_receipt_are_not_forced_into_internal_funding_rounds(self):
+        organizations_header = "### Organizations (table ID `554714`; 5 fields)"
+        start = self.crosswalk.index(organizations_header)
+        end = self.crosswalk.find("\n### ", start + len(organizations_header))
+        organizations = self.crosswalk[start:] if end < 0 else self.crosswalk[start:end]
+        self.assertIn("`external_grant_tranche_funder(tranche_id, organization_id)`", organizations)
+        self.assertIn("16 exact reciprocal edges", organizations)
+
+    def test_external_tranche_keeps_funding_milestones_separate(self):
         program = self.row("4446732")
-        self.assertEqual(program[3], "`HOLD_FIELD`")
+        self.assertEqual(program[2], "`external_grant_tranche.program_name`")
+        self.assertEqual(program[3], "`CANDIDATE`")
         self.assertIn("received grant-round tranche", program[4])
-        self.assertIn("`capital_source` models a source; `financial_transaction` models a cash transaction", program[4])
-        self.assertIn("do not duplicate records", program[4].lower())
-        self.assertIn("do not force-map to `funding_round`", self.crosswalk)
+        self.assertIn("keep each source row distinct", program[4])
+        self.assertIn("no tranche row is eligible for projection or import", program[4])
+        self.assertIn("Do not force-map by label; hold pending an external grant milestone target.", self.crosswalk)
 
 
 if __name__ == "__main__":

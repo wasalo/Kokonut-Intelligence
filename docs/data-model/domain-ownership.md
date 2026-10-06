@@ -204,7 +204,8 @@ streams, pricing, cost structures, break-even analysis, and marketplace orders.
 
 Key tables:
 
-- `financial_transaction`, `expense_category`, `capital_source`,
+- `financial_transaction`, `external_grant_tranche`,
+  `external_grant_tranche_funder`, `expense_category`, `capital_source`,
   `crop_cost_allocation`, `value_flow_event`, `excluded_value_event`
 - `noi_snapshot`, `cash_flow_snapshot`, `revenue_event`,
   `expense_event`, `sales_event`
@@ -222,7 +223,8 @@ Key services: `services/finance/`, `services/analytics/marketplace.py`,
 `services/analytics/revenue_model.py`
 
 Key migrations: `004_finance.sql`, `070_financial_enhancements.sql`,
-`141_digital_finance.sql`, `142_marketplace.sql`
+`141_digital_finance.sql`, `142_marketplace.sql`,
+`367_external_grant_tranche.sql`
 
 ### Digital Finance
 
