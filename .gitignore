@@ -100,6 +100,8 @@ config/mosquitto/certs/*
 
 # Agent-local plans and session artifacts (not repository source)
 .hermes/
+.commandcode/
+.freebuff/
 
 # Local dev TLS certs for Caddy
 config/caddy/certs/
