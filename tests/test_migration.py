@@ -108,8 +108,25 @@ def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):
     shell_command = captured["command"][2]
     assert shlex.quote("value=name'; DROP TABLE x; --") in shell_command
     assert "ON_ERROR_STOP=1" in shell_command
+    assert "psql -X -q" in shell_command
     assert shell_command.count("docker compose exec") == 1
     assert "database psql" in shell_command
+
+
+def test_psql_pins_canonical_search_path(monkeypatch):
+    captured = {}
+
+    def fake_run(command, **kwargs):
+        tokens = shlex.split(command[2])
+        input_path = Path(tokens[tokens.index("<") + 1])
+        captured["sql"] = input_path.read_text()
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    cli._psql("SELECT current_schema();")
+
+    assert captured["sql"].startswith("SET search_path = public, topology, tiger;\n")
+    assert captured["sql"].endswith("SELECT current_schema();")
 
 
 def test_legacy_reconciliation_requires_exact_version_and_name(monkeypatch):

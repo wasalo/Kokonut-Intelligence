@@ -24,21 +24,23 @@ class BiofactoryMappingSchemaTests(unittest.TestCase):
         line = next(line for line in self.section.splitlines() if marker in line)
         return [cell.strip() for cell in line.split("|")[1:-1]]
 
-    def test_product_type_mapping_stays_conditional_until_options_are_reviewed(self):
+    def test_product_type_field_is_owner_excluded_without_an_option_mapping(self):
         row = self.crosswalk_row("3196795")
         self.assertEqual(row[2], "`bio_factory_batch.batch_type`")
-        self.assertEqual(row[3], "`CONDITIONAL`")
+        self.assertEqual(row[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Owner scope decision", row[4])
         self.assertIn("All 10 source options are used", row[4])
         self.assertIn("only 1 option normalizes", row[4])
         self.assertIn("used by 2 rows", row[4])
         self.assertIn("9 lack an approved map", row[4])
-        self.assertIn("No option-level owner mapping has been approved", row[4])
+        self.assertIn("No option-level target mapping is established", row[4])
         self.assertIn("Farm Task `other` decision does not apply", row[4])
 
-    def test_notes_are_conditional_summary_candidate_with_content_review(self):
+    def test_notes_are_owner_excluded_with_content_review_rationale(self):
         row = self.crosswalk_row("3196796")
         self.assertEqual(row[2], "`bio_factory_batch.batch_summary`")
-        self.assertEqual(row[3], "`CONDITIONAL`")
+        self.assertEqual(row[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Owner scope decision", row[4])
         self.assertIn("All 16 rows are populated", row[4])
         self.assertIn("12 distinct notes", row[4])
         self.assertIn("maximum length 53", row[4])

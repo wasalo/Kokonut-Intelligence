@@ -42,19 +42,26 @@ class EquipmentAndResourcesInputTests(unittest.TestCase):
         self.assertEqual(quantity[3], "`HOLD_FIELD`")
         self.assertIn("unit", quantity[4].casefold())
         self.assertIn("capacity", quantity[4].casefold())
-        for field in ("Farm Specific Task", "Framework Steps", "Resources Inputs"):
+        for field in ("Farm Specific Task", "Resources Inputs"):
             row = crosswalk_row(section, field)
             self.assertEqual(row[3], "`HOLD_RELATIONSHIP`")
             self.assertIn("zero source edges", row[4].casefold())
+        framework_steps = crosswalk_row(section, "Framework Steps")
+        self.assertEqual(framework_steps[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Batch 37", framework_steps[4])
         self.assertIn("only the table-scoped uuid is populated", REPORT.casefold())
 
     def test_resources_inputs_has_no_generic_catalog_and_no_edges(self):
         section = "F005 -- Resources Inputs (table ID `555496`; 7 fields)"
-        for field in ("Name", "Notes", "Active"):
+        for field in ("Name", "Notes"):
             row = crosswalk_row(section, field)
             self.assertEqual(row[2], "—")
             self.assertEqual(row[3], "`HOLD_FIELD`")
             self.assertIn("no generic resource-input target", row[4].casefold())
+        active = crosswalk_row(section, "Active")
+        self.assertEqual(active[2], "—")
+        self.assertEqual(active[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Owner scope decision", active[4])
         for field in ("Expenses", "Staff", "Equipment"):
             row = crosswalk_row(section, field)
             self.assertEqual(row[3], "`HOLD_RELATIONSHIP`")

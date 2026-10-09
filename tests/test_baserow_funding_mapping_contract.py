@@ -1,5 +1,6 @@
-"""Contract tests for held Baserow funding mappings and finance-schema blockers."""
+"""Contract tests for owner-excluded Baserow Funding data and finance schema."""
 
+import json
 import unittest
 from pathlib import Path
 
@@ -7,6 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 CROSSWALK = ROOT / "docs" / "phase1-baserow-field-crosswalk.md"
 FINANCE_SCHEMA = ROOT / "schemas" / "postgres" / "004_finance.sql"
+TRANCHE_SCHEMA = ROOT / "schemas" / "postgres" / "367_external_grant_tranche.sql"
+REPORT = ROOT / "docs" / "phase1-baserow-legacy-data-reconciliation.md"
+ALLOWLIST = ROOT / "docs" / "phase1-baserow-projection-allowlist.json"
 FUNDING_HEADER = "### Funding (table ID `554709`; 13 fields)"
 
 
@@ -19,62 +23,83 @@ class FundingMappingContractTests(unittest.TestCase):
         cls.crosswalk = text
         cls.section = text[start:] if end < 0 else text[start:end]
         cls.schema = FINANCE_SCHEMA.read_text(encoding="utf-8")
+        cls.tranche_schema = TRANCHE_SCHEMA.read_text(encoding="utf-8")
+        cls.report = REPORT.read_text(encoding="utf-8")
 
     def row(self, field_id):
         marker = f"(`{field_id}`)"
         line = next(line for line in self.section.splitlines() if marker in line)
         return [cell.strip() for cell in line.split("|")[1:-1]]
 
-    def test_amount_overlap_is_explicit_and_amounts_are_not_combined(self):
-        grant = self.row("4446800")
-        crowdfunding = self.row("4638640")
-        self.assertEqual(grant[3], "`HOLD_FIELD`")
-        self.assertEqual(crowdfunding[3], "`HOLD_FIELD`")
-        self.assertIn("Nine of these rows also contain `Crowdfunding Amount`", grant[4])
-        self.assertIn("one contains Grant Amount only", grant[4])
-        self.assertIn("2 rows have neither amount", grant[4])
-        self.assertIn("do not sum, choose, duplicate, or project them", grant[4])
-        self.assertIn("Owner directs keeping both amount fields held", crowdfunding[4])
+    def test_every_funding_field_is_excluded_but_the_source_archive_is_preserved(self):
+        field_ids = (
+            "4446732", "4446733", "4446734", "4446791", "4446799", "4446800",
+            "4447192", "4447364", "4447367", "4457708", "4638640", "4638641", "4646240",
+        )
+        for field_id in field_ids:
+            with self.subTest(field_id=field_id):
+                row = self.row(field_id)
+                self.assertEqual(row[2], "—")
+                self.assertEqual(row[3], "`EXCLUDE_OWNER`")
+        self.assertIn("owner excludes every Funding field and edge", self.section)
+        self.assertIn("original reciprocal links in the controlled archive", self.section)
+        self.assertIn("No Funding projection or manual KI entry is authorized now", self.section)
+        self.assertEqual(sum(line.startswith("| `") for line in self.section.splitlines()), 13)
 
-    def test_tranche_model_keeps_program_date_separate_from_cash_date(self):
-        date = self.row("4638641")
-        self.assertEqual(date[2], "`external_grant_tranche.program_date`")
-        self.assertEqual(date[3], "`CANDIDATE`")
-        self.assertIn("represent a grant-round/program date, not a cash-receipt date", date[4])
-        self.assertIn("never map to `financial_transaction.transaction_date`", date[4])
-        self.assertIn("required per-tranche `location_id` has no source location/link", date[4])
+    def test_typed_tranche_schema_and_historical_semantics_remain_nonoperative(self):
+        for token in (
+            "CREATE TABLE IF NOT EXISTS external_grant_tranche",
+            "location_id UUID NOT NULL REFERENCES location(id)",
+            "program_name TEXT NOT NULL",
+            "program_date DATE NOT NULL",
+            "CREATE TABLE IF NOT EXISTS external_grant_tranche_funder",
+        ):
+            self.assertIn(token, self.tranche_schema)
+        for token in (
+            "external_grant_tranche(program_name, program_date, location_id)",
+            "external_grant_tranche_funder",
+            "grant-round/program date, not a cash-receipt date",
+            "Do not map the program date to `financial_transaction.transaction_date`",
+            "Nine rows have both amount fields",
+            "exact accounting treatment",
+            "Batch 34",
+        ):
+            self.assertIn(token.casefold(), self.report.casefold())
+        finance = self.schema
         for column in (
             "location_id UUID NOT NULL REFERENCES location(id)",
             "transaction_date DATE NOT NULL",
             "transaction_type VARCHAR(50) NOT NULL",
             "amount NUMERIC(15,2) NOT NULL",
         ):
-            self.assertIn(column, self.schema)
+            self.assertIn(column, finance)
 
-    def test_funder_edges_use_the_owner_approved_typed_association(self):
-        row = self.row("4446734")
-        self.assertEqual(row[2], "`external_grant_tranche_funder(tranche_id, organization_id)`")
-        self.assertEqual(row[3], "`RELATIONSHIP`")
-        self.assertIn("16 exact reciprocal edges", row[4])
-        self.assertIn("up to 3 funders per tranche", row[4])
-        self.assertIn("Owner confirms linked Organizations are the funder/source of money", row[4])
-        self.assertIn("endpoints remain unprojected", row[4])
+    def test_funding_organization_edges_are_excluded_without_excluding_organizations(self):
+        funding_link = self.row("4446734")
+        self.assertEqual(funding_link[3], "`EXCLUDE_OWNER`")
+        self.assertIn("16 exact reciprocal source edges", funding_link[4])
+        self.assertIn("controlled archive", funding_link[4])
+        self.assertIn("canonical identity resolution remains a gate", funding_link[4])
 
         organizations_header = "### Organizations (table ID `554714`; 5 fields)"
         start = self.crosswalk.index(organizations_header)
         end = self.crosswalk.find("\n### ", start + len(organizations_header))
         organizations = self.crosswalk[start:] if end < 0 else self.crosswalk[start:end]
-        self.assertIn("`external_grant_tranche_funder(tranche_id, organization_id)`", organizations)
-        self.assertIn("16 exact reciprocal edges", organizations)
+        for name in ("Name", "Notes", "Active"):
+            row = next(line for line in organizations.splitlines() if f"`{name}`" in line)
+            self.assertIn("`CANDIDATE`", row)
+        self.assertIn("16 exact reciprocal source edges", organizations)
+        self.assertIn("canonical identity resolution remains a gate", organizations)
+        allowlist = json.loads(ALLOWLIST.read_text(encoding="utf-8"))
+        source_tables = {str(entry["source_table_id"]) for entry in allowlist["target_tables"]}
+        self.assertNotIn("554709", source_tables)
 
-    def test_external_tranche_keeps_funding_milestones_separate(self):
-        program = self.row("4446732")
-        self.assertEqual(program[2], "`external_grant_tranche.program_name`")
-        self.assertEqual(program[3], "`CANDIDATE`")
-        self.assertIn("received grant-round tranche", program[4])
-        self.assertIn("keep each source row distinct", program[4])
-        self.assertIn("no tranche row is eligible for projection or import", program[4])
-        self.assertIn("Do not force-map by label; hold pending an external grant milestone target.", self.crosswalk)
+    def test_external_tranche_remains_separate_from_funding_milestones(self):
+        self.assertIn("not an external grant milestone", self.report.casefold())
+        milestone_link = self.crosswalk.split("### Funding Milestones", 1)[1].split("\n### ", 1)[0]
+        source_link = next(line for line in milestone_link.splitlines() if "`Source of Funding`" in line)
+        self.assertIn("`EXCLUDE_OWNER`", source_link)
+        self.assertIn("Funding Milestones records and their other fields remain independently scoped", source_link)
 
 
 if __name__ == "__main__":

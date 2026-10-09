@@ -8,6 +8,7 @@ CROSSWALK = (ROOT / "docs/phase1-baserow-field-crosswalk.md").read_text()
 REPORT = (ROOT / "docs/phase1-baserow-legacy-data-reconciliation.md").read_text()
 PROJECTION = json.loads((ROOT / "docs/phase1-baserow-projection-allowlist.json").read_text())
 CROP_SCHEMA = (ROOT / "schemas/postgres/002_crops.sql").read_text()
+FARM_CROP_SCHEMA = (ROOT / "docs/schema-drafts/368_baserow_expense_and_farm_crop_schema_draft.sql").read_text()
 RELATIONSHIP_SCHEMA = (ROOT / "schemas/postgres/309_relationship_entities.sql").read_text()
 
 
@@ -67,8 +68,8 @@ class SpeciesMappingTests(unittest.TestCase):
         self.assertIn("3110862", source_type[4])
         self.assertIn("utility", source_type[4].casefold())
         self.assertIn("all four source options", source_type[4].casefold())
-        self.assertIn("outside the projection allow-list", source_type[4].casefold())
-        self.assertIn("not import approval", source_type[4].casefold())
+        self.assertIn("does not authorize Species-row projection/import", source_type[4])
+        self.assertIn("does not authorize species-row projection/import", source_type[4].casefold())
         self.assertIn("crop_category VARCHAR(100)", CROP_SCHEMA)
 
     def test_new_category_labels_are_documented_as_free_text_schema_values(self):
@@ -80,22 +81,23 @@ class SpeciesMappingTests(unittest.TestCase):
         self.assertIn("utility", sql)
         self.assertIn("free-text", sql)
 
-    def test_owner_directed_yield_density_and_unit_hold_remains_outside_projection(self):
+    def test_owner_scope_drops_density_and_unit_of_metric(self):
         unit = crosswalk_row(SPECIES, "Unit of Metric", "2729828")
         density = crosswalk_row(
             SPECIES, "Harvest Units Density in Square Meter", "4039538"
         )
-        self.assertEqual(
-            unit[2], "`crop.metadata.baserow_legacy.unit_of_metric_label`"
-        )
-        self.assertEqual(unit[3], "`HOLD_FIELD`")
-        self.assertIn("six cells", unit[4].casefold())
-        self.assertIn("three distinct", unit[4].casefold())
+        self.assertEqual(unit[2], "—")
+        self.assertEqual(unit[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Batch 39 owner drops this field", unit[4])
+        self.assertIn("superseding its earlier held metadata-path candidate", unit[4])
+        self.assertIn("controlled archive", unit[4])
+        self.assertIn("do not map to `crop.expected_yield_unit`", unit[4])
         self.assertEqual(
             density[2],
             "`crop.metadata.baserow_legacy.harvest_units_density_per_m2`",
         )
-        self.assertEqual(density[3], "`HOLD_FIELD`")
+        self.assertEqual(density[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Owner scope decision", density[4])
         self.assertIn("43 explicit numeric values", density[4].casefold())
         self.assertIn("40 are zero", density[4].casefold())
         self.assertIn("3 nonzero", density[4].casefold())
@@ -104,11 +106,9 @@ class SpeciesMappingTests(unittest.TestCase):
             "one nonzero value lacks a unit" in density[4].casefold()
             or "one nonzero value does not" in density[4].casefold()
         )
-        self.assertIn("owner directed keeping this field", density[4].casefold())
+        self.assertIn("excluded by owner decision", density[4].casefold())
         self.assertIn("meaning of zero", density[4].casefold())
         self.assertIn("do not project or map to expected yield", density[4].casefold())
-        self.assertIn("owner directed keeping this field and its paired density", unit[4].casefold())
-        self.assertIn("do not map to `crop.expected_yield_unit`", unit[4])
         self.assertIn("expected_yield_per_ha NUMERIC(12,4)", CROP_SCHEMA)
 
     def test_unmodeled_crop_parameters_have_specific_held_paths(self):
@@ -122,7 +122,8 @@ class SpeciesMappingTests(unittest.TestCase):
         )
         for row, path in expected:
             self.assertEqual(row[2], f"`{path}`")
-            self.assertEqual(row[3], "`HOLD_FIELD`")
+            self.assertEqual(row[3], "`EXCLUDE_OWNER`")
+            self.assertIn("Owner scope decision", row[4])
             self.assertIn("43 explicit numeric values", row[4].casefold())
             self.assertTrue(
                 "40 are zero" in row[4].casefold()
@@ -154,27 +155,22 @@ class SpeciesMappingTests(unittest.TestCase):
         self.assertIn("inferred", gbif[4].casefold())
         self.assertIn("metadata JSONB", CROP_SCHEMA)
 
-    def test_farm_species_edges_are_reciprocal_held_source_identity_only(self):
+    def test_owner_drops_both_farm_crop_edges_but_keeps_species_rows_scoped(self):
         source = crosswalk_row(SPECIES, "Projects", "2308566")
         inverse = crosswalk_row(FARMS, "Species", "2308567")
-        path = "crop.metadata.baserow_legacy.farm_source_row_ids"
         for row in (source, inverse):
-            self.assertEqual(row[2], f"`{path}`")
-            self.assertEqual(row[3], "`HOLD_RELATIONSHIP`")
-            self.assertIn("32 exact reciprocal edges", row[4].casefold())
-        self.assertIn("29 species rows link one farm", source[4].casefold())
-        self.assertTrue(
-            "one links three farms" in source[4].casefold()
-            or "one species row links three farms" in source[4].casefold()
-        )
-        self.assertTrue(
-            "13 have no farm edge" in source[4].casefold()
-            or "13 species rows have no farm edge" in source[4].casefold()
-        )
-        self.assertIn("inverse", inverse[4].casefold())
-        self.assertIn("farmer_id UUID NOT NULL REFERENCES farmer_profile(id)", RELATIONSHIP_SCHEMA)
-        self.assertNotIn("farm_id UUID NOT NULL REFERENCES farm(id)", RELATIONSHIP_SCHEMA)
-        self.assertIn("plot_id UUID NOT NULL", CROP_SCHEMA)
+            self.assertEqual(row[2], "—")
+            self.assertEqual(row[3], "`EXCLUDE_OWNER`")
+            self.assertIn("Batch 39 owner drops", row[4])
+            self.assertIn("controlled archive", row[4])
+            self.assertIn("do not emit `farm_crop` edges", row[4])
+        self.assertIn("32 edges", source[4])
+        self.assertIn("Species rows and other fields remain independently scoped", source[4])
+        self.assertIn("existing Species candidate mapping in the projection allow-list is unchanged", source[4])
+        self.assertIn("CREATE TABLE IF NOT EXISTS public.farm_crop", FARM_CROP_SCHEMA)
+        source_table_ids = {str(spec["source_table_id"]) for spec in PROJECTION["target_tables"]}
+        self.assertIn("317629", source_table_ids)
+        self.assertIn("is not row-import authorization", source[4])
 
     def test_plot_species_edges_are_reciprocal_and_not_crop_cycles(self):
         source = crosswalk_row(SPECIES, "Plot of Land", "3136390")
@@ -182,7 +178,8 @@ class SpeciesMappingTests(unittest.TestCase):
         path = "crop.metadata.baserow_legacy.plot_source_row_ids"
         for row in (source, inverse):
             self.assertEqual(row[2], f"`{path}`")
-            self.assertEqual(row[3], "`HOLD_RELATIONSHIP`")
+            self.assertEqual(row[3], "`EXCLUDE_OWNER`")
+            self.assertIn("Owner scope decision", row[4])
             self.assertIn("2 exact reciprocal edges", row[4].casefold())
         self.assertIn("two species rows link one plot each", source[4].casefold())
         self.assertTrue(
@@ -192,15 +189,15 @@ class SpeciesMappingTests(unittest.TestCase):
         self.assertIn("do not create", source[4].casefold())
         self.assertIn("location_id UUID NOT NULL", CROP_SCHEMA)
 
-    def test_harvest_forecast_relation_stays_a_single_crop_cycle_fk(self):
+    def test_harvest_forecast_relation_is_excluded_with_harvest_sales_scope(self):
         source = crosswalk_row(SPECIES, "Harvest Forecast", "2305710")
         inverse = crosswalk_row(HARVEST, "Crops", "2305709")
         for row in (source, inverse):
-            self.assertEqual(row[2], "`crop_cycle.crop_id`")
-            self.assertEqual(row[3], "`RELATIONSHIP`")
-            self.assertTrue("9" in row[4] or "nine" in row[4].casefold())
-            self.assertIn("reciprocal", row[4].casefold())
-        self.assertIn("do not insert the inverse twice", source[4].casefold())
+            self.assertEqual(row[2], "—")
+            self.assertEqual(row[3], "`EXCLUDE_OWNER`")
+            self.assertIn("owner-excluded harvest & sales table", row[4].casefold())
+        self.assertIn("do not emit", source[4].casefold())
+        self.assertIn("do not emit", inverse[4].casefold())
 
     def test_species_type_is_field_allowlisted_without_import_authorization(self):
         species_entry = next(

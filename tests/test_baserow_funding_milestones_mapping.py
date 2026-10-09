@@ -28,9 +28,11 @@ class FundingMilestonesMappingTests(unittest.TestCase):
             self.assertIn("external grant milestone", row[4].casefold())
         source_link = crosswalk_row(section, "Source of Funding")
         updates = crosswalk_row(section, "Milestones Updates")
-        for row in (source_link, updates):
-            self.assertEqual(row[3], "`HOLD_RELATIONSHIP`")
-            self.assertIn("zero edges on both sides", row[4].casefold())
+        self.assertEqual(source_link[3], "`EXCLUDE_OWNER`")
+        self.assertIn("funding is excluded from this migration", source_link[4].casefold())
+        self.assertIn("remain independently scoped", source_link[4].casefold())
+        self.assertEqual(updates[3], "`HOLD_RELATIONSHIP`")
+        self.assertIn("zero edges on both sides", updates[4].casefold())
         tranche = SOLUTION_FUNDING.split("CREATE TABLE IF NOT EXISTS solution_funding_tranche", 1)[1].split(");", 1)[0]
         self.assertIn("funding_case_id UUID NOT NULL", tranche)
         self.assertIn("amount NUMERIC(15,2) NOT NULL", tranche)

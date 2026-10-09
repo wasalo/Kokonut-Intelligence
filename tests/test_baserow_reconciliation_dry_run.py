@@ -145,5 +145,23 @@ class BaserowReconciliationDryRunTests(unittest.TestCase):
         self.assertFalse(report["summary"]["ready_for_import"])
 
 
+    def test_owner_exclusion_is_counted_but_not_reported_as_a_blocker(self) -> None:
+        dropped_crosswalk = self.crosswalk.replace(
+            "| `Activity` (`103`) | `multiple_select` | `farm_activity.activity_type` | `CONDITIONAL` | Review selections. |",
+            "| `Activity` (`103`) | `multiple_select` | `farm_activity.activity_type` | `EXCLUDE_OWNER` | Owner-directed scope exclusion. |",
+        )
+        self.crosswalk_path.write_text(dropped_crosswalk, encoding="utf-8")
+        report = run_dry_run(self.export_path, self.manifest_path, self.crosswalk_path)
+
+        self.assertEqual(report["summary"]["owner_excluded_fields"], 1)
+        self.assertEqual(report["summary"]["owner_excluded_populated_cells"], 1)
+        self.assertEqual(report["summary"]["blocking_fields_with_data"], 0)
+        self.assertEqual(report["tables"][0]["field_dispositions"]["EXCLUDE_OWNER"], 1)
+        self.assertFalse(report["summary"]["ready_for_import"])
+        serialized = json.dumps(report)
+        self.assertNotIn("planting", serialized)
+        self.assertNotIn("pruning", serialized)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2,8 +2,9 @@
 """Offline, redacted preflight for the owner-provided Baserow snapshot.
 
 This tool validates snapshot/manifest integrity, exact source-field coverage,
-field-disposition census, and source link integrity. It does not connect to a
-database, construct canonical records, import data, or emit source row values.
+field-disposition census, source link integrity, and the owner-approved F001
+activity-option mapping. It does not connect to a database, construct target
+records, import data, or emit source row values.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ DISPOSITIONS = {
     "CANDIDATE",
     "CONDITIONAL",
     "EXCLUDE_DERIVED",
+    "EXCLUDE_OWNER",
     "EXCLUDE_SENSITIVE",
     "HOLD_FIELD",
     "HOLD_RELATIONSHIP",
@@ -30,11 +32,26 @@ DISPOSITIONS = {
     "PROVENANCE_ONLY",
     "RELATIONSHIP",
 }
-VALUE_EXCLUSIONS = {"EXCLUDE_DERIVED", "EXCLUDE_SENSITIVE", "MANUAL_CURATION"}
+VALUE_EXCLUSIONS = {"EXCLUDE_DERIVED", "EXCLUDE_OWNER", "EXCLUDE_SENSITIVE", "MANUAL_CURATION"}
 BLOCKING_DISPOSITIONS = {"CONDITIONAL", "HOLD_FIELD", "HOLD_RELATIONSHIP"}
 TABLE_HEADER = re.compile(r"^### .*\(table ID `([^`]+)`; (\d+) fields\)$")
 FIELD_ID = re.compile(r"^`([^`]+)`\s+\(`([^`]+)`\)$")
 SCHEMA_DIGEST = re.compile(r"_([0-9a-f]{64})\.json$")
+F001_ACTIVITY_TABLE_ID = "322673"
+F001_ACTIVITY_FIELD_ID = "2350134"
+F001_ACTIVITY_APPROVED_SNAPSHOT_SHA256 = "7525721d99a633bb84d29c7d4df0f5ba14b310042151af10875a59c8c376c2c2"
+F001_ACTIVITY_KNOWN_OPTION_IDS = frozenset(
+    {
+        "1775855", "1775856", "1775857", "1775858", "1791551", "1811741",
+        "2144652", "2144653", "2144654", "2144655", "2357582", "2367695",
+        "2381925", "2381926", "2427447", "6259982",
+    }
+)
+F001_ACTIVITY_APPROVED_TARGETS = {
+    "1811741": "irrigation",
+    "2427447": "harvesting",
+    "2144655": "other",
+}
 
 
 class DryRunError(ValueError):
@@ -121,6 +138,107 @@ def _link_ids(value: Any) -> tuple[list[str], int]:
     return ids, malformed
 
 
+def map_f001_activity_selection(
+    selection: Any,
+    option_labels: dict[str, str],
+    *,
+    approved_targets: dict[str, str] | None = None,
+) -> tuple[str, list[dict[str, Any]]]:
+    """Map one selection list and preserve exact source options in original order."""
+    if not isinstance(selection, list):
+        raise DryRunError("malformed activity selection")
+    if not selection:
+        raise DryRunError("empty activity selection")
+
+    approved_targets = approved_targets or {}
+    selected_ids: list[str] = []
+    preserved: list[dict[str, Any]] = []
+    mapped_targets: list[str] = []
+    for value in selection:
+        if isinstance(value, dict):
+            value = value.get("id", value.get("option_id"))
+        if isinstance(value, bool) or not isinstance(value, (int, str)) or not str(value).isdigit():
+            raise DryRunError("malformed activity selection")
+        option_id = str(value)
+        if int(option_id) <= 0 or option_id in selected_ids:
+            raise DryRunError("malformed activity selection")
+        label = option_labels.get(option_id)
+        if not isinstance(label, str) or not label.strip() or "\x00" in label:
+            raise DryRunError("unknown activity option")
+        target = approved_targets.get(option_id, label)
+        if not isinstance(target, str) or not target.strip() or "\x00" in target or len(target) > 100:
+            raise DryRunError("invalid activity type label")
+        selected_ids.append(option_id)
+        mapped_targets.append(target)
+        preserved.append({"option_id": int(option_id), "label": label})
+
+    return mapped_targets[0], preserved
+
+
+def _validate_f001_activity_mapping(export: dict[str, Any], snapshot_sha256: str) -> None:
+    """Fail closed unless the owner-approved snapshot and every used option map validate."""
+    if snapshot_sha256 != F001_ACTIVITY_APPROVED_SNAPSHOT_SHA256:
+        raise DryRunError("F001 activity mapping is limited to the owner-reviewed snapshot")
+
+    tables = [table for table in export.get("tables", []) if str(table.get("id")) == F001_ACTIVITY_TABLE_ID]
+    if len(tables) != 1:
+        raise DryRunError("F001 activity table is missing or duplicated")
+    table = tables[0]
+    fields = [field for field in table.get("fields", []) if str(field.get("id")) == F001_ACTIVITY_FIELD_ID]
+    if len(fields) != 1 or fields[0].get("type") != "multiple_select":
+        raise DryRunError("F001 activity field metadata differs from the reviewed mapping")
+    options = fields[0].get("select_options")
+    if not isinstance(options, list):
+        raise DryRunError("F001 activity option metadata is unavailable")
+
+    option_labels: dict[str, str] = {}
+    for option in options:
+        option_id = option.get("id") if isinstance(option, dict) else None
+        label = option.get("value") if isinstance(option, dict) else None
+        if (
+            isinstance(option_id, bool)
+            or not isinstance(option_id, (int, str))
+            or not str(option_id).isdigit()
+            or int(option_id) <= 0
+            or not isinstance(label, str)
+            or not label.strip()
+            or "\x00" in label
+            or len(label) > 100
+        ):
+            raise DryRunError("F001 activity option metadata is malformed")
+        key = str(option_id)
+        if key in option_labels:
+            raise DryRunError("F001 activity option metadata is duplicated")
+        option_labels[key] = label
+    if set(option_labels) != F001_ACTIVITY_KNOWN_OPTION_IDS:
+        raise DryRunError("F001 activity option inventory differs from the reviewed mapping")
+    if len(set(option_labels.values())) != len(option_labels):
+        raise DryRunError("F001 activity option labels are not unique")
+
+    populated = singles = multis = 0
+    patterns: Counter[tuple[int, ...]] = Counter()
+    rows = table.get("rows")
+    if not isinstance(rows, list):
+        raise DryRunError("F001 activity rows are unavailable")
+    for row in rows:
+        value = row.get(f"field_{F001_ACTIVITY_FIELD_ID}")
+        if not _is_populated(value):
+            continue
+        _, preserved = map_f001_activity_selection(
+            value,
+            option_labels,
+            approved_targets=F001_ACTIVITY_APPROVED_TARGETS,
+        )
+        populated += 1
+        if len(preserved) == 1:
+            singles += 1
+        else:
+            multis += 1
+            patterns[tuple(item["option_id"] for item in preserved)] += 1
+    if (populated, singles, multis, len(patterns)) != (204, 193, 11, 10):
+        raise DryRunError("F001 activity selection profile differs from the reviewed mapping")
+
+
 def _validate_inventory(
     export: dict[str, Any], crosswalk: dict[str, dict[str, dict[str, str]]]
 ) -> tuple[dict[str, dict[str, dict[str, str]]], dict[str, set[str]]]:
@@ -197,6 +315,8 @@ def _build_report(
     held_cells = 0
     relationship_cells = 0
     provenance_cells = 0
+    owner_excluded_fields = 0
+    owner_excluded_populated_cells = 0
     blocking_fields_with_data: list[dict[str, Any]] = []
     table_reports: list[dict[str, Any]] = []
     structural_issues: list[dict[str, Any]] = []
@@ -232,6 +352,9 @@ def _build_report(
             disposition = mapping["disposition"]
             field_dispositions[disposition] += 1
             field_key = f"field_{field_id}"
+            if disposition == "EXCLUDE_OWNER":
+                owner_excluded_fields += 1
+                owner_excluded_populated_cells += sum(1 for row in rows if _is_populated(row.get(field_key)))
 
             if disposition not in VALUE_EXCLUSIONS:
                 populated_count = sum(1 for row in rows if _is_populated(row.get(field_key)))
@@ -347,6 +470,8 @@ def _build_report(
             "malformed_link_references": malformed_links,
             "duplicate_source_row_ids": duplicate_row_ids,
             "blocking_fields_with_data": len(blocking_fields_with_data),
+            "owner_excluded_fields": owner_excluded_fields,
+            "owner_excluded_populated_cells": owner_excluded_populated_cells,
             "structural_issue_count": len(structural_issues),
             "import_blocked": import_blocked,
         },
@@ -386,6 +511,11 @@ def run_dry_run(export_path: Path, manifest_path: Path, crosswalk_path: Path) ->
 
     crosswalk, _ = _parse_crosswalk(crosswalk_text)
     table_by_id, row_ids_by_table = _validate_inventory(export, crosswalk)
+    activity_mapping = crosswalk.get(F001_ACTIVITY_TABLE_ID, {}).get(F001_ACTIVITY_FIELD_ID)
+    if activity_mapping and activity_mapping["disposition"] == "CANDIDATE":
+        if "farm_activity.activity_type" not in activity_mapping["target"]:
+            raise DryRunError("F001 activity candidate does not target farm_activity.activity_type")
+        _validate_f001_activity_mapping(export, snapshot_sha256)
     return _build_report(
         export,
         crosswalk,

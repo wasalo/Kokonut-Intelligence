@@ -20,6 +20,9 @@ logger = get_logger("migration")
 PROJECT_DIR = Path(__file__).parent.parent.parent
 SCHEMA_DIR = PROJECT_DIR / "schemas" / "postgres"
 SEED_DIR = PROJECT_DIR / "schemas" / "seeds"
+# Canonical KI tables and migration tracking live in public; exclude "$user" so
+# a role-named schema cannot shadow public objects during migrations.
+MIGRATION_SEARCH_PATH = "public, topology, tiger"
 
 # Historical post-apply edits that were merged before checksum enforcement was
 # consistently used. Repairs are only permitted for this explicit inventory;
@@ -59,12 +62,12 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
     """
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False)
     try:
-        tmp.write(input_sql)
+        tmp.write(f"SET search_path = {MIGRATION_SEARCH_PATH};\n{input_sql}")
         tmp.flush()
         tmp_name = tmp.name
         tmp.close()
         psql_args = [
-            "psql", "-X", "-U", PG_USER, "-d", PG_DB,
+            "psql", "-X", "-q", "-U", PG_USER, "-d", PG_DB,
             "-v", "ON_ERROR_STOP=1", "-A", "-t",
             "-f", "-",
         ]

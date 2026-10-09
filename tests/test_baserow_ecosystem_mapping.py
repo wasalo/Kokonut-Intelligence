@@ -18,16 +18,18 @@ def crosswalk_row(section: str, field: str) -> list[str]:
 
 
 class EcosystemMappingTests(unittest.TestCase):
-    def test_ecosystem_branch_identity_and_status_remain_held(self):
+    def test_ecosystem_branch_name_and_status_are_owner_excluded(self):
         section = "Ecosystem Branches (table ID `594558`; 4 fields)"
         name = crosswalk_row(section, "Name")
         active = crosswalk_row(section, "Active")
         guild_table = GUILD_SCHEMA.split("CREATE TABLE IF NOT EXISTS kokonut_guild", 1)[1].split(");", 1)[0]
         self.assertEqual(name[2], "`kokonut_guild.name`")
-        self.assertEqual(name[3], "`HOLD_FIELD`")
+        self.assertEqual(name[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Owner scope decision", name[4])
         self.assertIn("guild_key", name[4])
         self.assertEqual(active[2], "`kokonut_guild.status`")
-        self.assertEqual(active[3], "`HOLD_FIELD`")
+        self.assertEqual(active[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Owner scope decision", active[4])
         self.assertIn("false", active[4].casefold())
         self.assertIn("status VARCHAR(50) DEFAULT 'active'", guild_table)
         self.assertNotIn("staff_id", guild_table)

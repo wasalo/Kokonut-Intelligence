@@ -42,11 +42,15 @@ class EbfAndGroundAnalyticsMappingTests(unittest.TestCase):
         self.assertIn("INSERT INTO ebf_pillar", EBF_SEED)
         self.assertIn("neither source table has a source name", REPORT.lower())
 
-    def test_ground_analytics_fields_remain_held_without_an_event_mapping(self):
-        for field in ("Name", "Notes", "Active"):
+    def test_ground_analytics_active_is_owner_excluded_without_an_event_mapping(self):
+        for field in ("Name", "Notes"):
             row = row_for("Ground Analytics", field)
             self.assertEqual(row[2], "—")
             self.assertEqual(row[3], "`HOLD_FIELD`")
+        active = row_for("Ground Analytics", "Active")
+        self.assertEqual(active[2], "—")
+        self.assertEqual(active[3], "`EXCLUDE_OWNER`")
+        self.assertIn("Owner scope decision", active[4])
         self.assertNotIn("CREATE TABLE IF NOT EXISTS ground_analytics (", GROUND_SCHEMA)
         self.assertIn("location_id UUID NOT NULL", GROUND_SCHEMA)
         self.assertIn("analysis_date DATE NOT NULL", GROUND_SCHEMA)

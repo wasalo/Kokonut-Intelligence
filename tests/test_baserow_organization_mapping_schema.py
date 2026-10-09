@@ -28,13 +28,21 @@ class OrganizationMappingSchemaTests(unittest.TestCase):
         self.assertIn("owner approves `other` for all 8 source rows without a source-backed type", crosswalk)
         self.assertIn("derive required `org_key` from the composite source identity", crosswalk)
 
-    def test_funding_relationship_uses_typed_join_but_endpoints_remain_held(self):
+    def test_funding_edges_are_excluded_but_organization_records_remain_independent(self):
         crosswalk = CROSSWALK.read_text(encoding="utf-8")
-        self.assertIn("`Organization` (`4446734`) | `link_row` → `Organizations` | `external_grant_tranche_funder(tranche_id, organization_id)` | `RELATIONSHIP`", crosswalk)
-        self.assertIn("`Funding` (`4446757`) | `link_row` → `Funding` | `external_grant_tranche_funder(tranche_id, organization_id)` | `RELATIONSHIP`", crosswalk)
-        self.assertIn("16 exact reciprocal edges", crosswalk)
-        self.assertIn("endpoints remain unprojected", crosswalk)
-        self.assertIn("Parent tranche rows remain held until per-record location mapping", crosswalk)
+        self.assertIn("`Organization` (`4446734`) | `link_row` → `Organizations` | — | `EXCLUDE_OWNER`", crosswalk)
+        self.assertIn("`Funding` (`4446757`) | `link_row` → `Funding` | — | `EXCLUDE_OWNER`", crosswalk)
+        self.assertIn("16 exact reciprocal source edges", crosswalk)
+        self.assertIn("original reciprocal links in the controlled archive", crosswalk)
+        self.assertIn("do not emit them to KI", crosswalk)
+        self.assertIn("canonical identity resolution remains a gate", crosswalk)
+        for field in ("Name", "Notes", "Active"):
+            self.assertIn(f"`{field}`", crosswalk)
+        self.assertIn("`organization.name` | `CANDIDATE`", crosswalk)
+        self.assertIn("`organization.description` | `CANDIDATE`", crosswalk)
+        self.assertIn("`organization.status` | `CANDIDATE`", crosswalk)
+        self.assertIn("Owner approves `organization.org_type = 'other'`", crosswalk)
+        self.assertIn("this mapping applies to its 8 rows unless separate source evidence is reviewed", crosswalk)
 
 
 if __name__ == "__main__":

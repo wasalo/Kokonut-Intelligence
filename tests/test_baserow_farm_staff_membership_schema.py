@@ -51,14 +51,29 @@ class BaserowFarmStaffMembershipTests(unittest.TestCase):
 
     def test_staff_task_activity_and_expense_links_are_documented(self):
         crosswalk = CROSSWALK.read_text(encoding="utf-8")
-        self.assertIn("`KKN-F001` (`2350179`)", crosswalk)
-        self.assertIn("`farm_activity_responsible_staff.activity_id` + `staff_id`", crosswalk)
-        self.assertIn("`Ground Expenses` (`2350404`)", crosswalk)
-        self.assertIn("`Authorized by` (`2350403`)", crosswalk)
-        self.assertIn("`expense_event.approved_by`", crosswalk)
-        self.assertIn("| `CONDITIONAL` | 526 exact reciprocal edges", crosswalk)
-        self.assertIn("workflow actor UUID with no Staff FK", crosswalk)
-        self.assertIn("Do not populate `approved_by`", crosswalk)
+        f001_staff = [line for line in crosswalk.splitlines() if "`KKN-F001` (`2350179`)" in line]
+        self.assertEqual(len(f001_staff), 1)
+        self.assertIn("| — | `EXCLUDE_OWNER` |", f001_staff[0])
+        self.assertIn("Batch 45 owner decision", f001_staff[0])
+        self.assertNotIn("farm_activity_responsible_staff", f001_staff[0])
+        f002_actor = [line for line in crosswalk.splitlines() if "`Authorized by` (`2350403`)" in line]
+        staff_actor = [line for line in crosswalk.splitlines() if "`Ground Expenses` (`2350404`)" in line]
+        self.assertEqual(len(f002_actor), 1)
+        self.assertEqual(len(staff_actor), 1)
+        for line in (f002_actor[0], staff_actor[0]):
+            self.assertIn("| — | `EXCLUDE_OWNER` |", line)
+            self.assertIn("Batch 37 owner", line)
+        self.assertIn("no workflow `approved_by` value is populated", f002_actor[0])
+        self.assertIn("Staff rows remain independently scoped", staff_actor[0])
+
+    def test_staff_name_is_owner_excluded_without_dropping_the_staff_table_scope(self):
+        crosswalk = CROSSWALK.read_text(encoding="utf-8")
+        name_line = next(line for line in crosswalk.splitlines() if "`Name` (`2202722`)" in line)
+        self.assertIn("| — | `EXCLUDE_OWNER` |", name_line)
+        self.assertIn("Batch 38 owner drops Staff.Name", name_line)
+        self.assertIn("Staff rows and other Staff fields remain separately scoped", name_line)
+        self.assertIn("F001 responsibility edge is excluded by Batch 45", name_line)
+        self.assertNotIn("F001 responsibility identity remains a separate hold", name_line)
 
     def test_active_boolean_uses_strict_parse_without_employment_inference(self):
         crosswalk = CROSSWALK.read_text(encoding="utf-8")
