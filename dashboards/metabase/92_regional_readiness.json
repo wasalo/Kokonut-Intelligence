@@ -1,0 +1,16 @@
+{
+  "title": "Regional Readiness",
+  "description": "Dimension scores, benchmarks, and readiness assessment across regions.",
+  "cards": [
+    {
+      "name": "Regional Readiness",
+      "dataset_query": "dashboards/metabase/sql/92_regional_readiness.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "strategy_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

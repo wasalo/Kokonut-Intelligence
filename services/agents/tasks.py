@@ -232,6 +232,75 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
         "writes": ["ebf_calibration_decision:draft"],
         "high_risk": False,
     },
+    "delphi_facilitation": {
+        "description": "Act as the Real-time Delphi facilitator: build an anonymized live summary of panel consensus and draft a recommendation. Agents cannot publish; a human must approve.",
+        "risk": "medium",
+        "inputs": {
+            "study_id": {"type": "string", "format": "uuid", "required": True},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "recommendation_draft": {"type": "object", "required": False},
+        },
+        "writes": ["delphi_recommendation:draft"],
+        "high_risk": False,
+    },
+    "coordination_strategy_draft": {
+        "description": "Draft candidate coordination alliances from stakeholder, capability, market, trust, ecological, and cooperative evidence; human governance is required before any transition.",
+        "risk": "medium",
+        "inputs": {
+            "stakeholder_landscape": {"type": "object", "required": True},
+            "capability_gaps": {"type": "array", "required": True},
+            "value_stream_bottlenecks": {"type": "array", "required": True},
+            "marketplace_evidence": {"type": "object", "required": True},
+            "cooperative_evidence": {"type": "object", "required": True},
+            "trust_evidence": {"type": "object", "required": True},
+            "market_cycle_context": {"type": "object", "required": True},
+            "ecological_constraints": {"type": "array", "required": True},
+            "stakeholder_constraints": {"type": "array", "required": True},
+        },
+        "outputs": {
+            "candidate_alliance_types": {"type": "array", "required": True},
+            "candidate_participants": {"type": "array", "required": True},
+            "shared_objective_draft": {"type": "object", "required": True},
+            "contribution_assumptions": {"type": "array", "required": True},
+            "expected_benefits": {"type": "array", "required": True},
+            "risks_and_harms": {"type": "array", "required": True},
+            "evidence_gaps": {"type": "array", "required": True},
+            "governance_questions": {"type": "array", "required": True},
+            "recommended_review_cadence": {"type": "object", "required": True},
+        },
+        "writes": ["coordination_alliance:draft"],
+        "high_risk": False,
+    },
+    "organic_readiness_synthesis": {
+        "description": "Synthesize organic certification readiness, transition progress, input compliance, buffer zone adequacy, harvest segregation, and prohibited substance clearance data.",
+        "risk": "medium",
+        "inputs": {
+            "location_id": {"type": "string", "format": "uuid", "required": True},
+            "store": {"type": "boolean", "required": False},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "ai_summary_id": {"type": "string", "format": "uuid", "required": False},
+        },
+        "writes": ["ai_summary:draft"],
+        "high_risk": False,
+    },
+    "ecological_modeling_synthesis": {
+        "description": "Synthesize ecological interaction strength, energy flow efficiency, trophic balance, pest trends, soil input retention, biocontrol effectiveness, resource efficiency, conservation status, livestock feed, and reward calibration data.",
+        "risk": "medium",
+        "inputs": {
+            "location_id": {"type": "string", "format": "uuid", "required": True},
+            "store": {"type": "boolean", "required": False},
+        },
+        "outputs": {
+            "summary": {"type": "object", "required": True},
+            "ai_summary_id": {"type": "string", "format": "uuid", "required": False},
+        },
+        "writes": ["ai_summary:draft"],
+        "high_risk": False,
+    },
 }
 
 

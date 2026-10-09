@@ -6,6 +6,7 @@ data, calculates forecasts, and writes results to the database.
 """
 
 import json
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
@@ -14,7 +15,7 @@ import psycopg2
 import psycopg2.extras
 
 from ..ingestion.base import get_db
-from .config import CALCULATION_VERSION, CONFIDENCE_LEVEL
+from .config import CALCULATION_VERSION, CONFIDENCE_LEVEL, AUTO_CALIBRATION_ENABLED
 from .models import (
     PriceAssumptions, YieldAssumptions, CostAssumptions,
     GrowthAssumptions, ScenarioAssumptions,
@@ -34,6 +35,62 @@ from .risk import (
     calculate_risk_factor, risk_adjust_noi, risk_adjust_revenue,
     calculate_confidence_interval,
 )
+
+# Thresholds for data staleness warnings (days)
+_STALE_THRESHOLDS = {
+    "price_observation": 180,
+    "crop_cycle": 365,
+    "expense_event": 180,
+    "harvest_event": 365,
+    "sensor_reading": 30,
+}
+
+
+def _check_data_freshness(location_id: str) -> List[str]:
+    """Check age of key input data and return staleness warnings."""
+    warnings = []
+    db = get_db()
+    with db.cursor() as cur:
+        for table, max_days in _STALE_THRESHOLDS.items():
+            try:
+                if table == "sensor_reading":
+                    cur.execute(
+                        "SELECT MAX(reading_date) FROM sensor_reading WHERE location_id = %s",
+                        (location_id,),
+                    )
+                elif table == "crop_cycle":
+                    cur.execute(
+                        "SELECT MAX(plant_date) FROM crop_cycle WHERE location_id = %s",
+                        (location_id,),
+                    )
+                elif table in ("expense_event", "harvest_event"):
+                    col = "expense_date" if table == "expense_event" else "harvest_date"
+                    cur.execute(
+                        f"SELECT MAX({col}) FROM {table} WHERE location_id = %s",
+                        (location_id,),
+                    )
+                elif table == "price_observation":
+                    cur.execute(
+                        "SELECT MAX(price_date) FROM price_observation po "
+                        "JOIN crop c ON po.crop_id = c.id "
+                        "JOIN crop_cycle cc ON cc.crop_id = c.id AND cc.location_id = %s",
+                        (location_id,),
+                    )
+                else:
+                    continue
+                row = cur.fetchone()
+                if row and row[0]:
+                    from datetime import date
+                    latest = row[0] if isinstance(row[0], date) else row[0].date()
+                    age_days = (date.today() - latest).days
+                    if age_days > max_days:
+                        warnings.append(
+                            f"{table}: latest data is {age_days} days old (threshold: {max_days} days)"
+                        )
+            except Exception:
+                pass
+    db.close()
+    return warnings
 
 
 def load_scenario(scenario_id: str) -> Optional[Dict[str, Any]]:
@@ -64,6 +121,9 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
 
     location_id = scenario["location_id"]
     scenario_type = scenario.get("scenario_type", "baseline")
+
+    # Check input data freshness before running projections
+    data_freshness_notes = _check_data_freshness(location_id)
 
     # Parse assumptions
     sa = ScenarioAssumptions.from_dict(scenario.get("assumptions", {}))
@@ -400,15 +460,19 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     # Write outputs to database
     _write_outputs(outputs)
 
+    # Optionally trigger calibration assessment if a policy exists for any metric
+    if AUTO_CALIBRATION_ENABLED:
+        _maybe_trigger_calibration(location_id, outputs)
+
     # Write dashboard dataset for BI integration
     _write_dashboard_dataset(scenario_id, location_id, outputs, scenario_type)
 
-    # Update scenario status
+    # Computation submits the scenario for independent review; it never publishes.
     db = get_db()
     with db.cursor() as cur:
         cur.execute("""
             UPDATE forecast_scenario
-            SET status = 'published', updated_at = NOW()
+            SET status = 'submitted', updated_at = NOW()
             WHERE id = %s
         """, (scenario_id,))
     db.commit()
@@ -434,6 +498,7 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
         "total_bed_area_sqm": round(total_bed_area_sqm, 2),
         "calculation_path": "per_sqm" if per_sqm_data else "ha_fallback",
         "outputs_written": len(outputs),
+        "data_freshness_notes": data_freshness_notes,
     }
 
 
@@ -491,7 +556,8 @@ def _make_output(
 
 
 def _write_outputs(outputs: List[Dict[str, Any]]) -> None:
-    """Write forecast outputs to the database."""
+    """Write forecast outputs and canonical ledger rows atomically."""
+    from services.predictions.service import _domain_for_metric
     db = get_db()
     with db.cursor() as cur:
         for out in outputs:
@@ -509,8 +575,68 @@ def _write_outputs(outputs: List[Dict[str, Any]]) -> None:
                 out["confidence_level"], out["calculation_version"],
                 out["calculated_at"], out["inputs"], out.get("crop_cycle_id"),
             ))
+            input_hash = hashlib.sha256(out["inputs"].encode()).hexdigest()
+            cur.execute("""
+                INSERT INTO prediction_ledger (
+                    source_table, source_id, domain, metric_key, unit, location_id,
+                    crop_cycle_id, model_name, model_version, issued_at,
+                    target_start, target_end, horizon_seconds, predicted_value,
+                    interval_low, interval_high, confidence_level, inputs, input_hash,
+                    status
+                ) VALUES (
+                    'forecast_output', %s, %s, %s, %s, %s, %s,
+                    'kokonut_forecast_engine', %s, %s, %s::date, %s::date,
+                    GREATEST(0, EXTRACT(EPOCH FROM (%s::date - %s))::bigint),
+                    %s, LEAST(%s, %s), GREATEST(%s, %s), %s, %s::jsonb, %s, 'submitted'
+                )
+                ON CONFLICT (source_table, source_id, source_point_key) DO NOTHING
+            """, (
+                out["id"], _domain_for_metric(out["metric_name"]), out["metric_name"],
+                out["unit"], out["location_id"], out.get("crop_cycle_id"),
+                out["calculation_version"], out["calculated_at"], out["period_start"],
+                out["period_end"], out["period_end"], out["calculated_at"], out["value"],
+                out["confidence_low"], out["confidence_high"], out["confidence_low"],
+                out["confidence_high"], out["confidence_level"],
+                out["inputs"], input_hash,
+            ))
     db.commit()
     db.close()
+
+
+def _maybe_trigger_calibration(location_id: str, outputs: List[Dict[str, Any]]) -> None:
+    """Trigger calibration assessment for metrics that have an active policy."""
+    try:
+        from services.predictions.service import PredictionService, _domain_for_metric
+        db = get_db()
+        with db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            seen = set()
+            for out in outputs:
+                metric = out["metric_name"]
+                model_version = out["calculation_version"]
+                key = (metric, model_version)
+                if key in seen:
+                    continue
+                seen.add(key)
+                cur.execute(
+                    """
+                    SELECT 1 FROM prediction_calibration_policy
+                    WHERE active=TRUE AND domain=%s
+                      AND (metric_key IS NULL OR metric_key=%s)
+                    LIMIT 1
+                    """,
+                    (_domain_for_metric(metric), metric),
+                )
+                if cur.fetchone():
+                    svc = PredictionService(db)
+                    try:
+                        svc.assess_calibration(
+                            "kokonut_forecast_engine", model_version, metric,
+                        )
+                    except Exception:
+                        pass
+        db.close()
+    except Exception:
+        pass
 
 
 def _write_dashboard_dataset(
@@ -534,10 +660,10 @@ def _write_dashboard_dataset(
                 INSERT INTO dashboard_dataset
                     (id, name, description, location_id, dataset_type, query_sql, status,
                      metadata, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, 'forecast', %s, 'published', %s::jsonb, NOW(), NOW())
+                VALUES (%s, %s, %s, %s, 'forecast', %s, 'draft', %s::jsonb, NOW(), NOW())
                 ON CONFLICT (id) DO UPDATE SET
                     metadata = EXCLUDED.metadata,
-                    status = 'published',
+                    status = 'draft',
                     updated_at = NOW()
             """, (
                 str(uuid.uuid5(uuid.NAMESPACE_DNS, f"forecast-dashboard:{scenario_id}")),
@@ -558,17 +684,17 @@ def _write_dashboard_dataset(
 
 
 def run_all_scenarios(location_id: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Run forecast for all draft/published scenarios."""
+    """Run forecast for all draft scenarios."""
     db = get_db()
     with db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         if location_id:
             cur.execute(
-                "SELECT id, name FROM forecast_scenario WHERE location_id = %s AND status IN ('draft', 'published')",
+                "SELECT id, name FROM forecast_scenario WHERE location_id = %s AND status = 'draft'",
                 (location_id,),
             )
         else:
             cur.execute(
-                "SELECT id, name FROM forecast_scenario WHERE status IN ('draft', 'published')"
+                "SELECT id, name FROM forecast_scenario WHERE status = 'draft'"
             )
         scenarios = cur.fetchall()
     db.close()

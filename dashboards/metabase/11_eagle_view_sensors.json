@@ -1,0 +1,16 @@
+{
+  "title": "Eagle View - Sensors",
+  "description": "Platform-wide sensor data: device health, readings, and ingestion status.",
+  "cards": [
+    {
+      "name": "Eagle View Sensors",
+      "dataset_query": "dashboards/metabase/sql/11_eagle_view_sensors.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

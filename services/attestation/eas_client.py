@@ -109,10 +109,45 @@ class EASClient:
         Returns:
             {"attestation_uid": str, "tx_hash": str, "block_number": int}
         """
+        tx = self.build_attest_call(
+            schema_uid=schema_uid,
+            recipient=recipient,
+            data=data,
+            revocable=revocable,
+            ref_uid=ref_uid,
+            expiration_time=expiration_time,
+        )
+
+        receipt = self.signer.estimate_and_send(tx)
+
+        logs = self.eas.events.Attested().process_receipt(receipt)
+        attestation_uid = logs[0]["args"]["uid"].hex() if logs else ""
+
+        return {
+            "attestation_uid": "0x" + attestation_uid if attestation_uid else "",
+            "tx_hash": receipt["transactionHash"].hex(),
+            "block_number": receipt["blockNumber"],
+        }
+
+    def build_attest_call(
+        self,
+        schema_uid: str,
+        recipient: str,
+        data: list[dict[str, Any]],
+        revocable: bool = True,
+        ref_uid: str = "",
+        expiration_time: int = 0,
+    ) -> dict[str, Any]:
+        """Build the EAS attest() transaction (encode only, no send).
+
+        This is the SAFE integration seam (KI-14 D2): the caller can wrap the
+        returned transaction's ``data`` in a SAFE proposal so a human-gated
+        multisig signs/executes it, instead of the local private key sending.
+        """
         encoded_data = encode_data(data)
         ref = bytes.fromhex(ref_uid[2:]) if ref_uid else b"\x00" * 32
 
-        tx = self.eas.functions.attest(
+        return self.eas.functions.attest(
             {
                 "schema": bytes.fromhex(schema_uid[2:]) if schema_uid.startswith("0x") else schema_uid,
                 "data": {
@@ -128,17 +163,6 @@ class EASClient:
             "from": self.signer.address,
             "chainId": self.config["chain_id"],
         })
-
-        receipt = self.signer.estimate_and_send(tx)
-
-        logs = self.eas.events.Attested().process_receipt(receipt)
-        attestation_uid = logs[0]["args"]["uid"].hex() if logs else ""
-
-        return {
-            "attestation_uid": "0x" + attestation_uid if attestation_uid else "",
-            "tx_hash": receipt["transactionHash"].hex(),
-            "block_number": receipt["blockNumber"],
-        }
 
     def multi_attest(
         self,

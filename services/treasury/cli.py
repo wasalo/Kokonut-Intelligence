@@ -1,0 +1,178 @@
+"""Treasury (SAFE) CLI — read-only views of Kokonut SAFE accounts.
+
+Exposes SAFE smart-account queries through the ``kokonut`` meta-CLI, mirroring
+the read-first pattern of the governance CLI. It reads owners, threshold,
+modules, balances, and transactions from the SAFE Transaction Service API. It
+never submits or signs transactions.
+
+Examples:
+    python3 -m services.treasury.cli status
+    python3 -m services.treasury.cli status --address 0x...
+    python3 -m services.treasury.cli balances
+    python3 -m services.treasury.cli transactions --limit 10
+"""
+
+from __future__ import annotations
+
+import logging
+
+import typer
+
+from services.treasury.safe import (
+    KOKONUT_SAFES,
+    SafeReadClient,
+)
+
+logger = logging.getLogger(__name__)
+
+app = typer.Typer(name="treasury", help="SAFE smart account queries (read-only)")
+
+
+def _client(chain: str) -> SafeReadClient:
+    return SafeReadClient(chain=chain)
+
+
+@app.command("status")
+def safe_status(
+    chain: str = typer.Option("gnosis", help="Chain: gnosis, mainnet, celo, ..."),
+    address: str | None = typer.Option(None, help="SAFE address (default: both Kokonut SAFEs)"),
+) -> None:
+    """Show SAFE configuration: owners, threshold, modules, nonce."""
+    import json
+
+    client = _client(chain)
+    targets = [address] if address else list(KOKONUT_SAFES.values())
+    for addr in targets:
+        s = client.safe_state(addr)
+        print(json.dumps({
+            "address": s.address,
+            "chain": s.chain,
+            "threshold": f"{s.threshold} of {len(s.owners)}",
+            "owners": s.owners,
+            "modules": s.modules,
+            "guard": s.guard,
+            "version": s.version,
+            "nonce": s.nonce,
+        }, indent=2))
+
+
+@app.command("balances")
+def safe_balances(
+    chain: str = typer.Option("gnosis", help="Chain: gnosis, mainnet, celo, ..."),
+    address: str | None = typer.Option(None, help="SAFE address (default: both Kokonut SAFEs)"),
+) -> None:
+    """Show token balances held by a SAFE."""
+    import json
+
+    client = _client(chain)
+    targets = [address] if address else list(KOKONUT_SAFES.values())
+    for addr in targets:
+        print(json.dumps({
+            "safe": addr,
+            "chain": chain,
+            "balances": [b.__dict__ for b in client.balances(addr)],
+        }, indent=2, default=str))
+
+
+@app.command("transactions")
+def safe_transactions(
+    chain: str = typer.Option("gnosis", help="Chain: gnosis, mainnet, celo, ..."),
+    address: str | None = typer.Option(
+        None, help="SAFE address (default: DAO treasury SAFE)"),
+    limit: int = typer.Option(10, help="Max transactions to return"),
+) -> None:
+    """Show proposed/executed multisig transactions."""
+    import json
+
+    client = _client(chain)
+    targets = [address] if address else [KOKONUT_SAFES["dao_treasury"]]
+    for addr in targets:
+        txs = client.multisig_transactions(addr, limit=limit)
+        print(json.dumps({
+            "safe": addr,
+            "chain": chain,
+            "count": len(txs),
+            "transactions": [t.__dict__ for t in txs],
+        }, indent=2, default=str))
+
+
+@app.command("propose")
+def safe_propose(
+    location_id: str = typer.Argument(..., help="Farm location UUID"),
+    chain: str = typer.Option("gnosis", help="Chain: gnosis, celo, mainnet, ..."),
+    stewards: str = typer.Option("", help="Comma-separated steward addresses"),
+    threshold: int = typer.Option(1, help="Signature threshold"),
+    name: str | None = typer.Option(None, help="SAFE name"),
+) -> None:
+    """Agent proposes a new farm SAFE (draft record, human approval required)."""
+    from services.treasury.provisioning import cli_propose
+
+    logger.info(
+        "agent proposes farm SAFE (location=%s chain=%s stewards=%d threshold=%d)",
+        location_id, chain, len(stewards.split(",")), threshold,
+    )
+    cli_propose(
+        location_id=location_id,
+        chain=chain,
+        stewards=[s.strip() for s in stewards.split(",") if s.strip()],
+        threshold=threshold,
+        name=name,
+    )
+
+
+@app.command("approve")
+def safe_approve(
+    safe_id: str = typer.Argument(..., help="safe_account id"),
+    safe_address: str | None = typer.Option(
+        None, help="Deployed SAFE address (human enters after Factory deploy)"),
+) -> None:
+    """Human approves a proposed farm SAFE (optionally with deployed address)."""
+    from services.treasury.provisioning import cli_approve
+
+    logger.info(
+        "human approves farm SAFE (safe_id=%s deployed=%s)",
+        safe_id, safe_address is not None,
+    )
+    cli_approve(safe_id, safe_address)
+
+
+@app.command("farms")
+def safe_farms(
+    location_id: str | None = typer.Option(None, help="Filter by location UUID"),
+) -> None:
+    """List farm SAFEs (proposed, approved, active)."""
+    from services.treasury.provisioning import cli_list
+
+    cli_list(location_id)
+
+
+@app.command("ops-propose")
+def safe_ops_propose(
+    safe_id: str = typer.Argument(..., help="safe_account id of the farm SAFE"),
+    to: str = typer.Argument(..., help="Target address"),
+    value: str = typer.Option("0", help="Value in wei (or decimal ether)"),
+    memo: str = typer.Option("", help="Human-readable memo"),
+    data: str = typer.Option("0x", help="Call data"),
+    safe_address: str | None = typer.Option(None, help="Farm SAFE address (default: from safe_account)"),
+    safe_chain: str | None = typer.Option(None, help="Farm SAFE chain (default: from safe_account)"),
+) -> None:
+    """Agent proposes an operation on a farm SAFE (payroll, inputs, expenses).
+
+    Humans (farm stewards) confirm in the Safe app — the agent's delegate key
+    can only propose, never execute.
+    """
+    from services.treasury.ops import cli_propose
+
+    cli_propose(
+        safe_id=safe_id,
+        to=to,
+        value=value,
+        memo=memo,
+        data=data,
+        safe_address=safe_address,
+        safe_chain=safe_chain,
+    )
+
+
+if __name__ == "__main__":
+    app()

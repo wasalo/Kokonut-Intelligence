@@ -1,16 +1,48 @@
 """Shared test fixtures for Kokonut Intelligence tests."""
 
+from __future__ import annotations
+
 import os
 import subprocess
+import sys
 from pathlib import Path
-from typing import Any
 
 import psycopg2
 import psycopg2.extras
-
+import pytest
 
 PROJECT_DIR = Path(__file__).parent.parent
 
+# Local test runs load the plaintext .env fallback unless CI explicitly opts
+# into encrypted secrets. CI still requires KOKONUT_ALLOW_PLAINTEXT_ENV=true
+# (or injected secrets) via ci-check.sh; this default only makes `pytest`
+# on a dev machine behave like the documented plaintext fallback.
+# NOTE: do not hardcode POSTGRES_PASSWORD here — credentials must be resolved
+# from .env via services.common.db.load_dotenv() so the same value (local or
+# CI's ci-placeholder) wins. A hardcoded default would shadow .env and break
+# auth against a DB whose password differs.
+os.environ.setdefault("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Do not allow infrastructure skips to produce a green CI run."""
+    if os.environ.get("CI_STRICT_DB") != "1":
+        return
+
+    terminal_reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    skipped = terminal_reporter.stats.get("skipped", []) if terminal_reporter else []
+    database_skips = [
+        report for report in skipped
+        if any(marker in str(report.longrepr).lower() for marker in ("no database available", "table not available"))
+    ]
+    if database_skips:
+        print(f"\nERROR: {len(database_skips)} database-dependent tests were skipped in strict CI mode")
+        session.exitstatus = 1
+
+
+# ---------------------------------------------------------------------------
+# Database helpers
+# ---------------------------------------------------------------------------
 
 def database_running() -> bool:
     """Check if the PostgreSQL Docker service is running."""
@@ -33,6 +65,10 @@ def get_db():
     )
 
 
+# ---------------------------------------------------------------------------
+# Mock helpers (shared across test files to avoid duplication)
+# ---------------------------------------------------------------------------
+
 class MockCursor:
     """Reusable mock cursor for unit tests. Tracks call count for sequential fetchall returns."""
 
@@ -40,9 +76,11 @@ class MockCursor:
         self._calls = 0
         self._fetchall_returns = fetchall_returns or []
         self._fetchone_return = fetchone_return or {"name": "Kokonut Adelphi"}
+        self._execute_args: list[tuple] = []
 
     def execute(self, query, params=None):
         self._calls += 1
+        self._execute_args.append((query, params))
 
     def fetchone(self):
         return self._fetchone_return
@@ -61,15 +99,80 @@ class MockConn:
 
     def __init__(self, cursor: MockCursor | None = None):
         self._cursor = cursor or MockCursor()
+        self._closed = False
 
     def cursor(self, cursor_factory=None):
         return self._cursor
 
     def close(self):
-        pass
+        self._closed = True
 
     def commit(self):
         pass
+
+    def rollback(self):
+        pass
+
+
+# ---------------------------------------------------------------------------
+# pytest fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def mock_cursor():
+    """Shared MockCursor instance."""
+    return MockCursor()
+
+
+@pytest.fixture
+def mock_conn(mock_cursor):
+    """Shared MockConn wrapping the mock_cursor."""
+    return MockConn(cursor=mock_cursor)
+
+
+@pytest.fixture
+def db():
+    """Get a database connection, skip if unavailable."""
+    try:
+        conn = get_db()
+        yield conn
+        conn.rollback()
+        conn.close()
+    except Exception as exc:
+        pytest.skip(f"no database available: {exc}")
+
+
+# Canonical Kokonut Adelphi location used across the analytics test suite.
+ADELPHI_LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
+
+
+@pytest.fixture
+def location_id() -> str:
+    """Return the canonical Adelphi location UUID."""
+    return ADELPHI_LOCATION_ID
+
+
+def assert_sql_contains(path, *fragments: str) -> None:
+    """Assert a SQL file contains each fragment (schema-integrity tests)."""
+    text = path.read_text()
+    missing = [frag for frag in fragments if frag not in text]
+    assert not missing, f"{path.name} missing expected fragments: {missing}"
+
+
+@pytest.fixture
+def cli_runner():
+    """Run a CLI module's main with given args, return (exit_code, stdout, stderr)."""
+    import subprocess
+
+    def _run(module: str, args: list[str] | None = None):
+        cmd = [sys.executable, "-m", module] + (args or [])
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, timeout=30,
+            cwd=str(PROJECT_DIR),
+        )
+        return result.returncode, result.stdout, result.stderr
+
+    return _run
 
 
 def assert_public_safe_rows(rows: list[dict]) -> None:

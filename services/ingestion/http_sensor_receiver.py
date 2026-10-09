@@ -17,17 +17,30 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
+from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows
+from .clickhouse_outbox import enqueue
+from .field_validation import SENSOR_RANGES, validate_sensor_reading
+from .sensor_ingester import get_sensor_type_ranges
 
 logger = get_logger("ingestion.http_sensor_receiver")
 
 # FastAPI app (created lazily)
 app = None
+
+
+def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
+    """Verify an HMAC-SHA256 signature for the exact request body."""
+    if not payload or not signature or not secret:
+        return False
+    provided = signature.strip()
+    if provided.lower().startswith("sha256="):
+        provided = provided[7:]
+    expected = hmac.new(secret.encode("utf-8"), payload, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, provided)
 
 
 def _get_app():
@@ -37,9 +50,8 @@ def _get_app():
         return app
 
     try:
-        from fastapi import FastAPI, HTTPException, Header, Depends
-        from fastapi.responses import JSONResponse
-        from pydantic import BaseModel, Field
+        from fastapi import FastAPI, Header, HTTPException, Request
+        from pydantic import BaseModel
     except ImportError:
         logger.error("fastapi not installed. Run: pip install fastapi uvicorn")
         return None
@@ -59,13 +71,6 @@ def _get_app():
 
     class BatchReadings(BaseModel):
         readings: List[SensorReading]
-
-    def _verify_signature(payload: bytes, signature: str, secret: str) -> bool:
-        """Verify HMAC-SHA256 signature."""
-        expected = hmac.new(
-            secret.encode("utf-8"), payload, hashlib.sha256
-        ).hexdigest()
-        return hmac.compare_digest(expected, signature)
 
     def _get_device_secret(device_id: str) -> Optional[str]:
         """Get shared secret for a device from metadata."""
@@ -109,17 +114,51 @@ def _get_app():
             else:
                 ts = datetime.now(timezone.utc)
 
+            try:
+                ranges = get_sensor_type_ranges(db)
+            except Exception:
+                ranges = SENSOR_RANGES
+            validation = validate_sensor_reading(
+                reading.value, sensor_type, reading.unit, ts, reading.quality,
+                ranges=ranges, identity=reading.device_id,
+            )
+            if validation.status == "rejected":
+                log_ingestion(
+                    source_system="http_sensor", source_table="sensor_reading",
+                    source_id=reading.device_id, target_table="sensor_reading", target_id=None,
+                    operation="insert", payload_hash=hash_payload(reading.dict()),
+                    status="failed", error_message="; ".join(validation.errors),
+                    validation_status="rejected", validation_errors=validation.errors,
+                    validation_warnings=validation.warnings, dedupe_key=validation.dedupe_key,
+                )
+                return {"status": "error", "message": "; ".join(validation.errors)}
+            quality = "suspect" if validation.status == "suspect" else "good"
+
             # Insert reading
             cur.execute("""
                 INSERT INTO sensor_reading
-                    (location_id, plot_id, sensor_id, sensor_type, reading_date, reading_time, value, unit, quality)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (location_id, plot_id, sensor_id, sensor_type, reading_date, reading_time, value, unit, quality,
+                     source_system, source_id, source_raw, schema_version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'field-ingestion-v1')
+                ON CONFLICT (sensor_id, reading_date, reading_time) DO NOTHING
                 RETURNING id
             """, (
                 location_id, plot_id, device_db_id, sensor_type,
-                ts.date(), ts.time(), reading.value, reading.unit, reading.quality,
+                ts.date(), ts.time(), reading.value, reading.unit, quality,
+                "http_sensor", reading.device_id, json.dumps(reading.dict()),
             ))
-            reading_id = str(cur.fetchone()[0])
+            inserted = cur.fetchone()
+            if not inserted:
+                db.commit()
+                log_ingestion(
+                    source_system="http_sensor", source_table="sensor_reading",
+                    source_id=reading.device_id, target_table="sensor_reading", target_id=None,
+                    operation="insert", payload_hash=hash_payload(reading.dict()),
+                    status="partial", error_message="duplicate reading",
+                    validation_status="duplicate", dedupe_key=validation.dedupe_key,
+                )
+                return {"status": "duplicate", "device_id": reading.device_id}
+            reading_id = str(inserted[0])
 
             # Update device health
             cur.execute("""
@@ -131,41 +170,53 @@ def _get_app():
                     updated_at = NOW()
             """, (device_db_id,))
 
+            # Enqueue before commit so the source row and analytical delivery are atomic.
+            _insert_ch(
+                reading_id, location_id, plot_id, device_db_id, sensor_type,
+                reading.value, reading.unit, ts, quality, db,
+            )
             db.commit()
 
-            # Dual-write to ClickHouse
-            _insert_ch(reading_id, location_id, plot_id, device_db_id, sensor_type, reading.value, reading.unit, ts)
-
             log_ingestion(
-                source_system="http_sensor",
+                    source_system="http_sensor",
                 source_table="sensor_reading",
                 source_id=reading.device_id,
                 target_table="sensor_reading",
                 target_id=reading_id,
                 operation="insert",
                 payload_hash=hash_payload(reading.dict()),
-                status="success",
-                rows_affected=1,
-            )
+                    status="success",
+                    rows_affected=1,
+                    validation_status=validation.status,
+                    validation_warnings=validation.warnings,
+                    dedupe_key=validation.dedupe_key,
+                )
 
             return {"status": "success", "reading_id": reading_id}
 
         except Exception as e:
-            logger.error("Error processing reading: %s", e)
-            return {"status": "error", "message": str(e)}
+            logger.exception("Error processing reading: %s", e)
+            return {"status": "error", "message": "Unable to process sensor reading"}
         finally:
             db.close()
 
     @app.post("/api/v1/sensors/{device_id}/readings")
-    async def receive_reading(device_id: str, reading: SensorReading, x_signature: Optional[str] = Header(None)):
+    async def receive_reading(
+        device_id: str,
+        reading: SensorReading,
+        request: Request,
+        x_signature: Optional[str] = Header(None),
+    ):
         """Receive a single sensor reading."""
-        reading.device_id = device_id
-
-        # Verify signature if configured
         secret = _get_device_secret(device_id)
-        if secret and x_signature:
-            # Signature verification would happen here
-            pass
+        if not secret or not x_signature or not _verify_signature(
+            await request.body(), x_signature, secret
+        ):
+            raise HTTPException(status_code=401, detail="Invalid or missing signature")
+
+        if reading.device_id != device_id:
+            raise HTTPException(status_code=400, detail="Payload device does not match URL device")
+        reading.device_id = device_id
 
         result = _process_reading(reading)
         if result["status"] == "error":
@@ -173,10 +224,23 @@ def _get_app():
         return result
 
     @app.post("/api/v1/sensors/{device_id}/readings/batch")
-    async def receive_batch(device_id: str, batch: BatchReadings, x_signature: Optional[str] = Header(None)):
+    async def receive_batch(
+        device_id: str,
+        batch: BatchReadings,
+        request: Request,
+        x_signature: Optional[str] = Header(None),
+    ):
         """Receive multiple sensor readings."""
+        secret = _get_device_secret(device_id)
+        if not secret or not x_signature or not _verify_signature(
+            await request.body(), x_signature, secret
+        ):
+            raise HTTPException(status_code=401, detail="Invalid or missing signature")
+
         results = []
         for reading in batch.readings:
+            if reading.device_id != device_id:
+                raise HTTPException(status_code=400, detail="Payload device does not match URL device")
             reading.device_id = device_id
             result = _process_reading(reading)
             results.append(result)
@@ -192,36 +256,26 @@ def _get_app():
     return app
 
 
-def _insert_ch(reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp):
-    """Insert reading into ClickHouse."""
-    import requests as req
-    from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
-
-    ts = timestamp.strftime("%Y-%m-%d %H:%M:%S.000")
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
-    query = f"""INSERT INTO sensor_readings
-        (timestamp, sensor_id, sensor_type, location_id, plot_id, value, unit, quality, metadata)
-        VALUES (
-            '{ts}',
-            '{sensor_id}',
-            '{sensor_type}',
-            '{location_id}',
-            '{plot_id or ''}',
-            {float(value)},
-            '{unit or ''}',
-            'good',
-            map()
-        )"""
-
+def _insert_ch(reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp, quality="good", conn=None):
+    """Queue canonical reading; direct writes are demo-only when conn is absent."""
+    columns = ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
+               "value", "unit", "quality", "metadata"]
+    rows = [[timestamp, str(sensor_id), str(sensor_type), str(location_id),
+             str(plot_id or ""), float(value), str(unit or ""), quality, {}]]
     try:
-        resp = req.post(
-            ch_url, data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        if conn is not None:
+            payload_hash = hash_payload({"reading_id": str(reading_id), "value": value,
+                                         "timestamp": str(timestamp)})
+            enqueue(conn, event_key=f"sensor_reading:sensor_readings:{reading_id}",
+                    source_table="sensor_reading", source_id=str(reading_id),
+                    target_table="sensor_readings", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
+        post_clickhouse_rows(
+            "sensor_readings",
+            columns, rows,
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 

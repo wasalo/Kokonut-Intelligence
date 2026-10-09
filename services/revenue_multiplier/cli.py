@@ -9,9 +9,8 @@ Usage:
 """
 
 import argparse
-import json
 import sys
-
+from services.common.cli import print_json
 
 DIMENSIONS = [
     ("crop_mix_optimization", "Crop Mix Optimization"),
@@ -63,13 +62,13 @@ def main():
         }
         module_name = module_map.get(args.dimension, args.dimension)
         mod = importlib.import_module(f".dimensions.{module_name}", package="services.revenue_multiplier")
-        from services.ingestion.base import get_db
+        from services.common.database import get_db
         conn = get_db()
         result = mod.analyze(conn, args.location_id)
         conn.close()
         if args.json:
             from dataclasses import asdict
-            print(json.dumps(asdict(result), indent=2, default=str))
+            print_json(asdict(result))
         else:
             _print_dimension(result)
         return
@@ -79,7 +78,7 @@ def main():
 
     if args.json:
         from dataclasses import asdict
-        print(json.dumps(asdict(result), indent=2, default=str))
+        print_json(asdict(result))
     else:
         _print_report(result)
 

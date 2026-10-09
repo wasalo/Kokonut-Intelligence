@@ -143,7 +143,7 @@ def test_resilience_agent_summarizes_public_safe_records() -> None:
                 }]
             return [{
                 "version": "1.0",
-                "document_path": "docs/green-paper-v1.md",
+                "document_path": "docs/green-paper.md",
                 "review_status": "stakeholder_review",
                 "review_owner": "Communications Guild",
                 "target_publication_date": "2026-07-31",

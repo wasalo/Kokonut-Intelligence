@@ -29,7 +29,8 @@ services:
       LOG_LEVEL: "warn"
 
   metabase:
-    # No ports exposed to host in production — accessible only through reverse proxy
+    # Optional profile only; this limit applies only when Metabase is explicitly enabled.
+    # No ports exposed to host in production — use the Traefik overlay for routing.
     ports: []
     deploy:
       resources:
@@ -43,7 +44,33 @@ services:
           memory: 256M
 
   caddy:
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:?CADDY_DOMAIN must be set}
+    volumes:
+      - ./config/caddy/Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - ./services/maps:/app/services/maps:ro
+      - ./services/mobile:/app/services/mobile:ro
+      - caddy-data:/data
+      - caddy-config:/config
     deploy:
       resources:
         limits:
           memory: 256M
+
+  gateway:
+    # No ports exposed to host in production — Field Collector via Caddy /mobile
+    ports: []
+    environment:
+      KOKONUT_ENV: production
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  grpc:
+    # No ports exposed to host in production — accessible only through reverse proxy
+    ports: []
+    deploy:
+      resources:
+        limits:
+          memory: 512M

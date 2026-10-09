@@ -3,14 +3,14 @@
 -- ============================================================
 
 -- Data freshness SLAs for all configured sources
-INSERT INTO data_freshness_config (source_system, description, expected_interval_minutes, stale_threshold_minutes, critical_threshold_minutes, location_scoped, is_active) VALUES
-('weather', 'OpenWeatherMap current weather observations', 360, 720, 1440, TRUE, TRUE),
-('sensors', 'IoT sensor readings via CSV or API', 5, 30, 120, TRUE, TRUE),
-('remote_sensing', 'Satellite/drone vegetation index observations', 10080, 20160, 43200, TRUE, TRUE),
-('market_data', 'World Bank commodity price observations', 1440, 2880, 10080, FALSE, TRUE),
-('eas_indexer', 'EAS attestation indexing from Celo/Optimism/Base', 15, 30, 60, FALSE, TRUE),
-('rpc_indexer', 'Ethereum/L2 wallet activity indexing', 30, 60, 240, FALSE, TRUE),
-('gnosis_indexer', 'Gnosis Chain governance event indexing', 120, 240, 720, FALSE, TRUE)
+INSERT INTO data_freshness_config (source_system, description, expected_interval_minutes, stale_threshold_minutes, critical_threshold_minutes, location_scoped, is_active, alert_cooldown_minutes, escalation_cooldown_minutes) VALUES
+('weather', 'OpenWeatherMap current weather observations', 360, 720, 1440, TRUE, TRUE, 60, 15),
+('sensors', 'IoT sensor readings via CSV or API', 5, 30, 120, TRUE, TRUE, 60, 15),
+('remote_sensing', 'Satellite/drone vegetation index observations', 10080, 20160, 43200, TRUE, TRUE, 60, 15),
+('market_data', 'World Bank commodity price observations', 1440, 2880, 10080, FALSE, TRUE, 60, 15),
+('eas_indexer', 'EAS attestation indexing from Celo/Optimism/Base', 15, 30, 60, FALSE, TRUE, 60, 15),
+('rpc_indexer', 'Ethereum/L2 wallet activity indexing', 30, 60, 240, FALSE, TRUE, 60, 15),
+('gnosis_indexer', 'Gnosis Chain governance event indexing', 120, 240, 720, FALSE, TRUE, 60, 15)
 ON CONFLICT (source_system) DO UPDATE SET
     description = EXCLUDED.description,
     expected_interval_minutes = EXCLUDED.expected_interval_minutes,
@@ -18,6 +18,8 @@ ON CONFLICT (source_system) DO UPDATE SET
     critical_threshold_minutes = EXCLUDED.critical_threshold_minutes,
     location_scoped = EXCLUDED.location_scoped,
     is_active = EXCLUDED.is_active,
+    alert_cooldown_minutes = EXCLUDED.alert_cooldown_minutes,
+    escalation_cooldown_minutes = EXCLUDED.escalation_cooldown_minutes,
     updated_at = NOW();
 
 -- Adelphi remote sensing fetch job (GEE provider)

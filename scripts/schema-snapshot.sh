@@ -6,6 +6,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/common.sh"
 SNAPSHOT_DIR="$PROJECT_DIR/schemas/directus/snapshots"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
@@ -14,12 +16,8 @@ mkdir -p "$SNAPSHOT_DIR"
 echo "=== Kokonut Intelligence Platform — Schema Snapshot ==="
 echo ""
 
-# Source environment
-if [ -f "$PROJECT_DIR/.env" ]; then
-    set -a
-    source "$PROJECT_DIR/.env"
-    set +a
-fi
+# Source secrets (SOPS encrypted .env.sops, or plaintext .env fallback)
+source_secrets warn
 
 DIRECTUS_URL="${PUBLIC_URL:-http://localhost:8055}"
 

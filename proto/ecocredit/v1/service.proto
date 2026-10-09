@@ -1,0 +1,485 @@
+syntax = "proto3";
+
+package ecocredit.v1;
+
+import "common/pagination.proto";
+import "ecocredit/v1/types.proto";
+
+service EcocreditService {
+  // Class queries
+  rpc Classes(ClassesRequest) returns (ClassesResponse);
+  rpc Class(ClassRequest) returns (ClassResponse);
+  rpc ClassesByAdmin(ClassesByAdminRequest) returns (ClassesByAdminResponse);
+  rpc ClassIssuers(ClassIssuersRequest) returns (ClassIssuersResponse);
+
+  // Class mutations
+  rpc CreateClass(CreateClassRequest) returns (CreateClassResponse);
+  rpc UpdateClass(UpdateClassRequest) returns (UpdateClassResponse);
+
+  // Project queries
+  rpc Projects(ProjectsRequest) returns (ProjectsResponse);
+  rpc Project(ProjectRequest) returns (ProjectResponse);
+  rpc ProjectsByClass(ProjectsByClassRequest) returns (ProjectsByClassResponse);
+
+  // Batch queries
+  rpc Batches(BatchesRequest) returns (BatchesResponse);
+  rpc Batch(BatchRequest) returns (BatchResponse);
+  rpc BatchesByClass(BatchesByClassRequest) returns (BatchesByClassResponse);
+  rpc BatchesByProject(BatchesByProjectRequest) returns (BatchesByProjectResponse);
+
+  // Batch mutations
+  rpc CreateBatch(CreateBatchRequest) returns (CreateBatchResponse);
+
+  // Balance queries
+  rpc Balance(BalanceRequest) returns (BalanceResponse);
+  rpc Balances(BalancesRequest) returns (BalancesResponse);
+  rpc BalancesByBatch(BalancesByBatchRequest) returns (BalancesByBatchResponse);
+  rpc Supply(SupplyRequest) returns (SupplyResponse);
+
+  // Streaming
+  rpc StreamBalances(StreamBalancesRequest) returns (stream BalanceUpdate);
+  rpc StreamBatchUpdates(StreamBatchUpdatesRequest) returns (stream BatchUpdate);
+
+  // Basket
+  rpc Baskets(BasketsRequest) returns (BasketsResponse);
+  rpc Basket(BasketRequest) returns (BasketResponse);
+  rpc CreateBasket(CreateBasketRequest) returns (CreateBasketResponse);
+  rpc PutInBasket(PutInBasketRequest) returns (PutInBasketResponse);
+  rpc TakeFromBasket(TakeFromBasketRequest) returns (TakeFromBasketResponse);
+
+  // Marketplace
+  rpc SellOrders(SellOrdersRequest) returns (SellOrdersResponse);
+  rpc SellOrder(SellOrderRequest) returns (SellOrderResponse);
+  rpc CreateSellOrder(CreateSellOrderRequest) returns (CreateSellOrderResponse);
+  rpc UpdateSellOrder(UpdateSellOrderRequest) returns (UpdateSellOrderResponse);
+  rpc CancelSellOrder(CancelSellOrderRequest) returns (CancelSellOrderResponse);
+  rpc CreateBuyOrder(CreateBuyOrderRequest) returns (CreateBuyOrderResponse);
+  rpc ExecuteBuyOrder(ExecuteBuyOrderRequest) returns (ExecuteBuyOrderResponse);
+  rpc StreamSellOrders(StreamSellOrdersRequest) returns (stream SellOrderUpdate);
+
+  // Allowed Denoms
+  rpc AllowedDenoms(AllowedDenomsRequest) returns (AllowedDenomsResponse);
+
+  // Fee Params
+  rpc GetFeeParams(GetFeeParamsRequest) returns (GetFeeParamsResponse);
+
+  // Bridge
+  rpc BridgeOut(BridgeOutRequest) returns (BridgeOutResponse);
+  rpc BridgeIn(BridgeInRequest) returns (BridgeInResponse);
+  rpc BridgeComplete(BridgeCompleteRequest) returns (BridgeCompleteResponse);
+
+  // Enrollment
+  rpc ApplyToClass(ApplyToClassRequest) returns (ApplyToClassResponse);
+  rpc EvaluateApplication(EvaluateApplicationRequest) returns (EvaluateApplicationResponse);
+  rpc ListEnrollments(ListEnrollmentsRequest) returns (ListEnrollmentsResponse);
+
+  // Credit Types
+  rpc CreditTypes(CreditTypesRequest) returns (CreditTypesResponse);
+}
+
+// Class queries
+message ClassesRequest {
+  common.PageRequest pagination = 1;
+}
+message ClassesResponse {
+  repeated ClassInfo classes = 1;
+  common.PageResponse pagination = 2;
+}
+
+message ClassRequest {
+  string class_id = 1;
+}
+message ClassResponse {
+  ClassInfo class_info = 1;
+}
+
+message ClassesByAdminRequest {
+  string admin = 1;
+  common.PageRequest pagination = 2;
+}
+message ClassesByAdminResponse {
+  repeated ClassInfo classes = 1;
+  common.PageResponse pagination = 2;
+}
+
+message ClassIssuersRequest {
+  string class_id = 1;
+}
+message ClassIssuersResponse {
+  repeated ClassIssuer issuers = 1;
+}
+
+// Class mutations
+message CreateClassRequest {
+  string name = 1;
+  string methodology = 2;
+  string credit_type = 3;
+  string description = 4;
+  string url = 5;
+  string admin_address = 6;
+  repeated string issuer_addresses = 7;
+}
+message CreateClassResponse {
+  string class_id = 1;
+}
+
+message UpdateClassRequest {
+  string class_id = 1;
+  string name = 2;
+  string description = 3;
+  string url = 4;
+  string methodology = 5;
+  string status = 6;
+  string metadata = 7;
+}
+message UpdateClassResponse {
+  string class_id = 1;
+}
+
+// Project queries
+message ProjectsRequest {
+  common.PageRequest pagination = 1;
+}
+message ProjectsResponse {
+  repeated ProjectInfo projects = 1;
+  common.PageResponse pagination = 2;
+}
+
+message ProjectRequest {
+  string location_id = 1;
+}
+message ProjectResponse {
+  ProjectInfo project = 1;
+}
+
+message ProjectsByClassRequest {
+  string class_id = 1;
+  common.PageRequest pagination = 2;
+}
+message ProjectsByClassResponse {
+  repeated ProjectInfo projects = 1;
+  common.PageResponse pagination = 2;
+}
+
+// Batch queries
+message BatchesRequest {
+  common.PageRequest pagination = 1;
+}
+message BatchesResponse {
+  repeated BatchInfo batches = 1;
+  common.PageResponse pagination = 2;
+}
+
+message BatchRequest {
+  string batch_id = 1;
+}
+message BatchResponse {
+  BatchInfo batch = 1;
+}
+
+message BatchesByClassRequest {
+  string class_id = 1;
+  common.PageRequest pagination = 2;
+}
+message BatchesByClassResponse {
+  repeated BatchInfo batches = 1;
+  common.PageResponse pagination = 2;
+}
+
+message BatchesByProjectRequest {
+  string location_id = 1;
+  common.PageRequest pagination = 2;
+}
+message BatchesByProjectResponse {
+  repeated BatchInfo batches = 1;
+  common.PageResponse pagination = 2;
+}
+
+// Batch mutations
+message CreateBatchRequest {
+  string credit_class_id = 1;
+  string location_id = 2;
+  int32 vintage_year = 3;
+  double total_quantity = 4;
+  string unit = 5;
+  string jurisdiction = 6;
+}
+message CreateBatchResponse {
+  string batch_id = 1;
+  string batch_code = 2;
+}
+
+// Balance queries
+message BalanceRequest {
+  string batch_id = 1;
+  string account_address = 2;
+}
+message BalanceResponse {
+  Balance balance = 1;
+}
+
+message BalancesRequest {
+  string account_address = 1;
+}
+message BalancesResponse {
+  repeated BalanceInfo balances = 1;
+}
+
+message BalancesByBatchRequest {
+  string batch_id = 1;
+}
+message BalancesByBatchResponse {
+  repeated BalanceInfo balances = 1;
+}
+
+message SupplyRequest {
+  string batch_id = 1;
+}
+message SupplyResponse {
+  BatchSupply supply = 1;
+}
+
+// Streaming
+message StreamBalancesRequest {
+  string account_address = 1;
+}
+message BalanceUpdate {
+  string batch_id = 1;
+  string account_address = 2;
+  double tradable_amount = 3;
+  double retired_amount = 4;
+  double escrowed_amount = 5;
+  int64 timestamp = 6;
+}
+
+message StreamBatchUpdatesRequest {
+  string class_id = 1;
+}
+message BatchUpdate {
+  string batch_id = 1;
+  string batch_code = 2;
+  string status = 3;
+  double issued_quantity = 4;
+  double retired_quantity = 5;
+  int64 timestamp = 6;
+}
+
+// Basket
+message BasketsRequest {
+  common.PageRequest pagination = 1;
+}
+message BasketsResponse {
+  repeated BasketInfo baskets = 1;
+  common.PageResponse pagination = 2;
+}
+
+message BasketRequest {
+  string basket_id = 1;
+}
+message BasketResponse {
+  BasketInfo basket = 1;
+}
+
+message CreateBasketRequest {
+  string name = 1;
+  string description = 2;
+  string credit_type_abbrev = 3;
+  repeated string credit_class_ids = 4;
+  bool disable_auto_retire = 5;
+  string curator_address = 6;
+  int32 min_start_year = 7;
+}
+message CreateBasketResponse {
+  string basket_id = 1;
+  string basket_denom = 2;
+}
+
+message PutInBasketRequest {
+  string basket_id = 1;
+  string depositor_address = 2;
+  string credit_batch_id = 3;
+  double quantity = 4;
+}
+message PutInBasketResponse {
+  double token_amount = 1;
+}
+
+message TakeFromBasketRequest {
+  string basket_id = 1;
+  string holder_address = 2;
+  double token_amount = 3;
+  bool retire_on_take = 4;
+  string retirement_jurisdiction = 5;
+}
+message TakeFromBasketResponse {
+  double credit_amount = 1;
+  bool retired = 2;
+}
+
+// Marketplace
+message SellOrdersRequest {
+  string batch_id = 1;
+  string seller_address = 2;
+  common.PageRequest pagination = 3;
+}
+message SellOrdersResponse {
+  repeated SellOrderInfo sell_orders = 1;
+  common.PageResponse pagination = 2;
+}
+
+message SellOrderRequest {
+  string order_id = 1;
+}
+message SellOrderResponse {
+  SellOrderInfo sell_order = 1;
+}
+
+message CreateSellOrderRequest {
+  string credit_batch_id = 1;
+  string seller_address = 2;
+  double quantity = 3;
+  double ask_price = 4;
+  string ask_denom = 5;
+  bool disable_auto_retire = 6;
+  string expiration = 7;
+  bool allow_partial_fills = 8;
+}
+message CreateSellOrderResponse {
+  string order_id = 1;
+}
+
+message UpdateSellOrderRequest {
+  string order_id = 1;
+  string seller_address = 2;
+  double new_quantity = 3;
+  double new_ask_price = 4;
+  string new_expiration = 5;
+}
+message UpdateSellOrderResponse {
+  string order_id = 1;
+}
+
+message CancelSellOrderRequest {
+  string order_id = 1;
+  string seller_address = 2;
+}
+message CancelSellOrderResponse {
+  string order_id = 1;
+  string status = 2;
+}
+
+message CreateBuyOrderRequest {
+  string sell_order_id = 1;
+  string buyer_address = 2;
+  double quantity = 3;
+  bool disable_auto_retire = 4;
+  string retirement_jurisdiction = 5;
+  string retirement_reason = 6;
+  double max_fee_amount = 7;
+}
+message CreateBuyOrderResponse {
+  string order_id = 1;
+  double total_price = 2;
+  double buyer_fee = 3;
+}
+
+message ExecuteBuyOrderRequest {
+  string buy_order_id = 1;
+}
+message ExecuteBuyOrderResponse {
+  string buy_order_id = 2;
+  string status = 3;
+}
+
+message StreamSellOrdersRequest {
+  string batch_id = 1;
+}
+message SellOrderUpdate {
+  string order_id = 1;
+  string seller_address = 2;
+  double quantity = 3;
+  double ask_price = 4;
+  string status = 5;
+  int64 timestamp = 6;
+}
+
+// Allowed Denoms
+message AllowedDenomsRequest {}
+message AllowedDenomsResponse {
+  repeated AllowedDenom allowed_denoms = 1;
+}
+
+// Fee Params
+message GetFeeParamsRequest {}
+message GetFeeParamsResponse {
+  FeeParams fee_params = 1;
+}
+
+// Bridge
+message BridgeOutRequest {
+  string credit_batch_id = 1;
+  string sender_address = 2;
+  string target_chain = 3;
+  string recipient_address = 4;
+  double quantity = 5;
+}
+message BridgeOutResponse {
+  string bridge_tx_id = 1;
+}
+
+message BridgeInRequest {
+  string credit_class_id = 1;
+  string source_chain = 2;
+  string issuer_address = 3;
+  string recipient_address = 4;
+  double quantity = 5;
+  string origin_tx_id = 6;
+}
+message BridgeInResponse {
+  string bridge_tx_id = 1;
+}
+
+message BridgeCompleteRequest {
+  string bridge_tx_id = 1;
+  string bridge_tx_hash = 2;
+}
+message BridgeCompleteResponse {
+  string status = 1;
+}
+
+// Enrollment
+message ApplyToClassRequest {
+  string location_id = 1;
+  string credit_class_id = 2;
+  string application_metadata = 3;
+}
+message ApplyToClassResponse {
+  string enrollment_id = 1;
+  string status = 2;
+}
+
+message EvaluateApplicationRequest {
+  string enrollment_id = 1;
+  string issuer_address = 2;
+  string new_status = 3;
+  string enrollment_metadata = 4;
+}
+message EvaluateApplicationResponse {
+  string enrollment_id = 1;
+  string old_status = 2;
+  string new_status = 3;
+}
+
+message ListEnrollmentsRequest {
+  string location_id = 1;
+  string class_id = 2;
+}
+message ListEnrollmentsResponse {
+  repeated Enrollment enrollments = 1;
+}
+
+// Credit Types
+message CreditTypesRequest {}
+message CreditTypesResponse {
+  repeated CreditType credit_types = 1;
+}

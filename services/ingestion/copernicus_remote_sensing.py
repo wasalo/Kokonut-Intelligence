@@ -19,10 +19,11 @@ import os
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-import requests
+from services.common.http import ConnectionError, Timeout, http
 
 from ..common.logging import get_logger
-from .base import log_ingestion, hash_payload
+from .base import hash_payload, log_ingestion, post_clickhouse_rows
+from .clickhouse_outbox import enqueue
 
 logger = get_logger("ingestion.copernicus_remote_sensing")
 
@@ -45,7 +46,7 @@ def _get_token() -> Optional[str]:
     # Method 1: Email/password (Resource Owner Password Credentials)
     if email and password:
         try:
-            resp = requests.post(
+            resp = http.post(
                 TOKEN_URL,
                 data={
                     "grant_type": "password",
@@ -59,13 +60,13 @@ def _get_token() -> Optional[str]:
             token = resp.json().get("access_token")
             if token:
                 return token
-        except Exception as e:
-            logger.warning("Copernicus password auth failed: %s", e)
+        except Exception:
+            logger.warning("Copernicus password authentication failed")
 
     # Method 2: Client Credentials
     if client_id and client_secret:
         try:
-            resp = requests.post(
+            resp = http.post(
                 TOKEN_URL,
                 data={
                     "grant_type": "client_credentials",
@@ -76,8 +77,8 @@ def _get_token() -> Optional[str]:
             )
             resp.raise_for_status()
             return resp.json().get("access_token")
-        except Exception as e:
-            logger.error("Copernicus client_credentials auth failed: %s", e)
+        except Exception:
+            logger.error("Copernicus client-credential authentication failed")
 
     logger.error("No Copernicus credentials configured. Set COPERNICUS_EMAIL/PASSWORD or COPERNICUS_CLIENT_ID/SECRET")
     return None
@@ -99,11 +100,11 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     """
     token = _get_token()
     if not token:
-        return {"status": "error", "message": "Copernicus token unavailable", "observations": 0}
+        return {"status": "error", "message": "Copernicus token unavailable", "observations": 0, "retryable": False}
 
     bbox = _resolve_bbox(job)
     if not bbox:
-        return {"status": "error", "message": "No bbox available", "observations": 0}
+        return {"status": "error", "message": "No bbox available", "observations": 0, "retryable": False}
 
     location_id = str(job["location_id"])
     cloud_max = float(job.get("cloud_max_pct", 20))
@@ -128,12 +129,14 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     try:
-        resp = requests.get(CATALOG_URL, params=params, timeout=30)
+        resp = http.get(CATALOG_URL, params=params, timeout=30)
         resp.raise_for_status()
         products = resp.json().get("value", [])
     except Exception as e:
         logger.error("Copernicus catalog query failed: %s", e)
-        return {"status": "error", "message": str(e), "observations": 0}
+        status_code = getattr(getattr(e, "response", None), "status_code", None)
+        retryable = isinstance(e, (Timeout, ConnectionError)) or status_code in (429, 500, 502, 503, 504)
+        return {"status": "error", "message": str(e), "observations": 0, "retryable": retryable}
 
     if not products:
         logger.info("No Copernicus products for location %s", location_id[:8])
@@ -157,6 +160,7 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
             "observation_date": now.strftime("%Y-%m-%d"),
             "source": "sentinel-2",
             "source_system": "copernicus_api",
+            "source_id": product_id,
             "cloud_cover_pct": float(cloud_cover) if cloud_cover else None,
             "metadata": json.dumps({
                 "product_id": product_id,
@@ -169,7 +173,8 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
 
         pg_id = _insert_pg(conn, record)
         record["id"] = pg_id
-        _insert_ch(record)
+        if not record.get("_duplicate"):
+            _insert_ch(record, conn)
 
         log_ingestion(
             source_system="copernicus_api",
@@ -180,7 +185,7 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
             operation="insert",
             payload_hash=hash_payload(record),
             status="success",
-            rows_affected=1,
+            rows_affected=0 if record.get("_duplicate") else 1,
         )
         observations += 1
 
@@ -200,54 +205,56 @@ def _insert_pg(conn, record: dict) -> str:
         """
         INSERT INTO remote_sensing_observation
             (plot_id, location_id, observation_date, source,
-             cloud_cover_pct, source_system, metadata)
-        VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
-        RETURNING id
+             cloud_cover_pct, source_system, source_id, metadata)
+         VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+         ON CONFLICT (source_system, source_id) WHERE source_id IS NOT NULL DO NOTHING
+         RETURNING id
         """,
         (
             record.get("plot_id"), record.get("location_id"),
             record["observation_date"], record.get("source", "sentinel-2"),
             record.get("cloud_cover_pct"),
             record.get("source_system", "copernicus_api"),
+            record.get("source_id"),
             record.get("metadata", "{}"),
         ),
     )
-    record_id = str(cur.fetchone()[0])
-    conn.commit()
+    row = cur.fetchone()
+    if row:
+        record_id = str(row[0])
+    else:
+        record["_duplicate"] = True
+        cur.execute(
+            "SELECT id FROM remote_sensing_observation WHERE source_system = %s AND source_id = %s",
+            (record.get("source_system", "copernicus_api"), record["source_id"]),
+        )
+        record_id = str(cur.fetchone()[0])
     cur.close()
     return record_id
 
 
-def _insert_ch(record: dict) -> None:
-    import requests as req
-    from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
-
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-    ts = f"{record['observation_date']} 00:00:00.000"
+def _insert_ch(record: dict, conn=None) -> None:
+    """Queue canonical observation; direct writes are demo-only when conn is absent."""
     source_system = record.get("source_system", "copernicus_api")
-
-    query = f"""INSERT INTO remote_sensing_events
-        (timestamp, observation_id, location_id, plot_id, source,
-         cloud_cover_pct, source_system, metadata)
-        VALUES (
-            '{ts}',
-            '{record.get("id", "")}',
-            '{record.get("location_id", "")}',
-            '{record.get("plot_id") or ""}',
-            '{record.get("source", "sentinel-2")}',
-            {_ch_num(record.get("cloud_cover_pct"))},
-            '{source_system}',
-            map()
-        )"""
-
+    columns = ["timestamp", "observation_id", "location_id", "plot_id", "source",
+               "cloud_cover_pct", "source_system", "metadata"]
+    rows = [[f"{record['observation_date']} 00:00:00.000", record.get("id", ""),
+             record.get("location_id", ""), record.get("plot_id") or "",
+             record.get("source", "sentinel-2"), record.get("cloud_cover_pct"),
+             source_system, {}]]
     try:
-        resp = req.post(
-            ch_url, data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        if conn is not None:
+            payload_hash = hash_payload(record)
+            enqueue(conn, event_key=f"remote_sensing:remote_sensing_events:{record.get('id')}",
+                    source_table="remote_sensing_observation", source_id=str(record.get("id")),
+                    target_table="remote_sensing_events", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
+        post_clickhouse_rows(
+            "remote_sensing_events",
+            columns, rows,
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 

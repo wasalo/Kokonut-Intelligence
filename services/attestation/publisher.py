@@ -7,8 +7,8 @@ from typing import Any
 import psycopg2
 
 from ..ingestion.base import get_db
+from .config import DEFAULT_CHAIN, EAS_RESOLVER_ADDRESS
 from .eas_client import EASClient
-from .config import DEFAULT_CHAIN, KOKONUT_MULTISIG, EAS_RESOLVER_ADDRESS
 from .schemas import KOKONUT_SCHEMAS, SCHEMA_DB_NAMES
 
 
@@ -16,8 +16,9 @@ def register_kokonut_schemas(
     chain: str = DEFAULT_CHAIN,
     resolver_address: str = "",
     private_key: str | None = None,
+    schema_name: str | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Register all Kokonut schemas onchain and return UID mappings.
+    """Register selected Kokonut schemas onchain and return UID mappings.
 
     Returns:
         {"kokonut-mrv": {"schema_uid": "0x...", "tx_hash": "0x..."}, ...}
@@ -26,7 +27,8 @@ def register_kokonut_schemas(
     resolver = resolver_address or EAS_RESOLVER_ADDRESS
     results = {}
 
-    for name, definition in KOKONUT_SCHEMAS.items():
+    schemas = KOKONUT_SCHEMAS if schema_name is None else {schema_name: KOKONUT_SCHEMAS[schema_name]}
+    for name, definition in schemas.items():
         print(f"Registering schema: {name}")
         result = client.register_schema(
             schema_text=definition["schema"],

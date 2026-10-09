@@ -1,0 +1,16 @@
+{
+  "title": "Fork Opportunities",
+  "description": "Cross-domain insight transfers that could create high-value targets.",
+  "cards": [
+    {
+      "name": "Fork Opportunities",
+      "dataset_query": "dashboards/metabase/sql/78_fork_opportunities.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "analytics_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

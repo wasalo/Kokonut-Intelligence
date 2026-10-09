@@ -12,10 +12,9 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 
-from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+from services.common.database import get_db
 from services.office import (
     get_alerts,
     get_run_status,
@@ -24,13 +23,11 @@ from services.office import (
     run_full_cycle,
     run_landscape_refresh,
 )
+from services.common.cli import print_json
 
 
 def get_pg():
-    import psycopg2
-    return psycopg2.connect(
-        host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD
-    )
+    return get_db()
 
 
 def main():
@@ -47,36 +44,34 @@ def main():
         parser.error("Specify --run, --status, or --alerts")
 
     conn = get_pg()
+    try:
+        if args.status:
+            result = get_run_status(conn, args.status)
+            print_json(result)
+            return
 
-    if args.status:
-        result = get_run_status(conn, args.status)
-        print(json.dumps(result, indent=2, default=str))
-        conn.close()
-        return
+        if args.alerts:
+            alerts = get_alerts(conn, args.location_id, args.open_only)
+            if not alerts:
+                print("No open alerts.")
+            else:
+                for a in alerts:
+                    print(f"[{a['severity'].upper()}] {a['type']}: {a['message']}")
+            return
 
-    if args.alerts:
-        alerts = get_alerts(conn, args.location_id, args.open_only)
-        if not alerts:
-            print("No open alerts.")
+        if args.run == "full-cycle":
+            result = run_full_cycle(conn, args.location_id)
+        elif args.run == "bounty-cycle":
+            result = run_bounty_cycle(conn, args.location_id)
+        elif args.run == "funding-cycle":
+            result = run_funding_cycle(conn, args.location_id)
+        elif args.run == "landscape-refresh":
+            result = run_landscape_refresh(conn)
         else:
-            for a in alerts:
-                print(f"[{a['severity'].upper()}] {a['type']}: {a['message']}")
+            parser.error(f"Unknown run type: {args.run}")
+        print_json(result)
+    finally:
         conn.close()
-        return
-
-    if args.run == "full-cycle":
-        result = run_full_cycle(conn, args.location_id)
-    elif args.run == "bounty-cycle":
-        result = run_bounty_cycle(conn, args.location_id)
-    elif args.run == "funding-cycle":
-        result = run_funding_cycle(conn, args.location_id)
-    elif args.run == "landscape-refresh":
-        result = run_landscape_refresh(conn)
-    else:
-        parser.error(f"Unknown run type: {args.run}")
-
-    conn.close()
-    print(json.dumps(result, indent=2, default=str))
 
 
 if __name__ == "__main__":

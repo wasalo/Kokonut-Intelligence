@@ -1,6 +1,8 @@
 import subprocess
 import sys
 
+import pytest
+
 
 def database_running() -> bool:
     """Return true when the Compose database service is running."""
@@ -16,7 +18,7 @@ def database_running() -> bool:
     return result.returncode == 0 and "database" in result.stdout.splitlines()
 
 
-def test_seed_idempotency():
+def run_seed_idempotency():
     """Run seed scripts twice and verify no errors."""
     import os
 
@@ -63,9 +65,18 @@ def test_seed_idempotency():
     return results
 
 
+def test_seed_idempotency() -> None:
+    if not database_running():
+        pytest.skip("Database service not running")
+
+    results = run_seed_idempotency()
+    failures = [f"{script} ({phase})" for script, phase, passed in results if not passed]
+    assert not failures, f"Seed idempotency checks failed: {', '.join(failures)}"
+
+
 if __name__ == "__main__":
     print("=== Seed Idempotency Test ===")
-    results = test_seed_idempotency()
+    results = run_seed_idempotency()
 
     passed = sum(1 for r in results if r[2])
     total = len(results)

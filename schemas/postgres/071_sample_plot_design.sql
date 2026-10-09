@@ -39,6 +39,7 @@ CREATE INDEX IF NOT EXISTS idx_sample_plot_design_location ON sample_plot_design
 CREATE INDEX IF NOT EXISTS idx_sample_plot_design_zone ON sample_plot_design(zone_id);
 CREATE INDEX IF NOT EXISTS idx_sample_plot_design_status ON sample_plot_design(status);
 
+DROP TRIGGER IF EXISTS trg_sample_plot_design_updated_at ON sample_plot_design;
 CREATE TRIGGER trg_sample_plot_design_updated_at
     BEFORE UPDATE ON sample_plot_design
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -83,6 +84,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_sample_plot_compute_geometry ON sample_plot;
 CREATE TRIGGER trg_sample_plot_compute_geometry
     BEFORE INSERT OR UPDATE ON sample_plot
     FOR EACH ROW EXECUTE FUNCTION fn_sample_plot_compute_geometry();

@@ -8,6 +8,7 @@ from services.forecast.models import (
     ScenarioAssumptions,
 )
 from services.forecast.pricing import project_prices
+from services.forecast.risk import calculate_confidence_interval
 
 
 def test_price_assumptions_defaults():
@@ -51,6 +52,24 @@ def test_retained_value_computed_after_total_noi():
 
     source = inspect.getsource(run_forecast)
     assert source.index("total_noi = 0.0") < source.index("retained_value = total_noi")
+
+
+def test_forecast_submission_does_not_publish():
+    """Forecast calculation must submit outputs for review, never publish them."""
+    import inspect
+    from services.forecast import engine
+
+    run_source = inspect.getsource(engine.run_forecast)
+    dashboard_source = inspect.getsource(engine._write_dashboard_dataset)
+    assert "SET status = 'submitted'" in run_source
+    assert "SET status = 'published'" not in run_source
+    assert "'draft'" in dashboard_source
+    assert "status = 'published'" not in dashboard_source
+
+
+def test_negative_financial_interval_is_ordered_and_preserves_downside():
+    low, high = calculate_confidence_interval(-100.0, 0.8)
+    assert low < -100.0 < high
 
 
 if __name__ == "__main__":

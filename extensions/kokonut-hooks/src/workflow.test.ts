@@ -6,12 +6,14 @@ import {
   stashPendingTransition,
   consumePendingTransition,
   LIFECYCLE_COLLECTIONS,
+  handleWorkflowTransition,
 } from './workflow.js';
+import { enforceStakeholderGovernanceSafety } from './agent-safety.js';
 import { roleNameToSlug } from './roles.js';
 import { normalizeFeedbackPayload, validateStakeholderFeedback } from './feedback.js';
 import { isValidMetricProposalTransition } from './metric-proposal.js';
 import { validateImpactClaim } from './impact-claim.js';
-import { enforceAgentTaskSafety, prepareAgentActionLog } from './agent-safety.js';
+import { enforceAgentTaskSafety, enforceAiSummarySafety, prepareAgentActionLog } from './agent-safety.js';
 
 describe('roleNameToSlug', () => {
   it('normalizes Directus role display names', () => {
@@ -28,6 +30,10 @@ describe('isValidTransition', () => {
 
   it('blocks draft → published', () => {
     expect(isValidTransition('expense_event', 'draft', 'published')).toBe(false);
+  });
+
+  it('rejects unknown collections instead of failing open', () => {
+    expect(isValidTransition('unknown_collection', 'draft', 'published')).toBe(false);
   });
 
   it('allows rejected → draft rework', () => {
@@ -69,6 +75,10 @@ describe('isRoleAuthorized', () => {
   it('passes when no role restriction exists', () => {
     expect(isRoleAuthorized('expense_event', 'submitted', ['field_worker'])).toBe(true);
   });
+
+  it('fails closed for unrouted non-initial transitions', () => {
+    expect(isRoleAuthorized('credit_class', 'deprecated', ['admin'])).toBe(false);
+  });
 });
 
 describe('getValidNextStatuses', () => {
@@ -96,6 +106,34 @@ describe('stakeholder feedback workflow', () => {
 
   it('blocks public feedback without consent', () => {
     expect(() => validateStakeholderFeedback({ is_public: true, status: 'published' })).toThrow(/consent/);
+  });
+
+  it('fails closed when the review lookup context is unavailable', async () => {
+    await expect(
+      handleWorkflowTransition(
+        'stakeholder_feedback',
+        { status: 'verified' },
+        { id: 'feedback-1', status: 'submitted' },
+        ['manager'],
+      ),
+    ).rejects.toThrow(/review period/);
+  });
+
+  it('rejects invalid feedback submission dates', async () => {
+    const db = () => ({
+      where: () => ({
+        first: async (field: string) => field === 'status' ? { status: 'submitted' } : { submitted_at: 'invalid' },
+      }),
+    });
+    await expect(
+      handleWorkflowTransition(
+        'stakeholder_feedback',
+        { status: 'verified' },
+        { id: 'feedback-2' },
+        ['manager'],
+        db,
+      ),
+    ).rejects.toThrow(/valid date/);
   });
 });
 
@@ -132,12 +170,71 @@ describe('impact claim workflow', () => {
 
 describe('agent safety workflow', () => {
   it('blocks agent tasks from direct publish', () => {
-    expect(() => enforceAgentTaskSafety({ initiator_type: 'agent', review_status: 'published' })).toThrow(/Agent tasks/);
+    expect(() => enforceAgentTaskSafety(
+      { initiator_type: 'human', review_status: 'published' },
+      ['agent_write'],
+    )).toThrow(/Agent tasks/);
+  });
+
+  it('does not trust the payload initiator type', () => {
+    expect(() => enforceAgentTaskSafety({ initiator_type: 'agent', review_status: 'published' })).not.toThrow();
+  });
+
+  it('detects agents by resolved role slug, not by raw UUID', () => {
+    // Raw accountability role UUIDs must never be treated as agent slugs.
+    expect(() => enforceAgentTaskSafety(
+      { initiator_type: 'human', review_status: 'published' },
+      ['8f3c1b2a-0000-4000-8000-000000000001'],
+    )).not.toThrow();
+    expect(() => enforceAgentTaskSafety(
+      { review_status: 'published' },
+      ['agent_write'],
+    )).toThrow(/Agent tasks/);
+  });
+
+  it('uses accountability to restrict agent AI summaries', () => {
+    expect(() => enforceAiSummarySafety(
+      { created_by: 'human', status: 'published' },
+      ['agent_write'],
+    )).toThrow(/AI summaries/);
+  });
+
+  it('does not trust payload creator fields for AI summary safety', () => {
+    expect(() => enforceAiSummarySafety({ created_by: 'agent', status: 'published' })).not.toThrow();
   });
 
   it('marks high-risk action logs for approval', () => {
     const payload = prepareAgentActionLog({ action: 'publish' });
     expect(payload.high_risk).toBe(true);
     expect(payload.requires_human_approval).toBe(true);
+  });
+
+  it('blocks agents from human-governed stakeholder writes', () => {
+    expect(() => enforceStakeholderGovernanceSafety(
+      'stakeholder_decision',
+      { status: 'draft' },
+      ['agent_write'],
+    )).toThrow(/human-governed stakeholder collection/);
+  });
+
+  it('allows human stakeholder writes', () => {
+    expect(() => enforceStakeholderGovernanceSafety(
+      'stakeholder_decision',
+      { status: 'draft' },
+      ['manager'],
+    )).not.toThrow();
+  });
+
+  it('allows agents to draft governance tensions and proposals only', () => {
+    expect(() => enforceStakeholderGovernanceSafety(
+      'governance_tension',
+      { status: 'draft', action: 'create' },
+      ['agent_write'],
+    )).not.toThrow();
+    expect(() => enforceStakeholderGovernanceSafety(
+      'governance_proposal',
+      { status: 'approved', action: 'update' },
+      ['agent_write'],
+    )).toThrow(/human-governed stakeholder collection/);
   });
 });

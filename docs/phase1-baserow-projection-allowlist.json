@@ -1,0 +1,557 @@
+{
+  "schema_version": 1,
+  "source": {
+    "system": "baserow",
+    "database_id": "115056",
+    "source_identity": "(source_system, source_database_id, source_table_id, source_row_id)"
+  },
+  "run_scope": "scratch-only dry-run; no import authorization",
+  "projection_policy": "Only fields listed here may enter target-shaped scratch projections. CANDIDATE fields and explicitly linked RELATIONSHIP fields are permitted; relationship links require exact source-row identity and row-level cardinality/integrity checks. The only CONDITIONAL exception is F002 Category: map stable source option ID(s) whose exact source label is Labor to canonical labor, as expressly approved by the owner; all other Category labels and blanks remain quarantined. HOLD_FIELD and HOLD_RELATIONSHIP values remain quarantined; every other field and source table remains outside the projection. Row-level failures are quarantined; optional invalid values are quarantined at field level.",
+  "target_tables": [
+    {
+      "source_table_id": "317635",
+      "target_table": "location",
+      "identity_columns": ["name", "region"],
+      "required_source_fields": ["2305684"],
+      "generated_columns": {
+        "id": "uuid5_source_identity",
+        "slug": "slugify_name_plus_source_identity"
+      },
+      "constants": {
+        "country": "Dominican Republic"
+      },
+      "fields": {
+        "2305684": {
+          "target_column": "name",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_text"
+        },
+        "2305685": {
+          "target_column": "description",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        },
+        "3255476": {
+          "target_column": "region",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        }
+      }
+    },
+    {
+      "source_table_id": "305805",
+      "target_table": "farm",
+      "identity_columns": ["name", "location_id"],
+      "required_source_fields": ["2202756", "2307563"],
+      "generated_columns": {
+        "id": "uuid5_source_identity",
+        "slug": "slugify_name_plus_source_identity"
+      },
+      "constants": {
+        "area_unit": "square_meters"
+      },
+      "fields": {
+        "2202756": {
+          "target_column": "name",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_text"
+        },
+        "2202757": {
+          "target_column": "description",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        },
+        "2305728": {
+          "target_column": "total_area",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_nonnegative_numeric_12_4"
+        },
+        "2307563": {
+          "target_column": "location_id",
+          "source_disposition": "RELATIONSHIP",
+          "transform": "required_single_link",
+          "linked_table_id": "317635"
+        }
+      }
+    },
+    {
+      "source_table_id": "410138",
+      "target_table": "plot",
+      "identity_columns": ["name", "farm_id"],
+      "required_source_fields": ["3136385", "3136780"],
+      "generated_columns": {
+        "id": "uuid5_source_identity",
+        "slug": "slugify_name_plus_source_identity"
+      },
+      "constants": {
+        "area_unit": "square_meters"
+      },
+      "fields": {
+        "3136385": {
+          "target_column": "name",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_text"
+        },
+        "3136386": {
+          "target_column": "description",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        },
+        "3136681": {
+          "target_column": "area",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_nonnegative_numeric_12_4"
+        },
+        "3136780": {
+          "target_column": "farm_id",
+          "source_disposition": "RELATIONSHIP",
+          "transform": "required_single_link",
+          "linked_table_id": "305805"
+        }
+      }
+    },
+    {
+      "source_table_id": "317629",
+      "target_table": "crop",
+      "identity_columns": ["name", "scientific_name"],
+      "required_source_fields": ["2305620"],
+      "generated_columns": {
+        "id": "uuid5_source_identity"
+      },
+      "constants": {},
+      "fields": {
+        "2305620": {
+          "target_column": "name",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_text"
+        },
+        "2305621": {
+          "target_column": "scientific_name",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        },
+        "4034223": {
+          "target_column": "crop_category",
+          "source_disposition": "CANDIDATE",
+          "transform": "single_select_option_map",
+          "option_map": {
+            "3110859": "fruit",
+            "3110860": "vegetable",
+            "3110861": "ornamental",
+            "3110862": "utility"
+          }
+        }
+      }
+    },
+    {
+      "source_table_id": "305801",
+      "target_table": "farm_task",
+      "identity_columns": ["source_system", "source_id"],
+      "required_source_fields": ["2202698", "2202703"],
+      "generated_columns": {
+        "id": "uuid5_source_identity",
+        "source_id": "baserow_composite_identity"
+      },
+      "derived_columns": {
+        "location_id": "resolved_farm_location_id"
+      },
+      "constants": {
+        "source_system": "baserow",
+        "status": "pending",
+        "priority": "medium"
+      },
+      "row_filter": {
+        "kind": "linked_from_any",
+        "links": [
+          {
+            "source_table_id": "322673",
+            "source_field_id": "3143319",
+            "linked_table_id": "305801"
+          },
+          {
+            "source_table_id": "317575",
+            "source_field_id": "2330115",
+            "linked_table_id": "305801"
+          }
+        ]
+      },
+      "fields": {
+        "2202698": {
+          "target_column": "task_name",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_text"
+        },
+        "2202699": {
+          "target_column": "start_date",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_date"
+        },
+        "2202701": {
+          "target_column": "duration_days",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_nonnegative_integral"
+        },
+        "2202703": {
+          "target_column": "farm_id",
+          "source_disposition": "RELATIONSHIP",
+          "transform": "required_single_link",
+          "linked_table_id": "305805"
+        },
+        "2202708": {
+          "target_column": "end_date",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_date"
+        },
+        "2202712": {
+          "target_column": "category",
+          "source_disposition": "CANDIDATE",
+          "transform": "single_select_other_with_source_label",
+          "target_value": "other",
+          "approved_labels": [
+            "Agricultural Work",
+            "Components & Materials",
+            "Construction",
+            "Equipment",
+            "Infrastructure",
+            "Operations",
+            "Sustainability"
+          ],
+          "metadata_path": "baserow_legacy.category_label"
+        },
+        "3919095": {
+          "target_column": "description",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        }
+      }
+    },
+    {
+      "source_table_id": "317575",
+      "target_table": "expense_event",
+      "identity_columns": ["source_system", "source_id"],
+      "required_source_fields": ["2305091", "2330113", "2330114", "2356443"],
+      "generated_columns": {
+        "id": "uuid5_source_identity",
+        "source_id": "baserow_composite_identity"
+      },
+      "derived_columns": {
+        "location_id": "resolved_farm_location_id"
+      },
+      "constants": {
+        "source_system": "baserow",
+        "currency": "DOP",
+        "status": "draft"
+      },
+      "fields": {
+        "2305088": {
+          "target_column": "description",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        },
+        "2305089": {
+          "target_column": "notes",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        },
+        "2305091": {
+          "target_column": "farm_id",
+          "source_disposition": "RELATIONSHIP",
+          "transform": "required_single_link",
+          "linked_table_id": "305805"
+        },
+        "2330113": {
+          "target_column": "expense_date",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_date"
+        },
+        "2330114": {
+          "target_column": "category",
+          "source_disposition": "CONDITIONAL",
+          "transform": "single_select_partial_option_map",
+          "source_label": "Labor",
+          "option_map": {"1775981":"labor"},
+          "owner_decision_ref": "exact-Labor-to-labor-2026-10-08"
+        },
+        "2330115": {
+          "target_column": "farm_task_id",
+          "source_disposition": "RELATIONSHIP",
+          "transform": "optional_single_link",
+          "linked_table_id": "305801"
+        },
+        "2356443": {
+          "target_column": "amount",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_nonnegative_numeric_15_2"
+        },
+        "3932281": {
+          "target_column": "source_raw",
+          "source_disposition": "PROVENANCE_ONLY",
+          "transform": "optional_source_raw_numeric",
+          "metadata_path": "baserow_legacy.usd_dop_rate"
+        },
+        "4244464": {
+          "target_column": "payment_status",
+          "source_disposition": "CANDIDATE",
+          "transform": "single_select_label_by_id",
+          "approved_option_ids": ["3234299", "3234300", "3234301", "3234429", "3236127"]
+        },
+        "4261434": {
+          "target_column": "people_impacted_count",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_nonnegative_integral"
+        }
+      }
+    },
+    {
+      "source_table_id": "322673",
+      "target_table": "farm_activity",
+      "identity_columns": ["source_system", "source_id"],
+      "required_source_fields": ["2350133", "2350134", "2350182"],
+      "generated_columns": {
+        "id": "uuid5_source_identity",
+        "source_id": "baserow_composite_identity"
+      },
+      "derived_columns": {
+        "location_id": "resolved_farm_location_id"
+      },
+      "constants": {
+        "source_system": "baserow",
+        "status": "draft"
+      },
+      "fields": {
+        "4258323": {
+          "target_column": "notes",
+          "source_disposition": "CANDIDATE",
+          "transform": "activity_name_note"
+        },
+        "2350133": {
+          "target_column": "activity_date",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_date"
+        },
+        "2350134": {
+          "target_column": "activity_type",
+          "source_disposition": "CANDIDATE",
+          "transform": "f001_activity_selection"
+        },
+        "2350135": {
+          "target_column": "description",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        },
+        "2350182": {
+          "target_column": "farm_id",
+          "source_disposition": "RELATIONSHIP",
+          "transform": "required_single_link",
+          "linked_table_id": "305805"
+        },
+        "3135643": {
+          "target_column": "duration_minutes",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_duration_seconds_to_minutes"
+        },
+        "3143319": {
+          "target_column": "farm_task_id",
+          "source_disposition": "RELATIONSHIP",
+          "transform": "optional_single_link",
+          "linked_table_id": "305801"
+        },
+        "3143346": {
+          "target_column": "plot_id",
+          "source_disposition": "RELATIONSHIP",
+          "transform": "optional_single_plot_link",
+          "linked_table_id": "410138"
+        },
+        "4258345": {
+          "target_column": "activity_end_date",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_date"
+        }
+      }
+    },
+    {
+      "source_table_id": "534165",
+      "target_table": "farm_activity_output",
+      "identity_columns": ["source_system", "source_database_id", "source_table_id", "source_row_id"],
+      "required_source_fields": ["4258577"],
+      "generated_columns": {
+        "id": "uuid5_source_identity",
+        "source_row_id": "copy_source_row_id"
+      },
+      "constants": {
+        "source_system": "baserow",
+        "source_database_id": 115056,
+        "source_table_id": 534165
+      },
+      "row_filter": {
+        "kind": "linked_from_any",
+        "links": [
+          {
+            "source_table_id": "322673",
+            "source_field_id": "4270927",
+            "linked_table_id": "534165",
+            "relationship_target": "farm_activity_output_activity"
+          },
+          {
+            "source_table_id": "534174",
+            "source_field_id": "4258786",
+            "linked_table_id": "534165",
+            "relationship_target": "farm_activity_reported_metric_output"
+          }
+        ]
+      },
+      "fields": {
+        "4258577": {
+          "target_column": "output_name",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_text"
+        },
+        "4258578": {
+          "target_column": "description",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        }
+      }
+    },
+    {
+      "source_table_id": "534174",
+      "target_table": "farm_activity_reported_metric",
+      "identity_columns": ["source_system", "source_database_id", "source_table_id", "source_row_id"],
+      "required_source_fields": ["4258662", "4258663"],
+      "generated_columns": {
+        "id": "uuid5_source_identity",
+        "source_row_id": "copy_source_row_id"
+      },
+      "constants": {
+        "source_system": "baserow",
+        "source_database_id": 115056,
+        "source_table_id": 534174
+      },
+      "fields": {
+        "4258662": {
+          "target_column": "indicator_label",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_text"
+        },
+        "4258663": {
+          "target_column": "reported_value",
+          "source_disposition": "CANDIDATE",
+          "transform": "required_nonnegative_numeric_15_4"
+        },
+        "4453489": {
+          "target_column": "reported_description",
+          "source_disposition": "CANDIDATE",
+          "transform": "optional_text"
+        }
+      }
+    }
+  ],
+  "relationship_tables": [
+    {
+      "source_table_id": "534174",
+      "source_field_id": "4258786",
+      "source_disposition": "RELATIONSHIP",
+      "linked_table_id": "534165",
+      "target_table": "farm_activity_reported_metric_output",
+      "source_entity_target": "farm_activity_reported_metric",
+      "related_entity_target": "farm_activity_output",
+      "reciprocal_table_id": "534165",
+      "reciprocal_field_id": "4258787",
+      "source_target_column": "reported_metric_id",
+      "related_target_column": "output_id"
+    },
+    {
+      "source_table_id": "322673",
+      "source_field_id": "3143346",
+      "source_disposition": "RELATIONSHIP",
+      "linked_table_id": "410138",
+      "target_table": "farm_activity_plot",
+      "source_entity_target": "farm_activity",
+      "related_entity_target": "plot",
+      "reciprocal_table_id": "410138",
+      "reciprocal_field_id": "3143347",
+      "source_target_column": "activity_id",
+      "related_target_column": "plot_id"
+    },
+    {
+      "source_table_id": "322673",
+      "source_field_id": "4270927",
+      "source_disposition": "RELATIONSHIP",
+      "linked_table_id": "534165",
+      "target_table": "farm_activity_output_activity",
+      "source_entity_target": "farm_activity",
+      "related_entity_target": "farm_activity_output",
+      "reciprocal_table_id": "534165",
+      "reciprocal_field_id": "4270926",
+      "source_target_column": "activity_id",
+      "related_target_column": "output_id"
+    }
+  ],
+  "relationship_checks": [
+    {
+      "source_table_id": "305801",
+      "source_field_id": "2202703",
+      "linked_table_id": "305805",
+      "reciprocal_table_id": "305805",
+      "reciprocal_field_id": "2202768",
+      "source_entity_target": "farm_task",
+      "source_target_column": "farm_id",
+      "related_entity_target": "farm"
+    },
+    {
+      "source_table_id": "322673",
+      "source_field_id": "2350182",
+      "linked_table_id": "305805",
+      "reciprocal_table_id": "305805",
+      "reciprocal_field_id": "2350183",
+      "source_entity_target": "farm_activity",
+      "source_target_column": "farm_id",
+      "related_entity_target": "farm"
+    },
+    {
+      "source_table_id": "317575",
+      "source_field_id": "2305091",
+      "linked_table_id": "305805",
+      "reciprocal_table_id": "305805",
+      "reciprocal_field_id": "2305092",
+      "source_entity_target": "expense_event",
+      "source_target_column": "farm_id",
+      "related_entity_target": "farm"
+    },
+    {
+      "source_table_id": "322673",
+      "source_field_id": "3143319",
+      "linked_table_id": "305801",
+      "reciprocal_table_id": "305801",
+      "reciprocal_field_id": "3143320",
+      "source_entity_target": "farm_activity",
+      "source_target_column": "farm_task_id",
+      "related_entity_target": "farm_task"
+    },
+    {
+      "source_table_id": "317575",
+      "source_field_id": "2330115",
+      "linked_table_id": "305801",
+      "reciprocal_table_id": "305801",
+      "reciprocal_field_id": "2330116",
+      "source_entity_target": "expense_event",
+      "source_target_column": "farm_task_id",
+      "related_entity_target": "farm_task"
+    },
+    {
+      "source_table_id": "410138",
+      "source_field_id": "3136780",
+      "linked_table_id": "305805",
+      "reciprocal_table_id": "305805",
+      "reciprocal_field_id": "3136781",
+      "source_entity_target": "plot",
+      "source_target_column": "farm_id",
+      "related_entity_target": "farm"
+    }
+  ],
+  "quarantined_by_policy": [
+    "All populated CONDITIONAL values except the owner-approved F002 Category option IDs whose exact source labels are Labor and map to canonical labor; all other Category labels and blank Category values remain held. All populated HOLD_FIELD and HOLD_RELATIONSHIP values remain quarantined.",
+    "All source tables and fields not explicitly allowlisted, including sensitive/account/password values, attachments, derived fields, Funding, Impact work/evidence, Biofactory, Equipment, Staff, EBF, technology, and ecosystem records.",
+    "F003 output rows are limited to those referenced by the approved F001 activity-output or F004 metric-output edges; proof files, F004 proof URL, proof media, Impact, and UUID remain outside this projection. F001 Staff identities and all other unlisted source domains remain outside this projection. Farm Task rows are limited to directly linked F001 activities or projected exact-labor expense support rows."
+  ]
+}

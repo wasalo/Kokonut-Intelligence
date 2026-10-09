@@ -138,3 +138,121 @@ def compute_reward_calibration_model(conn, location_id: str) -> dict[str, Any]:
         "total_model_runs": len(models),
         "latest_calibration_score": models[0]["calibration_score"] if models else None,
     }
+
+
+# Threshold above which a token<->metric correlation is treated as reward-driven
+# (extrinsic) rather than competence-reflected. Conservative per AGENTS.md
+# (advisory-only; never auto-disables rewards).
+_HIGH_CORRELATION = 0.8
+
+
+def detect_overjustification_risk(conn, location_id: str) -> dict[str, Any]:
+    """Detect overjustification risk: rewards crowding out intrinsic motivation.
+
+    ADVISORY-ONLY diagnostic (no governed-state writes). Implements the
+    persuasive-technology "overjustification effect" guardrail (Lepper 1973):
+    pairing an intrinsically-motivated behavior with an extrinsic reward can
+    *diminish* the intrinsic motivation once the reward is removed. The article's
+    nuance -- rewards can *increase* intrinsic motivation when "seen as
+    reflecting competence and merit" -- guides the recommendations.
+
+    Signals used (all read from existing token_reward_distribution rows):
+      * High correlation between a linked metric and token amount
+        (compute_reward_metric_correlation) combined with an extrinsic-only
+        distribution_method -> crowding-out risk.
+      * Exclusively extrinsic reward methods (no "merit"/"competence"-framed
+        method present) -> framing risk (rewards read as bribes, not merit).
+
+    Returns:
+        {"location_id", "risk_level", "signals":[...], "recommendations":[...]}
+    where risk_level is one of low|medium|high|unknown.
+    """
+    calibration = compute_reward_metric_correlation(conn, location_id)
+    correlations = calibration.get("correlations", [])
+
+    signals: list[dict[str, Any]] = []
+    extrinsic_only = False
+    has_merit_framing = False
+    high_corr_extrinsic = False
+
+    # Framing signal: scan distribution methods on verified/published rewards.
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT DISTINCT distribution_method
+        FROM token_reward_distribution
+        WHERE location_id = %s AND status IN ('verified', 'published')
+        """,
+        (location_id,),
+    )
+    methods = [r[0] for r in cur.fetchall()]
+    cur.close()
+
+    if methods:
+        lower = [m.lower() if m else "" for m in methods]
+        has_merit_framing = any(
+            ("merit" in m) or ("competence" in m) or ("competency" in m)
+            for m in lower
+        )
+        extrinsic_only = (not has_merit_framing) and all(
+            ("extrinsic" in m) or (m == "") or ("reward" in m) for m in lower
+        )
+        if extrinsic_only:
+            signals.append({
+                "type": "extrinsic_only_framing",
+                "detail": "All reward distributions use extrinsic/non-merit framing.",
+            })
+
+    # Correlation signal: high token<->metric correlation on extrinsic rewards.
+    for c in correlations:
+        method = (c.get("distribution_method") or "").lower()
+        corr = c.get("correlation")
+        if corr is None:
+            continue
+        is_extrinsic = ("extrinsic" in method) or (method == "")
+        if corr >= _HIGH_CORRELATION and is_extrinsic:
+            high_corr_extrinsic = True
+            signals.append({
+                "type": "high_extrinsic_correlation",
+                "metric_key": c.get("metric_key"),
+                "correlation": corr,
+                "sample_count": c.get("sample_count"),
+            })
+
+    # Risk level + competence/merit-derived recommendations.
+    if not signals:
+        risk_level = "unknown" if not methods else "low"
+    elif high_corr_extrinsic and extrinsic_only:
+        risk_level = "high"
+    elif high_corr_extrinsic or extrinsic_only:
+        risk_level = "medium"
+    else:
+        risk_level = "low"
+
+    recommendations: list[str] = []
+    if risk_level in ("medium", "high"):
+        if extrinsic_only or not has_merit_framing:
+            recommendations.append(
+                "Frame rewards as reflecting verified competence/merit (e.g. a "
+                "'merit' distribution_method) rather than pure extrinsic payout; the "
+                "overjustification literature shows merit-framed rewards can *increase* "
+                "intrinsic motivation."
+            )
+        if high_corr_extrinsic:
+            recommendations.append(
+                "Avoid abruptly removing rewards where token<->behavior correlation is "
+                "high; sudden removal worsens crowding-out. Pair rewards with "
+                "non-reward recognition (peer/cooperative acknowledgement)."
+            )
+        recommendations.append(
+            "Cap extrinsic-only reward share and keep issuance subject to DAO/"
+            "human approval (no autonomous reward changes)."
+        )
+
+    return {
+        "location_id": location_id,
+        "risk_level": risk_level,
+        "has_merit_framing": has_merit_framing,
+        "signals": signals,
+        "recommendations": recommendations,
+    }

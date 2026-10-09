@@ -1,0 +1,122 @@
+{
+  "name": "Platform Admin",
+  "description": "Platform health: migration status, API keys, webhooks, scheduled jobs, agent safety, and system overview for administrators.",
+  "icon": "admin_panel_settings",
+  "color": "#b71c1c",
+  "modules": [
+    {
+      "name": "System Overview",
+      "type": "stats",
+      "collection": "schema_migration",
+      "aggregations": [
+        { "function": "count", "label": "Migrations Applied" }
+      ]
+    },
+    {
+      "name": "Migration History",
+      "type": "table",
+      "collection": "schema_migration",
+      "columns": [
+        { "field": "filename", "label": "File" },
+        { "field": "applied_at", "label": "Applied" },
+        { "field": "checksum", "label": "Checksum" },
+        { "field": "execution_ms", "label": "Time (ms)" }
+      ],
+      "sort": ["-applied_at"]
+    },
+    {
+      "name": "API Keys",
+      "type": "table",
+      "collection": "api_key",
+      "columns": [
+        { "field": "name", "label": "Name" },
+        { "field": "key_prefix", "label": "Key" },
+        { "field": "scopes", "label": "Scopes" },
+        { "field": "expires_at", "label": "Expires" },
+        { "field": "last_used_at", "label": "Last Used" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["name"]
+    },
+    {
+      "name": "Webhooks",
+      "type": "table",
+      "collection": "webhook",
+      "columns": [
+        { "field": "name", "label": "Name" },
+        { "field": "url", "label": "URL" },
+        { "field": "events", "label": "Events" },
+        { "field": "status", "label": "Status" },
+        { "field": "last_triggered_at", "label": "Last Triggered" }
+      ],
+      "sort": ["name"]
+    },
+    {
+      "name": "Scheduled Jobs",
+      "type": "table",
+      "collection": "scheduled_job",
+      "columns": [
+        { "field": "name", "label": "Name" },
+        { "field": "cron_expression", "label": "Cron" },
+        { "field": "last_run_at", "label": "Last Run" },
+        { "field": "next_run_at", "label": "Next Run" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["name"]
+    },
+    {
+      "name": "Agent Safety Log",
+      "type": "table",
+      "collection": "agent_action_log",
+      "filters": {
+        "status": { "_eq": "blocked" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Time" },
+        { "field": "agent_id.name", "label": "Agent" },
+        { "field": "action_type", "label": "Action" },
+        { "field": "entity_type", "label": "Entity" },
+        { "field": "reason", "label": "Reason" }
+      ],
+      "sort": ["-created_at"]
+    },
+    {
+      "name": "Recent Agent Activity",
+      "type": "table",
+      "collection": "agent_action_log",
+      "filters": {
+        "created_at": { "_gte": "$NOW(-24 hours)" }
+      },
+      "columns": [
+        { "field": "created_at", "label": "Time" },
+        { "field": "agent_id.name", "label": "Agent" },
+        { "field": "action_type", "label": "Action" },
+        { "field": "entity_type", "label": "Entity" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    }
+  ],
+  "data_access": {
+    "schema_migration": {
+      "read": true,
+      "fields": ["filename", "applied_at", "checksum", "execution_ms"]
+    },
+    "api_key": {
+      "read": true,
+      "fields": ["name", "key_prefix", "scopes", "expires_at", "last_used_at", "status"]
+    },
+    "webhook": {
+      "read": true,
+      "fields": ["name", "url", "events", "status", "last_triggered_at"]
+    },
+    "scheduled_job": {
+      "read": true,
+      "fields": ["name", "cron_expression", "last_run_at", "next_run_at", "status"]
+    },
+    "agent_action_log": {
+      "read": true,
+      "fields": ["created_at", "agent_id", "action_type", "entity_type", "status", "reason"]
+    }
+  }
+}

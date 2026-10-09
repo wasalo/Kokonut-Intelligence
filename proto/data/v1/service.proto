@@ -1,0 +1,160 @@
+syntax = "proto3";
+
+package data.v1;
+
+import "common/pagination.proto";
+import "data/v1/types.proto";
+
+service DataService {
+  // IRI operations
+  rpc GenerateIRI(GenerateIRIRequest) returns (GenerateIRIResponse);
+  rpc ResolveIRI(ResolveIRIRequest) returns (ResolveIRIResponse);
+  rpc GetVersionHistory(GetVersionHistoryRequest) returns (GetVersionHistoryResponse);
+
+  // Content hash operations
+  rpc ComputeContentHash(ComputeContentHashRequest) returns (ComputeContentHashResponse);
+  rpc CreateContentHash(CreateContentHashRequest) returns (CreateContentHashResponse);
+  rpc FindIRIByHash(FindIRIByHashRequest) returns (FindIRIByHashResponse);
+
+  // Resolver operations
+  rpc DefineResolver(DefineResolverRequest) returns (DefineResolverResponse);
+  rpc RegisterToResolver(RegisterToResolverRequest) returns (RegisterToResolverResponse);
+  rpc GetResolversForIRI(GetResolversForIRIRequest) returns (GetResolversForIRIResponse);
+  rpc ListResolvers(ListResolversRequest) returns (ListResolversResponse);
+
+  // Attestor operations
+  rpc AttestToIRI(AttestToIRIRequest) returns (AttestToIRIResponse);
+  rpc GetAttestorsForIRI(GetAttestorsForIRIRequest) returns (GetAttestorsForIRIResponse);
+
+  // Streaming
+  rpc StreamNewIRIs(StreamNewIRIsRequest) returns (stream IRIUpdate);
+}
+
+// IRI operations
+message GenerateIRIRequest {
+  string entity_type = 1;
+  string entity_id = 2;
+  string metadata_json = 3;
+  string content_hash_type = 4;
+  string algorithm = 5;
+}
+message GenerateIRIResponse {
+  string iri = 1;
+}
+
+message ResolveIRIRequest {
+  string iri = 1;
+}
+message ResolveIRIResponse {
+  IRI iri_info = 1;
+}
+
+message GetVersionHistoryRequest {
+  string entity_type = 1;
+  string entity_id = 2;
+}
+message GetVersionHistoryResponse {
+  repeated IRI versions = 1;
+}
+
+// Content hash operations
+message ComputeContentHashRequest {
+  string data = 1;
+  string algorithm = 2;
+  string content_type = 3;
+  string media_type = 4;
+}
+message ComputeContentHashResponse {
+  string hash_value = 1;
+  string hash_algorithm = 2;
+  string content_type = 3;
+  string media_type = 4;
+}
+
+message CreateContentHashRequest {
+  string iri_id = 1;
+  string hash_value = 2;
+  string hash_algorithm = 3;
+  string content_type = 4;
+  string media_type = 5;
+  string canonicalization_algorithm = 6;
+  string merkle_tree = 7;
+}
+message CreateContentHashResponse {
+  string id = 1;
+  string hash_value = 2;
+}
+
+message FindIRIByHashRequest {
+  string hash_value = 1;
+}
+message FindIRIByHashResponse {
+  repeated IRIInfo results = 1;
+}
+
+// Resolver operations
+message DefineResolverRequest {
+  string resolver_url = 1;
+  string manager_address = 2;
+  string description = 3;
+}
+message DefineResolverResponse {
+  string id = 1;
+  string resolver_url = 2;
+}
+
+message RegisterToResolverRequest {
+  string resolver_id = 1;
+  string iri_id = 2;
+  string registered_by = 3;
+}
+message RegisterToResolverResponse {
+  string resolver_id = 1;
+  string iri_id = 2;
+}
+
+message GetResolversForIRIRequest {
+  string iri_id = 1;
+}
+message GetResolversForIRIResponse {
+  repeated Resolver resolvers = 1;
+}
+
+message ListResolversRequest {
+  string manager_address = 1;
+}
+message ListResolversResponse {
+  repeated Resolver resolvers = 1;
+}
+
+// Attestor operations
+message AttestToIRIRequest {
+  string iri_id = 1;
+  string attestor_address = 2;
+}
+message AttestToIRIResponse {
+  string id = 1;
+  string iri_id = 2;
+  string attestor_address = 3;
+  bool already_attested = 4;
+}
+
+message GetAttestorsForIRIRequest {
+  string iri_id = 1;
+}
+message GetAttestorsForIRIResponse {
+  repeated AttestorEntry attestors = 1;
+}
+
+// Streaming
+message StreamNewIRIsRequest {
+  string entity_type = 1;
+}
+message IRIUpdate {
+  string iri = 1;
+  string entity_type = 2;
+  string entity_id = 3;
+  int32 version = 4;
+  string content_hash = 5;
+  int64 timestamp = 6;
+}

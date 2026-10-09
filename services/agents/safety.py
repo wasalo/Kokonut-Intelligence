@@ -9,6 +9,17 @@ from typing import Any, Optional
 
 from services.agents.logging import log_agent_action
 
+
+def set_agent_context(conn, agent_id: str) -> None:
+    """Set the agent ID for the current transaction, enabling DB-level safety checks.
+
+    Must be called within an active transaction. Uses SET LOCAL so the setting
+    is scoped to the current transaction and automatically cleared on commit/rollback.
+    When this setting is present, DB-level triggers on governed tables will block
+    status escalation to 'verified' or 'published'.
+    """
+    conn.execute(conn.text("SET LOCAL app.agent_id = :agent_id"), {"agent_id": agent_id})
+
 HIGH_RISK_ACTIONS = {
     "publish",
     "attest",
@@ -34,6 +45,55 @@ GOVERNED_COLLECTIONS = {
     "impact_claim",
     "metric_proposal",
     "stakeholder_outcome",
+    "party",
+    "party_identifier",
+    "party_relationship",
+    "party_resolution_case",
+    "stakeholder_interest",
+    "stakeholder_consent",
+    "stakeholder_engagement_plan",
+    "stakeholder_engagement_objective",
+    "stakeholder_touchpoint",
+    "stakeholder_commitment",
+    "stakeholder_engagement_outcome",
+    "stakeholder_participation",
+    "stakeholder_minority_view",
+    "stakeholder_grievance_case",
+    "grievance_remedy",
+    "stakeholder_decision",
+    "stakeholder_decision_participant",
+    "stakeholder_decision_tradeoff",
+    "stakeholder_decision_evidence",
+    "stakeholder_decision_outcome",
+    "buyer_verification",
+    "market_dispute",
+    "market_dispute_event",
+    "cooperative_distribution_decision",
+    "coordination_alliance",
+    "coordination_participant",
+    "coordination_objective",
+    "coordination_contribution",
+    "coordination_benefit",
+    "coordination_risk",
+    "coordination_knowledge_exchange",
+    "coordination_review",
+    "coordination_learning_link",
+    "coordination_metric_observation",
+    "coordination_conflict_declaration",
+    "coordination_benefit_harm_analysis",
+    "coordination_minority_view",
+    "coordination_appeal",
+    "coordination_remedy",
+    "coordination_approval",
+    "coordination_partner_event",
+    "coordination_market_observation",
+    "party_trust_evidence",
+    "party_trust_snapshot",
+    "relationship_risk_indicator",
+    "stewardship_proxy_authority",
+    "ecological_threshold",
+    "nature_stewardship_obligation",
+    "future_generation_principle",
     "cultural_context_record",
     "wellbeing_metric_observation",
     "participatory_action_record",
@@ -79,6 +139,114 @@ GOVERNED_COLLECTIONS = {
     "credit_adjustment",
     "credit_retirement",
     "credit_transfer",
+    "data_stream_post",
+    "data_stream_post_comment",
+    "data_stream_file",
+    "credit_class",
+    "credit_batch",
+    "retirement_certificate",
+    "iri_registry",
+    "app_project_metadata",
+    "credit_balance",
+    "project_credit_class_enrollment",
+    "credit_bridge_transaction",
+    "delphi_study",
+    "delphi_recommendation",
+    "delphi_consensus",
+    "report_snapshot",
+    "dashboard_dataset",
+    "forecast_scenario",
+    "forecast_output",
+    "scenario_parameter",
+    "scenario_simulation",
+    "crisp_risk_assessment",
+    "threat",
+    "threat_signal",
+    "threat_narrative",
+    "backcast_plan",
+    "backcast_milestone",
+    "backcast_assumption_challenge",
+    "backcast_path_comparison",
+    "backcast_path_premortem",
+    "prediction_ledger",
+    "prediction_outcome",
+    "prediction_calibration_policy",
+    "prediction_calibration_assessment",
+    "reference_class",
+    "outside_view_comparison",
+    "delphi_diversity_target",
+    "delphi_diversity_assessment",
+    "delphi_stopping_evaluation",
+    "delphi_minority_report",
+    "threat_forecast_question",
+    "threat_probability_forecast",
+    "threat_forecast_resolution",
+    "delphi_expert_calibration",
+    "governance_circle",
+    "governance_role",
+    "governance_role_accountability",
+    "governance_role_domain",
+    "governance_role_policy",
+    "governance_role_assignment",
+    "governance_tension",
+    "governance_tension_link",
+    "governance_tension_event",
+    "governance_proposal",
+    "governance_proposal_objection",
+    "governance_proposal_review",
+    "governance_tactical_session",
+    "governance_tactical_item",
+    "governance_circle_link",
+    "capital_capacity_assessment",
+    "capital_diversion_observation",
+    "capital_capture_risk",
+    "regenerative_credit_ledger",
+}
+
+STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = {
+    "party_resolution_case",
+    "stakeholder_consent",
+    "stakeholder_grievance_case",
+    "grievance_remedy",
+    "stakeholder_decision",
+    "stakeholder_decision_evidence",
+    "buyer_verification",
+    "market_dispute",
+    "cooperative_distribution_decision",
+    "coordination_alliance",
+    "coordination_participant",
+    "coordination_objective",
+    "coordination_contribution",
+    "coordination_benefit",
+    "coordination_risk",
+    "coordination_knowledge_exchange",
+    "coordination_review",
+    "coordination_learning_link",
+    "coordination_metric_observation",
+    "coordination_conflict_declaration",
+    "coordination_benefit_harm_analysis",
+    "coordination_minority_view",
+    "coordination_appeal",
+    "coordination_remedy",
+    "coordination_approval",
+    "coordination_partner_event",
+    "coordination_market_observation",
+    "party_trust_evidence",
+    "stewardship_proxy_authority",
+    "nature_stewardship_obligation",
+    "future_generation_principle",
+    "governance_circle",
+    "governance_role",
+    "governance_role_accountability",
+    "governance_role_domain",
+    "governance_role_policy",
+    "governance_role_assignment",
+    "governance_tension_link",
+    "governance_tension_event",
+    "governance_proposal_objection",
+    "governance_proposal_review",
+    "governance_tactical_session",
+    "governance_circle_link",
 }
 
 
@@ -102,6 +270,23 @@ def assess_agent_action(action: str, collection: str, payload: Optional[dict[str
     """Assess whether an agent action is allowed before writing."""
     payload = payload or {}
     high_risk = action in HIGH_RISK_ACTIONS
+
+    if collection == "coordination_alliance" and action == "create" and payload.get("status", "draft") == "draft":
+        return SafetyDecision(True, False, False, "agents may create draft coordination alliance options only")
+
+    draftable = {
+        "governance_tension": action == "create" and payload.get("status", "draft") == "draft",
+        "governance_proposal": action == "create" and payload.get("status", "draft") == "draft",
+        "governance_tactical_item": action == "create" and payload.get("status", "open") == "open",
+        "regenerative_credit_ledger": action == "create" and payload.get("status", "draft") == "draft",
+    }
+    if collection in draftable and draftable[collection]:
+        return SafetyDecision(True, False, False, f"agents may create draft {collection} records only")
+    if collection in {"governance_tension", "governance_proposal", "governance_tactical_item"} and action not in {"read", "list", "query"}:
+        return SafetyDecision(False, True, True, f"agents cannot modify governed {collection} records beyond draft creation")
+
+    if collection in STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS and action not in {"read", "list", "query"}:
+        return SafetyDecision(False, True, True, f"agents cannot write human-governed stakeholder collection {collection}")
 
     if collection == "agent_task":
         review_status = payload.get("review_status")

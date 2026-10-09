@@ -24,6 +24,17 @@ def test_scorecard_csv_dry_run_validates_rows(tmp_path) -> None:
     assert result["template_type"] == "ebf_scorecard"
 
 
+def test_evidence_csv_validation_rejects_invalid_maturity_level() -> None:
+    errors = validate_ebf_evidence_row({"evidence_type": "public_summary", "evidence_maturity_level": "abc"}, 5)
+    assert any("evidence_maturity_level must be an integer" in e for e in errors)
+
+
+def test_scorecard_csv_validation_requires_period_dates() -> None:
+    errors = validate_ebf_scorecard_row({"location_id": "a0000000-0000-0000-0000-000000000001"}, 4)
+    assert any("missing required field period_start" in e for e in errors)
+    assert any("missing required field period_end" in e for e in errors)
+
+
 if __name__ == "__main__":
     test_scorecard_csv_validation()
     test_evidence_csv_validation()

@@ -1,0 +1,70 @@
+"""Tests for competitive signal monitoring."""
+
+import uuid
+from unittest.mock import MagicMock
+
+import pytest
+
+from services.analytics import competitive_landscape, strategy_monitoring
+from services.ingestion.base import get_db
+
+
+def test_material_signal_creates_idempotent_review_task():
+    try:
+        conn = get_db()
+    except Exception as exc:  # pragma: no cover
+        pytest.skip(f"no database available: {exc}")
+    org_id = None
+    plan_id = None
+    landscape_id = None
+    try:
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO organization (org_key, name, org_type) VALUES (%s, 'Monitor Test', 'collective') RETURNING id", (f"monitor-{uuid.uuid4().hex[:8]}",))
+            org_id = str(cur.fetchone()[0])
+            cur.execute("INSERT INTO strategy_plan (scope_type, scope_id, name, planning_horizon_start, planning_horizon_end, diagnosis_summary, guiding_policy) VALUES ('organization', %s::uuid, 'Monitor plan', '2026-01-01', '2026-12-31', 'Monitor', 'Adapt') RETURNING id", (org_id,))
+            plan_id = str(cur.fetchone()[0])
+        conn.commit()
+        landscape = competitive_landscape.create_landscape(conn, plan_id, "organization", org_id, "2026-01-01", "2026-12-31")
+        landscape_id = str(landscape["id"])
+        with conn.cursor() as cur:
+            cur.execute("UPDATE competitive_landscape SET status = 'submitted' WHERE id = %s::uuid", (landscape_id,))
+        conn.commit()
+        competitive_landscape.record_signal(conn, landscape_id, "competitor", "test", "Material displacement signal", materiality="critical")
+        assert len(strategy_monitoring.process_material_signals(conn)) == 1
+        assert len(strategy_monitoring.process_material_signals(conn)) == 0
+        assert strategy_monitoring.monitor_summary(conn, plan_id)["open_competitive_review_count"] == 1
+    finally:
+        conn.rollback()
+        with conn.cursor() as cur:
+            if landscape_id:
+                cur.execute("DELETE FROM competitive_landscape WHERE id = %s::uuid", (landscape_id,))
+            if plan_id:
+                cur.execute("DELETE FROM strategy_plan WHERE id = %s::uuid", (plan_id,))
+            if org_id:
+                cur.execute("DELETE FROM organization WHERE id = %s::uuid", (org_id,))
+        conn.commit()
+        conn.close()
+
+
+def test_monitor_summary_counts_zero_signals():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchone.side_effect = [
+        {"signal_count": 0, "unreviewed_material_count": 0},
+        {"open_review_count": 0},
+    ]
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    summary = strategy_monitoring.monitor_summary(mock_conn, str(uuid.uuid4()))
+    assert summary["signal_count"] == 0
+    assert summary["open_competitive_review_count"] == 0
+
+
+def test_process_material_signals_returns_empty_when_no_signals():
+    mock_conn = MagicMock()
+    mock_cursor = MagicMock()
+    mock_cursor.fetchall.return_value = []
+    mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+    mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+    result = strategy_monitoring.process_material_signals(mock_conn)
+    assert result == []

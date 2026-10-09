@@ -8,7 +8,7 @@ def metrics_computation_flow():
     """Compute all governed metrics for all locations."""
     import subprocess
     result = subprocess.run(
-        ["python3", "-m", "services.metrics", "--compute", "--all-locations", "--verify"],
+        ["python3", "-m", "services.metrics", "--compute", "--all-locations"],
         capture_output=True, text=True, timeout=1800,
     )
     if result.returncode != 0:

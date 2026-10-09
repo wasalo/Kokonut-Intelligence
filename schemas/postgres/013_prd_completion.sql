@@ -460,3 +460,9 @@ ALTER TABLE attestation_record ADD COLUMN IF NOT EXISTS private_payload_hash VAR
 ALTER TABLE attestation_record ADD COLUMN IF NOT EXISTS payload_cid TEXT;
 
 ALTER TABLE ingestion_log ADD COLUMN IF NOT EXISTS processor_version VARCHAR(50);
+
+-- ProjectInfo parity: role-based entity references on farm_registry_record
+ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS developer_id UUID REFERENCES partner(id);
+ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS monitor_id UUID REFERENCES partner(id);
+ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS operator_id UUID REFERENCES partner(id);
+ALTER TABLE farm_registry_record ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES partner(id);

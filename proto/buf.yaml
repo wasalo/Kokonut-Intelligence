@@ -1,0 +1,13 @@
+version: v2
+modules:
+  - path: .
+lint:
+  use:
+    - STANDARD
+    - COMMENTS
+  except:
+    - UNARY_RPC
+    - COMMENT_FIELD
+breaking:
+  use:
+    - FILE

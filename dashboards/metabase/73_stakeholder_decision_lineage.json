@@ -1,0 +1,16 @@
+{
+  "title": "Stakeholder Decision Lineage",
+  "description": "Decision tracking with participants, trade-offs, evidence, and outcomes.",
+  "cards": [
+    {
+      "name": "Stakeholder Decision Lineage",
+      "dataset_query": "dashboards/metabase/sql/73_stakeholder_decision_lineage.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

@@ -9,11 +9,14 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology;
 -- UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Cryptographic functions
+-- Cryptographic functions (includes gen_random_uuid())
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Trigram similarity (useful for search)
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Query analytics
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 
 -- Create application schema
 CREATE SCHEMA IF NOT EXISTS kokonut;
@@ -26,4 +29,5 @@ GRANT ALL ON SCHEMA public TO kokonut;
 ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut;
 
 -- Metabase application database (separate from Kokonut data)
-CREATE DATABASE metabase OWNER kokonut;
+SELECT 'CREATE DATABASE metabase OWNER kokonut'
+WHERE NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'metabase')\gexec

@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # ============================================================
-# ci-check.sh — Continuous Integration validation
+# ci-check.sh — Fast-fail CI validation (imports, CLIs, TS build)
 # ============================================================
+# Full test coverage is handled by verify-full-test-suite.sh.
+# Static analysis is handled by static-analysis.sh.
+# Security tooling (ruff, pip-audit) runs as standalone buildspec steps.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-echo "=== Kokonut Intelligence — CI Check ==="
+echo "=== Kokonut Intelligence — CI Check (fast-fail gate) ==="
 echo ""
 
 PASS=0
@@ -23,14 +26,16 @@ check() {
     else
         echo "  ✗ $name"
         if [ -n "$output" ]; then
-            echo "    $output" | head -5
+            echo "    $output" | tail -80
         fi
         FAIL=$((FAIL + 1))
     fi
 }
 
-# 1. Python imports
-echo "[1/8] Python import validation..."
+# 1. Python runtime and imports
+echo "[1/3] Python import validation..."
+check "Supported Python runtime" "python3 $SCRIPT_DIR/check-python-runtime.py"
+check "FastAPI dependencies" "python3 -c 'import fastapi; from fastapi.testclient import TestClient; print(fastapi.__version__)'"
 check "Import services.ingestion.base" "python3 -c 'import services.ingestion.base'"
 check "Import services.forecast.engine" "python3 -c 'import services.forecast.engine'"
 check "Import services.forecast.cli" "python3 -c 'import services.forecast.cli'"
@@ -45,6 +50,8 @@ check "Import services.metrics.engine" "python3 -c 'import services.metrics.engi
 check "Import services.metrics.calculators" "python3 -c 'import services.metrics.calculators'"
 check "Import services.common.logging" "python3 -c 'import services.common.logging'"
 check "Import services.migration.cli" "python3 -c 'import services.migration.cli'"
+check "Migration source validation" "python3 -m services.migration validate"
+check "Clean PostgreSQL bootstrap" "bash $SCRIPT_DIR/verify-clean-bootstrap.sh"
 check "Import services.registry.cids_export" "python3 -c 'import services.registry.cids_export'"
 check "Import services.agents.safety" "python3 -c 'import services.agents.safety'"
 check "Import services.agents.tasks" "python3 -c 'import services.agents.tasks'"
@@ -63,10 +70,11 @@ check "Import EBF agents" "python3 -c 'import services.agents.ebf_scorecard_agen
 check "Import services.analytics.portfolio" "python3 -c 'import services.analytics.portfolio'"
 check "Import services.export.spreadsheet_bridge" "python3 -c 'import services.export.spreadsheet_bridge'"
 check "Import services.scoring" "python3 -c 'import services.scoring.export; import services.scoring.trust_graph; import services.scoring.confidence; import services.scoring.calculators; import services.scoring.rubric; import services.scoring.normalization; import services.scoring.gates; import services.scoring.equity; import services.scoring.implementation_quality; import services.scoring.equity_community'"
+check "Import workflow specifications" "python3 -c 'import services.workflow_specs'"
 echo ""
 
 # 2. CLI parsers
-echo "[2/8] CLI parser validation..."
+echo "[2/3] CLI parser validation..."
 check "forecast CLI --help" "python3 -m services.forecast.cli --help"
 check "analytics CLI --help" "python3 -m services.analytics.cli --help"
 check "revenue_multiplier CLI --help" "python3 -m services.revenue_multiplier.cli --help"
@@ -92,91 +100,20 @@ check "EBF evidence gap agent CLI --help" "python3 -m services.agents.ebf_eviden
 check "EBF calibration agent CLI --help" "python3 -m services.agents.ebf_calibration_agent --help"
 check "spreadsheet bridge CLI --help" "python3 -m services.export.spreadsheet_bridge --help"
 check "EBF scoring CLI --help" "python3 -m services.scoring --help"
+check "workflow specs CLI --help" "python3 -m services.workflow_specs --help"
 echo ""
 
-# 3. TypeScript extension build (if node_modules present)
-echo "[3/8] TypeScript extension build..."
-if [ -d "$PROJECT_DIR/extensions/kokonut-hooks/node_modules" ]; then
+# 3. TypeScript extension build
+echo "[3/3] TypeScript extension build..."
+if ! command -v npm >/dev/null 2>&1; then
+    echo "  ✗ npm is required for the TypeScript extension build"
+    FAIL=$((FAIL + 1))
+else
     cd "$PROJECT_DIR/extensions/kokonut-hooks"
+    check "npm ci" "npm ci --no-audit --no-fund"
     check "npm run build" "npm run build"
     cd "$PROJECT_DIR"
-else
-    echo "  ⚠ node_modules not found — skipping TS build"
 fi
-echo ""
-
-# 4. Seed idempotency and DB integration tests (if DB is available)
-echo "[4/8] Seed idempotency check..."
-if docker compose -f "$PROJECT_DIR/docker-compose.yml" ps --status running --services 2>/dev/null | grep -qx 'database'; then
-    check "seed.sh idempotent" "bash $SCRIPT_DIR/seed.sh"
-    check "seed-pilot.sh idempotent" "bash $SCRIPT_DIR/seed-pilot.sh"
-    check "compute metrics" "bash $SCRIPT_DIR/compute-metrics.sh"
-    check "MVP definition of done" "bash $SCRIPT_DIR/verify-mvp.sh"
-    check "MVP done checks" "python3 -m tests.test_mvp_done"
-    check "seed idempotency" "python3 -m tests.test_seed_idempotency"
-else
-    echo "  ⚠ Database not running — skipping seed and DB integration checks"
-fi
-echo ""
-
-# 5. Directus metadata checks
-echo "[5/8] Directus metadata checks..."
-check "directus metadata" "python3 -m tests.test_directus_metadata"
-check "metric calculators" "python3 -m tests.test_metrics"
-check "cids export" "python3 -m tests.test_cids_export"
-check "agent safety" "python3 -m tests.test_agent_safety"
-check "agent tasks" "python3 -m tests.test_agent_tasks"
-check "portfolio analytics" "python3 -m tests.test_portfolio"
-check "spreadsheet bridge" "python3 -m tests.test_spreadsheet_bridge"
-check "common foundations" "python3 -m tests.test_common_foundations"
-check "holistic wellbeing" "python3 -m tests.test_holistic_wellbeing"
-check "financial resilience" "python3 -m tests.test_financial_resilience"
-check "capital efficiency" "python3 -m tests.test_capital_efficiency"
-check "commons liberation" "python3 -m tests.test_commons_liberation"
-check "GNH alignment" "python3 -m tests.test_gnh_alignment"
-check "regenerative outcomes" "python3 -m tests.test_regenerative_outcomes"
-check "open source capitalist scaling" "python3 -m tests.test_open_source_capitalist_scaling"
-check "kokonut commons governance" "python3 -m tests.test_kokonut_commons_governance"
-check "bio factory operations" "python3 -m tests.test_bio_factory_operations"
-check "GIS import" "python3 -m tests.test_gis_import"
-check "market data" "python3 -m tests.test_market_data"
-check "revenue multiplier" "python3 -m tests.test_revenue_multiplier"
-check "EBF P0 schema and rubric" "python3 -m tests.test_ebf_p0"
-check "EBF P1 operations" "python3 -m tests.test_ebf_p1"
-check "EBF P2 portfolio and docs" "python3 -m tests.test_ebf_p2"
-check "EBF schema migrations" "python3 -m tests.test_ebf_schema"
-check "EBF scoring" "python3 -m tests.test_ebf_scoring"
-check "EBF rubric" "python3 -m tests.test_ebf_rubric"
-check "EBF normalization" "python3 -m tests.test_ebf_normalization"
-check "EBF gates" "python3 -m tests.test_ebf_gates"
-check "EBF public views" "python3 -m tests.test_ebf_public_views"
-check "EBF privacy" "python3 -m tests.test_ebf_privacy"
-check "EBF carbon gates" "python3 -m tests.test_ebf_carbon_gates"
-check "EBF agent safety" "python3 -m tests.test_ebf_agent_safety"
-check "EBF CSV import" "python3 -m tests.test_ebf_csv_import"
-check "EBF JSON export" "python3 -m tests.test_ebf_json_export"
-check "EBF dashboard" "python3 -m tests.test_ebf_dashboard"
-check "EBF calibration" "python3 -m tests.test_ebf_calibration"
-check "EBF CIDS" "python3 -m tests.test_ebf_cids"
-check "EBF trust graph" "python3 -m tests.test_ebf_trust_graph"
-check "EBF agents" "python3 -m tests.test_ebf_agents"
-check "EBF equity scoring" "python3 -m tests.test_ebf_equity_scoring"
-check "EBF DB integration" "python3 -m tests.test_ebf_db_integration"
-echo ""
-
-# 6. Smoke test suite
-echo "[6/8] Smoke test suite..."
-check "smoke tests" "python3 -m tests.test_smoke"
-echo ""
-
-# 7. CLI smoke tests
-echo "[7/8] CLI smoke tests..."
-check "CLI smoke tests" "python3 -m tests.test_cli"
-echo ""
-
-# 8. Attestation tests
-echo "[8/8] Attestation tests..."
-check "attestation tests" "python3 -m tests.test_attestation"
 echo ""
 
 # Summary
@@ -186,7 +123,7 @@ echo "  Fail: $FAIL"
 
 if [ $FAIL -eq 0 ]; then
     echo ""
-    echo "  All CI checks passed ✓"
+    echo "  All fast-fail CI checks passed ✓"
     exit 0
 else
     echo ""

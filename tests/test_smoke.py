@@ -22,10 +22,48 @@ MODULES = [
     "services.export.exporter",
     "services.metrics.engine",
     "services.metrics.cli",
+    "services.events.bus",
+    "services.events.handlers",
+    "services.events.cli",
+    "services.scheduler.engine",
+    "services.scheduler.worker",
+    "services.scheduler.cli",
+    "services.scheduler.parser",
+    "services.scheduler.resources",
+    "services.cache.cache",
+    "services.cache.events",
+    "services.drivers.protocol",
+    "services.drivers.base",
+    "services.drivers.registry",
+    "services.drivers.cli",
+    "services.core.features",
+    "services.core.health",
+    "services.stream.processor",
+    "services.stream.windows",
+    "services.stream.alerts",
+    "services.stream.buffer",
+    "services.stream.cli",
+    "services.security.capabilities",
+    "services.security.audit",
+    "services.security.interceptor",
+    "services.security.cli",
+    "services.federation.node",
+    "services.federation.protocol",
+    "services.federation.sync",
+    "services.federation.cli",
+    "services.sandbox.environment",
+    "services.sandbox.isolation",
+    "services.sandbox.monitor",
+    "services.sandbox.cli",
+    "services.gateway.auth",
+    "services.gateway.rate_limiter",
+    "services.gateway.audit",
+    "services.gateway.router",
+    "services.gateway.cli",
 ]
 
 
-def test_imports():
+def run_imports():
     errors = []
     for mod in MODULES:
         try:
@@ -37,7 +75,12 @@ def test_imports():
     return errors
 
 
-def test_cli_parsers():
+def test_imports() -> None:
+    errors = run_imports()
+    assert not errors, f"Import checks failed: {errors}"
+
+
+def run_cli_parsers():
     """Verify CLI modules have valid argparse parsers."""
     import importlib
 
@@ -74,6 +117,11 @@ def test_cli_parsers():
     return errors
 
 
+def test_cli_parsers() -> None:
+    errors = run_cli_parsers()
+    assert not errors, f"CLI parser checks failed: {errors}"
+
+
 def test_remote_sensing_bbox_parse():
     """Remote sensing CSV parser keeps bbox from raw row fields."""
     from services.ingestion.remote_sensing import parse_row
@@ -104,10 +152,10 @@ def test_exporter_defaults_governed_filters():
 if __name__ == "__main__":
     print("=== Kokonut Intelligence — Smoke Test ===")
     print("\n1. Python imports:")
-    import_errors = test_imports()
+    import_errors = run_imports()
 
     print("\n2. CLI parsers:")
-    cli_errors = test_cli_parsers()
+    cli_errors = run_cli_parsers()
 
     print("\n3. Remote sensing parser:")
     parser_errors = []

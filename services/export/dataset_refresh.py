@@ -18,12 +18,11 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
+from services.common.database import get_db
+
 
 def get_pg():
-    from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
-    return psycopg2.connect(
-        host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD
-    )
+    return get_db()
 
 
 def list_datasets(conn, dataset_id: str = None):
@@ -38,9 +37,10 @@ def list_datasets(conn, dataset_id: str = None):
         cur.execute(
             "SELECT id, name, dataset_type, status, refresh_interval_minutes, last_refreshed_at, created_at FROM dashboard_dataset WHERE status = 'active' ORDER BY name"
         )
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def refresh_dataset(conn, dataset_id: str) -> dict:
@@ -54,24 +54,26 @@ def refresh_dataset(conn, dataset_id: str) -> dict:
     )
     dataset = cur.fetchone()
     if not dataset:
+        cur.close()
         raise ValueError(f"Dataset {dataset_id} not found")
 
     query_sql = dataset["query_sql"]
     if not query_sql:
+        cur.close()
         raise ValueError(f"Dataset {dataset['name']} has no query_sql defined")
 
-    # Execute the stored query
+    # Execute the stored query. Roll back before recording an error because a
+    # failed PostgreSQL statement leaves the transaction unusable.
     start_time = datetime.now(timezone.utc)
     try:
         cur.execute(query_sql)
         rows = cur.fetchall()
         row_count = len(rows)
-        result_data = [dict(r) for r in rows]
         status = "active"
         error_message = None
     except Exception as e:
+        conn.rollback()
         row_count = 0
-        result_data = []
         status = "error"
         error_message = str(e)
         print(f"  [Dataset] Query failed for {dataset['name']}: {e}")
@@ -91,13 +93,18 @@ def refresh_dataset(conn, dataset_id: str) -> dict:
             )
         WHERE id = %s
         """,
-        (json.dumps({
-            "row_count": row_count,
-            "duration_ms": duration_ms,
-            "status": status,
-            "error": error_message,
-            "refreshed_at": end_time.isoformat(),
-        }), dataset_id),
+        (
+            json.dumps(
+                {
+                    "row_count": row_count,
+                    "duration_ms": duration_ms,
+                    "status": status,
+                    "error": error_message,
+                    "refreshed_at": end_time.isoformat(),
+                }
+            ),
+            dataset_id,
+        ),
     )
     conn.commit()
     cur.close()
@@ -129,9 +136,11 @@ def main():
             print(f"{'ID':<38} {'Name':<30} {'Type':<15} {'Status':<10} {'Interval':<10} {'Last Refreshed'}")
             print("-" * 140)
             for d in datasets:
-                interval = f"{d['refresh_interval_minutes']}min" if d['refresh_interval_minutes'] else "manual"
-                last = str(d['last_refreshed_at'] or 'never')[:19]
-                print(f"{str(d['id']):<38} {d['name']:<30} {d['dataset_type'] or '':<15} {d['status']:<10} {interval:<10} {last}")
+                interval = f"{d['refresh_interval_minutes']}min" if d["refresh_interval_minutes"] else "manual"
+                last = str(d["last_refreshed_at"] or "never")[:19]
+                print(
+                    f"{str(d['id']):<38} {d['name']:<30} {d['dataset_type'] or '':<15} {d['status']:<10} {interval:<10} {last}"
+                )
         conn.close()
         return
 

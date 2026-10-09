@@ -1,9 +1,9 @@
 # Caddy reverse proxy for TLS termination and request logging
-# Development: uses internal self-signed CA
-# Production: set CADDY_DOMAIN env var and mount real certs
+# Development: uses self-signed cert with SANs for localhost and LAN IP
+# Production uses config/caddy/Caddyfile.production, which enables automatic HTTPS.
 
-{$CADDY_DOMAIN:localhost} {
-	tls internal
+:443 {
+	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
 
 	log {
 		output stdout
@@ -24,15 +24,48 @@
 		reverse_proxy directus:8055
 	}
 
-	# Metabase dashboards
-	handle /metabase/* {
-		uri strip_prefix /metabase
-		reverse_proxy metabase:3000
+	# Map viewer
+	handle /maps/* {
+		uri strip_prefix /maps
+		root * /app/services/maps
+		file_server
+	}
+
+	# Offline-first field collector companion app (static HTML)
+	handle /field/* {
+		uri strip_prefix /field
+		root * /app/services/mobile
+		file_server
+	}
+
+	# Field collector via gateway (HTML + same-origin /api/mobile)
+	handle /mobile* {
+		reverse_proxy gateway:8099
+	}
+
+	# Mobile API (register, forms, sync) — required for Caddy-hosted collector
+	handle /api/mobile/* {
+		reverse_proxy gateway:8099
+	}
+
+
+	# gRPC-Web proxy (h2c transport for gRPC services)
+	handle /grpc/* {
+		uri strip_prefix /grpc
+		reverse_proxy h2c://grpc:50051
 	}
 
 	# Directus (default — catches everything else)
 	handle {
 		reverse_proxy directus:8055
+	}
+
+	# CORS headers for all responses
+	header {
+		Access-Control-Allow-Origin *
+		Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type, Authorization, x-api-key, x-capability-token, x-device-token"
+		Access-Control-Max-Age 86400
 	}
 
 	# Security headers

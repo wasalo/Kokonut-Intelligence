@@ -2,27 +2,12 @@
 
 from __future__ import annotations
 
-import argparse
-import json
-import uuid
 from typing import Any
 
 import psycopg2
 import psycopg2.extras
 
-from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
-from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
-
-
-def get_connection():
-    return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASSWORD,
-    )
+from services.agents.base import SynthesisAgent, agent_cli
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -154,64 +139,27 @@ def synthesize_open_source_capitalist(conn, location_id: str | None = None) -> d
     }
 
 
-def store_open_source_capitalist_summary(conn, summary: dict[str, Any], model_version: str = "open-source-capitalist-agent-v1") -> str:
-    """Store a draft AI summary for human review."""
-    assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
-    summary_id = str(uuid.uuid4())
-    subject_id = summary.get("location_id") or "00000000-0000-0000-0000-000000000000"
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO ai_summary
-            (id, subject_type, subject_id, summary_type, content,
-             source_tables, model_version, status)
-        VALUES (%s, 'location', %s, 'open_source_capitalist', %s, %s, %s, 'draft')
-        RETURNING id
-        """,
-        (
-            summary_id,
-            subject_id,
-            summary["synthesis"],
-            [
-                "farm_launch_unit_economics",
-                "network_scaling_target",
-                "adoption_barrier_assessment",
-                "perpetual_value_stress_test",
-                "open_source_impact_artifact",
-            ],
-            model_version,
-        ),
-    )
-    stored_id = str(cur.fetchone()[0])
-    conn.commit()
-    cur.close()
-    return stored_id
+class OpenSourceCapitalistSynthesisAgent(SynthesisAgent):
+    task_key = "open_source_capitalist_synthesis"
+    summary_type = "open_source_capitalist"
+    read_collection = "farm_launch_unit_economics"
+    model_version = "open-source-capitalist-agent-v1"
+    source_tables = ["farm_launch_unit_economics", "network_scaling_target", "adoption_barrier_assessment", "perpetual_value_stress_test", "open_source_impact_artifact"]
+
+    def synthesize(self, conn, location_id=None):
+        return synthesize_open_source_capitalist(conn, location_id)
+
+
+agent = OpenSourceCapitalistSynthesisAgent()
 
 
 def run_open_source_capitalist_synthesis(location_id: str | None = None, store: bool = False) -> dict[str, Any]:
-    assert_agent_action_allowed("read", "farm_launch_unit_economics", {"location_id": location_id})
-    conn = get_connection()
-    try:
-        summary = synthesize_open_source_capitalist(conn, location_id)
-        output: dict[str, Any] = {"summary": summary}
-        if store:
-            output["ai_summary_id"] = store_open_source_capitalist_summary(conn, summary)
-    finally:
-        conn.close()
-
-    errors = validate_output("open_source_capitalist_synthesis", output)
-    if errors:
-        raise ValueError("; ".join(errors))
-    return output
+    """Run the agent; delegates to the shared :class:`OpenSourceCapitalistSynthesisAgent` flow."""
+    return agent.run(location_id, store=store)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the Kokonut Open Source Capitalist synthesis agent")
-    parser.add_argument("--location-id", help="Optional location UUID")
-    parser.add_argument("--store", action="store_true", help="Store draft ai_summary output for human review")
-    args = parser.parse_args()
-
-    print(json.dumps(run_open_source_capitalist_synthesis(args.location_id, store=args.store), indent=2, default=str))
+    agent_cli(agent, description="Run the Kokonut Open Source Capitalist synthesis agent", location_required=False)
 
 
 if __name__ == "__main__":

@@ -15,10 +15,14 @@ def test_task_catalogue_contains_green_paper_agents() -> None:
     assert "ebf_scorecard_draft" in tasks
     assert "ebf_evidence_gap" in tasks
     assert "ebf_calibration_memo" in tasks
+    assert "coordination_strategy_draft" in tasks
     assert get_task("cids_export")["high_risk"] is False
     assert get_task("holistic_wellbeing_synthesis")["writes"] == ["ai_summary:draft"]
     assert get_task("financial_resilience_synthesis")["writes"] == ["ai_summary:draft"]
     assert "verify" not in " ".join(get_task("ebf_scorecard_draft")["writes"])
+    coordination = get_task("coordination_strategy_draft")
+    assert coordination["writes"] == ["coordination_alliance:draft"]
+    assert coordination["high_risk"] is False
 
 
 def test_output_validation_checks_required_fields() -> None:
@@ -102,7 +106,49 @@ def test_ebf_agent_safety_blocks_publish_and_public_maturity() -> None:
     assert "public-claim levels" in maturity_decision.reason
 
 
+def test_task_catalogue_covers_all_agent_modules() -> None:
+    """Every *_agent.py file must have a corresponding TASK_CATALOGUE entry."""
+    import glob
+    import os
+
+    agent_dir = os.path.join(os.path.dirname(__file__), "..", "services", "agents")
+    agent_files = glob.glob(os.path.join(agent_dir, "*_agent.py"))
+    agent_names = [os.path.basename(f).replace(".py", "") for f in agent_files]
+
+    tasks = list_tasks()
+    task_keys = " ".join(tasks)
+    for name in sorted(agent_names):
+        # Strip _agent suffix, then check if any significant word appears in any task key
+        core = name.replace("_agent", "")
+        # Split on underscores and check if at least one significant word (len >= 4) matches
+        words = [w for w in core.split("_") if len(w) >= 3]
+        assert any(w in task_keys for w in words), (
+            f"Agent module {name} has no matching TASK_CATALOGUE entry"
+        )
+
+
+def test_organic_readiness_task_entries() -> None:
+    task = get_task("organic_readiness_synthesis")
+    assert task["risk"] == "medium"
+    assert task["writes"] == ["ai_summary:draft"]
+    assert task["high_risk"] is False
+    assert "location_id" in task["inputs"]
+    assert "summary" in task["outputs"]
+
+
+def test_ecological_modeling_task_entries() -> None:
+    task = get_task("ecological_modeling_synthesis")
+    assert task["risk"] == "medium"
+    assert task["writes"] == ["ai_summary:draft"]
+    assert task["high_risk"] is False
+    assert "location_id" in task["inputs"]
+    assert "summary" in task["outputs"]
+
+
 if __name__ == "__main__":
     test_task_catalogue_contains_green_paper_agents()
     test_output_validation_checks_required_fields()
     test_ebf_agent_safety_blocks_publish_and_public_maturity()
+    test_task_catalogue_covers_all_agent_modules()
+    test_organic_readiness_task_entries()
+    test_ecological_modeling_task_entries()

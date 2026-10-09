@@ -38,6 +38,10 @@ from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
 
 logger = get_logger("ingestion.mock_sensors")
 
+# This generator is intentionally non-canonical demo data. Its direct ClickHouse
+# write must not be copied into production producers; canonical paths use the outbox.
+DEMO_DIRECT_CLICKHOUSE = True
+
 # Validation patterns for ClickHouse SQL interpolation
 _UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
 _TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')
@@ -288,32 +292,19 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                         )
                         pg_id = cur.fetchone()[0]
 
-                    # Insert into ClickHouse
-                    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-                    ts_str = f"{reading_date} {reading_time}"
-
-                    # Validate interpolated values
-                    _validate_ch_value(ts_str, _TS_RE, "timestamp")
-                    _validate_ch_value(str(sensor_id), _UUID_RE, "sensor_id")
-                    _validate_ch_value(stype, _SENSOR_TYPE_RE, "sensor_type")
-                    _validate_ch_value(str(loc_id), _UUID_RE, "location_id")
-
-                    ch_query = f"""INSERT INTO sensor_readings
-                        (timestamp, sensor_id, sensor_type, location_id, plot_id,
-                         value, unit, quality, metadata)
-                        VALUES (
-                            '{ts_str}', '{sensor_id}', '{stype}', '{loc_id}',
-                            '{str(plot_id) if plot_id else ''}',
-                            {value}, 'mock_unit', 'good', map()
-                        )"""
-                    try:
-                        import requests as req
-                        resp = req.post(ch_url, data=ch_query.encode("utf-8"),
-                                        auth=(CH_USER, CH_PASSWORD),
-                                        headers={"Content-Type": "text/plain"}, timeout=10)
-                        resp.raise_for_status()
-                    except Exception:
-                        pass
+                    if DEMO_DIRECT_CLICKHOUSE:
+                        # Demo-only path: no canonical PostgreSQL event is produced here.
+                        try:
+                            from .base import post_clickhouse_rows
+                            post_clickhouse_rows(
+                                "sensor_readings",
+                                ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
+                                 "value", "unit", "quality", "metadata"],
+                                [[f"{reading_date} {reading_time}", str(sensor_id), stype,
+                                  str(loc_id), str(plot_id or ""), value, "mock_unit", "good", {}]],
+                            )
+                        except Exception:
+                            pass
 
                     total += 1
 

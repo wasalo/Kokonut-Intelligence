@@ -2,11 +2,35 @@
 -- 029_pilot_impact_accountability.sql — Adelphi social impact layer
 -- ============================================================
 
+-- Canonical consent grants (215/228 governance layer). The stakeholder
+-- feedback below is published, so effective consent must exist for the
+-- party BEFORE the feedback rows are inserted. The Adelphi operator party
+-- is canonically defined in seed 105 (runs later alphabetically), so it
+-- is created here idempotently to satisfy the FK at this point.
+INSERT INTO party (id, party_type, display_name, description, privacy_level, metadata)
+VALUES ('a0000000-0000-0000-0000-000000001001', 'organization', 'Kokonut Adelphi',
+        'Canonical pilot farm and regenerative demonstration site.', 'limited',
+        '{"source":"canonical_pilot"}'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO stakeholder_consent (
+    party_id, event_type, data_category, purpose,
+    scope_type, scope_id, recipient_type,
+    consent_method, reason, source_system
+) VALUES
+('a0000000-0000-0000-0000-000000001001', 'grant', 'stakeholder_feedback', 'public_summary',
+ 'location', 'a0000000-0000-0000-0000-000000000001', 'system',
+ 'paper_scan', 'Operator approved a summarized public version of their feedback (recorded on signed paper form during 2026-03-05 interview).', 'pilot_seed'),
+('a0000000-0000-0000-0000-000000001001', 'grant', 'stakeholder_feedback', 'stakeholder_feedback_review',
+ 'location', 'a0000000-0000-0000-0000-000000000001', 'system',
+ 'paper_scan', 'Operator approved internal review of raw feedback wording (signed paper form, 2026-03-05 interview).', 'pilot_seed')
+ON CONFLICT DO NOTHING;
+
 INSERT INTO stakeholder_feedback (
     id, location_id, farm_id, feedback_type, stakeholder_group, stakeholder_name,
     feedback_date, feedback_text, language, sentiment, themes, suggested_improvements,
     consent_given, consent_scope, consent_notes, is_public, public_summary,
-    evidence_maturity, status, source_system, source_id, source_raw
+    evidence_maturity, status, source_system, source_id, source_raw, party_id
 ) VALUES
 (
     'a0000000-0000-0000-0000-000000000900',
@@ -30,7 +54,8 @@ INSERT INTO stakeholder_feedback (
     'published',
     'pilot_seed',
     'adelphi-feedback-operator-2026-03',
-    '{"record_type":"stakeholder_feedback","privacy":"public_summary_private_raw"}'::jsonb
+    '{"record_type":"stakeholder_feedback","privacy":"public_summary_private_raw"}'::jsonb,
+    'a0000000-0000-0000-0000-000000001001'
 ),
 (
     'a0000000-0000-0000-0000-000000000901',
@@ -54,7 +79,8 @@ INSERT INTO stakeholder_feedback (
     'verified',
     'pilot_seed',
     'adelphi-feedback-resident-2026-03',
-    '{"record_type":"stakeholder_feedback","privacy":"private"}'::jsonb
+    '{"record_type":"stakeholder_feedback","privacy":"private"}'::jsonb,
+    NULL
 )
 ON CONFLICT (id) DO UPDATE SET
     feedback_text = EXCLUDED.feedback_text,
@@ -71,6 +97,7 @@ ON CONFLICT (id) DO UPDATE SET
     source_system = EXCLUDED.source_system,
     source_id = EXCLUDED.source_id,
     source_raw = EXCLUDED.source_raw,
+    party_id = EXCLUDED.party_id,
     updated_at = NOW();
 
 INSERT INTO stakeholder_feedback_review (
@@ -185,7 +212,7 @@ INSERT INTO impact_claim (
     ARRAY['a0000000-0000-0000-0000-000000000900']::uuid[],
     NULL,
     NULL,
-    3,
+    4,
     NULL,
     TRUE,
     'medium',

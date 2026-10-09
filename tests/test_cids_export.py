@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from services.registry.cids_export import build_cids_graph, export_location
+from services.registry.cids_export import build_cids_graph, export_location, fetch_cids_source
 
 
 def _source() -> dict:
@@ -125,3 +125,35 @@ def test_export_location_wraps_graph_with_essential_tier(monkeypatch) -> None:
     assert exported["kokonut:alignmentTier"] == "essential"
     assert exported["kokonut:cidsVersion"] == "3.2.0"
     assert exported["@graph"]
+
+
+def test_cids_source_query_requires_public_feedback_opt_in() -> None:
+    class Cursor:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
+        def execute(self, query: str, params: tuple[str]) -> None:
+            self.queries.append(query)
+
+        def fetchone(self) -> dict[str, str]:
+            return {"id": "location-id", "name": "Kokonut Adelphi"}
+
+        def fetchall(self) -> list[dict]:
+            return []
+
+    class Connection:
+        def __init__(self, cursor: Cursor) -> None:
+            self._cursor = cursor
+
+        def cursor(self, **kwargs: object) -> Cursor:
+            return self._cursor
+
+    cursor = Cursor()
+    fetch_cids_source(Connection(cursor), "location-id")
+    feedback_query = next(query for query in cursor.queries if "FROM stakeholder_feedback" in query)
+
+    assert "sf.is_public = TRUE" in feedback_query
+    assert "sf.consent_given = TRUE" in feedback_query
+    assert "sf.consent_scope IN ('public_summary', 'public_quote', 'public_full')" in feedback_query
+    assert "sf.status = 'published'" in feedback_query
+    assert "NULLIF(TRIM(COALESCE(sf.public_summary, '')), '') IS NOT NULL" in feedback_query

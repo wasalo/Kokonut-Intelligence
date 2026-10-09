@@ -7,7 +7,7 @@ AAA-D rating, and persists results to the database.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -51,9 +51,13 @@ def _query_location_weights(conn, location_id: str) -> Dict[str, float]:
 
 
 def _assign_rating(composite_score: float) -> str:
-    """Assign AAA-D rating based on composite score."""
+    """Assign AAA-D rating based on composite score.
+
+    Bands are defined as [low, high) — exclusive upper bound.
+    Higher scores receive weaker ratings because higher means more risk.
+    """
     for rating, (low, high) in RATING_BANDS.items():
-        if low <= composite_score <= high:
+        if low <= composite_score < high:
             return rating
     return "D"
 
@@ -182,6 +186,12 @@ def compute_composite_rating(
         methodology_version=methodology_version or CRISP_VERSION,
         weights=weights,
         dimensions=dim_scores,
+        design_note=(
+            "The AAA-D band is a competence/merit signal, not an extrinsic "
+            "bribe. Per persuasive-technology guidance (overjustification "
+            "effect), gamified scores increase intrinsic motivation only when "
+            "seen as reflecting verified competence -- never as a coercive reward."
+        ),
     )
 
 
@@ -277,13 +287,14 @@ def persist_assessment(conn, rating: CompositeRating) -> str:
             cur.execute("""
                 INSERT INTO crisp_policy_risk (
                     assessment_id, location_id, risk_score,
-                    national_policy_score, carbon_rights_score, land_tenure_score,
+                    national_policy_score, article_6_score, carbon_rights_score, land_tenure_score,
                     community_alignment_score, certification_risk_score,
                     evidence_maturity_level, metadata
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 assessment_id, rating.location_id, dim.risk_score,
                 1.0 - f.get("policy_strength", 0),
+                f.get("article_6_readiness"),
                 1.0 - f.get("carbon_rights_clarity", 0),
                 1.0 - f.get("land_tenure_security", 0),
                 1.0 - f.get("community_alignment", 0),
@@ -294,19 +305,35 @@ def persist_assessment(conn, rating: CompositeRating) -> str:
 
         elif dim.dimension_key == "financial":
             f = dim.factors
+            # Convert break_even_month to break_even_year for the CRISP schema
+            be_month = f.get("break_even_month")
+            be_year = None
+            if be_month is not None:
+                from .financial_risk import _query_financial_sustainability
+                fin = _query_financial_sustainability(conn, rating.location_id)
+                plan_start = fin.get("plan_period_start")
+                if plan_start:
+                    from datetime import date as _date
+                    if isinstance(plan_start, str):
+                        plan_start = _date.fromisoformat(plan_start)
+                    be_year = plan_start.year + (int(be_month) - 1) // 12
+                else:
+                    be_year = 2026 + (int(be_month) - 1) // 12
             cur.execute("""
                 INSERT INTO crisp_financial_risk (
                     assessment_id, location_id, risk_score,
                     break_even_year, revenue_risk_factor, cost_risk_factor,
                     market_price_risk, liquidity_risk, financial_risk_factor,
+                    vintage_year,
                     evidence_maturity_level, metadata
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 assessment_id, rating.location_id, dim.risk_score,
-                f.get("break_even_month"),
+                be_year,
                 f.get("revenue_risk"), f.get("cost_risk"),
                 f.get("market_price_risk"), f.get("liquidity_risk"),
                 f.get("financial_risk_factor"),
+                f.get("vintage_year"),
                 dim.evidence_maturity_level,
                 psycopg2.extras.Json(dim.factors),
             ))

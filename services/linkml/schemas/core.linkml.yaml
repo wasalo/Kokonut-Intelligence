@@ -1,0 +1,163 @@
+# Core types with schema.org slot_uri mappings
+# Based on schema.org V30.0 style guide conventions
+
+id: https://kokonut.network/linkml/core
+name: Core
+version: "2.0.0"
+description: >-
+  Core types and properties aligned with schema.org standards.
+  All properties use lowerCamelCase naming and schema.org slot_uri mappings.
+
+imports:
+  - linkml:types
+
+prefixes:
+  schema: http://schema.org/
+  rfs: https://framework.regen.network/schema/
+  kokonut: https://kokonut.network/ontology#
+  xsd: http://www.w3.org/2001/XMLSchema#
+  qudt: http://qudt.org/schema/qudt/
+  geo: http://www.opengis.net/ont/geosparql#
+  dcterms: http://purl.org/dc/terms/
+
+default_prefix: schema
+default_range: string
+
+# ============================================================
+# Core Slots (schema.org aligned)
+# ============================================================
+slots:
+  name:
+    slot_uri: schema:name
+    description: The name of the item.
+    required: true
+  description:
+    slot_uri: schema:description
+    description: A description of the item.
+  url:
+    slot_uri: schema:url
+    description: URL of the item.
+    range: uri
+  identifier:
+    slot_uri: schema:identifier
+    description: The identifier property represents any kind of identifier for any kind of Thing.
+  image:
+    slot_uri: schema:image
+    description: An image of the item.
+    range: uri
+  same_as:
+    slot_uri: schema:sameAs
+    description: URL of a reference Web page that unambiguously indicates the item's identity.
+    range: uri
+    multivalued: true
+  main_entity_of_page:
+    slot_uri: schema:mainEntityOfPage
+    description: Indicates a page for which this thing is the main entity being described.
+    range: uri
+  potential_action:
+    slot_uri: schema:potentialAction
+    description: Indicates a potential Action, which describes an idealized action.
+  alternate_name:
+    slot_uri: schema:alternateName
+    description: An alias for the item.
+
+# ============================================================
+# New Types
+# ============================================================
+classes:
+  Link:
+    description: A web link with name, URL, and description.
+    class_uri: schema:Link
+    slots:
+      - name
+      - url
+    slot_usage:
+      name:
+        required: true
+      url:
+        required: true
+    attributes:
+      description:
+        slot_uri: schema:description
+
+  PropertyValue:
+    description: >-
+      A property-value pair representing an additional characteristic of the entity.
+      Used for flexible key-value pairs that don't have dedicated schema.org properties.
+    class_uri: schema:PropertyValue
+    attributes:
+      property_name:
+        slot_uri: schema:propertyID
+        range: string
+        required: true
+      property_value:
+        range: string
+        required: true
+      value_reference:
+        slot_uri: schema:valueReference
+        range: uri
+
+  QuantitativeValue:
+    description: >-
+      A value that represents a quantity, with a numeric value and a unit.
+      Used for projectSize and other measured quantities.
+    class_uri: qudt:QuantityValue
+    attributes:
+      numeric_value:
+        slot_uri: qudt:numericValue
+        range: float
+        required: true
+      unit:
+        slot_uri: qudt:unit
+        range: string
+        required: true
+
+  GeoShape:
+    description: >-
+      The geometric shape of a place. Supports Point, Polygon, LineString,
+      MultiPolygon, and GeometryCollection using GeoSPARQL 1.1 WKT.
+    class_uri: geo:Geometry
+    attributes:
+      as_wkt:
+        slot_uri: geo:asWKT
+        range: string
+        required: true
+        description: Well-Known Text representation of the geometry.
+      geo_type:
+        range: string
+        description: "Geometry type: Point, Polygon, LineString, MultiPolygon, GeometryCollection"
+
+  Feature:
+    description: A spatial feature with geometry and bounding box.
+    class_uri: geo:Feature
+    attributes:
+      name:
+        slot_uri: schema:name
+        required: true
+      has_geometry:
+        slot_uri: geo:hasGeometry
+        range: GeoShape
+        required: true
+      has_bounding_box:
+        slot_uri: geo:hasBoundingBox
+        range: GeoShape
+      has_centroid:
+        slot_uri: geo:hasCentroid
+        range: GeoShape
+
+  Duration:
+    description: >-
+      ISO 8601 duration format (e.g., P1Y2M, PT15M, P30D).
+      Used for crediting periods and permanence periods.
+    class_uri: xsd:duration
+    range: string
+    exact_mappings:
+      - schema:Duration
+
+types:
+  duration:
+    uri: xsd:duration
+    base: str
+    description: "ISO 8601 duration format (e.g., P1Y2M, PT15M, P30D)"
+    exact_mappings:
+      - schema:Duration

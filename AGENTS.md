@@ -1,5 +1,50 @@
 # Repository Guidelines
 
+## Contributing Workflow
+
+All work follows a 3-step branch → PR → merge flow:
+
+1. **Branch**: Create a new local branch from `main` when starting a feature or improvement.
+   - Naming: `feat/short-name`, `fix/short-name`, or `chore/short-name`
+   - `git checkout -b feat/my-feature main`
+
+2. **Commit & PR**: Commit locally, push the branch, and open a PR to `main`.
+   - Use TOD agent skills (`work-on-issue`, `submit-pull-request-work`) to create PRs via OneDev.
+   - Never push directly to `main`.
+
+3. **Merge**: When CI passes, merge the PR into `main`.
+   - Use TOD agent skills (`submit-pull-request-work`) or merge via OneDev UI.
+   - Delete the feature branch after merge.
+
+**Exception**: Hotfixes may be committed directly to `main` with a follow-up PR for any ancillary changes.
+
+## Unified CLI
+
+A single typer-based meta-CLI aggregates all service CLIs. Prefer it for interactive use; the per-service `python3 -m services.metrics.cli` invocations remain fully supported and are documented below.
+
+- List all service groups: `python3 -m services.cli --help`
+- Run a service command: `python3 -m services.cli metrics --list`
+- The meta-CLI mounts legacy argparse CLIs unchanged. Each subcommand forwards its trailing tokens to the original parser, so the documented `python3 -m services.metrics ...` flags work the same way under `python3 -m services.cli metrics ...`.
+- New commands should use the shared helpers in `services/common/cli.py`: `run()` (clean error + exit code), `print_json()`, and `get_connection()` (context-managed DB). Do not re-implement JSON printing, error wrapping, or raw `conn.close()` blocks.
+
+## Governance Frameworks
+
+Kokonut Intelligence is governance-framework-aware. A pluggable `GovernanceFramework` abstraction (`services/governance/`) lets the platform feel native across DAOs. The first concrete adapter is **Moloch v3 (Baal)** — the framework behind the Kokonut DAO on Gnosis Chain. Future adapters (OpenZeppelin Governor, Aragon, Colony) follow the same contract and register in `services/governance/adapters.py`.
+
+- The integration is **read-first**: adapters expose on-chain state (proposals, votes, member shares/loot, governance config, shamans) but contain no transaction-submitting methods. Any write path (proposal submission, execution, ragequit, shaman calls) is out of scope and must route through a human-approved Agent/Governor flow per `services/agents/safety.py`.
+- Kokonut DAO (Baal) contract addresses live in `services/ingestion/config.py` under `KOKONUT_BAAL_ADDRESSES`; ABIs in `contracts/abis/Baal.json`, `BaalShares.json`, `BaalLoot.json`.
+- The legacy **Moloch v2** Kokonut DAO is preserved: `services/ingestion/gnosis_indexer.py` and `services/guilds/moloch.py` still use `KOKONUT_MOLOCH_ADDRESSES` for historical queries. Do not repoint them at the Baal deployment.
+- Framework registry is mirrored in the DB via the `governance_framework` table (seeded in `schemas/seeds/020_gnosis_chain.sql`); `baal_governance_config` and `baal_shaman` cache indexed on-chain state.
+
+Commands:
+- List configured frameworks: `python3 -m services.governance.cli framework list` (also `python3 -m services.cli dao framework list`)
+- Baal governance config: `python3 -m services.governance.cli baal config`
+- Baal proposals: `python3 -m services.governance.cli baal proposals`
+- Baal proposal by id: `python3 -m services.governance.cli baal proposal 3`
+- Baal member state: `python3 -m services.governance.cli baal member 0xWALLET`
+- Baal shaman permission: `python3 -m services.governance.cli baal shaman 0xSHAMAN`
+- Index Baal events: `python3 -m services.ingestion.baal_indexer [--from-block N] [--to-block N]`
+
 ## Project Shape
 
 - PostgreSQL and Directus are the canonical schema/API layer.
@@ -23,17 +68,33 @@
 - Do not overload lifecycle `status` with payment, attestation, or domain state.
 - Use fields like `payment_status`, `attestation_uid`, `attested_at`, and `revocation_date` for domain-specific state.
 
+## Operational Integrity
+
+- Metric computation creates draft, unverified `metric_value` rows. Never describe `--compute` or `compute-metrics.sh` as verification; a human must run `--verify-value` separately.
+- Base Compose keeps PostgreSQL and ClickHouse private. Use Compose service names for database access; do not document host ports unless an explicit override publishes them.
+- `compute-metrics.sh` runs metrics once and exits. With the Compose database running it uses an ephemeral `kokonut-worker` via `docker compose run --rm`; it is not a persistent metrics service.
+- Migrations are ordered and checksummed. Do not edit an applied migration or bypass drift detection; add a new migration and preserve transactional failure behavior.
+- Gateway public access is explicit opt-in. Unknown routes remain protected, and new routes require deliberate resource/action/public policy plus authorization tests.
+- Scheduler claims, run state, event delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
+- Credit writes must preserve batch/account custody and supply invariants. Retirement reserves quantity atomically and requires an independent human confirmation before final balance mutation or certificate use.
+- Threatcasting/backcasting outputs and Delphi facilitator recommendations are advisory. Preserve governed lifecycle, evidence links, and human approval boundaries.
+- Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
+
 ## Local Commands
 
-- Start services: `docker compose up -d`
+- Start services with encrypted secrets: `source scripts/load-secrets.sh && docker compose up -d`
+- Start services (plaintext .env fallback): `docker compose up -d`
+- Decrypt secrets to stdout: `sops -d --input-type dotenv --output-type dotenv .env.sops`
+- Edit encrypted secrets: `sops .env.sops`
+- Source secrets into shell: `source scripts/load-secrets.sh`
 - Apply schemas/base seeds: `./scripts/seed.sh`
 - Apply pilot data: `./scripts/seed-pilot.sh`
 - Run smoke tests: `python3 -m tests.test_smoke`
 - Run CLI tests: `python3 -m tests.test_cli`
 - Run attestation tests: `python3 -m tests.test_attestation`
 - Run Directus metadata tests: `python3 -m tests.test_directus_metadata`
-- Verify MVP definition of done: `./scripts/verify-mvp.sh`
-- Run CI checks: `./scripts/ci-check.sh` (also runs on push via `.github/workflows/ci.yml`)
+- Verify platform definition of done: `./scripts/verify-platform.sh`
+- Run CI checks: `./scripts/ci-check.sh` (also runs on push via `.github/workflows/ci.yml`). CI exposes PostgreSQL/ClickHouse to localhost via the `docker-compose.ci.yml` override so host-run DB checks execute; `ci-check.sh` fails loudly if the database cannot be brought up (no silent skip).
 - Build Solidity contracts: `cd contracts && forge build`
 - Run Solidity tests: `cd contracts && forge test`
 - Format Solidity: `cd contracts && forge fmt`
@@ -42,9 +103,43 @@
 - Compute metrics: `python3 -m services.metrics --compute --metric value_flowed --location-id UUID`
 - Compute all metrics (single location): `python3 -m services.metrics --compute --all --location-id UUID`
 - Compute all metrics (all locations): `python3 -m services.metrics --compute --all-locations`
-- Compute all metrics as verified (all locations): `python3 -m services.metrics --compute --all-locations --verify`
+- Verify one computed metric (human review): `python3 -m services.metrics --verify-value UUID --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"`
 - Compute all metrics (script): `./scripts/compute-metrics.sh`
 - List metrics: `python3 -m services.metrics --list`
+- Event bus process: `python3 -m services.events --process`
+- Event bus stats: `python3 -m services.events --stats`
+- Event bus cleanup: `python3 -m services.events --cleanup`
+- Event bus handlers: `python3 -m services.events --list-handlers`
+- Event bus dead letter: `python3 -m services.events --list-dead-letter`
+- Event bus replay dead letter: `python3 -m services.events --replay-dead-letter --event-id UUID --actor OPERATOR`
+- Event bus dispose dead letter: `python3 -m services.events --dispose-dead-letter --event-id UUID --disposition resolved --actor OPERATOR --reason "Fixed upstream"`
+- Scheduler worker: `python3 -m services.scheduler.worker --tick-interval 30`
+- Scheduler status: `python3 -m services.scheduler.cli --status`
+- Scheduler list runs: `python3 -m services.scheduler.cli --list-runs`
+- Driver list: `python3 -m services.drivers.cli --list`
+- Driver list (by type): `python3 -m services.drivers.cli --list --type weather`
+- Driver instances: `python3 -m services.drivers.cli --list-instances`
+- Driver install: `python3 -m services.drivers.cli --install --driver NAME --instance-name NAME --config '{}'`
+- Driver test: `python3 -m services.drivers.cli --test --driver NAME`
+- Driver test instance: `python3 -m services.drivers.cli --test-instance --instance-id UUID`
+- Feature flags: `python3 -c "from services.core.features import list_features; print(list_features())"`
+- Health check: `python3 -c "from services.core.health import overall_health; import json; print(json.dumps(overall_health(), indent=2))"`
+- Stream ingest: `python3 -m services.stream.cli --run`
+- Stream stats: `python3 -m services.stream.cli --stats`
+- Stream windows: `python3 -m services.stream.cli --windows --sensor UUID --metric soil_moisture`
+- Stream alerts: `python3 -m services.stream.cli --alerts`
+- Security issue token: `python3 -m services.security.cli --issue --holder NAME --capabilities '[{"resource":"harvest_event","action":"write"}]'`
+- Security verify token: `python3 -m services.security.cli --verify --token TOKEN --resource harvest_event --action write`
+- Security audit log: `python3 -m services.security.cli --audit [--caller NAME] [--status denied]`
+- Federation register: `python3 -m services.federation.cli --register --name NAME --url URL`
+- Federation list nodes: `python3 -m services.federation.cli --list-nodes`
+- Federation share: `python3 -m services.federation.cli --share --node NAME --data-type TYPE --data '{}'`
+- Federation query: `python3 -m services.federation.cli --query --type TYPE`
+- Sandbox create: `python3 -m services.sandbox.cli --create --location-id UUID`
+- Sandbox run: `python3 -m services.sandbox.cli --run --env-id UUID --module PATH`
+- Sandbox list: `python3 -m services.sandbox.cli --list`
+- Gateway serve: `python3 -m services.gateway.cli --serve --port 8099`
+- Gateway health: `python3 -m services.gateway.cli --health`
 - NDVI trends: `python3 -m services.analytics --ndvi-trends --location-id UUID`
 - Water resilience: `python3 -m services.analytics --water-resilience --location-id UUID`
 - Crop diversity: `python3 -m services.analytics --crop-diversity --location-id UUID`
@@ -80,7 +175,7 @@
 - Dataset refresh: `python3 -m services.export.dataset_refresh --all`
 - Report auto-generation: `python3 -m services.export.report_generator --auto --location-id UUID`
 - Climate-impact report: `python3 -m services.export.report_generator --type climate_impact --location-id UUID`
-- Spreadsheet template: `python3 -m services.export.spreadsheet_bridge --template exports/farm_activity_template.csv`
+- Spreadsheet template: `python3 -m services.export.spreadsheet_bridge --template exports/templates/farm_activity_template.csv`
 - Spreadsheet import dry-run: `python3 -m services.export.spreadsheet_bridge --import-file data.csv --dry-run`
 - CIDS export tests: `python3 -m tests.test_cids_export`
 - Agent safety tests: `python3 -m tests.test_agent_safety`
@@ -114,6 +209,85 @@
 - CRISP composite rating: `python3 -m services.crisp --composite --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD`
 - CRISP rate and persist: `python3 -m services.crisp --rate --location-id UUID --period-start YYYY-MM-DD --period-end YYYY-MM-DD`
 - CRISP show weights: `python3 -m services.crisp --weights --location-id UUID`
+- Data stream post: `python3 -m services.data_stream.cli post --location-id UUID --type photo --title "Title" --content "Content"`
+- Data stream view: `python3 -m services.data_stream.cli stream --location-id UUID`
+- Data stream search: `python3 -m services.data_stream.cli search --query "soil moisture" --location-id UUID`
+- Data stream anchor: `python3 -m services.data_stream.cli anchor --post-id UUID --chain celo`
+- Data stream verify: `python3 -m services.data_stream.cli verify --post-id UUID`
+- Data stream list: `python3 -m services.data_stream.cli list --location-id UUID --type monitoring_report`
+- Data stream add file: `python3 -m services.data_stream.cli file add --post-id UUID --name "photo.jpg" --media-type image --latitude 18.5 --longitude -69.9`
+- Data stream list files: `python3 -m services.data_stream.cli file list --post-id UUID`
+- Data stream remove file: `python3 -m services.data_stream.cli file remove --file-id UUID`
+- Data stream tests: `python3 -m tests.test_data_stream`
+- IRI generate: `python3 -m services.iri.cli generate --entity-type location --entity-id UUID`
+- IRI resolve: `python3 -m services.iri.cli resolve --iri "kokonut:location:UUID:v1"`
+- IRI history: `python3 -m services.iri.cli history --entity-type location --entity-id UUID`
+- IRI anchor: `python3 -m services.iri.cli anchor --iri "kokonut:location:UUID:v1" --chain celo`
+- Credit class create: `python3 -m services.credit_class.cli class create --name "Kokonut Carbon" --methodology "IPCC 2006" --type carbon --url "https://example.com"`
+- Credit class get: `python3 -m services.credit_class.cli class get --class-id UUID`
+- Credit class list: `python3 -m services.credit_class.cli class list --type carbon`
+- Credit batch create: `python3 -m services.credit_class.cli batch create --class-id UUID --location-id UUID --vintage 2026 --quantity 100`
+- Credit batch issue: `python3 -m services.credit_class.cli batch issue --batch-id UUID --issuer 0x1234`
+- Credit batch balance: `python3 -m services.credit_class.cli batch balance --batch-id UUID`
+- Credit batch list: `python3 -m services.credit_class.cli batch list --location-id UUID`
+- Credit class add cobenefit: `python3 -m services.credit_class.cli cobenefit add --credit-class-id UUID --impact-name "Biodiversity"`
+- Credit class add registry: `python3 -m services.credit_class.cli registry add --credit-class-id UUID --registry-name "Verra"`
+- Credit class add program: `python3 -m services.credit_class.cli program add --credit-class-id UUID --name "VCS"`
+- Credit class add protocol: `python3 -m services.credit_class.cli protocol add --credit-class-id UUID --name "IPCC 2006 Tier 2" --is-primary`
+- Credit class add methodology: `python3 -m services.credit_class.cli methodology add --credit-class-id UUID --name "VM0042"`
+- Credit class add buffer-pool: `python3 -m services.credit_class.cli buffer-pool add --credit-class-id UUID --name "Kokonut Pool" --wallet-address 0x1234`
+- Credit type list: `python3 -m services.credit_class.cli credit-type list`
+- Credit class add issuer: `python3 -m services.credit_class.cli issuer add --class-id UUID --address 0x1234 --name "Kokonut DAO"`
+- Credit class list issuers: `python3 -m services.credit_class.cli issuer list --class-id UUID`
+- Allowlist add: `python3 -m services.credit_class.cli allowlist add --address 0x1234 --name "Kokonut"`
+- Allowlist list: `python3 -m services.credit_class.cli allowlist list`
+- Basket create: `python3 -m services.credit_class.cli basket create --name "Carbon Basket" --denom cusd`
+- Basket list: `python3 -m services.credit_class.cli basket list`
+- Basket deposit: `python3 -m services.credit_class.cli basket deposit --basket-id UUID --batch-id UUID --address 0x1234 --quantity 100 --token-amount 100`
+- Basket balance: `python3 -m services.credit_class.cli basket balance --basket-id UUID --address 0x1234`
+- Marketplace sell: `python3 -m services.credit_class.cli marketplace sell --batch-id UUID --seller 0x1234 --quantity 100 --price 2500 --denom cusd`
+- Marketplace buy: `python3 -m services.credit_class.cli marketplace buy --sell-order-id UUID --buyer 0x5678 --quantity 50`
+- Marketplace execute: `python3 -m services.credit_class.cli marketplace execute --buy-order-id UUID`
+- Marketplace denoms: `python3 -m services.credit_class.cli marketplace denoms`
+- Balance get: `python3 -m services.credit_class.cli balance get --batch-id UUID --account 0x1234`
+- Balance account: `python3 -m services.credit_class.cli balance account --account 0x1234`
+- Balance batch: `python3 -m services.credit_class.cli balance batch --batch-id UUID`
+- Balance all: `python3 -m services.credit_class.cli balance all`
+- Balance supply: `python3 -m services.credit_class.cli balance supply --batch-id UUID`
+- Params list: `python3 -m services.credit_class.cli params list`
+- Params get: `python3 -m services.credit_class.cli params get --key class_fee`
+- Data hash: `python3 -m services.data_module.cli hash --data "test" --algorithm sha256`
+- Data content-hash create: `python3 -m services.data_module.cli content-hash create --iri-id UUID --hash abc123`
+- Data content-hash find: `python3 -m services.data_module.cli content-hash find --hash abc123`
+- Data resolver define: `python3 -m services.data_module.cli resolver define --url "https://api.kokonut.network/data" --manager 0x1234`
+- Data resolver register: `python3 -m services.data_module.cli resolver register --resolver-id UUID --iri-id UUID`
+- Data resolver by-iri: `python3 -m services.data_module.cli resolver by-iri --iri-id UUID`
+- Data attest do: `python3 -m services.data_module.cli attest do --iri-id UUID --attestor 0x1234`
+- Data attest list: `python3 -m services.data_module.cli attest list --iri-id UUID`
+- Enrollment apply: `python3 -m services.credit_class.cli enrollment apply --location-id UUID --class-id UUID`
+- Enrollment evaluate: `python3 -m services.credit_class.cli enrollment evaluate --enrollment-id UUID --issuer 0x1234 --status accepted`
+- Enrollment list by class: `python3 -m services.credit_class.cli enrollment list-by-class --class-id UUID`
+- Enrollment list by project: `python3 -m services.credit_class.cli enrollment list-by-project --location-id UUID`
+- Bridge out: `python3 -m services.credit_class.cli bridge out --batch-id UUID --sender 0x1234 --target celo --recipient 0x5678 --quantity 50`
+- Bridge in: `python3 -m services.credit_class.cli bridge in --class-id UUID --source polygon --issuer 0x1234 --recipient 0x5678 --quantity 100`
+- Bridge complete: `python3 -m services.credit_class.cli bridge complete --bridge-tx-id UUID`
+- Bridge list: `python3 -m services.credit_class.cli bridge list --direction outbound`
+- RDF build: `python3 -m services.rdf.cli build --location-id UUID`
+- RDF query: `python3 -m services.rdf.cli query --subject "kokonut:location:UUID"`
+- RDF serialize: `python3 -m services.rdf.cli serialize --format turtle --graph "location:adelphi"`
+- RDF count: `python3 -m services.rdf.cli count --graph "location:adelphi"`
+- RDF list-graphs: `python3 -m services.rdf.cli list-graphs`
+- Certificate generate: `python3 -m services.certificates.cli generate --retirement-id UUID`
+- Certificate verify: `python3 -m services.certificates.cli verify --certificate-number RET-2026-ADEL-0001`
+- Certificate list: `python3 -m services.certificates.cli list --location-id UUID`
+- Metadata API resolve: `python3 -m services.metadata_api.cli resolve --iri "kokonut:location:UUID:v1"`
+- Metadata API generate: `python3 -m services.metadata_api.cli generate --metadata '{"@type":"location","name":"Test"}'`
+- Metadata API serve: `python3 -m services.metadata_api.cli serve --port 8099`
+- Project info view: `python3 -m services.metadata_api.cli resolve --iri "kokonut:location:UUID:v1"` (returns full ProjectInfo)
+- Linked data tests: `python3 -m tests.test_linked_data`
+- gRPC server: `python3 -m services.grpc.cli serve`
+- gRPC health check: `python3 -m services.grpc.cli health --target localhost:50051`
+- gRPC tests: `python3 -m tests.test_grpc`
 - Data freshness check: `python3 -m services.ingestion.data_freshness --check`
 - Data freshness summary: `python3 -m services.ingestion.data_freshness --summary`
 - Climate data ingestion: `python3 -m services.ingestion.climate_data --all --location-id UUID`
@@ -123,7 +297,7 @@
 - Remote sensing fetch jobs: `python3 -m services.ingestion.remote_sensing_fetcher --list-jobs`
 - Remote sensing run jobs: `python3 -m services.ingestion.remote_sensing_fetcher --run-jobs`
 - Remote sensing create job: `python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID --provider gee`
-- MQTT subscriber: `python3 -m services.ingestion.mqtt_subscriber --broker localhost --port 1883`
+- MQTT subscriber: `python3 -m services.ingestion.mqtt_subscriber --broker localhost --port 8883`
 - HTTP sensor receiver: `python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056`
 - Device manager list: `python3 -m services.ingestion.device_manager --list`
 - Device manager register: `python3 -m services.ingestion.device_manager --register --device-id sensor001 --sensor-type air_temperature --location-id UUID`
@@ -132,7 +306,8 @@
 - Carbon credit tests: `python3 -m tests.test_carbon_credits`
 - Carbon credit issue: `python3 -m services.analytics.carbon_credits --issue --location-id UUID --vintage-year 2026 --methodology "IPCC 2006 Tier 2"`
 - Carbon credit adjust: `python3 -m services.analytics.carbon_credits --adjust --location-id UUID`
-- Carbon credit retire: `python3 -m services.analytics.carbon_credits --retire --credit-id UUID --tonnes 5.0 --reason voluntary_retirement`
+- Carbon credit retire: `python3 -m services.analytics.carbon_credits --retire --credit-id UUID --tonnes 5.0 --reason voluntary_retirement --requested-by REVIEWER_UUID --idempotency-key REQUEST_KEY`
+- Carbon retirement confirm: `python3 -m services.analytics.carbon_credits --confirm-retirement --retirement-id UUID --reviewer-id REVIEWER_UUID`
 - Carbon credit list: `python3 -m services.analytics.carbon_credits --list --location-id UUID`
 - Carbon credit balance: `python3 -m services.analytics.carbon_credits --balance --location-id UUID`
 - Carbon credit check adjustments: `python3 -m services.analytics.carbon_credits --check-adjustments --location-id UUID`
@@ -142,6 +317,267 @@
 - Prefect workflow tests: `python3 -m tests.test_prefect_workflow`
 - Prefect pipeline: `python3 -m services.flows.pipelines full_pipeline`
 - Field data collection guide: `docs/field-data-collection-guide.md`
+- Weather forecast ingestion: `python3 -m services.ingestion.weather_forecast`
+- Weather forecast ingestion (single location): `python3 -m services.ingestion.weather_forecast --location-id UUID`
+- Weather forecast daily summary: `python3 -c "from services.ingestion.weather_forecast import get_daily_summary, get_db; print(get_daily_summary(get_db(), 'UUID'))"`
+- Weather forecast spray windows: `python3 -c "from services.ingestion.weather_forecast import get_spray_windows, get_db; print(get_spray_windows(get_db(), 'UUID'))"`
+- Evapotranspiration (Penman-Monteith): `python3 -m services.analytics.evapotranspiration et0 --temp-max 30 --temp-min 18 --humidity 65 --wind 10 --solar 18 --lat -1.2 --doy 180`
+- Evapotranspiration water balance: `python3 -m services.analytics.evapotranspiration water-balance --location-id UUID`
+- Evapotranspiration store ET for forecasts: `python3 -m services.analytics.evapotranspiration store-et --location-id UUID`
+- Crop GDD accumulate: `python3 -m services.analytics.crop_phenology accumulate --crop-cycle-id UUID`
+- Crop GDD detect stage: `python3 -m services.analytics.crop_phenology detect-stage --crop-cycle-id UUID`
+- Crop GDD project stages: `python3 -m services.analytics.crop_phenology project --crop-cycle-id UUID`
+- Crop GDD anomalies: `python3 -m services.analytics.crop_phenology anomalies --location-id UUID`
+- Crop GDD list stages: `python3 -m services.analytics.crop_phenology list-stages --crop maize`
+- Crop GDD current stages: `python3 -m services.analytics.crop_phenology current --location-id UUID`
+- Prescription classify (natural breaks): `python3 -m services.analytics.prescription classify --crop maize --stage mid --values 10,20,30,80,90,100`
+- Prescription classify (equal interval): `python3 -m services.analytics.prescription classify --method equal-interval --values 10,20,30,40,50`
+- Prescription generate: `python3 -m services.analytics.prescription generate --location-id UUID --plot-id UUID --input fertilizer`
+- Prescription list: `python3 -m services.analytics.prescription list --location-id UUID`
+- Prescription approve: `python3 -m services.analytics.prescription approve --prescription-id UUID --approved-by admin`
+- Prescription estimate: `python3 -m services.analytics.prescription estimate --prescription-id UUID`
+- Advisory evaluate: `python3 -m services.analytics.advisor evaluate --location-id UUID`
+- Advisory run cycle: `python3 -m services.analytics.advisor run-cycle --location-id UUID`
+- Advisory list pending: `python3 -m services.analytics.advisor pending --location-id UUID`
+- Advisory accept: `python3 -m services.analytics.advisor accept --recommendation-id UUID --user-id admin`
+- Advisory dismiss: `python3 -m services.analytics.advisor dismiss --recommendation-id UUID --reason "not needed"`
+- Equipment status: `python3 -m services.analytics.equipment status --location-id UUID`
+- Equipment log usage: `python3 -m services.analytics.equipment log --location-id UUID --asset-id UUID --start 2026-01-15T08:00 --end 2026-01-15T12:00`
+- Equipment OEE: `python3 -m services.analytics.equipment oee --asset-id UUID`
+- Equipment maintenance: `python3 -m services.analytics.equipment maintenance --location-id UUID`
+- Equipment cost: `python3 -m services.analytics.equipment cost --location-id UUID`
+- Prescription tests: `python3 -m tests.test_prescription`
+- Advisory tests: `python3 -m tests.test_advisor`
+- Equipment tests: `python3 -m tests.test_equipment`
+- Yield record: `python3 -m services.analytics.yield_monitoring record --location-id UUID --yield-amount 2500 --area 1.5 --crop maize`
+- Yield summary: `python3 -m services.analytics.yield_monitoring summary --location-id UUID`
+- Yield trend: `python3 -m services.analytics.yield_monitoring trend --location-id UUID --crop maize`
+- Yield predict: `python3 -m services.analytics.yield_monitoring predict --location-id UUID --crop maize --days 60`
+- Yield benchmark: `python3 -m services.analytics.yield_monitoring benchmark --location-id UUID --crop maize`
+- Irrigation create-zone: `python3 -m services.analytics.precision_irrigation create-zone --location-id UUID --name "Zone A"`
+- Irrigation set-target: `python3 -m services.analytics.precision_irrigation set-target --zone-id UUID --crop-stage vegetative --target-min 50 --target-max 65 --trigger-pct 40 --refill-pct 65`
+- Irrigation schedule: `python3 -m services.analytics.precision_irrigation schedule --zone-id UUID --etc 4.5 --rainfall 2.0 --moisture 42`
+- Irrigation record-event: `python3 -m services.analytics.precision_irrigation record-event --zone-id UUID --volume 500 --duration 60 --method drip --moisture-before 38 --moisture-after 62`
+- Irrigation create-rule: `python3 -m services.analytics.precision_irrigation create-rule --location-id UUID --name "Low moisture" --metric soil_moisture --operator lt --threshold 40 --action irrigate`
+- Irrigation eval-rules: `python3 -m services.analytics.precision_irrigation eval-rules --zone-id UUID --readings '{"soil_moisture": 35}'`
+- Irrigation zone-status: `python3 -m services.analytics.precision_irrigation zone-status --zone-id UUID`
+- Irrigation status: `python3 -m services.analytics.precision_irrigation irrigation-status --location-id UUID`
+- Irrigation water-efficiency: `python3 -m services.analytics.precision_irrigation water-efficiency --location-id UUID --days 30`
+- Irrigation water-balance: `python3 -m services.analytics.precision_irrigation water-balance --zone-id UUID`
+- Irrigation optimize: `python3 -m services.analytics.precision_irrigation optimize --zone-id UUID`
+- Irrigation efficiency-report: `python3 -m services.analytics.precision_irrigation efficiency-report --location-id UUID`
+- Digital twin create: `python3 -m services.analytics.digital_twin create --location-id UUID --name "Adelphi Twin"`
+- Digital twin configure: `python3 -m services.analytics.digital_twin configure --twin-id UUID --key crop --value maize`
+- Digital twin simulate: `python3 -m services.analytics.digital_twin simulate --twin-id UUID`
+- Digital twin scenario: `python3 -m services.analytics.digital_twin scenario --twin-id UUID --name "High Irrigation" --params '{"irrigation_mm": 30}'`
+- Digital twin compare: `python3 -m services.analytics.digital_twin compare --twin-id UUID`
+- Digital twin list: `python3 -m services.analytics.digital_twin list --location-id UUID`
+- Mobile device register: `python3 -m services.analytics.mobile_offline register --device-id sensor-phone-001 --name "Field Phone 1"`
+- Mobile queue: `python3 -m services.analytics.mobile_offline queue --device-id sensor-phone-001 --type soil_reading --location-id UUID`
+- Mobile sync: `python3 -m services.analytics.mobile_offline sync --device-id sensor-phone-001`
+- Mobile status: `python3 -m services.analytics.mobile_offline status`
+- Mobile devices: `python3 -m services.analytics.mobile_offline devices`
+- LLM chat session: `python3 -m services.analytics.llm_chat session --create --location-id UUID --user admin`
+- LLM chat send: `python3 -m services.analytics.llm_chat chat --session-id UUID --message "What was the maize yield?"`
+- LLM chat intents: `python3 -m services.analytics.llm_chat intents`
+- LLM chat history: `python3 -m services.analytics.llm_chat history --session-id UUID`
+- Marketplace create listing: `python3 -m services.analytics.marketplace create-listing --location-id UUID --crop maize --quantity 500 --unit kg --price 0.50 --grade A`
+- Marketplace list active: `python3 -m services.analytics.marketplace list-active --location-id UUID --crop maize`
+- Marketplace record price: `python3 -m services.analytics.marketplace record-price --crop maize --market "Adelphi Coop" --price 0.55 --grade A`
+- Marketplace price trends: `python3 -m services.analytics.marketplace price-trends --crop maize --days 30`
+- Marketplace create order: `python3 -m services.analytics.marketplace create-order --listing-id UUID --buyer-id UUID --quantity 200`
+- Marketplace market overview: `python3 -m services.analytics.marketplace market-overview --location-id UUID`
+- Marketplace evaluate: `python3 -m services.analytics.marketplace evaluate --listing-id UUID`
+- Cooperative create: `python3 -m services.analytics.cooperative create-coop --name "Adelphi Coop" --type marketing --location-id UUID --governance one_member_one_vote`
+- Cooperative add member: `python3 -m services.analytics.cooperative add-member --cooperative-id UUID --farmer-id UUID --role member --shares 10`
+- Cooperative summary: `python3 -m services.analytics.cooperative summary --cooperative-id UUID`
+- Cooperative list: `python3 -m services.analytics.cooperative list --location-id UUID`
+- Cooperative add asset: `python3 -m services.analytics.cooperative add-asset --cooperative-id UUID --name "Tractor" --type tractor --daily-rate 50.00`
+- Cooperative book asset: `python3 -m services.analytics.cooperative book-asset --asset-id UUID --membership-id UUID --start "2026-07-15T08:00" --end "2026-07-20T17:00"`
+- Cooperative asset utilization: `python3 -m services.analytics.cooperative asset-utilization --cooperative-id UUID`
+- Cooperative create purchase: `python3 -m services.analytics.cooperative create-purchase --cooperative-id UUID --order-name "Bulk Seeds" --category seeds --target-qty 1000 --unit kg --target-price 2.50`
+- Cooperative add purchase participant: `python3 -m services.analytics.cooperative add-purchase-participant --purchase-id UUID --membership-id UUID --quantity 100 --commitment 250.00`
+- Cooperative create market order: `python3 -m services.analytics.cooperative create-market-order --cooperative-id UUID --order-name "Maize Bulk" --crop maize --quantity 5000 --target-price 350.00`
+- Cooperative add market participant: `python3 -m services.analytics.cooperative add-market-participant --market-order-id UUID --membership-id UUID --quantity 500`
+- Cooperative collective orders: `python3 -m services.analytics.cooperative collective-orders --cooperative-id UUID`
+- Cooperative member dashboard: `python3 -m services.analytics.cooperative member-dashboard --farmer-id UUID`
+- Data governance record consent: `python3 -m services.analytics.data_governance record-consent --farmer-id F001 --data-category soil --scope collection --status granted`
+- Data governance withdraw consent: `python3 -m services.analytics.data_governance withdraw-consent --consent-id UUID --reason "reason"`
+- Data governance consent status: `python3 -m services.analytics.data_governance consent-status --farmer-id F001`
+- Data governance check consent: `python3 -m services.analytics.data_governance check-consent --farmer-id F001 --data-category soil --scope collection`
+- Data governance log access: `python3 -m services.analytics.data_governance log-access --accessor-id A001 --data-category soil --resource-type soil_sample --access-type read`
+- Data governance access audit: `python3 -m services.analytics.data_governance access-audit --farmer-id F001`
+- Data governance request portability: `python3 -m services.analytics.data_governance request-portability --farmer-id F001 --format csv --scope all`
+- Data governance fulfill portability: `python3 -m services.analytics.data_governance fulfill-portability --request-id UUID --file-path /tmp/export.csv`
+- Data governance portability requests: `python3 -m services.analytics.data_governance portability-requests --farmer-id F001`
+- Data governance create agreement: `python3 -m services.analytics.data_governance create-agreement --provider-id F001 --consumer-id ORG001 --data-categories soil,yield --purpose "research"`
+- Data governance sharing agreements: `python3 -m services.analytics.data_governance sharing-agreements --farmer-id F001`
+- Data governance set retention: `python3 -m services.analytics.data_governance set-retention --data-category soil --retention-days 2555 --action soft_delete`
+- Data governance summary: `python3 -m services.analytics.data_governance governance-summary --location-id UUID`
+- Yield monitoring tests: `python3 -m tests.test_yield_monitoring`
+- Digital twin tests: `python3 -m tests.test_digital_twin`
+- Mobile offline tests: `python3 -m tests.test_mobile_offline`
+- LLM chat tests: `python3 -m tests.test_llm_chat`
+- Pest management record scouting: `python3 -m services.analytics.pest_management record-scouting --location-id UUID --pest fall_armyworm --type insect --severity moderate`
+- Pest management set threshold: `python3 -m services.analytics.pest_management set-threshold --location-id UUID --pest fall_armyworm --crop maize --eil 2.0 --et 1.0`
+- Pest management check threshold: `python3 -m services.analytics.pest_management check-threshold --location-id UUID --pest fall_armyworm --crop maize --count 3`
+- Pest management record intervention: `python3 -m services.analytics.pest_management record-intervention --location-id UUID --scouting-id UUID --type biological --method "Bt spray"`
+- Pest management record pesticide: `python3 -m services.analytics.pest_management record-pesticide --location-id UUID --product "Bt spray" --ingredient "Bacillus thuringiensis" --class bioinsecticide --rate 2.0 --area 1.0`
+- Pest management record resistance: `python3 -m services.analytics.pest_management record-resistance --location-id UUID --pest fall_armyworm --class pyrethroid --level moderate`
+- Pest management record degree day: `python3 -m services.analytics.pest_management record-degree-day --location-id UUID --pest fall_armyworm --base 10.0 --max 38.0 --min 25.0`
+- Pest management summary: `python3 -m services.analytics.pest_management summary --location-id UUID`
+- Pest management pesticide usage: `python3 -m services.analytics.pest_management pesticide-usage --location-id UUID --days 30`
+- Pest management degree day tracking: `python3 -m services.analytics.pest_management degree-day-tracking --location-id UUID --pest fall_armyworm`
+- Pest management recommend: `python3 -m services.analytics.pest_management recommend --scouting-id UUID`
+- Pest management dashboard: `python3 -m services.analytics.pest_management dashboard --location-id UUID`
+- Pest management add reference: `python3 -m services.analytics.pest_management add-reference --pest fall_armyworm --scientific-name "Spodoptera frugiperda"`
+- Pest management get reference: `python3 -m services.analytics.pest_management get-reference --pest fall_armyworm`
+- Pest management list references: `python3 -m services.analytics.pest_management list-references --category insect`
+- Pest management create schedule: `python3 -m services.analytics.pest_management create-schedule --location-id UUID --pest fall_armyworm --frequency 7`
+- Pest management due scouting: `python3 -m services.analytics.pest_management due-scouting --location-id UUID`
+- Pest management record compliance: `python3 -m services.analytics.pest_management record-compliance --schedule-id UUID --scouting-id UUID`
+- Pest management compliance report: `python3 -m services.analytics.pest_management compliance-report --location-id UUID --days 30`
+- Pest management schedule re-scout: `python3 -m services.analytics.pest_management schedule-re-scout --intervention-id UUID --date 2026-07-15`
+- Pest management evaluate intervention: `python3 -m services.analytics.pest_management evaluate-intervention --intervention-id UUID --scouting-id UUID --effectiveness 75`
+- Pest management compliance score: `python3 -m services.analytics.pest_management compliance-score --location-id UUID`
+- Pest management add interaction: `python3 -m services.analytics.pest_management add-interaction --pest fall_armyworm --crop maize --loss-potential 50`
+- Pest management get interactions: `python3 -m services.analytics.pest_management get-interactions --crop maize`
+- Pest management recommend for crop: `python3 -m services.analytics.pest_management recommend-for-crop --crop maize --stage tasseling`
+- Pest management add trap: `python3 -m services.analytics.pest_management add-trap --location-id UUID --name "FAW Trap 1" --type pheromone --pest fall_armyworm`
+- Pest management record catch: `python3 -m services.analytics.pest_management record-catch --trap-id UUID --pest-count 15`
+- Pest management trap trends: `python3 -m services.analytics.pest_management trap-trends --trap-id UUID --days 30`
+- Pest management check trap threshold: `python3 -m services.analytics.pest_management check-trap-threshold --trap-id UUID`
+- Pest management add MoA: `python3 -m services.analytics.pest_management add-moa --class pyrethroid --code 3A --action "Sodium channel modulation"`
+- Pest management check rotation: `python3 -m services.analytics.pest_management check-rotation --location-id UUID --class pyrethroid`
+- Pest management rotation history: `python3 -m services.analytics.pest_management rotation-history --location-id UUID --days 90`
+- Pest management spray windows: `python3 -m services.analytics.pest_management spray-windows --location-id UUID --pest fall_armyworm --days-ahead 7`
+- Pest management organic pest score: `python3 -m services.analytics.pest_management organic-pest-score --location-id UUID`
+- Pest management generate audit: `python3 -m services.analytics.pest_management generate-audit --location-id UUID`
+- Pest management tests: `python3 -m tests.test_pest_management`
+- Crop rotation create plan: `python3 -m services.analytics.crop_rotation create-plan --location-id UUID --name "3-Year Plan"`
+- Crop rotation add slot: `python3 -m services.analytics.crop_rotation add-slot --plan-id UUID --season 1 --crop maize --purpose cash_crop`
+- Crop rotation get plan: `python3 -m services.analytics.crop_rotation get-plan --plan-id UUID`
+- Crop rotation list plans: `python3 -m services.analytics.crop_rotation list-plans --location-id UUID`
+- Crop rotation record impact: `python3 -m services.analytics.crop_rotation record-impact --plan-id UUID --slot-id UUID --type soil_health --direction positive --severity 15`
+- Crop rotation impact summary: `python3 -m services.analytics.crop_rotation impact-summary --plan-id UUID`
+- Crop rotation family usage: `python3 -m services.analytics.crop_rotation family-usage --location-id UUID`
+- Crop rotation recommend: `python3 -m services.analytics.crop_rotation recommend --location-id UUID --plot-id UUID`
+- Crop rotation validate: `python3 -m services.analytics.crop_rotation validate --plan-id UUID`
+- Crop rotation dashboard: `python3 -m services.analytics.crop_rotation dashboard --location-id UUID`
+- Crop rotation tests: `python3 -m tests.test_crop_rotation`
+- Nutrient budget create: `python3 -m services.analytics.nutrient_budget create-budget --location-id UUID --season 2026S1 --crop maize --area 2.5`
+- Nutrient budget record input: `python3 -m services.analytics.nutrient_budget record-input --budget-id UUID --type fertilizer --product "Urea 46-0-0" --n 50 --p 0 --k 0`
+- Nutrient budget record removal: `python3 -m services.analytics.nutrient_budget record-removal --budget-id UUID --crop maize --yield 2500 --n 37.5 --p 12.5 --k 25.0`
+- Nutrient budget balance: `python3 -m services.analytics.nutrient_budget balance --location-id UUID`
+- Nutrient budget input summary: `python3 -m services.analytics.nutrient_budget input-summary --budget-id UUID`
+- Nutrient budget soil test: `python3 -m services.analytics.nutrient_budget record-soil-test --location-id UUID --plot-id UUID --ph 6.2 --om 3.5 --n 25 --p 18 --k 120`
+- Nutrient budget recommendation: `python3 -m services.analytics.nutrient_budget recommendation --plot-id UUID`
+- Nutrient budget dashboard: `python3 -m services.analytics.nutrient_budget dashboard --location-id UUID`
+- Nutrient budget compute removal: `python3 -m services.analytics.nutrient_budget compute-removal --crop maize --yield 2500`
+- Nutrient budget efficiency: `python3 -m services.analytics.nutrient_budget efficiency --location-id UUID --season 2026S1`
+- Nutrient budget tests: `python3 -m tests.test_nutrient_budget`
+- Energy add source: `python3 -m services.analytics.energy_monitoring add-source --location-id UUID --name "Solar PV" --type solar --capacity 5.0`
+- Energy record reading: `python3 -m services.analytics.energy_monitoring record-reading --source-id UUID --date 2026-07-01 --type consumption --kwh 150 --activity irrigation`
+- Energy consumption: `python3 -m services.analytics.energy_monitoring consumption --location-id UUID --days 30`
+- Energy efficiency: `python3 -m services.analytics.energy_monitoring efficiency --location-id UUID --period monthly`
+- Energy add renewable: `python3 -m services.analytics.energy_monitoring add-renewable --location-id UUID --source-id UUID --renewable-type solar_pv --capacity 5.0`
+- Energy renewable summary: `python3 -m services.analytics.energy_monitoring renewable-summary --location-id UUID`
+- Energy dashboard: `python3 -m services.analytics.energy_monitoring dashboard --location-id UUID`
+- Energy carbon intensity: `python3 -m services.analytics.energy_monitoring carbon-intensity --location-id UUID`
+- Energy cost analysis: `python3 -m services.analytics.energy_monitoring cost-analysis --location-id UUID --days 30`
+- Energy monitoring tests: `python3 -m tests.test_energy_monitoring`
+- Waste record waste: `python3 -m services.analytics.waste_management record-waste --location-id UUID --waste-type organic --waste-name "Crop residues" --quantity 50.0 --disposal-method composting`
+- Waste record composting: `python3 -m services.analytics.waste_management record-composting --location-id UUID --feedstock "Banana stems" --feedstock-kg 100 --method vermicomposting`
+- Waste record recycling: `python3 -m services.analytics.waste_management record-recycling --location-id UUID --material plastic --quantity 15.0 --destination "Recycling center" --revenue 5.00`
+- Waste report incident: `python3 -m services.analytics.waste_management report-incident --location-id UUID --incident-type chemical_spill --severity high --description "Pesticide container leak" --affected-area "Near stream"`
+- Waste resolve incident: `python3 -m services.analytics.waste_management resolve-incident --incident-id UUID --remedial-action "Cleaned and neutralized soil" --resolution-date 2026-07-10`
+- Waste summary: `python3 -m services.analytics.waste_management waste-summary --location-id UUID`
+- Waste composting efficiency: `python3 -m services.analytics.waste_management composting-efficiency --location-id UUID`
+- Waste open incidents: `python3 -m services.analytics.waste_management open-incidents --location-id UUID`
+- Waste dashboard: `python3 -m services.analytics.waste_management dashboard --location-id UUID`
+- Waste management tests: `python3 -m tests.test_waste_management`
+- Landscape create habitat: `python3 -m services.analytics.landscape_conservation create-habitat --location-id UUID --name "Riparian Buffer" --type riparian --area 0.5 --biodiversity high`
+- Landscape create corridor: `python3 -m services.analytics.landscape_conservation create-corridor --location-id UUID --name "Stream Link" --source UUID --target UUID --width 15 --length 200`
+- Landscape record hedgerow: `python3 -m services.analytics.landscape_conservation record-hedgerow --location-id UUID --name "North Windbreak" --species '["calliandra","leucaena"]' --length 180 --purpose '["windbreak","biodiversity"]'`
+- Landscape record buffer check: `python3 -m services.analytics.landscape_conservation record-buffer-check --location-id UUID --habitat-zone UUID --buffer-width 12 --minimum-required 10 --vegetation-pct 85`
+- Landscape record biodiversity: `python3 -m services.analytics.landscape_conservation record-biodiversity --location-id UUID --richness 34 --shannon 2.45 --habitat-diversity 1.8 --connectivity 6.5 --overall 7.2`
+- Landscape habitat summary: `python3 -m services.analytics.landscape_conservation habitat-summary --location-id UUID`
+- Landscape corridor status: `python3 -m services.analytics.landscape_conservation corridor-status --location-id UUID`
+- Landscape buffer compliance: `python3 -m services.analytics.landscape_conservation buffer-compliance --location-id UUID`
+- Landscape biodiversity trends: `python3 -m services.analytics.landscape_conservation biodiversity-trends --location-id UUID`
+- Landscape dashboard: `python3 -m services.analytics.landscape_conservation dashboard --location-id UUID`
+- Landscape conservation tests: `python3 -m tests.test_landscape_conservation`
+- Pollinator record observation: `python3 -m services.analytics.pollinator_health record-observation --location-id UUID --type honeybee --count 50`
+- Pollinator create habitat: `python3 -m services.analytics.pollinator_health create-habitat --location-id UUID --name "Wildflower Strip" --type wildflower --area 200`
+- Pollinator record pesticide: `python3 -m services.analytics.pollinator_health record-pesticide --location-id UUID --product "Chlorpyrifos" --toxicity high`
+- Pollinator add hive: `python3 -m services.analytics.pollinator_health add-hive --location-id UUID --hive-id H-001 --colony-strength 8`
+- Pollinator record inspection: `python3 -m services.analytics.pollinator_health record-inspection --hive-id H-001 --colony-strength 9`
+- Pollinator summary: `python3 -m services.analytics.pollinator_health summary --location-id UUID`
+- Pollinator habitat inventory: `python3 -m services.analytics.pollinator_health habitat-inventory --location-id UUID`
+- Pollinator pesticide risk: `python3 -m services.analytics.pollinator_health pesticide-risk --location-id UUID`
+- Pollinator hive status: `python3 -m services.analytics.pollinator_health hive-status --location-id UUID`
+- Pollinator dashboard: `python3 -m services.analytics.pollinator_health dashboard --location-id UUID`
+- Pollinator health tests: `python3 -m tests.test_pollinator_health`
+- Digital Finance create account: `python3 -m services.analytics.digital_finance create-account --location-id UUID --type savings --currency KES --holder "John Doe"`
+- Digital Finance record tx: `python3 -m services.analytics.digital_finance record-tx --account-id UUID --type deposit --amount 5000 --direction credit`
+- Digital Finance balance: `python3 -m services.analytics.digital_finance balance --account-id UUID`
+- Digital Finance list: `python3 -m services.analytics.digital_finance list --location-id UUID`
+- Digital Finance create insurance: `python3 -m services.analytics.digital_finance create-insurance --location-id UUID --product weather_index --coverage 100000 --premium 5000`
+- Digital Finance file claim: `python3 -m services.analytics.digital_finance file-claim --policy-id UUID --type drought --amount 20000 --evidence '{"rainfall_deficit": 40}'`
+- Digital Finance evaluate claim: `python3 -m services.analytics.digital_finance evaluate-claim --claim-id UUID --status approved --adjustment 0`
+- Digital Finance create loan: `python3 -m services.analytics.digital_finance create-loan --location-id UUID --amount 50000 --rate 0.12 --term 12 --purpose "input_purchase" --eligibility 0.85`
+- Digital Finance repay: `python3 -m services.analytics.digital_finance repay --loan-id UUID --amount 5000 --method mobile_money`
+- Digital Finance portfolio: `python3 -m services.analytics.digital_finance portfolio --location-id UUID`
+- Digital Finance premium: `python3 -m services.analytics.digital_finance premium --location-id UUID --product yield_guarantee --coverage 200000`
+- Digital Finance eligibility: `python3 -m services.analytics.digital_finance eligibility --location-id UUID --amount 75000`
+- Digital Finance tests: `python3 -m tests.test_digital_finance`
+- Traceability create batch: `python3 -m services.analytics.traceability create-batch --location-id UUID --crop maize --quantity 500 --harvest-date 2026-07-10`
+- Traceability custody: `python3 -m services.analytics.traceability custody --batch-id UUID --from "Farm A" --to "Cooperative B" --type harvest_collection`
+- Traceability quality: `python3 -m services.analytics.traceability quality --batch-id UUID --type visual --result pass --grade A`
+- Traceability certification: `python3 -m services.analytics.traceability certification --batch-id UUID --type organic --cert-number ORG-001 --issuer KCB --expiry 2027-01-01`
+- Traceability provenance: `python3 -m services.analytics.traceability provenance --batch-id UUID --event harvest --actor "Farmer John" --location "Adelphi"`
+- Traceability provenance log: `python3 -m services.analytics.traceability provenance-log --batch-id UUID`
+- Traceability status: `python3 -m services.analytics.traceability status --batch-id UUID`
+- Traceability list: `python3 -m services.analytics.traceability list --location-id UUID --status active`
+- Traceability food safety: `python3 -m services.analytics.traceability food-safety --batch-id UUID --type temperature --result pass --temperature 4.2`
+- Traceability certs: `python3 -m services.analytics.traceability certs --location-id UUID`
+- Traceability trace forward: `python3 -m services.analytics.traceability trace-forward --batch-id UUID`
+- Traceability trace backward: `python3 -m services.analytics.traceability trace-backward --batch-id UUID`
+- Traceability cold chain: `python3 -m services.analytics.traceability cold-chain --batch-id UUID`
+- Traceability tests: `python3 -m tests.test_traceability`
+- Extension create module: `python3 -m services.analytics.extension create-module --title "Soil Health 101" --category soil_health --content-type guide`
+- Extension list modules: `python3 -m services.analytics.extension list-modules --category soil_health --difficulty beginner`
+- Extension enroll: `python3 -m services.analytics.extension enroll --farmer-id FARMER --module-id UUID`
+- Extension update progress: `python3 -m services.analytics.extension update-progress --progress-id UUID --status completed --score 85`
+- Extension farmer progress: `python3 -m services.analytics.extension farmer-progress --farmer-id FARMER`
+- Extension module stats: `python3 -m services.analytics.extension module-stats --module-id UUID`
+- Extension create peer group: `python3 -m services.analytics.extension create-peer-group --name "Adelphi FFS" --topic soil_health`
+- Extension add peer member: `python3 -m services.analytics.extension add-peer-member --group-id UUID --farmer-id FARMER --role member`
+- Extension peer groups: `python3 -m services.analytics.extension peer-groups --location-id UUID`
+- Extension deliver: `python3 -m services.analytics.extension deliver --farmer-id FARMER --module-id UUID --channel sms`
+- Extension delivery stats: `python3 -m services.analytics.extension delivery-stats --farmer-id FARMER`
+- Extension record assessment: `python3 -m services.analytics.extension record-assessment --farmer-id FARMER --module-id UUID --type pre_test --score 60`
+- Extension effectiveness: `python3 -m services.analytics.extension effectiveness --location-id UUID`
+- Extension recommend: `python3 -m services.analytics.extension recommend --farmer-id FARMER --location-id UUID`
+- Extension tests: `python3 -m tests.test_extension`
+- Farmer Identity create profile: `python3 -m services.analytics.farmer_identity create-profile --first-name John --location-id UUID`
+- Farmer Identity update profile: `python3 -m services.analytics.farmer_identity update-profile --farmer-id UUID --last-name Doe`
+- Farmer Identity get profile: `python3 -m services.analytics.farmer_identity get-profile --farmer-id UUID`
+- Farmer Identity list farmers: `python3 -m services.analytics.farmer_identity list-farmers --location-id UUID`
+- Farmer Identity add credential: `python3 -m services.analytics.farmer_identity add-credential --farmer-id UUID --type organic_cert --name "Organic Certificate"`
+- Farmer Identity verify credential: `python3 -m services.analytics.farmer_identity verify-credential --credential-id UUID`
+- Farmer Identity get credentials: `python3 -m services.analytics.farmer_identity get-credentials --farmer-id UUID`
+- Farmer Identity create KYC: `python3 -m services.analytics.farmer_identity create-kyc --farmer-id UUID --method national_id`
+- Farmer Identity verify KYC: `python3 -m services.analytics.farmer_identity verify-kyc --kyc-id UUID --status approved --verified-by UUID`
+- Farmer Identity assign role: `python3 -m services.analytics.farmer_identity assign-role --farmer-id UUID --role farmer`
+- Farmer Identity check permission: `python3 -m services.analytics.farmer_identity check-permission --farmer-id UUID --resource farm --action read`
+- Farmer Identity record consent: `python3 -m services.analytics.farmer_identity record-consent --farmer-id UUID --data-type soil_data --recipient-type buyer`
+- Farmer Identity register device: `python3 -m services.analytics.farmer_identity register-device --farmer-id UUID --device-id DEV001 --device-type phone`
+- Farmer Identity access matrix: `python3 -m services.analytics.farmer_identity access-matrix --location-id UUID`
+- Farmer Identity directory: `python3 -m services.analytics.farmer_identity directory --location-id UUID`
+- Farmer Identity tests: `python3 -m tests.test_farmer_identity`
+- Marketplace tests: `python3 -m tests.test_marketplace`
+- Cooperative tests: `python3 -m tests.test_cooperative`
 - Oracle infrastructure tests: `python3 -m tests.test_oracle_infrastructure`
 - Yahoo Finance price fetch: `python3 -m services.ingestion.yahoo_finance`
 - Price attestation: `python3 -m services.ingestion.price_attestation --run-daily`
@@ -161,15 +597,18 @@
 - Bio Factory agent: `python3 -m services.agents.bio_factory_agent --location-id UUID`
 - Ecological modeling agent: `python3 -m services.agents.ecological_modeling_agent --location-id UUID`
 - Organic readiness agent: `python3 -m services.agents.organic_readiness_agent --location-id UUID`
-- Stewardship agent: `python3 -m services.agents.stewardship_agent --location-id UUID`
+- Regenerator agent: `python3 -m services.agents.regenerator_agent --location-id UUID`
 - EBF scorecard agent: `python3 -m services.agents.ebf_scorecard_agent --help`
 - EBF evidence gap agent: `python3 -m services.agents.ebf_evidence_gap_agent --help`
 - EBF calibration agent: `python3 -m services.agents.ebf_calibration_agent --help`
 - Forecast CLI: `python3 -m services.forecast.cli --help`
+- Forecast reference-class: `python3 -m services.forecast.cli --reference-class --location-id UUID [--rc-metric crop_noi] [--rc-alpha 0.5]`
+- Prediction ledger CLI: `python3 -m services.predictions --help`
 - Fortune 500 CLI: `python3 -m services.fortune500.cli --help`
 - Revenue multiplier CLI: `python3 -m services.revenue_multiplier.cli --help`
 - EBF scoring CLI: `python3 -m services.scoring --help`
 - Report types (scaling economics): `python3 -m services.export.report_generator --type scaling_economics --location-id UUID`
+- Report types (business plan): `python3 -m services.export.report_generator --type business_plan --location-id UUID` (or `--org-id UUID`)
 - Report types (adoption barriers): `python3 -m services.export.report_generator --type adoption_barriers --location-id UUID`
 - Report types (perpetual value stress): `python3 -m services.export.report_generator --type perpetual_value_stress --location-id UUID`
 - Report types (open source impact): `python3 -m services.export.report_generator --type open_source_impact --location-id UUID`
@@ -187,8 +626,8 @@
 - Report types (organic certification): `python3 -m services.export.report_generator --type organic_certification_readiness --location-id UUID`
 - Report types (organic transition): `python3 -m services.export.report_generator --type organic_transition_progress --location-id UUID`
 - Report types (organic input audit): `python3 -m services.export.report_generator --type organic_input_audit --location-id UUID`
-- Report types (stewardship agreement): `python3 -m services.export.report_generator --type stewardship_agreement --location-id UUID`
-- Report types (dispute resolution): `python3 -m services.export.report_generator --type dispute_resolution --location-id UUID`
+- Report types (stewardship agreement): `python3 -m services.export.report_generator --type land_stewardship --location-id UUID`
+- Report types (dispute resolution): `python3 -m services.export.report_generator --type adaptive_stewardship --location-id UUID`
 - Report types (trophic pyramid): `python3 -m services.export.report_generator --type trophic_pyramid --location-id UUID`
 - Report types (pest management): `python3 -m services.export.report_generator --type pest_management --location-id UUID`
 - Report types (resource efficiency): `python3 -m services.export.report_generator --type resource_efficiency --location-id UUID`
@@ -198,20 +637,526 @@
 - Report types (livestock feed): `python3 -m services.export.report_generator --type livestock_feed --location-id UUID`
 - Report types (token rewards): `python3 -m services.export.report_generator --type token_rewards --location-id UUID`
 - Report types (reward calibration): `python3 -m services.export.report_generator --type reward_calibration --location-id UUID`
+- Report types (data stream summary): `python3 -m services.export.report_generator --type data_stream_summary --location-id UUID`
+- Report types (dao proposals): `python3 -m services.export.report_generator --type dao_proposal_history [--location-id UUID]`
+- State of Kokonut (ecosystem report): `python3 -m services.export.report_generator --type state_of_kokonut [--all | --location-id UUID ...] [--period-start YYYY-MM-DD --period-end YYYY-MM-DD]`
+  - Composes existing per-location reports (farm, environmental, financial, social, governance, regenerative) across one, many, or all locations, plus an ecosystem-actor view (Network / DAO / Foundation / Genesis / Seeds) of funding raised, funding sources, and per-project participation. `--all` spans every location; repeat `--location-id` to select several; omit both for the whole ecosystem. Date range filters all sections. Funding data lives in `funding_round` / `project_funding` (seeded pilot, 2021-2024).
+- State of Kokonut graphs (visual timelines): `python3 -m services.export.report_generator --type state_of_kokonut_graphs [--all | --location-id UUID ...] [--period-start YYYY-MM-DD --period-end YYYY-MM-DD]`
+  - Produces dependency-free **Mermaid** text + JSON graph descriptors (no charting library) for the visual timelines of the ecosystem: (1) a vertical tree of the 2021-2024 ecosystem journey (funding rounds + DAO proposals), (2) the circular Ikigai-inspired framework view — Kokonut at center, one quadrant per year 2021-2024, color-coded, with `ikigai_v2` adding an outer foundation-completion ring, an outward growth arrow, and concentric ripples — and, when a location is selected, (3) farm development phases from `farm_zone` zone_type and (4) Kokonut Seeds short-cycle crop timelines from `crop_cycle` plant/harvest dates. Network-level (`--all` / no location) covers the ecosystem tree + both Ikigai views; per-location selection adds the farm-phase and crop-timeline trees. Render the `mermaid` field in any Mermaid-capable viewer or the Data Hub.
+- Comprehensive Status Report (location + network-wide): `python3 -m services.export.report_generator --type comprehensive_status [--all | --location-id UUID ...] [--period-start YYYY-MM-DD --period-end YYYY-MM-DD]`
+- Strategic Reserve (resilience + fundability): `python3 -m services.export.report_generator --type strategic_reserve [--all | --location-id UUID ...]` — surfaces shock-absorption capacity across carbon_buffer / commons_reserve / financial_ringfence / capability_standby / seed_vault reserves, per-reserve adequacy + drawdown headroom + trigger/breach status, a `fundability_signal` (fraction of adequately funded reserves, supporting funding-round due diligence), and a per-location biodiversity/seed-vault proxy. Read-only; release proposals are DRAFT and require human approval (no automatic on-chain drawdown). CLI: `python3 -m services.strategic_reserve.cli health`, `list`, `seed-vault --location-id UUID`, `propose-release --reserve-code CODE --quantity N --reason R`.
+  - Forward Reserve Deployment ("best defense is a good offense"): when a reserve sets `preempt_threshold_pct` (>0), `evaluate_trigger` surfaces a DRAFT `preempt_proposed` proposal once the monitored metric enters the preempt band (`preempt_threshold_pct` of the way to the hard breach) — before the threshold is actually crossed. Still DRAFT and human-approved; never an autonomous drawdown.
+- Capital accounting (8 Forms of Capital, Keynes-inspired, constructive only): read-only diagnostics plus a DRAFT-only deferred-credit ledger.
+  - CLI: `python3 -m services.capital.cli capacity --location-id UUID` (output-capacity & under-mobilization per Form), `diversion --location-id UUID [--period-start DATE --period-end DATE]` (consumption-vs-reinvestment index), `capture --location-id UUID` (value-leakage / capture-risk signal), `credit propose --location-id UUID --source-type carbon_credit_surplus --amount N` (DRAFT only), `credit list --location-id UUID`, `credit capacity --location-id UUID` (network-underwritten deficit analog), `report --location-id UUID`.
+  - Report type: `python3 -m services.export.report_generator --type capital_accounting --location-id UUID` (also surfaced inside `comprehensive_status` per location). Advisory-only; the `regenerative_credit_ledger` is a read-only view in the report. See boundary note under Persuasive technology above.
+  - Single composite status report composing the canonical per-location sections (farm, crop NOI, environmental, climate impact, financial sustainability, capital efficiency, holistic + foundational wellbeing, community governance, GNH alignment, training impact, regenerative outcomes, stakeholder outcomes) into one document. `--all` / no location makes it network-wide: nests per-location bundles plus an ecosystem rollup (totals revenue/expenses/harvest). Each section is isolated; one failure is reported as an error, not breaking the composite.
+- Business Model Canvas 1-click: `python3 -m services.analytics.business_model_canvas create-from-data --location-id UUID [--canvas-name NAME] [--created-by UUID]`
+  - Derives all nine BMC blocks from existing Common-Data-Schema-derived tables (federation/cooperative/supplier, process_map, sensor/energy/cooperative assets, impact_claim, content_delivery channels, buyer_segment, revenue_event, expense_event, stakeholder_feedback) and persists a populated draft canvas in one call. Use `suggest --location-id UUID` for a read-only preview of the populated blocks and their data sources. Manual `create` (empty canvas) and `update-block` remain available.
 - Directus hook tests: `cd extensions/kokonut-hooks && npm test`
 - Directus hook build: `cd extensions/kokonut-hooks && npm run build`
 - Migration status: `python3 -m services.migration status`
 - Migration apply: `python3 -m services.migration migrate`
 - Migration dry-run: `python3 -m services.migration dry-run`
+- Situation assessment and OODA cycle tracking are library APIs in `services.orientation.assess` and `services.orientation.cycle_tracker`; no `python -m` CLI entry point is currently provided.
+- Decision policy list: `python3 -m services.decision.policies --list`
+- Decision evaluate: `python3 -m services.decision.policies --evaluate --location-id UUID`
+- Decision pending: `python3 -m services.decision.policies --pending --location-id UUID`
+- Decision approve: `python3 -m services.decision.policies --approve --decision-id UUID --approved-by admin`
+- Decision reject: `python3 -m services.decision.policies --reject --decision-id UUID --rejected-by admin --reason "reason"`
+- Feedback outcomes: `python3 -m services.feedback.controller --outcomes --location-id UUID`
+- Feedback stats: `python3 -m services.feedback.controller --stats --location-id UUID`
+- Feedback thresholds: `python3 -m services.feedback.controller --thresholds`
+- Adaptive sampler list: `python3 -m services.ingestion.adaptive_sampler --list --location-id UUID`
+- Adaptive sampler history: `python3 -m services.ingestion.adaptive_sampler --history --location-id UUID`
+- OODA tests: `python3 -m tests.test_orientation && python3 -m tests.test_decision_policy && python3 -m tests.test_feedback_controller && python3 -m tests.test_ooda_cycles && python3 -m tests.test_adaptive_sampler`
+- Causal loops list: `python3 -m systems.causal_loops --list`
+- Causal loop evaluate: `python3 -m systems.causal_loops --evaluate --loop-name soil_carbon_reinforcing --location-id UUID`
+- Causal loop active: `python3 -m systems.causal_loops --active --location-id UUID`
+- Leverage assess: `python3 -m systems.leverage --assess --location-id UUID`
+- Leverage rank: `python3 -m systems.leverage --rank --location-id UUID`
+- Archetype detect: `python3 -m systems.archetypes --detect --location-id UUID`
+- Archetype list: `python3 -m systems.archetypes --list --location-id UUID`
+- Delay get: `python3 -m systems.delays --get --action cover_crop_planting --effect soil_carbon_increase`
+- Delay adjust: `python3 -m systems.delays --adjust --action-date 2026-01-01 --action cover_crop_planting --effect soil_carbon_increase`
+- Double-loop questions: `python3 -m systems.double_loop --questions --location-id UUID`
+- Double-loop challenge: `python3 -m systems.double_loop --challenge --assumption-id UUID --text "text"`
+- Double-loop health: `python3 -m systems.double_loop --health --location-id UUID`
+- Stock-flow models: `python3 -m systems.stock_flow --list`
+- Stock-flow simulate: `python3 -m systems.stock_flow --run --model soil_carbon --location-id UUID --duration 365`
+- Stock-flow compare: `python3 -m systems.stock_flow --compare --model soil_carbon --location-id UUID`
+- Mental model elicit: `python3 -m systems.mental_models --elicit --stakeholder-id UUID --dimension regenerative_vs_industrial --position 0.7`
+- Mental model compare: `python3 -m systems.mental_models --compare --stakeholders UUID1 UUID2`
+- Systems thinking tests: `python3 -m pytest tests/test_systems_thinking.py tests/test_stock_flow_mental.py -v`
+- Adaptation velocity record: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.record_velocity('UUID'))"`
+- Adaptation velocity get: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.compute_velocity('UUID'))"`
+- Adaptation velocity classify: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.classify_acceleration('UUID'))"`
+- Adaptation velocity history: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.get_velocity_history('UUID'))"`
+- Adaptation velocity global: `python3 -c "from services.systems.velocity_tracker import AdaptationVelocityTracker; t=AdaptationVelocityTracker(); print(t.get_global_velocity())"`
+- Feedback automation evaluate: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(); print(a.run_evaluation('UUID'))"`
+- Feedback automation full-cycle: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(dry_run=True); print(a.run_full_cycle('UUID'))"`
+- Feedback automation log: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(); print(a.get_automation_log('UUID'))"`
+- Feedback automation configure: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(); print(a.configure('UUID', eval_interval_hours=12))"`
+- Feedback automation pending: `python3 -c "from services.feedback.automation import FeedbackAutomation; a=FeedbackAutomation(); print(a.get_pending_adjustments('UUID'))"`
+- Improvement tracker record: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; from datetime import datetime,timezone; t=ImprovementRateTracker(); print(t.record_improvement('UUID','metric',1.0,datetime.now(timezone.utc),datetime.now(timezone.utc)))"`
+- Improvement tracker report: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; t=ImprovementRateTracker(); print(t.get_improvement_report('UUID'))"`
+- Improvement tracker plateau: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; t=ImprovementRateTracker(); print(t.detect_plateau('UUID','metric'))"`
+- Improvement tracker degradation: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; t=ImprovementRateTracker(); print(t.detect_degradation('UUID'))"`
+- Improvement tracker learning-curve: `python3 -c "from services.systems.improvement_tracker import ImprovementRateTracker; t=ImprovementRateTracker(); print(t.get_learning_curve('UUID','metric'))"`
+- Adaptation acceleration tests: `python3 -m pytest tests/test_velocity_tracker.py tests/test_feedback_automation.py tests/test_improvement_tracker.py -v`
+- Causal loops list: `python3 -m systems.causal_loops --list`
+- Causal loop evaluate: `python3 -m systems.causal_loops --evaluate --loop-name soil_carbon_reinforcing --location-id UUID`
+- Causal loop active: `python3 -m systems.causal_loops --active --location-id UUID`
+- Leverage assess: `python3 -m systems.leverage --assess --location-id UUID`
+- Leverage rank: `python3 -m systems.leverage --rank --location-id UUID`
+- Archetype detect: `python3 -m systems.archetypes --detect --location-id UUID`
+- Archetype list: `python3 -m systems.archetypes --list --location-id UUID`
+- Delay get: `python3 -m systems.delays --get --action cover_crop_planting --effect soil_carbon_increase`
+- Delay adjust: `python3 -m systems.delays --adjust --action-date 2026-01-01 --action cover_crop_planting --effect soil_carbon_increase`
+- Double-loop questions: `python3 -m systems.double_loop --questions --location-id UUID`
+- Double-loop challenge: `python3 -m systems.double_loop --challenge --assumption-id UUID --text "text"`
+- Double-loop health: `python3 -m systems.double_loop --health --location-id UUID`
+- Stock-flow models: `python3 -m systems.stock_flow --list`
+- Stock-flow simulate: `python3 -m systems.stock_flow --run --model soil_carbon --location-id UUID --duration 365`
+- Stock-flow compare: `python3 -m systems.stock_flow --compare --model soil_carbon --location-id UUID`
+- Mental model elicit: `python3 -m systems.mental_models --elicit --stakeholder-id UUID --dimension regenerative_vs_industrial --position 0.7`
+- Mental model compare: `python3 -m systems.mental_models --compare --stakeholders UUID1 UUID2`
+- Systems thinking tests: `python3 -m pytest tests/test_systems_thinking.py tests/test_stock_flow_mental.py -v`
+- Insight transfer process: `python3 -m services.events.insight_transfer process-event --source-domain pest --event-type outbreak --event-data '{}'`
+- Insight transfer pending: `python3 -m services.events.insight_transfer pending-transfers --target-domain irrigation`
+- Insight transfer resolve: `python3 -m services.events.insight_transfer resolve-transfer --transfer-id UUID --outcome helpful`
+- Insight transfer stats: `python3 -m services.events.insight_transfer get-stats`
+- Insight transfer list rules: `python3 -m services.events.insight_transfer list-rules --source-domain pest`
+- ML retrain check: `python3 -m services.systems.ml_retraining check-models`
+- ML retrain trigger: `python3 -m services.systems.ml_retraining trigger-retrain --model yield_forecast`
+- ML retrain history: `python3 -m services.systems.ml_retraining get-history --model yield_forecast`
+- ML retrain configure: `python3 -m services.systems.ml_retraining configure-schedule --model yield_forecast --interval 30 --threshold 15.0`
+- ML retrain health: `python3 -m services.systems.ml_retraining get-health`
+- Threshold auto-tune: `python3 -c "from services.feedback.controller import FeedbackController; c=FeedbackController(); print(c.auto_tune_thresholds(dry_run=True))"`
+- Threshold tuning history: `python3 -c "from services.feedback.controller import FeedbackController; c=FeedbackController(); print(c.get_tuning_history())"`
+- Threshold optimal: `python3 -c "from services.feedback.controller import FeedbackController; c=FeedbackController(); print(c.compute_optimal_threshold('UUID','soil_moisture'))"`
+- Cross-domain insight tests: `python3 -m pytest tests/test_insight_transfer.py -v`
+- ML retraining tests: `python3 -m pytest tests/test_ml_retraining.py -v`
+- Growth curve analyze: `python3 -m services.systems.growth_curve analyze-metric --location-id UUID --metric yield`
+- Growth curve tipping-points: `python3 -m services.systems.growth_curve detect-tipping-points --location-id UUID`
+- Growth curve exponential: `python3 -m services.systems.growth_curve detect-exponential --location-id UUID`
+- Growth curve saturation: `python3 -m services.systems.growth_curve detect-saturation --location-id UUID`
+- Growth curve report: `python3 -m services.systems.growth_curve get-report --location-id UUID`
+- Growth curve predict: `python3 -m services.systems.growth_curve predict-trajectory --location-id UUID --metric yield --periods 5`
+- Growth curve tests: `python3 -m pytest tests/test_growth_curve.py -v`
+- Meta-learning select-strategy: `python3 -m services.systems.meta_learning select-strategy --context-type threshold_tuning --domain pest`
+- Meta-learning rankings: `python3 -m services.systems.meta_learning get-rankings`
+- Meta-learning summary: `python3 -m services.systems.meta_learning get-summary`
+- Meta-learning recommend: `python3 -m services.systems.meta_learning recommend --situation anomaly_detection --domain weather`
+- Meta-learning update-effectiveness: `python3 -m services.systems.meta_learning update-effectiveness --strategy-id UUID`
+- Meta-learning tests: `python3 -m pytest tests/test_meta_learning.py -v`
+- Paradigm shift detect: `python3 -c "from services.systems.double_loop import DoubleLoopController; d=DoubleLoopController(); print(d.detect_paradigm_shifts('UUID'))"`
+- Paradigm shift history: `python3 -c "from services.systems.double_loop import DoubleLoopController; d=DoubleLoopController(); print(d.get_shift_history('UUID'))"`
+- Paradigm shift recommend: `python3 -c "from services.systems.double_loop import DoubleLoopController; d=DoubleLoopController(); print(d.recommend_mindstep('UUID','pest'))"`
+- Double-loop tests: `python3 -m pytest tests/test_double_loop.py -v`
+- Trend estimate: `python3 -m services.trends.estimator --metric-key soil_carbon_delta --location-id UUID`
+- Trend significance: `python3 -m services.trends.significance --test mann_kendall --location-id UUID`
+- Trend smoothing: `python3 -m services.trends.smoothing --metric-key soil_moisture --location-id UUID --method exponential`
+- Trend decomposition: `python3 -m services.trends.decomposer --metric-key rainfall --location-id UUID --period 12`
+- Trend change-points: `python3 -m services.trends.change_points --metric-key soil_carbon_delta --location-id UUID`
+- Trend forecast: `python3 -m services.trends.forecasting --metric-key crop_revenue --location-id UUID --horizon 30`
+- Trend forecast accuracy: `python3 -m services.trends.accuracy --forecast-id UUID`
+- Trend dashboard: `python3 -m services.trends.dashboard --location-id UUID`
+- Trend dashboard alerts: `python3 -m services.trends.dashboard --location-id UUID --alerts`
+- Trend tests: `python3 -m pytest tests/test_trend_estimator.py tests/test_trend_smoothing.py tests/test_trend_change_points.py tests/test_trend_forecasting.py -v`
+- Geostatistics variogram: `python3 -m services.geostatistics.cli variogram --location-id UUID --property soil_carbon`
+- Geostatistics kriging: `python3 -m services.geostatistics.cli kriging --location-id UUID --property soil_carbon --method ordinary --resolution 10`
+- Geostatistics simulation: `python3 -m services.geostatistics.cli simulate --location-id UUID --property soil_carbon --realizations 100`
+- Geostatistics autocorrelation: `python3 -m services.geostatistics.cli autocorrelation --location-id UUID --property soil_carbon --weights queen`
+- Geostatistics cross-validate: `python3 -m services.geostatistics.cli cross-validate --location-id UUID --property soil_carbon --strategy spatial_block --block-size 200`
+- Geostatistics sensor design: `python3 -m services.geostatistics.cli sensor-design --location-id UUID --property soil_moisture`
+- Geostatistics residual kriging: `python3 -m services.geostatistics.cli residual-kriging --location-id UUID`
+- Geostatistics spatial CV SOC: `python3 -m services.geostatistics.cli spatial-cv-soc --location-id UUID --block-size 200`
+- Geostatistics tests: `python3 -m tests.test_geostatistics`
+- Weather forecast tests: `python3 -m tests.test_weather_forecast`
+- Evapotranspiration tests: `python3 -m tests.test_evapotranspiration`
+- Crop phenology tests: `python3 -m tests.test_crop_phenology`
+- Threat create: `python3 -m services.threatcasting create-threat --location-id UUID --name "Drought" --type climate --severity high --probability 0.7 --velocity fast --reversibility partially`
+- Threat list: `python3 -m services.threatcasting list-threats --location-id UUID`
+- Threat get: `python3 -m services.threatcasting get-threat --threat-id UUID`
+- Cross-impact matrix: `python3 -m services.threatcasting cross-impact --location-id UUID`
+- Cross-impact simulate: `python3 -m services.threatcasting simulate-interaction --threat-ids UUID1,UUID2`
+- Flag create: `python3 -m services.threatcasting create-flag --threat-id UUID --name "Rainfall Deficit" --indicator-type quantitative --threshold-critical 0.9 --threshold-warning 0.7 --threshold-normal 0.5`
+- Flag list: `python3 -m services.threatcasting list-flags --location-id UUID`
+- Flag status: `python3 -m services.threatcasting flag-status --location-id UUID`
+- Flag evaluate: `python3 -m services.threatcasting evaluate-flag --flag-id UUID`
+- Signal ingest: `python3 -m services.threatcasting ingest-signal --source weather_api --content "Rainfall 40% below normal" --threat-id UUID`
+- Signal list: `python3 -m services.threatcasting list-signals --location-id UUID`
+- Signal list unclassified: `python3 -m services.threatcasting list-signals --unclassified`
+- Narrative create: `python3 -m services.threatcasting create-narrative --threat-id UUID --type undesirable --title "Drought Cascade" --summary "..." --story "..." --years 5 --probability 0.7`
+- Narrative list: `python3 -m services.threatcasting list-narratives --location-id UUID`
+- Narrative evaluate: `python3 -m services.threatcasting evaluate-narrative --narrative-id UUID --framework gnh`
+- Horizon create: `python3 -m services.threatcasting create-horizon --location-id UUID --name "5-Year" --years 5 --focus climate ecological`
+- Horizon overview: `python3 -m services.threatcasting horizon-overview --horizon-id UUID`
+- Backcast create: `python3 -m services.threatcasting create-backcast --narrative-id UUID --location-id UUID --name "Drought Preparedness" --future-state "..." --gaps "..."`
+- Backcast progress: `python3 -m services.threatcasting backcast-progress --plan-id UUID` (preferred; legacy `--narrative-id UUID` is accepted when the narrative has exactly one plan)
+- Cascade model: `python3 -m services.threatcasting model-cascade --trigger-id UUID --chain UUID1,UUID2`
+- Cascade risk: `python3 -m services.threatcasting cascade-risk --location-id UUID`
+- Intelligence: `python3 -m services.threatcasting intelligence --location-id UUID`
+- Threat briefing: `python3 -m services.threatcasting briefing --location-id UUID`
+- Threat landscape: `python3 -m services.threatcasting landscape --location-id UUID`
+- Threatcasting tests: `python3 -m pytest tests/test_threatcasting.py tests/test_good_offense.py -v`
+- Principle create: `python3 -m services.threatcasting create-principle --narrative-id UUID --location-id UUID --name "Carbon Negative" --description "Net carbon sequestration" --type ecological --metric-key soil_carbon_delta --operator gte --target 0`
+- Principle list: `python3 -m services.threatcasting list-principles --narrative-id UUID`
+- Principle align-milestone: `python3 -m services.threatcasting align-milestone --milestone-id UUID`
+- Principle align-all: `python3 -m services.threatcasting align-all --narrative-id UUID`
+- Principle check-direction: `python3 -m services.threatcasting check-direction --plan-id UUID`
+- Principle gap-analysis: `python3 -m services.threatcasting gap-analysis --plan-id UUID`
+- Principle effectiveness: `python3 -m services.threatcasting effectiveness --plan-id UUID`
+- Assumption challenge: `python3 -m services.threatcasting challenge-assumption --plan-id UUID --narrative-id UUID --original "Rainfall > 800mm" --challenged "Rainfall may drop to 600mm" --reason "Trend analysis shows 15% decline"`
+- Assumption list: `python3 -m services.threatcasting list-challenges --plan-id UUID`
+- Assumption resolve: `python3 -m services.threatcasting resolve-challenge --challenge-id UUID --outcome modified --approved-by admin`
+- Path compare create: `python3 -m services.threatcasting compare-paths --location-id UUID --name "Drought Response Options" --narrative-ids UUID1,UUID2,UUID3`
+- Path compare evaluate: `python3 -m services.threatcasting evaluate-paths --comparison-id UUID`
+- Path compare manual: `python3 -m services.threatcasting manual-compare --comparison-id UUID --scores '{"narrative1": {"cost": 0.8, "time": 0.6}}'`
+- Path compare list: `python3 -m services.threatcasting list-comparisons --location-id UUID`
+- Path compare delete: `python3 -m services.threatcasting delete-comparison --comparison-id UUID`
+- Path premortem create: `python3 -m services.threatcasting premortem-create --comparison-id UUID --narrative-id UUID --failure-modes '[{"description":"Failure mode"}]'`
+- Path premortem submit: `python3 -m services.threatcasting premortem-submit --premortem-id UUID --submitted-by HUMAN`
+- Path premortem review: `python3 -m services.threatcasting premortem-review --premortem-id UUID --result verified --reviewer-id UUID --notes "Reviewed failure modes"`
+- Threat forecast question: `python3 -m services.threatcasting forecast-question-create --location-id UUID --threat-id UUID --domain climate --question "Will the event occur?" --event-definition "..." --resolution-criteria "..." --resolution-source "..." --opens-at ISO_TIMESTAMP --closes-at ISO_TIMESTAMP --resolves-by ISO_TIMESTAMP --created-by UUID`
+- Threat probability forecast: `python3 -m services.threatcasting probability-forecast --question-id UUID --probability 0.7 --source-type analyst --methodology-version v1`
+- Threat forecast resolve: `python3 -m services.threatcasting forecast-resolve --question-id UUID --status resolved --outcome 1 --evidence '[]' --notes "Resolved from governed source" --resolved-by UUID`
+- Delphi expert calibration: `python3 -m services.threatcasting expert-calibrate --panel-member-id UUID --domain climate`
+- Preemptive Intervention Planner (good offense): `python3 -m services.threatcasting preempt [--location-id UUID]` — read-only planner that converts warning-band `threat_flag` rows into DRAFT preemptive-intervention proposals with a computed lead-time-to-critical-breach. Proposals are DRAFT and require human approval; the planner writes no governed state.
+- Tactical Layer (chess-inspired governance tactics) — all read-only detections plus DRAFT/human-approved proposals; no autonomous state change or on-chain drawdown:
+  - Fork (one event, many high-value targets): `python3 -m services.events.cli --fork-opportunities [--location-id UUID]` (read-only); `python3 -m services.events.cli --propose-fork [--location-id UUID] [--actor NAME]` writes DRAFT `tactical_opportunity` rows (type `fork`). Cross-domain insight transfer helpers: `--process-event --event-type TYPE --event-data '{}'`, `--pending-transfers [--target-domain D]`, `--resolve-transfer --transfer-id UUID --outcome helpful`, `--add-rule --source-domain D --target-domain D --action NAME`.
+  - Discovered double-check (a warning flag reveals a latent second threat): `python3 -m services.threatcasting preempt-double-check [--location-id UUID]` (read-only, queries `threat_cross_impact` `amplifies`/`triggers`); `python3 -m services.threatcasting propose-double-check [--location-id UUID] [--actor NAME]` writes DRAFT `tactical_opportunity` rows (type `double_check`).
+  - Pin / dependency (governed record pinned by an unverified upstream): `python3 -m services.analytics.cli --pin-dependency --location-id UUID` (read-only); `python3 -m services.analytics.cli --propose-pin --location-id UUID` writes DRAFT `tactical_opportunity` rows (type `pin`).
+  - Zwischenzug (high-priority counter-threat applied first): `python3 -m services.analytics.cli --zwischenzug [--location-id UUID]` (read-only); `python3 -m services.analytics.cli --propose-zwischenzug [--location-id UUID]` writes DRAFT `tactical_opportunity` rows (type `zwischenzug`). The cycle reorder is also available via `FeedbackAutomation(...).run_full_cycle(zwischenzug=True)` (proposed `feedback_loop` rows stay `status='proposed'`).
+  - Promotion ladder (regenerative value chain: sensor_reading → verified metric_value → published carbon_credit → issued retirement_certificate): `python3 -m services.analytics.cli --promotion-ladder [--location-id UUID]` (read-only; no writes).
+   - Composite report: `python3 -m services.export.report_generator --type tactical_layer [--all | --location-id UUID ...]`; also individual report types `fork_opportunities`, `pin_dependency`, `promotion_ladder`. `tactical_opportunity` table is the single DRAFT-only sink for all tactical proposals (`services/agents/safety.py` permits only `status='draft'` writes there).
+- Tactical-wargame simulation (constructive only) — advisory probabilistic stress-testing inspired by tactical wargames (combat resolution with uncertainty + two-sided clash). Sanctioned primitives live in `services/simulation/resolution.py`:
+  - `monte_carlo(sim_callable, base_params, sampler=..., metric=..., n=, seed=, max_workers=)` — wraps any deterministic simulator as a black box, perturbs sampled inputs, and returns a distribution (`mean/p5/p50/p95/std`) with per-draw failure isolation.
+  - `resolve_clash(attacker_strength, defender_strength, model="ratio", ...)` — two-sided CRT-style outcome probabilities (attacker wins / defender holds / mutual loss).
+  - `clash_sweep(scenarios, max_workers=)` — concurrent clash resolution across many scenarios.
+  - Convenience wrappers: `services.analytics.digital_twin.monte_carlo_yield` (yield distribution under perturbed weather/inputs) and `services.systems.stock_flow.StockFlowSimulator.monte_carlo_stock` (stock final-value distribution). Adversarial clash examples in `services/simulation/clash_examples.py` (`stress_reserve` = threat pressure vs. reserve adequacy; `pest_vs_intervention`).
+   - **Boundary (mandatory):** the "opposing force" modelled here is restricted to *shocks, threats, pests, market pressure, and competitor data* — never the fragmentation or adversarial manipulation of stakeholders or communities. All outputs are read-only/advisory; any proposal still routes through the DRAFT-only `tactical_opportunity` sink. Report type: `python3 -m services.export.report_generator --type simulation_wargame --location-id UUID`.
+- Persuasive technology (constructive only) — the platform borrows advisory concepts from persuasive technology (Fogg behavior model, overjustification effect, gamification) to support *intrinsic* regenerative motivation, never to coerce or manipulate. Adopted scope and boundaries:
+  - Overjustification guardrail: `detect_overjustification_risk` in `services/analytics/reward_calibration.py` is a read-only diagnostic that inspects `token_reward_distribution` `distribution_method` and metric-reward correlation to flag where extrinsic token rewards may crowd out intrinsic motivation. It is advisory-only and never auto-disables rewards; it surfaces in the `reward_calibration` report as `overjustification_risk` with `risk_level` low/medium/high/unknown.
+  - Gamified CRISP band (AAA–D) is framed as a *competence/merit signal*, not a bribe — `compute_composite_rating` populates `CompositeRating.design_note` stating this (see `services/crisp/models.py`, `services/crisp/scoring_engine.py`).
+  - **Boundary (mandatory):** persuasive features must reject manipulative patterns — logical fallacies, dark-pattern default-on, deceptive framing, and coercive persuasion (Fogg's "destroy, deceived, locked in" are out of scope). Token/score rewards inform and recognize verified competence; they never substitute for human governance or override a location's own decisions. No persuasive feature writes governed state autonomously; proposals route through the DRAFT-only sinks.
+- Capital accounting (Keynes-inspired, constructive only) — extends the **8 Forms of Capital** from a static stock inventory into a dynamic capital-accounting & deferred-credit system, borrowing from Keynes's *How to Pay for the War*:
+  - Deferred Pay / compulsory savings → `regenerative_credit_ledger` (`services/capital/credit.py`): a *withheld, credited claim on future regenerative output*, redeemable later. Agents may ONLY propose `status='draft'` rows (enforced by `services/agents/safety.py`); settlement/redemption are human-approved flows out of scope.
+  - Output capacity & national-income accounting → `capital_capacity_assessment` (`services/capital/capacity.py`): stock vs regenerative output capacity, surfacing under-mobilized Forms.
+  - Consumption-vs-production diversion → `capital_diversion_observation` (`services/capital/diversion.py`): reinvestment share of total value flow (capex proxy from `expense_event.is_capex`).
+  - Managed containment (inflation analog) → `capital_capture_risk` (`services/capital/capture.py`): value-leakage / concentration early-warning per Form (financial counterparty share; `anti_capture_governance_policy`).
+  - **Boundary (mandatory):** the regenerative credit is a *claim on future regenerative output*, never a coercive levy or token bribe; it reuses the overjustification guardrail's merit framing. Capture-risk and diversion diagnostics are advisory; any proposal routes through DRAFT-only sinks. The "network-underwritten deficit" (`credit_capacity`) is a read-only capacity signal, not an autonomous drawdown.
+- Backcasting enhancement tests: `python3 -m pytest tests/test_backcasting_enhancements.py -v`
+- Delphi create study: `python3 -m services.delphi create-study --title "Drought response priorities" --location-id UUID --variation real_time`
+- Delphi open study: `python3 -m services.delphi open-study --study-id UUID`
+- Delphi add panel member: `python3 -m services.delphi add-panel --study-id UUID --ref-type farmer_identity --ref-id UUID --role expert`
+- Delphi add item: `python3 -m services.delphi add-item --study-id UUID --label "Adopt drought-tolerant crops" --type option --scale feasibility_technical --min-value 0 --max-value 1`
+- Delphi submit evaluation: `python3 -m services.delphi submit --study-id UUID --item-id UUID --member-id UUID --score 0.8 --reasoning "Locally available seed varieties"`
+- Delphi live summary: `python3 -m services.delphi live-summary --study-id UUID`
+- Delphi stopping check: `python3 -m services.delphi check-stopping --study-id UUID`
+- Delphi draft recommendation: `python3 -m services.delphi draft-recommendation --study-id UUID --text "Adopt the consensus options"`
+- Delphi approve recommendation: `python3 -m services.delphi approve-recommendation --recommendation-id UUID --approved-by UUID`
+- Delphi facilitator agent: `python3 -m services.agents.delphi_facilitator_agent --study-id UUID --draft`
+- Delphi tests: `python3 -m pytest tests/test_delphi.py -v`
+- Evidence lineage graph rebuild: `python3 -m services.graph_projection rebuild --actor OPERATOR`
+- Evidence lineage graph status: `python3 -m services.graph_projection status`
+- Evidence lineage graph validate: `python3 -m services.graph_projection validate`
+- Evidence lineage graph query: `python3 -m services.graph_projection query --entity-key ENTITY_TYPE:UUID --depth 2 --audience internal`
+- Workflow specifications list: `python3 -m services.workflow_specs list`
+- Workflow specifications validate: `python3 -m services.workflow_specs validate`
+- Workflow specification render: `python3 -m services.workflow_specs render event_bus_delivery --format mermaid`
+- Regenerate workflow documentation: `python3 scripts/render-workflow-specs.py`
+- Workflow specification tests: `python3 -m pytest tests/test_workflow_specs.py tests/test_workflow_spec_conformance.py -v`
+- Management work-item create: `python3 -m services.management work-item create --org-id UUID --title "Task"`
+- Management work-item list: `python3 -m services.management work-item list --org-id UUID`
+- Management work-item show: `python3 -m services.management work-item show --id UUID`
+- Management work-item assign: `python3 -m services.management work-item assign --id UUID --assignee-type staff --assignee-id UUID`
+- Management work-item transition: `python3 -m services.management work-item transition --id UUID --to-status in_progress --actor-type worker`
+- Management work-item SLA sweep: `python3 -m services.management work-item sla --org-id UUID`
+- Management responsibility assign: `python3 -m services.management responsibility assign --entity-type location --entity-id UUID --party-type staff --party-id UUID --role accountable`
+- Management responsibility list: `python3 -m services.management responsibility list --entity-type location --entity-id UUID`
+- Management responsibility list-by-party: `python3 -m services.management responsibility list-party --party-type staff --party-id UUID`
+- Management tests: `python3 -m pytest tests/test_management_workflow.py tests/test_responsibility_assignment.py -v`
+- Planning budget create: `python3 -m services.planning budget create --org-id UUID --name "2026 Plan" --fiscal-year 2026 --currency USD`
+- Planning budget add line: `python3 -m services.planning budget add-line --plan-id UUID --category opex --period 2026-Q1 --planned-amount 10000`
+- Planning budget approve: `python3 -m services.planning budget approve --id UUID --approved-by UUID`
+- Planning budget list: `python3 -m services.planning budget list --org-id UUID`
+- Planning budget variance: `python3 -m services.planning budget variance --id UUID`
+- Planning objective assign KPI: `python3 -m services.planning objective assign-kpi --id UUID --name "Yield" --target 2500 --unit kg`
+- Planning objective review: `python3 -m services.planning objective review --id UUID --status-at-review on_track --actor-type manager`
+- Planning objective health: `python3 -m services.planning objective health --id UUID`
+- Planning portfolio create program: `python3 -m services.planning portfolio create-program --org-id UUID --name "Regenerative rollout"`
+- Planning portfolio create project: `python3 -m services.planning portfolio create-project --org-id UUID --name "Plot A" --program-id UUID`
+- Planning portfolio list programs: `python3 -m services.planning portfolio list-programs --org-id UUID`
+- Planning portfolio start/hold/resume/complete/cancel: `python3 -m services.planning portfolio start --id UUID`
+- Planning portfolio rollup: `python3 -m services.planning portfolio rollup --id UUID`
+- Planning S&OP cockpit: `python3 -m services.planning cockpit show --org-id UUID`
+- Planning tests: `python3 -m pytest tests/test_planning_budget.py tests/test_objective_performance.py tests/test_program_portfolio.py tests/test_sandop.py -v`
+- Value-stream current-state map: `python3 -m services.analytics.value_stream current-state [--location-id UUID]`
+- Value-stream WIP by stage: `python3 -m services.analytics.value_stream wip [--location-id UUID]`
+- Value-stream lead times: `python3 -m services.analytics.value_stream lead-times [--location-id UUID]`
+- Value-stream first-time-through yield: `python3 -m services.analytics.value_stream fty [--location-id UUID]`
+- Value-stream bottleneck ranking: `python3 -m services.analytics.value_stream bottleneck [--location-id UUID]`
+- Value-stream report: `python3 -m services.export.report_generator --type value_stream_map [--location-id UUID]`
+- Compute flow metrics: `python3 -m services.metrics --compute --metric governed_lead_time_days --location-id UUID` (also `first_time_through_yield_pct`, `rework_rate_pct`)
+- Value-stream tests: `python3 -m pytest tests/test_value_stream.py tests/test_flow_metrics.py -v`
+- Process mining variants: `python3 -m services.analytics.process_mining discover [--entity-type TYPE]`
+- Process mining conformance: `python3 -m services.analytics.process_mining conformance [--entity-type TYPE] [--limit N]`
+- Process mining case timeline: `python3 -m services.analytics.process_mining timeline --entity-id UUID`
+- Process mining cycle times: `python3 -m services.analytics.process_mining cycle-times [--entity-type TYPE]`
+- Process mining persist variants: `python3 -m services.analytics.process_mining persist [--entity-type TYPE]`
+- Process mining tests: `python3 -m pytest tests/test_process_mining.py -v`
+- Predictive BPM predict: `python3 -m services.analytics.predictive_bpm predict --entity-type TYPE --state submitted --age-hours 24 [--sla-target-hours 72]`
+- Predictive BPM breaches: `python3 -m services.analytics.predictive_bpm breaches --entity-type TYPE --sla-target-hours 72 [--threshold 0.5]`
+- Predictive BPM persist: `python3 -m services.analytics.predictive_bpm persist --entity-type TYPE [--sla-target-hours 72]`
+- Predictive BPM tests: `python3 -m pytest tests/test_predictive_bpm.py -v`
+- Process control capture: `python3 -m services.systems.process_control capture [--entity-type TYPE]`
+- Process control chart: `python3 -m services.systems.process_control chart --entity-type TYPE --metric cycle_time_days`
+- Process control CTQ: `python3 -m services.systems.process_control ctq [--process NAME]`
+- Process control tests: `python3 -m pytest tests/test_process_control.py -v`
+- Process-health board: `python3 -m services.analytics.process_health board [--location-id UUID] [--sla-target-hours 72]`
+- Process-health report: `python3 -m services.export.report_generator --type process_health [--location-id UUID]`
+- Process-health tests: `python3 -m pytest tests/test_process_health.py -v`
+- Process escalation sweep: `python3 -m services.management.escalation sweep [--org-id UUID] [--sla-target-hours 72] [--threshold 0.5]`
+- Process escalation resolve: `python3 -m services.management.escalation resolve --escalation-id UUID [--resolved-by UUID]`
+- Process escalation tests: `python3 -m pytest tests/test_process_escalation.py -v`
+- Process model sync (workflow_specs -> process_model): `python3 -m services.analytics.process_model_sync`
+- Process model sync tests: `python3 -m pytest tests/test_process_model_sync.py -v`
+- Per-entity-type BPM state-model tests: `python3 -m pytest tests/test_bpm_state_models.py -v`
+
+**BPM per-entity-type models.** The canonical 5-state `process_model` (draft→submitted→verified→published, rejected terminal) is generalized per `entity_type` by the process-model migrations. Tables with their own state machine are mined/monitored/predicted/escalated with the same engine: `work_item` (from `services/workflow_specs/work_item.py`, kept in sync via `process_model_sync`), `market_order` (pending→confirmed→shipped→delivered, with a `CHECK` constraint), and `metric_value` (verified boolean mapped to draft/verified). `credit_retirement` already uses the 5-state vocabulary and only needed a trigger. `process_model_sync` keeps spec-driven models in sync; the state transition triggers and market-order cleanup are applied by migrations 187 and 211.
+- SWOT create: `python3 -m services.analytics.swot create --location-id UUID [--strengths s1 s2] [--threats t1]`
+- SWOT list: `python3 -m services.analytics.swot list --location-id UUID` (or `--org-id UUID`)
+- SWOT get: `python3 -m services.analytics.swot get --swot-id UUID`
+- SWOT suggest: `python3 -m services.analytics.swot suggest --location-id UUID` (or `--org-id UUID`)
+- SWOT factor create: `python3 -m services.analytics.swot factor create --swot-id UUID --factor-type strength --category financial --description "Strong revenue"`
+- SWOT factor list: `python3 -m services.analytics.swot factor list --swot-id UUID [--factor-type strength] [--classification internal]`
+- SWOT factor delete: `python3 -m services.analytics.swot factor delete --factor-id UUID`
+- SWOT tows generate: `python3 -m services.analytics.swot tows generate --swot-id UUID`
+- SWOT tows list: `python3 -m services.analytics.swot tows list --swot-id UUID`
+- SWOT tows approve: `python3 -m services.analytics.swot tows approve --strategy-id UUID --approved-by UUID`
+- SWOT tows fit: `python3 -m services.analytics.swot tows fit --swot-id UUID`
+- SWOT competitor create: `python3 -m services.analytics.swot competitor create --location-id UUID --name "BigAg" [--strengths s1 s2] [--weaknesses w1] [--threat-level high]`
+- SWOT competitor list: `python3 -m services.analytics.swot competitor list --location-id UUID`
+- SWOT temporal snapshot: `python3 -m services.analytics.swot temporal snapshot --swot-id UUID [--summary "Added competitor"]`
+- SWOT temporal list: `python3 -m services.analytics.swot temporal list --swot-id UUID`
+- SWOT action link: `python3 -m services.analytics.swot action link --swot-id UUID --description "Secure financing" [--factor-id UUID] [--strategy-id UUID]`
+- SWOT action list: `python3 -m services.analytics.swot action list --swot-id UUID`
+- BMC create: `python3 -m services.analytics.business_model_canvas create --location-id UUID [--canvas-name NAME] [--fiscal-year YEAR]`
+- BMC list: `python3 -m services.analytics.business_model_canvas list --location-id UUID`
+- BMC get: `python3 -m services.analytics.business_model_canvas get --canvas-id UUID`
+- BMC update-block: `python3 -m services.analytics.business_model_canvas update-block --canvas-id UUID --block key_partners --items '[{"name":"P1"}]'`
+- BMC version: `python3 -m services.analytics.business_model_canvas version --canvas-id UUID`
+- BMC suggest: `python3 -m services.analytics.business_model_canvas suggest --location-id UUID`
+- BMC health: `python3 -m services.analytics.business_model_canvas health --canvas-id UUID`
+- Revenue stream create: `python3 -m services.analytics.revenue_model create-stream --location-id UUID --stream-name NAME --stream-type TYPE`
+- Revenue stream list: `python3 -m services.analytics.revenue_model list-streams --location-id UUID`
+- Pricing create: `python3 -m services.analytics.revenue_model create-pricing --location-id UUID --product-name NAME --pricing-type TYPE --base-price PRICE`
+- Pricing list: `python3 -m services.analytics.revenue_model list-pricing --location-id UUID`
+- Cost structure create: `python3 -m services.analytics.revenue_model create-cost --location-id UUID --cost-category NAME --cost-type fixed|variable|semi_variable --amount AMOUNT`
+- Cost structure list: `python3 -m services.analytics.revenue_model list-costs --location-id UUID`
+- Break-even: `python3 -m services.analytics.revenue_model break-even --location-id UUID --fixed-costs 10000 --variable-cost 2 --price 5`
+- Break-even list: `python3 -m services.analytics.revenue_model list-break-even --location-id UUID`
+- Sensitivity: `python3 -m services.analytics.revenue_model sensitivity --break-even-id UUID`
+- Revenue forecast: `python3 -m services.analytics.revenue_model forecast --location-id UUID --periods 12`
+- Channel config: `python3 -m services.analytics.channel_orchestration create-channel --location-id UUID --channel-name NAME --channel-type sms|whatsapp|mobile_app|email`
+- Channel list: `python3 -m services.analytics.channel_orchestration list-channels --location-id UUID`
+- Channel preference: `python3 -m services.analytics.channel_orchestration set-preference --location-id UUID --segment-type farmer --channel-type sms --priority 10 --is-primary`
+- Delivery plan: `python3 -m services.analytics.channel_orchestration delivery-plan --location-id UUID --segment-type farmer`
+- Fallback rule: `python3 -m services.analytics.channel_orchestration create-fallback --location-id UUID --rule-name NAME --primary-channel sms --fallback-channels whatsapp voice_call`
+- Log interaction: `python3 -m services.analytics.channel_orchestration log-interaction --location-id UUID --customer-type farmer --customer-id UUID --interaction-type message_sent`
+- Compute health: `python3 -m services.analytics.channel_orchestration compute-health --location-id UUID --customer-type farmer --customer-id UUID`
+- Health list: `python3 -m services.analytics.channel_orchestration list-health --location-id UUID`
+- Partner lifecycle create: `python3 -m services.analytics.partner_lifecycle create --partner-id UUID --stage prospect`
+- Partner lifecycle advance: `python3 -m services.analytics.partner_lifecycle advance --lifecycle-id UUID --stage active`
+- Partner lifecycle list: `python3 -m services.analytics.partner_lifecycle list --location-id UUID`
+- Partner evaluate: `python3 -m services.analytics.partner_lifecycle evaluate --lifecycle-id UUID --partner-id UUID --evaluation-type quarterly --technical 80 --financial 70`
+- Partner scorecard: `python3 -m services.analytics.partner_lifecycle scorecard --lifecycle-id UUID --partner-id UUID --period-start 2026-01-01 --period-end 2026-03-31 --quality 88`
+- Business plan generate: `python3 -m services.export.business_plan --location-id UUID` (or `--org-id UUID`)
+- Business-plan tests: `python3 -m pytest tests/test_business_plan.py tests/test_swot.py tests/test_reference_class.py -v`
+- BMC tests: `python3 -m pytest tests/test_business_model_canvas.py tests/test_revenue_model.py tests/test_channel_health.py tests/test_partner_lifecycle.py -v`
+- Pitch generate: `python3 -m services.analytics.pitch generate --location-id UUID --audience funders`
+- Pitch elevator: `python3 -m services.analytics.pitch elevator --location-id UUID`
+- Pitch evidence: `python3 -m services.analytics.pitch evidence --location-id UUID`
+- Pitch templates list: `python3 -m services.analytics.pitch templates list`
+- Pitch templates get: `python3 -m services.analytics.pitch templates get --audience funders`
+- Pitch templates create: `python3 -m services.analytics.pitch templates create --audience funders --hook "..." --problem "..." --solution "..." --proof "..." --cta-label "..." --cta-url "..."`
+- Pitch report: `python3 -m services.export.report_generator --type pitch_deck --location-id UUID`
+- Pitch tests: `python3 -m pytest tests/test_pitch.py -v`
+- Capability map list: `python3 -m services.analytics.cli_capability_map list [--guild technology]`
+- Capability map hierarchy: `python3 -m services.analytics.cli_capability_map hierarchy`
+- Capability map coverage: `python3 -m services.analytics.cli_capability_map coverage`
+- Capability maturity assess: `python3 -m services.analytics.cli_capability_map maturity CAPABILITY_UUID LEVEL --assessed-by REVIEWER`
+- Capability process mapping: `python3 -m services.analytics.cli_capability_map map-process CAPABILITY_UUID PROCESS_KEY`
+- Capability service mapping: `python3 -m services.analytics.cli_capability_map map-service CAPABILITY_UUID SERVICE_NAME`
+- Strategy map create: `python3 -m services.analytics.cli_strategy_map create "Objective" --perspective internal_process --theme "Operational Excellence"`
+- Strategy map list: `python3 -m services.analytics.cli_strategy_map list [--perspective financial]`
+- Strategy capability mapping: `python3 -m services.analytics.cli_strategy_map map-capability STRATEGY_UUID CAPABILITY_UUID`
+- Strategy initiative create: `python3 -m services.analytics.cli_strategy_map initiative-create STRATEGY_UUID "Initiative"`
+- Strategy execution dashboard: `python3 -m services.analytics.cli_strategy_map dashboard`
+- Vision/mission current: `python3 -m services.analytics.cli_vision_mission current`
+- Vision/mission create: `python3 -m services.analytics.cli_vision_mission create "Statement" --type vision`
+- Vision/mission approve: `python3 -m services.analytics.cli_vision_mission approve STATEMENT_UUID --approved-by REVIEWER`
+- Value stream list: `python3 -m services.analytics.cli_value_stream_defs list`
+- Value stream stages: `python3 -m services.analytics.cli_value_stream_defs stages STREAM_UUID`
+- Value stream observation: `python3 -m services.analytics.cli_value_stream_defs observe STAGE_UUID ENTITY_TYPE ENTITY_UUID --lead-time HOURS --fty PERCENT`
+- Value stream performance: `python3 -m services.analytics.cli_value_stream_defs performance STREAM_UUID`
+- Business architecture reports: `python3 -m services.export.report_generator --type capability_dashboard` (also `strategy_execution`, `capability_assessment`, `value_stream_formal`)
+- Business architecture tests: `python3 -m pytest tests/test_capability_map.py tests/test_strategy_map.py tests/test_vision_mission.py tests/test_value_stream_defs.py tests/test_ba_integration.py -v`
+- PESTEL create: `python3 -m services.analytics.pestel create --location-id UUID --title "Q1 2026" --period-start 2026-01-01 --period-end 2026-03-31`
+- PESTEL add-factor: `python3 -m services.analytics.pestel add-factor --analysis-id UUID --category political --factor-type risk --title "Policy Change" --impact 7.0 --likelihood 0.6`
+- PESTEL list: `python3 -m services.analytics.pestel list --location-id UUID`
+- PESTEL get: `python3 -m services.analytics.pestel get --analysis-id UUID`
+- PESTEL compute: `python3 -m services.analytics.pestel compute --analysis-id UUID`
+- PESTEL suggest: `python3 -m services.analytics.pestel suggest --location-id UUID`
+- PESTEL export: `python3 -m services.analytics.pestel export --analysis-id UUID`
+- PESTEL tests: `python3 -m pytest tests/test_pestel.py -v`
+- Regional readiness create: `python3 -m services.analytics.regional_readiness create --location-id UUID --title "Q1 Assessment" --period-start 2026-01-01 --period-end 2026-03-31`
+- Regional readiness compute: `python3 -m services.analytics.regional_readiness compute --assessment-id UUID`
+- Regional readiness list: `python3 -m services.analytics.regional_readiness list --location-id UUID`
+- Regional readiness get: `python3 -m services.analytics.regional_readiness get --assessment-id UUID`
+- Regional readiness compare: `python3 -m services.analytics.regional_readiness compare --location-ids UUID1 UUID2`
+- Regional readiness create-benchmark: `python3 -m services.analytics.regional_readiness create-benchmark --dimension-key infrastructure --name "Regional Average" --score 60.0`
+- Regional readiness benchmark: `python3 -m services.analytics.regional_readiness benchmark --assessment-id UUID --benchmark-id UUID`
+- Regional readiness dimensions: `python3 -m services.analytics.regional_readiness dimensions`
+- Regional readiness export: `python3 -m services.analytics.regional_readiness export --assessment-id UUID`
+- Regional readiness tests: `python3 -m pytest tests/test_regional_readiness.py -v`
+- Publics add-public: `python3 -m services.analytics.publics add-public --location-id UUID --type government --name "Local Municipality" --influence 8.0 --interest 6.0`
+- Publics list: `python3 -m services.analytics.publics list --location-id UUID`
+- Publics update-stance: `python3 -m services.analytics.publics update-stance --public-id UUID --stance supportive`
+- Publics create-segment: `python3 -m services.analytics.publics create-segment --location-id UUID --type business --name "Organic Buyers" --size-estimate 500`
+- Publics list-segments: `python3 -m services.analytics.publics list-segments --location-id UUID`
+- Publics map-demand: `python3 -m services.analytics.publics map-demand --segment-id UUID`
+- Publics matrix: `python3 -m services.analytics.publics matrix --location-id UUID`
+- Publics suggest: `python3 -m services.analytics.publics suggest --location-id UUID`
+- Publics tests: `python3 -m pytest tests/test_publics.py -v`
+- Stakeholder create party: `python3 -m services.analytics.cli_stakeholders create-party community "Community Name"`
+- Stakeholder list: `python3 -m services.analytics.cli_stakeholders list [--party-type community]`
+- Stakeholder landscape: `python3 -m services.analytics.cli_stakeholders landscape`
+- Stakeholder show: `python3 -m services.analytics.cli_stakeholders show PARTY_UUID`
+- Stakeholder link identity: `python3 -m services.analytics.cli_stakeholders identifier PARTY_UUID TYPE VALUE SOURCE --status candidate`
+- Stakeholder relationship: `python3 -m services.analytics.cli_stakeholders relationship FROM_PARTY TO_PARTY RELATIONSHIP_TYPE`
+- Stakeholder interest: `python3 -m services.analytics.cli_stakeholders interest PARTY_UUID need "Accessible participation"`
+- Stakeholder salience: `python3 -m services.analytics.cli_stakeholders salience PARTY_UUID --legitimacy-score 9 --harm-exposure 8 --rationale "Evidence-backed assessment"`
+- Stakeholder report: `python3 -m services.export.report_generator --type stakeholder_landscape --location-id UUID`
+- Stakeholder tests: `python3 -m pytest tests/test_stakeholder_foundation.py -v`
+- Stakeholder consent record: `python3 -m services.analytics.cli_consent record PARTY_UUID social "community research" --recipient-type researcher`
+- Stakeholder consent check: `python3 -m services.analytics.cli_consent check PARTY_UUID social "community research" --recipient-type researcher`
+- Stakeholder consent list: `python3 -m services.analytics.cli_consent list --party-id PARTY_UUID`
+- Stakeholder consent withdraw: `python3 -m services.analytics.cli_consent withdraw CONSENT_EVENT_UUID --reason "Purpose changed"`
+- Stakeholder consent tests: `python3 -m pytest tests/test_stakeholder_consent.py -v`
+- Stakeholder identity propose: `python3 -m services.analytics.cli_stakeholder_identity propose SOURCE_SYSTEM SOURCE_TYPE SOURCE_ID PARTY_UUID PARTY_TYPE --confidence 0.9`
+- Stakeholder identity review: `python3 -m services.analytics.cli_stakeholder_identity review CASE_UUID REVIEWER_PARTY_UUID "Reviewed source evidence"`
+- Stakeholder identity queue: `python3 -m services.analytics.cli_stakeholder_identity queue`
+- Stakeholder engagement create plan: `python3 -m services.analytics.cli_stakeholder_engagement create-plan "Plan" --stakeholder-party-id PARTY_UUID`
+- Stakeholder engagement list plans: `python3 -m services.analytics.cli_stakeholder_engagement list-plans`
+- Stakeholder engagement add objective: `python3 -m services.analytics.cli_stakeholder_engagement add-objective PLAN_UUID "Objective" "Desired outcome"`
+- Stakeholder engagement schedule touchpoint: `python3 -m services.analytics.cli_stakeholder_engagement schedule-touchpoint PLAN_UUID "Purpose" --channel-type sms --consent-checked`
+- Stakeholder engagement commitment health: `python3 -m services.analytics.cli_stakeholder_engagement commitment-health [--overdue-only]`
+- Stakeholder engagement record outcome: `python3 -m services.analytics.cli_stakeholder_engagement record-outcome PLAN_UUID progress "Outcome summary"`
+- Stakeholder engagement report: `python3 -m services.export.report_generator --type stakeholder_engagement --location-id UUID`
+- Stakeholder engagement tests: `python3 -m pytest tests/test_stakeholder_engagement.py -v`
+- Stakeholder grievance create: `python3 -m services.analytics.cli_stakeholder_grievances create-case representation "Input was not acknowledged" --complainant-party-id PARTY_UUID`
+- Stakeholder grievance acknowledge: `python3 -m services.analytics.cli_stakeholder_grievances acknowledge CASE_UUID --owner-party-id PARTY_UUID`
+- Stakeholder grievance investigate: `python3 -m services.analytics.cli_stakeholder_grievances assign-investigation CASE_UUID INVESTIGATOR_PARTY_UUID "Review participation records"`
+- Stakeholder grievance remedy: `python3 -m services.analytics.cli_stakeholder_grievances propose-remedy CASE_UUID explanation "Publish a response"`
+- Stakeholder grievance health: `python3 -m services.analytics.cli_stakeholder_grievances health [--overdue-only]`
+- Stakeholder grievance report: `python3 -m services.export.report_generator --type stakeholder_grievance --location-id UUID`
+- Stakeholder grievance tests: `python3 -m pytest tests/test_stakeholder_grievances.py -v`
+- Stakeholder participation: `python3 -m services.analytics.cli_stakeholder_representation record-participation decision DECISION_UUID --party-id PARTY_UUID --status attended --consent-checked`
+- Stakeholder accessibility: `python3 -m services.analytics.cli_stakeholder_representation request-accessibility PARTICIPATION_UUID language "Provide interpretation"`
+- Stakeholder minority view: `python3 -m services.analytics.cli_stakeholder_representation record-minority-view decision DECISION_UUID "Protect water access first" --anonymous-group "Affected households"`
+- Stakeholder representation metrics: `python3 -m services.analytics.cli_stakeholder_representation metrics decision DECISION_UUID`
+- Stakeholder distribution summary: `python3 -m services.analytics.cli_stakeholder_representation distribution-summary --scope-type location --scope-id UUID`
+- Stakeholder representation report: `python3 -m services.export.report_generator --type stakeholder_representation --location-id UUID`
+- Stakeholder representation tests: `python3 -m pytest tests/test_stakeholder_representation.py -v`
+- Stakeholder decision create: `python3 -m services.analytics.cli_stakeholder_decisions create "Decision title" "Decision description" policy --created-by-party-id PARTY_UUID`
+- Stakeholder decision submit: `python3 -m services.analytics.cli_stakeholder_decisions submit DECISION_UUID`
+- Stakeholder decision approve: `python3 -m services.analytics.cli_stakeholder_decisions approve DECISION_UUID APPROVER_PARTY_UUID`
+- Stakeholder decision link execution: `python3 -m services.analytics.cli_stakeholder_decisions link-execution DECISION_UUID --work-item-id WORK_ITEM_UUID`
+- Stakeholder decision complete: `python3 -m services.analytics.cli_stakeholder_decisions complete DECISION_UUID`
+- Stakeholder decision add participant: `python3 -m services.analytics.cli_stakeholder_decisions add-participant DECISION_UUID affected --party-id PARTY_UUID --status participated --consent-checked`
+- Stakeholder decision add trade-off: `python3 -m services.analytics.cli_stakeholder_decisions add-tradeoff DECISION_UUID harm "Potential water access impact" --severity 8 --mitigation "Protect minimum access"`
+- Stakeholder decision add evidence: `python3 -m services.analytics.cli_stakeholder_decisions add-evidence DECISION_UUID metric "Verified soil moisture trend" --role supporting --maturity 4 --verified`
+- Stakeholder decision record outcome: `python3 -m services.analytics.cli_stakeholder_decisions record-outcome DECISION_UUID harm "No material access disruption observed" --status verified`
+- Stakeholder decision report: `python3 -m services.export.report_generator --type stakeholder_decision_lineage --location-id UUID`
+- Stakeholder trust evidence: `python3 -m services.analytics.cli_stakeholder_trust record-evidence PARTY_UUID payment supporting financial_transaction "Payment settled within agreed terms" --confidence 0.9 --uncertainty 0.1`
+- Stakeholder trust profile: `python3 -m services.analytics.cli_stakeholder_trust profile PARTY_UUID`
+- Stakeholder trust timeline: `python3 -m services.analytics.cli_stakeholder_trust timeline PARTY_UUID`
+- Stakeholder trust risks: `python3 -m services.analytics.cli_stakeholder_trust risks [--party-id PARTY_UUID]`
+- Buyer verification: `python3 -m services.analytics.cli_stakeholder_trust verify-buyer BUYER_UUID registration "Registry review" --verified-by-party-id REVIEWER_UUID`
+- Cooperative governance health: `python3 -m services.analytics.cli_stakeholder_trust governance-health [--cooperative-id UUID]`
+- Stakeholder ecosystem report: `python3 -m services.export.report_generator --type stakeholder_ecosystem --location-id UUID`
+- Stakeholder outcomes report: `python3 -m services.export.report_generator --type stakeholder_outcomes --location-id UUID`
+- Stakeholder trust report: `python3 -m services.export.report_generator --type stakeholder_trust --location-id UUID`
+- Stakeholder value-stream report: `python3 -m services.export.report_generator --type stakeholder_value_streams --location-id UUID`
+- Stakeholder cockpit report: `python3 -m services.export.report_generator --type stakeholder_cockpit --location-id UUID`
+- Stakeholder Phase 8-11 tests: `python3 -m pytest tests/test_stakeholder_phases_8_11.py -v`
+- Env scanning create: `python3 -m services.analytics.env_scanning create --location-id UUID --title "Q1 Scan" --type full`
+- Env scanning update-step: `python3 -m services.analytics.env_scanning update-step --scan-id UUID --step 1 --status completed --findings "3 threats identified"`
+- Env scanning get: `python3 -m services.analytics.env_scanning get --scan-id UUID`
+- Env scanning list: `python3 -m services.analytics.env_scanning list --location-id UUID`
+- Env scanning complete: `python3 -m services.analytics.env_scanning complete --scan-id UUID`
+- Env scanning auto-populate: `python3 -m services.analytics.env_scanning auto-populate --scan-id UUID`
+- Env scanning export: `python3 -m services.analytics.env_scanning export --scan-id UUID`
+- Env scanning tests: `python3 -m pytest tests/test_env_scanning.py -v`
+- PESTEL report: `python3 -m services.export.report_generator --type pestel_assessment --location-id UUID`
+- Regional readiness report: `python3 -m services.export.report_generator --type regional_readiness --location-id UUID`
+- Publics market landscape report: `python3 -m services.export.report_generator --type publics_market_landscape --location-id UUID`
+- Env scan report: `python3 -m services.export.report_generator --type env_scan_report --location-id UUID`
 
 ## Development Notes
 
+- Trend analysis: Least-squares trend estimation, Mann-Kendall significance testing, exponential smoothing, seasonal decomposition, CUSUM/PELT change-point detection, ARIMA forecasting, and forecast accuracy tracking.
+
+- Systems thinking: Causal loops, leverage points, archetypes, double-loop learning, time delays, stock-and-flow simulation, and mental models enhance the Orient phase of the OODA loop.
+
+- Adaptation acceleration: Adaptation velocity tracker (OODA cycle times, feedback rates, effectiveness trends), feedback loop automation (periodic evaluation and adjustment), improvement rate tracker (trend detection, learning curves, plateau detection), and cross-domain insight transfer. Acceleration score classifies system as accelerating/stable/decelerating/stalled.
+
+- Cross-domain insight transfer: Event-driven propagation of insights across domains using configurable rules. Pest management insights inform irrigation, weather informs planting, energy informs irrigation. Rules learn effectiveness from outcome feedback.
+
+- Geostatistics: Variogram modeling (spherical, exponential, Gaussian, Matérn), ordinary/simple/indicator kriging, sequential Gaussian simulation, spatial autocorrelation (Moran's I, Geary's C), spatial cross-validation (block CV, leave-one-out), and sensor network optimization. Complements SOC prediction pipeline via residual kriging correction and spatial block CV.
+
+- Precision Agriculture Phase 1: Weather forecast ingestion (OpenWeatherMap 5-day / 3-hour), FAO-56 Penman-Monteith ET₀ computation, crop-specific ETc with stage-based Kc values, field-level water balance, Growing Degree Day (GDD) accumulation, crop phenology tracking with growth stage detection, and schedule anomaly detection. Weather forecast data populates `weather_forecast` table with 40 data points per location (5 days × 8 intervals). ET₀ computed using solar radiation when available with Hargreaves fallback. GDD thresholds and Kc values seeded for 8 crop types (maize, beans, cassava, sweet potato, coffee, avocado, tomato, banana).
+- Precision Agriculture Phase 2: Prescription maps (VRT) with natural-breaks and equal-interval rate classification, per-zone application rate computation (fertilizer/irrigation/seed), material cost estimation, and approval workflow. Advisory engine with 8 default rules (soil moisture, heat stress, nitrogen deficiency, pest alert, harvest readiness, frost warning, spray window, schedule-based), cooldown/daily-limit guardrails, accept/dismiss lifecycle, and audit logging. Equipment usage logging, OEE (Availability × Performance × Quality) computation, maintenance schedule tracking, and cost analysis (fuel + electricity + depreciation).
+- Precision Agriculture Phase 3: Yield monitoring with harvest recording, trend analysis (linear regression), yield prediction (ensemble model using GDD, weather, and historical data), and benchmark comparison. Digital twin crop growth simulation with daily time-step model (GDD accumulation, biomass growth, water balance, nitrogen dynamics, carbon sequestration), what-if scenario management, and scenario comparison.
+- Precision Agriculture Phase 4: Mobile offline-first data collection with device registration, offline queue, batch sync, conflict resolution, and sync audit logging. LLM chat interface with keyword-based intent classification, entity extraction, session management, structured query handlers for yield/weather/soil/CRISP/advisory/cost/twin, and response caching.
+- Precision Agriculture Phase 5: Irrigation automation with zone management, soil moisture targets by crop/growth stage, ETc-based schedule generation, irrigation event recording, automation rules engine (lt/lte/gt/gte/eq/neq/between operators with cooldown, time windows, daily limits, approval gates), water balance computation (ETc − rainfall − irrigation), schedule optimization (deficit-based volume calculation from target range), and water use efficiency reporting (weekly trends, distribution uniformity, water productivity kg/m³).
+
+- Pest Management: Field scouting records with severity/incidence tracking, IPM action thresholds (economic injury level, economic threshold) per pest-crop combination, intervention recording with IPM ladder recommendation (biological → cultural → mechanical → chemical), pesticide application logging with safety intervals (REI/PHI), resistance monitoring, and degree-day modeling with lifecycle stage tracking from `pest_degree_day_config`. Dashboard aggregates pest activity, interventions, chemical use, resistance alerts, and degree-day accumulation.
+
+- Threatcasting: Cross-impact analysis (how threats amplify/attenuate/trigger each other), warning flag monitoring (quantitative thresholds with status escalation), threat signal ingestion (internal + external + manual), narrative construction (desirable/undesirable/baseline/wildcard futures), multi-horizon planning (configurable per-location 1/3/5/10 year horizons), backcasting (work backward from future states with milestones), cascading failure modeling (chain propagation with probability), GNH-aligned desirability assessment (9 GNH dimensions, 8 Forms of Capital, SDGs), and threat intelligence aggregation (landscape assessment, briefings, evolution prediction). Schema: `159_threatcasting.sql` with 10 tables, 6 views.
+
+- Backcasting enhancements: Sustainability principles (FSSD approach) linked to metric definitions and CRISP dimensions for quantitative alignment scoring. Milestone alignment scores computed on-demand from metric_value and crisp_risk_assessment tables. Direction checking (toward/away/mixed) across milestone portfolios. Automated gap analysis reads current metrics + CRISP scores against principle targets. Assumption challenges with human approval workflow (pending → confirmed/modified/rejected). Path comparison with auto-scoring (cost, time, risk, desirability, principle alignment) and manual user overrides (50/50 hybrid). Effectiveness scoring combines before/after delta with trend analysis via TrendEstimator. Schema: `160_backcasting_enhancements.sql` with 4 tables, 3 views.
+
+- Real-time Delphi: Roundless expert and stakeholder consultation with pseudonymous panel members, continuously updatable evaluations, weighted median/median/IQR/CV aggregation, consensus history, inter-submission stability checks, and issue/goal/option items scored for desirability, technical feasibility, political feasibility, or probability. The Delphi facilitator agent may produce anonymized summaries and draft recommendations only; a human UUID is required to approve recommendations. Schema: `161_delphi.sql` with 7 tables, 3 views.
+
+- OODA loop: Observe (sensor_ingester, stream_processor) → Orient (situation_assessor, CRISP, metrics, anomaly_detector) → Decide (policy_engine, agents) → Act (alerts, actuation, data_stream) → Feedback (controller, adaptive_sampler).
+- All automated decisions require human approval via `decision_policy.requires_approval = TRUE`.
+- Situation assessment synthesizes CRISP scores, metric trends, anomaly counts, and analytics outputs into a unified `situation_grade` (critical/warning/stable/flourishing).
+- OODA cycle tracking uses `correlation_id` to thread Observe→Orient→Decide→Act timing.
+- Adaptive sampling adjusts sensor polling intervals based on feedback: increase when uncertainty is high, decrease when stable.
+- Decision policies are seeded via `schemas/seeds/080_ooda_policies.sql` with 5 default rules.
+- Adaptive thresholds are seeded via `schemas/seeds/081_adaptive_thresholds.sql`.
+- Feedback loops modify `adaptive_threshold` records and trigger cache invalidation via event bus.
+- Data stream posts use governed lifecycle (`draft`, `submitted`, `verified`, `published`, `rejected`).
+- Data stream posts require verified/published `farm_registry_record` for public visibility.
+- Data stream blockchain anchoring uses the `kokonut-data-post` EAS schema on Celo.
+- `data_stream_post` and `data_stream_post_comment` are governed collections — agents cannot publish.
+- IRI system generates deterministic `kokonut:{entity_type}:{entity_id}:v{version}` identifiers for all governed entities.
+- RDF triples are built from governed records via `services/rdf/graph_builder.py` and persisted to `rdf_triple` table.
+- Credit class/batch hierarchy links methodology definitions to issuance events to individual credits.
+- Retirement certificates are generated from `credit_retirement` records with SHA-256 hash integrity.
+- Metadata Graph API serves JSON-LD at `/data/v2/metadata-graph/{iri}` and accepts IRI generation at `/data/v2/iri-gen`.
+- SPARQL queries are translated to SQL against the `rdf_triple` table for basic graph pattern matching.
+- LinkML schemas validate metadata documents against standardized structures.
+- App-level metadata provides additional off-chain project info for UI rendering.
 - Prefer the smallest schema/code change that fixes the issue.
 - Keep seed files idempotent with `ON CONFLICT` or equivalent guards.
 - Seed files must correct stale source-of-truth rows on conflict when the record is canonical metadata, not only `DO NOTHING`.
 - `seed-pilot.sh` must fail on SQL errors; do not hide seed failures with `|| true`.
 - Seed scripts use `psql -v ON_ERROR_STOP=1`; preserve that behavior for all PostgreSQL seed/schema calls.
-- MVP setup order: `./scripts/seed.sh`, `./scripts/seed-pilot.sh`, `./scripts/compute-metrics.sh`, then `./scripts/verify-mvp.sh`.
+- Platform setup order: `./scripts/seed.sh`, `./scripts/seed-pilot.sh`, `./scripts/compute-metrics.sh`, then `./scripts/verify-platform.sh`.
 - Use Compose service names (`database`, `clickhouse`) instead of generated container names.
 - Do not print, copy, or commit secrets from `.env`.
 - Never commit private keys to Git. Bots exploit leaked secrets in seconds.
@@ -230,7 +1175,7 @@
 - Field Worker create permissions exclude `status` — lifecycle starts at `draft` by default.
 - MVP-critical pilot `expense_event` and `harvest_event` rows require populated `source_system`, `source_id`, and `source_raw`.
 - `metric_value` table stores computed governed metric results.
-- Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate verified `metric_value` rows for public metric views.
+- Metric computation: run `./scripts/compute-metrics.sh` after seeding to populate draft `metric_value` rows. A human reviewer must verify individual values before public metric views expose them.
 - Metric governance: `metric_definition` has `validation_tests`, `report_usage`, `deprecation_policy` fields populated via `schemas/seeds/022_metric_governance.sql`.
 - Public aggregate views must not expose unverified metrics; `v_public_metric_summary` reads only `metric_value.verified = TRUE`.
 - Public aggregate views require a verified or published `farm_registry_record` before exposing a location.
@@ -254,7 +1199,7 @@
 - Framework reference data is canonicalized by `schemas/seeds/023_impact_frameworks.sql`; Adelphi mappings and Guild/DAO alignment are in `schemas/seeds/024_adelphi_alignment.sql`.
 - Impact framework rows should be nonblank and active for SDGs, 8 Forms of Capital, Pillars of Value, EBF, CRISP, and regeneration principles.
 - CRISP risk scoring uses `crisp_risk_dimension` for operational dimension config (separate from `impact_dimension` framework metadata). Weights are configurable per-location via `crisp_location_weight`. Default weights: carbon_yield 0.40, climate 0.25, policy 0.15, financial 0.10, implementation 0.10.
-- CRISP composite rating bands: AAA (91-100), AA (80-91), A (69-80), B (44-69), C (20-44), D (0-20). Scores are 0-100 where higher = more risk.
+- CRISP composite rating bands: AAA (0-<20), AA (20-<44), A (44-<69), B (69-<80), C (80-<91), D (91-100). Scores are 0-100 where higher = more risk.
 - CRISP scoring queries tree_inventory, soil_carbon_measurement, harvest_event, weather_observation, emergency_incident, organic_certification_record, adoption_barrier_assessment, land_stewardship_commitment, governance_inclusion_observation, stakeholder_feedback, financial_sustainability_plan, farm_launch_unit_economics, revenue_event, expense_event, farm_onboarding_profile, regenerative_practice_checklist, training_event, and risk_mitigation_register.
 - CRISP version is date-based (`vYYYY.MM`), auto-bumps monthly, stored in `services/crisp/config.py`.
 - Baseline calculators (revenue, asset_value, cash_flow, cost) query the `location` table directly.
@@ -283,23 +1228,35 @@
 ## Security & Infrastructure
 
 - PostgreSQL and ClickHouse ports are not exposed to the host in dev mode. Use Docker exec for direct DB access.
-- Docker networks: `databases` (database, cache, clickhouse) and `apps` (directus, metabase, caddy) isolate service tiers.
+- Docker networks: `databases` (database, cache, clickhouse) and `apps` (directus, gateway, caddy; Metabase joins only when its profile is enabled) isolate service tiers.
 - Caddy reverse proxy: TLS termination (self-signed in dev, real certs in prod), request logging, security headers.
 - `CADDY_DOMAIN` env var: set to your domain for TLS; defaults to `localhost` with internal self-signed CA.
 - `CADDY_HTTP_PORT` and `CADDY_HTTPS_PORT` env vars control Caddy port bindings (default: 80, 443).
 - For VPS environments with an existing Traefik, use `docker-compose.traefik.yml` overlay to disable Caddy and route via Traefik labels.
-- `KOKONUT_DOMAIN`, `KOKONUT_METABASE_DOMAIN`, `KOKONUT_TRAEFIK_NETWORK`, `KOKONUT_TLS_RESOLVER` env vars configure Traefik routing.
-- Production overlay (`docker-compose.prod.yml`) does not expose Directus or Metabase directly to the host. Use `DIRECTUS_DEBUG_PORT` / `METABASE_DEBUG_PORT` for temporary troubleshooting access.
-- Directus and Metabase are accessed through Caddy (`/directus/*`, `/metabase/*`) or directly via internal ports.
+- `KOKONUT_DOMAIN`, `KOKONUT_METABASE_DOMAIN`, `KOKONUT_TRAEFIK_NETWORK`, `KOKONUT_TLS_RESOLVER` env vars configure Traefik routing; Metabase routing requires `--profile metabase`.
+- Metabase is excluded from default Compose stacks. Enable it explicitly with `docker compose --profile metabase up -d metabase`; Caddy does not route to it. Production use requires a separately justified/approved deployment and the Traefik overlay.
+- Directus is accessed through Caddy (`/directus/*`) or directly via internal ports.
 - Directus rate limiting: 100 req/s general, 5 login attempts per 15-min lockout.
 - `PUBLIC_RESTRICT=true` disables unauthenticated data access.
-- `CORS_ORIGIN` defaults to `http://localhost:8055,http://localhost:3001,https://localhost`.
+- `CORS_ORIGIN` defaults to `http://localhost:8055` in `.env.example`; the Compose fallback also allows `http://localhost` and `http://localhost:8055`.
 - `.env.example` uses placeholder warnings (`replace-with-strong-password-min-24-chars`), not real defaults.
 - Python ingestion services are CLI tools, not Docker services. Use the worker container (`docker-compose.worker.yml` + `Dockerfile.worker`) or host-based cron for scheduling.
 - Health monitoring: `scripts/health-check.sh` supports `--json` and `--alert` flags. `scripts/health-alert.sh` is the cron wrapper.
 - Alert channels: `ALERT_WEBHOOK_URL` (Slack/Discord/Teams), `ALERT_SMTP_*` + `ALERT_EMAIL_TO` (email).
 - `DISK_THRESHOLD` and `MEM_THRESHOLD` control health-check alert thresholds (default: 90%).
 - Worker crontab lives in `config/worker/crontab` and covers weather, market data, EAS/RPC indexers, sensor ingester, anomaly detection, metrics, health checks, backups, and dataset refresh.
+
+### Enforced security & supply-chain gates
+
+- **Static analysis**: `scripts/static-analysis.sh` runs Slither (Solidity, High/Medium gate), Aderyn, and Semgrep (`semgrep.yml`, `python.lang.security` + `python.lang.correctness`). It runs in CI.
+- **Secret scanning**: `scripts/check-tracked-secrets.sh` fails on private keys, AWS/GitHub/Slack tokens, 64-hex (private key) strings, and `key/secret/token` assignment literals. Run it before committing.
+- **Python lint/security**: `ruff` is configured with `S` (flake8-bandit), `BLE`, and `RUF` selectors in `pyproject.toml`. `ruff` and `pip-audit` are mandatory CI gates (enforced by `scripts/verify-ci-toolchain.sh` and `scripts/ci-check.sh`); a run that skips them is not a passing build. Run `ruff check --select S,BLE services/` locally and review findings.
+- **Dependency hygiene**: generate a hash-pinned `requirements.lock` (`pip-compile --generate-hashes`) and install with `--require-hashes`. Keep dependency versions resolvable (avoid conflicts like `numpy>=2` vs `prophet<2`). `renovate.json` automates dependency + base-image digest updates.
+- **Directus hooks**: never trust client-supplied `payload._accountability` — accountability comes only from the server `meta.accountability` (`roles.ts`). Agent-safety enforcement keys off **resolved role slugs** (`resolveUserRoles`), never the raw role UUID. All human-governed stakeholder collections in `STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS` are protected by create/update filters.
+- **Directus hook schema validation**: `extensions/kokonut-hooks` validates request payloads with Zod (`src/schemas/`) for governed collections (`agent_task`, `ai_summary`, `agent_action_log`, `impact_claim`, `stakeholder_feedback`, `expense_event`, `sales_event`, `revenue_event`) ahead of governance/lifecycle checks — full validation on create, partial on update, unknown keys preserved. `zod` is a runtime dependency; extend `src/schemas/` when adding validated collections. Hook suite stays at 52/52 tests.
+- **Gateway authz**: API keys are scope-enforced (fail-closed) via `KOKONUT_API_KEY_SCOPES`; the Directus admin token is the only full-access key. Service keys are constant-time compared.
+- **Solidity**: zero-address validation in constructors, `whenNotPaused` on `reverseAward`, timelock `getUpgrade` readable by `DEFAULT_ADMIN_ROLE`. Run `forge test` before any contract change.
+- **Containers**: `Dockerfile.worker` / `Dockerfile.grpc` run as non-root `appuser`. All `FROM` directives and Compose `image:` references are pinned to `@sha256` digests (Python 3.11-slim, Postgres/PostGIS 16 & 14, Redis 7, Directus 12.1.1, Metabase v0.62.4, ClickHouse 25.8, Caddy 2, Mosquitto 2). CI fails on unpinned images via `scripts/check-image-digests.sh`.
 
 ## Blockchain Indexing
 
@@ -327,3 +1284,12 @@
 - Agent high-risk actions (`publish`, `attest`, `onchain_submit`, `delete`, `bulk_update`, `financial_write`, `status_change_to_published`) must be logged with human approval required.
 - `dashboard_dataset` refresh executes stored SQL queries from `dashboard_dataset.sql_query`.
 - `report_snapshot` `--auto` flag generates all 42 report types in one run.
+
+## Deployment
+
+- Environments: CI (`ki-ci`, disposable), staging (`ki-staging`, cerberus, auto-deploys on merge to main), production (`ki-prod`, dedicated host, manual promotion with `DEPLOY_CONFIRM=yes`). Full matrix: `docs/deployment-topology.md`.
+- **Namespace invariant**: every Compose project pins its project name (`-p`/`COMPOSE_PROJECT_NAME`); never derive it from a directory name on a shared host (KI-390).
+- Staging deploy: `deploy/scripts/deploy-staging.sh` (idempotent; secrets via SOPS+age, key on host only).
+- Production deploy: `deploy/scripts/deploy-production.sh` — takes a backup checkpoint first; requires `DEPLOY_CONFIRM=yes`; on failed health check it prints rollback instructions and never auto-rolls back.
+- Host port allocations are documented in `docs/deployment-topology.md`; new environments must take unused high ports and update that table.
+- Plaintext env files (`deploy/*/\.env.*` without `.sops`) are gitignored; only encrypted `.sops` variants are committed.

@@ -10,7 +10,9 @@ Usage:
 """
 
 import argparse
-import json
+
+from services.common.cli import print_json
+from services.common.database import get_db
 
 from .financial_statements import (
     generate_balance_sheet,
@@ -21,11 +23,7 @@ from .return_calculator import compute_investment_analysis
 
 
 def get_pg():
-    import psycopg2
-    from ..common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
-    return psycopg2.connect(
-        host=PG_HOST, port=PG_PORT, dbname=PG_DB, user=PG_USER, password=PG_PASSWORD
-    )
+    return get_db()
 
 
 def main():
@@ -66,7 +64,7 @@ def main():
         parser.error("Unknown report type")
 
     conn.close()
-    print(json.dumps(result, indent=2, default=str))
+    print_json(result)
 
 
 if __name__ == "__main__":

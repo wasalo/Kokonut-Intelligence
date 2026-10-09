@@ -55,6 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_emergency_severity ON emergency_incident(severity
 CREATE INDEX IF NOT EXISTS idx_emergency_status ON emergency_incident(status);
 CREATE INDEX IF NOT EXISTS idx_emergency_detection ON emergency_incident(detection_date);
 
+DROP TRIGGER IF EXISTS trg_emergency_updated_at ON emergency_incident;
 CREATE TRIGGER trg_emergency_updated_at
     BEFORE UPDATE ON emergency_incident
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

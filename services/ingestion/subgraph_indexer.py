@@ -17,11 +17,12 @@ import sys
 import time
 from datetime import datetime, timezone
 
-import requests
+from services.common.http import http
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, retry, update_indexer_status
-from .config import EAS_GRAPHQL_URL, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry, update_indexer_status
+from .clickhouse_outbox import enqueue
+from .config import CH_HOST, CH_PASSWORD, CH_PORT, CH_USER, EAS_GRAPHQL_URL
 
 logger = get_logger("ingestion.subgraph")
 
@@ -56,6 +57,7 @@ query GetAttestations($lastBlock: Int!, $first: Int!) {
         revocable
     }
 }
+"""
 
 SCHEMAS_QUERY = """
 query GetSchemas($lastBlock: Int!, $first: Int!) {
@@ -81,7 +83,7 @@ query GetSchemas($lastBlock: Int!, $first: Int!) {
 @retry(max_retries=3, backoff=2.0)
 def query_subgraph(endpoint: str, query: str, variables: dict) -> dict:
     """Execute a GraphQL query against a subgraph."""
-    resp = requests.post(
+    resp = http.post(
         endpoint,
         json={"query": query, "variables": variables},
         timeout=30,
@@ -131,10 +133,8 @@ def insert_attestation(db, att: dict, schema_map: dict) -> str:
         return str(row[0]) if row else None
 
 
-def insert_clickhouse(chain: str, att: dict, status: str) -> None:
-    """Insert attestation into ClickHouse."""
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
+def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
+    """Queue canonical attestation; direct writes are demo-only when conn is absent."""
     attestation_uid = att.get("id", "")
     schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
     attester = att.get("attester", "")
@@ -144,36 +144,23 @@ def insert_clickhouse(chain: str, att: dict, status: str) -> None:
         int(att.get("blockTimestamp", 0)), tz=timezone.utc
     ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-    def _str(val):
-        if val is None:
-            return "''"
-        return f"'{str(val).replace(chr(39), chr(39)+chr(39))}'"
-
-    query = f"""INSERT INTO attestation_events
-        (timestamp, attestation_uid, schema_uid, chain, attester, recipient,
-         subject_type, status, revoked, metadata)
-        VALUES (
-            '{block_ts}',
-            {_str(attestation_uid)},
-            {_str(schema_uid)},
-            {_str(chain)},
-            {_str(attester)},
-            {_str(recipient)},
-            'wallet',
-            {_str(status)},
-            false,
-            map()
-        )"""
-
+    columns = ["timestamp", "attestation_uid", "schema_uid", "chain", "attester", "recipient",
+               "subject_type", "status", "revoked", "metadata"]
+    rows = [[block_ts, attestation_uid, schema_uid, chain, attester, recipient,
+             "wallet", status, False, {}]]
     try:
-        resp = requests.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        if conn is not None:
+            payload_hash = hash_payload(att)
+            enqueue(conn, event_key=f"attestation:attestation_events:{attestation_uid}",
+                    source_table="attestation_record", source_id=attestation_uid,
+                    target_table="attestation_events", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
+        post_clickhouse_rows(
+            "attestation_events",
+            columns, rows,
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 
@@ -250,9 +237,8 @@ def run(protocol: str = None):
                 success = 0
                 max_block = last_block
                 for att in attestations:
-                    insert_attestation(db, att, schema_map)
-                    # Dual-write to ClickHouse
-                    insert_clickhouse("ethereum", att, "published")
+                    if insert_attestation(db, att, schema_map):
+                        insert_clickhouse("ethereum", att, "published", db)
                     block_num = int(att.get("blockNumber", 0))
                     if block_num > max_block:
                         max_block = block_num

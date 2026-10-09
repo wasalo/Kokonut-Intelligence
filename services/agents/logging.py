@@ -13,7 +13,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.logging import get_logger
-from services.ingestion.base import get_db
+from services.common.database import get_db
 
 logger = get_logger("services.agents.logging")
 

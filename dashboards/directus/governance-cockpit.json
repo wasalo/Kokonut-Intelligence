@@ -1,0 +1,93 @@
+{
+  "name": "Governance Cockpit",
+  "description": "DAO proposals, guild activity, governance circles, tensions, and coordination for governance oversight.",
+  "icon": "account_balance",
+  "color": "#37474f",
+  "modules": [
+    {
+      "name": "Governance Summary",
+      "type": "stats",
+      "collection": "dao_proposal",
+      "filters": {},
+      "aggregations": [
+        { "function": "count", "label": "Total Proposals" },
+        { "function": "count", "label": "Active", "filter": { "status": { "_in": ["active", "voting"] } } },
+        { "function": "count", "label": "Passed", "filter": { "status": { "_eq": "passed" } } }
+      ]
+    },
+    {
+      "name": "DAO Proposals",
+      "type": "table",
+      "collection": "dao_proposal",
+      "columns": [
+        { "field": "proposal_id", "label": "ID" },
+        { "field": "title", "label": "Title" },
+        { "field": "proposer", "label": "Proposer" },
+        { "field": "created_at", "label": "Created" },
+        { "field": "votes_for", "label": "For" },
+        { "field": "votes_against", "label": "Against" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-created_at"]
+    },
+    {
+      "name": "Guild Activity",
+      "type": "table",
+      "collection": "guild_contribution",
+      "columns": [
+        { "field": "guild_id.name", "label": "Guild" },
+        { "field": "contributor_id", "label": "Contributor" },
+        { "field": "contribution_type", "label": "Type" },
+        { "field": "hours", "label": "Hours" },
+        { "field": "contributed_at", "label": "Date" }
+      ],
+      "sort": ["-contributed_at"]
+    },
+    {
+      "name": "Governance Circles",
+      "type": "table",
+      "collection": "governance_circle",
+      "columns": [
+        { "field": "circle_name", "label": "Circle" },
+        { "field": "purpose", "label": "Purpose" },
+        { "field": "member_count", "label": "Members" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["circle_name"]
+    },
+    {
+      "name": "Open Tensions",
+      "type": "table",
+      "collection": "governance_tension",
+      "filters": {
+        "status": { "_in": ["open", "active"] }
+      },
+      "columns": [
+        { "field": "tension_title", "label": "Title" },
+        { "field": "raised_by", "label": "Raised By" },
+        { "field": "category", "label": "Category" },
+        { "field": "severity", "label": "Severity" },
+        { "field": "raised_at", "label": "Raised" }
+      ],
+      "sort": ["-raised_at"]
+    }
+  ],
+  "data_access": {
+    "dao_proposal": {
+      "read": true,
+      "fields": ["proposal_id", "title", "proposer", "created_at", "votes_for", "votes_against", "status"]
+    },
+    "guild_contribution": {
+      "read": true,
+      "fields": ["guild_id", "contributor_id", "contribution_type", "hours", "contributed_at"]
+    },
+    "governance_circle": {
+      "read": true,
+      "fields": ["circle_name", "purpose", "member_count", "status"]
+    },
+    "governance_tension": {
+      "read": true,
+      "fields": ["tension_title", "raised_by", "category", "severity", "raised_at", "status"]
+    }
+  }
+}

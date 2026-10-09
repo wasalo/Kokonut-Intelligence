@@ -23,6 +23,17 @@ def test_team_calibration_requires_report() -> None:
     assert "report_hash" in text
 
 
+def test_calibration_frequency_includes_semi_annual() -> None:
+    text = SCHEMA.read_text()
+    assert "semi_annual" in text.lower()
+
+
+def test_calibration_decision_table_has_status_constraint() -> None:
+    text = SCHEMA.read_text().lower()
+    assert "ebf_calibration_decision" in text
+    assert "chk_ebf_calibration_decision" in text or "decision_status" in text
+
+
 if __name__ == "__main__":
     test_calibration_lifecycle_and_frequency_are_constrained()
     test_team_calibration_requires_report()

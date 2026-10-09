@@ -41,7 +41,7 @@ class NotFoundError(KokonutError):
     """Raised on 404 responses."""
 
 
-class PermissionError(KokonutError):
+class ForbiddenError(KokonutError):
     """Raised on 403 responses."""
 
 
@@ -196,7 +196,7 @@ class KokonutClient:
         if status == 401:
             raise AuthenticationError(message, status, resp)
         if status == 403:
-            raise PermissionError(message, status, resp)
+            raise ForbiddenError(message, status, resp)
         if status == 404:
             raise NotFoundError(message, status, resp)
         if status == 400:

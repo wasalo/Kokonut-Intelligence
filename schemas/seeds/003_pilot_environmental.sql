@@ -39,30 +39,25 @@ INSERT INTO remote_sensing_observation (id, plot_id, location_id, observation_da
 ('a0000000-0000-0000-0000-000000000125', 'a0000000-0000-0000-0000-000000000022', 'a0000000-0000-0000-0000-000000000001', '2025-12-15', 'sentinel-2', 0.5800, 0.4000, 0.4800, 68.0, 6.0)
 ON CONFLICT (id) DO NOTHING;
 
--- Sensor Devices (using actual sensor_type UUIDs from DB)
--- soil_moisture: 514818eb-7f0e-4c0d-ad7d-940c31834df9
--- soil_temperature: 6fb13ae6-12b3-4f52-8af4-0f0a98639abd
--- air_temperature: 69170fa9-48a9-431f-9bf8-f8bf01f964bb
--- humidity: 2c0ebca0-9118-4beb-bf1a-4192a0068779
--- rainfall: d5df83c8-f634-49d8-b0d9-4db81dc29e7d
+-- Sensor Devices (using subqueries for sensor_type UUIDs)
 INSERT INTO sensor_device (id, name, slug, sensor_type_id, location_id, plot_id, manufacturer, model, serial_number, status, installation_date, latitude, longitude) VALUES
-('a0000000-0000-0000-0000-000000000130', 'Soil Moisture Sensor A', 'sm-sensor-a', '514818eb-7f0e-4c0d-ad7d-940c31834df9', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000020', 'Decagon', 'EC-TM', 'SM-A-001', 'active', '2025-09-15', -0.1010, 34.7510),
-('a0000000-0000-0000-0000-000000000131', 'Soil Temp Sensor A', 'st-sensor-a', '6fb13ae6-12b3-4f52-8af4-0f0a98639abd', 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000020', 'Decagon', 'EC-5', 'ST-A-001', 'active', '2025-09-15', -0.1012, 34.7512),
-('a0000000-0000-0000-0000-000000000132', 'Air Temp Sensor', 'at-sensor', '69170fa9-48a9-431f-9bf8-f8bf01f964bb', 'a0000000-0000-0000-0000-000000000001', NULL, 'Davis', 'Vantage Pro2', 'AT-001', 'active', '2025-09-15', -0.1005, 34.7505),
-('a0000000-0000-0000-0000-000000000133', 'Humidity Sensor', 'hum-sensor', '2c0ebca0-9118-4beb-bf1a-4192a0068779', 'a0000000-0000-0000-0000-000000000001', NULL, 'Davis', 'Vantage Pro2', 'HU-001', 'active', '2025-09-15', -0.1006, 34.7506),
-('a0000000-0000-0000-0000-000000000134', 'Rain Gauge', 'rg-sensor', 'd5df83c8-f634-49d8-b0d9-4db81dc29e7d', 'a0000000-0000-0000-0000-000000000001', NULL, 'Davis', 'Tipping Bucket', 'RG-001', 'active', '2025-09-15', -0.1007, 34.7507)
+('a0000000-0000-0000-0000-000000000130', 'Soil Moisture Sensor A', 'sm-sensor-a', (SELECT id FROM sensor_type WHERE name = 'soil_moisture' LIMIT 1), 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000020', 'Decagon', 'EC-TM', 'SM-A-001', 'active', '2025-09-15', -0.1010, 34.7510),
+('a0000000-0000-0000-0000-000000000131', 'Soil Temp Sensor A', 'st-sensor-a', (SELECT id FROM sensor_type WHERE name = 'soil_temperature' LIMIT 1), 'a0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000020', 'Decagon', 'EC-5', 'ST-A-001', 'active', '2025-09-15', -0.1012, 34.7512),
+('a0000000-0000-0000-0000-000000000132', 'Air Temp Sensor', 'at-sensor', (SELECT id FROM sensor_type WHERE name = 'air_temperature' LIMIT 1), 'a0000000-0000-0000-0000-000000000001', NULL, 'Davis', 'Vantage Pro2', 'AT-001', 'active', '2025-09-15', -0.1005, 34.7505),
+('a0000000-0000-0000-0000-000000000133', 'Humidity Sensor', 'hum-sensor', (SELECT id FROM sensor_type WHERE name = 'humidity' LIMIT 1), 'a0000000-0000-0000-0000-000000000001', NULL, 'Davis', 'Vantage Pro2', 'HU-001', 'active', '2025-09-15', -0.1006, 34.7506),
+('a0000000-0000-0000-0000-000000000134', 'Rain Gauge', 'rg-sensor', (SELECT id FROM sensor_type WHERE name = 'rainfall' LIMIT 1), 'a0000000-0000-0000-0000-000000000001', NULL, 'Davis', 'Tipping Bucket', 'RG-001', 'active', '2025-09-15', -0.1007, 34.7507)
 ON CONFLICT (id) DO NOTHING;
 
 -- Alert Rules
 INSERT INTO alert_rule (id, name, sensor_type_id, metric, operator, threshold_value, severity, cooldown_minutes, enabled) VALUES
-('a0000000-0000-0000-0000-000000000140', 'Low Soil Moisture', '514818eb-7f0e-4c0d-ad7d-940c31834df9', 'value', '<', 15.0, 'warning', 60, TRUE),
-('a0000000-0000-0000-0000-000000000141', 'Critical Soil Moisture', '514818eb-7f0e-4c0d-ad7d-940c31834df9', 'value', '<', 10.0, 'critical', 30, TRUE),
-('a0000000-0000-0000-0000-000000000142', 'High Soil Temperature', '6fb13ae6-12b3-4f52-8af4-0f0a98639abd', 'value', '>', 40.0, 'warning', 60, TRUE),
-('a0000000-0000-0000-0000-000000000143', 'Frost Risk', '6fb13ae6-12b3-4f52-8af4-0f0a98639abd', 'value', '<', 5.0, 'critical', 30, TRUE),
-('a0000000-0000-0000-0000-000000000144', 'High Air Temperature', '69170fa9-48a9-431f-9bf8-f8bf01f964bb', 'value', '>', 38.0, 'warning', 60, TRUE),
-('a0000000-0000-0000-0000-000000000145', 'Low Humidity', '2c0ebca0-9118-4beb-bf1a-4192a0068779', 'value', '<', 30.0, 'warning', 60, TRUE),
-('a0000000-0000-0000-0000-000000000146', 'Heavy Rainfall', 'd5df83c8-f634-49d8-b0d9-4db81dc29e7d', 'value', '>', 50.0, 'warning', 120, TRUE),
-('a0000000-0000-0000-0000-000000000147', 'Extreme Rainfall', 'd5df83c8-f634-49d8-b0d9-4db81dc29e7d', 'value', '>', 100.0, 'critical', 60, TRUE)
+('a0000000-0000-0000-0000-000000000140', 'Low Soil Moisture', (SELECT id FROM sensor_type WHERE name = 'soil_moisture' LIMIT 1), 'value', '<', 15.0, 'warning', 60, TRUE),
+('a0000000-0000-0000-0000-000000000141', 'Critical Soil Moisture', (SELECT id FROM sensor_type WHERE name = 'soil_moisture' LIMIT 1), 'value', '<', 10.0, 'critical', 30, TRUE),
+('a0000000-0000-0000-0000-000000000142', 'High Soil Temperature', (SELECT id FROM sensor_type WHERE name = 'soil_temperature' LIMIT 1), 'value', '>', 40.0, 'warning', 60, TRUE),
+('a0000000-0000-0000-0000-000000000143', 'Frost Risk', (SELECT id FROM sensor_type WHERE name = 'soil_temperature' LIMIT 1), 'value', '<', 5.0, 'critical', 30, TRUE),
+('a0000000-0000-0000-0000-000000000144', 'High Air Temperature', (SELECT id FROM sensor_type WHERE name = 'air_temperature' LIMIT 1), 'value', '>', 38.0, 'warning', 60, TRUE),
+('a0000000-0000-0000-0000-000000000145', 'Low Humidity', (SELECT id FROM sensor_type WHERE name = 'humidity' LIMIT 1), 'value', '<', 30.0, 'warning', 60, TRUE),
+('a0000000-0000-0000-0000-000000000146', 'Heavy Rainfall', (SELECT id FROM sensor_type WHERE name = 'rainfall' LIMIT 1), 'value', '>', 50.0, 'warning', 120, TRUE),
+('a0000000-0000-0000-0000-000000000147', 'Extreme Rainfall', (SELECT id FROM sensor_type WHERE name = 'rainfall' LIMIT 1), 'value', '>', 100.0, 'critical', 60, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Sensor Readings (sensor_id references sensor_device.id)

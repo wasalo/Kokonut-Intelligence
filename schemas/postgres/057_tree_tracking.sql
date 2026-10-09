@@ -51,10 +51,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_tree_record_compute_geometry ON tree_record;
 CREATE TRIGGER trg_tree_record_compute_geometry
     BEFORE INSERT OR UPDATE ON tree_record
     FOR EACH ROW EXECUTE FUNCTION fn_tree_record_compute_geometry();
 
+DROP TRIGGER IF EXISTS trg_tree_record_updated_at ON tree_record;
 CREATE TRIGGER trg_tree_record_updated_at
     BEFORE UPDATE ON tree_record
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -142,7 +144,7 @@ SELECT
     COUNT(*) AS tree_count,
     COUNT(*) FILTER (WHERE t.status = 'alive') AS alive_count,
     COUNT(*) FILTER (WHERE t.status = 'dead') AS dead_count,
-    ROUND(COUNT(*) FILTER (WHERE t.status = 'alive')::numeric / NULLIF(p.area_ha, 0), 2) AS trees_per_ha,
+    ROUND(COUNT(*) FILTER (WHERE t.status = 'alive')::numeric / NULLIF(p.area, 0), 2) AS trees_per_ha,
     ROUND(AVG(t.height_m), 2) AS avg_height_m,
     ROUND(AVG(t.canopy_diameter_m), 2) AS avg_canopy_diameter_m,
     ROUND(AVG(t.health_score), 1) AS avg_health_score,
@@ -152,6 +154,6 @@ JOIN location l ON t.location_id = l.id
 JOIN plot p ON t.plot_id = p.id
 LEFT JOIN farm_zone fz ON t.zone_id = fz.id
 WHERE l.status IN ('active', 'verified', 'published')
-GROUP BY t.location_id, l.name, t.plot_id, p.name, p.area_ha, t.zone_id, fz.zone_type, t.species_name;
+GROUP BY t.location_id, l.name, t.plot_id, p.name, p.area, t.zone_id, fz.zone_type, t.species_name;
 
 COMMIT;

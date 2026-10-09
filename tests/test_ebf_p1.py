@@ -66,6 +66,26 @@ def test_ebf_confidence_thresholds() -> None:
     assert scorecard_confidence_label(["high", "insufficient_evidence"]) == "insufficient_evidence"
 
 
+def test_score_confidence_insufficient_when_zero_evidence() -> None:
+    assert score_confidence_label(0, 5) == "insufficient_evidence"
+
+
+def test_score_confidence_low_when_maturity_too_low() -> None:
+    assert score_confidence_label(4, 2) == "low"
+
+
+def test_scorecard_confidence_empty_labels() -> None:
+    assert scorecard_confidence_label([]) == "insufficient_evidence"
+
+
+def test_scorecard_confidence_all_high() -> None:
+    assert scorecard_confidence_label(["high", "high", "high"]) == "high"
+
+
+def test_scorecard_confidence_mix_of_low_and_high() -> None:
+    assert scorecard_confidence_label(["high", "low"]) == "low"
+
+
 def test_public_scorecard_export_shape() -> None:
     class Cursor:
         calls = 0

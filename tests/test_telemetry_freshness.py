@@ -1,8 +1,11 @@
 """Data freshness monitoring tests."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 
 SCHEMA = Path("schemas/postgres/077_telemetry_infrastructure.sql")
+SEED = Path("schemas/seeds/077_telemetry_infrastructure.sql")
+ALERT_MIGRATION = Path("schemas/postgres/341_freshness_alert_durability.sql")
 
 
 def test_schema_file_exists() -> None:
@@ -27,8 +30,28 @@ def test_schema_contains_views() -> None:
     assert "v_sensor_device_health_summary" in content
 
 
+def test_freshness_alert_durability_migration() -> None:
+    content = ALERT_MIGRATION.read_text()
+    for table in (
+        "data_freshness_alert_state",
+        "data_freshness_alert_history",
+        "data_freshness_alert_delivery_attempt",
+    ):
+        assert table in content
+    assert "COALESCE(location_id" in content
+    assert "alert_cooldown_minutes" in content
+    assert "escalation_cooldown_minutes" in content
+
+
+def test_freshness_persists_delivery_attempts() -> None:
+    content = Path("services/ingestion/data_freshness.py").read_text()
+    assert "_persist_delivery_attempt" in content
+    assert "attempt[\"error\"]" in content
+
+
 def test_determine_status_fresh() -> None:
     from services.ingestion.data_freshness import _determine_status
+
     assert _determine_status(10, 30, 60) == "fresh"
     assert _determine_status(30, 30, 60) == "fresh"
     assert _determine_status(0, 30, 60) == "fresh"
@@ -36,35 +59,90 @@ def test_determine_status_fresh() -> None:
 
 def test_determine_status_stale() -> None:
     from services.ingestion.data_freshness import _determine_status
+
     assert _determine_status(31, 30, 60) == "stale"
     assert _determine_status(60, 30, 60) == "stale"
 
 
 def test_determine_status_critical() -> None:
     from services.ingestion.data_freshness import _determine_status
+
     assert _determine_status(61, 30, 60) == "critical"
     assert _determine_status(120, 30, 60) == "critical"
 
 
 def test_determine_status_no_data() -> None:
     from services.ingestion.data_freshness import _determine_status
+
     assert _determine_status(None, 30, 60) == "no_data"
+
+
+def test_alert_event_deduplicates_until_cooldown() -> None:
+    from datetime import timedelta
+
+    from services.ingestion.data_freshness import _alert_event
+
+    now = datetime.now(timezone.utc)
+    assert _alert_event("fresh", "stale", None, None, now, 60, 15) == "alert"
+    assert _alert_event("stale", "stale", "stale", now, now + timedelta(minutes=59), 60, 15) is None
+    assert _alert_event("stale", "stale", "stale", now, now + timedelta(minutes=60), 60, 15) == "alert"
+
+
+def test_alert_event_escalates_and_recovers() -> None:
+    from services.ingestion.data_freshness import _alert_event
+
+    now = datetime.now(timezone.utc)
+    assert _alert_event("stale", "critical", "stale", now, now, 60, 15) == "escalation"
+    assert _alert_event("critical", "fresh", "critical", now, now, 60, 15) == "recovery"
+
+
+def test_alert_event_is_scope_agnostic() -> None:
+    """Scope identity belongs to the persisted state key, not event classification."""
+    from services.ingestion.data_freshness import _alert_event
+
+    assert _alert_event(None, "stale", None, None, datetime.now(timezone.utc), 60, 15) == "alert"
 
 
 def test_determine_status_boundary_fresh_stale() -> None:
     from services.ingestion.data_freshness import _determine_status
+
     assert _determine_status(30, 30, 60) == "fresh"
     assert _determine_status(31, 30, 60) == "stale"
 
 
 def test_determine_status_boundary_stale_critical() -> None:
     from services.ingestion.data_freshness import _determine_status
+
     assert _determine_status(60, 30, 60) == "stale"
     assert _determine_status(61, 30, 60) == "critical"
 
 
+def test_freshness_threshold_validation() -> None:
+    from services.ingestion.data_freshness import _validate_thresholds
+
+    _validate_thresholds(30, 60)
+    for thresholds in ((0, 60), (30, 0), (61, 60)):
+        try:
+            _validate_thresholds(*thresholds)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid freshness thresholds were accepted")
+
+
+def test_scoped_freshness_query_requires_location() -> None:
+    from services.ingestion.data_freshness import _query_latest_data_at
+
+    try:
+        _query_latest_data_at(None, "remote_sensing", True)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("scoped freshness query did not require a location")
+
+
 def test_freshness_config_defaults() -> None:
-    content = SCHEMA.read_text()
+    content = SEED.read_text()
     # Check that default SLAs are seeded
     assert "weather" in content
     assert "sensors" in content
@@ -78,6 +156,7 @@ def test_freshness_config_defaults() -> None:
 def test_freshness_thresholds_monotonic() -> None:
     """Stale threshold <= Critical threshold."""
     from services.ingestion.data_freshness import _determine_status
+
     # For any gap between stale and critical, status should be stale
     stale_threshold = 30
     critical_threshold = 60
@@ -88,6 +167,7 @@ def test_freshness_thresholds_monotonic() -> None:
 
 def test_climate_data_schema_exists() -> None:
     from pathlib import Path
+
     rs_job = Path("schemas/postgres/077_telemetry_infrastructure.sql")
     content = rs_job.read_text()
     assert "remote_sensing_job" in content
@@ -97,6 +177,7 @@ def test_climate_data_schema_exists() -> None:
 
 def test_sensor_device_health_schema() -> None:
     from pathlib import Path
+
     rs_job = Path("schemas/postgres/077_telemetry_infrastructure.sql")
     content = rs_job.read_text()
     assert "sensor_device_health" in content
@@ -114,9 +195,22 @@ def test_clickhouse_sync_adds_columns() -> None:
     ch_sync = Path("schemas/clickhouse/006_telemetry_sync.sql")
     content = ch_sync.read_text()
     expected_columns = [
-        "msavi", "satvi", "bsi", "nbr2", "ndti", "lswi",
-        "brightness_index", "tc_brightness", "tc_greenness", "tc_wetness",
-        "band_blue", "band_green", "band_red", "band_nir", "band_swir1", "band_swir2",
+        "msavi",
+        "satvi",
+        "bsi",
+        "nbr2",
+        "ndti",
+        "lswi",
+        "brightness_index",
+        "tc_brightness",
+        "tc_greenness",
+        "tc_wetness",
+        "band_blue",
+        "band_green",
+        "band_red",
+        "band_nir",
+        "band_swir1",
+        "band_swir2",
         "source_system",
     ]
     for col in expected_columns:

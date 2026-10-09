@@ -118,7 +118,7 @@ ORDER BY issue;
     return [line for line in result.stdout.splitlines() if line.strip()]
 
 
-def test_directus_metadata() -> list[tuple[str, bool, list[str]]]:
+def run_directus_metadata_checks() -> list[tuple[str, bool, list[str]]]:
     checks = [
         ("snapshot", snapshot_drift()),
         ("live", live_drift()),
@@ -136,9 +136,25 @@ def test_directus_metadata() -> list[tuple[str, bool, list[str]]]:
     return results
 
 
+def test_directus_metadata() -> None:
+    results = run_directus_metadata_checks()
+    failures = [name for name, passed, _ in results if not passed]
+    assert not failures, f"Directus metadata checks failed: {', '.join(failures)}"
+
+
+def test_snapshot_drift_returns_list():
+    result = snapshot_drift()
+    assert isinstance(result, list)
+
+
+def test_database_running_returns_bool():
+    result = database_running()
+    assert isinstance(result, bool)
+
+
 if __name__ == "__main__":
     print("=== Directus Metadata Test ===")
-    results = test_directus_metadata()
+    results = run_directus_metadata_checks()
 
     passed = sum(1 for result in results if result[1])
     total = len(results)

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.34;
 
 import {SchemaResolver} from "@eas-contracts/resolver/SchemaResolver.sol";
 import {IEAS, Attestation} from "@eas-contracts/IEAS.sol";
@@ -19,6 +19,8 @@ contract KokonutResolver is SchemaResolver, Ownable {
     /// @param owner Address that can manage allowed attesters.
     /// @param initialAttesters Addresses to allow immediately.
     constructor(IEAS eas, address owner, address[] memory initialAttesters) SchemaResolver(eas) Ownable(owner) {
+        require(address(eas) != address(0), "Zero EAS address");
+        require(owner != address(0), "Zero owner address");
         for (uint256 i = 0; i < initialAttesters.length; i++) {
             allowedAttesters[initialAttesters[i]] = true;
             emit AttesterAdded(initialAttesters[i]);
@@ -41,11 +43,11 @@ contract KokonutResolver is SchemaResolver, Ownable {
         return false;
     }
 
-    function onAttest(Attestation calldata attestation, uint256) internal override returns (bool) {
+    function onAttest(Attestation calldata attestation, uint256) internal view override returns (bool) {
         return allowedAttesters[attestation.attester];
     }
 
-    function onRevoke(Attestation calldata attestation, uint256) internal override returns (bool) {
+    function onRevoke(Attestation calldata attestation, uint256) internal view override returns (bool) {
         return allowedAttesters[attestation.attester];
     }
 }

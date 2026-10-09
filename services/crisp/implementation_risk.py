@@ -24,23 +24,49 @@ from .normalization import clamp_risk_score
 
 
 def _query_onboarding(conn, location_id: str) -> Dict[str, Any]:
-    """Get farm onboarding profile."""
+    """Derive onboarding readiness from available farm data."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("""
         SELECT
-            readiness_score,
-            risk_level,
-            training_completed_pct,
-            infrastructure_readiness,
-            community_engagement_level,
-            implementation_partners_count
-        FROM farm_onboarding_profile
-        WHERE location_id = %s
-        ORDER BY created_at DESC NULLS LAST
-        LIMIT 1
-    """, (location_id,))
+            (SELECT COUNT(*) FROM plot WHERE location_id = %s) AS plot_count,
+            (SELECT COUNT(*) FROM soil_carbon_measurement WHERE location_id = %s) AS soil_measurements,
+            (SELECT COUNT(*) FROM harvest_event WHERE location_id = %s) AS harvest_count,
+            (SELECT COUNT(*) FROM training_session WHERE location_id = %s) AS training_count,
+            (SELECT COUNT(DISTINCT participant_name) FROM training_session WHERE location_id = %s) AS unique_participants,
+            (SELECT COUNT(*) FROM regenerative_practice_checklist WHERE location_id = %s) AS practice_count
+    """, (location_id, location_id, location_id, location_id, location_id, location_id))
     row = dict(cur.fetchone() or {})
     cur.close()
+
+    # Derive readiness_score (0-10) from data completeness
+    score = 0.0
+    if int(row.get("plot_count", 0) or 0) > 0:
+        score += 2.0
+    if int(row.get("soil_measurements", 0) or 0) > 0:
+        score += 2.0
+    if int(row.get("harvest_count", 0) or 0) > 0:
+        score += 2.0
+    if int(row.get("training_count", 0) or 0) > 0:
+        score += 2.0
+    if int(row.get("practice_count", 0) or 0) > 0:
+        score += 2.0
+    row["readiness_score"] = score
+
+    # Derive training_completed_pct from training data
+    training_count = int(row.get("training_count", 0) or 0)
+    row["training_completed_pct"] = min(100.0, training_count * 10.0)
+
+    # Derive community_engagement_level from stakeholder feedback count
+    cur2 = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur2.execute("SELECT COUNT(*) AS fb_count FROM stakeholder_feedback WHERE location_id = %s", (location_id,))
+    fb = cur2.fetchone()
+    cur2.close()
+    fb_count = int(fb["fb_count"] or 0) if fb else 0
+    row["community_engagement_level"] = "high" if fb_count > 10 else "medium" if fb_count > 3 else "low"
+
+    row["implementation_partners_count"] = 0  # No dedicated table for this
+    row["infrastructure_readiness"] = "medium"  # Default
+    row["risk_level"] = "medium"  # Default
     return row
 
 
@@ -68,7 +94,7 @@ def _query_governance_inclusion(conn, location_id: str) -> Dict[str, Any]:
         SELECT
             representation_coverage_pct,
             marginalized_voice_count,
-            decision_method
+            governance_body
         FROM governance_inclusion_observation
         WHERE location_id = %s
         ORDER BY created_at DESC NULLS LAST
@@ -85,7 +111,7 @@ def _query_stakeholder_satisfaction(conn, location_id: str) -> Dict[str, Any]:
     cur.execute("""
         SELECT
             COUNT(*) AS feedback_count,
-            COALESCE(AVG(satisfaction_score), 0) AS avg_satisfaction,
+            COUNT(*) FILTER (WHERE sentiment = 'positive') AS positive_count,
             COUNT(*) FILTER (WHERE status = 'published') AS published_count
         FROM stakeholder_feedback
         WHERE location_id = %s
@@ -101,8 +127,8 @@ def _query_training(conn, location_id: str) -> Dict[str, Any]:
     cur.execute("""
         SELECT
             COUNT(*) AS training_count,
-            COALESCE(SUM(COALESCE(participants, 0)), 0) AS total_participants
-        FROM training_event
+            COUNT(DISTINCT participant_name) AS total_participants
+        FROM training_session
         WHERE location_id = %s
     """, (location_id,))
     row = dict(cur.fetchone() or {})
@@ -201,8 +227,8 @@ def _score_transparency(
     coverage = float(governance.get("representation_coverage_pct", 0) or 0)
     scores.append(min(1.0, coverage / 100.0))
 
-    # Decision method transparency
-    method = governance.get("decision_method", "")
+    # Governance body transparency
+    method = governance.get("governance_body", "")
     if method in ("consensus", "consent", "hybrid"):
         scores.append(1.0)
     elif method in ("token_vote", "multisig"):

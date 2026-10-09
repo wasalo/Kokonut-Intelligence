@@ -118,9 +118,9 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'stakeholder_feedback' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('stakeholder_feedback', 'create', '{}', '{}', 'location_id,farm_id,plot_id,feedback_type,stakeholder_group,stakeholder_name,feedback_date,feedback_text,language,sentiment,themes,suggested_improvements,harms_or_unintended_consequences,consent_given,consent_scope,consent_notes,public_summary,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
+        ('stakeholder_feedback', 'create', '{}', '{}', 'location_id,farm_id,plot_id,party_id,feedback_type,stakeholder_group,stakeholder_name,feedback_date,feedback_text,language,sentiment,themes,suggested_improvements,harms_or_unintended_consequences,consent_given,consent_scope,consent_notes,public_summary,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
-END $$;
+ END $$;
 
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
@@ -174,8 +174,13 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('stakeholder_feedback', 'read', '{"_and":[{"status":{"_in":["verified","published"]}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000005');
+        ('stakeholder_feedback', 'read', '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000005');
 END IF;
+UPDATE directus_permissions
+SET permissions = '{"_and":[{"status":{"_in":["verified","published"]}},{"is_public":{"_eq":true}},{"consent_given":{"_eq":true}},{"party_id":{"_nnull":true}}]}'
+WHERE policy = 'b1000000-0000-0000-0000-000000000005'
+  AND collection = 'stakeholder_feedback'
+  AND action = 'read';
 END $$;
 
 DO $$ BEGIN
@@ -568,10 +573,10 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('field_note', 'create', '{}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000007'),
         ('field_note', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
         ('agent_identity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
-        ('agent_identity', 'create', '{}', '{}', 'name,agent_type,description,capabilities,wallet_address', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_identity', 'create', '{}', '{}', 'agent_name,agent_state,metadata,operator_wallet', 'b1000000-0000-0000-0000-000000000007'),
         ('agent_task', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
-        ('agent_task', 'create', '{}', '{}', 'task_type,input_data,location_id', 'b1000000-0000-0000-0000-000000000007'),
-        ('agent_task', 'update', '{}', '{}', 'execution_status,execution_result,error_message', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_task', 'create', '{}', '{}', 'task_type,inputs,subject_id,subject_type,requested_by', 'b1000000-0000-0000-0000-000000000007'),
+        ('agent_task', 'update', '{}', '{}', 'execution_status,output,error_message', 'b1000000-0000-0000-0000-000000000007'),
         ('agent_action_log', 'create', '{}', '{}', 'task_id,action,collection,record_id,payload_hash,action_result,metadata', 'b1000000-0000-0000-0000-000000000007'),
         ('agent_action_log', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
         ('ai_summary', 'create', '{}', '{}', 'subject_type,subject_id,summary_type,content,source_record_ids,source_tables,model_version,confidence', 'b1000000-0000-0000-0000-000000000007'),
@@ -601,10 +606,10 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('field_note', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
         ('field_note', 'create', '{}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000008'),
         ('agent_identity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
-        ('agent_identity', 'create', '{}', '{}', 'name,agent_type,description,capabilities,wallet_address', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_identity', 'create', '{}', '{}', 'agent_name,agent_state,metadata,operator_wallet', 'b1000000-0000-0000-0000-000000000008'),
         ('agent_task', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
-        ('agent_task', 'create', '{}', '{}', 'task_type,input_data,location_id', 'b1000000-0000-0000-0000-000000000008'),
-        ('agent_task', 'update', '{}', '{}', 'execution_status,execution_result,error_message', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_task', 'create', '{}', '{}', 'task_type,inputs,subject_id,subject_type,requested_by', 'b1000000-0000-0000-0000-000000000008'),
+        ('agent_task', 'update', '{}', '{}', 'execution_status,output,error_message', 'b1000000-0000-0000-0000-000000000008'),
         ('agent_action_log', 'create', '{}', '{}', 'task_id,action,collection,record_id,payload_hash,action_result,metadata', 'b1000000-0000-0000-0000-000000000008'),
         ('agent_action_log', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
         ('ai_summary', 'create', '{}', '{}', 'subject_type,subject_id,summary_type,content,source_record_ids,source_tables,model_version,confidence', 'b1000000-0000-0000-0000-000000000008'),
@@ -618,4 +623,48 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('workflow_history', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
         ('expense_category', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008');
 END IF;
+END $$;
+
+-- ============================================================
+-- 11. Tenant-scope correction for existing permission rows
+-- ============================================================
+-- Permission rows may already exist from an earlier seed. Always repair the
+-- scope instead of relying on the insert-only blocks above.
+DO $$
+DECLARE
+    policy_id UUID;
+    collection_name TEXT;
+BEGIN
+    FOREACH policy_id IN ARRAY ARRAY[
+        'b1000000-0000-0000-0000-000000000002'::UUID,
+        'b1000000-0000-0000-0000-000000000003'::UUID,
+        'b1000000-0000-0000-0000-000000000004'::UUID,
+        'b1000000-0000-0000-0000-000000000005'::UUID,
+        'b1000000-0000-0000-0000-000000000009'::UUID
+    ] LOOP
+        FOREACH collection_name IN ARRAY ARRAY[
+            'farm_activity', 'harvest_event', 'expense_event', 'sales_event',
+            'loss_event', 'labor_event', 'field_note', 'revenue_event',
+            'stakeholder_feedback', 'metric_proposal'
+        ] LOOP
+            UPDATE directus_permissions AS dp
+            SET permissions = json_build_object(
+                '_and', json_build_array(
+                    json_build_object(
+                        'location_id', json_build_object('_eq', '$CURRENT_USER.location_id')
+                    ),
+                    COALESCE(dp.permissions, '{}'::json)
+                )
+            )
+            WHERE dp.policy = policy_id
+              AND dp.collection = collection_name
+              AND COALESCE(dp.permissions, '{}'::json)::text NOT LIKE '%$CURRENT_USER.location_id%';
+        END LOOP;
+    END LOOP;
+
+    UPDATE directus_permissions
+    SET validation = '{"location_id":{"_eq":"$CURRENT_USER.location_id"}}'::json
+    WHERE policy = 'b1000000-0000-0000-0000-000000000001'
+      AND action = 'create'
+      AND collection IN ('farm_activity', 'harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal');
 END $$;

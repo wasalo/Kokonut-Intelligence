@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS organization (
     updated_by UUID
 );
 
+DROP TRIGGER IF EXISTS trg_organization_updated_at ON organization;
 CREATE TRIGGER trg_organization_updated_at
     BEFORE UPDATE ON organization
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -62,6 +63,7 @@ CREATE TABLE IF NOT EXISTS organization_member (
 CREATE INDEX IF NOT EXISTS idx_org_member_org ON organization_member(organization_id);
 CREATE INDEX IF NOT EXISTS idx_org_member_location ON organization_member(location_id);
 
+DROP TRIGGER IF EXISTS trg_org_member_updated_at ON organization_member;
 CREATE TRIGGER trg_org_member_updated_at
     BEFORE UPDATE ON organization_member
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -88,6 +90,7 @@ CREATE TABLE IF NOT EXISTS organization_wallet (
 
 CREATE INDEX IF NOT EXISTS idx_org_wallet_org ON organization_wallet(organization_id);
 
+DROP TRIGGER IF EXISTS trg_org_wallet_updated_at ON organization_wallet;
 CREATE TRIGGER trg_org_wallet_updated_at
     BEFORE UPDATE ON organization_wallet
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

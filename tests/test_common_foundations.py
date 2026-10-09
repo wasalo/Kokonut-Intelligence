@@ -19,5 +19,10 @@ def test_common_foundations_checklist_covers_required_steps() -> None:
         assert phrase in text
 
 
-if __name__ == "__main__":
-    test_common_foundations_checklist_covers_required_steps()
+def test_checklist_file_exists() -> None:
+    assert CHECKLIST.exists(), f"Checklist file not found at {CHECKLIST}"
+
+
+def test_checklist_has_minimum_length() -> None:
+    text = CHECKLIST.read_text()
+    assert len(text) > 500, "Checklist appears too short to be comprehensive"

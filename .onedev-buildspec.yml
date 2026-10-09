@@ -1,0 +1,339 @@
+version: 53
+jobs:
+- name: ci
+  steps:
+  - type: CheckoutStep
+    name: checkout
+    cloneCredential:
+      type: DefaultCredential
+    withLfs: false
+    withSubmodules: false
+    cloneDepth: 1
+    condition: SUCCESSFUL
+    optional: false
+  - type: CommandStep
+    name: command
+    runInContainer: true
+    image: ubuntu:24.04
+    interpreter:
+      type: PosixInterpreter
+      shell: bash
+      commands: |
+        set -euo pipefail
+        export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+        # ── Compose namespace isolation (mandatory) ─────────────────────────
+        # CI must never share a Compose project with any long-running stack.
+        # The default project name derives from the workspace directory name,
+        # which can collide with deployed stacks (historically: project "work").
+        # Pin the namespace so every docker compose call below targets an
+        # isolated, disposable project.
+        export COMPOSE_PROJECT_NAME=ki-ci
+        echo "=== [step] Pre-flight: compose namespace guard ==="
+        if docker compose ls 2>/dev/null | grep -qE "^work[[:space:]]"; then
+          if docker compose -p work ps --format '{{.Name}}' 2>/dev/null | grep -q .; then
+            echo "GUARD: a 'work' Compose project exists on this host. CI is namespace-isolated"
+            echo "under 'ki-ci' and will not touch it. Proceeding with isolated project."
+          fi
+        fi
+        if [ "${COMPOSE_PROJECT_NAME}" != "ki-ci" ]; then
+          echo "FATAL: COMPOSE_PROJECT_NAME must be 'ki-ci' in CI. Aborting to prevent" >&2
+          echo "cross-project contamination with non-CI Compose stacks." >&2
+          exit 1
+        fi
+        echo "Compose namespace: ${COMPOSE_PROJECT_NAME} (isolated from host stacks)"
+        echo "=== [step] Installing Docker CLI ==="
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates git >/dev/null
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        chmod a+r /etc/apt/keyrings/docker.asc
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+        apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin python3 python3-venv >/dev/null
+        docker --version; docker compose version
+        echo "=== [step] Writing CI .env ==="
+        umask 077
+        trap 'rm -f .env' EXIT
+         cat > .env <<'EOF'
+         KOKONUT_ENV=ci
+         KOKONUT_ALLOW_PLAINTEXT_ENV=true
+         POSTGRES_PASSWORD=ci-placeholder
+        PG_HOST=database
+        PG_DB=kokonut_intelligence
+        PG_USER=kokonut
+        PG_PASSWORD=ci-placeholder
+         CLICKHOUSE_PASSWORD=ci-placeholder
+         BACKUP_ENCRYPTION_KEY=ci-backup-key
+        REDIS_PASSWORD=ci-placeholder
+        DIRECTUS_SECRET=ci-secret
+        ADMIN_EMAIL=ci@@kokonut.network
+        ADMIN_PASSWORD=ci-password
+        PUBLIC_URL=http://localhost:8055
+        METABASE_EMBEDDING_SECRET_KEY=ci-embedding-secret
+        # CI namespace isolation: tests reach databases via the Compose network
+        # (PG_HOST=database / CH_HOST=clickhouse), so the published ports are
+        # only for host-side debugging. Use high host ports to avoid conflicts
+        # with other stacks on shared CI hosts (e.g. 'work' on 5432/8123).
+        CI_PG_HOST_PORT=127.0.0.1:15432
+        CI_CH_HOST_PORT=127.0.0.1:18123
+        DIRECTUS_HOST_PORT=127.0.0.1:18055
+        GATEWAY_HOST_PORT=127.0.0.1:18099
+        GRPC_HOST_PORT=127.0.0.1:50052
+        EOF
+        echo "=== [step] Supply-chain gates ==="
+        ./scripts/check-tracked-secrets.sh
+        ./scripts/check-image-digests.sh
+        echo "=== [step] Start CI database (for bootstrap check) ==="
+        # ci-check.sh runs verify-clean-bootstrap.sh, which needs a PostgreSQL
+        # reachable via 'docker compose exec'. With the isolated ki-ci namespace
+        # no container exists yet, so start the database service now — using the
+        # BASE compose file only (no ci.yml override) so the port stays private:
+        # the host's 5432 may be held by another stack, and the bootstrap check
+        # is exec-based, not host-based. The infra step later tears this down
+        # ('down -v') and brings the full stack up with the ci.yml override.
+        docker compose -f docker-compose.yml up -d database
+        for i in $(seq 1 30); do
+          docker compose -f docker-compose.yml exec -T database pg_isready -q && break
+          sleep 1
+        done
+        docker compose -f docker-compose.yml exec -T database pg_isready -q
+        echo "CI database ready (project: ${COMPOSE_PROJECT_NAME})"
+        echo "=== [step] Installing Python deps + security tools ==="
+        apt-get update -qq && apt-get install -y -qq ca-certificates curl openssl libpq-dev gcc xz-utils >/dev/null
+        curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+        apt-get install -y -qq nodejs >/dev/null
+        python3 -m venv .venv
+        . .venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install slither-analyzer==0.11.5 semgrep==1.170.0 ruff pip-audit
+        npm install --global --no-audit --no-fund @@cyfrin/aderyn@@0.6.8
+        curl --proto '=https' --tlsv1.2 -LsSf https://foundry.paradigm.xyz | bash
+        /root/.foundry/bin/foundryup
+        export PATH=/root/.foundry/bin:$PATH
+        ./scripts/verify-ci-toolchain.sh
+        echo "=== [step] Fast-fail: ruff security scan ==="
+        . .venv/bin/activate
+        ruff check --select S,BLE --ignore S101,S104,S105,S110,S112,S310,S311,S404,S603,S607,S608,RUF012,BLE001 services/
+        echo "ruff: PASS"
+        echo "=== [step] Fast-fail: pip-audit ==="
+        pip-audit -r requirements.txt
+        echo "pip-audit: PASS"
+        echo "=== [step] Fast-fail: ci-check (imports + CLIs + TS build) ==="
+        ./scripts/ci-check.sh
+        echo "=== [step] Starting infrastructure ==="
+        export KOKONUT_GIT_SHA="$(git rev-parse HEAD)"
+        echo "Checked-out commit: $KOKONUT_GIT_SHA"
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database clickhouse cache
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml logs database | tail -50
+        echo "=== [step] Waiting for PostgreSQL ==="
+        for i in $(seq 1 30); do
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break
+          sleep 1
+        done
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
+        echo "=== [step] Applying init SQL (kokonut schema) ==="
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+          exec -T database psql -U kokonut -d kokonut_intelligence \
+          -c "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"" \
+          -c "CREATE EXTENSION IF NOT EXISTS \"pgcrypto\"" \
+          -c "CREATE EXTENSION IF NOT EXISTS pg_trgm" \
+          -c "CREATE SCHEMA IF NOT EXISTS kokonut" \
+          -c "GRANT USAGE ON SCHEMA kokonut TO kokonut" \
+          -c "GRANT ALL ON SCHEMA public TO kokonut" \
+          -c "ALTER DATABASE kokonut_intelligence SET search_path TO public, kokonut"
+        echo "=== [step] Starting Directus ==="
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --wait directus
+        echo "Directus is healthy according to its Compose healthcheck."
+        echo "=== [step] Seeding database ==="
+        export KOKONUT_ALLOW_PLAINTEXT_ENV=true
+        rm -f .env.sops
+        ./scripts/seed.sh
+        ./scripts/seed-pilot.sh
+        echo "=== [step] Starting application services ==="
+        if ! docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build --wait gateway grpc; then
+          echo "=== [diagnostic] Application container status ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml ps || true
+          echo "=== [diagnostic] Application container logs ==="
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml logs --no-color --tail=200 gateway grpc || true
+          for service in gateway grpc; do
+            container=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q "$service" || true)
+            if [ -n "$container" ]; then
+              echo "=== [diagnostic] $service health state ==="
+              docker inspect --format '{{json .State.Health}}' "$container" || true
+            fi
+          done
+          exit 1
+        fi
+        echo "=== [step] Verifying upgraded services ==="
+        EXPECTED_VERSION="$(cat VERSION)"
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml \
+          exec -T gateway python3 - "$EXPECTED_VERSION" "$KOKONUT_GIT_SHA" <<'PY'
+        import sys
+        import services
+        expected_version, expected_sha = sys.argv[1:]
+        if services.__version__ != expected_version:
+            raise SystemExit(f"version mismatch: {services.__version__} != {expected_version}")
+        if services.__git_sha__ != expected_sha:
+            raise SystemExit(f"git SHA mismatch: {services.__git_sha__} != {expected_sha}")
+        print(f"Upgrade verification passed: {expected_version} ({expected_sha})")
+        PY
+        echo "=== [step] Computing metrics ==="
+        . .venv/bin/activate
+        ./scripts/compute-metrics.sh
+        export PATH=/root/.foundry/bin:$PATH
+        echo "=== [step] Connecting CI runner to Compose databases ==="
+        DB_CONTAINER=$(docker compose -f docker-compose.yml -f docker-compose.ci.yml ps -q database)
+        DB_NETWORK=$(docker inspect -f '{{range $network, $_ := .NetworkSettings.Networks}}{{println $network}}{{end}}' "$DB_CONTAINER")
+        DB_NETWORK=${DB_NETWORK%%$'\n'*}
+        CI_CONTAINER=$(cat /etc/hostname)
+        if ! docker inspect "$CI_CONTAINER" >/dev/null 2>&1; then
+          echo "Unable to identify the CI runner container ($CI_CONTAINER)."
+          exit 1
+        fi
+        if ! docker network connect "$DB_NETWORK" "$CI_CONTAINER" 2>/dev/null; then
+          if ! docker inspect -f '{{json .NetworkSettings.Networks}}' "$CI_CONTAINER" | grep -q "\"$DB_NETWORK\""; then
+            echo "Unable to attach the CI runner to Compose network $DB_NETWORK."
+            exit 1
+          fi
+        fi
+        export PG_HOST=database
+        export CH_HOST=clickhouse
+        export CI_STRICT_DB=1
+        echo "=== [step] Full test suite ==="
+        ./scripts/verify-full-test-suite.sh
+        echo "=== [step] Static analysis ==="
+        ./scripts/static-analysis.sh
+        echo "=== [step] Unified CLI smoke test ==="
+        python3 -m services.cli --help >/dev/null
+        python3 -m services.cli metrics --help >/dev/null
+        echo "Unified CLI loads and exposes service groups."
+        echo "=== [step] Solidity checks ==="
+        (cd contracts && forge fmt --check && forge build --sizes && forge test)
+        echo "=== [step] Directus hooks checks ==="
+        (cd extensions/kokonut-hooks && npm ci --no-audit --no-fund && npm run build && npm test)
+        echo "=== [step] Staging liveness probe ==="
+        # Monitoring only — this does NOT deploy. Confirms the staging
+        # environment (ki-staging project on this host) is alive.
+        if curl -fsS --max-time 10 http://127.0.0.1:18098/health >/dev/null 2>&1; then
+          echo "staging gateway: ALIVE"
+        else
+          echo "WARNING: staging gateway not responding on 127.0.0.1:18098" >&2
+          echo "(non-fatal: staging may be intentionally down; deploy via deploy-staging job)" >&2
+        fi
+        echo "=== [step] Done === "
+        echo "All CI checks complete"
+        echo "=== [step] Cleanup CI infrastructure === "
+        # Tear down the disposable ki-ci stack so it does not linger on the
+        # host between builds (was consuming ~1-2 GB RAM 24/7 as leftovers).
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml down -v 2>/dev/null || true
+        docker compose -p ki-ci ps 2>/dev/null || echo "ki-ci stack fully removed"
+    runAs: 0:0
+    useTTY: false
+    condition: SUCCESSFUL
+    optional: false
+  triggers:
+  - type: BranchUpdateTrigger
+    branches: main
+    userMatch: anyone
+  - type: PullRequestUpdateTrigger
+    branches: main
+  retryCondition: never
+  maxRetries: 3
+  retryDelay: 30
+  includeUpstreamWhenRebuild: false
+  includeDownstreamWhenRebuild: false
+  timeout: 3600
+- name: deploy-staging
+  steps:
+  - type: CheckoutStep
+    name: checkout
+    cloneCredential:
+      type: DefaultCredential
+    withLfs: false
+    withSubmodules: false
+    cloneDepth: 1
+    condition: SUCCESSFUL
+    optional: false
+  - type: CommandStep
+    name: command
+    runInContainer: true
+    image: ubuntu:24.04
+    interpreter:
+      type: PosixInterpreter
+      shell: bash
+      commands: |
+        set -euo pipefail
+        export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+        apt-get update -qq && apt-get install -y -qq curl ca-certificates gnupg git >/dev/null
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+        chmod a+r /etc/apt/keyrings/docker.asc
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list
+        apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin >/dev/null
+        # The staging checkout, age key, and encrypted env live on the HOST at
+        # /opt/ki-staging — not inside this job container. Deploy via a helper
+        # container (ki-deploy-helper: sops + age + docker compose + git) mounted
+        # on the host checkout and the docker socket. The helper fast-forwards
+        # the host checkout to origin/main, then runs deploy-staging.sh.
+        #
+        # The helper image is versioned in-repo (deploy/helper/Dockerfile) and
+        # may be pruned by the docker executor between runs — build it on the
+        # host daemon when missing (context-independent Dockerfile, no COPY).
+        HOST_ROOT=/opt/ki-staging
+        if ! docker image inspect ki-deploy-helper >/dev/null 2>&1; then
+          echo "ki-deploy-helper missing on host — building from deploy/helper/Dockerfile"
+          docker build -t ki-deploy-helper -f deploy/helper/Dockerfile deploy/helper
+        fi
+        docker run --rm \
+          -v "$HOST_ROOT":/opt/ki-staging \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -e STAGING_SKIP_PULL=1 \
+          -e COMPOSE_PROJECT_NAME=ki-staging \
+          ki-deploy-helper \
+          bash -c "cd /opt/ki-staging \
+            && git fetch origin main --quiet \
+            && git reset --hard origin/main --quiet \
+            && ./deploy/scripts/deploy-staging.sh"
+    runAs: 0:0
+    useTTY: false
+    condition: SUCCESSFUL
+    optional: false
+  retryCondition: never
+  maxRetries: 1
+  retryDelay: 60
+  includeUpstreamWhenRebuild: false
+  includeDownstreamWhenRebuild: false
+  timeout: 1800
+- name: deploy-production
+  steps:
+  - type: CommandStep
+    name: command
+    runInContainer: true
+    image: ubuntu:24.04
+    interpreter:
+      type: PosixInterpreter
+      shell: bash
+      commands: |
+        set -euo pipefail
+        export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
+        apt-get update -qq && apt-get install -y -qq openssh-client >/dev/null
+        # MANUAL PROMOTION ONLY — never auto-triggered.
+        # Requires: DEPLOY_CONFIRM=yes (job input), DEPLOY_PROD_HOST (job
+        # secret), and the CI runner's ki-deploy-ed25519 key authorized on
+        # the production host (deploy/production/ssh-setup.md).
+        if [ "${DEPLOY_CONFIRM:-}" != "yes" ]; then
+          echo "REFUSING: DEPLOY_CONFIRM must be 'yes'. Production deploys are" >&2
+          echo "manual promotions only." >&2
+          exit 1
+        fi
+        ./deploy/scripts/deploy-production.sh
+    runAs: 0:0
+    useTTY: false
+    condition: SUCCESSFUL
+    optional: false
+  retryCondition: never
+  maxRetries: 0
+  retryDelay: 30
+  includeUpstreamWhenRebuild: false
+  includeDownstreamWhenRebuild: false
+  timeout: 1800

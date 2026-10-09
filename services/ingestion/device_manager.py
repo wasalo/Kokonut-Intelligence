@@ -20,7 +20,7 @@ import psycopg2.extras
 
 from ..common.logging import get_logger
 from .base import get_db
-
+from services.common.cli import print_json
 logger = get_logger("ingestion.device_manager")
 
 
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     try:
         if args.list:
             devices = list_devices(conn, location_id=args.location_id)
-            print(json.dumps(devices, indent=2, default=str))
+            print_json(devices)
         elif args.register:
             if not all([args.device_id, args.sensor_type, args.location_id]):
                 parser.error("--register requires --device-id, --sensor-type, --location-id")
@@ -209,7 +209,7 @@ if __name__ == "__main__":
             if not args.device_id:
                 parser.error("--health requires --device-id")
             health = get_device_health(conn, args.device_id)
-            print(json.dumps(health, indent=2, default=str))
+            print_json(health)
         else:
             parser.print_help()
     finally:

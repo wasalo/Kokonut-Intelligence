@@ -12,10 +12,14 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
+
+import psycopg2.extras
+
+from services.common.cli import print_json
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
+from .base import get_db
 
 logger = get_logger("ingestion.price_attestation")
 
@@ -70,7 +74,6 @@ def attest_price(
     attestation_uid = None
     try:
         from ..attestation.eas_client import get_eas_client
-        from ..attestation.config import EAS_CONFIG
 
         w3 = get_eas_client(chain)
         if w3:
@@ -138,10 +141,10 @@ if __name__ == "__main__":
     try:
         if args.run_daily:
             result = attest_daily_prices(conn)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.commodity and args.price:
             result = attest_price(conn, args.commodity, args.price, args.source)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         else:
             parser.print_help()
     finally:

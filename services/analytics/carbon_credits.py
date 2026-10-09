@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -23,7 +24,7 @@ import psycopg2.extras
 
 from ..common.logging import get_logger
 from .carbon_balance import compute_carbon_balance
-
+from services.common.cli import print_json
 logger = get_logger("analytics.carbon_credits")
 
 
@@ -261,46 +262,69 @@ def retire_credit(
     reason: str,
     beneficiary_name: str = None,
     retirement_statement: str = None,
+    requested_by: str = None,
+    idempotency_key: str = None,
 ) -> Dict[str, Any]:
-    """Permanently retire carbon credits."""
+    """Create a draft retirement and reserve its quantity for human review."""
+    if retired_tonnes <= 0:
+        return {"status": "error", "message": "Retirement tonnes must be positive"}
+    if not requested_by:
+        return {"status": "error", "message": "requested_by is required"}
+    idempotency_key = idempotency_key or str(uuid.uuid4())
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("SELECT * FROM carbon_credit WHERE id = %s", (credit_id,))
+    cur.execute("SELECT * FROM carbon_credit WHERE id = %s FOR UPDATE", (credit_id,))
     credit = cur.fetchone()
-    cur.close()
-
     if not credit:
+        conn.rollback()
+        cur.close()
         return {"status": "error", "message": "Credit not found"}
+    if credit["status"] not in ("verified", "published"):
+        conn.rollback()
+        cur.close()
+        return {"status": "error", "message": "Credit must be verified or published"}
 
-    available = float(credit["issuable_tonnes"]) - float(credit["retired_tonnes"])
-    if retired_tonnes > available:
-        return {"status": "error", "message": f"Only {available:.4f} tonnes available for retirement"}
+    cur.execute("SELECT * FROM credit_retirement WHERE idempotency_key = %s", (idempotency_key,))
+    existing = cur.fetchone()
+    if existing:
+        conn.rollback()
+        cur.close()
+        if str(existing["credit_id"]) != credit_id:
+            return {"status": "error", "message": "Idempotency key belongs to another credit"}
+        return {"status": "success", "retirement_id": str(existing["id"]),
+                "credit_code": credit["credit_code"], "retired_tonnes": float(existing["retired_tonnes"]),
+                "reservation_status": existing["status"], "idempotent": True}
 
     price = float(credit["effective_price_per_tonne_usd"])
     value = retired_tonnes * price
 
-    cur = conn.cursor()
+    cur.execute("""
+        UPDATE carbon_credit
+        SET reserved_tonnes = reserved_tonnes + %s, updated_at = NOW()
+        WHERE id = %s
+          AND status IN ('verified', 'published')
+          AND issuable_tonnes - retired_tonnes - reserved_tonnes >= %s
+        RETURNING id
+    """, (retired_tonnes, credit_id, retired_tonnes))
+    if not cur.fetchone():
+        available = float(credit["issuable_tonnes"]) - float(credit["retired_tonnes"]) - float(credit["reserved_tonnes"])
+        conn.rollback()
+        cur.close()
+        return {"status": "error", "message": f"Only {available:.4f} tonnes available for retirement"}
+
     cur.execute("""
         INSERT INTO credit_retirement (
             credit_id, location_id, retirement_reason,
             retired_tonnes, retirement_value_usd,
-            beneficiary_name, retirement_statement, status
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, 'draft')
+            beneficiary_name, retirement_statement, status, created_by, idempotency_key
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, 'draft', %s, %s)
         RETURNING id
     """, (
         credit_id, str(credit["location_id"]), reason,
         retired_tonnes, value,
-        beneficiary_name, retirement_statement,
+        beneficiary_name, retirement_statement, requested_by, idempotency_key,
     ))
     retirement_id = str(cur.fetchone()[0])
-
-    # Update credit retired_tonnes
-    cur.execute("""
-        UPDATE carbon_credit SET
-            retired_tonnes = retired_tonnes + %s,
-            updated_at = NOW()
-        WHERE id = %s
-    """, (retired_tonnes, credit_id))
-
     conn.commit()
     cur.close()
 
@@ -310,7 +334,98 @@ def retire_credit(
         "credit_code": credit["credit_code"],
         "retired_tonnes": retired_tonnes,
         "value_usd": value,
+        "reservation_status": "draft",
+        "idempotency_key": idempotency_key,
     }
+
+
+def review_retirement(
+    conn,
+    retirement_id: str,
+    reviewer_id: str,
+    decision: str,
+    review_notes: str = None,
+) -> Dict[str, Any]:
+    """Confirm, reject, or cancel a retirement while holding ledger row locks."""
+    if decision not in ("confirm", "reject", "cancel"):
+        return {"status": "error", "message": "Decision must be confirm, reject, or cancel"}
+    if not reviewer_id:
+        return {"status": "error", "message": "reviewer_id is required"}
+
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("SELECT * FROM credit_retirement WHERE id = %s FOR UPDATE", (retirement_id,))
+    retirement = cur.fetchone()
+    if not retirement:
+        conn.rollback()
+        cur.close()
+        return {"status": "error", "message": "Retirement not found"}
+    if retirement["status"] in ("verified", "published", "rejected", "cancelled"):
+        conn.rollback()
+        cur.close()
+        expected_decision = {
+            "verified": "confirm", "published": "confirm",
+            "rejected": "reject", "cancelled": "cancel",
+        }[retirement["status"]]
+        if decision != expected_decision:
+            return {"status": "error", "message": f"Retirement is already {retirement['status']}"}
+        return {"status": "success", "retirement_id": retirement_id,
+                "retirement_status": retirement["status"], "idempotent": True}
+    if retirement["status"] not in ("draft", "submitted"):
+        conn.rollback()
+        cur.close()
+        return {"status": "error", "message": f"Cannot review retirement in '{retirement['status']}' status"}
+    if retirement["created_by"] and str(retirement["created_by"]) == reviewer_id:
+        conn.rollback()
+        cur.close()
+        return {"status": "error", "message": "Retirement requester cannot review their own request"}
+
+    tonnes = retirement["retired_tonnes"]
+    if decision == "confirm":
+        cur.execute("""
+            UPDATE carbon_credit
+            SET reserved_tonnes = reserved_tonnes - %s,
+                retired_tonnes = retired_tonnes + %s, updated_at = NOW()
+            WHERE id = %s AND reserved_tonnes >= %s
+              AND status IN ('verified', 'published')
+            RETURNING id
+        """, (tonnes, tonnes, retirement["credit_id"], tonnes))
+        new_status = "verified"
+    else:
+        cur.execute("""
+            UPDATE carbon_credit
+            SET reserved_tonnes = reserved_tonnes - %s, updated_at = NOW()
+            WHERE id = %s AND reserved_tonnes >= %s
+            RETURNING id
+        """, (tonnes, retirement["credit_id"], tonnes))
+        new_status = "rejected" if decision == "reject" else "cancelled"
+    if not cur.fetchone():
+        conn.rollback()
+        cur.close()
+        return {"status": "error", "message": "Reservation is unavailable or credit is no longer eligible"}
+
+    confirmed_sql = ", confirmed_at = NOW()" if decision == "confirm" else ""
+    cancelled_sql = ", cancelled_at = NOW()" if decision == "cancel" else ""
+    cur.execute(f"""
+        UPDATE credit_retirement
+        SET status = %s, reviewer_id = %s, review_date = CURRENT_DATE,
+            review_notes = %s{confirmed_sql}{cancelled_sql}
+        WHERE id = %s
+    """, (new_status, reviewer_id, review_notes, retirement_id))
+    conn.commit()
+    cur.close()
+
+    chain_result = None
+    if decision == "confirm":
+        try:
+            from services.credit_class.chain_sync import retire_onchain
+            chain_result = retire_onchain(conn, retirement_id)
+        except Exception as e:
+            logger.warning("On-chain retirement failed for %s (non-blocking): %s", retirement_id, e)
+            chain_result = {"error": str(e)}
+
+    return {"status": "success", "retirement_id": retirement_id,
+            "retirement_status": new_status, "retired_tonnes": float(tonnes),
+            "chain_sync": chain_result}
 
 
 def list_credits(conn, location_id: str = None, vintage_year: int = None) -> List[Dict[str, Any]]:
@@ -344,6 +459,7 @@ def get_balance(conn, location_id: str) -> Dict[str, Any]:
             COUNT(*) AS total_credits,
             COALESCE(SUM(issuable_tonnes), 0) AS total_issuable,
             COALESCE(SUM(retired_tonnes), 0) AS total_retired,
+            COALESCE(SUM(reserved_tonnes), 0) AS total_reserved,
             COALESCE(SUM(available_tonnes), 0) AS total_available,
             COALESCE(SUM(total_value_usd), 0) AS total_value,
             COUNT(*) FILTER (WHERE status = 'published') AS published,
@@ -402,6 +518,9 @@ if __name__ == "__main__":
     parser.add_argument("--issue", action="store_true", help="Issue a new carbon credit")
     parser.add_argument("--adjust", action="store_true", help="Auto-adjust credits")
     parser.add_argument("--retire", action="store_true", help="Retire carbon credits")
+    parser.add_argument("--confirm-retirement", action="store_true", help="Confirm a retirement reservation")
+    parser.add_argument("--reject-retirement", action="store_true", help="Reject a retirement reservation")
+    parser.add_argument("--cancel-retirement", action="store_true", help="Cancel a retirement reservation")
     parser.add_argument("--list", action="store_true", help="List carbon credits")
     parser.add_argument("--balance", action="store_true", help="Show credit balance")
     parser.add_argument("--check-adjustments", action="store_true", help="Check for pending adjustments")
@@ -413,6 +532,11 @@ if __name__ == "__main__":
     parser.add_argument("--reason", help="Retirement reason")
     parser.add_argument("--beneficiary", help="Beneficiary name")
     parser.add_argument("--statement", help="Retirement statement")
+    parser.add_argument("--retirement-id", help="Retirement UUID")
+    parser.add_argument("--requested-by", help="Requesting human UUID")
+    parser.add_argument("--reviewer-id", help="Reviewing human UUID")
+    parser.add_argument("--review-notes", help="Retirement review notes")
+    parser.add_argument("--idempotency-key", help="Stable key for a retirement request")
     args = parser.parse_args()
 
     conn = psycopg2.connect(
@@ -423,7 +547,7 @@ if __name__ == "__main__":
             if not args.location_id or not args.vintage_year:
                 parser.error("--issue requires --location-id and --vintage-year")
             result = issue_credit(conn, args.location_id, args.vintage_year, args.methodology)
-            print(json.dumps(result, indent=2, default=str))
+            print_json(result)
         elif args.adjust:
             if not args.location_id:
                 parser.error("--adjust requires --location-id")
@@ -433,23 +557,31 @@ if __name__ == "__main__":
                 if c["status"] in ("verified", "published"):
                     r = adjust_credit(conn, c["id"], "manual_override")
                     results.append(r)
-            print(json.dumps(results, indent=2, default=str))
+            print_json(results)
         elif args.retire:
-            if not args.credit_id or not args.tonnes or not args.reason:
-                parser.error("--retire requires --credit-id, --tonnes, and --reason")
-            result = retire_credit(conn, args.credit_id, args.tonnes, args.reason, args.beneficiary, args.statement)
-            print(json.dumps(result, indent=2, default=str))
+            if not args.credit_id or not args.tonnes or not args.reason or not args.requested_by:
+                parser.error("--retire requires --credit-id, --tonnes, --reason, and --requested-by")
+            result = retire_credit(conn, args.credit_id, args.tonnes, args.reason,
+                                   args.beneficiary, args.statement, args.requested_by,
+                                   args.idempotency_key)
+            print_json(result)
+        elif args.confirm_retirement or args.reject_retirement or args.cancel_retirement:
+            if not args.retirement_id or not args.reviewer_id:
+                parser.error("retirement review requires --retirement-id and --reviewer-id")
+            decision = "confirm" if args.confirm_retirement else "reject" if args.reject_retirement else "cancel"
+            result = review_retirement(conn, args.retirement_id, args.reviewer_id, decision, args.review_notes)
+            print_json(result)
         elif args.list:
             credits = list_credits(conn, location_id=args.location_id, vintage_year=args.vintage_year)
-            print(json.dumps(credits, indent=2, default=str))
+            print_json(credits)
         elif args.balance:
             if not args.location_id:
                 parser.error("--balance requires --location-id")
             balance = get_balance(conn, args.location_id)
-            print(json.dumps(balance, indent=2, default=str))
+            print_json(balance)
         elif args.check_adjustments:
             results = check_adjustments(conn, location_id=args.location_id)
-            print(json.dumps(results, indent=2, default=str))
+            print_json(results)
         else:
             parser.print_help()
     finally:

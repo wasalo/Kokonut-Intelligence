@@ -1,0 +1,16 @@
+{
+  "title": "Environmental Trends",
+  "description": "Aggregated environmental indicators over time: soil, water, air quality.",
+  "cards": [
+    {
+      "name": "Environmental Trends",
+      "dataset_query": "dashboards/metabase/sql/13_environmental_trends.sql",
+      "visualization": "line"
+    }
+  ],
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

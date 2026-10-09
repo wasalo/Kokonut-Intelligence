@@ -16,6 +16,12 @@
     "test": "vitest run"
   },
   "license": "Apache-2.0",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
   "devDependencies": {
     "@directus/extensions-sdk": "^18.0.1",
     "esbuild": "^0.28.0",

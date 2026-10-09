@@ -1,0 +1,64 @@
+FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93
+
+WORKDIR /app
+
+# System dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Run as a non-root user
+RUN useradd -m -u 10001 -s /bin/bash appuser
+
+# Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY services/ services/
+COPY schemas/ schemas/
+COPY config/ config/
+COPY VERSION VERSION
+COPY proto/ proto/
+COPY sdk/ sdk/
+COPY pyproject.toml .
+
+# Generate protobuf Python code
+RUN python -m grpc_tools.protoc \
+    -I proto \
+    --python_out=sdk/python/generated \
+    --grpc_python_out=sdk/python/generated \
+    proto/common/pagination.proto \
+    proto/ecocredit/v1/types.proto \
+    proto/ecocredit/v1/service.proto \
+    proto/data/v1/types.proto \
+    proto/data/v1/service.proto
+
+# Copy generated proto files to services/grpc for easy import
+RUN cp -r sdk/python/generated/ecocredit services/grpc/ecocredit && \
+    cp -r sdk/python/generated/data services/grpc/data && \
+    cp -r sdk/python/generated/common services/grpc/common && \
+    touch sdk/python/generated/ecocredit/__init__.py && \
+    touch sdk/python/generated/ecocredit/v1/__init__.py && \
+    touch sdk/python/generated/data/__init__.py && \
+    touch sdk/python/generated/data/v1/__init__.py && \
+    touch sdk/python/generated/common/__init__.py && \
+    touch services/grpc/ecocredit/__init__.py && \
+    touch services/grpc/ecocredit/v1/__init__.py && \
+    touch services/grpc/data/__init__.py && \
+    touch services/grpc/data/v1/__init__.py && \
+    touch services/grpc/common/__init__.py
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+    CMD python3 -c "import grpc; print('ok')"
+
+# Add generated proto files to Python path
+ENV PYTHONPATH="${PYTHONPATH}:/app/sdk/python/generated"
+
+EXPOSE 50051
+
+USER appuser
+
+CMD ["python3", "-m", "services.grpc.cli", "serve"]

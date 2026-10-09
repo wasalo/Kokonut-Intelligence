@@ -1,0 +1,120 @@
+{
+  "name": "Manager",
+  "description": "Farm management: crop cycles, financial performance, team productivity, expense tracking, and operational health for managers.",
+  "icon": "business_center",
+  "color": "#6a1b9a",
+  "modules": [
+    {
+      "name": "Farm Overview",
+      "type": "stats",
+      "collection": "crop_cycle",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Active Cycles" },
+        { "field": "yield_target", "function": "sum", "label": "Target Yield" }
+      ]
+    },
+    {
+      "name": "Financial Summary",
+      "type": "stats",
+      "collection": "noi_snapshot",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "aggregations": [
+        { "field": "net_revenue", "function": "sum", "label": "Total Revenue" },
+        { "field": "noi", "function": "sum", "label": "Total NOI" },
+        { "field": "operating_margin_pct", "function": "avg", "label": "Avg Margin %" }
+      ]
+    },
+    {
+      "name": "Crop Cycle Status",
+      "type": "table",
+      "collection": "crop_cycle",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["planted", "growing", "harvested"] }
+      },
+      "columns": [
+        { "field": "cycle_name", "label": "Cycle" },
+        { "field": "crop_id.name", "label": "Crop" },
+        { "field": "planting_date", "label": "Planted" },
+        { "field": "expected_harvest_date", "label": "Expected" },
+        { "field": "yield_target", "label": "Target" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-planting_date"]
+    },
+    {
+      "name": "Expense Breakdown",
+      "type": "pie",
+      "collection": "expense_event",
+      "group_by": "category",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["verified", "published"] },
+        "expense_date": { "_gte": "$NOW(-90 days)" }
+      },
+      "value_field": "amount",
+      "value_function": "sum"
+    },
+    {
+      "name": "Team Productivity",
+      "type": "table",
+      "collection": "farm_activity",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "activity_date": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "created_by", "label": "Worker" },
+        { "function": "count", "label": "Activities" },
+        { "field": "labor_hours", "function": "sum", "label": "Hours" }
+      ],
+      "sort": ["-labor_hours"]
+    },
+    {
+      "name": "Recent Sales",
+      "type": "table",
+      "collection": "sales_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "sale_date": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "sale_date", "label": "Date" },
+        { "field": "crop_cycle_id.name", "label": "Crop" },
+        { "field": "quantity", "label": "Qty" },
+        { "field": "total_amount", "label": "Amount" },
+        { "field": "payment_status", "label": "Status" }
+      ],
+      "sort": ["-sale_date"]
+    }
+  ],
+  "data_access": {
+    "crop_cycle": {
+      "read": "plot_id.farm_id.location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["cycle_name", "crop_id", "planting_date", "expected_harvest_date", "yield_target", "status"]
+    },
+    "noi_snapshot": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["net_revenue", "total_costs", "noi", "operating_margin_pct", "period_end"]
+    },
+    "expense_event": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "update": true,
+      "fields": ["expense_date", "category", "amount", "vendor", "status"]
+    },
+    "sales_event": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "update": true,
+      "fields": ["sale_date", "quantity", "total_amount", "payment_status", "crop_cycle_id"]
+    },
+    "farm_activity": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["activity_type", "activity_date", "labor_hours", "created_by"]
+    }
+  }
+}

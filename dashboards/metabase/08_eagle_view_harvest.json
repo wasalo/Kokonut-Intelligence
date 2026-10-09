@@ -1,0 +1,16 @@
+{
+  "title": "Eagle View - Harvest",
+  "description": "Platform-wide harvest volumes, yield rates, and crop distribution.",
+  "cards": [
+    {
+      "name": "Eagle View Harvest",
+      "dataset_query": "dashboards/metabase/sql/08_eagle_view_harvest.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "operations_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

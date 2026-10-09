@@ -1,49 +1,98 @@
 """MQTT subscriber for IoT sensor data.
 
-Subscribes to MQTT topics for real-time sensor readings,
-auto-registers unknown devices, and writes to PostgreSQL + ClickHouse.
+Subscribes to MQTT topics for real-time sensor readings from pre-registered
+devices and writes to PostgreSQL + ClickHouse.
 
 Requires:
     - paho-mqtt package
     - MQTT_BROKER_HOST env var (default: localhost)
-    - MQTT_BROKER_PORT env var (default: 1883)
+    - MQTT_BROKER_PORT env var (default: 8883)
 
 Usage:
     python3 -m services.ingestion.mqtt_subscriber
-    python3 -m services.ingestion.mqtt_subscriber --broker mqtt.example.com --port 1883
+    python3 -m services.ingestion.mqtt_subscriber --broker mqtt.example.com --port 8883
 """
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 import signal
 import sys
-import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
+from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows
+from .clickhouse_outbox import enqueue
+from .field_validation import SENSOR_RANGES, validate_sensor_reading
+from .sensor_ingester import get_sensor_type_ranges
 
 logger = get_logger("ingestion.mqtt_subscriber")
 
 # MQTT topic patterns
 SENSOR_TOPIC = "sensors/+/+/readings"  # sensors/{location_id}/{sensor_type}/readings
-DEVICE_TOPIC = "sensors/+/+/register"  # sensors/{location_id}/{sensor_type}/register
 
 # Default config
 DEFAULT_BROKER = os.environ.get("MQTT_BROKER_HOST", "localhost")
-DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
+DEFAULT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "8883"))
 DEFAULT_KEEPALIVE = 60
+DEFAULT_USERNAME = os.environ.get("MQTT_USERNAME", "")
+DEFAULT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
+DEFAULT_CA_CERT = os.environ.get("MQTT_CA_CERT", "/mosquitto/certs/ca.crt")
+DEFAULT_CLIENT_CERT = os.environ.get("MQTT_CLIENT_CERT", "/mosquitto/certs/subscriber.crt")
+DEFAULT_CLIENT_KEY = os.environ.get("MQTT_CLIENT_KEY", "/mosquitto/certs/subscriber.key")
+
+
+def _verify_reading_signature(
+    data: dict,
+    signature: str,
+    secret: str,
+    topic_location_id: str,
+    topic_sensor_type: str,
+) -> bool:
+    """Verify a device HMAC bound to the MQTT topic and payload."""
+    if not signature or not secret:
+        return False
+    signed_data = dict(data)
+    signed_data.pop("signature", None)
+    canonical = json.dumps(
+        {
+            "location_id": topic_location_id,
+            "sensor_type": topic_sensor_type,
+            "payload": signed_data,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    provided = signature.strip()
+    if provided.lower().startswith("sha256="):
+        provided = provided[7:]
+    expected = hmac.new(secret.encode("utf-8"), canonical, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, provided)
 
 
 class MQTTSensorSubscriber:
     """MQTT subscriber that receives sensor readings and writes to DB."""
 
-    def __init__(self, broker: str = DEFAULT_BROKER, port: int = DEFAULT_PORT):
+    def __init__(
+        self,
+        broker: str = DEFAULT_BROKER,
+        port: int = DEFAULT_PORT,
+        username: str = DEFAULT_USERNAME,
+        password: str = DEFAULT_PASSWORD,
+        ca_cert: str = DEFAULT_CA_CERT,
+        client_cert: str = DEFAULT_CLIENT_CERT,
+        client_key: str = DEFAULT_CLIENT_KEY,
+    ):
         self.broker = broker
         self.port = port
+        self.username = username
+        self.password = password
+        self.ca_cert = ca_cert
+        self.client_cert = client_cert
+        self.client_key = client_key
         self.client = None
         self._running = False
         self._db = None
@@ -56,8 +105,7 @@ class MQTTSensorSubscriber:
         if rc == 0:
             logger.info("Connected to MQTT broker at %s:%d", self.broker, self.port)
             client.subscribe(SENSOR_TOPIC)
-            client.subscribe(DEVICE_TOPIC)
-            logger.info("Subscribed to topics: %s, %s", SENSOR_TOPIC, DEVICE_TOPIC)
+            logger.info("Subscribed to topic: %s", SENSOR_TOPIC)
         else:
             logger.error("MQTT connection failed with code %d", rc)
 
@@ -70,9 +118,7 @@ class MQTTSensorSubscriber:
             topic_type = topic_parts[3]  # readings or register
 
             if topic_type == "readings":
-                self._handle_reading(msg.payload)
-            elif topic_type == "register":
-                self._handle_registration(msg.payload)
+                self._handle_reading(msg.payload, topic_parts[1], topic_parts[2])
         except Exception as e:
             logger.error("Error processing MQTT message: %s", e)
 
@@ -89,48 +135,15 @@ class MQTTSensorSubscriber:
             logger.warning("Registration missing device_id")
             return
 
-        self._connect_db()
-        cur = self._db.cursor()
+        # Registration is controlled through device_manager, not an unauthenticated topic.
+        logger.warning("Rejected MQTT registration request for device: %s", device_id)
 
-        # Check if device exists
-        cur.execute("SELECT id FROM sensor_device WHERE slug = %s", (device_id,))
-        if cur.fetchone():
-            logger.info("Device %s already registered", device_id)
-            cur.close()
-            return
-
-        # Auto-register device
-        sensor_type_name = data.get("sensor_type", "air_temperature")
-        location_id = data.get("location_id")
-
-        # Get or create sensor type
-        cur.execute("SELECT id FROM sensor_type WHERE name = %s", (sensor_type_name,))
-        row = cur.fetchone()
-        if not row:
-            logger.warning("Unknown sensor type: %s", sensor_type_name)
-            cur.close()
-            return
-        sensor_type_id = str(row[0])
-
-        # Insert device
-        cur.execute("""
-            INSERT INTO sensor_device (name, slug, sensor_type_id, location_id, protocol, status, metadata)
-            VALUES (%s, %s, %s, %s, 'mqtt', 'active', %s)
-            ON CONFLICT (slug) DO UPDATE SET status = 'active', updated_at = NOW()
-            RETURNING id
-        """, (
-            data.get("name", f"MQTT Device {device_id}"),
-            device_id,
-            sensor_type_id,
-            location_id,
-            json.dumps(data),
-        ))
-        device_db_id = str(cur.fetchone()[0])
-        self._db.commit()
-        cur.close()
-        logger.info("Auto-registered MQTT device: %s (id=%s)", device_id, device_db_id[:8])
-
-    def _handle_reading(self, payload: bytes):
+    def _handle_reading(
+        self,
+        payload: bytes,
+        topic_location_id: str,
+        topic_sensor_type: str,
+    ):
         """Handle incoming sensor reading."""
         try:
             data = json.loads(payload.decode("utf-8"))
@@ -142,6 +155,7 @@ class MQTTSensorSubscriber:
         value = data.get("value")
         unit = data.get("unit")
         timestamp = data.get("timestamp")
+        signature = data.get("signature")
 
         if not device_id or value is None:
             logger.warning("Reading missing device_id or value")
@@ -153,9 +167,10 @@ class MQTTSensorSubscriber:
         # Look up device
         cur.execute("""
             SELECT sd.id, sd.location_id, sd.plot_id, st.name AS sensor_type
+                   , sd.metadata->>'shared_secret' AS shared_secret
             FROM sensor_device sd
             JOIN sensor_type st ON st.id = sd.sensor_type_id
-            WHERE sd.slug = %s
+            WHERE sd.slug = %s AND sd.status = 'active'
         """, (device_id,))
         row = cur.fetchone()
         if not row:
@@ -167,6 +182,19 @@ class MQTTSensorSubscriber:
         location_id = str(row[1])
         plot_id = str(row[2]) if row[2] else None
         sensor_type = row[3]
+        shared_secret = row[4]
+
+        if str(location_id) != topic_location_id or sensor_type != topic_sensor_type:
+            logger.warning("MQTT topic identity mismatch for device: %s", device_id)
+            cur.close()
+            return
+
+        if not _verify_reading_signature(
+            data, signature, shared_secret, topic_location_id, topic_sensor_type
+        ):
+            logger.warning("Invalid MQTT reading signature for device: %s", device_id)
+            cur.close()
+            return
 
         # Parse timestamp
         if timestamp:
@@ -174,18 +202,51 @@ class MQTTSensorSubscriber:
         else:
             reading_time = datetime.now(timezone.utc)
 
+        try:
+            ranges = get_sensor_type_ranges(self._db)
+        except Exception:
+            ranges = SENSOR_RANGES
+        validation = validate_sensor_reading(
+            value, sensor_type, unit, reading_time, ranges=ranges, identity=device_id
+        )
+        if validation.status == "rejected":
+            logger.warning("Invalid MQTT reading for device %s: %s", device_id, validation.errors)
+            log_ingestion(
+                source_system="mqtt_sensor", source_table="sensor_reading", source_id=device_id,
+                target_table="sensor_reading", target_id=None, operation="insert",
+                payload_hash=hash_payload(data), status="failed", error_message="; ".join(validation.errors),
+                validation_status="rejected", validation_errors=validation.errors,
+                validation_warnings=validation.warnings, dedupe_key=validation.dedupe_key,
+            )
+            cur.close()
+            return
+        quality = "suspect" if validation.status == "suspect" else "good"
+
         # Insert reading
         cur.execute("""
             INSERT INTO sensor_reading
-                (location_id, plot_id, sensor_id, sensor_type, reading_date, reading_time, value, unit, quality)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'good')
-            RETURNING id
+                (location_id, plot_id, sensor_id, sensor_type, reading_date, reading_time, value, unit, quality,
+                 source_system, source_id, source_raw, schema_version)
+             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, 'field-ingestion-v1')
+             ON CONFLICT (sensor_id, reading_date, reading_time) DO NOTHING
+             RETURNING id
         """, (
             location_id, plot_id, device_db_id, sensor_type,
             reading_time.date(), reading_time.time(),
-            float(value), unit or "",
+            float(value), unit or "", quality, "mqtt_sensor", device_id, json.dumps(data),
         ))
-        reading_id = str(cur.fetchone()[0])
+        inserted = cur.fetchone()
+        if not inserted:
+            self._db.commit()
+            log_ingestion(
+                source_system="mqtt_sensor", source_table="sensor_reading", source_id=device_id,
+                target_table="sensor_reading", target_id=None, operation="insert",
+                payload_hash=hash_payload(data), status="partial", error_message="duplicate reading",
+                validation_status="duplicate", dedupe_key=validation.dedupe_key,
+            )
+            cur.close()
+            return
+        reading_id = str(inserted[0])
 
         # Update device health
         cur.execute("""
@@ -197,11 +258,13 @@ class MQTTSensorSubscriber:
                 updated_at = NOW()
         """, (device_db_id,))
 
+        # Enqueue before commit so the source row and analytical delivery are atomic.
+        self._insert_ch(
+            reading_id, location_id, plot_id, device_db_id, sensor_type,
+            value, unit, reading_time, quality, self._db,
+        )
         self._db.commit()
         cur.close()
-
-        # Dual-write to ClickHouse
-        self._insert_ch(reading_id, location_id, plot_id, device_db_id, sensor_type, value, unit, reading_time)
 
         log_ingestion(
             source_system="mqtt_sensor",
@@ -213,38 +276,31 @@ class MQTTSensorSubscriber:
             payload_hash=hash_payload(data),
             status="success",
             rows_affected=1,
+            validation_status=validation.status,
+            validation_warnings=validation.warnings,
+            dedupe_key=validation.dedupe_key,
         )
 
-    def _insert_ch(self, reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp):
-        """Insert reading into ClickHouse."""
-        import requests as req
-        from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
-
-        ts = timestamp.strftime("%Y-%m-%d %H:%M:%S.000")
-        ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
-        query = f"""INSERT INTO sensor_readings
-            (timestamp, sensor_id, sensor_type, location_id, plot_id, value, unit, quality, metadata)
-            VALUES (
-                '{ts}',
-                '{sensor_id}',
-                '{sensor_type}',
-                '{location_id}',
-                '{plot_id or ''}',
-                {float(value)},
-                '{unit or ''}',
-                'good',
-                map()
-            )"""
-
+    def _insert_ch(self, reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp, quality="good", conn=None):
+        """Queue canonical reading; direct writes are demo-only when conn is absent."""
+        columns = ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
+                   "value", "unit", "quality", "metadata"]
+        rows = [[timestamp, str(sensor_id), str(sensor_type), str(location_id),
+                 str(plot_id or ""), float(value), str(unit or ""), quality, {}]]
         try:
-            resp = req.post(
-                ch_url, data=query.encode("utf-8"),
-                auth=(CH_USER, CH_PASSWORD),
-                headers={"Content-Type": "text/plain"},
-                timeout=10,
+            if conn is not None:
+                payload_hash = hash_payload({"reading_id": str(reading_id), "value": value,
+                                             "timestamp": str(timestamp)})
+                enqueue(conn, event_key=f"sensor_reading:sensor_readings:{reading_id}",
+                        source_table="sensor_reading", source_id=str(reading_id),
+                        target_table="sensor_readings", columns=columns, rows=rows,
+                        payload_hash=payload_hash)
+                return
+            # No PostgreSQL transaction means this is an explicit demo/maintenance path.
+            from .base import post_clickhouse_rows
+            post_clickhouse_rows(
+                "sensor_readings", columns, rows,
             )
-            resp.raise_for_status()
         except Exception as e:
             logger.warning("ClickHouse insert failed: %s", e)
 
@@ -256,8 +312,18 @@ class MQTTSensorSubscriber:
             logger.error("paho-mqtt not installed. Run: pip install paho-mqtt")
             sys.exit(1)
 
+        if not self.username or not self.password:
+            logger.error("MQTT_USERNAME and MQTT_PASSWORD are required")
+            return
+
         self._running = True
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        self.client.username_pw_set(self.username, self.password)
+        try:
+            self.client.tls_set(ca_certs=self.ca_cert, certfile=self.client_cert, keyfile=self.client_key)
+        except Exception:
+            logger.exception("MQTT TLS configuration failed")
+            return
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
 

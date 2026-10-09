@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kokonut Intelligence - Map Viewer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        #map { width: 100%; height: 100vh; }
+        .map-controls {
+            position: absolute; top: 10px; right: 10px; z-index: 1000;
+            background: white; padding: 12px; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .map-controls h3 { margin: 0 0 8px 0; font-size: 14px; }
+        .map-controls label { display: block; margin: 4px 0; font-size: 12px; }
+        .map-title {
+            position: absolute; top: 10px; left: 60px; z-index: 1000;
+            background: white; padding: 8px 16px; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .map-title h1 { margin: 0; font-size: 18px; color: #009F4D; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="map-title"><h1>Kokonut Intelligence</h1></div>
+    <div class="map-controls">
+        <h3>Layers</h3>
+        <label><input type="checkbox" id="layer-farms" checked> Farms</label>
+        <label><input type="checkbox" id="layer-zones" checked> Zones</label>
+        <label><input type="checkbox" id="layer-trees"> Trees</label>
+        <label><input type="checkbox" id="layer-posts"> Data Posts</label>
+    </div>
+    <script>
+        const map = L.map('map').setView([18.5, -69.9], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        const farmIcon = L.divIcon({ className: 'farm-marker', html: '<div style="background:#009F4D;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>', iconSize: [12, 12] });
+
+        fetch('/directus/items/location?filter[status][eq]=active&fields=id,name,latitude,longitude,description')
+            .then(r => r.json())
+            .then(data => {
+                const layer = L.layerGroup();
+                (data.data || []).forEach(loc => {
+                    if (loc.latitude && loc.longitude) {
+                        L.marker([loc.latitude, loc.longitude], {icon: farmIcon})
+                            .bindPopup(`<b>${loc.name}</b><br>${loc.description || ''}`)
+                            .addTo(layer);
+                    }
+                });
+                layer.addTo(map);
+                document.getElementById('layer-farms').addEventListener('change', e => {
+                    e.target.checked ? layer.addTo(map) : map.removeLayer(layer);
+                });
+            });
+    </script>
+</body>
+</html>

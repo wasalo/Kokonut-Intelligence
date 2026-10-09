@@ -37,6 +37,7 @@ class CompositeRating:
     methodology_version: Optional[str] = None
     weights: Dict[str, float] = field(default_factory=dict)
     dimensions: List[DimensionScore] = field(default_factory=list)
+    design_note: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -64,4 +65,5 @@ class CompositeRating:
                 }
                 for d in self.dimensions
             ],
+            "design_note": self.design_note,
         }

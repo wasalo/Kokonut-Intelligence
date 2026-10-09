@@ -4,6 +4,12 @@
   "description": "JavaScript/TypeScript SDK for Kokonut Intelligence Platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run"

@@ -1,0 +1,16 @@
+{
+  "title": "DAO Proposal History",
+  "description": "Gnosis Moloch DAO governance events: proposals, votes, and processing.",
+  "cards": [
+    {
+      "name": "DAO Proposal History",
+      "dataset_query": "dashboards/metabase/sql/97_dao_proposal_history.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "governance_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

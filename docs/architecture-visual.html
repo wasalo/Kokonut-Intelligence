@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kokonut Intelligence — Platform Architecture, Explained Visually</title>
+<style>
+  :root {
+    --bg: #0e1216;
+    --bg2: #12181f;
+    --panel: #161d25;
+    --panel2: #1b242e;
+    --border: #26313d;
+    --border2: #33404e;
+    --ink: #e8eef4;
+    --muted: #9aa9b8;
+    --dim: #6f7d8c;
+    --green: #6fdc8f;
+    --green-dim: #2d4a3a;
+    --teal: #58c8e8;
+    --amber: #ffc46b;
+    --purple: #c79bf0;
+    --red: #ff7a7a;
+    --blue: #7aa7ff;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --radius: 14px;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    font-size: 15.5px;
+  }
+  a { color: var(--teal); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    font-family: var(--mono);
+    font-size: .86em;
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: .1em .35em;
+    color: var(--amber);
+    word-break: break-word;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 22px; }
+
+  /* ---------- Hero ---------- */
+  header.hero {
+    background:
+      radial-gradient(1100px 420px at 80% -10%, rgba(111,220,143,.14), transparent 60%),
+      radial-gradient(900px 380px at 10% -20%, rgba(88,200,232,.12), transparent 55%),
+      linear-gradient(180deg, #11171e, var(--bg));
+    border-bottom: 1px solid var(--border);
+    padding: 64px 0 46px;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 14px;
+  }
+  h1 { font-size: clamp(28px, 4.6vw, 44px); line-height: 1.12; letter-spacing: -.02em; font-weight: 750; }
+  h1 .accent { color: var(--green); }
+  .sub { margin-top: 16px; max-width: 860px; color: var(--muted); font-size: 17px; }
+  .meta {
+    margin-top: 22px;
+    display: flex; flex-wrap: wrap; gap: 10px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--dim);
+  }
+  .meta .chip {
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: 999px;
+  }
+  .meta .chip b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Nav ---------- */
+  nav.toc {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(14,18,22,.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav.toc .wrap { display: flex; gap: 4px; overflow-x: auto; padding-top: 8px; padding-bottom: 8px; }
+  nav.toc a {
+    white-space: nowrap; color: var(--muted);
+    font-size: 13px; font-weight: 550;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid transparent;
+  }
+  nav.toc a:hover { color: var(--ink); text-decoration: none; background: var(--panel); }
+  nav.toc a.active { color: var(--bg); background: var(--teal); border-color: var(--teal); }
+
+  /* ---------- Sections ---------- */
+  section { padding: 58px 0 8px; scroll-margin-top: 64px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 22px; }
+  .sec-num {
+    font-family: var(--mono); font-size: 13px; color: var(--green);
+    border: 1px solid var(--green-dim); background: rgba(111,220,143,.08);
+    border-radius: 8px; padding: 3px 9px; white-space: nowrap;
+  }
+  h2 { font-size: clamp(21px, 3vw, 28px); letter-spacing: -.015em; font-weight: 720; }
+  .lead { color: var(--muted); max-width: 900px; margin-bottom: 24px; }
+  .lead b, .lead strong { color: var(--ink); }
+
+  /* ---------- Principle cards ---------- */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 18px 16px;
+    border-top: 3px solid var(--card-accent, var(--teal));
+    box-shadow: var(--shadow);
+  }
+  .card h3 { font-size: 15.5px; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: 13.8px; }
+  .card .icon { font-size: 20px; display: block; margin-bottom: 8px; }
+
+  /* ---------- SVG figures ---------- */
+  figure { margin: 6px 0 26px; }
+  figure svg { width: 100%; height: auto; display: block; border-radius: var(--radius); }
+  .figcaption {
+    margin-top: 10px; color: var(--dim); font-size: 13px;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  .figcaption::before { content: "▼"; color: var(--green); font-size: 11px; }
+  .svg-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+  .svg-legend .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  /* ---------- Callouts ---------- */
+  .note {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: var(--panel); border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 10px; padding: 13px 16px; margin: 16px 0;
+    color: var(--muted); font-size: 14px;
+  }
+  .note .mark { font-size: 16px; line-height: 1.2; }
+  .note.warn { border-left-color: var(--red); }
+  .note.info { border-left-color: var(--teal); }
+
+  /* ---------- Tables ---------- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; margin: 14px 0; box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; font-size: 13.8px; background: var(--panel); }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th {
+    background: var(--panel2); font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--dim); font-weight: 650;
+  }
+  tr:last-child td { border-bottom: none; }
+  td code { background: none; border: none; padding: 0; color: var(--amber); font-size: .92em; }
+  td:first-child { color: var(--ink); font-weight: 560; white-space: nowrap; }
+  .tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; margin-right: 6px; vertical-align: 1px; }
+  .tag.green { background: rgba(111,220,143,.13); color: var(--green); border: 1px solid rgba(111,220,143,.3); }
+  .tag.teal { background: rgba(88,200,232,.12); color: var(--teal); border: 1px solid rgba(88,200,232,.3); }
+  .tag.amber { background: rgba(255,196,107,.12); color: var(--amber); border: 1px solid rgba(255,196,107,.3); }
+  .tag.purple { background: rgba(199,155,240,.12); color: var(--purple); border: 1px solid rgba(199,155,240,.3); }
+  .tag.red { background: rgba(255,122,122,.12); color: var(--red); border: 1px solid rgba(255,122,122,.3); }
+
+  /* ---------- Lifecycle flow ---------- */
+  .flow { display: flex; align-items: stretch; gap: 8px; margin: 22px 0; flex-wrap: wrap; }
+  .flow .stage { flex: 1 1 170px; min-width: 160px; }
+  .flow .pill {
+    background: var(--panel); border: 1px solid var(--border2); border-radius: 12px;
+    padding: 14px 14px 12px; height: 100%; border-top: 3px solid var(--pill, var(--teal));
+  }
+  .flow .pill h4 { font-size: 15px; margin-bottom: 6px; }
+  .flow .pill p { font-size: 12.8px; color: var(--muted); }
+  .flow .pill .code { font-family: var(--mono); font-size: 11px; color: var(--dim); display: block; margin-top: 8px; }
+  .flow .arrow { display: flex; align-items: center; color: var(--dim); font-size: 18px; padding: 0 2px; }
+  .stage.draft { --pill: var(--dim); }
+  .stage.submitted { --pill: var(--blue); }
+  .stage.verified { --pill: var(--teal); }
+  .stage.published { --pill: var(--green); }
+
+  /* ---------- Tabs ---------- */
+  .tabs { margin: 18px 0; }
+  .tabbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tabbtn {
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    color: var(--muted); background: var(--panel); border: 1px solid var(--border);
+    padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  }
+  .tabbtn.active { color: var(--bg); background: var(--teal); border-color: var(--teal); }
+  .tabbtn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .tabpane { display: none; }
+  .tabpane.active { display: block; animation: fade .25s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- Step sequence ---------- */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 18px 0; }
+  .step {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; position: relative; box-shadow: var(--shadow);
+  }
+  .step .n {
+    font-family: var(--mono); font-weight: 700; font-size: 13px; color: var(--bg);
+    background: var(--amber); width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 10px;
+  }
+  .step h4 { font-size: 14.5px; margin-bottom: 6px; }
+  .step p { font-size: 12.8px; color: var(--muted); }
+  .step .tl { font-family: var(--mono); font-size: 11.5px; color: var(--amber); display: block; margin-top: 8px; }
+
+  /* ---------- Analog mapping ---------- */
+  .analog { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 18px 0; }
+  .analog .item { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .analog .item h4 { font-size: 14px; margin-bottom: 4px; }
+  .analog .item .docker { font-family: var(--mono); font-size: 12px; color: var(--teal); margin-bottom: 8px; }
+  .analog .item p { font-size: 12.8px; color: var(--muted); }
+  .analog .item code { font-size: .9em; }
+
+  /* ---------- Infra chips ---------- */
+  .infra { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+  .infra .svc {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; min-width: 130px; flex: 1 1 130px;
+  }
+  .infra .svc b { display: block; font-size: 13.5px; font-family: var(--mono); }
+  .infra .svc span { font-size: 11.5px; color: var(--dim); }
+  .infra .svc .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+
+  /* ---------- What changed ---------- */
+  .changed { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 0; box-shadow: var(--shadow); }
+  .changed li {
+    list-style: none; padding: 12px 20px; border-bottom: 1px solid var(--border);
+    display: flex; gap: 12px; align-items: baseline; font-size: 14px; color: var(--muted);
+  }
+  .changed li:last-child { border-bottom: none; }
+  .changed li::before { content: "+"; color: var(--green); font-family: var(--mono); font-weight: 700; }
+  .changed li b { color: var(--ink); font-weight: 600; }
+  .changed li code { font-size: .88em; }
+
+  footer { margin-top: 70px; padding: 34px 0 50px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { animation: none !important; transition: none !important; }
+  }
+  @media (max-width: 640px) {
+    .flow .arrow { transform: rotate(90deg); padding: 2px 0; }
+    section { padding-top: 42px; }
+    header.hero { padding: 44px 0 34px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Kokonut Intelligence · Visual Explanation</div>
+    <h1>One platform, two worlds: <span class="accent">governed regenerative data</span> + <span class="accent">Web3 proofs</span></h1>
+    <p class="sub">
+      Kokonut Intelligence is a governed, open-source <b>data operating system</b> for regenerative farm operations, financial
+      performance, ecological outcomes, and Web3 verification. This page explains how the platform is put together —
+      the layers, the flows, the two blockchains, and the governance that holds it all together.
+    </p>
+    <div class="meta">
+      <span class="chip">source: <b>docs/architecture.md</b></span>
+      <span class="chip">commit: <b>a6861b3</b> "docs: bring architecture.md to parity"</span>
+      <span class="chip">+364 / −37 lines</span>
+      <span class="chip">344+ migrations · 60+ services · 11 contracts · 7 EAS schemas</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#principles">Principles</a>
+    <a href="#bigpicture">Big picture</a>
+    <a href="#lifecycle">Data lifecycle</a>
+    <a href="#stores">The three stores</a>
+    <a href="#chains">Two chains</a>
+    <a href="#offchain">On‑chain vs off‑chain</a>
+    <a href="#security">Security &amp; upgrades</a>
+    <a href="#containers">Farms as containers</a>
+    <a href="#runtime">Runtime topology</a>
+    <a href="#changed">What changed</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- ================= PRINCIPLES ================= -->
+<section id="principles">
+  <div class="sec-head">
+    <span class="sec-num">01</span>
+    <h2>Four principles that explain everything else</h2>
+  </div>
+  <p class="lead">Every design decision in the platform — where data lives, why there are two chains, why the schema is
+  version-controlled — follows from these four beliefs.</p>
+  <div class="cards">
+    <div class="card" style="--card-accent: var(--green)">
+      <span class="icon">🗄️</span>
+      <h3>The schema is the product</h3>
+      <p>Dashboards, spreadsheets, agents, and blockchain views are all just <em>interfaces</em>. The durable asset is the
+      canonical PostgreSQL schema (344+ versioned migrations), the metric dictionary, verification logic, and API contracts.</p>
+    </div>
+    <div class="card" style="--card-accent: var(--amber)">
+      <span class="icon">⛓️</span>
+      <h3>Web3 is a proof layer, not source of truth</h3>
+      <p>Operational and financial truth lives in PostgreSQL. Blockchain supplies <em>proofs, coordination, and public
+      verifiability</em> — attestation UIDs, transaction hashes, and timelocked governance.</p>
+    </div>
+    <div class="card" style="--card-accent: var(--teal)">
+      <span class="icon">🤝</span>
+      <h3>Humans and AI agents share the same objects</h3>
+      <p>AI agents reach the platform through the same governed objects, permissions, and audit trails as people
+      (via Directus MCP, the gateway, and the agent task catalogue) — not through a parallel back door.</p>
+    </div>
+    <div class="card" style="--card-accent: var(--purple)">
+      <span class="icon">🔒</span>
+      <h3>Private evidence stays off-chain by default</h3>
+      <p>Public surfaces store only hashes, CIDs, attestation UIDs, chain labels, and tx hashes. Raw private MRV payloads
+      (photos, field data) remain in controlled off-chain storage. Merkle-based selective disclosure lets you prove a fact
+      without revealing the evidence.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= BIG PICTURE ================= -->
+<section id="bigpicture">
+  <div class="sec-head">
+    <span class="sec-num">02</span>
+    <h2>The big picture: six layers, one flow</h2>
+  </div>
+  <p class="lead">Data enters through <b>ingestion</b>, is normalized into the <b>data plane</b>, is served through
+  <b>API layers</b> to <b>stakeholders</b> (human and AI), and — for the small, public slice — is anchored on-chain as
+  <b>proofs</b>. The service plane in the middle is where all domain logic lives.</p>
+
+  <figure>
+    <svg viewBox="0 0 1160 1120" role="img" aria-label="Layered architecture diagram of the Kokonut Intelligence platform"
+         xmlns="http://www.w3.org/2000/svg" style="background:var(--bg2); border:1px solid var(--border)">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#5f7184"/>
+        </marker>
+        <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#6fdc8f"/>
+        </marker>
+        <linearGradient id="gradA" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#12202a"/><stop offset="1" stop-color="#14241d"/>
+        </linearGradient>
+        <linearGradient id="gradB" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#18222c"/><stop offset="1" stop-color="#131a22"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Row labels -->
+      <text x="35" y="26" font-size="11.5" font-family="var(--mono)" letter-spacing="2" fill="#5f7184">STAKEHOLDERS &amp; INTERFACES</text>
+      <text x="35" y="158" font-size="11.5" font-family="var(--mono)" letter-spacing="2" fill="#5f7184">API &amp; INTERFACE LAYER</text>
+      <text x="35" y="240" font-size="11.5" font-family="var(--mono)" letter-spacing="2" fill="#5f7184">SERVICE PLANE — <tspan fill="#6fdc8f">services/</tspan> (60+ modules)</text>
+      <text x="35" y="526" font-size="11.5" font-family="var(--mono)" letter-spacing="2" fill="#5f7184">DATA PLANE — canonical · versioned · governed</text>
+      <text x="35" y="740" font-size="11.5" font-family="var(--mono)" letter-spacing="2" fill="#5f7184">INGESTION — 37 modules, 8 categories</text>
+      <text x="35" y="858" font-size="11.5" font-family="var(--mono)" letter-spacing="2" fill="#5f7184">WEB3 PROOF LAYER — two chains</text>
+
+      <!-- OFF-CHAIN / ON-CHAIN rail -->
+      <text x="1138" y="330" font-size="10.5" font-family="var(--mono)" letter-spacing="1.5" fill="#8a97a6" transform="rotate(90 1138 330)" text-anchor="middle">OFF-CHAIN (private)</text>
+      <text x="1138" y="760" font-size="10.5" font-family="var(--mono)" letter-spacing="1.5" fill="#c79bf0" transform="rotate(90 1138 760)" text-anchor="middle">ON-CHAIN (public proofs)</text>
+
+      <!-- Row A: stakeholders -->
+      <g font-family="var(--sans)">
+        <rect x="35" y="38" width="172" height="78" rx="10" fill="#1a232c" stroke="#33404e"/>
+        <text x="121" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="#e8eef4">Field workers</text>
+        <text x="121" y="80" text-anchor="middle" font-size="10.5" fill="#9aa9b8">Field Collector mobile app</text>
+        <text x="121" y="96" text-anchor="middle" font-size="10.5" fill="#9aa9b8">MQTT · offline sync</text>
+
+        <rect x="221" y="38" width="172" height="78" rx="10" fill="#1a232c" stroke="#33404e"/>
+        <text x="307" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="#e8eef4">Farmers &amp; communities</text>
+        <text x="307" y="80" text-anchor="middle" font-size="10.5" fill="#9aa9b8">needs, aspirations, consent</text>
+        <text x="307" y="96" text-anchor="middle" font-size="10.5" fill="#9aa9b8">data governance</text>
+
+        <rect x="407" y="38" width="172" height="78" rx="10" fill="#1a232c" stroke="#33404e"/>
+        <text x="493" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="#e8eef4">Managers &amp; analysts</text>
+        <text x="493" y="80" text-anchor="middle" font-size="10.5" fill="#9aa9b8">Metabase dashboards</text>
+        <text x="493" y="96" text-anchor="middle" font-size="10.5" fill="#9aa9b8">reports &amp; exports</text>
+
+        <rect x="593" y="38" width="172" height="78" rx="10" fill="#1a232c" stroke="#33404e"/>
+        <text x="679" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="#e8eef4">AI agents</text>
+        <text x="679" y="80" text-anchor="middle" font-size="10.5" fill="#9aa9b8">Directus MCP + gateway</text>
+        <text x="679" y="96" text-anchor="middle" font-size="10.5" fill="#9aa9b8">task catalogue · safety gates</text>
+
+        <rect x="779" y="38" width="172" height="78" rx="10" fill="#1a232c" stroke="#33404e"/>
+        <text x="865" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="#e8eef4">Funders &amp; certifiers</text>
+        <text x="865" y="80" text-anchor="middle" font-size="10.5" fill="#9aa9b8">grants · organic audits</text>
+        <text x="865" y="96" text-anchor="middle" font-size="10.5" fill="#9aa9b8">readiness scores</text>
+
+        <rect x="965" y="38" width="160" height="78" rx="10" fill="#1a232c" stroke="#33404e"/>
+        <text x="1045" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="#e8eef4">Public verifiers</text>
+        <text x="1045" y="80" text-anchor="middle" font-size="10.5" fill="#9aa9b8">CeloScan / GnosisScan</text>
+        <text x="1045" y="96" text-anchor="middle" font-size="10.5" fill="#9aa9b8">attestations · contracts</text>
+      </g>
+
+      <!-- arrow A->B -->
+      <line x1="580" y1="116" x2="580" y2="140" stroke="#5f7184" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- Row B: API layer -->
+      <g font-family="var(--sans)">
+        <rect x="35" y="144" width="1090" height="62" rx="12" fill="url(#gradA)" stroke="#3d4f63"/>
+        <text x="56" y="168" font-size="12.5" font-weight="700" fill="#58c8e8">Directus</text>
+        <text x="56" y="185" font-size="10.5" fill="#9aa9b8">REST · GraphQL · SDK · MCP</text>
+        <line x1="252" y1="152" x2="252" y2="198" stroke="#26313d"/>
+        <text x="270" y="168" font-size="12.5" font-weight="700" fill="#6fdc8f">Gateway</text>
+        <text x="270" y="185" font-size="10.5" fill="#9aa9b8">policy-aware REST · mobile backend</text>
+        <line x1="560" y1="152" x2="560" y2="198" stroke="#26313d"/>
+        <text x="578" y="168" font-size="12.5" font-weight="700" fill="#ffc46b">gRPC</text>
+        <text x="578" y="185" font-size="10.5" fill="#9aa9b8">Protobuf · streaming · port 50051</text>
+        <line x1="800" y1="152" x2="800" y2="198" stroke="#26313d"/>
+        <text x="818" y="168" font-size="12.5" font-weight="700" fill="#7aa7ff">ClickHouse HTTP</text>
+        <text x="818" y="185" font-size="10.5" fill="#9aa9b8">analytical queries · PromQL</text>
+        <line x1="1010" y1="152" x2="1010" y2="198" stroke="#26313d"/>
+        <text x="1028" y="168" font-size="12.5" font-weight="700" fill="#c79bf0">Helper CLIs</text>
+        <text x="1028" y="185" font-size="10.5" fill="#9aa9b8">registry · CID prep · attestation</text>
+      </g>
+
+      <!-- arrow B->C -->
+      <line x1="580" y1="206" x2="580" y2="254" stroke="#5f7184" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- Row C: service plane -->
+      <g font-family="var(--sans)">
+        <!-- col 1 -->
+        <rect x="35" y="258" width="262" height="150" rx="12" fill="#18222c" stroke="#33404e"/>
+        <text x="166" y="280" text-anchor="middle" font-size="12.5" font-weight="700" fill="#7aa7ff">Core data services</text>
+        <text x="166" y="302" text-anchor="middle" font-size="10.5" fill="#9aa9b8">scheduler · event bus · metrics</text>
+        <text x="166" y="318" text-anchor="middle" font-size="10.5" fill="#9aa9b8">security · registry · migration</text>
+        <text x="166" y="334" text-anchor="middle" font-size="10.5" fill="#9aa9b8">workflows · streams · sandbox</text>
+        <rect x="56" y="346" width="220" height="46" rx="8" fill="#131a22" stroke="#26313d"/>
+        <text x="166" y="364" text-anchor="middle" font-size="10" fill="#9aa9b8">durable leases, idempotency,</text>
+        <text x="166" y="380" text-anchor="middle" font-size="10" fill="#9aa9b8">bounded retries, dead letters</text>
+
+        <!-- col 2 -->
+        <rect x="311" y="258" width="262" height="150" rx="12" fill="#18222c" stroke="#33404e"/>
+        <text x="442" y="280" text-anchor="middle" font-size="12.5" font-weight="700" fill="#6fdc8f">Analytics (30+ modules)</text>
+        <text x="442" y="302" text-anchor="middle" font-size="10.5" fill="#9aa9b8">yield · irrigation · pest · energy</text>
+        <text x="442" y="318" text-anchor="middle" font-size="10.5" fill="#9aa9b8">marketplace · traceability · finance</text>
+        <text x="442" y="334" text-anchor="middle" font-size="10.5" fill="#9aa9b8">extension · digital twin · CRISP</text>
+        <rect x="332" y="346" width="220" height="46" rx="8" fill="#131a22" stroke="#26313d"/>
+        <text x="442" y="364" text-anchor="middle" font-size="10" fill="#9aa9b8">recommendations stay advisory;</text>
+        <text x="442" y="380" text-anchor="middle" font-size="10" fill="#9aa9b8">humans approve execution</text>
+
+        <!-- col 3 -->
+        <rect x="587" y="258" width="262" height="150" rx="12" fill="#18222c" stroke="#33404e"/>
+        <text x="718" y="280" text-anchor="middle" font-size="12.5" font-weight="700" fill="#c79bf0">Governance &amp; strategy</text>
+        <text x="718" y="302" text-anchor="middle" font-size="10.5" fill="#9aa9b8">circles · roles · tensions · proposals</text>
+        <text x="718" y="318" text-anchor="middle" font-size="10.5" fill="#9aa9b8">strategy map · coordination</text>
+        <text x="718" y="334" text-anchor="middle" font-size="10.5" fill="#9aa9b8">Moloch v2 + Baal adapters</text>
+        <rect x="608" y="346" width="220" height="46" rx="8" fill="#131a22" stroke="#26313d"/>
+        <text x="718" y="364" text-anchor="middle" font-size="10" fill="#9aa9b8">read-first on-chain adapters;</text>
+        <text x="718" y="380" text-anchor="middle" font-size="10" fill="#9aa9b8">writes route via human-approved agent flow</text>
+
+        <!-- col 4 -->
+        <rect x="863" y="258" width="262" height="150" rx="12" fill="#18222c" stroke="#33404e"/>
+        <text x="994" y="280" text-anchor="middle" font-size="12.5" font-weight="700" fill="#ffc46b">Web3 &amp; data services</text>
+        <text x="994" y="302" text-anchor="middle" font-size="10.5" fill="#9aa9b8">attestation · credit_class · certificates</text>
+        <text x="994" y="318" text-anchor="middle" font-size="10.5" fill="#9aa9b8">IRI · RDF · data_module · metadata_api</text>
+        <text x="994" y="334" text-anchor="middle" font-size="10.5" fill="#9aa9b8">carbon credits · retirement</text>
+        <rect x="884" y="346" width="220" height="46" rx="8" fill="#131a22" stroke="#26313d"/>
+        <text x="994" y="364" text-anchor="middle" font-size="10" fill="#9aa9b8">credit custody &amp; supply invariants;</text>
+        <text x="994" y="380" text-anchor="middle" font-size="10" fill="#9aa9b8">retirement needs human confirmation</text>
+      </g>
+
+      <!-- agents strip -->
+      <rect x="35" y="424" width="1090" height="58" rx="12" fill="#1a2126" stroke="#3d4f63"/>
+      <text x="56" y="447" font-size="12" font-weight="700" fill="#58c8e8">Agents &amp; AI</text>
+      <text x="56" y="465" font-size="10.5" fill="#9aa9b8">task catalogue · safety gates · evidence synthesis · wellbeing · capital efficiency · regenerative scoring · forecasting</text>
+
+      <!-- arrow C->D -->
+      <line x1="580" y1="482" x2="580" y2="512" stroke="#5f7184" stroke-width="2" marker-end="url(#arr)"/>
+
+      <!-- Row D: data plane -->
+      <g font-family="var(--sans)">
+        <rect x="35" y="516" width="470" height="180" rx="14" fill="#0f1a16" stroke="#2d6a4f"/>
+        <text x="60" y="544" font-size="14" font-weight="800" fill="#6fdc8f">PostgreSQL 16 + PostGIS 3.4</text>
+        <text x="60" y="566" font-size="11" fill="#9aa9b8">THE canonical schema — the product. Source of truth for</text>
+        <text x="60" y="582" font-size="11" fill="#9aa9b8">every governed record. 344+ versioned migrations,</text>
+        <text x="60" y="598" font-size="11" fill="#9aa9b8">Directus snapshots for the API layer, checksummed seeds.</text>
+        <rect x="60" y="616" width="420" height="60" rx="9" fill="#131a22" stroke="#26313d"/>
+        <text x="78" y="638" font-size="10.5" fill="#9aa9b8">governed lifecycle everywhere:</text>
+        <text x="78" y="654" font-size="10.5" fill="#c79bf0" font-family="var(--mono)">draft → submitted → verified → published</text>
+        <text x="78" y="670" font-size="10" fill="#6f7d8c">(rejected allowed for rework; never overload status)</text>
+
+        <rect x="519" y="516" width="270" height="180" rx="14" fill="#0f1720" stroke="#2a4a63"/>
+        <text x="544" y="544" font-size="14" font-weight="800" fill="#58c8e8">ClickHouse 25.8 LTS</text>
+        <text x="544" y="566" font-size="11" fill="#9aa9b8">Analytical event store.</text>
+        <text x="544" y="582" font-size="11" fill="#9aa9b8">Sensor readings, price</text>
+        <text x="544" y="598" font-size="11" fill="#9aa9b8">observations, events.</text>
+        <text x="544" y="616" font-size="11" fill="#9aa9b8">PromQL · Parquet ·</text>
+        <text x="544" y="632" font-size="11" fill="#9aa9b8">ArrowFlight.</text>
+
+        <rect x="803" y="516" width="140" height="180" rx="14" fill="#181018" stroke="#5a3a63"/>
+        <text x="873" y="544" text-anchor="middle" font-size="14" font-weight="800" fill="#c79bf0">Redis 7</text>
+        <text x="873" y="568" text-anchor="middle" font-size="10.5" fill="#9aa9b8">cache</text>
+        <text x="873" y="584" text-anchor="middle" font-size="10.5" fill="#9aa9b8">sessions</text>
+        <text x="873" y="600" text-anchor="middle" font-size="10.5" fill="#9aa9b8">rate limits</text>
+
+        <rect x="957" y="516" width="168" height="180" rx="14" fill="#1a1610" stroke="#6a4a2a"/>
+        <text x="1041" y="544" text-anchor="middle" font-size="13.5" font-weight="800" fill="#ffc46b">Evidence vault</text>
+        <text x="1041" y="564" text-anchor="middle" font-size="10.5" fill="#9aa9b8">private raw evidence:</text>
+        <text x="1041" y="580" text-anchor="middle" font-size="10.5" fill="#9aa9b8">photos, MRV payloads</text>
+        <text x="1041" y="596" text-anchor="middle" font-size="10.5" fill="#9aa9b8">→ hashes/CIDs only</text>
+        <text x="1041" y="612" text-anchor="middle" font-size="10.5" fill="#9aa9b8">go on-chain</text>
+      </g>
+
+      <!-- ingestion -> data plane arrow -->
+      <path d="M580,790 L580,700" stroke="#6fdc8f" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arrg)" fill="none"/>
+      <text x="596" y="750" font-size="10.5" font-family="var(--mono)" fill="#6fdc8f">logged in ingestion_log · chain indexer status</text>
+
+      <!-- Row E: ingestion chips -->
+      <g font-family="var(--sans)">
+        <rect x="35" y="752" width="124" height="54" rx="10" fill="#18222c" stroke="#33404e"/>
+        <text x="97" y="773" text-anchor="middle" font-size="11" font-weight="700" fill="#7aa7ff">Weather</text>
+        <text x="97" y="790" text-anchor="middle" font-size="9.5" fill="#9aa9b8">+ forecasts</text>
+        <rect x="169" y="752" width="124" height="54" rx="10" fill="#18222c" stroke="#33404e"/>
+        <text x="231" y="773" text-anchor="middle" font-size="11" font-weight="700" fill="#7aa7ff">IoT sensors</text>
+        <text x="231" y="790" text-anchor="middle" font-size="9.5" fill="#9aa9b8">MQTT · HTTP · devices</text>
+        <rect x="303" y="752" width="124" height="54" rx="10" fill="#18222c" stroke="#33404e"/>
+        <text x="365" y="773" text-anchor="middle" font-size="11" font-weight="700" fill="#7aa7ff">Remote sensing</text>
+        <text x="365" y="790" text-anchor="middle" font-size="9.5" fill="#9aa9b8">GEE · Copernicus</text>
+        <rect x="437" y="752" width="124" height="54" rx="10" fill="#18222c" stroke="#33404e"/>
+        <text x="499" y="773" text-anchor="middle" font-size="11" font-weight="700" fill="#7aa7ff">Financial</text>
+        <text x="499" y="790" text-anchor="middle" font-size="9.5" fill="#9aa9b8">Yahoo · oracle · price attestation</text>
+        <rect x="571" y="752" width="124" height="54" rx="10" fill="#18222c" stroke="#33404e"/>
+        <text x="633" y="773" text-anchor="middle" font-size="11" font-weight="700" fill="#7aa7ff">Blockchain</text>
+        <text x="633" y="790" text-anchor="middle" font-size="9.5" fill="#9aa9b8">Gnosis · Baal · EAS · RPC</text>
+        <rect x="705" y="752" width="124" height="54" rx="10" fill="#18222c" stroke="#33404e"/>
+        <text x="767" y="773" text-anchor="middle" font-size="11" font-weight="700" fill="#7aa7ff">Climate</text>
+        <text x="767" y="790" text-anchor="middle" font-size="9.5" fill="#9aa9b8">climate data</text>
+        <rect x="839" y="752" width="124" height="54" rx="10" fill="#18222c" stroke="#33404e"/>
+        <text x="901" y="773" text-anchor="middle" font-size="11" font-weight="700" fill="#7aa7ff">Analytics</text>
+        <text x="901" y="790" text-anchor="middle" font-size="9.5" fill="#9aa9b8">anomaly · freshness</text>
+        <rect x="973" y="752" width="152" height="54" rx="10" fill="#18222c" stroke="#33404e"/>
+        <text x="1049" y="773" text-anchor="middle" font-size="11" font-weight="700" fill="#7aa7ff">GIS</text>
+        <text x="1049" y="790" text-anchor="middle" font-size="9.5" fill="#9aa9b8">shapefile · KML · raster</text>
+      </g>
+
+      <!-- data plane -> web3 arrow -->
+      <path d="M580,696 L580,834" stroke="#c79bf0" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arr)" fill="none"/>
+      <text x="598" y="772" font-size="10.5" font-family="var(--mono)" fill="#c79bf0">proofs: hashes · CIDs · attestation UIDs · tx hashes</text>
+
+      <!-- Row F: web3 -->
+      <g font-family="var(--sans)">
+        <rect x="35" y="838" width="545" height="236" rx="14" fill="#0f1720" stroke="#2a4a63"/>
+        <text x="60" y="866" font-size="14" font-weight="800" fill="#58c8e8">Celo mainnet — attestation chain</text>
+        <text x="60" y="888" font-size="11" fill="#9aa9b8">EAS v1.3.0 · SchemaRegistry · KokonutResolver (attester gating)</text>
+        <text x="60" y="904" font-size="10.5" fill="#6f7d8c" font-family="var(--mono)">0x72E1…Af92 · 0x5ece…5AF34 · 0x6E15…79Ad</text>
+        <rect x="60" y="918" width="495" height="88" rx="10" fill="#131a22" stroke="#26313d"/>
+        <text x="78" y="938" font-size="10.5" font-weight="700" fill="#e8eef4">7 registered schemas</text>
+        <text x="78" y="956" font-size="10" fill="#9aa9b8" font-family="var(--mono)">kokonut-mrv · kokonut-impact · kokonut-financial</text>
+        <text x="78" y="972" font-size="10" fill="#9aa9b8" font-family="var(--mono)">kokonut-harvest · kokonut-compliance</text>
+        <text x="78" y="988" font-size="10" fill="#9aa9b8" font-family="var(--mono)">kokonut-bio-batch · kokonut-data-post</text>
+        <text x="60" y="1030" font-size="10.5" fill="#6f7d8c">attesters: deployer + Kokonut multisig · resolver owned by multisig</text>
+        <text x="60" y="1048" font-size="10.5" fill="#6f7d8c">config supports 5 chains (mainnet Celo primary, testnet-first expansion)</text>
+
+        <rect x="594" y="838" width="531" height="236" rx="14" fill="#191210" stroke="#6a4a2a"/>
+        <text x="619" y="866" font-size="14" font-weight="800" fill="#ffc46b">Gnosis Chain 100 — coordination &amp; contracts</text>
+        <text x="619" y="888" font-size="11" fill="#9aa9b8">11 Solidity contracts · Foundry + OpenZeppelin · verified on GnosisScan</text>
+        <rect x="619" y="902" width="240" height="104" rx="10" fill="#131a22" stroke="#26313d"/>
+        <text x="637" y="922" font-size="10.5" font-weight="700" fill="#e8eef4">Guild protocol</text>
+        <text x="637" y="940" font-size="10" fill="#9aa9b8" font-family="var(--mono)">Registry · Domain · TaskBoard</text>
+        <text x="637" y="956" font-size="10" fill="#9aa9b8" font-family="var(--mono)">EvidenceReview · Governance</text>
+        <text x="637" y="972" font-size="10" fill="#9aa9b8" font-family="var(--mono)">Points (KGP) · UpgradeTimelock</text>
+        <rect x="873" y="902" width="227" height="104" rx="10" fill="#131a22" stroke="#26313d"/>
+        <text x="891" y="922" font-size="10.5" font-weight="700" fill="#e8eef4">Credit &amp; privacy</text>
+        <text x="891" y="940" font-size="10" fill="#9aa9b8" font-family="var(--mono)">KokonutCreditToken</text>
+        <text x="891" y="956" font-size="10" fill="#9aa9b8" font-family="var(--mono)">KokonutPriceOracle</text>
+        <text x="891" y="972" font-size="10" fill="#9aa9b8" font-family="var(--mono)">SelectiveDisclosure</text>
+        <text x="619" y="1030" font-size="10.5" fill="#6f7d8c">KGP: ERC-20 reputation points · role-based minting</text>
+        <text x="619" y="1048" font-size="10.5" fill="#6f7d8c">upgrades gated by 48h timelock (UPGRADER_ROLE self-administered)</text>
+        <text x="619" y="1066" font-size="10.5" fill="#6f7d8c">proxies: KGP · CreditToken · PriceOracle · SelectiveDisclosure</text>
+      </g>
+
+      <rect x="35" y="1088" width="1090" height="26" rx="8" fill="#1a2126" stroke="#26313d"/>
+      <text x="580" y="1105" text-anchor="middle" font-size="11" font-weight="700" fill="#9aa9b8">Web3 = proof &amp; coordination layer. PostgreSQL remains the source of truth.</text>
+    </svg>
+
+    <div class="svg-legend">
+      <span><span class="sw" style="background:#2d6a4f"></span>canonical store</span>
+      <span><span class="sw" style="background:#2a4a63"></span>analytics / chain data</span>
+      <span><span class="sw" style="background:#6a4a2a"></span>private / off-chain</span>
+      <span><span class="sw" style="background:#3d4f63"></span>interface layer</span>
+      <span><span class="sw" style="background:#33404e"></span>services &amp; ingestion</span>
+    </div>
+  </figure>
+
+  <div class="note info">
+    <span class="mark">💡</span>
+    <span>Read the diagram from the bottom up for data flow: <b>ingestion → data plane → services → APIs → stakeholders</b>,
+    with a thin slice of it continuing down to <b>blockchain proofs</b>. Read it top-down for how people and agents reach the data.</span>
+  </div>
+</section>
+
+<!-- ================= LIFECYCLE ================= -->
+<section id="lifecycle">
+  <div class="sec-head">
+    <span class="sec-num">03</span>
+    <h2>The governed data lifecycle</h2>
+  </div>
+  <p class="lead">Nearly every governed record in the platform moves through the same four states. Domain workflows
+  (metric verification, market-order fulfillment, carbon retirement) use their own documented state vocabularies or
+  explicit mappings onto this spine.</p>
+
+  <div class="flow">
+    <div class="stage draft">
+      <div class="pill">
+        <h4>Draft</h4>
+        <p>Record created; the raw source payload is preserved where available. Not yet visible as truth.</p>
+        <span class="code">e.g. metric_value rows after --compute</span>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage submitted">
+      <div class="pill">
+        <h4>Submitted</h4>
+        <p>Mapped to the Kokonut canonical schema and submitted for human review.</p>
+        <span class="code">queued for verification</span>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage verified">
+      <div class="pill">
+        <h4>Verified</h4>
+        <p>Reviewed, validated, and linked to evidence. A human must run verification — compute alone is never verification.</p>
+        <span class="code">--verify-value · evidence links</span>
+      </div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="stage published">
+      <div class="pill">
+        <h4>Published</h4>
+        <p>Available to dashboards, APIs, and attestations — the public-facing surface.</p>
+        <span class="code">attestable state</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="mark">⚠️</span>
+    <span><code>rejected</code> is allowed only for rework/exception paths, and the lifecycle <code>status</code> field must
+    never be overloaded with payment, attestation, or domain state — those get dedicated fields like
+    <code>payment_status</code>, <code>attestation_uid</code>, and <code>revocation_date</code>.</span>
+  </div>
+</section>
+
+<!-- ================= STORES ================= -->
+<section id="stores">
+  <div class="sec-head">
+    <span class="sec-num">04</span>
+    <h2>The three stores (plus a vault)</h2>
+  </div>
+  <p class="lead">Understanding which store holds what is the single most useful mental model for working in this repo.</p>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Store</th><th>Role</th><th>Holds</th><th>Not for</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag green">canonical</span> PostgreSQL 16 + PostGIS</td>
+          <td>Source of truth · the product</td>
+          <td>All governed records, spatial data (PostGIS), lifecycle state, audit log, credit custody &amp; supply, scheduler/event durability</td>
+          <td>High-volume analytical queries</td>
+        </tr>
+        <tr>
+          <td><span class="tag teal">analytical</span> ClickHouse 25.8 LTS</td>
+          <td>Analytical event store</td>
+          <td>Sensor readings, price observations, wallet activity events, event-bus history; PromQL, Parquet, ArrowFlight</td>
+          <td>Row-level canonical truth</td>
+        </tr>
+        <tr>
+          <td><span class="tag purple">ephemeral</span> Redis 7</td>
+          <td>Cache / session / rate limit</td>
+          <td>Directus caching, sessions, rate limiting</td>
+          <td>Anything durable</td>
+        </tr>
+        <tr>
+          <td><span class="tag amber">private</span> Evidence vault (off-chain)</td>
+          <td>Controlled storage for raw evidence</td>
+          <td>Photos, MRV payloads, field data — only hashes/CIDs/UIDs ever leave it</td>
+          <td>Public exposure</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="lead">The schema itself is version-controlled: <code>schemas/postgres/</code> (344 migrations, source of truth),
+  <code>schemas/directus/</code> (API-layer snapshots), <code>schemas/clickhouse/</code> (event schemas), and
+  <code>schemas/seeds/</code> (EAS schemas, metric definitions, governance config). Migrations are ordered and checksummed —
+  you never edit an applied migration; you add a new one.</p>
+</section>
+
+<!-- ================= CHAINS ================= -->
+<section id="chains">
+  <div class="sec-head">
+    <span class="sec-num">05</span>
+    <h2>Two chains, one proof layer</h2>
+  </div>
+  <p class="lead">A common confusion: why <b>two</b> blockchains? Because they do two different jobs. Celo carries
+  <b>attestations</b> (verified claims about reality — "this harvest happened, this MRV data is true"). Gnosis Chain
+  carries <b>coordination infrastructure</b> (the guild protocol, reputation points, credit tokens, and the price oracle).
+  The legacy Moloch v2 DAO on Gnosis remains the treasury governance layer; Colony is the execution/reputation layer.</p>
+
+  <div class="tabs" id="chain-tabs">
+    <div class="tabbar" role="tablist" aria-label="Chain details">
+      <button class="tabbtn active" data-tab="celo" role="tab" aria-selected="true">Celo — attestations (7 schemas)</button>
+      <button class="tabbtn" data-tab="gnosis" role="tab" aria-selected="false">Gnosis Chain 100 — contracts (11)</button>
+    </div>
+
+    <div class="tabpane active" id="pane-celo">
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Schema</th><th>Use case</th></tr></thead>
+          <tbody>
+            <tr><td><code>kokonut-mrv</code></td><td>MRV claims — location, crop, quantity, evidence</td></tr>
+            <tr><td><code>kokonut-impact</code></td><td>Environmental impact — soil carbon, biodiversity, NDVI</td></tr>
+            <tr><td><code>kokonut-financial</code></td><td>Financial summaries — NOI, revenue, costs</td></tr>
+            <tr><td><code>kokonut-harvest</code></td><td>Harvest verification — quantity, quality, date</td></tr>
+            <tr><td><code>kokonut-compliance</code></td><td>Partner compliance and audit trails</td></tr>
+            <tr><td><code>kokonut-bio-batch</code></td><td>Bio-organic fertilizer batch production</td></tr>
+            <tr><td><code>kokonut-data-post</code></td><td>Data stream posts for environmental project tracking</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note info">
+        <span class="mark">🔧</span>
+        <span>Three contracts on Celo: <b>EAS</b> <code>0x72E1…Af92</code>, <b>SchemaRegistry</b> <code>0x5ece…5AF34</code>, and
+        <b>KokonutResolver</b> <code>0x6E15…79Ad</code> — which gates attestation to allowed attesters and is owned by the Kokonut multisig.
+        New chains deploy testnet-first; the config in <code>services/attestation/config.py</code> already covers 5 chains.</span>
+      </div>
+    </div>
+
+    <div class="tabpane" id="pane-gnosis">
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Category</th><th>Contract</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag amber">Guild protocol</span></td><td><code>KokonutGuildRegistry</code></td><td>Registry of all guilds, metadata, status</td></tr>
+            <tr><td></td><td><code>KokonutGuildDomain</code></td><td>Domain management for guild organization</td></tr>
+            <tr><td></td><td><code>KokonutTaskBoard</code></td><td>Task creation, assignment, completion</td></tr>
+            <tr><td></td><td><code>KokonutEvidenceReview</code></td><td>Evidence submission and review workflow</td></tr>
+            <tr><td></td><td><code>KokonutGuildGovernance</code></td><td>On-chain proposals and voting</td></tr>
+            <tr><td></td><td><code>KokonutGuildPoints</code> (KGP)</td><td>ERC-20 reputation points, role-based minting</td></tr>
+            <tr><td></td><td><code>KokonutGuildUpgradeTimelock</code></td><td>48-hour timelock for KGP upgrades</td></tr>
+            <tr><td><span class="tag teal">Credit</span></td><td><code>KokonutCreditToken</code></td><td>ERC-20 credits: burn, pause, role-based access (ERC1967 proxy)</td></tr>
+            <tr><td><span class="tag teal">Oracle</span></td><td><code>KokonutPriceOracle</code></td><td>On-chain price feeds, emergency updater role (proxy)</td></tr>
+            <tr><td><span class="tag purple">Privacy</span></td><td><code>KokonutSelectiveDisclosure</code></td><td>Merkle-based privacy-preserving attestation gating (proxy)</td></tr>
+            <tr><td><span class="tag green">EAS</span></td><td><code>KokonutResolver</code></td><td>EAS attester gating for registered schemas on Celo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note">
+        <span class="mark">🔧</span>
+        <span>All 11 are verified on GnosisScan and deployed via Foundry (62 tests). KGP, Credit Token, Price Oracle, and
+        Selective Disclosure sit behind ERC1967 proxies; the KGP upgrade path is gated by the 48-hour timelock.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ONCHAIN/OFFCHAIN ================= -->
+<section id="offchain">
+  <div class="sec-head">
+    <span class="sec-num">06</span>
+    <h2>On-chain vs off-chain: what goes where</h2>
+  </div>
+  <p class="lead">The privacy design is a strict separation: <b>private substance stays off-chain, public proof goes on-chain.</b>
+  The raw payload never leaves controlled storage — only deterministic references to it do.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>Off-chain (private)</th><th>On-chain (public)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Evidence</td>
+          <td>Raw photos, MRV payloads, field data in the evidence vault</td>
+          <td>Hashes · CIDs · attestation UIDs · chain labels · tx hashes</td>
+        </tr>
+        <tr>
+          <td>Truth</td>
+          <td>Full canonical records in PostgreSQL, analytics in ClickHouse</td>
+          <td>Attestations asserting verified facts (gated by resolver)</td>
+        </tr>
+        <tr>
+          <td>Identity &amp; credit</td>
+          <td>Agent metadata, task catalogue (marketplace identity/escrow is external)</td>
+          <td>KGP reputation points, credit token balances &amp; burns</td>
+        </tr>
+        <tr>
+          <td>Privacy tool</td>
+          <td>—</td>
+          <td>Merkle-based <code>KokonutSelectiveDisclosure</code>: prove a fact without revealing evidence</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note info">
+    <span class="mark">🎯</span>
+    <span>Why? Farmers' operational data (yields, soil, finances) is commercially sensitive. Publicly proving "verified data
+    exists and was reviewed" delivers credibility to funders and certifiers while keeping the substance private — that's the
+    entire point of the hash-up / data-down pattern.</span>
+  </div>
+</section>
+
+<!-- ================= SECURITY ================= -->
+<section id="security">
+  <div class="sec-head">
+    <span class="sec-num">07</span>
+    <h2>Security &amp; the upgrade ceremony</h2>
+  </div>
+  <p class="lead">Access control is layered: Directus roles for operations, governance roles for the DAO-style layer,
+  and on-chain authority for contract upgrades. Every mutation is audited.</p>
+
+  <div class="cards">
+    <div class="card" style="--card-accent: var(--blue)">
+      <span class="icon">👥</span>
+      <h3>Directus roles</h3>
+      <p>Administrator, Field Worker, Supervisor, Manager, Finance, Analyst — with per-collection, per-action, per-field
+      permissions, plus row-level filter rules. Sensitive fields are hidden per role.</p>
+    </div>
+    <div class="card" style="--card-accent: var(--purple)">
+      <span class="icon">🧭</span>
+      <h3>Governance roles</h3>
+      <p>stakeholder-steward, circle-steward, evidence-custodian, consent-custodian, grievance-owner, ecological-proxy-steward,
+      market-relationship-owner, governance-facilitator, governance-recorder — defined in <code>governance_circle</code> /
+      <code>governance_role</code>.</p>
+    </div>
+    <div class="card" style="--card-accent: var(--red)">
+      <span class="icon">📜</span>
+      <h3>Audit trail</h3>
+      <p>All mutations land in <code>audit_log</code>. Agents operate under the same permissions and audit trails as humans —
+      there is no privileged agent bypass.</p>
+    </div>
+    <div class="card" style="--card-accent: var(--amber)">
+      <span class="icon">⏱️</span>
+      <h3>Timelocked upgrades</h3>
+      <p>KGP upgrades follow a staged ceremony (below) so that no single key can change contract logic unilaterally.</p>
+    </div>
+  </div>
+
+  <h3 style="margin:26px 0 4px; font-size:17px">The KGP upgrade ceremony — how power is handed to a timelock</h3>
+  <div class="steps">
+    <div class="step">
+      <span class="n">1</span>
+      <h4>Temporary EOA deploys</h4>
+      <p>A temporary externally-owned account deploys the proxy and the timelock contract.</p>
+      <span class="tl">only initial setup</span>
+    </div>
+    <div class="step">
+      <span class="n">2</span>
+      <h4>Timelock receives UPGRADER_ROLE</h4>
+      <p>The timelock is granted the self-administered <code>UPGRADER_ROLE</code>.</p>
+      <span class="tl">authority transfer begins</span>
+    </div>
+    <div class="step">
+      <span class="n">3</span>
+      <h4>Temporary EOA revokes its own role</h4>
+      <p>The deployer burns its own upgrade power — it can no longer propose or execute upgrades.</p>
+      <span class="tl">single point of failure removed</span>
+    </div>
+    <div class="step">
+      <span class="n">4</span>
+      <h4>All upgrades now wait 48 hours</h4>
+      <p>Every subsequent upgrade requires a 48-hour timelock delay — time for the community to inspect and react.</p>
+      <span class="tl">KokonutGuildUpgradeTimelock.sol</span>
+    </div>
+  </div>
+  <p class="lead">The same principle applies to carbon retirement: quantity is reserved atomically, and the final balance
+  mutation / certificate use requires an independent human confirmation. Agent write paths (proposal submission, execution,
+  ragequit, shaman calls) are out of scope for the read-first governance adapters and must route through a human-approved
+  Agent/Governor flow.</p>
+</section>
+
+<!-- ================= CONTAINERS ================= -->
+<section id="containers">
+  <div class="sec-head">
+    <span class="sec-num">08</span>
+    <h2>Farms as configurable containers</h2>
+  </div>
+  <p class="lead">The platform treats each farm or project like a <b>Docker container</b>: a reusable image (template) that
+  gets instantiated into a declarative spec (compose), composed of components (zones), and configured per-farm. This is the
+  design pattern behind "design a new project from scratch".</p>
+
+  <div class="analog">
+    <div class="item">
+      <h4>Farm template</h4>
+      <div class="docker">≈ Docker image</div>
+      <p>Reusable configuration bundle: default zones, governance, token economics, impact frameworks. A pre-built
+      <b>"Grant Application Template"</b> ships with zones (production, nursery, biofactory) for funder-ready farms.</p>
+    </div>
+    <div class="item">
+      <h4>Farm specification</h4>
+      <div class="docker">≈ docker-compose.yml</div>
+      <p>Declarative per-farm config — zones, governance, TE, ID, IF stored as JSONB on <code>farm_specification</code>.</p>
+    </div>
+    <div class="item">
+      <h4>Farm zones</h4>
+      <div class="docker">≈ container components</div>
+      <p>Configurable zone types per farm: syntropic plot, agroforestry, biofactory, poultry, and more.</p>
+    </div>
+    <div class="item">
+      <h4>Needs · aspirations · objectives</h4>
+      <div class="docker">≈ health checks / metadata</div>
+      <p><code>needs_assessment</code> tracks community needs; <code>stakeholder_aspiration</code> formalizes wants;
+      <code>objective</code> keeps hierarchical goals with auto-computed <code>progress_pct</code>.</p>
+    </div>
+  </div>
+
+  <p class="lead">Per-farm configurability vs global reference:</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Component</th><th>Per-farm (instance)</th><th>Global reference</th></tr></thead>
+      <tbody>
+        <tr><td>Zones</td><td><code>farm_zone.zone_type</code> · <code>strata_layer</code></td><td>—</td></tr>
+        <tr><td>Governance</td><td><code>farm_registry_record.governance_mechanism</code></td><td><code>impact_framework</code></td></tr>
+        <tr><td>Token economics</td><td><code>farm_registry_record.token_allocation</code></td><td><code>revenue_multiplier_config</code></td></tr>
+        <tr><td>Impact dimensions</td><td><code>farm_impact_mapping.dimension_key</code></td><td><code>impact_dimension</code></td></tr>
+        <tr><td>Impact frameworks</td><td><code>farm_impact_mapping.framework_key</code></td><td><code>impact_framework</code></td></tr>
+        <tr><td>Redistribution</td><td><code>commons_redistribution_policy</code></td><td>—</td></tr>
+        <tr><td>Anti-capture</td><td><code>anti_capture_governance_policy</code></td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================= RUNTIME ================= -->
+<section id="runtime">
+  <div class="sec-head">
+    <span class="sec-num">09</span>
+    <h2>Runtime topology</h2>
+  </div>
+  <p class="lead">The whole platform runs as Docker Compose services. A notable detail: databases are <b>private</b> by
+  default — you reach them via Compose service names, not published host ports. Image digests are pinned to
+  <code>@sha256</code> and CI fails on unpinned images.</p>
+
+  <div class="infra">
+    <div class="svc"><b><span class="dot" style="background:#6fdc8f"></span>database</b><span>PostgreSQL 16 + PostGIS</span></div>
+    <div class="svc"><b><span class="dot" style="background:#c79bf0"></span>cache</b><span>Redis 7</span></div>
+    <div class="svc"><b><span class="dot" style="background:#7aa7ff"></span>directus</b><span>API + permissions</span></div>
+    <div class="svc"><b><span class="dot" style="background:#58c8e8"></span>clickhouse</b><span>analytics store</span></div>
+    <div class="svc"><b><span class="dot" style="background:#58c8e8"></span>metabase</b><span>dashboards · MCP</span></div>
+    <div class="svc"><b><span class="dot" style="background:#ffc46b"></span>gateway</b><span>FastAPI · policy-aware · mobile</span></div>
+    <div class="svc"><b><span class="dot" style="background:#ffc46b"></span>grpc</b><span>port 50051 · streaming</span></div>
+    <div class="svc"><b><span class="dot" style="background:#ffc46b"></span>caddy</b><span>TLS · reverse proxy · /mobile → gateway</span></div>
+    <div class="svc"><b><span class="dot" style="background:#7aa7ff"></span>mosquitto</b><span>MQTT · TLS 8883</span></div>
+  </div>
+
+  <div class="note info">
+    <span class="mark">🧱</span>
+    <span>Three container images: <code>Dockerfile.worker</code> (cron-based ingestion for scheduler jobs),
+    <code>Dockerfile.gateway</code> (FastAPI gateway / Field Collector backend), and <code>Dockerfile.grpc</code>
+    (Protobuf server with health checks).</span>
+  </div>
+
+  <p class="lead">Gateway routing at a glance: <code>/health</code>, <code>/</code>, <code>/docs</code>, and the Field
+  Collector <code>/mobile</code> discovery routes are public; other routes are protected unless a deliberate
+  resource/action/public policy says otherwise. Mobile sync authenticates with <code>X-Device-Token</code>;
+  protected routes require <code>x-api-key</code> or <code>x-capability-token</code>. Caddy proxies
+  <code>/mobile*</code> and <code>/api/mobile/*</code> to the gateway; other gateway <code>/api/*</code> routes stay on
+  the gateway process (loopback 8099 in dev). A Directus bearer token is <b>not</b> gateway authentication.</p>
+</section>
+
+<!-- ================= CHANGED ================= -->
+<section id="changed">
+  <div class="sec-head">
+    <span class="sec-num">10</span>
+    <h2>What changed in this commit</h2>
+  </div>
+  <p class="lead">The commit that triggered this page — <code>a6861b3</code> — brought <code>docs/architecture.md</code>
+  to parity with the codebase (364 insertions, 37 deletions). It fixed drift between the doc and reality, including:</p>
+  <ul class="changed">
+    <li><b>EAS schema count corrected</b> — 7 not 8; added <code>kokonut-bio-batch</code> and <code>kokonut-data-post</code></li>
+    <li><b>Data Post UID correction documented</b> — via seed <code>116_pilot_celo_data_post_uid.sql</code> (runs after the base seed without overwriting it)</li>
+    <li><b>Technology stack expanded</b> — Redis 7, Caddy 2, Gateway, gRPC, Mosquitto 2</li>
+    <li><b>Smart Contracts section rebuilt</b> — all 11 contracts, Gnosis Mainnet addresses, KGP protocol</li>
+    <li><b>gRPC added to API Layers</b> — port 50051, streaming, API-key auth</li>
+    <li><b>Data Ingestion expanded</b> — 37 modules across 8 categories (weather, IoT, remote sensing, financial, blockchain, climate, analytics, GIS)</li>
+    <li><b>New subsystem sections</b> — Governance Circles, Strategy System, Coordination &amp; Alliances, Competitive Landscape, Solution Lifecycle, Sequential Evidence, Operating Pilot, Process Architecture, Nature &amp; Future Generations, Platform Upgrade</li>
+    <li><b>Security Model updated</b> — governance roles, KGP timelock, selective disclosure</li>
+    <li><b>Container Images section added</b> — worker / gateway / grpc Dockerfiles</li>
+    <li><b>EAS multi-chain config documented</b> — 5 chains in <code>services/attestation/config.py</code></li>
+    <li><b>CLI commands added</b> — governance circles and strategy</li>
+    <li><b>All cross-references verified</b> against the <code>docs/</code> directory</li>
+  </ul>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>Kokonut Intelligence · visual explanation of <code>docs/architecture.md</code> @ a6861b3</span>
+    <span>Self-contained HTML — no external dependencies · respects reduced-motion</span>
+  </div>
+</footer>
+
+<script>
+  // Tabs
+  document.querySelectorAll('.tabbar').forEach(function (bar) {
+    bar.addEventListener('click', function (e) {
+      var btn = e.target.closest('.tabbtn');
+      if (!btn) return;
+      var root = btn.closest('.tabs');
+      root.querySelectorAll('.tabbtn').forEach(function (b) {
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+      });
+      root.querySelectorAll('.tabpane').forEach(function (p) { p.classList.remove('active'); });
+      document.getElementById('pane-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Scrollspy for the sticky nav
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var map = {};
+  links.forEach(function (a) { map[a.getAttribute('href').slice(1)] = a; });
+  var sections = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+
+  var spy = function () {
+    var pos = window.scrollY + 90;
+    var current = sections[0] && sections[0].id;
+    sections.forEach(function (s) { if (s && s.offsetTop <= pos) current = s.id; });
+    links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + current); });
+  };
+  var ticking = false;
+  window.addEventListener('scroll', function () {
+    if (!ticking) { window.requestAnimationFrame(function () { spy(); ticking = false; }); ticking = true; }
+  }, { passive: true });
+  spy();
+</script>
+
+</body>
+</html>

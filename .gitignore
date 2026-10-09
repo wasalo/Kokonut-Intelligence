@@ -1,7 +1,18 @@
-# Environment
+# Environment (raw secrets — never committed)
 .env
 .env.local
 .env.*.local
+# Plaintext staging/production env files must never be committed.
+# Encrypted *.sops variants are explicitly allowed below.
+deploy/staging/.env.staging
+deploy/production/.env.production
+
+# SOPS encrypted files ARE tracked (safe to commit)
+!.env.sops
+
+# age private keys (never committed)
+*.agekey
+keys.txt
 
 # Private keys and secrets
 *.pem
@@ -10,10 +21,11 @@ private_key
 *_private_key
 secrets.json
 *.keystore
-config/keys/
+config/keys/*
+!config/keys/README.md
 
 # Data directories (persistent state)
-data/
+/data/
 
 # Directus
 data/uploads/
@@ -23,6 +35,11 @@ uploads/
 node_modules/
 dist/
 *.tsbuildinfo
+/sdk/typescript/generated/
+
+# Generated protobuf clients
+/sdk/python/generated/*
+!/sdk/python/generated/__init__.py
 
 # Python
 __pycache__/
@@ -32,6 +49,9 @@ __pycache__/
 venv/
 *.egg-info/
 .env.venv
+
+# uv lockfile (the repository currently installs dependencies from requirements.txt)
+uv.lock
 
 # ClickHouse
 data/clickhouse/
@@ -62,11 +82,24 @@ logs/
 # Foundry
 contracts/out/
 contracts/cache/
+contracts/broadcast/**/dry-run/
+contracts/broadcast/**/run-*.json
+!contracts/broadcast/**/run-latest.json
 
 # Backups
 backups/
 
 # Snapshots (managed separately)
 schemas/directus/snapshots/
-migrations/baserow_to_postgres/config.json
+# Baserow migration code, extracts, and local config are maintained outside Git.
+migrations/baserow_to_postgres/
 PRD.md
+# MQTT TLS material is provisioned outside Git.
+config/mosquitto/certs/*
+!config/mosquitto/certs/README.md
+
+# Agent-local plans and session artifacts (not repository source)
+.hermes/
+
+# Local dev TLS certs for Caddy
+config/caddy/certs/

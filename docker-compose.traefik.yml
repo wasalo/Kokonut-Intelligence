@@ -3,13 +3,14 @@
 #
 # This overlay:
 # - Disables the built-in Caddy reverse proxy (freeing ports 80/443 for external Traefik)
-# - Adds Traefik labels to Directus and Metabase for automatic route discovery
+# - Adds Traefik labels to Directus and the optional Metabase profile
 # - Requires an external Traefik container on the same Docker network
 #
 # Prerequisites:
 # 1. Set KOKONUT_DOMAIN in .env (e.g., KOKONUT_DOMAIN=kokonut.example.com)
 # 2. External Traefik must be on a shared Docker network (KOKONUT_TRAEFIK_NETWORK, default: traefik)
-# 3. Traefik entrypoints: websecure (443) with TLS resolver configured
+# 3. Add --profile metabase only when explicitly enabling Metabase
+# 4. Traefik entrypoints: websecure (443) with TLS resolver configured
 
 services:
   caddy:
@@ -21,6 +22,8 @@ services:
       databases:
       apps:
       traefik:
+    environment:
+      PUBLIC_URL: ${PUBLIC_URL:?PUBLIC_URL must be set for Traefik deployments}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${KOKONUT_TRAEFIK_NETWORK:-traefik}"
@@ -35,6 +38,8 @@ services:
       databases:
       apps:
       traefik:
+    environment:
+      MB_APPLICATION_ROOT: "/"
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${KOKONUT_TRAEFIK_NETWORK:-traefik}"
@@ -43,6 +48,21 @@ services:
       - "traefik.http.routers.kokonut-metabase.tls=true"
       - "traefik.http.routers.kokonut-metabase.tls.certresolver=${KOKONUT_TLS_RESOLVER:-letsencrypt}"
       - "traefik.http.services.kokonut-metabase.loadbalancer.server.port=3000"
+
+  gateway:
+    networks:
+      databases:
+      apps:
+      traefik:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${KOKONUT_TRAEFIK_NETWORK:-traefik}"
+      - "traefik.http.routers.kokonut-mobile.rule=Host(`${KOKONUT_DOMAIN:?KOKONUT_DOMAIN must be set}`) && (PathPrefix(`/mobile`) || PathPrefix(`/api/mobile`))"
+      - "traefik.http.routers.kokonut-mobile.entrypoints=websecure"
+      - "traefik.http.routers.kokonut-mobile.tls=true"
+      - "traefik.http.routers.kokonut-mobile.tls.certresolver=${KOKONUT_TLS_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.kokonut-mobile.priority=100"
+      - "traefik.http.services.kokonut-mobile.loadbalancer.server.port=8099"
 
 networks:
   traefik:

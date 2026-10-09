@@ -24,16 +24,23 @@ services:
       - databases
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
+      KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
       PG_HOST: database
       PG_PORT: "5432"
       PG_DB: ${PG_DB:-kokonut_intelligence}
       PG_USER: ${PG_USER:-kokonut}
-      PG_PASSWORD: ${POSTGRES_PASSWORD}
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       CH_HOST: clickhouse
       CH_PORT: "8123"
       CH_USER: ${CH_USER:-kokonut}
       CH_DB: ${CH_DB:-kokonut_analytics}
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}
+      DIRECTUS_URL: http://directus:8055
+      CLICKHOUSE_URL: http://clickhouse:8123
+      DISK_THRESHOLD: ${DISK_THRESHOLD:-90}
+      MEM_THRESHOLD: ${MEM_THRESHOLD:-90}
+      HEALTH_CHECK_DOCKER: "false"
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
       # Ingestion
       INGESTION_MAX_RETRIES: ${INGESTION_MAX_RETRIES:-3}
@@ -67,3 +74,42 @@ services:
           memory: 512M
     profiles:
       - worker
+
+  event-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["python3", "-m", "services.events", "--worker", "--worker-id", "event-worker"]
+    user: appuser
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      PG_USER: ${PG_USER:-kokonut}
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
+      DIRECTUS_URL: http://directus:8055
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - worker
+
+  # Opt-in database scheduler. The cron worker remains unchanged to avoid
+  # silently running both dispatch mechanisms during migration.
+  kokonut-scheduler:
+    extends: kokonut-worker
+    command: ["python3", "-m", "services.scheduler.worker", "--tick-interval", "30"]
+    profiles:
+      - scheduler

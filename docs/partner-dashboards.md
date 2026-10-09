@@ -1,199 +1,272 @@
-# Partner Dashboard Flexibility Guide
+# Partner Dashboard Guide
 
-Kokonut Intelligence supports three approaches for building and embedding partner dashboards. Choose based on your use case, technical requirements, and maintenance capacity.
+Kokonut Intelligence supports Directus dashboards, optional Metabase dashboards, and custom partner applications. These are presentation and integration layers over the canonical PostgreSQL/Directus records. They do not replace lifecycle review, evidence gates, consent controls, or server-side authorization. Metabase is excluded from default Compose deployments; the repository dashboard assets remain available for product discovery.
 
-## Approaches at a Glance
+## Deployment Topology
 
-| Approach | Flexibility | Complexity | Maintenance | Best For |
-|----------|------------|------------|-------------|----------|
-| Directus Dashboard Module | Medium | Low | Low | Internal ops, quick dashboards |
-| Metabase Embedded | High | Medium | Medium | BI analytics, parameterized reports |
-| Custom React App | Full | High | High | White-label, complex UX |
+- PostgreSQL and ClickHouse remain private to the Compose networks.
+- Directus is the canonical schema/API layer.
+- When explicitly enabled, Metabase is an optional BI layer and stores its own application metadata in the separate `metabase` database.
+- Partner analytics connect Metabase to the `kokonut_intelligence` PostgreSQL database.
+- Base Compose exposes Caddy, not Directus or Metabase database ports.
+- Default Caddy routes Directus through `/directus/*` and `/admin/*`; Metabase is not routed through default Caddy.
+- A separately launched gateway on port `8099` is an API integration surface, not the default dashboard proxy.
 
-## 1. Directus Dashboard Module
+Default Compose and optional Metabase URLs are:
 
-Built into Directus. Configure dashboards entirely through the admin UI with no external dependencies.
+| Service | URL |
+|---|---|
+| Directus API | `https://localhost/directus` |
+| Directus admin | `https://localhost/admin` |
+| Metabase (opt-in) | `http://localhost:3001` after enabling `--profile metabase` |
 
-### Setup
+Use the effective Compose or reverse-proxy configuration for the deployment. Enable local Metabase with `docker compose --profile metabase up -d metabase`; `http://localhost:3001` is available through the local override. Production routing is a separate opt-in through the Traefik overlay.
 
-1. Open Directus at `https://localhost/admin` in base Compose, or at your organization's Directus URL
-2. Navigate to **Dashboards** → **Create Dashboard**
-3. Add panels using the visual editor:
-   - **Metric panel**: Single value (e.g., total harvest this month)
-   - **Chart panel**: Bar, line, pie charts from collections
-   - **Table panel**: Filtered list of records
-   - **Markdown panel**: Custom notes or links
-4. Set **Sharing** to generate a shareable link or embed code
+## Approaches At A Glance
 
-### Role-Based Access
+| Approach | Flexibility | Complexity | Maintenance | Best for |
+|---|---:|---:|---:|---|
+| Directus dashboard | Medium | Low | Low | Internal operations and governed collection views |
+| Metabase dashboard | High | Medium | Medium | BI analysis, parameterized reports, and partner reporting |
+| Custom React app | Full | High | High | White-label experiences and specialized workflows |
+| Gateway/API integration | API-focused | Medium | Medium | Backend integrations and controlled public reads |
 
-Directus permissions control who sees what:
+## Directus Dashboards
 
-```sql
--- Grant dashboard access to Supervisor role only
-INSERT INTO directus_permissions (role, collection, action, permissions, fields)
-VALUES (
-    (SELECT id FROM directus_role WHERE name = 'Supervisor'),
-    'harvest_event',
-    'read',
-    '{"_and": [{"location_id": {"_eq": "$CURRENT_USER.location_id"}}]}',
-    'id,harvest_date,quantity,unit,status'
-);
-```
-
-### Embedding
-
-Use the Directus embed URL. Base Compose routes Directus through Caddy; direct `http://localhost:8055` URLs only work when a local override exposes that port.
-
-```html
-<iframe
-  src="https://localhost/directus/dashboards/DASHBOARD_ID"
-  width="100%"
-  height="600"
-  frameborder="0"
-></iframe>
-```
-
-## 2. Metabase Embedded
-
-Metabase provides full BI capabilities with signed embedding for secure partner access.
+Directus dashboards are appropriate for authenticated internal users who already have Directus permissions. Configure them in the Directus admin UI and use the existing role, policy, field, and row filters rather than creating a client-side security boundary.
 
 ### Setup
 
-1. Open Metabase at `https://localhost/metabase` in base Compose, or at your organization's Metabase URL
-2. Connect to the `kokonut_intelligence` PostgreSQL database
-3. Create questions and dashboards in Metabase
-4. Enable embedding in **Admin → Embedding**
-5. Generate signed embedding URLs
+1. Start Compose with encrypted secrets loaded:
+
+```bash
+source scripts/load-secrets.sh
+docker compose up -d
+```
+
+2. Open the Directus admin URL for the deployment.
+3. Create a dashboard and add panels for approved collections or views.
+4. Apply the least-privilege role and location filters through Directus permissions.
+5. Validate the dashboard with a test account from each partner role.
+
+Dashboard panels should use governed or public-safe sources. Do not expose raw private stakeholder feedback, unverified metrics, private evidence, or unrestricted operational tables to a partner role.
+
+### Sharing And Embedding
+
+Directus sharing and embedding are deployment-sensitive. The base Caddy configuration sends `X-Frame-Options: DENY`, so an iframe will not be a supported cross-origin integration until the reverse proxy, origin policy, and frame headers are deliberately configured and reviewed. Do not work around this by exposing Directus directly or disabling security headers globally.
+
+If embedding is approved, use the deployment’s `/directus` or `/admin` path and test:
+
+- authenticated session behavior;
+- allowed parent origins;
+- cookie and SameSite behavior;
+- role and location filters;
+- logout and session expiry;
+- frame and content-security headers.
+
+## Metabase Dashboards
+
+Metabase dashboard assets live under `dashboards/metabase/`:
+
+- `*.json` files are import templates;
+- `sql/*.sql` files are the backing native queries;
+- `dashboards/metabase/README.md` lists the available dashboard assets and import workflow.
+
+The repository does not automatically import every JSON dashboard into Metabase. After Metabase is initialized, import the required templates or recreate the questions through the Metabase UI/API, then review their permissions and filters.
+
+### Setup
+
+1. Load secrets and start Compose:
+
+```bash
+source scripts/load-secrets.sh
+docker compose up -d
+```
+
+2. Create or access the Metabase administrator account.
+3. If using `scripts/seed-metabase.sh`, apply a local/debug Compose override that maps Metabase to `localhost:3000`; the base Compose configuration keeps Metabase private and the script probes that host port.
+4. Add the `kokonut_intelligence` PostgreSQL database as the analytics database:
+
+| Setting | Value |
+|---|---|
+| Host | `database` |
+| Port | `5432` |
+| Database | `kokonut_intelligence` |
+| User | `kokonut` |
+| Password | Runtime `POSTGRES_PASSWORD` |
+
+Metabase’s application metadata database is configured separately in Compose as `metabase`; it is not the partner analytics source.
+
+5. Import the required JSON templates or create questions from the matching SQL files.
+6. Apply Metabase collection, group, database, and embedding permissions.
+7. Validate each dashboard with a restricted partner account before sharing it.
+
+### Dashboard Families
+
+The repository includes operational, financial, environmental, attestation, evidence, stakeholder, governance, EBF, scaling, commons, wellbeing, ecological, and other domain dashboards. Important governance-oriented assets include:
+
+| Dashboard family | Source |
+|---|---|
+| Location overview | `dashboards/metabase/00_location_overview.json` and SQL |
+| Farm operations | `dashboards/metabase/01_farm_operations.json` and SQL |
+| Crop NOI | `dashboards/metabase/02_crop_noi.json` and SQL |
+| Evidence gaps | `dashboards/metabase/20_evidence_gap_dashboard.json` and SQL |
+| Stakeholder feedback | `dashboards/metabase/21_stakeholder_feedback_dashboard.json` and SQL |
+| EBF scorecard | `dashboards/metabase/22_ebf_scorecard.json` and SQL |
+| EBF evidence/calibration | `dashboards/metabase/sql/23_ebf_evidence_gap.sql`, `23_evidence_gap_ebf.sql`, and `24_ebf_calibration_history.sql` |
+| EBF portfolio views | `dashboards/metabase/24_portfolio_ebf.json` and `25_ebf_portfolio_messy_rollup.sql` |
+| Participatory governance | `dashboards/metabase/27_participatory_governance.json` and SQL |
+
+Public EBF portfolio outputs are confidence-labelled roll-ups and must not be presented as rankings of interchangeable farms. Internal evidence-gap and calibration dashboards are not public-safe by default.
 
 ### Signed Embedding
 
-Metabase uses JWT tokens to secure embedded dashboards:
+Metabase embedding uses the configured `METABASE_EMBEDDING_SECRET_KEY`, which Compose passes to Metabase as `MB_EMBEDDING_SECRET_KEY`. Keep the secret in encrypted runtime configuration and generate short-lived tokens in a trusted backend, never in browser code.
+
+Conceptual token generation is:
 
 ```python
-import jwt
+import os
 import time
+import jwt
 
-METABASE_SECRET = os.environ["METABASE_EMBEDDING_SECRET_KEY"]
 
-def get_metabase_embed_url(resource_id, params=None):
-    """Generate a signed Metabase embed URL."""
-    payload = {
-        "resource": {"dashboard": resource_id},
-        "params": params or {},
-        "exp": int(time.time()) + 300,  # 5 min expiry
-    }
-    token = jwt.encode(payload, METABASE_SECRET, algorithm="HS256")
-    metabase_url = os.environ.get("METABASE_URL", "https://localhost/metabase")
-    return f"{metabase_url}/embed/dashboard/{token}"
-```
-
-### Parameterized Filters
-
-Pass filter values to embedded dashboards:
-
-```html
-<iframe
-  src="https://localhost/metabase/embed/dashboard/TOKEN?location=costa-rica&crop=coffee"
-  width="100%"
-  height="600"
-  frameborder="0"
-></iframe>
-```
-
-### Iframe Embedding Example
-
-```python
-# In a Flask/FastAPI route
-@app.get("/partner/{partner_id}/dashboard")
-def partner_dashboard(partner_id):
-    # Fetch partner's allowed location IDs
-    locations = get_partner_locations(partner_id)
-
-    embed_url = get_metabase_embed_url(
-        resource_id=DASHBOARD_ID,
-        params={"location_id": [str(lid) for lid in locations]}
+def get_metabase_embed_url(dashboard_id: int, params: dict | None = None) -> str:
+    token = jwt.encode(
+        {
+            "resource": {"dashboard": dashboard_id},
+            "params": params or {},
+            "exp": int(time.time()) + 300,
+        },
+        os.environ["METABASE_EMBEDDING_SECRET_KEY"],
+        algorithm="HS256",
     )
-    return f'<iframe src="{embed_url}" width="100%" height="800"></iframe>'
+    return f"{os.environ['METABASE_URL']}/embed/dashboard/{token}"
 ```
 
-## 3. Custom React App
+The backend must derive permitted locations and filters from authenticated partner identity. Never accept an arbitrary location list from the browser as the authorization decision.
 
-Full control over the UI. Query Directus REST/GraphQL directly and build any interface.
+Before enabling iframe embedding, review the current Caddy `X-Frame-Options: DENY` header and configure an explicit, narrowly scoped frame policy for the approved parent origins. Signed tokens do not replace Metabase permissions or reverse-proxy security review.
 
-### Setup
+## Governed Dashboard Datasets
+
+`dashboard_dataset` is the platform registry for refreshable BI/frontend datasets. Each row contains:
+
+- name and description;
+- `dataset_type`;
+- optional `location_id`;
+- stored `query_sql`;
+- refresh interval and `last_refreshed_at`;
+- governed lifecycle `status`;
+- metadata such as owner, refresh cron, public-safety caveats, and last-refresh details.
+
+The lifecycle is the standard governed lifecycle:
+
+```text
+draft -> submitted -> verified -> published
+draft -> rejected -> draft
+```
+
+Dashboard dataset verification requires an analyst, manager, or admin role. Publication requires a manager or admin role. Agents may only create or update safe draft/submitted/rejected states and cannot verify or publish datasets.
+
+### Refresh Operations
 
 ```bash
-# Create a React app
-npx create-react-app partner-portal --template typescript
-
-# Install Directus SDK
-npm install @directus/sdk
+python3 -m services.export.dataset_refresh --list
+python3 -m services.export.dataset_refresh --dataset-id UUID
+python3 -m services.export.dataset_refresh --all
 ```
 
-### Connecting to Directus
+The scheduled database task `dashboard_dataset_refresh` runs `--all` every six hours with bounded timeout and retries. Refresh executes the stored SQL, records row count/duration/status in `metadata.last_refresh`, and updates `last_refreshed_at`. A failed query records an error result rather than making the dataset valid.
+
+Current implementation note: the `--list` and `--all` paths filter for `status = 'active'`, while seeded datasets use the lifecycle values `published` and `verified`. Until that implementation mismatch is corrected, use `--dataset-id UUID` for a specific dataset and do not claim that `--all` refreshes every published dataset.
+
+## Data Safety And Publication
+
+- `PUBLIC_RESTRICT=true` disables unauthenticated Directus data access.
+- Public dashboards must use public-safe views or datasets, not raw private tables.
+- Public metric summaries expose verified metrics only.
+- Public stakeholder feedback requires explicit consent, a public-safe consent scope, published status, `is_public = TRUE`, and a non-empty `public_summary`.
+- Public impact claims require the applicable evidence maturity gate; public carbon claims require Level 6, an external verifier, methodology reference, and published status.
+- Reports and dashboards must preserve uncertainty, limitations, negative findings, and affected-community voice where available.
+- Never include raw private feedback, private evidence, database passwords, API keys, Directus admin tokens, or Metabase embedding secrets in browser bundles, SQL exports, screenshots, or URLs.
+- Dashboard filters improve usability but do not replace Directus, Metabase, gateway, or database authorization.
+
+## Custom React Partner Application
+
+Use a custom application when a partner needs a white-label workflow or visualizations not supported by Directus/Metabase. Keep authorization server-side and use the Directus SDK or gateway only with scoped credentials.
 
 ```typescript
-import { createDirectus, rest, authentication } from "@directus/sdk";
+import { createDirectus, readItems, rest } from "@directus/sdk";
 
-const directus = createDirectus(process.env.DIRECTUS_URL ?? "https://localhost/directus")
-  .with(rest())
-  .with(authentication());
+const directus = createDirectus(
+  process.env.DIRECTUS_URL ?? "https://localhost/directus",
+).with(rest());
 
-// Login
-await directus.login({ email: "partner@example.com", password: "..." });
-
-// Fetch farm data
 const farms = await directus.request(
   readItems("farm", {
-    fields: ["id", "name", "total_area", "location_id.name"],
-    filter: { location_id: { _in: partnerLocationIds } },
-  })
+    fields: ["id", "name", "total_area", "location_id"],
+  }),
 );
 ```
 
-### Row-Level Security Pattern
+For browser applications, prefer an authenticated user session or a backend-for-frontend. Do not ship `DIRECTUS_ADMIN_TOKEN`, `KOKONUT_API_KEYS`, `GRPC_API_KEY`, or `METABASE_EMBEDDING_SECRET_KEY` to the client.
 
-Create a Directus role per partner with filter rules:
+Use server-side Directus permission filters and public-safe views. A client-supplied `partnerLocationIds` array is not a security boundary.
 
-```sql
--- Partner role with location-scoped access
-INSERT INTO directus_permissions (role, collection, action, permissions, fields)
-SELECT
-    (SELECT id FROM directus_role WHERE name = 'partner-acme'),
-    collection,
-    'read',
-    '{"_and": [{"location_id": {"_in": $CURRENT_USER.app_metadata.locations}}]}',
-    '*'
-FROM (VALUES
-    ('farm'), ('plot'), ('crop_cycle'),
-    ('harvest_event'), ('sales_event'), ('expense_event')
-) AS t(collection);
+## Gateway/API Integration
+
+The optional gateway exposes explicit public-read routes such as:
+
+- `GET /api/locations`
+- `GET /api/locations/{location_id}`
+- `GET /api/metrics/{location_id}`
+- `GET /api/crisp/{location_id}`
+- `GET /api/analytics/{location_id}/summary`
+
+Unknown routes remain protected. API keys use `KOKONUT_API_KEY_SCOPES` and fail closed without a matching scope. Capability tokens support resource/action, expiration, revocation, usage, and optional location constraints.
+
+Do not describe the gateway as strict end-to-end location authorization for every route: current propagation is incomplete for several location-bearing endpoints. Gateway audit logging is best effort until its HTTP-action mapping is corrected. The gateway is not included as a Compose service by default, and Caddy does not route `/api/*` to port `8099` without additional deployment configuration.
+
+## Recommended Approach By Partner Type
+
+| Partner type | Recommended approach | Why |
+|---|---|---|
+| Internal operations | Directus dashboard | Existing authenticated roles and governed records |
+| Investor or funder | Metabase public-safe dashboard | BI views, evidence context, and controlled embedding |
+| NGO or auditor | Metabase plus evidence-gap views | Reviewable aggregates and audit context |
+| White-label reseller | Custom React app with backend authorization | Full presentation control without exposing privileged tokens |
+| Research partner | Custom app or controlled Metabase workspace | Specialized analysis with explicit data-sharing scope |
+| Backend integration | Gateway or Directus API with scoped credentials | Machine-readable access and explicit route policy |
+
+## Security Checklist
+
+- Load secrets with `scripts/load-secrets.sh`; never place secrets in source or URLs.
+- Keep PostgreSQL, ClickHouse, Directus, and Metabase private unless an explicit deployment override is reviewed.
+- Use service names such as `database` and `metabase` for Compose-internal connections.
+- Use short-lived signed Metabase tokens generated by a trusted backend.
+- Review Caddy frame and content-security headers before enabling iframes.
+- Enforce partner scope through Directus/Metabase/gateway policy, not client-side filters.
+- Verify public-safe views, evidence maturity, consent, and lifecycle status before sharing.
+- Treat gateway audit records as best effort under the current implementation.
+- Review partner access and permissions periodically and revoke unused credentials.
+
+## References And Verification
+
+- Dashboard asset index: `dashboards/metabase/README.md`
+- Dashboard registry schema: `schemas/postgres/007_modeled_outputs.sql`
+- Dashboard lifecycle roles: `extensions/kokonut-hooks/src/workflow.ts`
+- Dashboard dataset permissions: `config/directus/permissions.sql`
+- Dataset refresh engine: `services/export/dataset_refresh.py`
+- Dashboard refresh seed: `schemas/seeds/050_scheduled_tasks.sql`
+- Core dataset seed: `schemas/seeds/017_dashboard_datasets.sql`
+- EBF dataset seeds: `schemas/seeds/033_ebf_dashboard_datasets.sql` and `034_ebf_p2_dashboard_datasets.sql`
+- Caddy routes and headers: `config/caddy/Caddyfile`
+- Gateway auth and deployment boundaries: `docs/gateway.md`
+- EBF dashboard checks: `tests/test_ebf_dashboard.py`
+
+Run the focused dashboard check with:
+
+```bash
+python3 -m pytest tests/test_ebf_dashboard.py -v
 ```
-
-### Row-Level Security Patterns
-
-| Pattern | SQL Filter | Use Case |
-|---------|------------|----------|
-| Location-scoped | `{"location_id": {"_in": "$CURRENT_USER.locations"}}` | Partner sees only their farms |
-| Role-scoped | `{"created_by": {"_eq": "$CURRENT_USER.id"}}` | User sees own records |
-| Status-scoped | `{"status": {"_eq": "published"}}` | Public data only |
-| Date-scoped | `{"harvest_date": {"_gte": "$CURRENT_USER.onboarding_date"}}` | Post-onboarding data |
-
-## Recommended Approach by Partner Type
-
-| Partner Type | Recommended | Why |
-|-------------|-------------|-----|
-| Internal operations | Directus Module | Quick setup, same admin UI |
-| Investor / funder | Metabase Embedded | Rich BI, parameterized reports |
-| NGO / auditor | Directus Module or Metabase | Depends on data complexity |
-| White-label reseller | Custom React App | Full branding control |
-| Research partner | Custom React App | Custom visualizations |
-
-## Security Notes
-
-- Never expose raw database credentials to partners
-- Use signed Metabase tokens with short expiry
-- Directus API keys should be scoped to specific collections
-- All partner API access is logged to `audit_log`
-- Review partner permissions quarterly

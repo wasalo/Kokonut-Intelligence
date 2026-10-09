@@ -1,0 +1,16 @@
+{
+  "title": "State of Kokonut",
+  "description": "Ecosystem-level overview with funding rounds and project participation.",
+  "cards": [
+    {
+      "name": "State of Kokonut",
+      "dataset_query": "dashboards/metabase/sql/96_state_of_kokonut.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "analytics_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}

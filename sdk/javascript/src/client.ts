@@ -39,7 +39,6 @@ export interface KokonutClientOptions {
 
 export class KokonutClient {
   private directus;
-  private _auth;
 
   locations: LocationMethods;
   farms: FarmMethods;
@@ -56,12 +55,10 @@ export class KokonutClient {
   noi: NoiMethods;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
-    this.directus = createDirectus(baseUrl).with(rest());
-    this._auth = createDirectus(baseUrl).with(rest()).with(authentication());
+    this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
 
     if (options?.token) {
       this.directus.setToken(options.token);
-      this._auth.setToken(options.token);
     }
 
     this.locations = buildLocationMethods(this);
@@ -80,7 +77,7 @@ export class KokonutClient {
   }
 
   async login(email: string, password: string): Promise<{ token: string; refreshToken: string }> {
-    const result = await this._auth.login(email, password);
+    const result = await this.directus.login(email, password);
     const token = result.access_token ?? result.token ?? '';
     const refreshToken = result.refresh_token ?? '';
     this.directus.setToken(token);
@@ -88,7 +85,7 @@ export class KokonutClient {
   }
 
   async logout(): Promise<void> {
-    await this._auth.logout();
+    await this.directus.logout();
     this.directus.setToken(null);
   }
 

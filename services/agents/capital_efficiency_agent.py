@@ -2,27 +2,12 @@
 
 from __future__ import annotations
 
-import argparse
-import json
-import uuid
 from typing import Any
 
 import psycopg2
 import psycopg2.extras
 
-from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
-from services.common.db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
-
-
-def get_connection():
-    return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASSWORD,
-    )
+from services.agents.base import SynthesisAgent, agent_cli
 
 
 def _location_filter(column: str, location_id: str | None) -> tuple[str, tuple[Any, ...]]:
@@ -128,63 +113,27 @@ def synthesize_capital_efficiency(conn, location_id: str | None = None) -> dict[
     }
 
 
-def store_capital_efficiency_summary(conn, summary: dict[str, Any], model_version: str = "capital-efficiency-agent-v1") -> str:
-    """Store a draft AI summary for human review."""
-    assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
-    summary_id = str(uuid.uuid4())
-    subject_id = summary.get("location_id") or "00000000-0000-0000-0000-000000000000"
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO ai_summary
-            (id, subject_type, subject_id, summary_type, content,
-             source_tables, model_version, status)
-        VALUES (%s, 'location', %s, 'capital_efficiency', %s, %s, %s, 'draft')
-        RETURNING id
-        """,
-        (
-            summary_id,
-            subject_id,
-            summary["synthesis"],
-            [
-                "capital_efficiency_scenario",
-                "regenerative_efficiency_observation",
-                "governance_throughput_observation",
-                "capital_provider_utility_scenario",
-            ],
-            model_version,
-        ),
-    )
-    stored_id = str(cur.fetchone()[0])
-    conn.commit()
-    cur.close()
-    return stored_id
+class CapitalEfficiencySynthesisAgent(SynthesisAgent):
+    task_key = "capital_efficiency_synthesis"
+    summary_type = "capital_efficiency"
+    read_collection = "capital_efficiency_scenario"
+    model_version = "capital-efficiency-agent-v1"
+    source_tables = ["capital_efficiency_scenario", "regenerative_efficiency_observation", "governance_throughput_observation", "capital_provider_utility_scenario"]
+
+    def synthesize(self, conn, location_id=None):
+        return synthesize_capital_efficiency(conn, location_id)
+
+
+agent = CapitalEfficiencySynthesisAgent()
 
 
 def run_capital_efficiency_synthesis(location_id: str | None = None, store: bool = False) -> dict[str, Any]:
-    assert_agent_action_allowed("read", "capital_efficiency_scenario", {"location_id": location_id})
-    conn = get_connection()
-    try:
-        summary = synthesize_capital_efficiency(conn, location_id)
-        output: dict[str, Any] = {"summary": summary}
-        if store:
-            output["ai_summary_id"] = store_capital_efficiency_summary(conn, summary)
-    finally:
-        conn.close()
-
-    errors = validate_output("capital_efficiency_synthesis", output)
-    if errors:
-        raise ValueError("; ".join(errors))
-    return output
+    """Run the agent; delegates to the shared :class:`CapitalEfficiencySynthesisAgent` flow."""
+    return agent.run(location_id, store=store)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the Kokonut capital efficiency synthesis agent")
-    parser.add_argument("--location-id", help="Optional location UUID")
-    parser.add_argument("--store", action="store_true", help="Store draft ai_summary output for human review")
-    args = parser.parse_args()
-
-    print(json.dumps(run_capital_efficiency_synthesis(args.location_id, store=args.store), indent=2, default=str))
+    agent_cli(agent, description="Run the Kokonut capital efficiency synthesis agent", location_required=False)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,107 @@
+{
+  "name": "Stakeholder Governance",
+  "description": "Stakeholder feedback, outcomes, engagement, and grievance tracking for governance.",
+  "icon": "groups",
+  "color": "#4527a0",
+  "modules": [
+    {
+      "name": "Feedback Summary",
+      "type": "stats",
+      "collection": "stakeholder_feedback",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Total Feedback" },
+        { "function": "count", "label": "Pending Review", "filter": { "status": { "_eq": "submitted" } } },
+        { "function": "count", "label": "Published", "filter": { "status": { "_eq": "published" } } }
+      ]
+    },
+    {
+      "name": "Recent Feedback",
+      "type": "table",
+      "collection": "stakeholder_feedback",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "submitted_at": { "_gte": "$NOW(-30 days)" }
+      },
+      "columns": [
+        { "field": "submitted_at", "label": "Submitted" },
+        { "field": "feedback_type", "label": "Type" },
+        { "field": "group_name", "label": "Group" },
+        { "field": "sentiment", "label": "Sentiment" },
+        { "field": "consent_given", "label": "Consent" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-submitted_at"]
+    },
+    {
+      "name": "Stakeholder Outcomes",
+      "type": "table",
+      "collection": "stakeholder_outcome",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "outcome_date", "label": "Date" },
+        { "field": "outcome_type", "label": "Type" },
+        { "field": "description", "label": "Description" },
+        { "field": "evidence_maturity", "label": "Evidence" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-outcome_date"]
+    },
+    {
+      "name": "Pending Reviews",
+      "type": "table",
+      "collection": "stakeholder_feedback_review",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_eq": "pending" }
+      },
+      "columns": [
+        { "field": "feedback_id.feedback_type", "label": "Type" },
+        { "field": "feedback_id.group_name", "label": "Group" },
+        { "field": "reviewer_id", "label": "Reviewer" },
+        { "field": "submitted_at", "label": "Submitted" }
+      ],
+      "sort": ["submitted_at"]
+    },
+    {
+      "name": "Grievance Cases",
+      "type": "table",
+      "collection": "stakeholder_grievance_case",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "case_number", "label": "Case #" },
+        { "field": "grievance_type", "label": "Type" },
+        { "field": "severity", "label": "Severity" },
+        { "field": "status", "label": "Status" },
+        { "field": "filed_at", "label": "Filed" }
+      ],
+      "sort": ["-filed_at"]
+    }
+  ],
+  "data_access": {
+    "stakeholder_feedback": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "fields": ["feedback_type", "group_name", "sentiment", "consent_given", "status", "submitted_at"]
+    },
+    "stakeholder_outcome": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["outcome_date", "outcome_type", "description", "evidence_maturity", "status"]
+    },
+    "stakeholder_feedback_review": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "fields": ["feedback_id", "reviewer_id", "status", "submitted_at"]
+    },
+    "stakeholder_grievance_case": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["case_number", "grievance_type", "severity", "status", "filed_at"]
+    }
+  }
+}

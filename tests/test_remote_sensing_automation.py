@@ -42,6 +42,7 @@ def test_copernicus_adapter_file_exists() -> None:
 
 def test_gee_computes_ndvi() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {"band_nir": 0.4, "band_red": 0.1}
     indices = _compute_indices(bands)
     assert "ndvi" in indices
@@ -50,6 +51,7 @@ def test_gee_computes_ndvi() -> None:
 
 def test_gee_computes_ndvi_negative() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {"band_nir": 0.1, "band_red": 0.4}
     indices = _compute_indices(bands)
     assert "ndvi" in indices
@@ -58,6 +60,7 @@ def test_gee_computes_ndvi_negative() -> None:
 
 def test_gee_computes_evi() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {"band_nir": 0.4, "band_red": 0.1, "band_blue": 0.05}
     indices = _compute_indices(bands)
     assert "evi" in indices
@@ -66,6 +69,7 @@ def test_gee_computes_evi() -> None:
 
 def test_gee_computes_savi() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {"band_nir": 0.4, "band_red": 0.1}
     indices = _compute_indices(bands)
     assert "savi" in indices
@@ -73,6 +77,7 @@ def test_gee_computes_savi() -> None:
 
 def test_gee_computes_msavi() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {"band_nir": 0.4, "band_red": 0.1}
     indices = _compute_indices(bands)
     assert "msavi" in indices
@@ -80,6 +85,7 @@ def test_gee_computes_msavi() -> None:
 
 def test_gee_computes_ndwi() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {"band_nir": 0.1, "band_green": 0.4}
     indices = _compute_indices(bands)
     assert "ndwi" in indices
@@ -88,6 +94,7 @@ def test_gee_computes_ndwi() -> None:
 
 def test_gee_computes_bsi() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {"band_swir1": 0.3, "band_red": 0.1, "band_nir": 0.4, "band_blue": 0.05}
     indices = _compute_indices(bands)
     assert "bsi" in indices
@@ -95,9 +102,14 @@ def test_gee_computes_bsi() -> None:
 
 def test_gee_computes_tasseled_cap() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {
-        "band_blue": 0.05, "band_green": 0.1, "band_red": 0.1,
-        "band_nir": 0.4, "band_swir1": 0.3, "band_swir2": 0.2,
+        "band_blue": 0.05,
+        "band_green": 0.1,
+        "band_red": 0.1,
+        "band_nir": 0.4,
+        "band_swir1": 0.3,
+        "band_swir2": 0.2,
     }
     indices = _compute_indices(bands)
     assert "tc_brightness" in indices
@@ -107,9 +119,14 @@ def test_gee_computes_tasseled_cap() -> None:
 
 def test_gee_computes_all_indices_with_full_bands() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {
-        "band_blue": 0.05, "band_green": 0.1, "band_red": 0.1,
-        "band_nir": 0.4, "band_swir1": 0.3, "band_swir2": 0.2,
+        "band_blue": 0.05,
+        "band_green": 0.1,
+        "band_red": 0.1,
+        "band_nir": 0.4,
+        "band_swir1": 0.3,
+        "band_swir2": 0.2,
     }
     indices = _compute_indices(bands)
     # Should compute at least 10 indices
@@ -118,6 +135,7 @@ def test_gee_computes_all_indices_with_full_bands() -> None:
 
 def test_gee_handles_missing_bands() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     bands = {"band_nir": 0.4}  # Only one band
     indices = _compute_indices(bands)
     # Should not crash, may return partial results
@@ -126,6 +144,7 @@ def test_gee_handles_missing_bands() -> None:
 
 def test_gee_handles_empty_bands() -> None:
     from services.ingestion.gee_remote_sensing import _compute_indices
+
     indices = _compute_indices({})
     assert isinstance(indices, dict)
     assert len(indices) == 0
@@ -143,7 +162,7 @@ def test_copernicus_has_catalog_url() -> None:
 
 def test_fetcher_has_cli() -> None:
     content = Path("services/ingestion/remote_sensing_fetcher.py").read_text()
-    assert 'if __name__' in content
+    assert "if __name__" in content
     assert "--run-jobs" in content
     assert "--list-jobs" in content
     assert "--job-id" in content
@@ -206,3 +225,27 @@ def test_copernicus_logs_ingestion() -> None:
     content = Path("services/ingestion/copernicus_remote_sensing.py").read_text()
     assert "log_ingestion" in content
     assert "copernicus_api" in content
+
+
+def test_provider_outcomes_distinguish_no_data_and_retryable() -> None:
+    from services.ingestion.remote_sensing_fetcher import _classify_provider_result
+
+    assert _classify_provider_result({"status": "success", "observations": 0}) == "no_data"
+    assert _classify_provider_result({"status": "error", "message": "request timed out"}) == "retryable"
+    assert (
+        _classify_provider_result({"status": "error", "message": "invalid bbox", "retryable": False}) == "non_retryable"
+    )
+
+
+def test_fallback_can_be_disabled_and_defaults_to_other_provider() -> None:
+    from services.ingestion.remote_sensing_fetcher import _fallback_provider
+
+    assert _fallback_provider("gee", {}) == "copernicus"
+    assert _fallback_provider("gee", {"metadata": {"fallback_enabled": False}}) is None
+
+
+def test_reliability_migration_has_attempt_history_and_leases() -> None:
+    content = Path("schemas/postgres/338_remote_telemetry_reliability.sql").read_text()
+    assert "remote_sensing_provider_attempt" in content
+    assert "lease_expires_at" in content
+    assert "retryable" in content

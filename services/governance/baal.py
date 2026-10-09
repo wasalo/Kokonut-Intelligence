@@ -1,0 +1,368 @@
+"""Read-only integration client for the Kokonut DAO (Moloch v3 / Baal).
+
+Mirrors the conventions of ``services/guilds/moloch.py``: a Web3-backed read
+client with **no transaction methods**. It resolves the deployed Baal core
+contract and its Shares/Loot ERC20 tokens, and normalizes on-chain state into
+the framework-agnostic types from ``services/governance/base.py``.
+"""
+
+from __future__ import annotations
+
+import json
+from decimal import Decimal
+from pathlib import Path
+from typing import Any
+
+from web3 import Web3
+
+from ..ingestion.base import get_db
+from ..ingestion.config import GNOSIS_RPC_URL, KOKONUT_BAAL_ADDRESSES
+from .base import (
+    GovernanceConfig,
+    MemberState,
+    ProposalLifecycle,
+    ProposalState,
+    VoteChoice,
+)
+
+_ABI_DIR = Path(__file__).resolve().parents[2] / "contracts" / "abis"
+
+# Baal proposal.status enum (see Baal.sol ProposalState).
+_BAAL_STATUS = {
+    0: ProposalLifecycle.UNKNOWN,
+    1: ProposalLifecycle.VOTING,
+    2: ProposalLifecycle.GRACE,
+    3: ProposalLifecycle.READY,
+    4: ProposalLifecycle.EXECUTED,
+    5: ProposalLifecycle.DEFEATED,
+    6: ProposalLifecycle.CANCELLED,
+    7: ProposalLifecycle.SPONSORED,
+}
+
+
+def _load_abi(name: str) -> list[dict[str, Any]]:
+    with open(_ABI_DIR / name) as fh:
+        return json.load(fh)
+
+
+_ERC20_ABI = [
+    {
+        "inputs": [{"name": "account", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [{"name": "", "type": "uint8"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+]
+
+
+class BaalReadClient:
+    """Read-only client for a Moloch v3 (Baal) DAO. No tx methods."""
+
+    key = "moloch_v3_baal"
+    name = "Kokonut DAO (Moloch v3 / Baal)"
+    chain = "gnosis"
+
+    def __init__(self, w3: Web3 | None = None, addresses: dict[str, str] | None = None):
+        self.w3 = w3 or Web3(Web3.HTTPProvider(GNOSIS_RPC_URL))
+        self.addresses = addresses or KOKONUT_BAAL_ADDRESSES
+        self._baal_abi = _load_abi("Baal.json")
+        self._baal = self.w3.eth.contract(
+            address=Web3.to_checksum_address(self.addresses["baal"]),
+            abi=self._baal_abi,
+        )
+
+    def chain_id(self) -> int:
+        return int(self.w3.eth.chain_id)
+
+    def _token(self, token_key: str):
+        return self.w3.eth.contract(
+            address=Web3.to_checksum_address(self.addresses[token_key]),
+            abi=_ERC20_ABI,
+        )
+
+    def _normalize_token_balance(self, token_key: str, wallet: str) -> dict[str, Any]:
+        contract = self._token(token_key)
+        raw = int(contract.functions.balanceOf(Web3.to_checksum_address(wallet)).call())
+        decimals = int(contract.functions.decimals().call())
+        return {
+            "wallet": Web3.to_checksum_address(wallet),
+            "token": token_key,
+            "token_address": self.addresses[token_key],
+            "raw_balance": raw,
+            "balance": str(Decimal(raw) / (Decimal(10) ** decimals)),
+            "decimals": decimals,
+            "chain_id": self.chain_id(),
+        }
+
+    def proposal(self, proposal_id: str) -> ProposalState:
+        pid = int(proposal_id)
+        try:
+            data = self._baal.functions.proposals(pid).call()
+            flags = self._baal.functions.getProposalFlags(pid).call()
+        except Exception:
+            # On-chain struct decode fails for this deployment; fall back to the
+            # event ledger, which is authoritative for proposal history.
+            for p in self.proposals_from_events():
+                if p.proposal_id == str(pid):
+                    return p
+            raise ValueError(
+                f"Proposal {pid} not found in the Baal event ledger"
+            )
+        (
+            _id,
+            _hash,
+            sponsor,
+            shares_requested,
+            loot_requested,
+            yes_votes,
+            no_votes,
+            _max_shares,
+            _data,
+            details,
+            voting_starts,
+            voting_ends,
+            grace_ends,
+            expiration,
+            status,
+            self_sponsor,
+        ) = data
+        sponsored, processed, cancelled, action_failed, passed = flags
+        lifecycle = _BAAL_STATUS.get(status, ProposalLifecycle.UNKNOWN)
+        return ProposalState(
+            proposal_id=str(pid),
+            lifecycle=lifecycle,
+            details=details,
+            sponsor=sponsor,
+            yes_votes=int(yes_votes),
+            no_votes=int(no_votes),
+            voting_starts=int(voting_starts),
+            voting_ends=int(voting_ends),
+            grace_ends=int(grace_ends),
+            expiration=int(expiration),
+            passed=bool(passed),
+            action_failed=bool(action_failed),
+            raw={
+                "shares_requested": str(shares_requested),
+                "loot_requested": str(loot_requested),
+                "sponsored": bool(sponsored),
+                "processed": bool(processed),
+                "cancelled": bool(cancelled),
+                "self_sponsor": bool(self_sponsor),
+            },
+        )
+
+    def proposals(self) -> list[ProposalState]:
+        # The indexer-populated event ledger is the authoritative source for
+        # proposal history on this deployment (individual proposal structs
+        # cannot be decoded on-chain because the storage layout differs from
+        # the committed ABI). Prefer it; fall back to on-chain decoding only
+        # when no events are indexed.
+        try:
+            from_events = self.proposals_from_events()
+        except Exception as exc:  # pragma: no cover - DB dependent
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Baal proposals() event fallback failed: %s", exc
+            )
+            from_events = []
+        if from_events:
+            return from_events
+
+        try:
+            total = int(self._baal.functions.proposalCount().call())
+        except Exception:
+            try:
+                total = int(self._baal.functions.totalProposals().call())
+            except Exception:
+                total = 0
+        out: list[ProposalState] = []
+        for i in range(total):
+            try:
+                out.append(self.proposal(str(i)))
+            except Exception:
+                continue
+        return out
+
+    def proposals_from_events(self, conn=None) -> list[ProposalState]:
+        """Reconstruct proposal state from the ``governance_event`` ledger.
+
+        On-chain ``proposals(id)`` decoding fails for this deployment, so the
+        event indexer (``services/ingestion/baal_indexer.py``) is the source of
+        truth for proposal history. Aggregates SubmitProposal / SubmitVote /
+        ProcessProposal / CancelProposal rows into :class:`ProposalState`.
+        """
+        own = conn is None
+        db = conn or get_db()
+        try:
+            with db.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT event_type, proposal_id, proposal_title, vote_choice,
+                           tx_hash, block_number, block_timestamp, metadata
+                    FROM governance_event
+                    WHERE chain = %s
+                      AND event_type IN (
+                        'proposal_created', 'proposal_sponsored', 'vote_cast',
+                        'proposal_processed', 'proposal_cancelled'
+                      )
+                    ORDER BY block_number
+                    """,
+                    (self.chain,),
+                )
+                rows = cur.fetchall()
+        finally:
+            if own:
+                db.close()
+
+        proposals: dict[str, ProposalState] = {}
+        for event_type, proposal_id, title, vote_choice, tx_hash, block, ts, meta in rows:
+            meta = meta or {}
+            p = proposals.setdefault(
+                proposal_id,
+                ProposalState(
+                    proposal_id=proposal_id,
+                    lifecycle=ProposalLifecycle.UNKNOWN,
+                    details=title or "",
+                    yes_votes=0,
+                    no_votes=0,
+                    raw={},
+                ),
+            )
+            if event_type == "proposal_created":
+                p.details = title or p.details
+                p.raw["title"] = meta.get("title")
+                p.raw["description"] = meta.get("description")
+                p.raw["content_uri"] = meta.get("content_uri")
+                p.raw["proposal_type"] = meta.get("proposal_type")
+                p.raw["voting_period"] = meta.get("voting_period")
+                p.raw["self_sponsor"] = meta.get("self_sponsor")
+                p.raw["created_tx"] = tx_hash
+                p.raw["created_block"] = block
+            elif event_type == "proposal_sponsored":
+                p.raw["sponsored"] = True
+                p.raw["sponsor_tx"] = tx_hash
+            elif event_type == "vote_cast":
+                if vote_choice == "yes":
+                    p.yes_votes += 1
+                elif vote_choice == "no":
+                    p.no_votes += 1
+                p.raw.setdefault("votes", []).append(
+                    {"choice": vote_choice, "tx": tx_hash}
+                )
+            elif event_type == "proposal_processed":
+                passed = str(meta.get("passed", "")).lower() in ("true", "1")
+                action_failed = str(meta.get("action_failed", "")).lower() in (
+                    "true",
+                    "1",
+                )
+                p.passed = passed
+                p.action_failed = action_failed
+                p.lifecycle = (
+                    ProposalLifecycle.EXECUTED if passed else ProposalLifecycle.DEFEATED
+                )
+                p.raw["processed_tx"] = tx_hash
+            elif event_type == "proposal_cancelled":
+                p.lifecycle = ProposalLifecycle.CANCELLED
+                p.raw["cancelled_tx"] = tx_hash
+
+        # Default lifecycle for proposals with no processed event yet.
+        for p in proposals.values():
+            if p.lifecycle == ProposalLifecycle.UNKNOWN:
+                p.lifecycle = ProposalLifecycle.SPONSORED
+        return sorted(proposals.values(), key=lambda p: int(p.proposal_id or 0))
+
+    def member(self, wallet: str) -> MemberState:
+        checksum = Web3.to_checksum_address(wallet)
+
+        def _safe(fn, default=0):
+            try:
+                return int(fn(checksum).call())
+            except Exception:
+                return default
+
+        shares = _safe(self._baal.functions.sharesBalance)
+        loot = _safe(self._baal.functions.lootBalance)
+        try:
+            delegate = self._baal.functions.delegates(checksum).call()
+        except Exception:
+            delegate = None
+        return MemberState(
+            wallet=checksum,
+            shares=shares,
+            loot=loot,
+            delegate=delegate,
+            raw={},
+        )
+
+    def config(self) -> GovernanceConfig:
+        def _safe_u256(fn, default=0) -> int:
+            try:
+                return int(fn().call())
+            except Exception:
+                return default
+
+        raw: dict[str, Any] = {}
+        for label, fn in (
+            ("baal_version", self._baal.functions.baalVersion),
+            ("total_shares", self._baal.functions.totalShares),
+            ("total_loot", self._baal.functions.totalLoot),
+            ("proposal_count", self._baal.functions.proposalCount),
+        ):
+            try:
+                raw[label] = fn().call()
+            except Exception:
+                raw[label] = None
+        try:
+            raw["shares_token"] = self._baal.functions.sharesToken().call()
+        except Exception:
+            raw["shares_token"] = None
+        try:
+            raw["loot_token"] = self._baal.functions.lootToken().call()
+        except Exception:
+            raw["loot_token"] = None
+        try:
+            raw["avatar"] = self._baal.functions.avatar().call()
+        except Exception:
+            raw["avatar"] = None
+        return GovernanceConfig(
+            voting_period=_safe_u256(self._baal.functions.votingPeriod),
+            grace_period=_safe_u256(self._baal.functions.gracePeriod),
+            proposal_offering=_safe_u256(self._baal.functions.proposalOffering),
+            quorum_percent=_safe_u256(self._baal.functions.quorumPercent),
+            sponsor_threshold=_safe_u256(self._baal.functions.sponsorThreshold),
+            min_retention_percent=_safe_u256(self._baal.functions.minRetentionPercent),
+            raw=raw,
+        )
+
+    def shamans(self) -> list[dict[str, Any]]:
+        """Return registered shamans and their permission level.
+
+        Permission registry: 0 none, 1 admin, 2 manager, 4 governor,
+        and additive combinations (3/5/6/7).
+        """
+        # Baal exposes shamans via public mapping; enumerate known addresses by
+        # reading the GovernanceConfigSet/ShamanSet event history would be ideal,
+        # but the contract only exposes the mapping. We surface the raw mapping
+        # for any address the caller supplies; for discovery we rely on the
+        # indexer-populated table. Here we return an empty list as a safe default
+        # and let the CLI surface individual shaman lookups.
+        return []
+
+    def shaman_permission(self, shaman: str) -> int:
+        return int(self._baal.functions.shamans(Web3.to_checksum_address(shaman)).call())
+
+    def vote_choice(self, proposal_id: str, voter: str) -> VoteChoice | None:
+        """Best-effort vote lookup; Baal does not store per-voter choice readly.
+
+        Falls back to None when not discoverable from the read client.
+        """
+        return None

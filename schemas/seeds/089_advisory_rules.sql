@@ -1,0 +1,45 @@
+-- 089_advisory_rules.sql — Default advisory rules
+
+INSERT INTO advisory_rule (
+    id, name, rule_type, domain, priority, conditions,
+    recommendation_template, severity, auto_generate, requires_approval,
+    cooldown_hours, max_per_day, status
+) VALUES
+('00000000-0000-0000-0000-000000000089', 'Soil Moisture Low', 'threshold', 'irrigation', 70,
+ '{"metric":"soil_moisture","operator":"lt","threshold":30}'::jsonb,
+ 'Soil moisture is critically low. Consider irrigation within 24 hours. Current reading: {current_value}%.', 'warning', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000090', 'Soil Moisture Critical', 'threshold', 'irrigation', 90,
+ '{"metric":"soil_moisture","operator":"lt","threshold":15}'::jsonb,
+ 'URGENT: Soil moisture is critically low at {current_value}%. Immediate irrigation review is required.', 'critical', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000091', 'Heat Stress', 'threshold', 'crop_protection', 70,
+ '{"metric":"air_temperature","operator":"gt","threshold":35}'::jsonb,
+ 'Temperature at {current_value}C exceeds the heat-stress threshold. Consider shade or misting.', 'warning', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000092', 'Nitrogen Deficiency', 'threshold', 'fertilization', 60,
+ '{"metric":"ndvi","operator":"lt","threshold":0.4}'::jsonb,
+ 'NDVI at {current_value} suggests nitrogen deficiency. Review organic amendment options.', 'warning', TRUE, TRUE, 48, 3, 'active'),
+('00000000-0000-0000-0000-000000000093', 'Pest Alert', 'threshold', 'pest_management', 90,
+ '{"metric":"pest_probability","operator":"gt","threshold":0.7}'::jsonb,
+ 'Pest probability is {current_value}. Immediate scouting and IPM review are recommended.', 'critical', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000094', 'Harvest Readiness', 'threshold', 'harvest', 50,
+ '{"metric":"crop_maturity_score","operator":"gt","threshold":0.9}'::jsonb,
+ 'Crop maturity is {current_value}%. Prepare the harvest window, equipment, and labor.', 'info', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000095', 'Frost Warning', 'threshold', 'crop_protection', 90,
+ '{"metric":"air_temperature","operator":"lt","threshold":2}'::jsonb,
+ 'Frost warning: temperature is {current_value}C. Protect vulnerable crops and review covers.', 'critical', TRUE, TRUE, 24, 5, 'active'),
+('00000000-0000-0000-0000-000000000096', 'Spray Window Open', 'composite', 'crop_protection', 50,
+ '{"metric":"wind_speed","operator":"lt","threshold":15,"humidity_min":40,"humidity_max":80}'::jsonb,
+ 'An optimal spray window is available at {current_value} km/h wind. Review the application safely.', 'info', TRUE, TRUE, 24, 5, 'active')
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    rule_type = EXCLUDED.rule_type,
+    domain = EXCLUDED.domain,
+    priority = EXCLUDED.priority,
+    conditions = EXCLUDED.conditions,
+    recommendation_template = EXCLUDED.recommendation_template,
+    severity = EXCLUDED.severity,
+    auto_generate = EXCLUDED.auto_generate,
+    requires_approval = EXCLUDED.requires_approval,
+    cooldown_hours = EXCLUDED.cooldown_hours,
+    max_per_day = EXCLUDED.max_per_day,
+    status = EXCLUDED.status,
+    updated_at = NOW();

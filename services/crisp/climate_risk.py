@@ -70,13 +70,13 @@ def _query_weather_patterns(conn, location_id: str) -> Dict[str, Any]:
     cur.execute("""
         SELECT
             COUNT(*) AS observation_count,
-            COALESCE(AVG(temperature_celsius), 0) AS avg_temp,
-            COALESCE(MAX(temperature_celsius), 0) AS max_temp,
-            COALESCE(MIN(temperature_celsius), 0) AS min_temp,
+            COALESCE(AVG(temperature_c), 0) AS avg_temp,
+            COALESCE(MAX(temperature_c), 0) AS max_temp,
+            COALESCE(MIN(temperature_c), 0) AS min_temp,
             COALESCE(AVG(rainfall_mm), 0) AS avg_rainfall,
             COALESCE(SUM(CASE WHEN rainfall_mm = 0 THEN 1 ELSE 0 END), 0) AS dry_days,
             COALESCE(AVG(humidity_pct), 0) AS avg_humidity,
-            COALESCE(MAX(wind_speed_kph), 0) AS max_wind
+            COALESCE(MAX(wind_speed_kmh), 0) AS max_wind
         FROM weather_observation
         WHERE location_id = %s
         AND observation_date >= NOW() - INTERVAL '3 years'
@@ -94,7 +94,7 @@ def _query_emergency_incidents(conn, location_id: str) -> List[Dict[str, Any]]:
             incident_type,
             severity,
             COUNT(*) AS incident_count,
-            MAX(incident_date) AS last_occurrence
+            MAX(detection_date) AS last_occurrence
         FROM emergency_incident
         WHERE location_id = %s
         GROUP BY incident_type, severity

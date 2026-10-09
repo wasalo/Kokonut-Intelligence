@@ -13,6 +13,7 @@ Scoring approach:
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import psycopg2
@@ -33,9 +34,9 @@ def _query_financial_sustainability(conn, location_id: str) -> Dict[str, Any]:
             reinvestment_pct,
             break_even_month,
             runway_months,
-            noi_projection_y1,
-            noi_projection_y2,
-            noi_projection_y3
+            projected_annual_noi_usd,
+            projected_annual_revenue_usd,
+            projected_annual_operating_cost_usd
         FROM financial_sustainability_plan
         WHERE location_id = %s
         ORDER BY created_at DESC NULLS LAST
@@ -285,7 +286,20 @@ def compute_financial_risk(
         "payback_months": unit_economics.get("payback_months"),
         "total_revenue": float(revenue.get("total_revenue", 0) or 0),
         "total_expense": float(expense.get("total_expense", 0) or 0),
+        "vintage_year": vintage_year,
     }
+
+    # Apply vintage-specific risk adjustment: older vintages carry higher risk
+    # due to price decay, methodology obsolescence, or registry de-listing risk.
+    vintage_adjustment = 0.0
+    if vintage_year:
+        current_year = datetime.now(timezone.utc).year
+        age = current_year - vintage_year
+        if age > 0:
+            # 2% risk increase per year of age, capped at 15%
+            vintage_adjustment = min(age * 0.02, 0.15)
+            risk_score = clamp_risk_score(risk_score + vintage_adjustment * 100)
+            factors["vintage_risk_adjustment"] = round(vintage_adjustment, 4)
 
     return DimensionScore(
         dimension_key="financial",

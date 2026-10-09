@@ -56,6 +56,8 @@ CHAIN_RPC_MAP = {
 
 # Kokonut Moloch DAO contracts (Gnosis Chain)
 KOKONUT_DAO_CHAIN = "gnosis"
+
+# Legacy Kokonut Moloch v2 deployment (read-only indexer kept for historical data).
 KOKONUT_MOLOCH_ADDRESSES = {
     "treasury": "0xeb55b75328a8dffd45bbf34b7e7efc431a179085",
     "token_manager": "0x8977c56e979f0d8b76afb5ad85549acd2e96422d",
@@ -63,8 +65,30 @@ KOKONUT_MOLOCH_ADDRESSES = {
     "loot_token": "0x2508a11aee11ad545bae87cd42131c04613b2099",
 }
 
+# Current Kokonut DAO: Moloch v3 (Baal) deployment on Gnosis Chain.
+# Verified live on Gnosis Chain (id 100). The Baal core resolves its own
+# Shares/Loot ERC20 tokens (`sharesToken`/`lootToken`) and treasury avatar
+# (`avatar`), so those addresses are recorded here and in
+# schemas/seeds/020_gnosis_chain.sql. Legacy v2 addresses live in
+# KOKONUT_MOLOCH_ADDRESSES and are not reused here.
+KOKONUT_BAAL_ADDRESSES = {
+    "baal": "0x8977c56e979f0d8b76afb5ad85549acd2e96422d",
+    "shares": "0xc6b075ac3234a7ac729114b27370b552fa284690",
+    "loot": "0x2508a11aee11ad545bae87cd42131c04613b2099",
+    "treasury": "0xeb55b75328a8dffd45bbf34b7e7efc431a179085",
+    "vkkn_token": "0xc6b075ac3234a7ac729114b27370b552fa284690",
+    "loot_token": "0x2508a11aee11ad545bae87cd42131c04613b2099",
+}
+
 # EAS contract addresses per chain
 EAS_CHAIN_CONFIG = {
+    "ethereum": {
+        "chain_id": 1,
+        "eas_address": "0xA1207C3B4412b0F54fd96ec50c53F0C1fA6E1B5C",
+        "schema_registry_address": "0xC2679fBD36d542273975aA0b330933605913a5dC",
+        "eas_explorer": "https://etherscan.io",
+        "graphql_endpoint": "https://eas.etherscan.io",
+    },
     "celo": {
         "chain_id": 42220,
         "eas_address": "0x72E1d8ccf5299fb36fEfD8CC4394B8ef7e98Af92",

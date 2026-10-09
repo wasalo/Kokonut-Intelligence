@@ -83,7 +83,7 @@ def _query_community_governance(conn, location_id: str) -> Dict[str, Any]:
         SELECT
             representation_coverage_pct,
             marginalized_voice_count,
-            decision_method
+            governance_body
         FROM governance_inclusion_observation
         WHERE location_id = %s
         ORDER BY created_at DESC NULLS LAST
@@ -100,7 +100,7 @@ def _query_stakeholder_feedback_summary(conn, location_id: str) -> Dict[str, Any
     cur.execute("""
         SELECT
             COUNT(*) AS total_feedback,
-            COALESCE(AVG(satisfaction_score), 0) AS avg_satisfaction,
+            COUNT(*) FILTER (WHERE sentiment = 'positive') AS positive_feedback,
             COUNT(*) FILTER (WHERE consent_given = TRUE) AS consent_count
         FROM stakeholder_feedback
         WHERE location_id = %s
@@ -108,6 +108,169 @@ def _query_stakeholder_feedback_summary(conn, location_id: str) -> Dict[str, Any
     row = dict(cur.fetchone() or {})
     cur.close()
     return row
+
+
+def _query_article_6_indicators(conn, location_id: str) -> Dict[str, Any]:
+    """Query Article 6 readiness indicators from available data sources.
+
+    Article 6 of the Paris Agreement covers international carbon market
+    cooperation. Key indicators:
+    - NDC participation: whether the host country has an active NDC
+    - Corresponding adjustment: whether corresponding adjustments are
+      documented for bilateral Article 6.2 trades
+    - Article 6.4 registry engagement: whether the project is registered
+      or engaging with the Article 6.4 crediting mechanism
+
+    Since there is no dedicated table, we derive signals from:
+    - location.metadata (may contain ndc_participation, article_6 fields)
+    - credit_retirement (retirement reasons indicating international transfer)
+    - attestation_record (claim_data may reference Article 6)
+    - farm_registry_record (metadata may reference registry engagement)
+    """
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    # 1. Check location metadata for Article 6 fields
+    cur.execute("""
+        SELECT metadata FROM location WHERE id = %s
+    """, (location_id,))
+    loc_row = dict(cur.fetchone() or {})
+    loc_meta = loc_row.get("metadata") or {}
+    ndc_status = loc_meta.get("ndc_participation_status")
+    adj_status = loc_meta.get("corresponding_adjustment_status")
+    article64_status = loc_meta.get("article_6_4_registry_status")
+
+    # 2. Check credit retirement for international transfer signals
+    cur.execute("""
+        SELECT COUNT(*) AS international_retirements
+        FROM credit_retirement
+        WHERE location_id = %s
+          AND status = 'published'
+          AND (
+            retirement_reason ILIKE '%%article 6%%'
+            OR retirement_reason ILIKE '%%corresponding adjustment%%'
+            OR retirement_reason ILIKE '%%international transfer%%'
+            OR retirement_reason ILIKE '%%bilateral%%'
+          )
+    """, (location_id,))
+    retire_row = dict(cur.fetchone() or {})
+    international_retirements = int(retire_row.get("international_retirements") or 0)
+
+    # 3. Check attestation records for Article 6 claims
+    cur.execute("""
+        SELECT COUNT(*) AS article6_attestations
+        FROM attestation_record
+        WHERE subject_id = %s
+          AND subject_type = 'location'
+          AND status IN ('verified', 'published')
+          AND (
+            claim_data::text ILIKE '%%article 6%%'
+            OR claim_data::text ILIKE '%%corresponding adjustment%%'
+            OR claim_type ILIKE '%%article_6%%'
+          )
+    """, (location_id,))
+    attest_row = dict(cur.fetchone() or {})
+    article6_attestations = int(attest_row.get("article6_attestations") or 0)
+
+    # 4. Check farm registry for registry engagement
+    cur.execute("""
+        SELECT COUNT(*) AS registry_engagements
+        FROM farm_registry_record
+        WHERE location_id = %s
+          AND status IN ('verified', 'published')
+          AND (
+            registry_slug ILIKE '%%article%%'
+            OR metadata::text ILIKE '%%article 6%%'
+            OR credits_registries::text ILIKE '%%article%%'
+          )
+    """, (location_id,))
+    reg_row = dict(cur.fetchone() or {})
+    registry_engagements = int(reg_row.get("registry_engagements") or 0)
+
+    cur.close()
+
+    return {
+        "ndc_participation_status": ndc_status,
+        "corresponding_adjustment_status": adj_status,
+        "article_6_4_registry_status": article64_status,
+        "international_retirements": international_retirements,
+        "article6_attestations": article6_attestations,
+        "registry_engagements": registry_engagements,
+    }
+
+
+def _score_article_6(indicators: Dict[str, Any]) -> Optional[float]:
+    """Score Article 6 readiness on a 0-1 scale (higher = more ready).
+
+    Scoring logic:
+    - NDC participation: 0.3 weight (active=1.0, submitted=0.6, none=0.0)
+    - Corresponding adjustment: 0.3 weight (confirmed=1.0, pending=0.5, none=0.0)
+    - Article 6.4 registry: 0.2 weight (registered=1.0, engaged=0.5, none=0.0)
+    - Supporting signals: 0.2 weight (retirements + attestations + registry)
+
+    Returns None if no data is available (graceful degradation).
+    """
+    has_any_data = (
+        indicators.get("ndc_participation_status") is not None
+        or indicators.get("corresponding_adjustment_status") is not None
+        or indicators.get("article_6_4_registry_status") is not None
+        or indicators.get("international_retirements", 0) > 0
+        or indicators.get("article6_attestations", 0) > 0
+        or indicators.get("registry_engagements", 0) > 0
+    )
+    if not has_any_data:
+        return None
+
+    scores = []
+
+    # NDC participation (0.3 weight)
+    ndc = (indicators.get("ndc_participation_status") or "").lower()
+    if ndc in ("active", "ratified", "implemented"):
+        scores.append(("ndc", 1.0, 0.3))
+    elif ndc in ("submitted", "pending", "draft"):
+        scores.append(("ndc", 0.6, 0.3))
+    elif ndc:
+        scores.append(("ndc", 0.2, 0.3))
+    else:
+        scores.append(("ndc", 0.0, 0.3))
+
+    # Corresponding adjustment (0.3 weight)
+    adj = (indicators.get("corresponding_adjustment_status") or "").lower()
+    if adj in ("confirmed", "approved", "completed"):
+        scores.append(("adj", 1.0, 0.3))
+    elif adj in ("pending", "submitted", "in_progress"):
+        scores.append(("adj", 0.5, 0.3))
+    elif adj:
+        scores.append(("adj", 0.2, 0.3))
+    else:
+        scores.append(("adj", 0.0, 0.3))
+
+    # Article 6.4 registry (0.2 weight)
+    reg = (indicators.get("article_6_4_registry_status") or "").lower()
+    if reg in ("registered", "active", "approved"):
+        scores.append(("reg", 1.0, 0.2))
+    elif reg in ("engaged", "pending", "submitted"):
+        scores.append(("reg", 0.5, 0.2))
+    elif reg:
+        scores.append(("reg", 0.2, 0.2))
+    else:
+        scores.append(("reg", 0.0, 0.2))
+
+    # Supporting signals (0.2 weight)
+    signals = 0.0
+    if indicators.get("international_retirements", 0) > 0:
+        signals += 0.4
+    if indicators.get("article6_attestations", 0) > 0:
+        signals += 0.3
+    if indicators.get("registry_engagements", 0) > 0:
+        signals += 0.3
+    scores.append(("signals", min(signals, 1.0), 0.2))
+
+    total_weight = sum(w for _, _, w in scores)
+    if total_weight == 0:
+        return 0.0
+
+    weighted = sum(s * w for _, s, w in scores) / total_weight
+    return round(max(0.0, min(1.0, weighted)), 2)
 
 
 def _score_national_policy(certification: Dict[str, Any]) -> float:
@@ -182,10 +345,11 @@ def _score_community_alignment(
     else:
         scores.append(0.0)
 
-    # Stakeholder satisfaction
-    satisfaction = float(feedback.get("avg_satisfaction", 0) or 0)
-    if satisfaction > 0:
-        scores.append(min(1.0, satisfaction / 10.0))
+    # Stakeholder satisfaction (positive feedback ratio)
+    total = int(feedback.get("total_feedback", 0) or 0)
+    positive = int(feedback.get("positive_feedback", 0) or 0)
+    if total > 0:
+        scores.append(positive / total)
 
     return sum(scores) / len(scores) if scores else 0.0
 
@@ -226,6 +390,7 @@ def compute_policy_risk(
     land_tenure = _query_land_tenure(conn, location_id)
     governance = _query_community_governance(conn, location_id)
     feedback = _query_stakeholder_feedback_summary(conn, location_id)
+    article6_indicators = _query_article_6_indicators(conn, location_id)
 
     # Score each sub-factor (0-1 strength, higher = lower risk)
     policy_strength = _score_national_policy(certification)
@@ -233,6 +398,7 @@ def compute_policy_risk(
     land_tenure_score = _score_land_tenure(land_tenure)
     community_alignment = _score_community_alignment(governance, feedback)
     certification_risk = _score_certification_risk(barriers)
+    article_6_readiness = _score_article_6(article6_indicators)
 
     # Invert to risk: 1 - strength = risk
     policy_risk = 1.0 - policy_strength
@@ -278,6 +444,7 @@ def compute_policy_risk(
         "land_tenure_security": round(land_tenure_score, 3),
         "community_alignment": round(community_alignment, 3),
         "certification_risk": round(certification_risk, 3),
+        "article_6_readiness": round(article_6_readiness, 3) if article_6_readiness is not None else None,
         "regulatory_barriers_count": len(barriers),
         "certification_status": certification.get("status"),
         "stewardship_model": land_tenure.get("stewardship_model"),

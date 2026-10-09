@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b3b2e">
+  <title>Kokonut Field Collector</title>
+  <style>
+    :root { color-scheme: light; --ink:#17332a; --muted:#6c7b75; --green:#0b6b4b; --deep:#0b3b2e; --cream:#f7f5ed; --line:#dce5df; --danger:#a53f35; --shadow:0 12px 30px rgba(23,51,42,.10); }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--cream); color:var(--ink); font:16px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input,select,textarea { font:inherit; }
+    button { cursor:pointer; }
+    .app { max-width:720px; min-height:100vh; margin:auto; background:#fff; }
+    header { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:12px; padding:16px 18px; color:#fff; background:var(--deep); box-shadow:0 3px 14px rgba(0,0,0,.12); }
+    header h1 { flex:1; margin:0; font-size:19px; letter-spacing:.01em; }
+    .icon-button { border:0; color:#fff; background:transparent; font-size:22px; padding:4px; }
+    .connection { display:flex; align-items:center; gap:6px; font-size:12px; white-space:nowrap; }
+    .dot { width:9px; height:9px; border-radius:50%; background:#e2a72a; }
+    .dot.online { background:#6ed38f; }
+    main { padding:22px 18px 42px; }
+    .eyebrow { margin:0 0 5px; color:var(--green); font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    h2 { margin:0 0 7px; font-size:28px; line-height:1.1; }
+    .intro { margin:0 0 22px; color:var(--muted); }
+    .forms { display:grid; gap:12px; }
+    .form-card { display:flex; align-items:center; width:100%; padding:17px; border:1px solid var(--line); border-radius:14px; color:var(--ink); text-align:left; background:#fff; box-shadow:var(--shadow); }
+    .form-card:active { transform:translateY(1px); }
+    .form-card strong { flex:1; display:block; font-size:17px; }
+    .form-card small { display:block; margin-top:3px; color:var(--muted); font-weight:400; }
+    .form-mark { width:40px; height:40px; display:grid; place-items:center; margin-right:12px; border-radius:12px; color:#fff; background:var(--green); font-weight:800; }
+    .arrow { color:var(--green); font-size:22px; }
+    .panel { margin-top:22px; padding:17px; border:1px solid var(--line); border-radius:14px; background:#fbfcfa; }
+    .panel-row { display:flex; align-items:center; gap:12px; }
+    .panel-row + .panel-row { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+    .panel-row strong { flex:1; }
+    .panel-row small { display:block; color:var(--muted); font-size:12px; font-weight:400; }
+    .badge { min-width:28px; padding:3px 8px; border-radius:99px; color:#fff; background:var(--green); text-align:center; font-size:13px; font-weight:700; }
+    .badge.empty { color:var(--muted); background:#e7eeea; }
+    .button { width:100%; border:0; border-radius:10px; padding:13px 16px; color:#fff; background:var(--green); font-weight:750; }
+    .button.secondary { color:var(--green); background:#e5f0e9; }
+    .button.ghost { color:var(--green); background:transparent; border:1px solid var(--line); }
+    .button.danger { color:#fff; background:var(--danger); }
+    .button + .button { margin-top:10px; }
+    .back { display:inline-flex; gap:6px; align-items:center; margin:0 0 18px; border:0; padding:0; color:var(--green); background:transparent; font-weight:700; }
+    form { display:grid; gap:15px; }
+    label { display:grid; gap:6px; color:var(--ink); font-size:14px; font-weight:700; }
+    input,select,textarea { width:100%; border:1px solid #cddbd3; border-radius:9px; padding:12px; color:var(--ink); background:#fff; }
+    textarea { min-height:105px; resize:vertical; }
+    input:focus,select:focus,textarea:focus { outline:3px solid rgba(11,107,75,.15); border-color:var(--green); }
+    .required::after { content:" *"; color:var(--danger); }
+    .capture-row { display:flex; gap:10px; align-items:center; }
+    .capture-row .button { width:auto; flex:1; }
+    .location { padding:11px 12px; border-radius:9px; color:var(--muted); background:#f0f5f1; font-size:13px; }
+    .photo-preview { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .photo-preview img { width:74px; height:74px; border-radius:8px; object-fit:cover; }
+    .notice { margin-bottom:16px; padding:12px; border-radius:10px; color:#795d13; background:#fff5d6; font-size:14px; }
+    .notice.error { color:#842c25; background:#fde8e5; }
+    .queue-item { display:flex; align-items:flex-start; gap:10px; padding:13px 0; border-bottom:1px solid var(--line); }
+    .queue-item:last-child { border-bottom:0; }
+    .queue-item strong { display:block; }
+    .queue-item small { color:var(--muted); }
+    .queue-item .remove { margin-left:auto; border:0; color:var(--danger); background:transparent; font-size:13px; }
+    .empty { padding:30px 10px; color:var(--muted); text-align:center; }
+    .hidden { display:none !important; }
+    .footer-note { margin:22px 0 0; color:var(--muted); text-align:center; font-size:12px; }
+    @media (min-width:600px) { body { padding:25px 0; } .app { border-radius:18px; overflow:hidden; box-shadow:var(--shadow); } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <button class="icon-button" id="homeButton" aria-label="Home">K</button>
+      <h1>Kokonut Field Collector</h1>
+      <button class="icon-button" id="lockButton" aria-label="Lock offline data">🔒</button>
+      <div class="connection"><span class="dot" id="connectionDot"></span><span id="connectionText">Offline ready</span></div>
+    </header>
+    <main id="screen"></main>
+  </div>
+  <script src="field-collector-vault.js"></script>
+  <script>
+    "use strict";
+    const STORAGE = { queue:"kokonut_field_queue", device:"kokonut_field_device", forms:"kokonut_field_forms", settings:"kokonut_field_settings" };
+    const FALLBACK_FORMS = [
+      { form_id:"farm_activity_v1", name:"Farm Activity", description:"Record work completed in the field.", version:"1.0.0", collection_type:"farm_activity", form_schema:{required:["activity_type","activity_date"],properties:{activity_type:{title:"Activity",type:"string",enum:["planting","weeding","irrigation","pruning","spraying","harvesting","transport","storage","other"]},activity_date:{title:"Date",type:"string",format:"date"},description:{title:"Description",type:"string"},labor_hours:{title:"Labor hours",type:"number",minimum:0},notes:{title:"Notes",type:"string",format:"textarea"}}}},
+      { form_id:"harvest_v1", name:"Harvest Event", description:"Record harvested quantity and quality.", version:"1.0.0", collection_type:"harvest_event", form_schema:{required:["harvest_date","quantity","unit"],properties:{harvest_date:{title:"Date",type:"string",format:"date"},crop:{title:"Crop",type:"string"},plot:{title:"Plot",type:"string"},quantity:{title:"Quantity",type:"number",minimum:0},unit:{title:"Unit",type:"string",enum:["kg","tonnes","bags","bunches","liters","units"]},quality_grade:{title:"Quality grade",type:"string",enum:["A","B","C","premium","standard","rejected"]},notes:{title:"Notes",type:"string",format:"textarea"}}}},
+      { form_id:"expense_v1", name:"Expense", description:"Record a farm expense and receipt.", version:"1.0.0", collection_type:"expense_event", form_schema:{required:["expense_date","category","amount"],properties:{expense_date:{title:"Date",type:"string",format:"date"},category:{title:"Category",type:"string",enum:["seeds","fertilizer","pesticide","labor","equipment","transport","irrigation","processing","packaging","marketing","utilities","rent","other"]},amount:{title:"Amount",type:"number",minimum:0},description:{title:"Description",type:"string"},vendor:{title:"Vendor",type:"string"},notes:{title:"Notes",type:"string",format:"textarea"}}}},
+      { form_id:"field_note_v1", name:"Field Note", description:"Capture an observation or issue.", version:"1.0.0", collection_type:"field_note", form_schema:{required:["note_date","content"],properties:{note_date:{title:"Date",type:"string",format:"date"},note_type:{title:"Note type",type:"string",enum:["observation","issue","recommendation","weather","pest","general"]},title:{title:"Title",type:"string"},content:{title:"What did you observe?",type:"string",format:"textarea"},tags:{title:"Tags",type:"string"}}}},
+      { form_id:"soil_sample_v1", name:"Soil Sample", description:"Record a soil sample and measurements.", version:"1.0.0", collection_type:"soil_sample", form_schema:{required:["sample_date"],properties:{sample_date:{title:"Date",type:"string",format:"date"},depth_cm:{title:"Depth (cm)",type:"number",minimum:0},depth_layer:{title:"Depth layer",type:"string",enum:["topsoil","subsoil","root_zone"]},ph:{title:"pH",type:"number",minimum:0,maximum:14},organic_matter_pct:{title:"Organic matter (%)",type:"number",minimum:0,maximum:100},texture:{title:"Texture",type:"string",enum:["sandy","loamy","clay","silty"]},moisture_pct:{title:"Moisture (%)",type:"number",minimum:0,maximum:100},notes:{title:"Notes",type:"string",format:"textarea"}}}}
+    ];
+    let screen = document.getElementById("screen");
+    let currentForm = null;
+    let currentLocation = null;
+    let currentPhotos = [];
+    let enrollmentCode = "";
+    let vaultState = null;
+    let vault = null;
+    let vaultAdapter = null;
+    let vaultError = "";
+    let stateWrite = null;
+    let vaultLocking = false;
+    try {
+      vaultAdapter = window.FieldCollectorVault.createIndexedDbAdapter();
+      vault = new window.FieldCollectorVault.EncryptedVault(vaultAdapter);
+    } catch (error) {
+      vaultError = error.message || "Encrypted browser storage is unavailable.";
+    }
+
+    const fieldForStorageKey = Object.fromEntries(Object.entries(STORAGE).map(([field, key]) => [key, field]));
+    const read = (key, fallback) => vaultState?.[fieldForStorageKey[key]] ?? fallback;
+    const write = (key, value) => {
+      if (!stateWrite || !vaultState || !vault?.isUnlocked() || vaultLocking) return Promise.reject(new Error("Offline vault is locked."));
+      const field = fieldForStorageKey[key];
+      return stateWrite(state => {
+        const nextValue = typeof value === "function" ? value(state[field]) : value;
+        return { ...state, [field]:nextValue };
+      }).then(state => { vaultState = state; return state; });
+    };
+    const settings = () => vaultState?.settings || { apiBase:"", deviceName:"" };
+    const queue = () => vaultState?.queue || [];
+    const forms = () => vaultState?.forms?.length ? vaultState.forms : FALLBACK_FORMS;
+    const legacyStorage = () => { try { return window.localStorage; } catch (_) { return null; } };
+    const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    const isMediaId = value => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+    const dataURLToBlob = value => {
+      const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+=*)$/.exec(String(value || ""));
+      if (!match) throw new Error("Stored photo is not a valid JPEG.");
+      const bytes = Uint8Array.from(atob(match[1]), char => char.charCodeAt(0));
+      return new Blob([bytes], {type:"image/jpeg"});
+    };
+    const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char]));
+    const today = () => new Date().toISOString().slice(0,10);
+    const apiBase = () => {
+      const configured = settings().apiBase.trim().replace(/\/$/, "");
+      if (configured) return configured.replace(/\/api\/mobile$/, "") + "/api/mobile";
+      return location.protocol === "file:" ? "" : `${location.origin}/api/mobile`;
+    };
+    const setConnection = () => {
+      const online = navigator.onLine;
+      document.getElementById("connectionDot").classList.toggle("online", online);
+      document.getElementById("connectionText").textContent = online ? "Online" : "Offline ready";
+    };
+    const notify = (message, error = false) => {
+      const existing = document.querySelector(".notice");
+      if (existing) existing.remove();
+      const node = document.createElement("div");
+      node.className = `notice${error ? " error" : ""}`;
+      node.textContent = message;
+      screen.prepend(node);
+      window.setTimeout(() => node.remove(), 4500);
+    };
+    const isSecure = () => window.isSecureContext || location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1";
+    const httpsUrl = () => { const u = new URL(location.href); u.protocol = "https:"; return u.href; };
+    const captureGps = () => {
+      const node = document.getElementById("locationValue");
+      if (!navigator.geolocation) { if (node) node.textContent = "GPS not available on this device."; return; }
+      if (!isSecure()) {
+        const url = httpsUrl();
+        if (node) node.textContent = "";
+        notify(`GPS requires HTTPS on iOS. Switch to: ${url} (accept the certificate warning, then GPS will work).`, true);
+        return;
+      }
+      if (node) node.textContent = "Acquiring location…";
+      const onGranted = () => {
+        navigator.geolocation.getCurrentPosition(position => {
+          currentLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy_m: position.coords.accuracy };
+          if (node) node.textContent = `${currentLocation.latitude.toFixed(5)}, ${currentLocation.longitude.toFixed(5)} (accuracy ${Math.round(currentLocation.accuracy_m)}m)`;
+        }, error => {
+          if (node) node.textContent = "";
+          const messages = { 1:"Location access denied. Enable it in Settings > Safari > Location Services, then tap Refresh GPS.", 2:"Location unavailable. Check your connection and try again.", 3:"Location request timed out. Tap Refresh GPS to retry." };
+          notify(messages[error.code] || "Could not get location. Tap Refresh GPS to retry.", true);
+        }, { enableHighAccuracy:true, timeout:15000, maximumAge:30000 });
+      };
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: "geolocation" }).then(result => {
+          if (result.state === "denied") {
+            if (node) node.textContent = "";
+            notify("Location access is blocked. Enable it in Settings > Safari > Location Services, then reload this page.", true);
+            return;
+          }
+          onGranted();
+        }).catch(() => onGranted());
+      } else {
+        onGranted();
+      }
+    };
+    const renderHome = () => {
+      if (!vault?.isUnlocked() || !vaultState) { void renderVaultGate(); return; }
+      currentForm = null;
+      const items = forms().map((form, index) => `<button class="form-card" data-form="${esc(form.form_id)}"><span class="form-mark">${index + 1}</span><span><strong>${esc(form.name)}</strong><small>${esc(form.description || "Field record")}</small></span><span class="arrow">&rsaquo;</span></button>`).join("");
+      const count = queue().length;
+      const enrolledDevice = read(STORAGE.device, null);
+      const deviceSummary = enrolledDevice?.location_id ? `Enrolled for location ${enrolledDevice.location_id}` : "Enter a single-use enrollment code";
+      const insecureBanner = isSecure() ? "" : `<div class="notice" style="background:#fde8e5;color:#842c25;margin-bottom:16px"><strong>HTTPS required for GPS on iOS.</strong><br>Switch to <a href="${httpsUrl()}" style="color:#842c25">${httpsUrl()}</a> and accept the certificate warning.</div>`;
+      screen.innerHTML = `${insecureBanner}<p class="eyebrow">Offline-first field records</p><h2>Collect what the field knows.</h2><p class="intro">Save observations now. The app will upload them when a connection returns.</p><div class="forms">${items}</div><section class="panel"><div class="panel-row"><strong>Pending records<small>${count ? "Waiting to sync" : "Everything is up to date"}</small></strong><span class="badge ${count ? "" : "empty"}">${count}</span></div><div class="panel-row"><strong>Device setup<small>${esc(deviceSummary)}</small></strong><button class="button secondary" style="width:auto" id="settingsButton">Open</button></div><div class="panel-row"><strong>Sync queue<small>Upload saved records when online</small></strong><button class="button" style="width:auto" id="syncButton">Sync now</button></div></section><p class="footer-note">Kokonut Intelligence Field Collector v1.0.0</p>`;
+      document.querySelectorAll("[data-form]").forEach(button => button.addEventListener("click", () => renderForm(forms().find(form => form.form_id === button.dataset.form))));
+      document.getElementById("settingsButton").addEventListener("click", renderSettings);
+      document.getElementById("syncButton").addEventListener("click", () => syncQueue(true));
+    };
+    const renderField = (name, definition, required) => {
+      const label = `${esc(definition.title || name.replaceAll("_", " "))}`;
+      const requiredClass = required ? " required" : "";
+      if (Array.isArray(definition.enum)) return `<label class="${requiredClass}">${label}<select name="${esc(name)}" ${required ? "required" : ""}><option value="">Choose...</option>${definition.enum.map(value => `<option value="${esc(value)}">${esc(value)}</option>`).join("")}</select></label>`;
+      const type = definition.format === "date" ? "date" : definition.type === "number" ? "number" : "text";
+      const extra = `${definition.minimum !== undefined ? ` min="${definition.minimum}"` : ""}${definition.maximum !== undefined ? ` max="${definition.maximum}"` : ""}${definition.format === "textarea" ? "" : ""}`;
+      if (definition.format === "textarea") return `<label class="${requiredClass}">${label}<textarea name="${esc(name)}" ${required ? "required" : ""}></textarea></label>`;
+      return `<label class="${requiredClass}">${label}<input type="${type}" name="${esc(name)}"${extra} ${required ? "required" : ""}></label>`;
+    };
+    const renderForm = form => {
+      if (!form) return renderHome();
+      currentForm = form; currentLocation = null; currentPhotos = [];
+      const schema = form.form_schema || {};
+      const required = schema.required || [];
+      const fields = Object.entries(schema.properties || {}).map(([name, definition]) => renderField(name, definition, required.includes(name))).join("");
+      screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to forms</button><p class="eyebrow">${esc(form.collection_type)}</p><h2>${esc(form.name)}</h2><p class="intro">${esc(form.description || "Record a field observation.")}</p><form id="collectionForm">${fields}<div><div class="capture-row"><button type="button" class="button secondary" id="photoButton">Add photo</button><button type="button" class="button ghost" id="gpsButton">Refresh GPS</button></div><input class="hidden" type="file" accept="image/*" capture="environment" id="photoInput"><div class="photo-preview" id="photoPreview"></div></div><div class="location" id="locationValue">GPS not captured yet. Tap Refresh GPS or allow location access.</div><button class="button" type="submit">Save record</button></form>`;
+      document.getElementById("backButton").addEventListener("click", renderHome);
+      document.getElementById("gpsButton").addEventListener("click", captureGps);
+      document.getElementById("photoButton").addEventListener("click", () => document.getElementById("photoInput").click());
+      document.getElementById("photoInput").addEventListener("change", event => readPhoto(event.target.files[0]));
+      document.getElementById("collectionForm").addEventListener("submit", saveRecord);
+    };
+    const readPhoto = file => {
+      if (!file) return;
+      if (currentPhotos.length >= 5) return notify("A record can include up to 5 photos.", true);
+      if (file.size > 2_000_000) return notify("Please choose a photo smaller than 2 MB.", true);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => {
+          const scale = Math.min(1, 1280 / Math.max(image.naturalWidth, image.naturalHeight));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+          canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+          currentPhotos.push({ name:file.name, data:canvas.toDataURL("image/jpeg", .75) });
+          document.getElementById("photoPreview").innerHTML = currentPhotos.map(photo => `<img src="${photo.data}" alt="${esc(photo.name)}">`).join("");
+        };
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    };
+    const saveRecord = async event => {
+      event.preventDefault();
+      const formData = new FormData(event.target); const payload = {};
+      for (const [key, value] of formData.entries()) payload[key] = value === "" ? null : (event.target.elements[key].type === "number" ? Number(value) : value);
+      const item = { client_id:uid(), collection_type:currentForm.collection_type, form_id:currentForm.form_id, form_version:currentForm.version || "1.0.0", payload, photo_refs:[], offline_photos:currentPhotos.map(photo => ({name:photo.name,data:photo.data})), ...currentLocation, collected_at:new Date().toISOString(), sync_status:"pending" };
+      try { await write(STORAGE.queue, items => [...(Array.isArray(items) ? items : []), item]); renderHome(); notify("Saved on this device. It will sync when online."); void syncQueue(false); } catch (_) { notify("Encrypted storage could not save this record. Keep this page open and try again.", true); }
+    };
+    const ensureDevice = async (oneTimeCode = enrollmentCode) => {
+      const base = apiBase(); if (!base) throw new Error("Set the API URL in Settings before syncing.");
+      let device = read(STORAGE.device, null); if (device && device.device_token) return device;
+      const code = String(oneTimeCode || "").trim();
+      if (!code) throw new Error("This browser is not enrolled. Enter a single-use enrollment code in Device setup.");
+      const config = settings();
+      const response = await fetch(`${base}/register`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ device_id:`browser-${uid()}`, enrollment_code:code, device_name:config.deviceName || "Field browser", app_version:"1.0.0", os:navigator.platform }) });
+      if (!response.ok) throw new Error(`Device registration failed (${response.status})`);
+      device = await response.json(); enrollmentCode = ""; await write(STORAGE.device, device); return device;
+    };
+    const migrateQueueMedia = async items => {
+      const migrated = items.map(item => {
+        const payload = {...(item.payload || {})};
+        const embeddedPhotos = Array.isArray(payload.photos)
+          ? payload.photos.map((data, index) => ({name:`legacy-${index + 1}.jpg`, data}))
+          : [];
+        delete payload.photos;
+        const offlinePhotos = [...(Array.isArray(item.offline_photos) ? item.offline_photos : []), ...embeddedPhotos];
+        const refs = Array.isArray(item.photo_refs) ? item.photo_refs : [];
+        const validRefs = refs.filter(isMediaId);
+        const unresolvableNames = [...(Array.isArray(item.legacy_photo_refs) ? item.legacy_photo_refs : []), ...refs.filter(ref => !isMediaId(ref))];
+        return {
+          ...item,
+          payload,
+          photo_refs:validRefs,
+          offline_photos:offlinePhotos,
+          legacy_photo_refs:offlinePhotos.length ? [] : [...new Set(unresolvableNames)],
+          media_review_required:(offlinePhotos.length + validRefs.length) > 5 || item.media_review_required === true,
+        };
+      });
+      const changed = migrated.some((item, index) => JSON.stringify(item) !== JSON.stringify(items[index]));
+      if (changed) {
+        const byClientId = new Map(migrated.map(item => [item.client_id, item]));
+        await write(STORAGE.queue, current => current.map(item => byClientId.get(item.client_id) || item));
+      }
+      return migrated;
+    };
+    const syncQueue = async manual => {
+      if (!vault?.isUnlocked() || !vaultState) return;
+      if (!navigator.onLine) { if (manual) notify("You are offline. Records remain safely on this device."); return; }
+      try {
+        let items = await migrateQueueMedia(queue());
+        if (!items.length) { if (manual) notify("Nothing is waiting to sync."); return; }
+        const device = await ensureDevice(); const base = apiBase();
+        const syncableItems = []; let unrecoverable = 0; let mediaReview = 0;
+        for (let item of items) {
+          const existingRefs = Array.isArray(item.photo_refs) ? item.photo_refs : [];
+          const existingPhotos = Array.isArray(item.offline_photos) ? item.offline_photos : [];
+          if (item.media_review_required || existingRefs.length + existingPhotos.length > 5) { mediaReview++; continue; }
+          if (item.legacy_photo_refs?.length) { unrecoverable++; continue; }
+          let refs = [...existingRefs];
+          let photos = [...existingPhotos];
+          while (photos.length) {
+            const photo = photos[0];
+            const upload = await fetch(`${base}/media/uploads`, {
+              method:"POST",
+              headers:{"Content-Type":"image/jpeg","X-Device-Token":device.device_token,"X-Collection-Client-ID":item.client_id},
+              body:dataURLToBlob(photo.data),
+            });
+            if (!upload.ok) { const error = new Error(`Photo upload failed (${upload.status})`); error.status = upload.status; throw error; }
+            const uploaded = await upload.json();
+            if (!isMediaId(uploaded.media_id)) throw new Error("Photo upload returned an invalid media reference.");
+            refs.push(uploaded.media_id); photos = photos.slice(1);
+            item = {...item, photo_refs:refs, offline_photos:photos};
+            await write(STORAGE.queue, current => current.map(candidate => candidate.client_id === item.client_id ? item : candidate));
+          }
+          syncableItems.push({...item, photo_refs:refs, offline_photos:[]});
+        }
+        if (!syncableItems.length) {
+          if (manual) {
+            const warnings = [];
+            if (mediaReview) warnings.push(`${mediaReview} record(s) have more than five photos; they remain encrypted and were not uploaded.`);
+            if (unrecoverable) warnings.push(`${unrecoverable} record(s) have legacy photo names but no local photo data; they remain encrypted and were not synced.`);
+            notify(warnings.join(" ") || "Nothing is ready to sync.", warnings.length > 0);
+          }
+          return;
+        }
+        const response = await fetch(`${base}/sync`, {
+          method:"POST",
+          headers:{"Content-Type":"application/json","X-Device-Token":device.device_token},
+          body:JSON.stringify({device_id:device.device_id,collections:syncableItems.map(item => ({
+            client_id:item.client_id, collection_type:item.collection_type, form_id:item.form_id,
+            form_version:item.form_version, payload:item.payload, photo_refs:item.photo_refs,
+            latitude:item.latitude, longitude:item.longitude, accuracy_m:item.accuracy_m,
+            collected_at:item.collected_at,
+          }))}),
+        });
+        if (!response.ok) { const error = new Error(`Sync failed (${response.status})`); error.status = response.status; throw error; }
+        const result = await response.json(); const accepted = Number(result.accepted || 0); const acceptedIds = new Set(result.accepted_client_ids || []); const duplicateIds = new Set(result.duplicate_client_ids || []);
+        await write(STORAGE.queue, current => current.filter(item => !acceptedIds.has(item.client_id) && !duplicateIds.has(item.client_id)));
+        await write(STORAGE.settings, current => ({...current, lastSyncAt:new Date().toISOString()}));
+        if (manual) {
+          renderHome();
+          const warnings = [];
+          if (unrecoverable) warnings.push(`${unrecoverable} record(s) with legacy photo names remain queued for recovery.`);
+          if (mediaReview) warnings.push(`${mediaReview} record(s) exceed the five-photo limit; their encrypted local images were not uploaded.`);
+          notify(`${accepted} record${accepted === 1 ? "" : "s"} uploaded.${warnings.length ? ` ${warnings.join(" ")}` : ""}`, warnings.length > 0);
+        }
+      } catch (error) {
+        if (error.status === 401 && vault?.isUnlocked() && vaultState) {
+          await write(STORAGE.device, null); await write(STORAGE.forms, []); renderSettings();
+          notify("Device access was revoked. Request a new enrollment code; queued records remain encrypted on this browser.", true);
+        } else if (manual) notify(error.message || "Sync unavailable. Records remain queued.", true);
+      }
+    };
+    const renderQueue = () => { const items = queue(); screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Local queue</p><h2>${items.length} pending</h2><p class="intro">These records are stored encrypted in this browser until the server accepts them.</p>${items.length ? `<div class="panel">${items.map((item, index) => `<div class="queue-item"><span class="badge">${index + 1}</span><div><strong>${esc(item.collection_type)}</strong><small>${new Date(item.collected_at).toLocaleString()}${item.latitude ? ` | GPS ${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}` : ""}</small>${item.media_review_required ? `<small style="color:var(--danger)">This record exceeds the five-photo limit. It remains encrypted and cannot sync; remove and recollect with no more than five photos.</small>` : ""}</div><button class="remove" data-remove="${esc(item.client_id)}">Remove</button></div>`).join("")}</div><button class="button" id="syncButton">Sync now</button>` : `<div class="empty">No pending records.</div>`}`; document.getElementById("backButton").addEventListener("click", renderHome); document.querySelectorAll("[data-remove]").forEach(button => button.addEventListener("click", async () => { await write(STORAGE.queue, current => current.filter(item => item.client_id !== button.dataset.remove)); renderQueue(); })); const sync = document.getElementById("syncButton"); if (sync) sync.addEventListener("click", () => syncQueue(true)); };
+    const renderSettings = () => { const config = settings(); const device = read(STORAGE.device, null); const enrollmentField = device?.device_token ? `<div class="location">This browser is enrolled. Its location is assigned by the server.</div>` : `<label class="required">Single-use enrollment code<input name="enrollmentCode" autocomplete="one-time-code" required></label>`; screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Device setup</p><h2>Settings</h2><p class="intro">Records can be collected offline. Enrollment is required before location forms or sync are available.</p><form id="settingsForm"><label>API URL<input name="apiBase" value="${esc(config.apiBase)}" placeholder="https://data.example.org"></label><label>Device name<input name="deviceName" value="${esc(config.deviceName)}" placeholder="Field phone 1"></label>${enrollmentField}<button class="button" type="submit">${device?.device_token ? "Save settings" : "Save settings and enroll"}</button></form><button class="button ghost" id="queueButton">View pending queue</button>`; document.getElementById("backButton").addEventListener("click", renderHome); document.getElementById("queueButton").addEventListener("click", renderQueue); document.getElementById("settingsForm").addEventListener("submit", async event => { event.preventDefault(); const values = Object.fromEntries(new FormData(event.target).entries()); enrollmentCode = String(values.enrollmentCode || "").trim(); delete values.enrollmentCode; await write(STORAGE.settings, values); if (device?.device_token) { notify("Settings saved. Device enrollment remains server-managed."); return; } if (!enrollmentCode) { notify("Enter a single-use enrollment code to register this browser.", true); return; } if (navigator.onLine && values.apiBase) { try { await ensureDevice(enrollmentCode); notify("Settings saved and device enrolled."); renderHome(); } catch (error) { notify(error.message, true); } } else notify("Settings saved. Connect to the network to complete enrollment."); }); };
+    const loadForms = async () => { if (!vault?.isUnlocked() || !vaultState) return; const base = apiBase(); if (!base || !navigator.onLine) return; try { const device = read(STORAGE.device, null); const headers = device?.device_token ? {"X-Device-Token":device.device_token} : {}; const response = await fetch(`${base}/forms`, {headers}); if (response.status === 401 && device?.device_token) { await write(STORAGE.device, null); await write(STORAGE.forms, []); renderHome(); notify("Device access was revoked. Request a new enrollment code.", true); return; } if (response.ok) { const fetched = (await response.json()).forms || []; await write(STORAGE.forms, fetched); } } catch (_) {} };
+
+    const renderVaultGate = async (message = "") => {
+      if (!vault || !vaultAdapter) {
+        screen.innerHTML = `<div class="panel"><p class="eyebrow">Encrypted offline storage unavailable</p><h2>Secure storage is required.</h2><p class="intro">${esc(message || vaultError || "Open this app in a browser with IndexedDB and Web Crypto enabled, using HTTPS, localhost, or a local file.")}</p></div>`;
+        return;
+      }
+      let existing;
+      try { existing = await vaultAdapter.get(); } catch (error) {
+        screen.innerHTML = `<div class="panel"><p class="eyebrow">Offline vault</p><h2>Storage could not be opened.</h2><p class="intro">${esc(error.message || "Try reloading this page.")}</p></div>`;
+        return;
+      }
+      const fields = existing
+        ? `<label class="required">Vault passphrase<input name="passphrase" type="password" autocomplete="current-password" required minlength="12"></label>`
+        : `<label class="required">Create a passphrase<input name="passphrase" type="password" autocomplete="new-password" required minlength="12"></label><label class="required">Confirm passphrase<input name="confirmation" type="password" autocomplete="new-password" required minlength="12"></label>`;
+      const intro = existing
+        ? "Unlock the encrypted records and device credential stored in this browser."
+        : "Create a passphrase to encrypt records and credentials in this browser. Existing localStorage data will be removed only after encrypted migration is verified.";
+      screen.innerHTML = `<section class="panel"><p class="eyebrow">${existing ? "Offline vault locked" : "Protect this browser"}</p><h2>${existing ? "Unlock Field Collector" : "Create your offline vault"}</h2><p class="intro">${esc(message || intro)}</p><form id="vaultForm">${fields}<button class="button" type="submit">${existing ? "Unlock" : "Create encrypted vault"}</button></form></section>`;
+      document.getElementById("vaultForm").addEventListener("submit", async event => {
+        event.preventDefault();
+        const values = Object.fromEntries(new FormData(event.target).entries());
+        if (!existing && values.passphrase !== values.confirmation) { await renderVaultGate("Passphrases do not match."); return; }
+        try {
+          vaultState = await vault.unlock(values.passphrase, legacyStorage());
+          stateWrite = window.FieldCollectorVault.createStateWriter(vault);
+          renderHome();
+          await loadForms();
+          if (vault.legacyDataPreserved) notify("Additional legacy browser data was preserved, not imported or deleted. Arrange a verified recovery and cleanup before reusing this browser for sensitive work.", true);
+          void syncQueue(false);
+        } catch (error) {
+          await renderVaultGate(error.message || "Could not unlock encrypted offline data.");
+        }
+      });
+    };
+    const lockVault = async () => {
+      if (!vault?.isUnlocked() || vaultLocking) return;
+      vaultLocking = true;
+      if (stateWrite) await stateWrite.flush();
+      vault.lock(); vaultState = null; stateWrite = null; enrollmentCode = ""; currentPhotos = []; currentLocation = null; currentForm = null;
+      vaultLocking = false;
+      await renderVaultGate();
+    };
+    document.getElementById("homeButton").addEventListener("click", renderHome);
+    document.getElementById("lockButton").addEventListener("click", () => { void lockVault(); });
+    window.addEventListener("online", () => { setConnection(); loadForms().then(() => syncQueue(false)); });
+    window.addEventListener("offline", setConnection);
+    setConnection(); void renderVaultGate();
+    window.setInterval(() => { void syncQueue(false); }, 30000);
+  </script>
+</body>
+</html>

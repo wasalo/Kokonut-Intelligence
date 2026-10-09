@@ -12,15 +12,14 @@ Usage:
 
 import argparse
 import json
-import sys
 import time
 from datetime import datetime, timezone
 
-import requests
+from services.common.http import http
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, retry
-from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry, update_indexer_status
+from .clickhouse_outbox import enqueue
 
 logger = get_logger("ingestion.eas")
 
@@ -81,7 +80,7 @@ def query_eas(chain: str, query: str, variables: dict) -> dict:
     endpoint = EAS_ENDPOINTS.get(chain)
     if not endpoint:
         raise ValueError(f"No EAS endpoint configured for chain: {chain}")
-    resp = requests.post(
+    resp = http.post(
         f"{endpoint}/graphql",
         json={"query": query, "variables": variables},
         timeout=30,
@@ -153,10 +152,8 @@ def insert_attestation(db, att: dict, chain: str) -> str:
         return str(row[0]) if row else None
 
 
-def insert_clickhouse(chain: str, att: dict, status: str) -> None:
-    """Insert attestation into ClickHouse."""
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
+def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
+    """Queue canonical attestation; direct writes are demo-only when conn is absent."""
     attestation_uid = att.get("id", "")
     schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
     attester = att.get("attester", "")
@@ -167,36 +164,23 @@ def insert_clickhouse(chain: str, att: dict, status: str) -> None:
         int(att.get("time", 0)), tz=timezone.utc
     ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-    def _str(val):
-        if val is None:
-            return "''"
-        return f"'{str(val).replace(chr(39), chr(39)+chr(39))}'"
-
-    query = f"""INSERT INTO attestation_events
-        (timestamp, attestation_uid, schema_uid, chain, attester, recipient,
-         subject_type, status, revoked, metadata)
-        VALUES (
-            '{block_ts}',
-            {_str(attestation_uid)},
-            {_str(schema_uid)},
-            {_str(chain)},
-            {_str(attester)},
-            {_str(recipient)},
-            'wallet',
-            {_str(status)},
-            {revoked},
-            map()
-        )"""
-
+    columns = ["timestamp", "attestation_uid", "schema_uid", "chain", "attester", "recipient",
+               "subject_type", "status", "revoked", "metadata"]
+    rows = [[block_ts, attestation_uid, schema_uid, chain, attester, recipient,
+             "wallet", status, att.get("revoked", False), {}]]
     try:
-        resp = requests.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        if conn is not None:
+            payload_hash = hash_payload(att)
+            enqueue(conn, event_key=f"attestation:attestation_events:{attestation_uid}",
+                    source_table="attestation_record", source_id=attestation_uid,
+                    target_table="attestation_events", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
+        post_clickhouse_rows(
+            "attestation_events",
+            columns, rows,
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 
@@ -214,36 +198,6 @@ def get_last_attestation_time(db, chain: str) -> int:
         )
         row = cur.fetchone()
     return int(row[0]) if row and row[0] else 0
-
-
-def update_eas_indexer_status(chain: str, last_attestation_time: int, status: str, error_message: str = None) -> None:
-    """Update EAS sync status without treating timestamps as block numbers."""
-    status_db = get_db()
-    try:
-        with status_db.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO chain_indexer_status
-                    (chain, indexer_type, last_synced_block, last_synced_at, status, error_message, metadata)
-                VALUES (%s, 'eas', NULL, NOW(), %s, %s, %s::jsonb)
-                ON CONFLICT (chain, indexer_type) DO UPDATE SET
-                    last_synced_block = NULL,
-                    last_synced_at = NOW(),
-                    status = EXCLUDED.status,
-                    error_message = EXCLUDED.error_message,
-                    metadata = COALESCE(chain_indexer_status.metadata, '{}'::jsonb) || EXCLUDED.metadata,
-                    updated_at = NOW()
-                """,
-                (
-                    chain,
-                    status,
-                    error_message,
-                    json.dumps({"last_attestation_time": last_attestation_time}),
-                ),
-            )
-        status_db.commit()
-    finally:
-        status_db.close()
 
 
 def run(chain: str = None):
@@ -299,7 +253,7 @@ def run(chain: str = None):
                                 total_inserted += 1
                                 # Dual-write to ClickHouse
                                 status = "rejected" if att.get("revoked") else "published"
-                                insert_clickhouse(c, att, status)
+                                insert_clickhouse(c, att, status, db)
 
                             if att_time > max_attestation_time:
                                 max_attestation_time = att_time
@@ -310,11 +264,13 @@ def run(chain: str = None):
 
                         time.sleep(0.5)
 
-                    update_eas_indexer_status(c, max_attestation_time, "healthy")
+                    update_indexer_status(c, "eas", status="healthy",
+                                          metadata={"last_attestation_time": max_attestation_time})
                     logger.info("  ✓ Wallet %s...: indexed", w_addr[:10])
 
                 except Exception as e:
-                    update_eas_indexer_status(c, last_attestation_time, "error", str(e))
+                    update_indexer_status(c, "eas", status="error", error_message=str(e),
+                                          metadata={"last_attestation_time": last_attestation_time})
                     logger.error("  ✗ Wallet %s...: %s", w_addr[:10], e)
 
             log_ingestion(

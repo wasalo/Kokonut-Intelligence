@@ -494,14 +494,21 @@ class ExportMethods(GenericMethods):
     def create_export(
         self,
         export_type: str,
+        format: Optional[str] = None,
+        entity_type: Optional[str] = None,
+        entity_ids: Optional[List[str]] = None,
         target_table: Optional[str] = None,
         filters: Optional[Dict[str, Any]] = None,
     ) -> ExportLog:
         return super().create({
             "export_type": export_type,
+            "format": format,
+            "entity_type": entity_type,
+            "entity_ids": entity_ids,
             "target_table": target_table,
             "filters": filters,
             "status": "pending",
+            "requested_by": "sdk",
         })
 
 

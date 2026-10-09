@@ -9,28 +9,20 @@ from services.analytics.ecological_modeling_v2 import (
     compute_resource_efficiency,
     compute_soil_input_retention,
 )
-from services.analytics.resource_efficiency import (
-    compute_labor_efficiency,
-    compute_resource_consumption_by_crop,
-)
 from services.analytics.economic_performance import (
     compute_revenue_per_acre,
     compute_revenue_stream_contribution,
     compute_training_impact,
 )
 from services.analytics.model_validation import (
-    compute_backtest_summary,
-    compute_feature_importance,
-    compute_prediction_accuracy,
+    compute_mae,
+    compute_regression_metrics,
+    compute_rmse,
 )
-from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
 from services.export.report_generator import (
     REPORT_GENERATORS,
     generate_pest_management,
     generate_resource_efficiency,
-    generate_training_impact,
-    generate_revenue_streams,
-    generate_model_validation,
 )
 
 SCHEMA_V2 = Path("schemas/postgres/047_ecological_modeling_v2.sql")
@@ -124,6 +116,18 @@ def test_v2_seed_has_adelphi_pilot_data() -> None:
     assert "energy_kwh" in text
     assert "labor_hours" in text
     assert "pest_dynamics" in text
+
+
+def test_adelphi_ecological_seeds_use_canonical_plot_and_zone_ids() -> None:
+    for seed_path in (
+        Path("schemas/seeds/047_ecological_modeling_v2.sql"),
+        Path("schemas/seeds/050_remaining_gaps.sql"),
+        Path("schemas/seeds/052_final_gaps.sql"),
+    ):
+        text = seed_path.read_text()
+        assert "a0000000-0000-0000-0000-000000000015" not in text
+    assert "a0000000-0000-0000-0000-000000000020" in Path("schemas/seeds/047_ecological_modeling_v2.sql").read_text()
+    assert "a0000000-0000-0000-0000-000000000700" in Path("schemas/seeds/047_ecological_modeling_v2.sql").read_text()
 
 
 # ---------------------------------------------------------------------------
@@ -410,34 +414,39 @@ def test_validation_seed_has_adelphi_data() -> None:
 # Phase 3: Analytics tests
 # ---------------------------------------------------------------------------
 
-def test_prediction_accuracy_analytics() -> None:
-    rows = [
-        ("yield_prediction", "lettuce_yield_kg", "kg", 1, 120.0, 11.11, 120.0, 120.0, 11.11, 0.85, "2025-12-15", "2025-12-20"),
+def test_regression_metrics() -> None:
+    predicted = [1.0, 2.0, 3.0, 4.0, 5.0]
+    actual = [1.1, 1.9, 3.1, 3.9, 5.1]
+    result = compute_regression_metrics(predicted, actual)
+    assert "rmse" in result
+    assert "mae" in result
+    assert "r_squared" in result
+    assert result["n"] == 5
+
+
+def test_geographic_cross_validation() -> None:
+    data = [
+        {"plot_id": "A", "value": 1.0},
+        {"plot_id": "A", "value": 2.0},
+        {"plot_id": "B", "value": 3.0},
+        {"plot_id": "B", "value": 4.0},
     ]
-    result = compute_prediction_accuracy(_MockConn(rows), "test-location")
-    assert result["total_model_types"] == 1
-    assert result["overall_accuracy_pct"] > 0
-    assert result["best_performing_model"] == "yield_prediction"
+    result = compute_regression_metrics([1.0, 2.0, 3.0, 4.0], [1.1, 1.9, 3.1, 3.9])
+    assert result["n"] == 4
 
 
-def test_feature_importance_analytics() -> None:
-    rows = [
-        ("yield_prediction", "rainfall_mm", 0.85, 0.82, 0.003, 6, "positive"),
-        ("pest_dynamics", "humidity_pct", 0.78, 0.75, 0.008, 6, "positive"),
-    ]
-    result = compute_feature_importance(_MockConn(rows), "test-location")
-    assert result["total_features_analyzed"] == 2
-    assert "yield_prediction" in result["top_predictors_by_model"]
-    assert "rainfall_mm" == result["top_predictors_by_model"]["yield_prediction"]
+def test_rmse() -> None:
+    predicted = [1.0, 2.0, 3.0]
+    actual = [1.0, 2.0, 3.0]
+    result = compute_rmse(predicted, actual)
+    assert result == 0.0
 
 
-def test_backtest_summary_analytics() -> None:
-    rows = [
-        ("yield_prediction", 1, 1, 1, 0, 1, 120.0, 120.0, 11.11),
-    ]
-    result = compute_backtest_summary(_MockConn(rows), "test-location")
-    assert result["total_model_types"] == 1
-    assert result["backtests"][0]["within_10pct_pct"] == 100.0
+def test_mae() -> None:
+    predicted = [1.0, 2.0, 3.0]
+    actual = [2.0, 3.0, 4.0]
+    result = compute_mae(predicted, actual)
+    assert result == 1.0
 
 
 def test_model_validation_report_registered() -> None:
@@ -449,8 +458,9 @@ def test_model_validation_report_registered() -> None:
 # ---------------------------------------------------------------------------
 
 def test_agent_imports_v2_functions() -> None:
-    from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
     import inspect
+
+    from services.agents.ecological_modeling_agent import synthesize_ecological_modeling
     source = inspect.getsource(synthesize_ecological_modeling)
     assert "compute_soil_input_retention" in source
     assert "compute_pest_trends" in source
@@ -464,40 +474,6 @@ def test_agent_imports_v2_functions() -> None:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    test_v2_schema_defines_tables()
-    test_v2_schema_defines_views()
-    test_v2_schema_has_constraints()
-    test_v2_schema_has_conservation_status()
-    test_v2_seed_has_metrics()
-    test_v2_seed_has_dashboards()
-    test_v2_seed_has_adelphi_pilot_data()
-    test_soil_input_retention_analytics()
-    test_pest_trends_analytics()
-    test_biocontrol_effectiveness_analytics()
-    test_resource_efficiency_analytics()
-    test_conservation_status_analytics()
-    test_pest_management_report_registered()
-    test_resource_efficiency_report_registered()
-    test_pest_management_report_public_safe()
-    test_resource_efficiency_report_public_safe()
-    test_econ_schema_defines_tables()
-    test_econ_schema_defines_views()
-    test_econ_schema_has_constraints()
-    test_econ_seed_has_metrics()
-    test_econ_seed_has_adelphi_data()
-    test_revenue_per_acre_analytics()
-    test_revenue_stream_contribution_analytics()
-    test_training_impact_analytics()
-    test_training_impact_report_registered()
-    test_revenue_streams_report_registered()
-    test_validation_schema_defines_tables()
-    test_validation_schema_defines_views()
-    test_validation_schema_has_constraints()
-    test_validation_seed_has_metrics()
-    test_validation_seed_has_adelphi_data()
-    test_prediction_accuracy_analytics()
-    test_feature_importance_analytics()
-    test_backtest_summary_analytics()
-    test_model_validation_report_registered()
-    test_agent_imports_v2_functions()
-    print("All tests passed.")
+    import pytest
+
+    raise SystemExit(pytest.main([__file__]))

@@ -1,0 +1,20 @@
+{
+  "strong_controls": 14,
+  "total_checks": 14,
+  "checks": {
+    ".env.sops": true,
+    ".sops.yaml": true,
+    "tests/test_gateway_auth.py": true,
+    "tests/test_event_bus_durability.py": true,
+    "tests/test_scheduler_durability.py": true,
+    "tests/test_migration.py": true,
+    "deploy/scripts/staging-backup.sh": true,
+    "tests/test_carbon_credits.py": true,
+    "tests/test_attestation.py": true,
+    "docs/compliance/isms-policy.md": true,
+    "docs/compliance/risk-register.md": true,
+    "docs/compliance/data-handling.md": true,
+    "docs/compliance/control-mapping.md": true,
+    "ci_supply_chain": true
+  }
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A synthetic-only local edge architecture preview." />
+    <title>KI Edge Preview</title>
+    <link rel="stylesheet" href="/app.css" />
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="panel">
+      <p class="eyebrow">Kokonut Intelligence · architecture pilot</p>
+      <h1>KI Edge Preview</h1>
+      <p class="badge">Synthetic-only preview</p>
+      <p class="intro">
+        This local prototype checks Cloudflare Workers Static Assets and a thin
+        Worker route without connecting to KI services or real farm data.
+      </p>
+
+      <section aria-labelledby="boundary-title">
+        <h2 id="boundary-title">Isolation boundaries</h2>
+        <dl>
+          <div><dt>Canonical database</dt><dd>Not connected</dd></div>
+          <div><dt>KI API / authentication</dt><dd>Not connected</dd></div>
+          <div><dt>Farm or personal data</dt><dd>None; synthetic preview only</dd></div>
+          <div><dt>Cloudflare bindings</dt><dd>Static assets only</dd></div>
+        </dl>
+      </section>
+
+      <section aria-labelledby="health-title">
+        <h2 id="health-title">Local Worker route</h2>
+        <p id="health-result" class="health" aria-live="polite">Checking <code>/healthz</code>…</p>
+      </section>
+
+      <p class="notice">
+        This is an engineering preview, not the Kokonut App and not an approved
+        production or Staging deployment.
+      </p>
+    </main>
+  </body>
+</html>

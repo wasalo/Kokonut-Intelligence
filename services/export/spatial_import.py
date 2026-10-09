@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from typing import Any
-from xml.etree.ElementTree import fromstring as xml_fromstring
+from defusedxml.ElementTree import fromstring as xml_fromstring
 
 from services.common.logging import get_logger
 
@@ -187,10 +187,11 @@ def import_kml(
             zone_key = _slugify(zone_name)
 
             # Get coordinates from Polygon
-            coords_el = (
-                pm.find(".//kml:Polygon/kml:outerBoundaryIs/kml:LinearRing/kml:coordinates", ns)
-                or pm.find(".//Polygon/outerBoundaryIs/LinearRing/coordinates")
+            coords_el = pm.find(
+                ".//kml:Polygon/kml:outerBoundaryIs/kml:LinearRing/kml:coordinates", ns
             )
+            if coords_el is None:
+                coords_el = pm.find(".//Polygon/outerBoundaryIs/LinearRing/coordinates")
             if coords_el is None or not coords_el.text:
                 zones_skipped += 1
                 continue
@@ -238,7 +239,9 @@ def import_kml(
                 zones_skipped += 1
                 continue
 
-            description_el = pm.find("kml:description", ns) or pm.find("description")
+            description_el = pm.find("kml:description", ns)
+            if description_el is None:
+                description_el = pm.find("description")
             description = description_el.text if description_el is not None else None
 
             if existing and overwrite:

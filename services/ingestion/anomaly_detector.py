@@ -27,15 +27,37 @@ import argparse
 import json
 import os
 import smtplib
-import sys
-import time
-from datetime import datetime, timezone, timedelta
-from email.mime.text import MIMEText
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Optional
 
+import psycopg2
+import psycopg2.extras
+
+from services.common.cli import print_json
+
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
+from .base import get_db, hash_payload, log_ingestion
+
+# Lazy event bus
+_event_bus = None
+
+
+def _get_event_bus(conn=None):
+    global _event_bus
+    if _event_bus is None:
+        from services.events.bus import EventBus
+        _event_bus = EventBus(conn=conn)
+    return _event_bus
+
+
+def handle_sensor_reading(event_type: str, payload: dict) -> None:
+    """Run anomaly checks for a sensor-reading event."""
+    sensor_id = payload.get("sensor_id") or payload.get("sensor_device_id")
+    if not sensor_id:
+        raise ValueError("sensor-reading events require sensor_id")
+    run_check(sensor_id=str(sensor_id))
 
 logger = get_logger("ingestion.anomaly")
 
@@ -474,7 +496,7 @@ def send_directus_notification(alert_data: dict) -> bool:
         return False
 
     try:
-        import requests
+        from services.common.http import http
         notification_payload = {
             "subject": f"Sensor Alert: {alert_data['sensor_name']}",
             "message": alert_data["message"],
@@ -483,7 +505,7 @@ def send_directus_notification(alert_data: dict) -> bool:
             "status": "unread",
         }
 
-        resp = requests.post(
+        resp = http.post(
             f"{DIRECTUS_URL}/notifications",
             json=notification_payload,
             headers={"Authorization": f"Bearer {DIRECTUS_TOKEN}"},
@@ -711,6 +733,26 @@ def run_check(sensor_id: str = None, since: str = None):
                     }
                     send_notifications(alert_data)
 
+                    bus = _get_event_bus(conn=db)
+                    priority = "high" if rule["severity"] == "critical" else "normal"
+                    bus.publish(
+                        "sensor_alert",
+                        {
+                            "alert_id": alert_id,
+                            "sensor_device_id": sensor_device_id,
+                            "sensor_id": sensor_id_val,
+                            "severity": rule["severity"],
+                            "rule_name": rule["name"],
+                            "reading_value": value,
+                            "threshold_value": rule["threshold_value"],
+                            "message": message,
+                            "location_id": str(device_info.get("location_name")),
+                        },
+                        source_table="sensor_alert",
+                        source_id=alert_id,
+                        priority=priority,
+                    )
+
                     alerts_triggered += 1
                     logger.info("  %s: %s", rule["severity"].upper(), message)
 
@@ -774,12 +816,12 @@ def run_baseline_check():
             if not recent_readings:
                 continue
 
-            values = [float(r[1]) for r in recent_readings]
+            values = [float(r[2]) for r in recent_readings]
             avg_value = sum(values) / len(values)
             deviation = abs(avg_value - baseline_value) / abs(baseline_value)
 
             if deviation > DEVIATION_THRESHOLD:
-                sensor_id = str(recent_readings[0][0])
+                sensor_id = str(recent_readings[0][1])
                 direction = "above" if avg_value > baseline_value else "below"
 
                 with db.cursor() as cur:
@@ -833,6 +875,25 @@ def run_baseline_check():
                     **device_info,
                 }
                 send_notifications(alert_data)
+
+                bus = _get_event_bus(conn=db)
+                bus.publish(
+                    "sensor_alert",
+                    {
+                        "alert_id": alert_id,
+                        "sensor_device_id": sensor_device_id,
+                        "sensor_id": sensor_id,
+                        "severity": "warning",
+                        "rule_name": "baseline_deviation",
+                        "reading_value": avg_value,
+                        "threshold_value": baseline_value,
+                        "message": message,
+                        "location_id": location_id,
+                    },
+                    source_table="sensor_alert",
+                    source_id=alert_id,
+                    priority="normal",
+                )
 
                 alerts_triggered += 1
                 logger.info("  Baseline deviation: %s", message)
@@ -889,19 +950,19 @@ if __name__ == "__main__":
     elif args.baseline_check:
         run_baseline_check()
     elif args.ml_check or args.ml_train:
-        from .ml_anomaly_detector import run_ml_check, save_models
         from .base import get_db
+        from .ml_anomaly_detector import run_ml_check, save_models
 
         conn = get_db()
         try:
             if args.ml_check:
                 result = run_ml_check(conn, location_id=args.location_id, sensor_id=args.sensor)
-                print(json.dumps(result, indent=2, default=str))
+                print_json(result)
             elif args.ml_train:
                 if not args.location_id:
                     parser.error("--ml-train requires --location-id")
                 result = save_models(conn, args.location_id)
-                print(json.dumps(result, indent=2, default=str))
+                print_json(result)
         finally:
             conn.close()
     else:

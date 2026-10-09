@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 from xml.etree.ElementTree import Element, SubElement, tostring
-from xml.dom.minidom import parseString
+from defusedxml.minidom import parseString
 
 from services.common.logging import get_logger
 

@@ -2,39 +2,35 @@
 # ============================================================
 # seed-pilot.sh — Load pilot farm data
 # ============================================================
-set -eo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/common.sh"
 
 echo "=== Kokonut Intelligence — Pilot Farm Data ==="
 echo ""
 
-# Source environment
-if [ -f "$PROJECT_DIR/.env" ]; then
-    set -a
-    source "$PROJECT_DIR/.env"
-    set +a
+# Source secrets (SOPS encrypted .env.sops, or plaintext .env fallback)
+if [ -f "$PROJECT_DIR/.env.sops" ]; then
+    source "$SCRIPT_DIR/load-secrets.sh"
+elif [ -f "$PROJECT_DIR/.env" ]; then
+    if [ "${KOKONUT_ALLOW_PLAINTEXT_ENV:-}" = "true" ]; then
+        set -a
+        source "$PROJECT_DIR/.env"
+        set +a
+    else
+        echo "ERROR: No .env.sops found. Set KOKONUT_ALLOW_PLAINTEXT_ENV=true to use plaintext .env." >&2
+        exit 1
+    fi
 else
-    echo "ERROR: .env file not found. Run ./scripts/setup.sh first."
+    echo "ERROR: No secrets found. Expected .env.sops or .env."
     exit 1
 fi
 
-COMPOSE_FILE="$PROJECT_DIR/docker-compose.yml"
-DB_SERVICE="${DB_SERVICE:-database}"
-DB_WAIT_ATTEMPTS="${DB_WAIT_ATTEMPTS:-60}"
 
-wait_for_postgres() {
-    local attempt=1
-    until docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" pg_isready -U kokonut -d kokonut_intelligence > /dev/null 2>&1; do
-        if [ "$attempt" -ge "$DB_WAIT_ATTEMPTS" ]; then
-            echo "ERROR: PostgreSQL service '$DB_SERVICE' is not ready after $((DB_WAIT_ATTEMPTS * 2)) seconds."
-            return 1
-        fi
-        attempt=$((attempt + 1))
-        sleep 2
-    done
-}
+
 
 # Wait for database
 echo "Waiting for PostgreSQL..."
@@ -49,18 +45,21 @@ SEED_DIR="$PROJECT_DIR/schemas/seeds"
 
 # Support seeds required before pilot files with foreign-key dependencies.
 for seed_file in \
+    "$SEED_DIR/001_pilot_farm.sql" \
+    "$SEED_DIR/076_crisp_risk_scoring.sql" \
+    "$SEED_DIR/024_adelphi_alignment.sql" \
     "$SEED_DIR/018_module_e_water_access.sql"; do
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+        seed_apply "$seed_file" pilot
     fi
 done
 
 for seed_file in "$SEED_DIR"/*_pilot_*.sql; do
     filename=$(basename "$seed_file")
     echo "  Applying: $filename"
-    docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+    seed_apply "$seed_file" pilot
 done
 
 # MVP support seeds whose filenames are not *_pilot_*.sql.
@@ -70,12 +69,23 @@ for seed_file in \
     "$SEED_DIR/021_metric_versions.sql" \
     "$SEED_DIR/022_metric_governance.sql" \
     "$SEED_DIR/023_impact_frameworks.sql" \
-    "$SEED_DIR/024_adelphi_alignment.sql" \
     "$SEED_DIR/027_carbon_framework_seeds.sql"; do
     if [ -f "$seed_file" ]; then
         filename=$(basename "$seed_file")
         echo "  Applying: $filename"
-        docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$seed_file"
+        seed_apply "$seed_file" pilot
+    fi
+done
+
+# Pilot/reference files whose names do not use the *_pilot_*.sql convention.
+for seed_file in \
+    "$SEED_DIR/057_tree_tracking.sql" \
+    "$SEED_DIR/099_coconut_syntropic_template.sql" \
+    "$SEED_DIR/098_multi_farm.sql"; do
+    if [ -f "$seed_file" ]; then
+        filename=$(basename "$seed_file")
+        echo "  Applying: $filename"
+        seed_apply "$seed_file" pilot
     fi
 done
 

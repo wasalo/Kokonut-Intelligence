@@ -1,0 +1,104 @@
+{
+  "name": "Environmental Monitoring",
+  "description": "Weather, sensors, NDVI, soil health, and ecological indicators for environmental monitoring.",
+  "icon": "eco",
+  "color": "#2e7d32",
+  "modules": [
+    {
+      "name": "Weather Summary",
+      "type": "stats",
+      "collection": "weather_observation",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "observation_date": { "_gte": "$NOW(-7 days)" }
+      },
+      "aggregations": [
+        { "field": "temperature_c", "function": "avg", "label": "Avg Temp (°C)" },
+        { "field": "precipitation_mm", "function": "sum", "label": "Total Rain (mm)" },
+        { "field": "humidity_pct", "function": "avg", "label": "Avg Humidity %" }
+      ]
+    },
+    {
+      "name": "Sensor Readings",
+      "type": "table",
+      "collection": "sensor_reading",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "reading_date": { "_gte": "$NOW(-24 hours)" }
+      },
+      "columns": [
+        { "field": "sensor_type", "label": "Type" },
+        { "field": "value", "label": "Value" },
+        { "field": "unit", "label": "Unit" },
+        { "field": "reading_date", "label": "Time" },
+        { "field": "quality", "label": "Quality" }
+      ],
+      "sort": ["-reading_date"]
+    },
+    {
+      "name": "NDVI Trend",
+      "type": "line",
+      "collection": "remote_sensing_observation",
+      "x_axis": { "field": "observation_date", "granularity": "month" },
+      "y_axis": { "field": "ndvi", "function": "avg" },
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "observation_date": { "_gte": "$NOW(-6 months)" }
+      }
+    },
+    {
+      "name": "Soil Carbon",
+      "type": "table",
+      "collection": "soil_carbon_measurement",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" }
+      },
+      "columns": [
+        { "field": "measurement_date", "label": "Date" },
+        { "field": "depth_cm", "label": "Depth" },
+        { "field": "carbon_pct", "label": "C %" },
+        { "field": "organic_matter_pct", "label": "OM %" },
+        { "field": "method", "label": "Method" }
+      ],
+      "sort": ["-measurement_date"]
+    },
+    {
+      "name": "Sensor Alerts",
+      "type": "table",
+      "collection": "sensor_alert",
+      "filters": {
+        "sensor_device_id.location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "status": { "_in": ["open", "acknowledged"] }
+      },
+      "columns": [
+        { "field": "severity", "label": "Severity" },
+        { "field": "message", "label": "Message" },
+        { "field": "reading_value", "label": "Value" },
+        { "field": "triggered_at", "label": "Triggered" }
+      ],
+      "sort": ["-triggered_at"]
+    }
+  ],
+  "data_access": {
+    "weather_observation": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["observation_date", "temperature_c", "precipitation_mm", "humidity_pct"]
+    },
+    "sensor_reading": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["sensor_type", "value", "unit", "reading_date", "quality"]
+    },
+    "remote_sensing_observation": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["observation_date", "ndvi", "canopy_cover_pct"]
+    },
+    "soil_carbon_measurement": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["measurement_date", "depth_cm", "carbon_pct", "organic_matter_pct", "method"]
+    },
+    "sensor_alert": {
+      "read": "sensor_device_id.location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["severity", "message", "reading_value", "triggered_at", "status"]
+    }
+  }
+}

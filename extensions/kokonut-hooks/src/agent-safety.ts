@@ -11,13 +11,77 @@ const HIGH_RISK_ACTIONS = new Set([
 const AGENT_REVIEW_STATUSES = new Set(['draft', 'submitted', 'rejected']);
 const AGENT_AI_STATUSES = new Set(['draft', 'submitted', 'rejected']);
 
+export const STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS = new Set([
+  'party_resolution_case',
+  'stakeholder_consent',
+  'stakeholder_grievance_case',
+  'grievance_remedy',
+  'stakeholder_decision',
+  'stakeholder_decision_evidence',
+  'buyer_verification',
+  'market_dispute',
+  'cooperative_distribution_decision',
+  'coordination_alliance',
+  'coordination_participant',
+  'coordination_objective',
+  'coordination_contribution',
+  'coordination_benefit',
+  'coordination_risk',
+  'coordination_knowledge_exchange',
+  'coordination_review',
+  'coordination_learning_link',
+  'coordination_metric_observation',
+  'coordination_conflict_declaration',
+  'coordination_benefit_harm_analysis',
+  'coordination_minority_view',
+  'coordination_appeal',
+  'coordination_remedy',
+  'coordination_approval',
+  'coordination_partner_event',
+  'coordination_market_observation',
+  'party_trust_evidence',
+  'stewardship_proxy_authority',
+  'nature_stewardship_obligation',
+  'future_generation_principle',
+  'governance_circle',
+  'governance_role',
+  'governance_role_accountability',
+  'governance_role_domain',
+  'governance_role_policy',
+  'governance_role_assignment',
+  'governance_tension',
+  'governance_tension_link',
+  'governance_tension_event',
+  'governance_proposal',
+  'governance_proposal_objection',
+  'governance_proposal_review',
+  'governance_tactical_session',
+  'governance_tactical_item',
+  'governance_circle_link',
+]);
+
 export function isHighRiskAgentAction(action: string | undefined): boolean {
   return HIGH_RISK_ACTIONS.has(action || '');
 }
 
-export function enforceAgentTaskSafety(payload: Record<string, any>): Record<string, any> {
-  const initiatorType = payload.initiator_type || 'agent';
-  if (initiatorType === 'agent' && payload.review_status && !AGENT_REVIEW_STATUSES.has(payload.review_status)) {
+/** True when any of the resolved role slugs identify an agent actor.
+ *  Role slugs are resolved from the Directus role UUID by `resolveUserRoles`
+ *  (see roles.ts); the raw accountability role UUID must NEVER be trusted here. */
+export function isAgentActorByRoles(roles: string[] | undefined): boolean {
+  if (!Array.isArray(roles)) return false;
+  return roles.some((role) =>
+    role === 'agent_read_only' ||
+    role === 'agent_write' ||
+    role === 'agent_full' ||
+    role.startsWith('agent')
+  );
+}
+
+export function enforceAgentTaskSafety(
+  payload: Record<string, any>,
+  roles: string[] = []
+): Record<string, any> {
+  if (isAgentActorByRoles(roles) && payload.review_status && !AGENT_REVIEW_STATUSES.has(payload.review_status)) {
     throw new Error('Agent tasks can only be draft, submitted, or rejected');
   }
 
@@ -29,16 +93,36 @@ export function enforceAgentTaskSafety(payload: Record<string, any>): Record<str
   return payload;
 }
 
-export function enforceAiSummarySafety(payload: Record<string, any>, meta?: Record<string, any>): Record<string, any> {
-  // Gate on actor identity from accountability, not payload.created_by
-  const accountability = meta?.accountability;
-  const isAgent = accountability?.role === 'agent_read_only' ||
-                  accountability?.role === 'agent_write' ||
-                  accountability?.role === 'agent_full' ||
-                  accountability?.role?.startsWith?.('agent');
-
-  if (isAgent && payload.status && !AGENT_AI_STATUSES.has(payload.status)) {
+export function enforceAiSummarySafety(
+  payload: Record<string, any>,
+  roles: string[] = []
+): Record<string, any> {
+  if (isAgentActorByRoles(roles) && payload.status && !AGENT_AI_STATUSES.has(payload.status)) {
     throw new Error('Agent-created AI summaries can only be draft, submitted, or rejected');
+  }
+  return payload;
+}
+
+export function enforceStakeholderGovernanceSafety(
+  collection: string,
+  payload: Record<string, any>,
+  roles: string[] = []
+): Record<string, any> {
+  const agent = isAgentActorByRoles(roles);
+  if (collection === 'coordination_alliance' && agent && payload.status === 'draft') {
+    return payload;
+  }
+  if (agent && collection === 'governance_tension' && (!payload.action || payload.action === 'create') && payload.status === 'draft') {
+    return payload;
+  }
+  if (agent && collection === 'governance_proposal' && (!payload.action || payload.action === 'create') && payload.status === 'draft') {
+    return payload;
+  }
+  if (agent && collection === 'governance_tactical_item' && (!payload.action || payload.action === 'create') && (!payload.status || payload.status === 'open')) {
+    return payload;
+  }
+  if (agent && STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS.has(collection)) {
+    throw new Error(`Agent writes are blocked for human-governed stakeholder collection ${collection}`);
   }
   return payload;
 }

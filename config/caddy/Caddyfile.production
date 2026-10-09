@@ -1,0 +1,69 @@
+# Production Caddy configuration. Automatic HTTPS obtains publicly trusted
+# certificates for CADDY_DOMAIN; no private/internal CA is used here.
+
+{$CADDY_DOMAIN:localhost} {
+	log {
+		output stdout
+		format json
+	}
+
+	encode gzip
+
+	handle /directus/* {
+		uri strip_prefix /directus
+		reverse_proxy directus:8055
+	}
+
+	handle /admin/* {
+		uri strip_prefix /admin
+		reverse_proxy directus:8055
+	}
+
+	handle /maps/* {
+		uri strip_prefix /maps
+		root * /app/services/maps
+		file_server
+	}
+
+	handle /field/* {
+		uri strip_prefix /field
+		root * /app/services/mobile
+		file_server
+	}
+
+	handle /mobile* {
+		reverse_proxy gateway:8099
+	}
+
+	handle /api/mobile/* {
+		reverse_proxy gateway:8099
+	}
+
+
+	handle /grpc/* {
+		uri strip_prefix /grpc
+		reverse_proxy grpc:50051 {
+			transport http {
+				protocols h2c
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy directus:8055
+	}
+
+	header {
+		Access-Control-Allow-Origin *
+		Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type, Authorization, x-api-key, x-capability-token, x-device-token"
+		Access-Control-Max-Age 86400
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security max-age=31536000; includeSubDomains
+	}
+}

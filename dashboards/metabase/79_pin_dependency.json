@@ -1,0 +1,16 @@
+{
+  "title": "Pin Dependency",
+  "description": "Governed records blocked by unverified upstream data.",
+  "cards": [
+    {
+      "name": "Pin Dependency",
+      "dataset_query": "dashboards/metabase/sql/79_pin_dependency.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "analytics_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

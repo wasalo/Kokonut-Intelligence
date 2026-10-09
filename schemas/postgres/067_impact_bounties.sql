@@ -48,6 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_bounty_location ON impact_bounty(location_id);
 CREATE INDEX IF NOT EXISTS idx_bounty_status ON impact_bounty(bounty_status);
 CREATE INDEX IF NOT EXISTS idx_bounty_type ON impact_bounty(bounty_type);
 
+DROP TRIGGER IF EXISTS trg_bounty_updated_at ON impact_bounty;
 CREATE TRIGGER trg_bounty_updated_at
     BEFORE UPDATE ON impact_bounty
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -90,6 +91,7 @@ CREATE INDEX IF NOT EXISTS idx_bounty_submission_bounty ON impact_bounty_submiss
 CREATE INDEX IF NOT EXISTS idx_bounty_submission_location ON impact_bounty_submission(location_id);
 CREATE INDEX IF NOT EXISTS idx_bounty_submission_status ON impact_bounty_submission(status);
 
+DROP TRIGGER IF EXISTS trg_bounty_submission_updated_at ON impact_bounty_submission;
 CREATE TRIGGER trg_bounty_submission_updated_at
     BEFORE UPDATE ON impact_bounty_submission
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

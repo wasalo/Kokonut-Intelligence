@@ -56,6 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_raster_location ON raster_metadata(location_id);
 CREATE INDEX IF NOT EXISTS idx_raster_type ON raster_metadata(raster_type);
 CREATE INDEX IF NOT EXISTS idx_raster_status ON raster_metadata(status);
 
+DROP TRIGGER IF EXISTS trg_raster_metadata_updated_at ON raster_metadata;
 CREATE TRIGGER trg_raster_metadata_updated_at
     BEFORE UPDATE ON raster_metadata
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -101,6 +102,7 @@ CREATE INDEX IF NOT EXISTS idx_spatial_cluster_method ON spatial_cluster(cluster
 CREATE INDEX IF NOT EXISTS idx_spatial_cluster_centroid ON spatial_cluster USING GIST(centroid_geometry);
 CREATE INDEX IF NOT EXISTS idx_spatial_cluster_hull ON spatial_cluster USING GIST(hull_geometry);
 
+DROP TRIGGER IF EXISTS trg_spatial_cluster_updated_at ON spatial_cluster;
 CREATE TRIGGER trg_spatial_cluster_updated_at
     BEFORE UPDATE ON spatial_cluster
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -143,6 +145,7 @@ CREATE INDEX IF NOT EXISTS idx_pest_hotspot_pest ON pest_hotspot(pest_or_disease
 CREATE INDEX IF NOT EXISTS idx_pest_hotspot_status ON pest_hotspot(status);
 CREATE INDEX IF NOT EXISTS idx_pest_hotspot_centroid ON pest_hotspot USING GIST(centroid_geometry);
 
+DROP TRIGGER IF EXISTS trg_pest_hotspot_updated_at ON pest_hotspot;
 CREATE TRIGGER trg_pest_hotspot_updated_at
     BEFORE UPDATE ON pest_hotspot
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();

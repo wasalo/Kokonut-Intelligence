@@ -40,8 +40,42 @@ import {
 import {
   enforceAgentTaskSafety,
   enforceAiSummarySafety,
+  enforceStakeholderGovernanceSafety,
   prepareAgentActionLog,
+  STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS,
 } from './agent-safety.js';
+import { validateTenantReferences } from './tenant-validation.js';
+import { z } from 'zod';
+import {
+  validateAgentTaskCreate,
+  validateAgentTaskUpdate,
+  validateAiSummaryCreate,
+  validateAiSummaryUpdate,
+  validateAgentActionLogCreate,
+  validateImpactClaimCreate,
+  validateImpactClaimUpdate,
+  validateStakeholderFeedbackCreate,
+  validateStakeholderFeedbackUpdate,
+  validateExpenseEventCreate,
+  validateExpenseEventUpdate,
+  validateSalesEventCreate,
+  validateSalesEventUpdate,
+  validateRevenueEventCreate,
+  validateRevenueEventUpdate,
+  formatZodError,
+} from './schemas/index.js';
+
+/** Run Zod validation and rethrow as a sanitized hook error. */
+function parseOrThrow(validate: (p: Record<string, any>) => Record<string, any>, payload: Record<string, any>): Record<string, any> {
+  try {
+    return validate(payload);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(formatZodError(error));
+    }
+    throw error;
+  }
+}
 
 /** Collections with only workflow enforcement (no create-time validation). */
 const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
@@ -62,6 +96,16 @@ const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
 
 export default defineHook(({ filter, action, schedule }, { database }) => {
   setDb(database);
+
+  for (const collection of [
+    'farm_activity', 'harvest_event', 'expense_event', 'sales_event',
+    'loss_event', 'labor_event', 'field_note', 'stakeholder_feedback',
+    'metric_proposal', 'mrv_claim',
+  ]) {
+    filter(`${collection}.create`, async (payload: Record<string, any>) => {
+      return await validateTenantReferences(database, collection, payload);
+    });
+  }
 
   function getUserId(meta: Record<string, any>): string | undefined {
     const accountability = meta?.accountability;
@@ -105,99 +149,118 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     });
   }
 
+  // Data-stream records always enter the governed lifecycle as drafts. Their
+  // status can only advance through the standard role-gated workflow.
+  for (const collection of ['data_stream_post', 'data_stream_post_comment', 'data_stream_file']) {
+    filter(`${collection}.create`, (payload: Record<string, any>) => {
+      if (payload.status && payload.status !== 'draft') {
+        delete payload.status;
+      }
+      return payload;
+    });
+    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+      return await applyWorkflow(collection, payload, meta);
+    });
+  }
+
   // ============================================================
   // Filter hooks (blocking - run before DB write)
   // ============================================================
 
   filter('expense_event.create', (payload: Record<string, any>) => {
-    autoCategorizeExpense(payload);
+    const validated = parseOrThrow(validateExpenseEventCreate, payload);
+    autoCategorizeExpense(validated);
 
-    if (payload.amount !== undefined) {
-      const errors = validateExpenseAmount(payload.amount);
+    if (validated.amount !== undefined) {
+      const errors = validateExpenseAmount(validated.amount);
       if (errors.length > 0) {
         throw new Error(`Expense validation: ${errors.join('; ')}`);
       }
     }
 
-    if (payload.expense_date) {
-      const dateError = validateExpenseDate(payload.expense_date);
+    if (validated.expense_date) {
+      const dateError = validateExpenseDate(validated.expense_date);
       if (dateError) {
         throw new Error(dateError);
       }
     }
 
-    if (payload.evidence_urls) {
-      const errors = validateEvidenceUrls(payload.evidence_urls);
+    if (validated.evidence_urls) {
+      const errors = validateEvidenceUrls(validated.evidence_urls);
       if (errors.length > 0) {
         throw new Error(`Evidence validation: ${errors.join('; ')}`);
       }
     }
 
-    return payload;
+    return validated;
   });
 
   filter('expense_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const validated = parseOrThrow(validateExpenseEventUpdate, payload);
     // Re-run auto-categorization if category was cleared
-    if (!payload.category || payload.category === '') {
-      autoCategorizeExpense(payload);
+    if (!validated.category || validated.category === '') {
+      autoCategorizeExpense(validated);
     }
 
-    if (payload.amount !== undefined) {
-      const errors = validateExpenseAmount(payload.amount);
+    if (validated.amount !== undefined) {
+      const errors = validateExpenseAmount(validated.amount);
       if (errors.length > 0) {
         throw new Error(`Expense validation: ${errors.join('; ')}`);
       }
     }
 
-    return await applyWorkflow('expense_event', payload, meta);
+    return await applyWorkflow('expense_event', validated, meta);
   });
 
   filter('sales_event.create', (payload: Record<string, any>) => {
-    if (payload.total_amount !== undefined) {
-      payload.net_amount = calculateNetAmount(
-        payload.total_amount || 0,
-        payload.return_amount || 0,
-        payload.discount_amount || 0
+    const validated = parseOrThrow(validateSalesEventCreate, payload);
+    if (validated.total_amount !== undefined) {
+      validated.net_amount = calculateNetAmount(
+        validated.total_amount || 0,
+        validated.return_amount || 0,
+        validated.discount_amount || 0
       );
     }
 
-    if (payload.total_amount !== undefined) {
-      const errors = validateSalesAmount(payload.total_amount);
+    if (validated.total_amount !== undefined) {
+      const errors = validateSalesAmount(validated.total_amount);
       if (errors.length > 0) {
         throw new Error(`Sales validation: ${errors.join('; ')}`);
       }
     }
 
-    if (payload.sale_date) {
-      const dateError = validateNotFutureDate(payload.sale_date);
+    if (validated.sale_date) {
+      const dateError = validateNotFutureDate(validated.sale_date);
       if (dateError) {
         throw new Error(dateError);
       }
     }
 
-    if (payload.evidence_urls) {
-      const errors = validateEvidenceUrls(payload.evidence_urls);
+    if (validated.evidence_urls) {
+      const errors = validateEvidenceUrls(validated.evidence_urls);
       if (errors.length > 0) {
         throw new Error(`Evidence validation: ${errors.join('; ')}`);
       }
     }
 
-    return payload;
+    return validated;
   });
 
   filter('sales_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    if (payload.total_amount !== undefined || payload.return_amount !== undefined || payload.discount_amount !== undefined) {
+    const validated = parseOrThrow(validateSalesEventUpdate, payload);
+    const recordId = meta.keys?.[0];
+    if (recordId && (validated.total_amount !== undefined || validated.return_amount !== undefined || validated.discount_amount !== undefined)) {
       const current = await database('sales_event')
-        .where('id', meta.keys?.[0] || payload.id)
+        .where('id', recordId)
         .first();
 
-      const total = payload.total_amount ?? current?.total_amount ?? 0;
-      const returns = payload.return_amount ?? current?.return_amount ?? 0;
-      const discount = payload.discount_amount ?? current?.discount_amount ?? 0;
-      payload.net_amount = calculateNetAmount(total, returns, discount);
+      const total = validated.total_amount ?? current?.total_amount ?? 0;
+      const returns = validated.return_amount ?? current?.return_amount ?? 0;
+      const discount = validated.discount_amount ?? current?.discount_amount ?? 0;
+      validated.net_amount = calculateNetAmount(total, returns, discount);
     }
 
-    return await applyWorkflow('sales_event', payload, meta);
+    return await applyWorkflow('sales_event', validated, meta);
   });
 
   filter('harvest_event.create', (payload: Record<string, any>) => {
@@ -328,44 +391,79 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   filter('stakeholder_feedback.create', (payload: Record<string, any>) => {
     normalizeFeedbackPayload(payload);
     validateStakeholderFeedback(payload);
-    return payload;
+    return parseOrThrow(validateStakeholderFeedbackCreate, payload);
   });
 
   filter('stakeholder_feedback.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const current = recordId ? await database('stakeholder_feedback').where('id', recordId).first() : {};
     validateStakeholderFeedback({ ...(current || {}), ...payload });
-    return await applyWorkflow('stakeholder_feedback', payload, meta);
+    const validated = parseOrThrow(validateStakeholderFeedbackUpdate, payload);
+    return await applyWorkflow('stakeholder_feedback', validated, meta);
   });
 
   filter('metric_proposal.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    const accountability = meta?.accountability || meta?.payload?._accountability;
+    const accountability = meta?.accountability;
     return await handleMetricProposalUpdate(payload, meta, database, accountability);
   });
 
   filter('impact_claim.create', (payload: Record<string, any>) => {
     normalizeImpactClaimPayload(payload);
     validateImpactClaim(payload);
-    return payload;
+    return parseOrThrow(validateImpactClaimCreate, payload);
   });
 
   filter('impact_claim.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const current = recordId ? await database('impact_claim').where('id', recordId).first() : {};
     validateImpactClaim({ ...(current || {}), ...payload });
-    const accountability = meta?.accountability || meta?.payload?._accountability;
-    await stampImpactClaimReview(payload, accountability);
-    return await applyWorkflow('impact_claim', payload, meta);
+    const validated = parseOrThrow(validateImpactClaimUpdate, payload);
+    const accountability = meta?.accountability;
+    await stampImpactClaimReview(validated, accountability);
+    return await applyWorkflow('impact_claim', validated, meta);
   });
 
-  filter('agent_task.create', (payload: Record<string, any>) => enforceAgentTaskSafety(payload));
-  filter('agent_task.update', (payload: Record<string, any>) => enforceAgentTaskSafety(payload));
-  filter('ai_summary.create', (payload: Record<string, any>) => enforceAiSummarySafety(payload));
-  filter('ai_summary.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
-    enforceAiSummarySafety(payload);
-    return await applyWorkflow('ai_summary', payload, meta);
+  filter('agent_task.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const validated = parseOrThrow(validateAgentTaskCreate, payload);
+    const roles = await resolveUserRoles(database, meta);
+    return enforceAgentTaskSafety(validated, roles);
   });
-  filter('agent_action_log.create', (payload: Record<string, any>) => prepareAgentActionLog(payload));
+  filter('agent_task.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const validated = parseOrThrow(validateAgentTaskUpdate, payload);
+    const roles = await resolveUserRoles(database, meta);
+    return enforceAgentTaskSafety(validated, roles);
+  });
+  filter('ai_summary.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const validated = parseOrThrow(validateAiSummaryCreate, payload);
+    const roles = await resolveUserRoles(database, meta);
+    return enforceAiSummarySafety(validated, roles);
+  });
+  filter('ai_summary.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const validated = parseOrThrow(validateAiSummaryUpdate, payload);
+    const roles = await resolveUserRoles(database, meta);
+    enforceAiSummarySafety(validated, roles);
+    return await applyWorkflow('ai_summary', validated, meta);
+  });
+  filter('agent_action_log.create', (payload: Record<string, any>) => prepareAgentActionLog(parseOrThrow(validateAgentActionLogCreate, payload)));
+
+  filter('revenue_event.create', (payload: Record<string, any>) => {
+    return parseOrThrow(validateRevenueEventCreate, payload);
+  });
+  filter('revenue_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+    const validated = parseOrThrow(validateRevenueEventUpdate, payload);
+    return await applyWorkflow('revenue_event', validated, meta);
+  });
+
+  for (const collection of STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS) {
+    filter(`${collection}.create`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+      const roles = await resolveUserRoles(database, meta);
+      return enforceStakeholderGovernanceSafety(collection, payload, roles);
+    });
+    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+      const roles = await resolveUserRoles(database, meta);
+      return enforceStakeholderGovernanceSafety(collection, payload, roles);
+    });
+  }
 
   // ============================================================
   // Action hooks (non-blocking - run after DB write)

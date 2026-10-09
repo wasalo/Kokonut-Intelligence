@@ -39,6 +39,19 @@ export const LIFECYCLE_COLLECTIONS = [
   'stakeholder_feedback',
   'stakeholder_outcome',
   'impact_claim',
+  'data_stream_post',
+  'data_stream_post_comment',
+  'data_stream_file',
+  'credit_class',
+  'credit_batch',
+  'retirement_certificate',
+  'linkml_schema',
+  'credit_sell_order',
+  'credit_buy_order',
+  'credit_bridge_transaction',
+  'project_credit_class_enrollment',
+  'credit_basket',
+  'credit_basket_deposit',
 ] as const;
 
 export type LifecycleCollection = (typeof LIFECYCLE_COLLECTIONS)[number];
@@ -108,6 +121,32 @@ const ROLE_ROUTING: Record<string, string[]> = {
   'impact_claim:verified': ['analyst', 'manager', 'admin'],
   'impact_claim:rejected': ['analyst', 'manager', 'admin'],
   'impact_claim:published': ['manager', 'admin'],
+  'data_stream_post:verified': ['manager', 'supervisor', 'admin'],
+  'data_stream_post:rejected': ['manager', 'supervisor', 'admin'],
+  'data_stream_post:published': ['manager', 'admin'],
+  'data_stream_post_comment:verified': ['manager', 'supervisor', 'admin'],
+  'data_stream_post_comment:rejected': ['manager', 'supervisor', 'admin'],
+  'data_stream_post_comment:published': ['manager', 'admin'],
+  'data_stream_file:verified': ['manager', 'supervisor', 'admin'],
+  'data_stream_file:rejected': ['manager', 'supervisor', 'admin'],
+  'data_stream_file:published': ['manager', 'admin'],
+  'credit_class:verified': ['manager', 'admin'],
+  'credit_class:rejected': ['manager', 'admin'],
+  'credit_class:published': ['admin'],
+  'credit_batch:verified': ['manager', 'admin'],
+  'credit_batch:rejected': ['manager', 'admin'],
+  'credit_batch:published': ['admin'],
+  'retirement_certificate:issued': ['manager', 'admin'],
+  'credit_sell_order:active': ['manager', 'admin'],
+  'credit_sell_order:filled': ['manager', 'admin'],
+  'credit_sell_order:cancelled': ['manager', 'admin'],
+  'credit_buy_order:completed': ['manager', 'admin'],
+  'credit_buy_order:cancelled': ['manager', 'admin'],
+  'credit_bridge_transaction:completed': ['manager', 'admin'],
+  'credit_bridge_transaction:failed': ['manager', 'admin'],
+  'project_credit_class_enrollment:accepted': ['manager', 'admin'],
+  'project_credit_class_enrollment:rejected': ['manager', 'admin'],
+  'project_credit_class_enrollment:terminated': ['manager', 'admin'],
 };
 
 // Stash from_status between filter (pre-write) and action (post-write) hooks
@@ -186,7 +225,7 @@ export function isValidTransition(
   newStatus: string
 ): boolean {
   const transitions = VALID_TRANSITIONS[collection];
-  if (!transitions) return true;
+  if (!transitions) return false;
 
   const allowed = transitions[currentStatus];
   if (!allowed) return false;
@@ -204,7 +243,11 @@ export function isRoleAuthorized(
 ): boolean {
   const key = `${collection}:${newStatus}`;
   const allowedRoles = ROLE_ROUTING[key];
-  if (!allowedRoles) return true; // No role restriction
+  if (!allowedRoles) {
+    // Initial submission is the only intentionally broad transition. Every
+    // other transition must have an explicit routing rule.
+    return newStatus === 'submitted' && userRoles.length > 0;
+  }
 
   return userRoles.some((role) => allowedRoles.includes(role));
 }
@@ -232,14 +275,16 @@ export async function handleWorkflowTransition(
     try {
       const record = await db(collection).where('id', recordId).first('status');
       currentStatus = record?.status as string | undefined;
-    } catch (e) {
-      currentStatus = keys.status as string | undefined;
+    } catch {
+      throw new Error(`Unable to verify current status for ${collection}`);
     }
   } else {
     currentStatus = keys.status as string | undefined;
   }
 
-  if (!currentStatus) return payload;
+  if (!currentStatus) {
+    throw new Error(`Unable to verify current status for ${collection}`);
+  }
 
   if (recordId) {
     stashPendingTransition(collection, recordId, currentStatus);
@@ -264,26 +309,36 @@ export async function handleWorkflowTransition(
   }
 
   // Enforce 7-day review period for stakeholder feedback
-  if (collection === 'stakeholder_feedback' && newStatus === 'verified' && db && recordId) {
+  if (collection === 'stakeholder_feedback' && newStatus === 'verified') {
+    if (!db || !recordId) {
+      pendingTransitions.delete(transitionKey(collection, recordId || ''));
+      throw new Error('Unable to verify stakeholder feedback review period');
+    }
+
+    let record: { submitted_at?: string } | undefined;
     try {
-      const record = await db(collection).where('id', recordId).first('submitted_at');
-      if (record?.submitted_at) {
-        const submittedAt = new Date(record.submitted_at);
-        const nowDate = new Date();
-        const diffDays = Math.floor((nowDate.getTime() - submittedAt.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays < 7) {
-          pendingTransitions.delete(transitionKey(collection, recordId));
-          throw new Error(
-            `Stakeholder feedback must be in submitted status for at least 7 days before verification. ` +
-            `Submitted: ${record.submitted_at}, days elapsed: ${diffDays}`
-          );
-        }
-      }
-    } catch (e) {
-      if (e instanceof Error && e.message.includes('7 days')) {
-        throw e;
-      }
-      // If we can't check, allow the transition (graceful degradation)
+      record = await db(collection).where('id', recordId).first('submitted_at');
+    } catch {
+      pendingTransitions.delete(transitionKey(collection, recordId));
+      throw new Error('Unable to verify stakeholder feedback review period');
+    }
+    if (!record?.submitted_at) {
+      pendingTransitions.delete(transitionKey(collection, recordId));
+      throw new Error('Stakeholder feedback submitted_at is required before verification');
+    }
+    const submittedAt = new Date(record.submitted_at);
+    const nowDate = new Date();
+    if (Number.isNaN(submittedAt.getTime())) {
+      pendingTransitions.delete(transitionKey(collection, recordId));
+      throw new Error('Stakeholder feedback submitted_at must be a valid date');
+    }
+    const diffDays = Math.floor((nowDate.getTime() - submittedAt.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 7) {
+      pendingTransitions.delete(transitionKey(collection, recordId));
+      throw new Error(
+        `Stakeholder feedback must be in submitted status for at least 7 days before verification. ` +
+        `Submitted: ${record.submitted_at}, days elapsed: ${diffDays}`
+      );
     }
   }
 

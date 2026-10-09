@@ -17,10 +17,7 @@ Usage:
 
 import argparse
 import json
-import os
 import re
-import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -29,12 +26,19 @@ from web3 import Web3
 
 from ..common.logging import get_logger
 from .base import (
-    get_db, log_ingestion, hash_payload, retry,
-    update_indexer_status, get_last_synced_block, now_utc,
+    batch_ranges,
+    get_db,
+    get_last_synced_block,
+    hash_payload,
+    now_utc,
+    post_clickhouse_rows,
+    update_indexer_status,
 )
+from .clickhouse_outbox import enqueue
 from .config import (
-    GNOSIS_RPC_URL, KOKONUT_DAO_CHAIN, KOKONUT_MOLOCH_ADDRESSES,
-    CH_HOST, CH_PORT, CH_USER, CH_PASSWORD,
+    GNOSIS_RPC_URL,
+    KOKONUT_DAO_CHAIN,
+    KOKONUT_MOLOCH_ADDRESSES,
 )
 
 logger = get_logger("ingestion.gnosis")
@@ -365,11 +369,8 @@ def insert_dlego_usage(db, record: dict) -> Optional[str]:
         return str(row[0]) if row else None
 
 
-def insert_dlego_clickhouse(record: dict) -> None:
-    """Insert digital lego usage event into ClickHouse dlego_events table."""
-    import requests as req
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
+def insert_dlego_clickhouse(record: dict, conn=None) -> None:
+    """Queue canonical usage; direct writes are demo-only when conn is absent."""
     usage_date = record.get("usage_date", "")
     if hasattr(usage_date, "strftime"):
         ch_timestamp = usage_date.strftime("%Y-%m-%d 00:00:00.000")
@@ -388,45 +389,30 @@ def insert_dlego_clickhouse(record: dict) -> None:
     if action_type:
         _validate_ch_value(action_type, _STR_RE, "action_type")
 
-    def _safe(val):
-        if val is None:
-            return "NULL"
-        return str(val)
-
-    query = f"""INSERT INTO dlego_events
-        (timestamp, wallet_id, protocol_id, location_id, action_type,
-         amount, token, chain, tx_hash, metadata)
-        VALUES (
-            '{ch_timestamp}',
-            '{_safe(record.get('wallet_id', ''))}',
-            '{record.get('protocol_id', '')}',
-            '{_safe(record.get('location_id', ''))}',
-            '{action_type}',
-            {_safe(record.get('amount'))},
-            '{record.get('token', '')}',
-            '{chain}',
-            '{tx_hash}',
-            map()
-        )"""
-
+    columns = ["timestamp", "wallet_id", "protocol_id", "location_id", "action_type",
+               "amount", "token", "chain", "tx_hash", "metadata"]
+    rows = [[ch_timestamp, record.get("wallet_id", ""), record.get("protocol_id", ""),
+             record.get("location_id", ""), action_type, record.get("amount"),
+             record.get("token", ""), chain, tx_hash, {}]]
     try:
-        resp = req.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        if conn is not None:
+            payload_hash = hash_payload(record)
+            enqueue(conn, event_key=f"governance:dlego_events:{record.get('tx_hash')}:{record.get('action_type')}",
+                    source_table="digital_lego_usage", source_id=str(record.get("tx_hash", "")),
+                    target_table="dlego_events", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
+        post_clickhouse_rows(
+            "dlego_events",
+            columns, rows,
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse dlego insert failed: %s", e)
 
 
-def insert_activity_clickhouse(record: dict) -> None:
-    """Insert governance event into ClickHouse wallet_events table."""
-    import requests as req
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
+def insert_activity_clickhouse(record: dict, conn=None) -> None:
+    """Queue canonical governance activity; direct writes are demo-only without conn."""
     timestamp = record.get("block_timestamp", "")
     if isinstance(timestamp, datetime):
         ch_timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
@@ -449,31 +435,25 @@ def insert_activity_clickhouse(record: dict) -> None:
     if event_type:
         _validate_ch_value(event_type, _STR_RE, "event_type")
 
-    query = f"""INSERT INTO wallet_events
-        (timestamp, wallet_address, chain, tx_hash, block_number,
-         event_type, value, token, status, metadata)
-        VALUES (
-            '{ch_timestamp}',
-            '{record.get("metadata", {}).get("proposer", record.get("metadata", {}).get("member_address", ""))}',
-            '{chain}',
-            '{tx_hash}',
-            {record.get("block_number", 0)},
-            '{event_type}',
-            {record.get("amount", 0)},
-            '{record.get("token", "")}',
-            'success',
-            map()
-        )"""
-
+    metadata = record.get("metadata", {})
+    columns = ["timestamp", "wallet_address", "chain", "tx_hash", "block_number",
+               "event_type", "value", "token", "status", "metadata"]
+    rows = [[ch_timestamp, metadata.get("proposer", metadata.get("member_address", "")),
+             chain, tx_hash, record.get("block_number", 0), event_type,
+             record.get("amount", 0), record.get("token", ""), "success", {}]]
     try:
-        resp = req.post(
-            ch_url,
-            data=query.encode("utf-8"),
-            auth=(CH_USER, CH_PASSWORD),
-            headers={"Content-Type": "text/plain"},
-            timeout=10,
+        if conn is not None:
+            payload_hash = hash_payload(record)
+            enqueue(conn, event_key=f"governance:wallet_events:{tx_hash}:{event_type}",
+                    source_table="governance_event", source_id=tx_hash,
+                    target_table="wallet_events", columns=columns, rows=rows,
+                    payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
+        post_clickhouse_rows(
+            "wallet_events",
+            columns, rows,
         )
-        resp.raise_for_status()
     except Exception as e:
         logger.warning("ClickHouse insert failed: %s", e)
 
@@ -520,10 +500,8 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
     topic_list = list(EVENT_TOPICS.keys())
 
     total_events = 0
-    batch_start = start_block
 
-    while batch_start <= end_block:
-        batch_end = min(batch_start + BLOCK_BATCH - 1, end_block)
+    for batch_start, batch_end in batch_ranges(start_block, end_block, BLOCK_BATCH):
         logger.info("  Scanning blocks %d → %d...", batch_start, batch_end)
 
         try:
@@ -566,7 +544,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                     record = decoder(args, tx_hash, block_number, block_timestamp)
                     # Withdraw goes to treasury_event
                     insert_treasury_event(db, record)
-                    insert_activity_clickhouse(record)
+                    insert_activity_clickhouse(record, db)
                     total_events += 1
 
                     # Also insert as digital_lego_usage
@@ -588,7 +566,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                         "verified": True,
                     }
                     insert_dlego_usage(db, dlego_record)
-                    insert_dlego_clickhouse(dlego_record)
+                    insert_dlego_clickhouse(dlego_record, db)
                     continue
                 else:
                     record = decoder(args, tx_hash, block_number, block_timestamp)
@@ -612,7 +590,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                         record["protocol_id"] = str(row[0])
 
                 insert_governance_event(db, record)
-                insert_activity_clickhouse(record)
+                insert_activity_clickhouse(record, db)
                 total_events += 1
 
                 # Also insert as digital_lego_usage (protocol interaction)
@@ -634,13 +612,11 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                     "verified": True,
                 }
                 insert_dlego_usage(db, dlego_record)
-                insert_dlego_clickhouse(dlego_record)
+                insert_dlego_clickhouse(dlego_record, db)
 
         except Exception as e:
             logger.error("  Block range %d-%d failed: %s", batch_start, batch_end, e)
             update_indexer_status(chain, "rpc", batch_start, "error", str(e))
-
-        batch_start = batch_end + 1
 
     # Update indexer status
     update_indexer_status(chain, "rpc", end_block, "healthy")

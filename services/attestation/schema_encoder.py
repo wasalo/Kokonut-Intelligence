@@ -6,11 +6,22 @@ Port of @ethereum-attestation-service/eas-sdk SchemaEncoder.
 from __future__ import annotations
 
 import re
+import warnings
 from typing import Any
 
 from eth_abi import encode as abi_encode
 from eth_abi import decode as abi_decode
-from web3 import Web3
+with warnings.catch_warnings():
+    # web3 7.16 imports its legacy websocket provider while Prefect requires
+    # the current websockets line. Keep this dependency warning local to the
+    # compatibility import rather than suppressing deprecations globally.
+    warnings.filterwarnings(
+        "ignore",
+        message=r"websockets\.legacy is deprecated.*",
+        category=DeprecationWarning,
+        module=r"websockets\.legacy",
+    )
+    from web3 import Web3
 
 
 # EAS type mapping: schema type string → ABI type

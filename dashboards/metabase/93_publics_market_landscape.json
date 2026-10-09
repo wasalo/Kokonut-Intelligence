@@ -1,0 +1,16 @@
+{
+  "title": "Publics & Market Landscape",
+  "description": "Stakeholder publics, market segments, and influence/interest matrix.",
+  "cards": [
+    {
+      "name": "Publics & Market Landscape",
+      "dataset_query": "dashboards/metabase/sql/93_publics_market_landscape.sql",
+      "visualization": "table"
+    }
+  ],
+  "metadata": {
+    "owner": "strategy_guild",
+    "privacy": "internal",
+    "refresh_cron": "0 6 * * *"
+  }
+}

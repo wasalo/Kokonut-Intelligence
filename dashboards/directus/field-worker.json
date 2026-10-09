@@ -1,0 +1,113 @@
+{
+  "name": "Field Worker",
+  "description": "Daily field operations: task queue, data entry forms, activity log, sensor readings, and field notes for field staff.",
+  "icon": "agriculture",
+  "color": "#43a047",
+  "modules": [
+    {
+      "name": "Today's Tasks",
+      "type": "table",
+      "collection": "farm_activity",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "activity_date": { "_eq": "$NOW(date)" },
+        "status": { "_in": ["draft", "submitted"] }
+      },
+      "columns": [
+        { "field": "activity_type", "label": "Type" },
+        { "field": "plot_id.name", "label": "Plot" },
+        { "field": "planned_start", "label": "Start" },
+        { "field": "planned_end", "label": "End" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["planned_start"]
+    },
+    {
+      "name": "Quick Stats",
+      "type": "stats",
+      "collection": "farm_activity",
+      "filters": {
+        "created_by": { "_eq": "$CURRENT_USER.id" },
+        "activity_date": { "_gte": "$NOW(-7 days)" }
+      },
+      "aggregations": [
+        { "function": "count", "label": "Activities (7d)" },
+        { "field": "labor_hours", "function": "sum", "label": "Hours Logged" }
+      ]
+    },
+    {
+      "name": "Recent Harvests",
+      "type": "table",
+      "collection": "harvest_event",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "created_by": { "_eq": "$CURRENT_USER.id" },
+        "harvest_date": { "_gte": "$NOW(-7 days)" }
+      },
+      "columns": [
+        { "field": "harvest_date", "label": "Date" },
+        { "field": "crop_cycle_id.name", "label": "Crop" },
+        { "field": "quantity", "label": "Qty" },
+        { "field": "unit", "label": "Unit" },
+        { "field": "quality_grade", "label": "Grade" }
+      ],
+      "sort": ["-harvest_date"]
+    },
+    {
+      "name": "Sensor Readings",
+      "type": "table",
+      "collection": "sensor_reading",
+      "filters": {
+        "location_id": { "_in": "$CURRENT_USER.assigned_locations" },
+        "reading_date": { "_gte": "$NOW(-24 hours)" }
+      },
+      "columns": [
+        { "field": "sensor_type", "label": "Type" },
+        { "field": "value", "label": "Value" },
+        { "field": "unit", "label": "Unit" },
+        { "field": "reading_date", "label": "Time" }
+      ],
+      "sort": ["-reading_date"]
+    },
+    {
+      "name": "My Field Notes",
+      "type": "table",
+      "collection": "field_note",
+      "filters": {
+        "created_by": { "_eq": "$CURRENT_USER.id" },
+        "note_date": { "_gte": "$NOW(-7 days)" }
+      },
+      "columns": [
+        { "field": "note_date", "label": "Date" },
+        { "field": "note_type", "label": "Type" },
+        { "field": "title", "label": "Title" },
+        { "field": "status", "label": "Status" }
+      ],
+      "sort": ["-note_date"]
+    }
+  ],
+  "data_access": {
+    "farm_activity": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "update": "created_by = $CURRENT_USER.id",
+      "fields": ["activity_type", "activity_date", "plot_id", "labor_hours", "status", "notes"]
+    },
+    "harvest_event": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "create": true,
+      "update": "created_by = $CURRENT_USER.id",
+      "fields": ["harvest_date", "quantity", "unit", "quality_grade", "crop_cycle_id"]
+    },
+    "field_note": {
+      "read": "created_by = $CURRENT_USER.id",
+      "create": true,
+      "update": "created_by = $CURRENT_USER.id",
+      "fields": ["note_date", "note_type", "title", "content", "status"]
+    },
+    "sensor_reading": {
+      "read": "location_id IN ($CURRENT_USER.assigned_locations)",
+      "fields": ["sensor_type", "value", "unit", "reading_date", "quality"]
+    }
+  }
+}

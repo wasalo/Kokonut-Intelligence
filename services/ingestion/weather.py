@@ -12,38 +12,27 @@ Usage:
 
 import argparse
 import json
-import re
 import sys
 import time
 from datetime import datetime, timezone
 
-import requests
+from services.common.http import http
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload, retry
-from .config import OPENWEATHERMAP_API_KEY, CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .base import get_db, hash_payload, insert_clickhouse_rows, log_ingestion, retry
+from .clickhouse_outbox import enqueue
+from .config import OPENWEATHERMAP_API_KEY
 
 logger = get_logger("ingestion.weather")
 
-# Validation patterns for ClickHouse SQL interpolation
-_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
-_TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
-_STR_RE = re.compile(r'^[a-zA-Z0-9_\-\. ]+$')
-
 API_BASE = "https://api.openweathermap.org/data/2.5/weather"
 
-
-def _validate_ch_value(value: str, pattern: re.Pattern, name: str) -> str:
-    """Validate a value against a regex pattern for ClickHouse SQL safety."""
-    if not pattern.match(value):
-        raise ValueError(f"Invalid {name} for ClickHouse insert: {value!r}")
-    return value
 
 
 @retry(max_retries=3, backoff=2.0)
 def fetch_weather(lat: float, lon: float) -> dict:
     """Fetch current weather from OpenWeatherMap API."""
-    resp = requests.get(
+    resp = http.get(
         API_BASE,
         params={
             "lat": lat,
@@ -118,59 +107,60 @@ def insert_weather(db, record: dict, source_raw: dict = None) -> str:
         return str(cur.fetchone()[0])
 
 
-def insert_weather_clickhouse(records: list[dict]) -> None:
-    """Insert weather records into ClickHouse weather_events table via HTTP."""
-    import requests as req
-    from datetime import datetime, timezone
-    ch_url = f"http://{CH_HOST}:{CH_PORT}"
-
+def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
+    """Queue canonical weather rows; direct writes are demo-only when conn is absent."""
+    rows = []
     for rec in records:
         meta = rec.get("metadata", {})
         if isinstance(meta, str):
             meta = json.loads(meta)
-        meta_str = ",".join(f"'{k}','{v}'" for k, v in meta.items()) if meta else ""
-        meta_map = f"map({meta_str})" if meta_str else "map()"
 
         obs_date = rec.get("observation_date", "")
         obs_time = rec.get("observation_time") or "00:00:00"
         try:
-            dt = datetime.fromisoformat(f"{obs_date}T{obs_time}+00:00")
-            ch_timestamp = dt.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+            ts = datetime.fromisoformat(f"{obs_date}T{obs_time}+00:00")
         except Exception:
-            ch_timestamp = f"{obs_date} {obs_time}"
+            ts = datetime.now(timezone.utc)
 
-        # Validate interpolated values
-        location_id = rec.get("location_id", "")
-        if location_id:
-            _validate_ch_value(str(location_id), _UUID_RE, "location_id")
+        rows.append([
+            ts,
+            str(rec.get("location_id", "")),
+            "openweathermap",
+            float(rec.get("temperature_c") or 0),
+            float(rec.get("precipitation_mm") or 0),
+            float(rec.get("humidity_pct") or 0),
+            float(rec.get("wind_speed_kmh") or 0),
+            float(rec.get("solar_radiation_wm2") or 0),
+            float(rec.get("cloud_cover_pct") or 0),
+            {str(k): str(v) for k, v in meta.items()},
+        ])
 
-        query = f"""INSERT INTO weather_events
-            (timestamp, location_id, source, temperature_c, precipitation_mm,
-             humidity_pct, wind_speed_kmh, solar_radiation_wm2, cloud_cover_pct, metadata)
-            VALUES (
-                '{ch_timestamp}',
-                '{location_id}',
-                'openweathermap',
-                {rec.get("temperature_c") or 0},
-                {rec.get("precipitation_mm") or 0},
-                {rec.get("humidity_pct") or 0},
-                {rec.get("wind_speed_kmh") or 0},
-                {rec.get("solar_radiation_wm2") or 0},
-                {rec.get("cloud_cover_pct") or 0},
-                {meta_map}
-            )"""
+    if not rows:
+        return
 
-        try:
-            resp = req.post(
-                ch_url,
-                data=query.encode("utf-8"),
-                auth=(CH_USER, CH_PASSWORD),
-                headers={"Content-Type": "text/plain"},
-                timeout=10,
-            )
-            resp.raise_for_status()
-        except Exception as e:
-            logger.warning("ClickHouse insert failed: %s", e)
+    try:
+        if conn is not None:
+            payload_hash = hash_payload(records)
+            enqueue(conn, event_key=f"weather:weather_events:{payload_hash}",
+                    source_table="weather_observation", source_id=payload_hash,
+                    target_table="weather_events",
+                    columns=["timestamp", "location_id", "source", "temperature_c",
+                             "precipitation_mm", "humidity_pct", "wind_speed_kmh",
+                             "solar_radiation_wm2", "cloud_cover_pct", "metadata"],
+                    rows=rows, payload_hash=payload_hash)
+            return
+        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
+        insert_clickhouse_rows(
+            "weather_events",
+            [
+                "timestamp", "location_id", "source", "temperature_c",
+                "precipitation_mm", "humidity_pct", "wind_speed_kmh",
+                "solar_radiation_wm2", "cloud_cover_pct", "metadata",
+            ],
+            rows,
+        )
+    except Exception as e:
+        logger.warning("ClickHouse insert failed: %s", e)
 
 
 def run(location_id: str = None):
@@ -242,12 +232,10 @@ def run(location_id: str = None):
             )
             logger.error("  ✗ %s: %s", name, e)
 
+    if records:
+        insert_weather_clickhouse(records, db)
     db.commit()
     db.close()
-
-    # Insert into ClickHouse
-    if records:
-        insert_weather_clickhouse(records)
 
     logger.info("Done: %d success, %d errors", success, errors)
 

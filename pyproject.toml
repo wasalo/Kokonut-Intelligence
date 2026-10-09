@@ -1,17 +1,41 @@
 [tool.ruff]
 line-length = 120
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E501"]
+# Security lint is run as a scoped gate in ci-check.sh:
+#   ruff check --select S,BLE --ignore <accepted-noise> services/
+# Keeping the default select narrow avoids surfacing the large pre-existing E/F/W/I
+# tech-debt while the security gate enforces high-signal S/BLE rules
+# (S102 exec, S103 perms, S601/S604 subprocess-shell, S701/702 jinja, etc.).
+# Accepted S/BLE noise: S101 asserts (tests), S104 bind-all (internal ingestion
+# receivers/CLIs), S105 var-name false positives (pass_fail, TOKEN_URL), S110/S112
+# except hygiene, S310/S311 urllib, S404 SSL (internal disable), S603/S607 subprocess
+# (no shell), S608 SQL f-string (parameterized values + hardcoded identifiers;
+# dynamic identifiers validated separately, e.g. data_governance entity_type),
+# RUF012, BLE001. S301 is not globally suppressed: pickle loading is guarded by
+# an owner-controlled model-directory check and locally exempted only at those calls.
 
 [tool.ruff.lint.isort]
 known-first-party = ["services", "tests"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 ignore_missing_imports = true
-check_untyped_defs = false
-warn_unused_ignores = false
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
 exclude = "contracts/|extensions/|sdk/"
+
+[tool.pytest.ini_options]
+markers = [
+  "unit: pure unit tests (no DB, no network)",
+  "integration: tests requiring a live database",
+  "cli: CLI parser and help-screen tests",
+  "slow: tests that take >1s",
+]
+filterwarnings = [
+  "ignore:websockets\\.legacy is deprecated.*:DeprecationWarning:websockets\\.legacy",
+]

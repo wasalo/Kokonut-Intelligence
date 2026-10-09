@@ -9,6 +9,14 @@ from typing import Any
 _CONTRACTS_DIR = Path(__file__).parent / "contracts"
 
 EAS_CHAIN_CONFIG: dict[str, dict[str, Any]] = {
+    "ethereum": {
+        "chain_id": 1,
+        "rpc_url": os.environ.get("ETH_RPC_URL", "https://eth.llamarpc.com"),
+        "eas_address": "0xA1207C3B4412b0F54fd96ec50c53F0C1fA6E1B5C",
+        "schema_registry_address": "0xC2679fBD36d542273975aA0b330933605913a5dC",
+        "explorer": "https://etherscan.io",
+        "graphql_endpoint": "https://eas.etherscan.io",
+    },
     "celo": {
         "chain_id": 42220,
         "rpc_url": os.environ.get("CELO_RPC_URL", "https://forno.celo.org"),

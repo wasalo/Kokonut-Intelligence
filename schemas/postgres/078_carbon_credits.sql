@@ -34,9 +34,7 @@ CREATE TABLE IF NOT EXISTS carbon_credit (
     effective_price_per_tonne_usd NUMERIC(10,2) GENERATED ALWAYS AS (
         COALESCE(market_price_per_tonne_usd, price_per_tonne_usd)
     ) STORED,
-    total_value_usd NUMERIC(15,2) GENERATED ALWAYS AS (
-        available_tonnes * COALESCE(market_price_per_tonne_usd, price_per_tonne_usd)
-    ) STORED,
+    total_value_usd NUMERIC(15,2),
 
     -- Evidence chain
     climate_impact_summary_id UUID REFERENCES climate_impact_summary(id) ON DELETE SET NULL,
@@ -254,6 +252,9 @@ ALTER TABLE credit_transfer ADD CONSTRAINT chk_credit_xfer_type
     CHECK (transfer_type IN ('allocation', 'sale', 'grant', 'internal_rebalance'));
 
 -- 5. Public views
+DROP VIEW IF EXISTS v_public_carbon_credit_inventory;
+DROP VIEW IF EXISTS v_carbon_credit_balance;
+
 CREATE OR REPLACE VIEW v_public_carbon_credit_inventory AS
 SELECT
     cc.id,

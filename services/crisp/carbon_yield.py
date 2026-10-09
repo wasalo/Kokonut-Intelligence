@@ -73,8 +73,8 @@ def _query_harvest_summary(conn, location_id: str) -> Dict[str, Any]:
     cur.execute("""
         SELECT
             COUNT(*) AS harvest_count,
-            COALESCE(SUM(estimated_yield_kg), 0) AS total_yield_kg,
-            COALESCE(AVG(estimated_yield_kg), 0) AS avg_yield_kg,
+            COALESCE(SUM(CASE WHEN unit = 'kg' THEN quantity WHEN unit = 'tonnes' THEN quantity * 1000 ELSE quantity END), 0) AS total_yield_kg,
+            COALESCE(AVG(CASE WHEN unit = 'kg' THEN quantity WHEN unit = 'tonnes' THEN quantity * 1000 ELSE quantity END), 0) AS avg_yield_kg,
             MIN(harvest_date) AS first_harvest,
             MAX(harvest_date) AS last_harvest
         FROM harvest_event he
@@ -102,22 +102,20 @@ def _query_ndvi_latest(conn, location_id: str) -> Optional[float]:
 
 
 def _query_carbon_benchmark(conn, species: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    """Get carbon benchmark for a tree species."""
+    """Get an explicitly matched canonical benchmark; never choose the maximum fallback."""
+    if not species:
+        return None
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if species:
-        cur.execute("""
-            SELECT species, benchmark_co2e_per_ha, benchmark_biomass_kg_per_ha
-            FROM carbon_benchmark
-            WHERE LOWER(species) = LOWER(%s)
-            LIMIT 1
-        """, (species,))
-    else:
-        cur.execute("""
-            SELECT species, benchmark_co2e_per_ha, benchmark_biomass_kg_per_ha
-            FROM carbon_benchmark
-            ORDER BY benchmark_co2e_per_ha DESC
-            LIMIT 1
-        """)
+    cur.execute("""
+        SELECT benchmark_key, tree_system,
+               sequestration_rate_tonnes_co2e_ha_year AS benchmark_co2e_per_ha,
+               total_carbon_tonnes_ha * 1000 AS benchmark_biomass_kg_per_ha,
+               source, region
+        FROM carbon_benchmark
+        WHERE LOWER(tree_system) = LOWER(%s)
+        ORDER BY benchmark_key
+        LIMIT 1
+    """, (species,))
     row = dict(cur.fetchone() or {})
     cur.close()
     return row if row else None
@@ -141,11 +139,11 @@ def _build_scenarios(
     # If no trees yet, use benchmark estimate
     if base_co2e == 0 and benchmark:
         bench_co2e = float(benchmark.get("benchmark_co2e_per_ha", 0) or 0)
-        density = planting_density or 1000
+        density = 1000 if planting_density is None else planting_density
         base_co2e = bench_co2e * (density / 1000)
 
     # Mortality adjustment
-    mortality = (mortality_rate or 10.0) / 100.0
+    mortality = (10.0 if mortality_rate is None else mortality_rate) / 100.0
 
     # Conservative (minimum): 60% of base, full mortality, no SOC
     minimum = base_co2e * 0.60 * (1 - mortality)
@@ -207,6 +205,7 @@ def compute_carbon_yield_risk(
     ex_ante_estimate: Optional[float] = None,
     planting_density: Optional[float] = None,
     mortality_rate: Optional[float] = None,
+    species: Optional[str] = None,
 ) -> DimensionScore:
     """Compute carbon yield risk score for a location.
 
@@ -224,7 +223,7 @@ def compute_carbon_yield_risk(
     soil_carbon = _query_soil_carbon(conn, location_id)
     harvest_summary = _query_harvest_summary(conn, location_id)
     ndvi = _query_ndvi_latest(conn, location_id)
-    benchmark = _query_carbon_benchmark(conn)
+    benchmark = _query_carbon_benchmark(conn, species)
 
     # Default ex-ante from tree inventory if not provided
     if ex_ante_estimate is None:

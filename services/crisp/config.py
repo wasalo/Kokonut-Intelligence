@@ -22,13 +22,14 @@ RISK_SCORE_MIN = 0.0
 RISK_SCORE_MAX = 100.0
 
 # Rating bands (composite score -> rating)
+# Bands use [low, high) — exclusive upper bound
 RATING_BANDS = {
-    "AAA": (91, 100),
-    "AA": (80, 91),
-    "A": (69, 80),
-    "B": (44, 69),
-    "C": (20, 44),
-    "D": (0, 20),
+    "AAA": (0, 20),    # lowest risk
+    "AA": (20, 44),
+    "A": (44, 69),
+    "B": (69, 80),
+    "C": (80, 91),
+    "D": (91, 101),    # highest risk
 }
 
 # Confidence thresholds based on evidence maturity

@@ -144,7 +144,7 @@ def compute_market_sizing(conn, location_id: str, crop_id: str | None = None) ->
 
     total_tam = sum(float(e[4] or 0) for e in estimates)
     total_sam = sum(float(e[5] or 0) for e in estimates)
-    total_som = sum(float(e[7] or 0) for e in estimates)
+    total_som = sum(float(e[6] or 0) for e in estimates)
 
     result = {
         "location_id": location_id,
@@ -159,11 +159,11 @@ def compute_market_sizing(conn, location_id: str, crop_id: str | None = None) ->
                 "market_scope": e[3],
                 "tam_value": float(e[4]) if e[4] else 0,
                 "sam_value": float(e[5]) if e[5] else 0,
-                "som_value": float(e[7]) if e[7] else 0,
-                "penetration_pct": float(e[8]) if e[8] else 0,
-                "growth_rate_pct": float(e[10]) if e[10] else 0,
-                "method": e[11],
-                "confidence": e[12],
+                 "som_value": float(e[6]) if e[6] else 0,
+                 "penetration_pct": float(e[7]) if e[7] else 0,
+                 "growth_rate_pct": float(e[9]) if e[9] else 0,
+                 "method": e[10],
+                 "confidence": e[11],
             }
             for e in estimates
         ],

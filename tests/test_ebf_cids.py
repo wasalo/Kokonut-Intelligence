@@ -21,5 +21,45 @@ def test_ebf_score_exports_as_indicator_report_not_new_class() -> None:
     assert any(item.get("kokonut:ebfPillar") == "soil_health" for item in graph)
 
 
+def test_ebf_overall_score_exports_with_correct_type() -> None:
+    graph = build_cids_graph({
+        "location": {"name": "Test Farm", "slug": "test-farm"},
+        "stakeholder_outcomes": [],
+        "framework_mappings": [],
+        "feedback": [],
+        "impact_claims": [],
+        "metric_values": [
+            {"metric_key": "ebf_overall_score", "display_name": "EBF Overall Score",
+             "description": "Overall", "unit": "score_0_10",
+             "metric_value_id": "b0000000-0000-0000-0000-000000000001",
+             "period_start": date(2026, 1, 1), "period_end": date(2026, 12, 31),
+             "value": Decimal("7.5"), "value_unit": "score_0_10",
+             "computation_method": "EBF rubric"},
+        ],
+    })
+    types = {item["@type"] for item in graph}
+    assert "cids:IndicatorReport" in types
+    assert any(item.get("kokonut:ebfPillar") == "overall" for item in graph)
+
+
+def test_ebf_score_without_pillar_mapping_omits_ebf_pillar() -> None:
+    graph = build_cids_graph({
+        "location": {"name": "Test", "slug": "test"},
+        "stakeholder_outcomes": [],
+        "framework_mappings": [],
+        "feedback": [],
+        "impact_claims": [],
+        "metric_values": [
+            {"metric_key": "ebf_soil_health_score", "display_name": "Soil",
+             "description": "Score", "unit": "score_0_10",
+             "metric_value_id": "c0000000-0000-0000-0000-000000000001",
+             "period_start": date(2026, 1, 1), "period_end": date(2026, 12, 31),
+             "value": Decimal("6"), "value_unit": "score_0_10",
+             "computation_method": "EBF rubric"},
+        ],
+    })
+    assert any(item.get("kokonut:ebfPillar") == "soil_health" for item in graph)
+
+
 if __name__ == "__main__":
     test_ebf_score_exports_as_indicator_report_not_new_class()

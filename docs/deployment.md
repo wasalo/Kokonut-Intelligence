@@ -6,7 +6,7 @@
 
 - Docker Desktop (with Docker Compose v2)
 - 4GB+ RAM available for Docker
-- Ports available for base Compose: 80 and 443. PostgreSQL, ClickHouse, Directus, and Metabase are internal Docker services unless a local override exposes additional ports.
+- Ports available for base Compose: 80, 443, and 50051; loopback ports 8055, 8099, and 8883 must also be available. PostgreSQL and ClickHouse are internal-only. Directus is bound to `127.0.0.1:8055`, gateway to `127.0.0.1:8099`, MQTT TLS to `127.0.0.1:8883`, and gRPC to host port `50051` in base Compose. Metabase is excluded unless its profile is explicitly enabled.
 
 ### Quick Start
 
@@ -29,7 +29,7 @@ docker compose ps
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 ./scripts/compute-metrics.sh
-./scripts/verify-mvp.sh
+./scripts/verify-platform.sh
 ```
 
 ### Service URLs
@@ -37,14 +37,85 @@ docker compose ps
 | Service | Base Compose URL | Purpose |
 |---------|------------------|---------|
 | Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
+| Field Collector | `https://localhost/mobile` or `https://localhost/field/field-collector.html` | Offline-first mobile companion (LAN: `https://<lan-ip>/mobile`) |
 | Directus | `https://localhost` or `https://localhost/directus` | Schema management, API, admin |
 | Directus admin | `https://localhost/admin` | Admin UI route through Caddy |
-| Metabase | `https://localhost/metabase` | Internal BI dashboards |
+| Metabase (opt-in) | `http://localhost:3001` when enabled | BI dashboards; not routed through default Caddy |
+| Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
+| Gateway | `http://127.0.0.1:8099` | Loopback FastAPI gateway; Caddy proxies `/mobile` and `/api/mobile/*` |
+| gRPC | `localhost:50051` | gRPC service; host exposure is removed by the production overlay |
+| MQTT | `mqtts://127.0.0.1:8883` | Loopback-only TLS sensor broker |
 | PostgreSQL | Docker service `database:5432` | Canonical data store |
 | ClickHouse HTTP | Docker service `clickhouse:8123` | Analytical queries |
 | ClickHouse Native | Docker service `clickhouse:9000` | Native protocol |
 
-Optional local overrides may expose Directus at `http://localhost:8055` and Metabase at `http://localhost:3001`. Use those direct URLs only when your Compose overlay maps the ports.
+To enable Metabase locally, run `docker compose --profile metabase up -d metabase`. The default local override maps it to `http://localhost:3001`; default Compose and Caddy do not start or route it. Public sharing and static embedding are disabled by default. Enabling either requires a separate security decision; static embedding also requires a signing key injected through the approved secret path.
+
+### Field Collector (mobile LAN access)
+
+Base Compose includes the FastAPI `gateway` service and Caddy routes so phones on
+the same network can open the offline-first companion app and sync without a
+host-run process.
+
+**Deploy (local / LAN)**
+
+```bash
+# 1. Secrets and stack (gateway builds from Dockerfile.gateway)
+cp .env.example .env   # if needed; set POSTGRES_PASSWORD and CLICKHOUSE_PASSWORD
+docker compose up -d --build gateway caddy
+
+# 2. Confirm health
+docker compose ps gateway caddy
+curl -fsS http://127.0.0.1:8099/health
+curl -kfsS https://localhost/mobile | head -c 200
+
+# 3. Open on a phone (same Wi‑Fi as the host)
+#    https://<host-lan-ip>/mobile
+```
+
+Find the host LAN IP on macOS with `ipconfig getifaddr en0` (or `en1`). Dev
+Caddy uses an internal CA (`tls internal`); accept the browser certificate
+warning on the device the first time.
+
+| URL | Use |
+|-----|-----|
+| `https://<lan-ip>/mobile` | Preferred — HTML + `/api/mobile/*` same origin |
+| `https://<lan-ip>/field/field-collector.html` | Static HTML; API still via Caddy `/api/mobile/*` |
+| `http://127.0.0.1:8099/mobile` | Host loopback only (not for phones) |
+
+**What the reverse proxy exposes**
+
+- Caddy: `/mobile*` and `/api/mobile/*` → `gateway:8099`
+- Caddy: `/field/*` → static files from `services/mobile`
+- Gateway host port `8099` is loopback-only in base Compose; production overlay
+  removes the host binding entirely (`docker-compose.prod.yml`)
+
+**Production (Caddy)**
+
+```bash
+# .env: CADDY_DOMAIN, PUBLIC_URL, KOKONUT_ENV=production, strong secrets
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Field Collector: https://$CADDY_DOMAIN/mobile
+```
+
+**Production (Traefik)**
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d --build
+# Field Collector: https://$KOKONUT_DOMAIN/mobile
+```
+
+Traefik labels route `PathPrefix(/mobile)` and `PathPrefix(/api/mobile)` to the
+gateway with higher priority than the Directus catch-all host rule.
+
+**Host-process fallback** (no Compose gateway):
+
+```bash
+python3 -m services.gateway.cli --serve --port 8099
+# Point the app Settings → API URL at http://<lan-ip>:8099 if not behind Caddy
+```
+
+See `services/mobile/README.md` for API endpoints and device-token behavior.
 
 ### Stopping Services
 
@@ -99,6 +170,7 @@ KOKONUT_DOMAIN=kokonut.example.com
 KOKONUT_METABASE_DOMAIN=metabase.example.com
 KOKONUT_TRAEFIK_NETWORK=traefik
 KOKONUT_TLS_RESOLVER=letsencrypt
+PUBLIC_URL=https://kokonut.example.com
 
 # Start with production + Traefik overlays
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
@@ -109,9 +181,11 @@ Prerequisites for Traefik:
 2. A shared Docker network named `traefik` (or set `KOKONUT_TRAEFIK_NETWORK`)
 3. Traefik `websecure` entrypoint (443) with TLS resolver configured
 4. `KOKONUT_DOMAIN` must be set in `.env`
+5. `PUBLIC_URL` must be set to the Directus HTTPS URL
 
 The Traefik overlay creates routes:
 - `Host(kokonut.example.com)` → Directus on port 8055
+- `Host(kokonut.example.com)` + `/mobile` or `/api/mobile` → Gateway on port 8099
 - `Host(metabase.kokonut.example.com)` → Metabase on port 3000
 
 ### Worker Container (Optional)
@@ -119,11 +193,13 @@ The Traefik overlay creates routes:
 Python ingestion services (weather, market data, EAS indexer, RPC indexer, sensor ingester, anomaly detection, metrics computation) are CLI tools. By default, they run on the host via cron. For production isolation, use the worker container:
 
 ```bash
-# Build and start the worker container
-docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile worker up -d kokonut-worker
+# Build and start both worker services
+docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile worker up -d
 ```
 
-The worker container runs a cron daemon with all ingestion jobs pre-configured in `config/worker/crontab`. To customize the schedule, edit the crontab file and rebuild.
+The worker container runs a cron daemon with jobs pre-configured in `config/worker/crontab`. Its metric entry invokes `python3 -m services.metrics --compute --all-locations` once and exits; cron supplies the repetition. Metric computation writes draft `metric_value` rows and does not verify them.
+
+Backups are operator-owned and should run from the host or a dedicated backup service. The worker does not include the Docker CLI or Docker socket required by `scripts/backup.sh`.
 
 To run ad-hoc commands inside the worker:
 
@@ -133,7 +209,7 @@ docker compose exec kokonut-worker python3 -m services.analytics --portfolio-sum
 docker compose exec kokonut-worker bash scripts/health-check.sh
 ```
 
-Alternatively, keep the host-based CLI approach (see Ingestion Scheduler below) — both paths are fully supported.
+Alternatively, keep the host-based CLI approach (see Ingestion Scheduler below). Choose one scheduling owner for each job; do not run the same cron job in both places.
 
 ### Monitoring and Alerting
 
@@ -148,7 +224,7 @@ The platform includes `scripts/health-check.sh` for continuous health monitoring
 - PostgreSQL connection and key tables
 - Directus server ping and health endpoint
 - ClickHouse HTTP ping and query
-- Metabase health endpoint
+- Metabase health endpoint (only when `HEALTH_CHECK_METABASE=true`)
 - Docker container status (running + no crashed containers)
 - Disk usage (alert at 90% by default, configurable via `DISK_THRESHOLD`)
 - Memory usage (alert at 90% by default, configurable via `MEM_THRESHOLD`)
@@ -178,12 +254,14 @@ Before deploying to production:
 - [ ] `CADDY_DOMAIN` or `KOKONUT_DOMAIN` set to your domain
 - [ ] TLS configured (Caddy auto-provisions or Traefik with cert resolver)
 - [ ] `docker-compose.prod.yml` applied (no direct port exposure to host)
-- [ ] Worker container or cron scheduler set up for ingestion jobs
+- [ ] Gateway healthy and Field Collector reachable at `https://$CADDY_DOMAIN/mobile` (or Traefik host)
+- [ ] Exactly one scheduling owner selected for each recurring job (worker cron, host cron, or database scheduler)
+- [ ] `event-worker` running if queued events must be processed continuously
 - [ ] Health-check cron with alerting configured
 - [ ] Backup cron job configured (`scripts/backup.sh`)
 - [ ] Resource limits reviewed for your VM size
 - [ ] Directus `ADMIN_PASSWORD` changed from default
-- [ ] `METABASE_EMBEDDING_SECRET_KEY` set to a strong value
+- [ ] If optional Metabase embedding is enabled, `METABASE_EMBEDDING_SECRET_KEY` is set to a strong value
 
 ### Recommended VM Specs
 
@@ -196,11 +274,15 @@ Before deploying to production:
 
 ### Ingestion Scheduler
 
-Ingestion services are CLI tools. Two options are available:
+Ingestion services are CLI tools. The worker overlay also defines a continuous event worker and an opt-in database scheduler:
 
 1. **Worker container** (recommended for production) — see [Worker Container](#worker-container-optional) section above. All cron jobs are pre-configured in `config/worker/crontab`.
 
 2. **Host-based cron** — schedule directly on the host or VM. Use the entries below as a starting point.
+
+3. **Database scheduler** — start `kokonut-scheduler` with profile `scheduler` for jobs registered in the scheduler tables. Do not also schedule those jobs in worker or host cron.
+
+The `worker` profile starts `kokonut-worker` and `event-worker`; the latter runs `python3 -m services.events --worker --worker-id event-worker`. Inspect event processing with `python3 -m services.events --stats` and scheduler state with `python3 -m services.scheduler.cli --status`. Avoid starting the scheduler profile until overlapping cron entries have been disabled.
 
 Example cron entries for host-based scheduling (adjust paths and timezone as needed):
 
@@ -223,6 +305,8 @@ Example cron entries for host-based scheduling (adjust paths and timezone as nee
 
 Ensure `KOKONUT_ENV=production` and all required secrets are set in the environment used by the scheduler. Use `./scripts/health-check.sh` after deploy to verify service connectivity.
 
+For an explicit host-side metric run, set `KOKONUT_METRICS_EXECUTION=host ./scripts/compute-metrics.sh`. Without that setting, the script may launch a one-shot worker container when the Compose database is running. This is computation only; a reviewer must verify a value separately with `python3 -m services.metrics --verify-value UUID --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"`.
+
 ### Production Compose
 
 For production deployments, use the production overlay to apply memory limits and keep all services internal to Docker networks:
@@ -231,14 +315,17 @@ For production deployments, use the production overlay to apply memory limits an
 # With built-in Caddy
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
-# With external Traefik
+# With external Traefik; Metabase stays off unless its profile is enabled
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
+
+# Optional BI exception, only when separately justified and approved
+docker compose --profile metabase -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
 
 # With worker container for ingestion
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d
 ```
 
-The production overlay does not expose Directus or Metabase directly to the host. All traffic goes through the reverse proxy (Caddy or Traefik). For temporary direct access during troubleshooting, create a local override:
+The production overlay does not expose Directus or optional Metabase directly to the host. Default Caddy routes do not include Metabase; use the Traefik overlay if the optional service is separately approved and enabled. For temporary direct access during troubleshooting, create a local override:
 
 ```bash
 echo 'services:
@@ -268,7 +355,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compos
 | `ARBITRUM_RPC_URL` | Arbitrum RPC endpoint | For RPC indexer |
 | `CELO_RPC_URL` | Celo RPC endpoint (default: `https://forno.celo.org`) | For EAS attestation |
 | `ATTESTER_PRIVATE_KEY` | Private key for EAS attestation wallet | For EAS attestation |
-| `EAS_RESOLVER_ADDRESS` | EAS resolver contract address (`0x7A7390Ceb3E8145EffB81914271DA0ebDaF932Ef`) | For EAS attestation |
+| `EAS_RESOLVER_ADDRESS` | EAS resolver contract address (`0x6E1502c7a14b45aba5FC420dC92C1E3b38BD79Ad`) | For EAS attestation |
+| `KOKONUT_METRICS_EXECUTION` | Set to `host` to force `scripts/compute-metrics.sh` to use the current Python environment | No |
 | `BASEROW_API_URL` | Baserow API URL | For migration |
 | `BASEROW_TOKEN` | Baserow API token | For migration |
 
@@ -300,6 +388,26 @@ cd contracts && forge script script/DeployKokonutResolver.s.sol \
   --verify
 ```
 
+The production Gnosis Mainnet deployment record, role matrix, verified contract
+addresses, and transaction history are maintained in
+[`gnosis-mainnet-deployment.md`](gnosis-mainnet-deployment.md). The Celo EAS
+schema and resolver record are maintained in
+[`attestation-guide.md`](attestation-guide.md).
+
+For a deployed Gnosis contract, use the Etherscan-compatible verifier with the
+API key supplied through the environment; never place the key in source or shell
+history:
+
+```bash
+cd contracts
+forge verify-contract CONTRACT_ADDRESS \
+  src/Contract.sol:Contract \
+  --chain 100 \
+  --verifier etherscan \
+  --etherscan-api-key "$ETHERSCAN_API_KEY" \
+  --watch
+```
+
 **Celo EAS Contracts:**
 
 | Contract | Address |
@@ -313,6 +421,16 @@ cd contracts && forge script script/DeployKokonutResolver.s.sol \
 ClickHouse listens inside the Docker network for service-to-service access. Query it with `docker compose exec clickhouse ...` or expose its ports only through an intentional local override.
 
 ## Database Management
+
+### Migrations
+
+```bash
+python3 -m services.migration status
+python3 -m services.migration dry-run
+python3 -m services.migration migrate
+```
+
+Take and test a backup before `migrate`, review the dry-run list, and run only one migration process. The runner uses `ON_ERROR_STOP`, a PostgreSQL advisory lock, deterministic schema-before-seed ordering, and checksums that reject modification of an applied migration. Add a new migration instead of editing an applied file. Because repository SQL may contain its own transaction control, a failed file can be partially committed; inspect database state and `schema_migration` before retrying. `status` and `dry-run` create or reconcile the tracking table, so they are not strictly read-only database operations. `scripts/seed.sh` uses the runner for PostgreSQL schemas and then applies the curated pilot/reference seed phase; use `KOKONUT_RUN_CURATED_SEEDS=false` only when intentionally skipping that data phase.
 
 ### Backup
 

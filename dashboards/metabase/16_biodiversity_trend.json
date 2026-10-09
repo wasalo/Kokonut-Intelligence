@@ -1,0 +1,16 @@
+{
+  "title": "Biodiversity Trend",
+  "description": "Species richness and Shannon diversity index trends across locations.",
+  "cards": [
+    {
+      "name": "Biodiversity Trend",
+      "dataset_query": "dashboards/metabase/sql/16_biodiversity_trend.sql",
+      "visualization": "line"
+    }
+  ],
+  "metadata": {
+    "owner": "ecology_guild",
+    "privacy": "public_safe",
+    "refresh_cron": "0 6 * * *"
+  }
+}
