@@ -133,10 +133,23 @@ disabled; the generated document includes `x-kokonut-policy` derived from the
 route-policy function. No service was started. The local host cannot import
 FastAPI. The JavaScript build remains unavailable because `tsc` is not installed.
 Python syntax compilation, JSON parsing and diff whitespace checks passed; no
-test suite or HTTP route request was executed. OpenAPI-driven SDK code generation,
-release packaging, HTTP authorization/payload/Directus parity, and the
-operations-console slice remain open. Rollback reverts the additive decorators
-and policy entries plus SDK methods; the original routes remain.
+test suite or HTTP route request was executed. SDK release packaging, HTTP
+authorization/payload/Directus parity, and the operations-console slice remain
+open. Rollback reverts the additive decorators and policy entries plus SDK
+methods; the original routes remain.
+
+## Phase 7 OpenAPI-derived SDK types and paths — 11 October 2026
+
+Added a standard-library generator that reads the retained native v1 OpenAPI
+snapshot and emits public response payload types for Python and TypeScript plus
+operation-to-path tables. Both SDK clients now import those generated types and
+use the generated path templates, while convenience method wrappers remain
+handwritten. Regenerated artifacts from the snapshot; Python syntax compilation
+and `python3 -m scripts.generate_public_api_sdk --check` passed. The local `tsc`
+executable is still unavailable, so the TypeScript build was not run; no test
+suite or HTTP route request ran. Refresh the OpenAPI snapshot before rerunning
+the generator. Full operation-wrapper generation, SDK publication, runtime
+parity, and the operations-console slice remain open.
 
 ## Batch 5 mobile access boundary review — 11 October 2026
 

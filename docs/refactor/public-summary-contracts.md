@@ -64,13 +64,17 @@ distinct OpenAPI operation IDs, strict envelope models, and explicit public
 methods for these routes. `docs/openapi.yaml` describes Directus and is not the
 native Gateway contract. The scoped native schema is checked in at
 [`native-public-api-v1.openapi.json`](native-public-api-v1.openapi.json) and can
-be regenerated with `python3 -m scripts.export_public_api_openapi`. It records
-the middleware policy under `x-kokonut-policy`; its values are produced from the
-Gateway route-policy function, not an HTTP authorization exercise. The local
-host Python lacks FastAPI, so the snapshot was rendered with the existing
-Gateway dependency image, a read-only source mount, and networking disabled; no
-service was started. SDK generation from that schema, runtime
-authorization/payload checks, and release remain open.
+be regenerated with `python3 -m scripts.export_public_api_openapi`; then
+`python3 -m scripts.generate_public_api_sdk` derives Python/TypeScript response
+types and route templates from that snapshot. Both SDK clients consume those
+generated types and path templates; `python3 -m scripts.generate_public_api_sdk
+--check` reports generated-file drift. The snapshot records middleware policy
+under `x-kokonut-policy`; its values come from the Gateway route-policy function,
+not an HTTP authorization exercise. The local host Python lacks FastAPI, so the
+snapshot was rendered with the existing Gateway dependency image, a read-only
+source mount, and networking disabled; no service was started. Generation of
+convenience wrappers, runtime authorization/payload checks, and release remain
+open.
 
 Source changes passed lint, provider boundaries, dependency alignment and diff
 checks. The subsequent AMD64 portability API build/deployment completed and Docker

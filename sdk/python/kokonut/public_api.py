@@ -9,6 +9,15 @@ from urllib.parse import quote
 
 import requests
 
+from .generated_public_api import (
+    ApiPublicCrispAssessment,
+    ApiPublicLocation,
+    ApiPublicLocationSummary,
+    ApiPublicMetric,
+    ApiPublicMetricSummary,
+    PUBLIC_API_PATHS_V1,
+)
+
 
 @dataclass(frozen=True)
 class PublicLocation:
@@ -19,7 +28,7 @@ class PublicLocation:
     status: Literal["active"]
 
     @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "PublicLocation":
+    def from_payload(cls, payload: ApiPublicLocation) -> "PublicLocation":
         return cls(
             id=str(payload["id"]),
             name=str(payload["name"]),
@@ -47,7 +56,7 @@ class PublicMetric:
     computed_at: Optional[datetime]
 
     @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "PublicMetric":
+    def from_payload(cls, payload: ApiPublicMetric) -> "PublicMetric":
         raw_value = payload.get("value")
         return cls(
             metric_key=str(payload["metric_key"]),
@@ -65,7 +74,7 @@ class PublicMetricSummary:
     total_computed: int
 
     @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "PublicMetricSummary":
+    def from_payload(cls, payload: ApiPublicMetricSummary) -> "PublicMetricSummary":
         return cls(
             location_id=str(payload["location_id"]),
             computed=[PublicMetric.from_payload(row) for row in payload["computed"]],
@@ -88,7 +97,7 @@ class PublicCrispAssessment:
     status: Literal["published"]
 
     @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "PublicCrispAssessment":
+    def from_payload(cls, payload: ApiPublicCrispAssessment) -> "PublicCrispAssessment":
         score = payload.get("composite_score")
         maturity = payload.get("evidence_maturity_level")
         return cls(
@@ -128,7 +137,7 @@ class PublicLocationSummary:
     attestations: PublicAttestationCounts
 
     @classmethod
-    def from_payload(cls, payload: dict[str, Any]) -> "PublicLocationSummary":
+    def from_payload(cls, payload: ApiPublicLocationSummary) -> "PublicLocationSummary":
         metrics = payload["metrics"]
         attestations = payload["attestations"]
         return cls(
@@ -161,11 +170,12 @@ class PublicLocationMethods:
         self._client = client
 
     def list(self) -> list[PublicLocation]:
-        return [PublicLocation.from_payload(row) for row in self._client._get("/locations")["data"]]
+        path = PUBLIC_API_PATHS_V1["listPublicLocationsV1"]
+        return [PublicLocation.from_payload(row) for row in self._client._get(path)["data"]]
 
     def get(self, location_id: str) -> PublicLocation:
-        path_id = quote(location_id, safe="")
-        payload = self._client._get(f"/locations/{path_id}")["data"]
+        path = self._client._path("getPublicLocationV1", location_id=location_id)
+        payload = self._client._get(path)["data"]
         return PublicLocation.from_payload(payload)
 
 
@@ -174,8 +184,8 @@ class PublicMetricMethods:
         self._client = client
 
     def get(self, location_id: str) -> PublicMetricSummary:
-        path_id = quote(location_id, safe="")
-        payload = self._client._get(f"/metrics/{path_id}")["data"]
+        path = self._client._path("getPublicMetricSummaryV1", location_id=location_id)
+        payload = self._client._get(path)["data"]
         return PublicMetricSummary.from_payload(payload)
 
 
@@ -184,8 +194,8 @@ class PublicCrispMethods:
         self._client = client
 
     def get(self, location_id: str) -> PublicCrispAssessment:
-        path_id = quote(location_id, safe="")
-        payload = self._client._get(f"/crisp/{path_id}")["data"]
+        path = self._client._path("getPublicCrispAssessmentV1", location_id=location_id)
+        payload = self._client._get(path)["data"]
         return PublicCrispAssessment.from_payload(payload)
 
 
@@ -194,8 +204,8 @@ class PublicAnalyticsMethods:
         self._client = client
 
     def get_summary(self, location_id: str) -> PublicLocationSummary:
-        path_id = quote(location_id, safe="")
-        payload = self._client._get(f"/analytics/{path_id}/summary")["data"]
+        path = self._client._path("getPublicLocationSummaryV1", location_id=location_id)
+        payload = self._client._get(path)["data"]
         return PublicLocationSummary.from_payload(payload)
 
 
@@ -227,6 +237,13 @@ class KokonutPublicApiClient:
 
     def close(self) -> None:
         self.session.close()
+
+    def _path(self, operation_id: str, **path_params: str) -> str:
+        template = PUBLIC_API_PATHS_V1[operation_id]
+        encoded_params = {
+            name: quote(value, safe="") for name, value in path_params.items()
+        }
+        return template.format(**encoded_params)
 
     def _get(self, path: str) -> dict[str, Any]:
         response = self.session.get(f"{self.base_url}{path}", timeout=self.timeout)

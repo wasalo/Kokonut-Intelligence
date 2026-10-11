@@ -1,55 +1,28 @@
 /** Typed client for the versioned native Kokonut public API. */
 
-export interface PublicLocationV1 {
-  id: string;
-  name: string;
-  country: string | null;
-  region: string | null;
-  status: 'active';
-}
+import { publicApiPathsV1 } from './generated/public-api-v1.js';
+import type {
+  PublicCrispAssessmentV1,
+  PublicLocationV1,
+  PublicLocationSummaryV1,
+  PublicMetricSummaryV1,
+} from './generated/public-api-v1.js';
 
-export interface PublicMetricV1 {
-  metric_key: string;
-  display_name: string;
-  unit: string | null;
-  value: number | null;
-  computed_at: string | null;
-}
-
-export interface PublicMetricSummaryV1 {
-  location_id: string;
-  computed: PublicMetricV1[];
-  total_computed: number;
-}
-
-export interface PublicCrispAssessmentV1 {
-  assessment_id: string;
-  location_id: string;
-  period_start: string;
-  period_end: string;
-  methodology_version: string;
-  composite_score: number | null;
-  rating: 'AAA' | 'AA' | 'A' | 'B' | 'C' | 'D' | null;
-  confidence_level: 'high' | 'moderate' | 'low' | 'insufficient_evidence' | null;
-  evidence_maturity_level: number | null;
-  score_computed_at: string | null;
-  status: 'published';
-}
-
-export interface PublicLocationSummaryV1 {
-  summary_type: 'public_location_summary';
-  location_id: string;
-  location: PublicLocationV1;
-  metrics: {
-    metric_count: number;
-    latest_computed_at: string | null;
-  };
-  attestations: {
-    total_attestations: number;
-    published_count: number;
-    latest_attestation: string | null;
-  };
-}
+export type {
+  PublicAttestationCountsV1,
+  PublicCrispAssessmentEnvelopeV1,
+  PublicCrispAssessmentV1,
+  PublicErrorV1,
+  PublicLocationListResponseV1,
+  PublicLocationResponseV1,
+  PublicLocationSummaryEnvelopeV1,
+  PublicLocationSummaryV1,
+  PublicLocationV1,
+  PublicMetricCountsV1,
+  PublicMetricSummaryEnvelopeV1,
+  PublicMetricSummaryV1,
+  PublicMetricV1,
+} from './generated/public-api-v1.js';
 
 export interface PublicApiClientOptions {
   apiKey?: string;
@@ -113,21 +86,41 @@ export class KokonutPublicApiClient {
     this.fetchImpl = options.fetch ?? defaultFetch!;
     this.apiKey = options.apiKey;
     this.locations = {
-      list: () => this.get<PublicLocationV1[]>('/locations'),
+      list: () => this.get<PublicLocationV1[]>(publicApiPathsV1.listPublicLocationsV1),
       get: (locationId: string) =>
-        this.get<PublicLocationV1>(`/locations/${encodeURIComponent(locationId)}`),
+        this.get<PublicLocationV1>(
+          publicApiPathsV1.getPublicLocationV1.replace(
+            '{location_id}',
+            encodeURIComponent(locationId),
+          ),
+        ),
     };
     this.metrics = {
       get: (locationId: string) =>
-        this.get<PublicMetricSummaryV1>(`/metrics/${encodeURIComponent(locationId)}`),
+        this.get<PublicMetricSummaryV1>(
+          publicApiPathsV1.getPublicMetricSummaryV1.replace(
+            '{location_id}',
+            encodeURIComponent(locationId),
+          ),
+        ),
     };
     this.crisp = {
       get: (locationId: string) =>
-        this.get<PublicCrispAssessmentV1>(`/crisp/${encodeURIComponent(locationId)}`),
+        this.get<PublicCrispAssessmentV1>(
+          publicApiPathsV1.getPublicCrispAssessmentV1.replace(
+            '{location_id}',
+            encodeURIComponent(locationId),
+          ),
+        ),
     };
     this.analytics = {
       getSummary: (locationId: string) =>
-        this.get<PublicLocationSummaryV1>(`/analytics/${encodeURIComponent(locationId)}/summary`),
+        this.get<PublicLocationSummaryV1>(
+          publicApiPathsV1.getPublicLocationSummaryV1.replace(
+            '{location_id}',
+            encodeURIComponent(locationId),
+          ),
+        ),
     };
   }
 

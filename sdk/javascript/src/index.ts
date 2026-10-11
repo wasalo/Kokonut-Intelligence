@@ -5,11 +5,19 @@ export type {
   PublicApiClientOptions,
   PublicFetch,
   PublicFetchResponse,
+  PublicAttestationCountsV1,
+  PublicCrispAssessmentEnvelopeV1,
   PublicLocationV1,
+  PublicLocationListResponseV1,
+  PublicLocationResponseV1,
+  PublicLocationSummaryEnvelopeV1,
   PublicMetricV1,
+  PublicMetricCountsV1,
   PublicMetricSummaryV1,
+  PublicMetricSummaryEnvelopeV1,
   PublicCrispAssessmentV1,
   PublicLocationSummaryV1,
+  PublicErrorV1,
 } from './public-api.js';
 
 export type {
