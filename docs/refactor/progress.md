@@ -1567,3 +1567,17 @@ issued; no schema, secrets, or runtime state changed. ARM64, TLS, role, auth/sco
 streaming, data parity, concurrency and shutdown acceptance remain open. No test
 suite ran. See [gRPC contract](grpc-overlay.md), [auth](grpc-authentication.md),
 [database](grpc-database.md), [shutdown](grpc-shutdown.md), and [checklist](batches.md).
+
+## Batch 5 Caddy proxy deployment contract — 11 October 2026
+
+Reconciled the pinned Caddy Compose overlay, Caddyfile, and retained runtime
+checks. Documented loopback defaults (8088/8448), alternate HTTPS port behavior,
+all-path forwarding only to the Gateway, local-CA trust, three response headers,
+no Caddy healthcheck, no gRPC/sensor routes, ignored forwarded headers, and the
+public-ingress gates. Existing private internal TLS, host loopback, alternate
+port, and one-hop forwarded-header probes are retained; they do not certify
+public bind/DNS/ACME, client trust installation, multi-hop proxies, or
+authenticated CORS. No service or config was changed and no suite ran. Rollback
+removes only the proxy profile and keeps certificate volumes. See
+[proxy contract](kernel-proxy.md), [proxy evidence](builds/2026-10-10-recovery/kernel-proxy-runtime.json),
+and [Batch 5 checklist](batches.md).

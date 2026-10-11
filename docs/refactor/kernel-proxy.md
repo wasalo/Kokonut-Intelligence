@@ -16,6 +16,29 @@ port (`KOKONUT_KERNEL_HTTPS_PORT`, default `8448`), including when HTTPS is
 published on a nonstandard local port. Certificate state uses distinct
 candidate volumes.
 
+## Deployment contract
+
+- `proxy` is a separate opt-in Compose service using the digest-pinned Caddy
+  image. It waits for the candidate `app` healthcheck and forwards all HTTP
+  paths to `app:8099`; it does not route directly to PostgreSQL, Directus,
+  Metabase, MQTT, the standalone sensor receiver, or gRPC.
+- Default host bindings are `127.0.0.1:8088` and `127.0.0.1:8448`. Setting
+  `KOKONUT_KERNEL_PROXY_BIND` to a non-loopback address changes this into
+  network ingress and requires a separately reviewed domain, TLS, DNS, host
+  firewall, and authentication policy.
+- Local HTTPS uses Caddy's local CA and stores certificate state in dedicated
+  candidate volumes. The profile does not install that CA in host/browser trust
+  stores. Public-domain certificate acquisition and recovery are not certified.
+- HTTP redirects to HTTPS using the configured host HTTPS port. The proxy adds
+  three response security headers. Gateway authorization, CORS, rate limits,
+  audit and request-size policies remain owned by the application.
+- Compose defines no proxy healthcheck. The recorded HTTP/TLS probes verify the
+  path through Caddy and the gateway, but do not create a persistent ingress
+  readiness signal.
+- The gateway ignores forwarded headers by default. Audit and IP-based limits
+  therefore see Caddy's peer address; do not enable broad proxy trust to recover
+  per-client addresses. Multi-hop trust and public-origin behavior remain open.
+
 Compose selection after acceptance:
 
 ```sh
