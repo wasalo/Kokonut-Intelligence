@@ -309,7 +309,8 @@ reporting views.
 
 - [x] Define the private HTTP sensor profile, request size/signature/failure behavior, rollback, and the distinction between receiver-fixture evidence and overlay acceptance ([contract](http-sensor-overlay.md)).
 - [x] Define the opt-in MQTT broker/subscriber trust, credential, QoS 1 recovery, readiness, storage, and rollback contract; reconcile migration/image status ([contract](mqtt-overlay.md)).
-- [ ] Complete gRPC and proxy deployment contracts in separate slices.
+- [x] Define the private gRPC profile's network, TLS, API-key, database-role, health, sizing, and rollback boundaries ([contract](grpc-overlay.md)).
+- [ ] Complete the proxy deployment contract.
 - [x] Map the existing device/location/media boundary and document the consent, form-validation, and tenant gaps ([contract](mobile-access-contract.md)).
 - [ ] Define participant-to-party consent mapping and form/version enforcement, then implement and verify the approved mobile policy.
 - [x] Add an OpenAPI-backed, versioned v1 public-location list/detail contract while preserving the legacy location routes.

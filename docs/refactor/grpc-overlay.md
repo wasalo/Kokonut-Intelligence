@@ -12,6 +12,32 @@ init, restart policy, a forty-second shutdown grace, and the existing health
 RPC check. The health service reports serving; this does not verify all RPC
 registrations, database queries, or authorization behavior.
 
+## Explicit deployment boundary
+
+- The profile is opt-in. The default app has `KOKONUT_FEATURE_GRPC=false` and
+  does not install the gRPC dependencies. Omitting the profile leaves REST and
+  native CLI access independent of gRPC.
+- Port 50051 is available only to peers on the private Compose `kernel`
+  network. The overlay publishes no host port. The Caddy profile routes traffic
+  to the Gateway and does not proxy gRPC.
+- The overlay supplies no `GRPC_TLS_CERT` or `GRPC_TLS_KEY`, so the server uses
+  its insecure listener inside this private network. Although the server
+  supports paired certificate/key settings, Compose does not mount or configure
+  them. Do not expose this listener publicly or through a generic TCP proxy.
+- The API-key interceptor and method/resource scopes are the RPC authorization
+  boundary; the profile does not provision an API key. Health/reflection checks
+  do not establish business-method authorization.
+- `PG_USER` defaults to `kokonut` if `KOKONUT_RUNTIME_USER` is unset, and the
+  password falls back to `POSTGRES_PASSWORD`. That compatibility default may
+  be owner-level access. Select the reviewed non-owner runtime identity and
+  matching secret before treating this as a least-privilege deployment.
+- Four workers, pool bounds 1–5, and the server's 30-second graceful stop are
+  sizing/shutdown defaults, not measured capacity or complete cancellation
+  guarantees. Compose allows 40 seconds before container termination.
+- No schema migration is needed to start the transport. The current candidate
+  schema already includes migrations through 379, but this does not enable or
+  certify the optional service.
+
 ## Image and preparation
 
 `Dockerfile.kernel` now has a shared `kernel-base`, optional `grpc` target, and
@@ -95,6 +121,11 @@ Preserve credit custody, governance, and human confirmation boundaries on write
 methods. Check authentication context propagation and scope parsing against
 actual handlers before claiming parity. Minimal/edge deployments do not need
 this transport to operate.
+
+The recorded image digests below are historical builds. They were built before
+the latest checkout and are not release artifacts; rebuild the target from the
+reviewed source before any deployment. The optional gRPC service has not been
+started, and no RPC has been issued against the active candidate.
 
 ## Rollback
 

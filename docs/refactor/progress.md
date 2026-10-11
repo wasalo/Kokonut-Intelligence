@@ -1551,3 +1551,19 @@ Compose deployment was run for this review. ARM64, mTLS/ACL, ingestion, retry,
 reconnect, readiness, and storage recovery acceptance remain open. See
 [mqtt profile contract](mqtt-overlay.md), [delivery](mqtt-delivery.md),
 [recovery](mqtt-recovery.md), [readiness](mqtt-readiness.md), and [checklist](batches.md).
+
+
+## Batch 5 gRPC deployment contract — 11 October 2026
+
+Reconciled the private gRPC overlay with the server, auth interceptor, pooled
+database adapter, and shutdown code. The contract now states that the service
+has no host port, the Caddy profile does not proxy it, Compose omits TLS settings
+so the transport is insecure within the private `kernel` network, and API keys
+with exact method scopes authorize business RPCs. It also records the `kokonut`
+DB-user fallback, unmeasured 4-worker/1–5 pool sizing, 30-second server grace,
+40-second container grace, and liveness-only health. Historical image digests
+need a rebuild from current checkout. The service was not started and no RPC was
+issued; no schema, secrets, or runtime state changed. ARM64, TLS, role, auth/scope,
+streaming, data parity, concurrency and shutdown acceptance remain open. No test
+suite ran. See [gRPC contract](grpc-overlay.md), [auth](grpc-authentication.md),
+[database](grpc-database.md), [shutdown](grpc-shutdown.md), and [checklist](batches.md).
