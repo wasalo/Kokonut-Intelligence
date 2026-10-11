@@ -59,6 +59,21 @@ or null crop-cycle keys. This passes the data precondition for migration 379 but
 does not clear the earlier checksum gate. No checksum repair, migration edit, or
 active-target migration was performed.
 
+The candidate's stored checksum was independently matched to the exact
+`000_extensions.sql` bytes at repository base `ad806f5`. That historical source
+differs from the current source only by three idempotent extension declarations
+now placed in migration 378. A read-only candidate check found all six expected
+extensions installed. The runner now has a narrow allowlist for the exact old
+and current source checksums and validates the full extension effect before it
+can update the ledger through the existing audited repair command. Any other
+checksum remains an error. The focused migration suite passes 22 tests. The
+repair and planner also passed in an internal-only fixture seeded with the
+candidate's 361-row schema ledger: the audit row records the exact old/current
+checksums, and the planner reports precisely nine pending migrations with no
+checksum mismatch. The active candidate has not yet been repaired or migrated.
+See [candidate ACL/extension evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json)
+and [isolated repair evidence](builds/2026-10-11-recovery/candidate-checksum-repair-policy.json).
+
 Before the preflight, an encrypted checkpoint of the exact candidate database
 was written to the ignored local `backups/kernel-candidate-preflight-20261011`
 directory and mirrored to `backups/development-mirror/`. Age authentication,
@@ -75,7 +90,8 @@ the candidate's two-history checksum mismatch or authorize migration there.
 ## Validation and remaining gates
 
 `python3 -m services.migration.cli validate --schemas-only` validated all 369
-current migration sources, and `tests/test_migration.py` passed (17 tests). The
+current migration sources, and `tests/test_migration.py` passed (22 tests after
+adding the exact historical-repair coverage). The
 runner now wraps each migration body and ledger row in one transaction; balanced
 existing migration wrappers are normalized, while unbalanced/nested markers are
 rejected. A fresh scratch database in a second-generation copy applied all 369

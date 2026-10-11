@@ -170,8 +170,10 @@ Rollback: disable new schedules before restoring legacy ownership; avoid dual wr
   counts; retain a same-disk development mirror.
 - [x] Apply all 370 current schema sources to a fresh network-disabled scratch
   database; post-run plan reports zero pending.
-- [ ] Resolve the candidate's two-history checksum mismatch under the immutable
-  migration policy. Do not edit the applied source or bypass drift detection.
+- [ ] Resolve the candidate's two-history checksum mismatch through the
+  existing audited repair path for the exact repository-base checksum. Require
+  the six verified extension effects before recording the repair; keep all
+  unknown checksum mismatches failing closed and do not edit applied SQL.
 - [ ] Re-run the exact-target plan and only then review/apply pending migrations.
   Keep the scheduler task disabled until its owner approves cutover and retry
   policy.

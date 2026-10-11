@@ -26,6 +26,23 @@ Without these options, legacy ambient Compose selection is preserved. These opti
 select the destination only; checksums, ordering, locks, and transaction handling
 remain enforced. No services are started by the migration CLI.
 
+## Audited historical checksum repair
+
+The runner rejects any applied migration whose recorded SHA256 differs from
+the checked-out source. A small source-controlled allowlist supports only
+reviewed historical cases; the repair command additionally requires the exact
+recorded old checksum, an operator/reason, and `--confirm`, then writes an audit
+row to `schema_migration_repair` in the same transaction as the ledger update.
+Migration SQL is never rewritten. Target-specific validation runs before the
+repair. Unknown checksums remain blocked by the normal planner.
+
+For the Kernel candidate's exact historical `schema:000_extensions.sql`
+variant, both the old and current source SHA256 values are allowlisted, and the
+repair requires the six expected PostgreSQL extensions to already exist. This
+confirms the effect of its prior source before the current ledger fingerprint
+is recorded. Use the explicit candidate Compose selection; never run this
+repair against the legacy application by ambient Compose.
+
 ## Apply and failure semantics
 
 The runner applies each migration body and its `schema_migration` ledger write

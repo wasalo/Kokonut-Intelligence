@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-11",
+  "result": "passed isolated audited checksum repair and exact candidate migration planning",
+  "fixture": {
+    "compose_project": "kokonut-kernel-repair-policy-20261011c",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "network_internal_only": true,
+    "published_ports": [],
+    "seeded_schema_ledger_rows": 361,
+    "seed_source": "read-only migration_id/name/checksum/status export from kokonut-kernel-candidate",
+    "application_schema_or_rows_restored": false,
+    "installed_extension_preconditions": [
+      "uuid-ossp 1.1",
+      "pgcrypto 1.3",
+      "postgis 3.4.3",
+      "postgis_topology 3.4.3",
+      "pg_trgm 1.6",
+      "pg_stat_statements 1.10"
+    ]
+  },
+  "repair": {
+    "migration_id": "schema:000_extensions.sql",
+    "old_checksum": "6e5850e52423ffe8cea241f7f5764bb6c074d55813de33c601c9e8b1495723ff",
+    "new_checksum": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
+    "repair_audit_row_written": true,
+    "ledger_status": "applied",
+    "unknown_checksum_rejected_by_unit_test": true,
+    "unreviewed_current_source_rejected_by_unit_test": true,
+    "missing_extension_effect_rejected_by_unit_test": true
+  },
+  "post_repair_plan": {
+    "checksum_mismatches": 0,
+    "pending_migrations": [
+      "schema:371_scheduler_run_windows.sql",
+      "schema:372_mqtt_delivery_records.sql",
+      "schema:373_gateway_rate_buckets.sql",
+      "schema:374_clickhouse_outbox_operator_audit.sql",
+      "schema:375_notification_outbox.sql",
+      "schema:376_sensor_anomaly_delivery.sql",
+      "schema:377_kokonut_reporting_contract.sql",
+      "schema:378_optional_extensions.sql",
+      "schema:379_noi_snapshot_crop_cycle_key.sql"
+    ]
+  },
+  "verification": {
+    "focused_migration_tests": "22 passed",
+    "source_validation": "370 schema migrations validated",
+    "scratch_container_volume_network_removed": true,
+    "temporary_files_removed": true,
+    "active_candidate_mutated": false,
+    "legacy_stack_mutated": false
+  },
+  "scope_and_limits": [
+    "This fixture exercised the exact repair and planner against an imported migration ledger and the verified extension precondition; it did not restore or migrate the candidate's application schema.",
+    "A separate full-archive scratch restore attempt terminated during postgis_tiger_geocoder creation. Its disposable container, volume, and network were removed; the active candidate and legacy database were unaffected."
+  ]
+}

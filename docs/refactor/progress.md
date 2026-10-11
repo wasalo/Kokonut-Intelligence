@@ -1306,3 +1306,24 @@ not ready. The next target-side steps remain blocked behind the reviewed
 checksum-history policy, migration application, and dedicated role/ACL setup.
 
 Evidence: [candidate reporting ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json), [reporting contract](metabase-reporting-contract.md), [optional database roles](optional-database-roles.md), and [Batch 4b](batches.md). No test suites were run; capability counts and deployment selection are unchanged.
+
+
+### Candidate migration compatibility review — 11 October 2026
+
+The candidate's stored `schema:000_extensions.sql` checksum matches the exact
+repository-base bytes. The source change only relocates three idempotent
+extension declarations to migration 378; a read-only candidate query confirms
+all six expected extensions are installed. The runner now recognizes the exact
+historical/current source pair through its audited repair allowlist and refuses
+repair unless all six extension effects are present. The focused migration suite
+passes 22 tests, including exact-checksum approval, audit insertion,
+current-source pinning, and missing-extension rejection. The candidate ledger
+has not yet been repaired, and no pending migration has been applied.
+
+The exact repair and planner then passed on an internal-only fixture seeded from
+the candidate's read-only schema ledger. Its post-repair plan reported zero
+checksum mismatches and the expected nine pending migrations; the audit row
+recorded the exact old/current checksum pair. No candidate application schema
+was restored or changed by this check.
+
+Evidence: [preflight](builds/2026-10-11-recovery/candidate-migration-preflight.json), [ACL and extension inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json), [isolated repair policy evidence](builds/2026-10-11-recovery/candidate-checksum-repair-policy.json), [migration drift record](migration-checksum-drift.md), [runner policy](../../services/migration/README.md). This is an implementation preparation step; capability counts remain unchanged.

@@ -49,6 +49,12 @@ def configure_compose(project: str | None, files: list[str] | None) -> None:
 # consistently used. Repairs are only permitted for this explicit inventory;
 # new drift must be fixed with a new migration.
 APPROVED_CHECKSUM_REPAIRS = {
+    # The Kernel candidate was bootstrapped from the repository-base version
+    # of 000_extensions.sql, which installed these same six extensions before
+    # the three optional declarations were split into migration 378. Permit an
+    # audited ledger repair only when the exact known checksum is recorded and
+    # the complete extension effect is present on the target.
+    "schema:000_extensions.sql": "6e5850e52423ffe8cea241f7f5764bb6c074d55813de33c601c9e8b1495723ff",
     "schema:046_ecological_modeling.sql": "01dfc20ab0b3c2ae9c74faa3763866aa5c250deccef377f13f4128cd9c16c5ab",
     "schema:051_gap_closures.sql": "dcf5faf820dd4803119d418bbdbfa65edbfc61497d8417848d7fa99bb2d7c5f4",
     "schema:057_tree_tracking.sql": "e87318464ba890f4da3ab19a8ffbfe939bf03943993817213f7bfc7f412a016b",
@@ -65,6 +71,13 @@ APPROVED_CHECKSUM_REPAIRS = {
     # The live database contains the historical checksum from the original
     # pilot seed; repair it explicitly before applying the UID correction seed.
     "seed:014_pilot_celo_eas.sql": "2b7f95344a6453cb77fafc591255cb81e3c298553ea227241362d0c12183e9c8",
+}
+
+# This two-history repair is bound to both exact files: the candidate's
+# repository-base checksum and the current source checksum. If 000_extensions
+# changes again, the explicit compatibility review must be updated first.
+APPROVED_CHECKSUM_REPAIR_TARGETS = {
+    "schema:000_extensions.sql": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
 }
 
 
@@ -274,6 +287,19 @@ def _validate_repair_schema(migration_id: str) -> None:
     """Validate the live schema before repairing the known historical drift."""
     if migration_id not in APPROVED_CHECKSUM_REPAIRS:
         raise MigrationError(f"no approved checksum repair exists for {migration_id}")
+    if migration_id == "schema:000_extensions.sql":
+        result = _psql("""
+SELECT count(*) = 6
+FROM pg_extension
+WHERE extname = ANY(ARRAY[
+    'uuid-ossp', 'pgcrypto', 'postgis', 'postgis_topology', 'pg_trgm', 'pg_stat_statements'
+]);
+""")
+        if result.stdout.strip().lower() != "t":
+            raise MigrationError(
+                "schema validation failed: all six extensions from the historical source must exist"
+            )
+        return
     if migration_id == "seed:046_ecological_modeling.sql":
         result = _psql("""
 SELECT EXISTS (
@@ -322,6 +348,11 @@ def repair_checksum(
         raise MigrationError("old and current checksums are identical; no repair is needed")
     if APPROVED_CHECKSUM_REPAIRS.get(migration_id) != expected_old_checksum:
         raise MigrationError(f"checksum repair is not approved for {migration_id}")
+    expected_new_checksum = APPROVED_CHECKSUM_REPAIR_TARGETS.get(migration_id)
+    if expected_new_checksum and file_info["checksum"] != expected_new_checksum:
+        raise MigrationError(
+            f"current source checksum is not approved for repair of {migration_id}"
+        )
     if not reason.strip() or not repaired_by.strip():
         raise MigrationError("repair reason and operator are required")
 
