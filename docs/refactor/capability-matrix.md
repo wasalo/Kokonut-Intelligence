@@ -75,7 +75,7 @@ All named MAN-CAP acceptance checks below remain **not run**; implementation and
 | CAP-065 | Business Model Canvas | services/analytics/business_model_canvas.py | MAN-CAP-065: One-click canvas and thirteen-section status retain evidence and scope | tests/test_bmc_oneclick.py; tests/test_comprehensive_status.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-066 | State of Kokonut | services/export/ | MAN-CAP-066: Network report, funding rollup and timelines match baseline exports | tests/test_state_of_kokonut.py; tests/test_state_of_kokonut_graphs.py | P — exporter ClickHouse construction moved behind optional adapter; State of Kokonut report outputs unassessed. [Providers](provider-configuration.md); legacy CH objects inventoried and encrypted, report parity open: [Inventory](analytics-broker-recovery.md) |
 
-## Progress snapshot — 10 October 2026
+## Progress snapshot — 11 October 2026
 
 Current focus: **Phase 7, native public API reads**. See [phase progress](progress.md)
 for the implementation ledger and the [runtime record](portability-runtime.md) for
@@ -86,11 +86,16 @@ for end-to-end Kernel parity.** B does not mean removed, migrated, or working in
 minimal image: optional dependencies and full access paths still require assessment.
 D/P describe only the named slice, never completion of the whole capability.
 
-The running isolated AMD64 stack has a private database, API and native worker;
-364 schema migrations applied successfully through 373. No numbered seeds/pilot
-fixture were loaded. API health and idle worker startup are operational evidence,
-not proof of a complete farm/metric/reviewer/mobile workflow. Legacy remains
-stopped with volumes retained. All MAN-CAP acceptance gates remain open.
+The active AMD64 Kernel candidate has a private database and healthy app. Its
+rebuilt image matches all 1,292 bundled source hashes in the checkout, and its
+schema-only migration plan reports zero pending across 370 applied migrations
+through 379. The app liveness endpoint returns 200; its scheduler currently has
+zero enabled, disabled or running tasks. No numbered seeds or pilot fixture were
+loaded. These are operational checks, not proof of a complete
+farm/metric/reviewer/mobile workflow. Legacy remains stopped with volumes
+retained. The previous app image is preserved under a rollback tag. The active
+candidate still uses its owner login; no analytics role, Metabase source or
+Kokonut cards are configured. All MAN-CAP acceptance gates remain open.
 
 Shared infrastructure changes (provider flags, adapters, requirement groups,
 scheduler/events/cache ports, images and migrations) support many rows but do not

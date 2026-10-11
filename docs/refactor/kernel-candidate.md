@@ -155,3 +155,25 @@ the active database migration, restore the retained encrypted pre-repair
 checkpoint into a clean database if rollback is required; this returns the
 ledger to the historical checksum state, so replaying current migrations first
 requires the audited repair. See [candidate migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
+
+## Active candidate app rebuild — 11 October 2026
+
+The running app image was rebuilt from the current checkout after migration 379
+was applied. The prior image (`sha256:65827b…c20b10`) is preserved as
+`kokonut-kernel-candidate-app:pre-refactor-20261011`; the new image is
+`sha256:5d8302…9870272` (`linux/amd64`). The embedded manifest contains 1,292
+source files, and every embedded hash matches the checkout. Eleven optional or
+development files (five protobuf definitions and six non-Kernel requirement
+groups) are not in the Kernel image.
+
+Compose recreated only `kokonut-kernel-candidate-app-1`. The PostgreSQL
+container ID and private volume were preserved; both app and database report
+healthy. `GET /health` returned 200. The host-side, explicit-project schema plan
+reports zero pending of 370 migrations through 379. Scheduler status remains at
+zero enabled, disabled or running jobs; the NOI daily task is not registered.
+Compose created a new empty gateway-audit spool volume. No database migration,
+role or grant changed in this rebuild. The legacy stack remains stopped.
+
+This establishes current-source image alignment and launch only. It does not
+prove API/domain parity, worker recovery, or Raspberry Pi/ARM64 readiness. No
+acceptance suite was run. See the [sanitized rebuild record](builds/2026-10-11-recovery/candidate-app-rebuild.json).

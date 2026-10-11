@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-11",
+  "result": "active Kernel candidate app rebuilt from current checkout and recreated; candidate database preserved",
+  "compose": {
+    "project": "kokonut-kernel-candidate",
+    "file": "docker-compose.kernel-candidate.yml",
+    "legacy_stack_changed": false
+  },
+  "app": {
+    "container_id": "7d4ca494e588690a06f80f83571b04791fa3eea213f1a14ffccb24ecceade223",
+    "image_id": "sha256:5d83022611fc513601222ca40e9da6d497e5ed27fbc0e16a41e24a76e9870272",
+    "platform": "linux/amd64",
+    "health": "healthy",
+    "host_binding": "127.0.0.1:8098",
+    "health_endpoint_status": 200,
+    "previous_image_preserved_as": "kokonut-kernel-candidate-app:pre-refactor-20261011",
+    "previous_image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10"
+  },
+  "source_manifest": {
+    "target": "kernel",
+    "source_sha256": "48c46b4257922b04ec431691c08eded3a11d4b3c6c54eb1e0b6d741b4ad2c9d7",
+    "bundled_files": 1292,
+    "current_checkout_hash_matches": 1292,
+    "hash_differences": 0,
+    "unexpected_image_files": 0,
+    "checkout_files_not_in_kernel_image": [
+      "proto/common/pagination.proto",
+      "proto/data/v1/service.proto",
+      "proto/data/v1/types.proto",
+      "proto/ecocredit/v1/service.proto",
+      "proto/ecocredit/v1/types.proto",
+      "requirements/analytics.txt",
+      "requirements/dev.txt",
+      "requirements/geospatial.txt",
+      "requirements/grpc.txt",
+      "requirements/mqtt.txt",
+      "requirements/orchestration.txt"
+    ],
+    "omissions_are_optional_or_development_inputs": true
+  },
+  "database": {
+    "container_id": "69417747ae35c006364b3d56f6a87d1ae43076b369a5523e897b26294b62e922",
+    "image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "health": "healthy",
+    "container_recreated": false,
+    "postgres_volume_changed": false
+  },
+  "postchecks": {
+    "schema_migration_plan_pending": 0,
+    "applied_schema_migrations": 370,
+    "latest_schema_migration": "schema:379_noi_snapshot_crop_cycle_key.sql",
+    "scheduler_enabled_tasks": 0,
+    "scheduler_disabled_tasks": 0,
+    "scheduler_running_tasks": 0,
+    "noi_daily_task_registered": false
+  },
+  "side_effects": {
+    "app_recreated": true,
+    "database_recreated": false,
+    "new_empty_volume_created": "kokonut-kernel-candidate_kernel-gateway-audit-spool",
+    "migrations_applied": false,
+    "roles_or_grants_changed": false,
+    "metabase_source_or_cards_configured": false
+  },
+  "rollback": {
+    "restore_app_image_tag": "docker tag kokonut-kernel-candidate-app:pre-refactor-20261011 kokonut-kernel-candidate-app:latest",
+    "recreate_only_app": "docker compose --env-file /dev/null -p kokonut-kernel-candidate -f docker-compose.kernel-candidate.yml up -d --no-deps --force-recreate app",
+    "database_volume_or_legacy_stack_touched": false
+  },
+  "limitations": [
+    "The health endpoint and migration plan are operational checks, not API capability parity.",
+    "No Python, Solidity, or extension acceptance suites were run for this rebuild.",
+    "The image is AMD64; ARM64 and Raspberry Pi runtime acceptance remain open."
+  ]
+}

@@ -200,13 +200,15 @@ migration removes its index.
   transaction-rolled-back role fixture; verify value, period, method, and review
   fields. The populated source itself has no published policies.
 - [x] Review exact source grants and database ACLs on the active candidate. The
-  target is not ready: `kokonut` is its only login/superuser role, PUBLIC has CONNECT
-  (and TEMPORARY on the application database), and migration 377/reporting views
-  are still pending. No source role or Metabase connection was provisioned
+  pre-migration target had only the `kokonut` login/superuser, PUBLIC had CONNECT
+  (and TEMPORARY on the application database), and the reporting schema was
+  pending. No source role or Metabase connection was provisioned
   ([ACL review](builds/2026-10-11-recovery/candidate-reporting-acl-review.json)).
-- [ ] After the migration-history gate is resolved and the reporting schema is
-  applied, provision a dedicated analytics login on the exact target; verify
-  only approved named view access, database isolation, and extension ACLs.
+- [ ] Review post-migration database and extension ACLs on the active candidate;
+  provision a dedicated analytics login with explicit database and named-view
+  grants; verify denial on application tables, the private publication policy,
+  DDL and other databases. Keep its credential in SOPS and defer Metabase source
+  configuration until Kokonut card outputs are reviewed.
 
 Evidence: [populated report-view parity](builds/2026-10-11-recovery/populated-report-view-parity.json).
 The farm summary matched 2 rows, the Celo attestation summary matched 1 row,
@@ -220,6 +222,26 @@ reporting views exist, but no analytics role/source is configured. The database
 and inherited extension ACL review remains a prerequisite for provisioning.
 Rollback: no source rows or source grants were changed; the copied database was
 discarded after evidence capture.
+
+### Batch 4c — Active candidate image and schema alignment (Phases 2, 7, 8)
+
+- [x] Preserve the prior candidate app image under a dated rollback tag.
+- [x] Build the current Kernel target and compare every embedded source hash to
+  the checkout: 1,292 of 1,292 bundled files match; 11 optional/development
+  inputs are intentionally absent from this image.
+- [x] Recreate only the app container; preserve the existing candidate database
+  container, PostgreSQL volume and the stopped legacy stack.
+- [x] Confirm app/database health, loopback health endpoint, zero pending schema
+  migrations, and zero scheduled tasks.
+- [x] Record the newly created empty gateway-audit spool volume; no migrations,
+  roles, grants or Metabase configuration changed in this batch.
+
+Evidence: [candidate app rebuild](builds/2026-10-11-recovery/candidate-app-rebuild.json)
+and [active candidate migrations](builds/2026-10-11-recovery/candidate-migration-apply.json).
+Capability acceptance counts do not change. Runtime/API parity, analytics role
+isolation, ARM64 and Raspberry Pi certification remain open. Rollback: retag
+`kokonut-kernel-candidate-app:pre-refactor-20261011` as `latest` and force-recreate
+only the app with the candidate Compose file; leave the database volume intact.
 
 ## Batch 5 — Optional transports and application access (Phases 6, 7)
 
