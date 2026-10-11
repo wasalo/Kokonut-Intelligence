@@ -112,7 +112,7 @@ point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
   encryption against a compromised active session. Avoid shared/untrusted
   devices and lock the vault before handing the device to someone else.
 
-The trusted-device flow uses schema migration `357_field_collector_enrollment_hardening.sql` (not applied to any live database in this work):
+The trusted-device flow uses schema migration `357_field_collector_enrollment_hardening.sql`:
 
 - `POST /api/mobile/locations/{location_id}/enrollments` issues a short-lived, single-use enrollment code. It requires a Gateway capability or API key scoped to `mobile_device:enroll` and that location. The plaintext code is returned once; only its SHA-256 hash is stored.
 - `POST /api/mobile/register` requires `device_id` and `enrollment_code`. The server derives `user_id` and `location_id` from the locked enrollment claim. A conflicting `device_id` is rejected with `409`; registration cannot reassign an existing device.
@@ -122,8 +122,15 @@ The trusted-device flow uses schema migration `357_field_collector_enrollment_ha
 - `GET /api/mobile/sync/status` returns device queue status.
 
 Private-media upload/reference flow, request-size policy, stricter CORS, and
-route-level security acceptance tests are implemented in source and locally
-tested. Migrations `357_field_collector_enrollment_hardening.sql` and
-`358_mobile_private_media.sql` are not applied to any live database. No live
-database, Staging environment, or Cloudflare resource was changed; expired
-object-byte cleanup remains open before production use.
+route-level security checks are implemented in source. Migrations 357 and 358
+are included in the current local Kernel candidate schema through migration
+379; this did not enable the local media provider or imply a production rollout.
+No legacy, staging, or production database and no Cloudflare resource was
+changed. Expired object-byte cleanup remains open before production use.
+
+The exact present-day location and media guarantees, and the missing form and
+participant-consent checks, are recorded in
+[`docs/refactor/mobile-access-contract.md`](../../docs/refactor/mobile-access-contract.md).
+Do not treat enrollment or location binding as participant consent. The device's
+string `user_id` is not currently linked by the mobile schema to the canonical
+party-based consent ledger.

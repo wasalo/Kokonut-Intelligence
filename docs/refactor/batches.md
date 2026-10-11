@@ -308,7 +308,8 @@ reporting views.
 ## Batch 5 — Optional transports and application access (Phases 6, 7)
 
 - [ ] Complete HTTP/MQTT sensor, gRPC and proxy deployment contracts in separate slices.
-- [ ] Complete mobile media/offline sync and consent/tenant boundaries.
+- [x] Map the existing device/location/media boundary and document the consent, form-validation, and tenant gaps ([contract](mobile-access-contract.md)).
+- [ ] Define participant-to-party consent mapping and form/version enforcement, then implement and verify the approved mobile policy.
 - [x] Add an OpenAPI-backed, versioned v1 public-location list/detail contract while preserving the legacy location routes.
 - [x] Add typed v1 public-location methods to the existing Python and JavaScript SDK sources.
 - [ ] Generate the remaining versioned SDK surface from OpenAPI, publish a release, and implement an operations console slice.

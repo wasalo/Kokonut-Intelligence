@@ -116,6 +116,24 @@ deploying the preceding gateway image; existing clients continue using
 Next: inspect the generated OpenAPI schema and route authorization behavior,
 then generate the remaining versioned SDK surface from OpenAPI and prepare a release after runtime contract checks are authorized.
 
+## Batch 5 mobile access boundary review — 11 October 2026
+
+Read `services/mobile/api.py`, migrations 139/215/320/322/357/358, and the
+Field Collector vault. The current mobile path derives device/user/location from
+the consumed enrollment and active hashed device token; it binds media uploads
+and references to device, location, client ID, status, and expiry. Anonymous
+forms are active public global forms; enrolled devices can read active global
+and their assigned-location forms. `offline_collection` has no `party_id`,
+consent event, or tenant ID, and mobile `user_id` has no enforced mapping to the
+canonical party-based consent ledger. Sync also does not validate provided
+form ID/version/type against an active form. Documented the boundary and these
+gaps in [mobile access contract](mobile-access-contract.md), and corrected the
+mobile README's migration status: schemas 357/358 are in the local candidate's
+applied migration set, without enabling local media or changing legacy,
+staging, or production. No runtime probe or test suite ran. No consent/form
+policy or schema behavior changed. Rollback only the candidate mobile profile or
+revert any future implementation; preserve encrypted media and key custody.
+
 ## Batch execution — 10 October 2026
 
 [Six-batch checklist](batches.md). **Batch 1 complete:** matching AMD64/ARM64
