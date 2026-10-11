@@ -45,7 +45,9 @@ starts were not performed. Static lint, provider/dependency gates, Compose
 configuration, and diff checks passed.
 
 The [updated MQTT image](mqtt-overlay.md#updated-subscriber-build) includes this
-source and has not been deployed. Migration 372 remains required for
-the updated QoS 1 receipt path and is still unapplied. No broker or device state
-changed. Rollback removes MQTT_STATE_FILE and restores the disabled subscriber
-healthcheck while retaining transport/data recovery state.
+source but has not been deployed from a current checkout. Migration 372 for the
+QoS 1 receipt path is applied in the active local Kernel candidate through
+migration 379; this does not certify MQTT runtime behavior or change legacy and
+production databases. No broker or device state changed in the readiness slice.
+Rollback removes MQTT_STATE_FILE and restores the disabled subscriber healthcheck
+while retaining transport/data recovery state.

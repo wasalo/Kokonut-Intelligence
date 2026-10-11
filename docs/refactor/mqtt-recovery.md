@@ -53,11 +53,14 @@ no API authorization policy or financial write authority is added.
 
 ## Rollout and remaining gates
 
-Apply migration 372 through the checksummed runner before deploying the updated
-QoS 1 subscriber, and retain migration 371 for the separately updated scheduler.
-Both are unapplied locally. The [updated subscriber build](mqtt-overlay.md#updated-subscriber-build)
-includes these changes but has not been deployed. No broker starts, ingestion, operator replay/disposal,
-runtime tests, or database migration occurred during this slice.
+At the time this recovery slice was written, migrations 371 and 372 were still
+pending. They have since been applied through the checksummed runner to the
+active local Kernel candidate, which is now at migration 379. The legacy stack
+and production are separate and were not migrated by this update. The
+[subscriber image](mqtt-overlay.md#updated-subscriber-build) is a historical
+local build and has not been rebuilt from the current checkout or deployed. No
+broker start, ingestion, operator replay/disposal, or runtime MQTT recovery check
+occurred during this source slice.
 
 Pending acceptance: rejection persistence before ACK; five failure attempts;
 dead-letter redelivery; source commit then receipt failure; duplicate readings;

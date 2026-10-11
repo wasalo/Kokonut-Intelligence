@@ -1534,3 +1534,20 @@ Metabase dataset API and did not modify saved card objects. See
 [sanitized parity evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json),
 [card export](metabase/kokonut-reporting-cards.json), and
 [Batch 4e checklist](batches.md). Capability counts remain unchanged.
+
+
+## Batch 5 MQTT deployment contract — 11 October 2026
+
+Reviewed the optional Mosquitto/subscriber Compose overlay and the related QoS,
+transaction, recovery, and readiness records. Confirmed the broker/subscriber
+are on the private Kernel network with no host ports, separate read-only broker
+and subscriber credential mounts, a dedicated persistent broker volume, stable
+QoS 1 client identity, manual ACK after durable source/outbox commit, and local
+connection/subscription health state. Corrected stale statements: migrations
+371/372 are applied to the active local candidate through 379, while the
+MQTT-specific image is a historical build and neither MQTT service has been
+started. No secrets, broker state, or services were changed; no test suite or
+Compose deployment was run for this review. ARM64, mTLS/ACL, ingestion, retry,
+reconnect, readiness, and storage recovery acceptance remain open. See
+[mqtt profile contract](mqtt-overlay.md), [delivery](mqtt-delivery.md),
+[recovery](mqtt-recovery.md), [readiness](mqtt-readiness.md), and [checklist](batches.md).

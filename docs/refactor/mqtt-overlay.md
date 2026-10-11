@@ -102,8 +102,11 @@ Docker image inspection reports identity
 linux/amd64, 475,967,232 bytes (approximately 454 MiB), user appuser.
 The build installed Paho 2.1.0. This replaces the first image under the mutable
 local tag and captures uncommitted source; it is not a release artifact.
-Migrations 371 and 372 remain unapplied. No containers were started or replaced
-for this build, and transport, ingestion, recovery, and ARM64 checks remain pending.
+The active local Kernel candidate database now includes migrations through 379,
+including migration 372 for the QoS 1 receipt path; migration 371 is also applied
+there. This is separate from legacy/production and does not mean the MQTT broker
+or subscriber was deployed. No containers were started or replaced for this
+build, and transport, ingestion, recovery, and ARM64 checks remain pending.
 
 Pending checks: target build on ARM64, mTLS identity/hostname validation,
 ACL denials, accepted and bad-HMAC payloads, device/location authorization,
@@ -112,6 +115,11 @@ credential/certificate failures, signal cleanup, and broker persistence/recovery
 Preserve actuator human approval and HMAC rules when adding command publication
 later. Runtime tests were not added or run. Static lint, provider/dependency
 gates, Compose parsing, and diff checks passed.
+
+The image digests above are historical local builds and predate subsequent
+source changes; rebuild from the reviewed checkout before enabling the overlay.
+The active candidate schema is current, but the broker/subscriber and MQTT
+profile have not been started. The legacy stack remains separately preserved.
 
 ## Rollback
 
