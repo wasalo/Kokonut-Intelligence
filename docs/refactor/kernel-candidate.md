@@ -147,8 +147,7 @@ failures; the exact-target plan now reports zero pending across 370 schema
 migrations. The reporting schema's three views and the NOI crop-cycle unique
 index exist. The candidate app and private database are healthy. Its supervisor
 runs scheduler and event-worker processes, but scheduler status reports zero
-enabled, disabled, or running tasks; the NOI daily task is not registered. No
-runtime/analytics role or Metabase source/cards are configured. [Active migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
+enabled, disabled, or running tasks; the NOI daily task is not registered. The candidate app still uses its owner credential; the separate analytics login is provisioned and verified, while Metabase source/cards remain unconfigured. [Active migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
 
 The rollback statement above applies to the earlier build-only checkpoint. For
 the active database migration, restore the retained encrypted pre-repair
@@ -159,10 +158,13 @@ requires the audited repair. See [candidate migration evidence](builds/2026-10-1
 ## Active candidate app rebuild — 11 October 2026
 
 The running app image was rebuilt from the current checkout after migration 379
-was applied. The prior image (`sha256:65827b…c20b10`) is preserved as
-`kokonut-kernel-candidate-app:pre-refactor-20261011`; the new image is
-`sha256:5d8302…9870272` (`linux/amd64`). The embedded manifest contains 1,292
-source files, and every embedded hash matches the checkout. Eleven optional or
+was applied, then rebuilt again after the optional analytics-role bootstrap
+module was added. The current image is
+`sha256:76467534a977c60bcc5ffaac97a5761aa8b91fbe9f21fab520328d8d4c90a8c0`
+(`linux/amd64`) and matches all 1,293 embedded source hashes in the checkout.
+The immediate prior image (`sha256:5d8302…9870272`) is preserved as
+`kokonut-kernel-candidate-app:pre-analytics-role-20261011`; the earlier
+`pre-refactor-20261011` image remains available too. Eleven optional or
 development files (five protobuf definitions and six non-Kernel requirement
 groups) are not in the Kernel image.
 
@@ -172,8 +174,37 @@ healthy. `GET /health` returned 200. The host-side, explicit-project schema plan
 reports zero pending of 370 migrations through 379. Scheduler status remains at
 zero enabled, disabled or running jobs; the NOI daily task is not registered.
 Compose created a new empty gateway-audit spool volume. No database migration,
-role or grant changed in this rebuild. The legacy stack remains stopped.
+role or grant changed in either app-image rebuild. The legacy stack remains
+stopped.
 
 This establishes current-source image alignment and launch only. It does not
 prove API/domain parity, worker recovery, or Raspberry Pi/ARM64 readiness. No
 acceptance suite was run. See the [sanitized rebuild record](builds/2026-10-11-recovery/candidate-app-rebuild.json).
+
+## Active candidate analytics-source role — 11 October 2026
+
+The opt-in `analytics-admin` profile now runs a repeatable
+[`services.migration.analytics_role`](../../services/migration/analytics_role.py)
+bootstrap. It is intended only for the dedicated candidate PostgreSQL instance.
+The bootstrap revoked PUBLIC CONNECT across its four existing databases and
+PUBLIC TEMPORARY on `kokonut_intelligence`, then granted
+`kokonut_analytics_ro` CONNECT only to the application DB and SELECT only on
+the three curated reporting views. The generated credential is stored in
+encrypted `.env.sops` as `KOKONUT_ANALYTICS_PASSWORD`; the candidate API still
+uses its existing database identity.
+
+The login connected successfully, read all three views (zero rows each on this
+empty candidate), and was denied on the application migration ledger, private
+metric-publication policy, DDL, temp-table creation, and all other databases.
+No unreviewed application relation was readable. Eight extension metadata
+relations and 1,165 extension functions remain accessible through inherited
+PUBLIC grants; none of the public-executable extension functions is SECURITY
+DEFINER. The role bootstrap container was removed, and the app/database stayed
+healthy. No Metabase source or cards were configured. See the
+[role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json) and
+[role policy](optional-database-roles.md).
+
+To disable the source login, set it to `NOLOGIN` and revoke its view grants.
+Reversing the instance-wide PUBLIC database ACL changes requires the exact
+pre-change ACL for each database; the earlier ACL inventory covered the app,
+`postgres`, and `template1`, but not `template_postgis`.

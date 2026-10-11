@@ -43,6 +43,45 @@ confirms the effect of its prior source before the current ledger fingerprint
 is recorded. Use the explicit candidate Compose selection; never run this
 repair against the legacy application by ambient Compose.
 
+## Optional read-only analytics source role
+
+`services.migration.analytics_role` is an explicit one-shot operation, separate
+from ordered migrations. It requires a dedicated Kernel PostgreSQL instance and
+the `analytics-admin` Compose profile. It revokes `PUBLIC CONNECT` from every
+currently connectable database on that instance, removes `PUBLIC TEMPORARY` on
+the target application database, and grants the login only `CONNECT`, reporting
+schema `USAGE`, and `SELECT` on the three named curated views. It does not create
+a Metabase source or alter the application role.
+
+Store `KOKONUT_ANALYTICS_PASSWORD` in encrypted `.env.sops`, then run from the
+repository root:
+
+```bash
+source scripts/load-secrets.sh
+docker compose --env-file /dev/null -p kokonut-kernel-candidate \
+  --profile analytics-admin \
+  -f docker-compose.kernel-candidate.yml \
+  -f docker-compose.kernel-analytics-role.yml \
+  run --rm analytics-role-bootstrap
+```
+
+The bootstrap validates the view owner and relations, denies source access to
+application tables, the private metric-publication policy, DDL, temporary
+tables, and other databases, then verifies those boundaries with a real login.
+Existing extension metadata grants and extension function `EXECUTE` privileges
+remain inherited from `PUBLIC`; review them for the selected PostgreSQL image.
+If another database is added to the instance later, rerun the bootstrap after
+review because database-level `PUBLIC CONNECT` defaults may apply again.
+
+This command is inappropriate for a PostgreSQL cluster shared with unrelated
+applications: instance-wide PUBLIC database privileges are changed. The current
+local candidate had 16 extension-owned relations with `PUBLIC SELECT`, eight
+were visible to the analytics login, and 1,165 extension functions remained
+executable through inherited grants. None of the public-executable extension
+functions was SECURITY DEFINER. No application relation outside the three
+reporting views was readable. See the [candidate evidence](../../docs/refactor/builds/2026-10-11-recovery/candidate-analytics-role.json)
+and [role policy](../../docs/refactor/optional-database-roles.md).
+
 ## Apply and failure semantics
 
 The runner applies each migration body and its `schema_migration` ledger write
@@ -58,7 +97,9 @@ reviewed execution policy exists.
 ## Modules
 
 - `cli` — Discover, track, and apply PostgreSQL schema and seed migrations.
+- `runtime_role` — Provision a bounded application runtime role.
+- `analytics_role` — Provision and verify the optional curated reporting-source login.
 
 ## Files
 
-2 Python modules
+3 Python modules

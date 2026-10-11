@@ -41,7 +41,7 @@ standard profile.
 | --- | --- | --- | --- |
 | `kokonut_directus_runtime` | Kernel application database | `CONNECT`; `USAGE`; `SELECT`, `INSERT`, `UPDATE`, `DELETE` on Directus-managed relations; sequence `USAGE`, `SELECT`, `UPDATE` | No ownership, schema `CREATE`, role/database administration, or access to the metadata database. Directus CRUD permissions remain a separate API authorization layer. |
 | `kokonut_metabase_app` | One dedicated Metabase metadata database | Owns that database's application relations so Metabase can create and migrate its metadata schema | No superuser, `CREATEDB`, `CREATEROLE`, or connection to the Kernel application database. Do not reuse it as an analytics-source account. |
-| `kokonut_analytics_ro` | One explicitly configured source database | `CONNECT`, `USAGE` on a reviewed reporting schema, and `SELECT` on individually approved views | No base-table access, writes, schema creation, metadata-database access, or public sharing of private evidence. Production provisioning remains separate; no operational Metabase source connection is configured. |
+| `kokonut_analytics_ro` | One explicitly configured source database | `CONNECT`, `USAGE` on a reviewed reporting schema, and `SELECT` on individually approved views | No application-table access, writes, schema creation, metadata-database access, or public sharing of private evidence. The local candidate role is provisioned; production provisioning remains separate, and no operational Metabase source connection is configured. |
 
 PostgreSQL's `PUBLIC CONNECT` and extension relation grants are inherited by all
 roles unless revoked. The recovery fixture revokes `PUBLIC CONNECT` on every
@@ -217,8 +217,8 @@ The initial source inventory did not inspect card names; the later structural
 review classifies this as generic e-commerce demo content and recommends
 keeping it only as an explicitly labeled demo/compatibility fixture. The open
 decision is which governed Kokonut views and first-party cards should power
-optional Metabase. Do not grant the analytics role or claim dashboard parity
-until that source contract and output comparison are complete. See the
+optional Metabase. Do not connect Metabase or claim dashboard parity until that
+source contract and output comparison are complete. See the
 [source and disposition report](metabase-source-inventory.md) and
 [content evidence](builds/2026-10-11-recovery/metabase-content-inventory.json).
 
@@ -234,3 +234,35 @@ was read or executed. The role fixture again confirmed cross-database
 connection denials and that the curated analytics login could read its
 synthetic view while application/base relations remained denied. The
 containers/network were removed and the fresh volume retained. [Evidence](builds/2026-10-11-recovery/metabase-populated-startup.json).
+
+## Active candidate analytics-source role — 11 October 2026
+
+The exact candidate now has a separate `kokonut_analytics_ro` login. The
+repeatable bootstrap is [services/migration/analytics_role.py](../../services/migration/analytics_role.py)
+and its isolated deployment entry point is
+[`docker-compose.kernel-analytics-role.yml`](../../docker-compose.kernel-analytics-role.yml).
+The one-shot profile revoked PUBLIC database CONNECT across the four existing
+candidate databases and PUBLIC TEMPORARY on `kokonut_intelligence`, then granted
+the role CONNECT only to the application database and SELECT only on
+`v_farm_summary`, `v_verified_metric_values`, and `v_attestation_summary`.
+The credential is stored in `.env.sops` under `KOKONUT_ANALYTICS_PASSWORD`;
+the application continues to use its existing credential. No Metabase source
+or cards were configured.
+
+An actual login read the three views (all currently return zero rows because
+this candidate has no pilot data or published metric policies) and was denied
+on `public.schema_migration`, the private policy table, schema DDL, temporary
+tables, and all other candidate databases. No unreviewed public application
+relation was readable. Existing extension ACLs remain inherited: 16 extension
+relations have PUBLIC SELECT, of which eight are visible to this login; 1,165
+extension functions remain executable and none of the public-executable
+extension functions is SECURITY DEFINER. These extension privileges should be
+reassessed if the PostgreSQL image or profile changes. Full machine output is in
+[candidate analytics-role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json).
+
+The bootstrap changes PUBLIC CONNECT on every existing database, so use it only
+with a dedicated Kernel PostgreSQL instance. Its exact ACL rollback should be
+reviewed per database; the pre-change candidate ACL inventory listed the app,
+`postgres`, and `template1` but not `template_postgis`. To disable only the
+source login, set `kokonut_analytics_ro` to `NOLOGIN` and revoke its three view
+grants. The retained candidate access hardening can remain in place.

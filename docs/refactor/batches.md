@@ -204,11 +204,13 @@ migration removes its index.
   (and TEMPORARY on the application database), and the reporting schema was
   pending. No source role or Metabase connection was provisioned
   ([ACL review](builds/2026-10-11-recovery/candidate-reporting-acl-review.json)).
-- [ ] Review post-migration database and extension ACLs on the active candidate;
-  provision a dedicated analytics login with explicit database and named-view
-  grants; verify denial on application tables, the private publication policy,
-  DDL and other databases. Keep its credential in SOPS and defer Metabase source
-  configuration until Kokonut card outputs are reviewed.
+- [x] Review post-migration database and extension ACLs on the active candidate;
+  provision `kokonut_analytics_ro` with one database connection and three named
+  view grants; verify actual login, application-table/policy/DDL/temp denials,
+  and cross-database denial. Its credential is in SOPS. The role can also read
+  eight inherited extension metadata relations and execute 1,165 inherited
+  extension functions; none is SECURITY DEFINER, and no unreviewed application
+  relation is readable. Metabase remains unconfigured.
 
 Evidence: [populated report-view parity](builds/2026-10-11-recovery/populated-report-view-parity.json).
 The farm summary matched 2 rows, the Celo attestation summary matched 1 row,
@@ -218,17 +220,29 @@ The separate rollback-only synthetic role fixture passed the published metric
 period/method/review-field probe ([fixture evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json)).
 The pre-migration ACL review found no analytics role and default PUBLIC
 CONNECT/TEMPORARY exposure. Migrations 371–379 are now applied and the three
-reporting views exist, but no analytics role/source is configured. The database
-and inherited extension ACL review remains a prerequisite for provisioning.
-Rollback: no source rows or source grants were changed; the copied database was
-discarded after evidence capture.
+reporting views exist. The exact active candidate now has a verified analytics
+login and database isolation; its empty source returns zero rows from all three
+views. Inherited extension metadata/function access is recorded in the candidate
+role evidence. No Metabase source or card is configured.
+For the populated parity fixture, no original source rows or candidate grants
+were changed; its copied database was discarded after evidence capture. The
+subsequent active-candidate role grants and rollback are recorded separately
+below and in the candidate role evidence.
+
+Candidate role evidence and rollback notes:
+[analytics role record](builds/2026-10-11-recovery/candidate-analytics-role.json).
+Rollback can disable the login and revoke its explicit reporting grants. The
+instance-wide PUBLIC CONNECT hardening is retained unless an operator reviews
+the exact pre-change ACL for every database in this dedicated candidate.
 
 ### Batch 4c — Active candidate image and schema alignment (Phases 2, 7, 8)
 
 - [x] Preserve the prior candidate app image under a dated rollback tag.
 - [x] Build the current Kernel target and compare every embedded source hash to
-  the checkout: 1,292 of 1,292 bundled files match; 11 optional/development
+  the checkout: 1,293 of 1,293 bundled files match; 11 optional/development
   inputs are intentionally absent from this image.
+- [x] Refresh the candidate app after adding the analytics-role bootstrap
+  module, preserving both the pre-role and original pre-refactor images.
 - [x] Recreate only the app container; preserve the existing candidate database
   container, PostgreSQL volume and the stopped legacy stack.
 - [x] Confirm app/database health, loopback health endpoint, zero pending schema
@@ -240,8 +254,9 @@ Evidence: [candidate app rebuild](builds/2026-10-11-recovery/candidate-app-rebui
 and [active candidate migrations](builds/2026-10-11-recovery/candidate-migration-apply.json).
 Capability acceptance counts do not change. Runtime/API parity, analytics role
 isolation, ARM64 and Raspberry Pi certification remain open. Rollback: retag
-`kokonut-kernel-candidate-app:pre-refactor-20261011` as `latest` and force-recreate
-only the app with the candidate Compose file; leave the database volume intact.
+`kokonut-kernel-candidate-app:pre-analytics-role-20261011` as `latest` and
+force-recreate only the app with the candidate Compose file; leave the database
+volume intact. The earlier `pre-refactor-20261011` image remains available too.
 
 ## Batch 5 — Optional transports and application access (Phases 6, 7)
 

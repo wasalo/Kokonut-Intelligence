@@ -7,20 +7,22 @@
     "legacy_stack_changed": false
   },
   "app": {
-    "container_id": "7d4ca494e588690a06f80f83571b04791fa3eea213f1a14ffccb24ecceade223",
-    "image_id": "sha256:5d83022611fc513601222ca40e9da6d497e5ed27fbc0e16a41e24a76e9870272",
+    "container_id": "59cbafc7dab39a34a8435c39fd67a40bbb53ad8875260182f09c943a842ceef3",
+    "image_id": "sha256:76467534a977c60bcc5ffaac97a5761aa8b91fbe9f21fab520328d8d4c90a8c0",
     "platform": "linux/amd64",
     "health": "healthy",
     "host_binding": "127.0.0.1:8098",
     "health_endpoint_status": 200,
-    "previous_image_preserved_as": "kokonut-kernel-candidate-app:pre-refactor-20261011",
-    "previous_image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10"
+    "previous_image_preserved_as": "kokonut-kernel-candidate-app:pre-analytics-role-20261011",
+    "previous_image_id": "sha256:5d83022611fc513601222ca40e9da6d497e5ed27fbc0e16a41e24a76e9870272",
+    "older_pre_refactor_image_preserved_as": "kokonut-kernel-candidate-app:pre-refactor-20261011",
+    "older_pre_refactor_image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10"
   },
   "source_manifest": {
     "target": "kernel",
-    "source_sha256": "48c46b4257922b04ec431691c08eded3a11d4b3c6c54eb1e0b6d741b4ad2c9d7",
-    "bundled_files": 1292,
-    "current_checkout_hash_matches": 1292,
+    "source_sha256": "ed38519cec2c1e434e37e1ad5ee7e12f8c28fdfe69963c9bc4d55ed4f6a99369",
+    "bundled_files": 1293,
+    "current_checkout_hash_matches": 1293,
     "hash_differences": 0,
     "unexpected_image_files": 0,
     "checkout_files_not_in_kernel_image": [
@@ -63,7 +65,7 @@
     "metabase_source_or_cards_configured": false
   },
   "rollback": {
-    "restore_app_image_tag": "docker tag kokonut-kernel-candidate-app:pre-refactor-20261011 kokonut-kernel-candidate-app:latest",
+    "restore_app_image_tag": "docker tag kokonut-kernel-candidate-app:pre-analytics-role-20261011 kokonut-kernel-candidate-app:latest",
     "recreate_only_app": "docker compose --env-file /dev/null -p kokonut-kernel-candidate -f docker-compose.kernel-candidate.yml up -d --no-deps --force-recreate app",
     "database_volume_or_legacy_stack_touched": false
   },

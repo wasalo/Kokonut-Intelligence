@@ -1,0 +1,27 @@
+# Optional, one-shot reporting-source role bootstrap. Use only with a dedicated
+# Kernel PostgreSQL instance: the bootstrap revokes PUBLIC CONNECT instance-wide.
+services:
+  analytics-role-bootstrap:
+    profiles: [analytics-admin]
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+      args:
+        KOKONUT_CLICKHOUSE: "false"
+    restart: "no"
+    command: ["python3", "-m", "services.migration.analytics_role"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      KOKONUT_DB_ADMIN_USER: ${KOKONUT_DB_ADMIN_USER:-kokonut}
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      KOKONUT_ANALYTICS_USER: ${KOKONUT_ANALYTICS_USER:-kokonut_analytics_ro}
+      KOKONUT_ANALYTICS_PASSWORD: ${KOKONUT_ANALYTICS_PASSWORD:?KOKONUT_ANALYTICS_PASSWORD must be set}
+      KOKONUT_ANALYTICS_ROLE_DEDICATED_INSTANCE: "true"
+    networks:
+      - kernel
