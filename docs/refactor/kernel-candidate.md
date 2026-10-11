@@ -149,8 +149,8 @@ index exist. The candidate app and private database are healthy. Its supervisor
 runs scheduler and event-worker processes, but scheduler status reports zero
 enabled, disabled, or running tasks; the NOI daily task is not registered. The
 candidate app still uses its owner credential; the separate analytics login is
-provisioned and verified. Metabase has only its built-in H2 demo source; no
-Kokonut source or cards are configured. [Active migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
+provisioned and verified. At this migration checkpoint Metabase had not yet
+been configured; its current source and card state is recorded below. [Active migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
 
 The rollback statement above applies to the earlier build-only checkpoint. For
 the active database migration, restore the retained encrypted pre-repair
@@ -224,8 +224,12 @@ distinct saved-credential encryption key are in SOPS. Metabase is healthy and
 reports credential encryption enabled.
 
 The fresh profile inventory found one built-in H2 sample source, 39 generic
-demo cards, one dashboard with 22 placements, and one user record. There is no
-Kokonut PostgreSQL source or Kokonut card. Preserve the H2 content only as a
-demo, not as parity evidence. See the [profile contract](metabase-kernel-profile.md),
+demo cards, and one dashboard with 22 placements. The `Kokonut Reporting Views`
+source now uses `kokonut_analytics_ro` with an inclusion filter for
+`kokonut_reporting`; Metabase lists only the three reviewed views. Three
+first-party cards are in a separate Kokonut reporting dashboard. Their queries
+complete with zero rows on the empty candidate, so populated card-output parity
+remains open. Preserve the H2 content only as a demo, not as parity evidence.
+See the [profile contract](metabase-kernel-profile.md),
 [sanitized runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),
 and [source inventory](metabase-source-inventory.md).

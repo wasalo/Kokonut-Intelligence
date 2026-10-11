@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-11",
+  "result": "fresh encrypted local backup of the configured candidate Metabase metadata database",
+  "compose_project": "kokonut-kernel-candidate",
+  "metadata_database": "kokonut_metabase",
+  "metadata_owner": "kokonut_metabase_app",
+  "archive": {
+    "path": "backups/kernel-metabase-20261011/candidate-metabase.dump.age",
+    "format": "PostgreSQL custom archive",
+    "age_encrypted": true,
+    "recipient": "age1ql43n065tcfs7tcwkt7s9c54np5phu9rgez4agw0chf08wapns2scjtppx",
+    "bytes": 910364,
+    "sha256": "dccf832f359d726a851cb5f55b6f69ea4be185b8a309deed47c1652028259ef4",
+    "plaintext_dump_written": false,
+    "git_ignored_local_artifact": true
+  },
+  "credential_recovery": {
+    "metabase_encryption_key": "KOKONUT_METABASE_ENCRYPTION_KEY in .env.sops",
+    "admin_password": "KOKONUT_METABASE_ADMIN_PASSWORD in .env.sops",
+    "source_password": "KOKONUT_ANALYTICS_PASSWORD in .env.sops",
+    "secrets_plaintext_printed": false
+  },
+  "verification": {
+    "age_decrypt_with_supplied_identity": true,
+    "pg_restore_list_exit_code": 0,
+    "archive_entries": 2177,
+    "plaintext_dump_written_during_verification": false,
+    "full_restore_rehearsal": {
+      "attempted": true,
+      "passed": false,
+      "accepted": false,
+      "disposable_target_removed": true,
+      "source_metadata_database_changed": false,
+      "notes": [
+        "An initial restore failed because the client defaulted to the container OS role, which was not a PostgreSQL role.",
+        "A retry with the metadata owner did not complete successfully; detailed restore acceptance remains open."
+      ]
+    }
+  },
+  "limitations": [
+    "This local backup remains on the development disk; production R2 backup configuration is deferred.",
+    "The encrypted archive listing was verified, but the attempted full metadata restore did not pass."
+  ]
+}

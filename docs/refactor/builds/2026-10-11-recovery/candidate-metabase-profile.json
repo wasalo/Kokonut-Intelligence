@@ -55,31 +55,149 @@
     "public_sharing_enabled": false,
     "static_embedding_enabled": false,
     "maximum_jvm_heap_mib": 768,
+    "first_run_setup_completed": true,
+    "initial_admin_email": "admin@kokonut.invalid",
+    "initial_admin_password_stored_in_sops": true,
+    "metadata_database": "kokonut_metabase",
+    "metadata_user": "kokonut_metabase_app",
+    "source": {
+      "id": 2,
+      "name": "Kokonut Reporting Views",
+      "engine": "postgres",
+      "database": "kokonut_intelligence",
+      "host": "database",
+      "user": "kokonut_analytics_ro",
+      "credential_value_printed": false,
+      "schema_filter_type": "inclusion",
+      "schema_filter_pattern": "kokonut_reporting",
+      "initial_sync_status": "complete",
+      "visible_schemas": [
+        "kokonut_reporting"
+      ],
+      "visible_tables": [
+        "v_attestation_summary",
+        "v_farm_summary",
+        "v_verified_metric_values"
+      ],
+      "connection_validation_http_status": 200,
+      "connection_valid": true
+    },
     "source_inventory": {
       "result": "passed",
-      "inventory_scope": "sanitized read-only metadata inventory",
-      "registered_source_count": 1,
-      "registered_source_engines": {
-        "h2": 1
-      },
-      "registered_source_is_sample": true,
-      "registered_source_is_stub": false,
-      "source_host_and_database_unset": true,
-      "source_password_fields": 0,
-      "source_detail_keys": [],
-      "saved_cards": 39,
-      "dashboards": 1,
-      "dashboard_card_placements": 22,
-      "users": 1,
-      "all_saved_cards_use_sample_h2": true,
-      "kokonut_postgres_source_registered": false,
+      "inventory_scope": "sanitized read-only metadata inventory from the candidate metadata database",
       "connection_values_printed": false,
-      "saved_query_sql_read": false
+      "saved_query_sql_read": false,
+      "saved_content_definitions_read": false,
+      "registered_source_count": 2,
+      "registered_source_engines": {
+        "h2": 1,
+        "postgres": 1
+      },
+      "sample_h2_source_count": 1,
+      "kokonut_postgres_source_count": 1,
+      "sample_cards": 39,
+      "kokonut_cards": 3,
+      "saved_cards_total": 42,
+      "sample_dashboard_card_placements": 22,
+      "kokonut_dashboard_card_placements": 3,
+      "dashboard_card_placements_total": 25,
+      "dashboards": 2,
+      "users": 2,
+      "dashboard_card_source_categories": [
+        {
+          "count": 22,
+          "source_engine": "h2"
+        },
+        {
+          "count": 3,
+          "source_engine": "postgres"
+        }
+      ],
+      "saved_card_source_query_categories": [
+        {
+          "count": 39,
+          "query_type": "query",
+          "source_engine": "h2"
+        },
+        {
+          "count": 3,
+          "query_type": "native",
+          "source_engine": "postgres"
+        }
+      ]
     },
-    "kokonut_cards_created": 0
+    "kokonut_cards": [
+      {
+        "id": 40,
+        "name": "Kokonut | Farm summary",
+        "query_status": "completed",
+        "http_status": 202,
+        "row_count": 0,
+        "columns": [
+          "location_name",
+          "country",
+          "region",
+          "farm_count",
+          "plot_count",
+          "total_area_ha",
+          "area_data_complete"
+        ]
+      },
+      {
+        "id": 41,
+        "name": "Kokonut | Verified metric values",
+        "query_status": "completed",
+        "http_status": 202,
+        "row_count": 0,
+        "columns": [
+          "location_name",
+          "metric_key",
+          "display_name",
+          "unit",
+          "value",
+          "period_start",
+          "period_end",
+          "computation_method",
+          "computed_at",
+          "verified_at"
+        ]
+      },
+      {
+        "id": 42,
+        "name": "Kokonut | Celo attestation summary",
+        "query_status": "completed",
+        "http_status": 202,
+        "row_count": 0,
+        "columns": [
+          "location_name",
+          "claim_type",
+          "chain",
+          "total_attestations",
+          "published_count",
+          "first_attestation",
+          "latest_attestation"
+        ]
+      }
+    ],
+    "dashboard": {
+      "id": 2,
+      "name": "Kokonut Intelligence | Reporting Overview",
+      "card_ids": [
+        40,
+        41,
+        42
+      ],
+      "card_count": 3
+    },
+    "limitations": [
+      "Metabase built-in H2 sample source and its generic e-commerce cards remain separate demo content.",
+      "The active candidate contains no pilot rows, so all three Kokonut cards return zero rows.",
+      "Compare card outputs with independent references on an isolated populated fixture before parity promotion."
+    ]
   },
   "limitations": [
     "Metabase default sample content is demo data and is not Kokonut reporting.",
-    "Source registration and populated report-output parity remain pending."
+    "The registered source and cards have not passed populated report-output parity.",
+    "The candidate contains no pilot rows, so populated card behavior remains unverified."
   ]
 }

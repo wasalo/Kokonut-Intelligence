@@ -127,3 +127,23 @@ handles empty/non-JSON `details` values without exposing them. The candidate
 Metabase password and `MB_ENCRYPTION_SECRET_KEY` are encrypted in `.env.sops`;
 startup logs confirmed saved-credential encryption before any Kokonut source
 was registered. See [sanitized profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json).
+
+## Current candidate source and first-party cards — 11 October 2026
+
+After first-run setup, the local profile still has the one H2 sample source and
+its 39 generic demo cards. A separate PostgreSQL source, `Kokonut Reporting
+Views`, was added with user `kokonut_analytics_ro` and a comma-separated
+inclusion filter for `kokonut_reporting`. Metabase schema sync completed and
+listed only `v_attestation_summary`, `v_farm_summary`, and
+`v_verified_metric_values` in that schema. A native read query confirmed the
+same three views; the actual source credential was never printed.
+
+The `Kokonut Reporting` collection now contains three native SQL cards for farm
+summary, verified metric values, and Celo attestation summary. The
+`Kokonut Intelligence | Reporting Overview` dashboard contains all three. The
+sanitized metadata inventory now counts 42 cards, two dashboards, 25 dashboard
+placements, and two user records: 39 H2 demo cards/22 placements and three
+PostgreSQL Kokonut cards/placements. The cards execute successfully, but each
+returns zero rows on the empty candidate. Populated output parity remains open.
+See [current runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json)
+and the [credential-free card export](metabase/kokonut-reporting-cards.json).

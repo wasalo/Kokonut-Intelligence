@@ -32,9 +32,12 @@ remain accessible through inherited extension grants; none is SECURITY
 DEFINER. The Metabase metadata role/profile is implemented separately but has
 now been provisioned on `kokonut_metabase`; its real login can create metadata
 objects and is denied on the application database. The pinned Metabase profile
-is healthy at a loopback-only port with credential encryption enabled. Its
-fresh first-start inventory found only the built-in H2 sample source and demo
-content; the Kokonut source and cards remain open.
+is healthy at a loopback-only port with credential encryption enabled. The
+candidate now has a separate `Kokonut Reporting Views` source using
+`kokonut_analytics_ro` and an inclusion filter for `kokonut_reporting`; schema
+sync lists only its three approved views. Three Kokonut cards and a dashboard
+are saved. Their queries complete but return zero rows on the empty candidate;
+populated report-output parity remains open.
 [Pre-migration ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration result](builds/2026-10-11-recovery/candidate-migration-apply.json); [active analytics-role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json); [candidate Metabase profile](metabase-kernel-profile.md).
 
 ## Why these are separate identities

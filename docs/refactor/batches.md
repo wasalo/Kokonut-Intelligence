@@ -289,15 +289,20 @@ plus the [current app image record](builds/2026-10-11-recovery/candidate-app-reb
 
 ### Batch 4e — Kokonut source registration and card parity (Phase 3)
 
-- [ ] Complete local Metabase first-run setup without importing the generic H2 demo board as Kokonut reporting.
-- [ ] Register `kokonut_intelligence` through `kokonut_analytics_ro`, select only `kokonut_reporting`, and verify database/source visibility.
-- [ ] Build first-party farm-summary, verified-metric, and Celo-attestation cards from the reviewed views.
-- [ ] Compare outputs bidirectionally with independent SQL and populated/rollback-only fixtures; include empty, date-bound, and eligibility cases.
-- [ ] Retain sanitized evidence, source-card exports without credentials, and the Metabase metadata backup plus encryption key.
+- [x] Complete local Metabase first-run setup with a generated administrator credential stored in SOPS; keep the generic H2 demo clearly separate.
+- [x] Register `kokonut_intelligence` through `kokonut_analytics_ro` with an inclusion filter for `kokonut_reporting`; verify that Metabase lists only the three approved views.
+- [x] Build first-party farm-summary, verified-metric, and Celo-attestation cards in a Kokonut collection and add them to a reporting dashboard.
+- [x] Execute every saved card and compare empty-candidate row counts with direct PostgreSQL counts; all three return zero because the candidate has no pilot rows.
+- [ ] Compare card outputs bidirectionally with independent SQL and populated/rollback-only fixtures; include nonempty, date-bound, and eligibility cases.
+- [x] Retain sanitized source/card evidence and a credential-free card export ([export](metabase/kokonut-reporting-cards.json); [runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json)).
+- [x] Stream a fresh encrypted metadata backup into the ignored local `backups/` directory and verify decryption plus PostgreSQL archive listing; the Metabase encryption key remains in `.env.sops` ([backup manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json)).
+- [ ] Complete a full restore of the current metadata archive into a separate disposable database. The first restore used the container OS role and failed because no matching PostgreSQL role existed; a retry with the metadata owner also did not complete. The temporary target was removed and the source metadata database was not changed ([backup manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json)).
 
 Gate: source access satisfies the reviewed data boundary and every promoted
-card matches independent reference results. Use an isolated populated fixture;
-the active candidate has no pilot rows. Rollback: remove the source/cards from
+card matches independent reference results. Source isolation and card execution
+are confirmed, but this batch remains open until populated result parity and a
+full metadata restore rehearsal pass. The attempted restore did not pass. Use
+an isolated populated fixture; the active candidate has no pilot rows. Rollback: remove the source/cards from
 Metabase and stop the optional profile; preserve the canonical database and
 reporting views.
 

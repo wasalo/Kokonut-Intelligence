@@ -21,8 +21,13 @@ the separate transaction-rolled-back role fixture passed the nonempty published
 metric period/method/review-field probe. The analytics role read only the
 three named views and was denied on application tables, the private policy
 table, and DDL on that copy. See [populated parity evidence](builds/2026-10-11-recovery/populated-report-view-parity.json).
-No Metabase source is configured and no Kokonut report cards have been built.
-Metabase remains optional and belongs only in the analytics profile. See the
+The candidate-only Metabase profile now has a PostgreSQL source using
+`kokonut_analytics_ro`, filtered to `kokonut_reporting`, and exposes only the
+three reviewed views. Three first-party cards and one dashboard are registered;
+all saved queries execute, but the empty candidate returns zero rows. Metabase
+remains optional and belongs only in the analytics profile. Populated card-output
+parity is still open. See the [profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),
+[credential-free card export](metabase/kokonut-reporting-cards.json), and
 [source-aligned evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json),
 [transactional replay evidence](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json),
 and [migration source/recovery record](migration-checksum-drift.md).
@@ -167,11 +172,12 @@ pass on a third-generation clone. See [reporting evidence](builds/2026-10-11-rec
 and [transactional evidence](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json).
 The active candidate has the verified analytics login and a healthy, opt-in
 Metabase profile with a separate metadata database/login and credential
-encryption. Its only registered source is Metabase's sample H2 demo source; no
-Kokonut source connection or cards exist. Next, register the PostgreSQL source
-with the read-only analytics login and build cards from the reviewed views. Use
-a populated isolated fixture for output parity because the active candidate is
-empty. The archived clone still has 25 pending migrations; a separate clone
+encryption. The profile contains the generic H2 demo plus the `Kokonut Reporting
+Views` PostgreSQL source, which uses the read-only analytics login and exposes
+only `kokonut_reporting`. Three first-party cards and the reporting dashboard
+are saved. Their queries complete and return zero rows on the empty active
+candidate. Use an isolated populated fixture to compare card outputs with
+independent SQL before calling the reporting capability accepted. The archived clone still has 25 pending migrations; a separate clone
 accepted all 25 without changing fingerprints for 16 populated tables. Source
 checksum correction and migration ordering are recorded in
 [migration-checksum-drift.md](migration-checksum-drift.md).

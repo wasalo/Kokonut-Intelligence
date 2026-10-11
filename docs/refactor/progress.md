@@ -1416,3 +1416,41 @@ values, and the combined opt-in Compose configuration validated.
 
 Evidence: [profile contract](metabase-kernel-profile.md), [profile runtime record](builds/2026-10-11-recovery/candidate-metabase-profile.json), [source inventory](metabase-source-inventory.md), [role policy](optional-database-roles.md), [Batch 4d/4e checklist](batches.md), and [Metabase credential-encryption docs](https://www.metabase.com/docs/latest/databases/encrypting-details-at-rest).
 Capability counts remain unchanged.
+
+### Kokonut Metabase source, cards, and local metadata backup — 11 October 2026
+
+Completed local first-run setup with the generated administrator credential
+stored encrypted in `.env.sops`. Registered `Kokonut Reporting Views` through
+`kokonut_analytics_ro`, using a string inclusion pattern for `kokonut_reporting`.
+The first attempt encoded the pattern as a list; that prevented schema
+discovery. After correcting it to the comma-separated string expected by
+Metabase, schema sync completed and listed only the three approved reporting
+views. The source connection validates, and saved credential encryption was
+enabled before registration.
+
+Created the `Kokonut Reporting` collection, three SQL cards (farm summary,
+verified metric values, and Celo attestation summary), and the
+`Kokonut Intelligence | Reporting Overview` dashboard. All card queries
+completed and exposed the expected columns. Each returned zero rows, matching
+direct PostgreSQL counts; the active candidate has no pilot rows. The generic
+H2 sample remains separately labeled demo content. A credential-free card
+export and sanitized source/card inventory are retained.
+
+Streamed a fresh custom-format dump of `kokonut_metabase` directly through age
+encryption to the ignored local `backups/kernel-metabase-20261011/` directory;
+no plaintext dump was written. Decryption with the supplied age identity and
+`pg_restore --list` both succeeded with 2,177 archive entries. The
+`KOKONUT_METABASE_ENCRYPTION_KEY`, source password, and admin password remain in
+SOPS. A full restore rehearsal and populated card-output parity remain open;
+the first full-restore attempt did not pass in a disposable target. Its initial
+failure used the container OS role; a retry with the metadata owner also failed.
+The temporary target was removed and the source metadata database was not
+changed. The database-view parity evidence from Batch 4b does not by itself
+certify the Metabase card layer.
+
+Evidence: [candidate runtime and card results](builds/2026-10-11-recovery/candidate-metabase-profile.json),
+[sanitized source inventory](metabase-source-inventory.md),
+[credential-free card export](metabase/kokonut-reporting-cards.json),
+[encrypted backup manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json),
+[profile contract](metabase-kernel-profile.md), and [Batch 4e checklist](batches.md).
+Capability counts remain unchanged.
