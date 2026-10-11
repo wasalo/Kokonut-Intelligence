@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-11",
+  "result": "preflight completed; active candidate migration remains blocked by historical checksum drift",
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_file": "docker-compose.kernel-candidate.yml",
+    "database_container": "kokonut-kernel-candidate-database-1",
+    "database_volume": "kokonut-kernel-candidate_kernel-postgres-data",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "database": "kokonut_intelligence",
+    "initial_health": "healthy"
+  },
+  "active_target_migration_review": {
+    "applied_schema_rows": 361,
+    "current_schema_sources": 370,
+    "latest_applied": "schema:370_baserow_expense_fields.sql",
+    "pending_schema_migrations": [
+      "schema:371_scheduler_run_windows.sql",
+      "schema:372_mqtt_delivery_records.sql",
+      "schema:373_gateway_rate_buckets.sql",
+      "schema:374_clickhouse_outbox_operator_audit.sql",
+      "schema:375_notification_outbox.sql",
+      "schema:376_sensor_anomaly_delivery.sql",
+      "schema:377_kokonut_reporting_contract.sql",
+      "schema:378_optional_extensions.sql",
+      "schema:379_noi_snapshot_crop_cycle_key.sql"
+    ],
+    "checksum_mismatches": [
+      {
+        "migration_id": "schema:000_extensions.sql",
+        "stored_checksum": "6e5850e52423ffe8cea241f7f5764bb6c074d55813de33c601c9e8b1495723ff",
+        "current_source_checksum": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
+        "stored_checksum_matches_repository_base": true
+      }
+    ],
+    "unknown_applied_ids": 0,
+    "migration_apply_or_repair_performed": false
+  },
+  "noi_snapshot_preflight": {
+    "snapshot_rows": 0,
+    "duplicate_crop_cycle_groups": 0,
+    "null_crop_cycle_keys": 0
+  },
+  "encrypted_candidate_checkpoint": {
+    "created_at": "2026-10-11T20:38:28.772221+00:00",
+    "local_path": "backups/kernel-candidate-preflight-20261011",
+    "same_disk_mirror_path": "backups/development-mirror/kernel-candidate-preflight-20261011",
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "encrypted_archive": "postgres.dump.age",
+    "archive_bytes": 5085180,
+    "archive_sha256": "dc34c341ea0ad34367d68a2bac827b84e982e89b7ef8abe06459ae4e6ef3a784",
+    "same_disk_mirror_files_match": true,
+    "age_authentication_and_pg_restore_index": "passed",
+    "isolated_full_restore": "passed",
+    "restore_project": "kokonut-kernel-candidate-preflight-restore-20261011",
+    "restore_database": "kokonut_restore",
+    "restore_network_isolated": true,
+    "restore_host_ports": [],
+    "restore_comparison": {
+      "applied_schema_rows": 361,
+      "latest_applied": "schema:370_baserow_expense_fields.sql",
+      "public_application_relations": 1368,
+      "selected_row_counts_match": true,
+      "location_rows": 0,
+      "farm_rows": 0,
+      "crop_cycle_rows": 0,
+      "metric_value_rows": 0,
+      "farm_registry_record_rows": 0,
+      "attestation_record_rows": 0,
+      "noi_snapshot_rows": 0
+    },
+    "first_restore_attempt": "The recovery image's default database already contained schema tiger; the single-transaction restore rolled back. Restore then passed into a fresh database created from template0.",
+    "restore_volume_and_container_removed": true,
+    "manifest_restore_rehearsed": true,
+    "scope_limit": "Single PostgreSQL database only. Roles, grants, other databases, media, and provider state are excluded. The development mirror is on the same disk, not an independent failure domain."
+  },
+  "fresh_source_bootstrap": {
+    "compose_project": "kokonut-kernel-schema-replay-20261011",
+    "network_mode": "none",
+    "host_ports": [],
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "source_schema_files": 370,
+    "applied": 370,
+    "failed": 0,
+    "final_migration": "schema:379_noi_snapshot_crop_cycle_key.sql",
+    "post_run_plan_pending": 0,
+    "ledger_rows": 370,
+    "public_base_tables": 998,
+    "noi_snapshot_rows": 0,
+    "duplicate_crop_cycle_groups": 0,
+    "scratch_container_volume_network_removed": true,
+    "temporary_compose_manifest_removed": true
+  },
+  "integrity_gate": "Do not apply migrations to the active candidate while schema:000_extensions.sql checksum drift remains. The recorded mismatch represents two different applied source histories; no checksum repair or migration edit was attempted.",
+  "candidate_mutated": false,
+  "legacy_stack_mutated": false
+}

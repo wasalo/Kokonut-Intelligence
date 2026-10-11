@@ -1,11 +1,13 @@
 # Archived application migration checksum drift
 
-**Status (11 October 2026):** the historical checksum mismatch has been
-resolved in the checked-out migration sources. `schemas/postgres/000_extensions.sql`
-now matches the exact source recovered from the stopped legacy worker image;
-the later extension additions are in new migration 378. The retained archived
-application clone and its ledger remain unchanged. No pending migration has
-been applied to it.
+**Status (11 October 2026):** the archived legacy application's historical
+checksum mismatch was resolved in the checked-out migration sources.
+`schemas/postgres/000_extensions.sql` now matches the exact source recovered
+from the stopped legacy worker image; later extension additions are in new
+migration 378. The retained archived application clone and its ledger remain
+unchanged. A separate Kernel candidate, bootstrapped earlier from the prior
+source history, has one checksum mismatch at the same migration and nine
+pending schemas. No migration was applied to that candidate.
 
 ## Findings and source correction
 
@@ -39,6 +41,36 @@ archived clone: all 344 applied schema rows match the restored sources, and 25
 current schema migrations remain pending (353 through 378, with the existing
 numbering gaps). The plan applied no migrations and changed no database state.
 The exact pending list is in the machine-readable evidence.
+
+## Active Kernel candidate preflight — 11 October 2026
+
+The running `kokonut-kernel-candidate` database has 361 applied schema rows
+through migration 370. A full read-only comparison against the 370 current
+schema files found one mismatch: `schema:000_extensions.sql` is recorded as
+`6e5850e5…5723ff`, while the current source is `cf493b73…1a245`. The stored
+checksum matches the repository-base source used when this candidate was
+bootstrapped. The checked-out source was subsequently aligned to the older
+legacy worker image, whose applied bytes did not include the three extension
+declarations now carried by migration 378. The candidate has nine pending
+migrations (371–379), and the runner correctly stopped at the checksum mismatch.
+
+Read-only inspection found zero `noi_snapshot` rows, duplicate crop-cycle keys,
+or null crop-cycle keys. This passes the data precondition for migration 379 but
+does not clear the earlier checksum gate. No checksum repair, migration edit, or
+active-target migration was performed.
+
+Before the preflight, an encrypted checkpoint of the exact candidate database
+was written to the ignored local `backups/kernel-candidate-preflight-20261011`
+directory and mirrored to `backups/development-mirror/`. Age authentication,
+archive indexing, and a full restore into a network-isolated database created
+from `template0` passed. Ledger counts, public relation counts, and selected
+domain-table counts matched. The mirror is on the same disk and is not a
+separate failure domain. See the [candidate preflight evidence](builds/2026-10-11-recovery/candidate-migration-preflight.json).
+
+Separately, all 370 current schema sources applied with zero failures to a new
+network-disabled scratch database, and the post-run plan reported zero pending.
+This validates the current source set on a fresh database; it does not resolve
+the candidate's two-history checksum mismatch or authorize migration there.
 
 ## Validation and remaining gates
 
@@ -77,5 +109,7 @@ Populated-clone compatibility review and row fingerprints are in
 [application-migration-populated-clone-replay.json](builds/2026-10-11-recovery/application-migration-populated-clone-replay.json),
 [application-migration-review-fingerprints.json](builds/2026-10-11-recovery/application-migration-review-fingerprints.json),
 and [the per-migration review](pending-migration-compatibility-review.md).
-NOI and SAFE evidence: [reconciliation record](noi-snapshot-reconciliation.md)
+NOI, SAFE, and candidate preflight evidence:
+[reconciliation record](noi-snapshot-reconciliation.md),
+[sanitized candidate results](builds/2026-10-11-recovery/candidate-migration-preflight.json),
 and [sanitized results](builds/2026-10-11-recovery/noi-snapshot-parity.json).

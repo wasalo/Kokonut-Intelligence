@@ -57,7 +57,11 @@ volume copy, and Compose manifest were removed after evidence capture.
 
 Before applying to any active target, make a verified backup, run the migration
 plan and checksum checks against that exact target, and verify that duplicate
-`crop_cycle_id` groups are zero. Reconcile only after migration 379 succeeds.
+`crop_cycle_id` groups are zero. On the current Kernel candidate, the encrypted
+backup restored successfully and the duplicate-key count is zero, but the plan
+found one earlier checksum mismatch at `schema:000_extensions.sql`; migrations
+371–379 were not applied. See the [candidate preflight](builds/2026-10-11-recovery/candidate-migration-preflight.json).
+Reconcile only after migration 379 succeeds.
 The new scheduled task remains disabled until its owner reviews run history,
 cutover ordering, and retry policy; the direct command is available for a
 controlled reconciliation.

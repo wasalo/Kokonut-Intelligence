@@ -162,12 +162,23 @@ Rollback: disable new schedules before restoring legacy ownership; avoid dual wr
   CLI plus a disabled daily job.
 - [x] Apply migration 379 through the transactional runner and reconcile six
   rows on a separate network-disabled volume copy; verify zero view mismatches.
-- [ ] Before active-target apply, verify a backup, exact-target checksums, and
-  zero duplicate `crop_cycle_id` values. Keep the scheduler task disabled until
-  its owner approves cutover and retry policy.
+- [x] Preflight the active candidate: 361 of 370 schema rows are applied, no
+  NOI snapshots or duplicate keys exist, and one exact-source checksum mismatch
+  blocks the nine pending migrations.
+- [x] Create an encrypted checkpoint of the exact candidate database and
+  complete a network-isolated restore with matching ledger and selected table
+  counts; retain a same-disk development mirror.
+- [x] Apply all 370 current schema sources to a fresh network-disabled scratch
+  database; post-run plan reports zero pending.
+- [ ] Resolve the candidate's two-history checksum mismatch under the immutable
+  migration policy. Do not edit the applied source or bypass drift detection.
+- [ ] Re-run the exact-target plan and only then review/apply pending migrations.
+  Keep the scheduler task disabled until its owner approves cutover and retry
+  policy.
 
 Evidence: [NOI/SAFE record](noi-snapshot-reconciliation.md) and
-[sanitized run output](builds/2026-10-11-recovery/noi-snapshot-parity.json).
+[sanitized run output](builds/2026-10-11-recovery/noi-snapshot-parity.json),
+[candidate preflight and backup restore](builds/2026-10-11-recovery/candidate-migration-preflight.json).
 Rollback: disable the new schedule and restore affected snapshot rows from the
 verified pre-run backup; retain migration 379 unless a reviewed forward
 migration removes its index.
