@@ -113,9 +113,9 @@ added or run. Roll back by reverting the additive routes/models/SDK clients or
 deploying the preceding gateway image; existing clients continue using
 `/api/locations`.
 
-Next: render and inspect the native OpenAPI schema in the FastAPI-enabled
-runtime, then generate/release SDK artifacts after runtime auth and payload
-contract checks are authorized.
+The scoped native v1 OpenAPI snapshot is now retained at
+[`native-public-api-v1.openapi.json`](native-public-api-v1.openapi.json); see
+the additive-read entry below.
 
 ## Phase 7 additive public read aliases — 11 October 2026
 
@@ -127,13 +127,16 @@ public `read` route policies, envelope response models, and unique OpenAPI
 operation IDs. Extended Python and JavaScript public clients with typed metric
 summary, published CRISP, and governed location-summary results. Updated the
 contract docs, capability rows, and Batch 5 checklist. This is source-level
-implementation only: the host cannot import FastAPI, so dynamic OpenAPI rendering
-and route-policy execution were unavailable. The JavaScript build remains
-unavailable because `tsc` is not installed. Python syntax compilation and diff
-whitespace checks passed; no test suite or runtime route request was executed.
-OpenAPI-driven code generation, release packaging, auth/payload/Directus parity,
-and the operations-console slice remain open. Rollback reverts the additive
-decorators and policy entries plus the SDK methods; the original routes remain.
+implementation only. Exported the scoped native OpenAPI from the existing
+Gateway dependency image with the current source mounted read-only and network
+disabled; the generated document includes `x-kokonut-policy` derived from the
+route-policy function. No service was started. The local host cannot import
+FastAPI. The JavaScript build remains unavailable because `tsc` is not installed.
+Python syntax compilation, JSON parsing and diff whitespace checks passed; no
+test suite or HTTP route request was executed. OpenAPI-driven SDK code generation,
+release packaging, HTTP authorization/payload/Directus parity, and the
+operations-console slice remain open. Rollback reverts the additive decorators
+and policy entries plus SDK methods; the original routes remain.
 
 ## Batch 5 mobile access boundary review — 11 October 2026
 

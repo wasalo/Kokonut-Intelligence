@@ -316,6 +316,7 @@ reporting views.
 - [x] Add an OpenAPI-backed, versioned v1 public-location list/detail contract while preserving the legacy location routes.
 - [x] Add additive v1 metrics, published-CRISP, and location-summary read aliases with explicit authorization policy and strict response models.
 - [x] Add typed v1 location, metrics, CRISP, and location-summary methods to the Python and JavaScript SDK sources.
+- [x] Export the scoped Gateway v1 OpenAPI document, including explicit policy metadata, separately from the Directus OpenAPI file.
 - [ ] Generate the remaining versioned SDK surface from OpenAPI, publish a release, and implement an operations console slice.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 

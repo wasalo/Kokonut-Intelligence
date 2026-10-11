@@ -8,8 +8,10 @@ full location collection migration or Directus parity certification.
 The additive `GET /api/v1/locations` and
 `GET /api/v1/locations/{location_id}` routes define the first versioned native
 contract. FastAPI publishes their request/response schemas in the gateway's
-OpenAPI document. Both return a conventional JSON envelope: the list route
-returns `{ "data": [...] }`; detail returns `{ "data": { ... } }`. The list is
+OpenAPI document; the scoped generated v1 snapshot is
+[retained here](native-public-api-v1.openapi.json). Both return a conventional
+JSON envelope: the list route returns `{ "data": [...] }`; detail returns
+`{ "data": { ... } }`. The list is
 bounded to 100 eligible records, ordered by name and ID, and currently has no
 filter or pagination parameters. Detail accepts a UUID; malformed identifiers
 return 400 and absent or ineligible locations return the same 404 response.
