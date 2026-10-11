@@ -33,12 +33,50 @@ are unavailable or the port is invalid. Forwarded client headers are explicitly
 ignored. Init, restart policy, and a 40-second grace period apply to this role;
 request drain and committed-write uncertainty require runtime acceptance.
 
-Static lint, placeholder-only Compose parsing, and diff checks passed. No image
-build, receiver start, tests, HTTP messages, migrations, or sensor writes were
-performed. Pending gates include image import/startup, HMAC and device checks,
-transaction failure recovery, UTC identity, retry headers, bounded requests,
-shutdown, liveness, and disabled ClickHouse behavior. This is a prepared
-deployment option, not certified transport parity.
+## Request and failure contract
+
+- `POST /api/v1/sensors/{device_id}/readings` accepts one signed JSON reading.
+  `POST /api/v1/sensors/{device_id}/readings/batch` accepts 1–100 readings.
+- `X-Signature` is HMAC-SHA256 over the exact request bytes. The receiver looks
+  up the active device slug and shared secret in PostgreSQL; an optional
+  `sha256=` prefix is accepted. The JSON device ID must match the URL.
+- The ASGI body limiter caps single requests at 10,240 bytes and batch requests
+  at 262,144 bytes, and stops waiting for a body after ten seconds. Oversize
+  requests return 413; body timeout returns 408; missing/invalid signatures
+  return 401; URL/payload identity mismatch returns 400.
+- Each accepted reading commits the canonical PostgreSQL reading, device-health
+  update, analytical outbox row, and durable platform event on one connection.
+  A single-reading retryable storage failure returns 503 with
+  `Retry-After: 30`; retry the identical timestamp and payload so the existing
+  dedupe identity can resolve uncertain commit outcomes.
+- Batch processing is sequential and each item has its own transaction. The
+  response can therefore contain a mix of successes, duplicates, and
+  retryable failures; it is not all-or-nothing. A retryable batch result is
+  reported in the JSON body (`retryable` and `retry_after_seconds`), so clients
+  must retry only failed items with their original timestamps.
+- The receiver has no built-in per-device rate limit or public TLS listener.
+  Keep it private; a private network does not replace HMAC or active-device
+  authorization. The health endpoint is liveness only.
+
+## Evidence and remaining gates
+
+Earlier isolated recovery checks exercised the receiver over TCP from a second
+container, including HMAC rejection, authenticated single/batch writes, URL/
+payload mismatch, duplicate timestamp behavior, and delivery of selected
+outbox projections to ClickHouse. [Listener evidence](builds/2026-10-10-recovery/sensor-http-listener.json),
+[CSV/HTTP evidence](builds/2026-10-10-recovery/sensor-csv-http.json), and
+[outbox evidence](builds/2026-10-10-recovery/sensor-http-outbox-delivery.json).
+Those checks used the isolated recovery fixture and did not enable this Compose
+overlay. They do not certify its merged runtime identity, database grants,
+startup/health, optional-profile independence, or shutdown behavior.
+
+Compose parsing used placeholder credentials; no secret values were printed.
+The optional `http-sensors` Compose service has not been built or started. No
+test suite was run for this contract update. Remaining gates include overlay
+image import/startup, runtime-role grants, timestamp-mode selection and UTC
+identity, batch retry behavior, body-limit boundary/timeout, shutdown, service
+liveness, disabled ClickHouse behavior, and public-ingress policy. This is a
+prepared deployment option, not certified transport parity.
 
 Rollback stops/removes only candidate `http-sensors` and omits its overlay.
 Omitting a manifest alone leaves an orphan service running. Preserve database,

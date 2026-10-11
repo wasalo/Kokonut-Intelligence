@@ -134,6 +134,19 @@ staging, or production. No runtime probe or test suite ran. No consent/form
 policy or schema behavior changed. Rollback only the candidate mobile profile or
 revert any future implementation; preserve encrypted media and key custody.
 
+## Batch 5 HTTP sensor deployment contract — 11 October 2026
+
+Reconciled `http-sensor-overlay.md` against the Compose service,
+`http_sensor_receiver.py`, and `http_sensor_limits.py`. Documented private-only
+port exposure, HMAC/device checks, 10 KiB single and 256 KiB batch limits,
+ten-second body deadline, per-reading transaction/duplicate semantics, and
+single versus batch retry behavior. Linked the earlier isolated receiver
+listener/CSV/outbox evidence and clarified it did not enable the optional Compose
+overlay. The overlay itself has not been built or started; runtime identity,
+health, grant, timestamp, shutdown, and public-ingress gates remain open. No
+source/runtime behavior changed and no test suite ran. Rollback remains removing
+only the `http-sensors` overlay service; preserve database/outbox/device state.
+
 ## Batch execution — 10 October 2026
 
 [Six-batch checklist](batches.md). **Batch 1 complete:** matching AMD64/ARM64
