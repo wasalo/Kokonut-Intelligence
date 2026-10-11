@@ -13,7 +13,14 @@ and 25 pending migrations; none were applied to that retained clone. A separate
 network-isolated clone applied the 25 reviewed migrations with unchanged
 pre-existing row fingerprints for 16 populated tables; the detailed review is
 in [pending migration compatibility](pending-migration-compatibility-review.md).
-Populated report-output parity remains open.
+Populated farm-summary and Celo-attestation view outputs subsequently matched
+independent base-table queries in both directions on a disposable populated
+copy, with zero differences. The metric view matched an independent query but
+returned zero rows because that population has no published metric policies;
+the separate transaction-rolled-back role fixture passed the nonempty published
+metric period/method/review-field probe. The analytics role read only the
+three named views and was denied on application tables, the private policy
+table, and DDL on that copy. See [populated parity evidence](builds/2026-10-11-recovery/populated-report-view-parity.json).
 No Metabase source is configured and no Kokonut report cards have been built.
 Metabase remains optional and belongs only in the analytics profile. See the
 [source-aligned evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json),

@@ -172,6 +172,30 @@ Rollback: disable the new schedule and restore affected snapshot rows from the
 verified pre-run backup; retain migration 379 unless a reviewed forward
 migration removes its index.
 
+### Batch 4b — Populated reporting-view parity (Phase 3)
+
+- [x] Compare each curated reporting view bidirectionally against independently
+  written queries over the populated canonical tables on a disposable copy.
+- [x] Provision the analytics role's three named view grants on that copy; verify
+  it can read those views and is denied on application tables, the private
+  publication policy, and DDL.
+- [x] Remove the disposable container, copied volume, and temporary manifest;
+  retain only aggregate, sanitized evidence.
+- [x] Exercise nonempty metric output with a published policy in the
+  transaction-rolled-back role fixture; verify value, period, method, and review
+  fields. The populated source itself has no published policies.
+- [ ] Review the exact source grants and database ACLs for a deployment target;
+  do not configure a Metabase source or cards until the output fields are approved.
+
+Evidence: [populated report-view parity](builds/2026-10-11-recovery/populated-report-view-parity.json).
+The farm summary matched 2 rows, the Celo attestation summary matched 1 row,
+and both had zero bidirectional differences. The metric view and its independent
+query both returned zero because no metric publication policy is published.
+The separate rollback-only synthetic role fixture passed the published metric
+period/method/review-field probe ([fixture evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json)).
+Rollback: no source rows or source grants were changed; the copied database was
+discarded after evidence capture.
+
 ## Batch 5 — Optional transports and application access (Phases 6, 7)
 
 - [ ] Complete HTTP/MQTT sensor, gRPC and proxy deployment contracts in separate slices.

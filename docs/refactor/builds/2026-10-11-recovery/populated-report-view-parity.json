@@ -1,0 +1,74 @@
+{
+  "run_id": "populated-report-view-parity-20261011",
+  "evidence_date": "2026-10-11",
+  "scope": "Read-only output comparison on a disposable copy of the populated recovery database. The analytics-role grants were provisioned only on that copied database.",
+  "environment": {
+    "compose_project": "kokonut-kernel-report-parity-20261011",
+    "service": "database",
+    "network_mode": "none",
+    "host_ports_published": false,
+    "source_volume": "kokonut-kernel-migration-review-20261011_data",
+    "disposable_volume": "kokonut-kernel-report-parity-20261011_data"
+  },
+  "population": {
+    "locations": 2,
+    "active_locations": 2,
+    "registry_eligible_locations": 2,
+    "verified_or_published_registry_records": 2,
+    "published_metric_policies": 0
+  },
+  "bidirectional_view_parity": {
+    "v_farm_summary": {
+      "view_rows": 2,
+      "reference_rows": 2,
+      "difference_rows": 0
+    },
+    "v_verified_metric_values": {
+      "view_rows": 0,
+      "reference_rows": 0,
+      "difference_rows": 0
+    },
+    "v_attestation_summary": {
+      "view_rows": 1,
+      "reference_rows": 1,
+      "difference_rows": 0
+    }
+  },
+  "synthetic_published_metric_probe": {
+    "result": "passed",
+    "fixture_rows_rolled_back": true,
+    "published_policy_required": true,
+    "period_method_and_review_fields": "passed",
+    "evidence": "kokonut-reporting-contract-source-aligned.json"
+  },
+  "analytics_role": {
+    "role": "kokonut_analytics_ro",
+    "readable_reporting_views": [
+      "v_attestation_summary",
+      "v_farm_summary",
+      "v_verified_metric_values"
+    ],
+    "denied_reads": [
+      "public.metric_value",
+      "public.schema_migration",
+      "kokonut_reporting.metric_publication_policy"
+    ],
+    "ddl_denied": true,
+    "unreviewed_application_relations_readable": 0,
+    "public_extension_metadata_relations_readable": 5
+  },
+  "isolation_and_cleanup": {
+    "source_volume_mutated": false,
+    "candidate_mutated": false,
+    "legacy_stack_mutated": false,
+    "disposable_container_removed": true,
+    "disposable_volume_removed": true,
+    "temporary_compose_manifest_removed": true
+  },
+  "limitations": [
+    "The populated source returned no metric rows because it has no published metric policies. Nonempty metric behavior was verified separately using the rollback-only synthetic role fixture, not against a populated operational metric dataset.",
+    "No Metabase source connection or Kokonut dashboard/card was created or exercised.",
+    "PostgreSQL emitted a copied-cluster collation-version warning; all queries completed successfully."
+  ],
+  "result": "farm and attestation reporting outputs matched independent base-table queries; the analytics role read exactly the three curated reporting views and remained denied on application and policy tables"
+}

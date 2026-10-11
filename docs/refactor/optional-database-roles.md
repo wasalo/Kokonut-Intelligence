@@ -9,8 +9,14 @@ owner bootstrap completed and its DML-only runtime became healthy. Metabase
 initialized a separate empty metadata database as a non-superuser and became
 healthy. A separate sanitized review classified the restored board as generic
 e-commerce demo content over the sample H2 source; retain it only as an
-explicitly labeled demo fixture. The candidate and legacy databases were not
+explicitly labeled demo fixture. The populated farm-summary and Celo-attestation
+views also matched independent base-table queries on a separate disposable
+copy; the metric view returned zero rows because that data has no published
+policy. On that copy, the analytics role could read only the three curated
+reporting views among reporting relations and was denied on application tables,
+the private policy table, and DDL. The candidate and legacy databases were not
 changed. The recovery-only Compose manifest is not a deployable Kernel profile.
+See [populated parity evidence](builds/2026-10-11-recovery/populated-report-view-parity.json).
 
 ## Why these are separate identities
 
@@ -26,7 +32,7 @@ standard profile.
 | --- | --- | --- | --- |
 | `kokonut_directus_runtime` | Kernel application database | `CONNECT`; `USAGE`; `SELECT`, `INSERT`, `UPDATE`, `DELETE` on Directus-managed relations; sequence `USAGE`, `SELECT`, `UPDATE` | No ownership, schema `CREATE`, role/database administration, or access to the metadata database. Directus CRUD permissions remain a separate API authorization layer. |
 | `kokonut_metabase_app` | One dedicated Metabase metadata database | Owns that database's application relations so Metabase can create and migrate its metadata schema | No superuser, `CREATEDB`, `CREATEROLE`, or connection to the Kernel application database. Do not reuse it as an analytics-source account. |
-| `kokonut_analytics_ro` | One explicitly configured source database | `CONNECT`, `USAGE` on a reviewed reporting schema, and `SELECT` on individually approved views | No base-table access, writes, schema creation, metadata-database access, or public sharing of private evidence. The proposed reporting schema is not yet present in the product schema. |
+| `kokonut_analytics_ro` | One explicitly configured source database | `CONNECT`, `USAGE` on a reviewed reporting schema, and `SELECT` on individually approved views | No base-table access, writes, schema creation, metadata-database access, or public sharing of private evidence. Production provisioning remains separate; no operational Metabase source connection is configured. |
 
 PostgreSQL's `PUBLIC CONNECT` and extension relation grants are inherited by all
 roles unless revoked. The recovery fixture revokes `PUBLIC CONNECT` on every
