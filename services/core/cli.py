@@ -30,6 +30,40 @@ def report_schema_readiness() -> None:
     print_json({"ready": True, "code": "ready", **counts})
 
 
+def report_overview() -> None:
+    """Report local provider selection without probing services or reading secrets."""
+    from services import __git_sha__, __version__
+    from services.core.features import list_features
+
+    providers = [
+        {
+            "name": feature["name"],
+            "category": feature.get("category", "uncategorized"),
+            "enabled": bool(feature.get("enabled", False)),
+            "critical": bool(feature.get("critical", False)),
+        }
+        for feature in list_features()
+    ]
+    providers.sort(key=lambda feature: feature["name"])
+    print_json({
+        "kind": "kernel_configuration_overview",
+        "health_checked": False,
+        "database_checked": False,
+        "platform": {
+            "name": "Kokonut Intelligence",
+            "version": __version__,
+            "git_sha": __git_sha__,
+        },
+        "providers": providers,
+    })
+
+
+@app.command("overview")
+def overview() -> None:
+    """Show build metadata and provider selection without runtime probes."""
+    run(report_overview)
+
+
 @app.command("schema-readiness")
 def schema_readiness() -> None:
     """Check bundled schema checksums and required PostgreSQL extensions."""

@@ -318,7 +318,9 @@ reporting views.
 - [x] Add typed v1 location, metrics, CRISP, and location-summary methods to the Python and JavaScript SDK sources.
 - [x] Export the scoped Gateway v1 OpenAPI document, including explicit policy metadata, separately from the Directus OpenAPI file.
 - [x] Generate the v1 response types and route templates from the native OpenAPI snapshot and make both SDK clients consume the generated definitions.
-- [ ] Prepare and publish the Python/JavaScript SDK release and implement an operations console slice.
+- [x] Add a local, read-only Kernel CLI overview of build metadata and provider selection ([operator contract](kernel-operator-cli.md)).
+- [ ] Prepare and publish the Python/JavaScript SDK release.
+- [ ] Define operator identity/scope and implement a browser operations-console slice.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented
