@@ -44,7 +44,7 @@ The exact pending list is in the machine-readable evidence.
 
 ## Active Kernel candidate preflight — 11 October 2026
 
-The running `kokonut-kernel-candidate` database has 361 applied schema rows
+At preflight, the running `kokonut-kernel-candidate` database had 361 applied schema rows
 through migration 370. A full read-only comparison against the 370 current
 schema files found one mismatch: `schema:000_extensions.sql` is recorded as
 `6e5850e5…5723ff`, while the current source is `cf493b73…1a245`. The stored
@@ -73,6 +73,29 @@ checksums, and the planner reports precisely nine pending migrations with no
 checksum mismatch. The active candidate has not yet been repaired or migrated.
 See [candidate ACL/extension evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json)
 and [isolated repair evidence](builds/2026-10-11-recovery/candidate-checksum-repair-policy.json).
+This paragraph records the state immediately before the active-candidate
+application documented below.
+
+## Active candidate migration application — 11 October 2026
+
+After the isolated repair exercise, the exact candidate repair was recorded in
+`schema_migration_repair` as `a4ad2844-e7b1-4371-8436-8b6bc3ea1408`. The
+post-repair exact-target plan returned the nine expected migrations with no
+checksum mismatch. The transactional runner applied migrations 371–379 with
+zero failures; a final plan reports zero pending across all 370 current schema
+files. Read-only checks confirmed all three `kokonut_reporting` views, zero
+PUBLIC table grants in that schema, zero NOI snapshots/duplicate/null crop-cycle
+keys, and the `uq_noi_snapshot_crop_cycle_id` unique index. The app and private
+database remain healthy. The app container's supervisor runs scheduler and
+event-worker processes, but the scheduler reports zero enabled, disabled, or
+running tasks; the NOI daily task is not registered. No analytics/runtime
+roles or Metabase source/cards were configured. The legacy stack remains
+stopped and unchanged. [Active-target evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
+
+Rollback uses the retained encrypted pre-repair checkpoint, which restores the
+pre-migration ledger and schema. Rerunning the current migration set after that
+restore requires the same audited exact-checksum repair first. The checkpoint
+excludes roles/grants and external provider state.
 
 Before the preflight, an encrypted checkpoint of the exact candidate database
 was written to the ignored local `backups/kernel-candidate-preflight-20261011`
@@ -84,12 +107,13 @@ separate failure domain. See the [candidate preflight evidence](builds/2026-10-1
 
 Separately, all 370 current schema sources applied with zero failures to a new
 network-disabled scratch database, and the post-run plan reported zero pending.
-This validates the current source set on a fresh database; it does not resolve
-the candidate's two-history checksum mismatch or authorize migration there.
+At that earlier stage, this validated the current source set on a fresh database
+but did not resolve the candidate's two-history checksum mismatch; the following
+section records the later audited resolution and application.
 
 ## Validation and remaining gates
 
-`python3 -m services.migration.cli validate --schemas-only` validated all 369
+`python3 -m services.migration.cli validate --schemas-only` validated all 370
 current migration sources, and `tests/test_migration.py` passed (22 tests after
 adding the exact historical-repair coverage). The
 runner now wraps each migration body and ledger row in one transaction; balanced

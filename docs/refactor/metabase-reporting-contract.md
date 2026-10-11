@@ -27,14 +27,14 @@ Metabase remains optional and belongs only in the analytics profile. See the
 [transactional replay evidence](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json),
 and [migration source/recovery record](migration-checksum-drift.md).
 
-An exact read-only ACL inventory of the active candidate found that `kokonut`
-is its only login/superuser role; the analytics, Directus-runtime, and Metabase
-metadata roles are absent. The application database has default `PUBLIC
-CONNECT` and `TEMPORARY` privileges, and the reporting schema/view are not
-present because migration 377 remains pending behind the candidate checksum
-gate. Do not provision a Metabase source on this target until the migration
-history is reviewed, the reporting migration is applied, and the database plus
-inherited extension ACLs are deliberately scoped. [Candidate ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json).
+Before migrations 371–379 were applied, a read-only ACL inventory found that
+`kokonut` was the candidate's only login/superuser role and that PUBLIC had
+`CONNECT` and `TEMPORARY` privileges. The nine reviewed migrations are now
+applied, so the reporting schema and three views exist; however, the analytics,
+Directus-runtime, and Metabase metadata roles remain absent and PUBLIC database
+privileges remain. No Metabase source is configured. Provisioning must still
+scope database and inherited extension ACLs before a source login is created.
+[Pre-migration ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [post-migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
 
 ## Purpose and source of truth
 

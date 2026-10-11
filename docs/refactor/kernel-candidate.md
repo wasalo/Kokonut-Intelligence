@@ -137,5 +137,21 @@ hardware. Runtime suites were not added or run. Static provider boundaries
 (17 vendor sites), dependency groups (11 groups/28 requirements), and diff checks
 passed.
 
-Rollback: keep using the legacy manifests/images. These additive files do not
-modify existing containers or volumes. No data rollback is required.
+## Active candidate schema update — 11 October 2026
+
+The older startup and receiver-build sections above record their state at the
+time each build was captured. The active candidate's exact `000_extensions.sql`
+history was subsequently repaired through the audited allowlist after all six
+expected extensions were verified. Migrations 371–379 then applied with zero
+failures; the exact-target plan now reports zero pending across 370 schema
+migrations. The reporting schema's three views and the NOI crop-cycle unique
+index exist. The candidate app and private database are healthy. Its supervisor
+runs scheduler and event-worker processes, but scheduler status reports zero
+enabled, disabled, or running tasks; the NOI daily task is not registered. No
+runtime/analytics role or Metabase source/cards are configured. [Active migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
+
+The rollback statement above applies to the earlier build-only checkpoint. For
+the active database migration, restore the retained encrypted pre-repair
+checkpoint into a clean database if rollback is required; this returns the
+ledger to the historical checksum state, so replaying current migrations first
+requires the audited repair. See [candidate migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).

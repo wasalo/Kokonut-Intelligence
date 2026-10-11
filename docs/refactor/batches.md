@@ -162,25 +162,27 @@ Rollback: disable new schedules before restoring legacy ownership; avoid dual wr
   CLI plus a disabled daily job.
 - [x] Apply migration 379 through the transactional runner and reconcile six
   rows on a separate network-disabled volume copy; verify zero view mismatches.
-- [x] Preflight the active candidate: 361 of 370 schema rows are applied, no
-  NOI snapshots or duplicate keys exist, and one exact-source checksum mismatch
-  blocks the nine pending migrations.
+- [x] Preflight the active candidate: 361 of 370 schema rows were applied, no
+  NOI snapshots or duplicate keys existed, and one exact-source checksum
+  mismatch blocked the nine pending migrations; see the subsequent resolution.
 - [x] Create an encrypted checkpoint of the exact candidate database and
   complete a network-isolated restore with matching ledger and selected table
   counts; retain a same-disk development mirror.
 - [x] Apply all 370 current schema sources to a fresh network-disabled scratch
   database; post-run plan reports zero pending.
-- [ ] Resolve the candidate's two-history checksum mismatch through the
+- [x] Resolve the candidate's two-history checksum mismatch through the
   existing audited repair path for the exact repository-base checksum. Require
   the six verified extension effects before recording the repair; keep all
   unknown checksum mismatches failing closed and do not edit applied SQL.
-- [ ] Re-run the exact-target plan and only then review/apply pending migrations.
-  Keep the scheduler task disabled until its owner approves cutover and retry
-  policy.
+- [x] Re-run the exact-target plan and apply reviewed migrations 371–379 through
+  the transactional runner; confirm zero pending, preserve the audit row, and
+  confirm the scheduler reports zero tasks. Do not register/enable the NOI job
+  until its owner approves cutover and retry policy.
 
 Evidence: [NOI/SAFE record](noi-snapshot-reconciliation.md) and
 [sanitized run output](builds/2026-10-11-recovery/noi-snapshot-parity.json),
-[candidate preflight and backup restore](builds/2026-10-11-recovery/candidate-migration-preflight.json).
+[candidate preflight and backup restore](builds/2026-10-11-recovery/candidate-migration-preflight.json),
+[audited checksum repair and active-target migration result](builds/2026-10-11-recovery/candidate-migration-apply.json).
 Rollback: disable the new schedule and restore affected snapshot rows from the
 verified pre-run backup; retain migration 379 unless a reviewed forward
 migration removes its index.
@@ -212,10 +214,10 @@ and both had zero bidirectional differences. The metric view and its independent
 query both returned zero because no metric publication policy is published.
 The separate rollback-only synthetic role fixture passed the published metric
 period/method/review-field probe ([fixture evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json)).
-The active candidate ACL review found no analytics role or reporting schema;
-the database is still owned by the `kokonut` superuser and has default PUBLIC
-CONNECT/TEMPORARY exposure. Migration 377 remains pending behind the recorded
-checksum mismatch, so source provisioning is intentionally deferred.
+The pre-migration ACL review found no analytics role and default PUBLIC
+CONNECT/TEMPORARY exposure. Migrations 371–379 are now applied and the three
+reporting views exist, but no analytics role/source is configured. The database
+and inherited extension ACL review remains a prerequisite for provisioning.
 Rollback: no source rows or source grants were changed; the copied database was
 discarded after evidence capture.
 

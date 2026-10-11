@@ -14,18 +14,18 @@ views also matched independent base-table queries on a separate disposable
 copy; the metric view returned zero rows because that data has no published
 policy. On that copy, the analytics role could read only the three curated
 reporting views among reporting relations and was denied on application tables,
-the private policy table, and DDL. The candidate and legacy databases were not
-changed. The recovery-only Compose manifest is not a deployable Kernel profile.
+the private policy table, and DDL. Those role checks did not change the
+candidate or legacy databases. The recovery-only Compose manifest is not a
+deployable Kernel profile.
 See [populated parity evidence](builds/2026-10-11-recovery/populated-report-view-parity.json).
 
-The active candidate was separately reviewed read-only on 11 October. `kokonut`
-is its only login/superuser role; the runtime, analytics-source, and Metabase
-metadata roles are absent, as are the migration-377 reporting schema and views.
-Its application database still grants `PUBLIC CONNECT` and `PUBLIC TEMPORARY`.
-No consumer role or source was added. Since the tested bootstrap revokes
-`PUBLIC CONNECT` instance-wide, that change needs an exact database ACL and
-extension-grant review after the candidate's migration checksum gate is
-resolved. [Candidate ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json).
+Before migration 377 was applied, the active candidate was reviewed read-only:
+`kokonut` was its only login/superuser role and the runtime, analytics-source,
+and Metabase metadata roles were absent. The candidate now has the reporting
+schema and views, but no consumer roles; PUBLIC still has `CONNECT` and
+`TEMPORARY` privileges. Since the tested bootstrap revokes `PUBLIC CONNECT`
+instance-wide, that change needs an exact database ACL and extension-grant
+review before adding the analytics source role. [Pre-migration ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration result](builds/2026-10-11-recovery/candidate-migration-apply.json).
 
 ## Why these are separate identities
 

@@ -1,5 +1,6 @@
 {
   "date": "2026-10-11",
+  "review_stage": "before active-candidate migrations 371-379 were applied",
   "target": {
     "compose_project": "kokonut-kernel-candidate",
     "compose_file": "docker-compose.kernel-candidate.yml",
@@ -37,7 +38,7 @@
     "legacy_stack_mutated": false
   },
   "reporting_source_readiness": "not_ready",
-  "decision": "Do not create the analytics login or configure a Metabase source on this target. First resolve the exact-target migration checksum history, apply and review the reporting migration through the tracked runner, then provision a dedicated read-only source role after reviewing all instance database and inherited extension ACLs. The candidate's only login/superuser role is kokonut; the application database grants PUBLIC CONNECT and TEMPORARY.",
+  "decision_at_review": "Do not create the analytics login or configure a Metabase source on this target. First resolve the exact-target migration checksum history, apply and review the reporting migration through the tracked runner, then provision a dedicated read-only source role after reviewing all instance database and inherited extension ACLs. The candidate's only login/superuser role is kokonut; the application database grants PUBLIC CONNECT and TEMPORARY.",
   "limitations": [
     "This is an ACL inventory, not an authorization test.",
     "No database, role, schema, grant, source, or application data was changed.",
