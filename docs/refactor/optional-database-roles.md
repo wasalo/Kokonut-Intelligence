@@ -19,13 +19,23 @@ candidate or legacy databases. The recovery-only Compose manifest is not a
 deployable Kernel profile.
 See [populated parity evidence](builds/2026-10-11-recovery/populated-report-view-parity.json).
 
-Before migration 377 was applied, the active candidate was reviewed read-only:
-`kokonut` was its only login/superuser role and the runtime, analytics-source,
-and Metabase metadata roles were absent. The candidate now has the reporting
-schema and views, but no consumer roles; PUBLIC still has `CONNECT` and
-`TEMPORARY` privileges. Since the tested bootstrap revokes `PUBLIC CONNECT`
-instance-wide, that change needs an exact database ACL and extension-grant
-review before adding the analytics source role. [Pre-migration ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration result](builds/2026-10-11-recovery/candidate-migration-apply.json).
+Before migration 377 was applied, the candidate had only the `kokonut`
+superuser login and inherited `PUBLIC CONNECT`/`TEMPORARY` grants. The reporting
+schema is now applied and the separate `kokonut_analytics_ro` login is
+provisioned on the dedicated candidate. It can connect only to the application
+database and read only the three approved reporting views; its real-login
+checks denied application tables, the private policy table, DDL, temp tables,
+and other databases. The reviewed ACL change revoked `PUBLIC CONNECT` across
+the four candidate databases and `PUBLIC TEMPORARY` on the application
+database. Eight extension metadata relations and 1,165 extension functions
+remain accessible through inherited extension grants; none is SECURITY
+DEFINER. The Metabase metadata role/profile is implemented separately but has
+now been provisioned on `kokonut_metabase`; its real login can create metadata
+objects and is denied on the application database. The pinned Metabase profile
+is healthy at a loopback-only port with credential encryption enabled. Its
+fresh first-start inventory found only the built-in H2 sample source and demo
+content; the Kokonut source and cards remain open.
+[Pre-migration ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration result](builds/2026-10-11-recovery/candidate-migration-apply.json); [active analytics-role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json); [candidate Metabase profile](metabase-kernel-profile.md).
 
 ## Why these are separate identities
 
@@ -69,7 +79,7 @@ to that internal service identity. It is not an analytics connection and must
 not be shared with Metabase. Keep Directus user/policy/field permissions and
 the existing authorization tests as the user-facing access boundary.
 
-For future profile integration, likely files are:
+Directus remains a separate future profile. Likely touchpoints are:
 
 - `docker-compose.yml`: remove `DB_USER=kokonut` from the legacy Directus
   service and use explicit Directus admin/runtime credentials.
@@ -78,9 +88,6 @@ For future profile integration, likely files are:
   runtime user.
 - `services/migration/runtime_role.py`: keep the native Kernel DML role
   separate; do not extend it to Directus or Metabase.
-- A future `services/migration/consumer_roles.py` and
-  `scripts/kernel-db-consumer-roles.py`: add idempotent, dedicated-instance
-  provisioning only after this role contract receives implementation review.
 - `tests/test_directus_metadata.py`, `tests/test_gateway_auth.py`, and the
   Directus permission SQL in `config/directus/permissions.sql`: preserve the
   independent API permission boundary and verify access after changing DB
@@ -118,19 +125,23 @@ allowlist. The role fixture grants only those three views and exercises their
 behavior with transaction-rolled-back synthetic rows. Migration 377 was applied
 through the tracked runner to `kokonut_reporting_scratch`; the post-run plan
 reported zero pending schema migrations. Exact view grants, base-table and
-policy-table denials, and farm/metric/Celo-attestation behavior passed. These
-changes exist only in the isolated clone. The archived application database's
-checksum drift at `schema:000_extensions.sql` was not repaired or bypassed; no
-candidate/legacy grant or Metabase source connection is configured. See the
+policy-table denials, and farm/metric/Celo-attestation behavior passed. The
+active candidate now has the same curated schema plus the verified
+`kokonut_analytics_ro` login; Metabase has no source connection yet. The
+archived application database's checksum drift at `schema:000_extensions.sql`
+was not repaired or bypassed. See the
 [reporting evidence](builds/2026-10-11-recovery/kokonut-reporting-contract.json)
 and [read-only drift triage](migration-checksum-drift.md).
 
 The legacy metadata contains 39 saved cards and one dashboard. Structural
 review found a generic **E-commerce Insights** board over the sample H2 source;
 preserve it only for demo/compatibility use, not as Kokonut reporting. A
-populated Metabase app start, source credential rotation, and Kokonut-specific
-card/output parity remain open. The first-start check uses a separate empty
-database and does not connect to any saved source. Startup evidence is
+populated legacy metadata startup, source registration, and Kokonut-specific
+card/output parity remain open. The candidate-only Metabase overlay and
+metadata bootstrap are prepared in
+[`metabase-kernel-profile.md`](metabase-kernel-profile.md). The first-start
+check uses a separate empty database and does not connect to any saved source.
+Startup evidence is
 [here](builds/2026-10-11-recovery/optional-consumer-startup.json).
 
 ## Isolated fixture and repeatable commands
@@ -266,3 +277,24 @@ reviewed per database; the pre-change candidate ACL inventory listed the app,
 `postgres`, and `template1` but not `template_postgis`. To disable only the
 source login, set `kokonut_analytics_ro` to `NOLOGIN` and revoke its three view
 grants. The retained candidate access hardening can remain in place.
+
+## Active candidate Metabase metadata identity — 11 October 2026
+
+The opt-in profile is defined in
+[`docker-compose.kernel-metabase.yml`](../../docker-compose.kernel-metabase.yml)
+and documented in [`metabase-kernel-profile.md`](metabase-kernel-profile.md).
+Its one-shot bootstrap created `kokonut_metabase`, owned by
+`kokonut_metabase_app`, and granted that role only CONNECT and CREATE on the
+metadata database. A real login created a temporary metadata table and rolled
+it back; the same credential was denied CONNECT to `kokonut_intelligence`.
+Metabase's source connection must continue to use the distinct read-only
+`kokonut_analytics_ro` identity.
+
+The Metabase image is pinned at 0.62.4. The profile supplies a separate
+SOPS-managed `MB_ENCRYPTION_SECRET_KEY`; its startup log confirmed saved
+credential encryption is enabled before source registration. Metabase is
+healthy with the corrected metadata grants; its sanitized inventory found one
+sample H2 source, 39 generic demo cards, one demo dashboard with 22 placements,
+and one user record. No Kokonut source or card has been configured. Keep the
+encryption key with encrypted metadata backups; losing it makes saved
+connection details unrecoverable. See [profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json).

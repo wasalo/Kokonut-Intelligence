@@ -1,28 +1,30 @@
 {
   "date": "2026-10-11",
-  "result": "active Kernel candidate app rebuilt from current checkout and recreated; candidate database preserved",
+  "result": "active Kernel candidate app rebuilt after adding the optional Metabase metadata-role module; candidate database and Metabase service preserved",
   "compose": {
     "project": "kokonut-kernel-candidate",
     "file": "docker-compose.kernel-candidate.yml",
     "legacy_stack_changed": false
   },
   "app": {
-    "container_id": "59cbafc7dab39a34a8435c39fd67a40bbb53ad8875260182f09c943a842ceef3",
-    "image_id": "sha256:76467534a977c60bcc5ffaac97a5761aa8b91fbe9f21fab520328d8d4c90a8c0",
+    "container_id": "aa54d2b3407ec7eab155c42c1282823a58026768a0ac4f1ba2b26a47c2780ce7",
+    "image_id": "sha256:eea7d9d7b30db5c354aa8364c44aec9f297b543bf7c24b6e331794274a71e49c",
     "platform": "linux/amd64",
     "health": "healthy",
     "host_binding": "127.0.0.1:8098",
     "health_endpoint_status": 200,
-    "previous_image_preserved_as": "kokonut-kernel-candidate-app:pre-analytics-role-20261011",
-    "previous_image_id": "sha256:5d83022611fc513601222ca40e9da6d497e5ed27fbc0e16a41e24a76e9870272",
+    "previous_image_preserved_as": "kokonut-kernel-candidate-app:pre-metabase-role-20261011",
+    "previous_image_id": "sha256:76467534a977c60bcc5ffaac97a5761aa8b91fbe9f21fab520328d8d4c90a8c0",
+    "earlier_pre_analytics_role_image_preserved_as": "kokonut-kernel-candidate-app:pre-analytics-role-20261011",
+    "earlier_pre_analytics_role_image_id": "sha256:5d83022611fc513601222ca40e9da6d497e5ed27fbc0e16a41e24a76e9870272",
     "older_pre_refactor_image_preserved_as": "kokonut-kernel-candidate-app:pre-refactor-20261011",
     "older_pre_refactor_image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10"
   },
   "source_manifest": {
     "target": "kernel",
-    "source_sha256": "ed38519cec2c1e434e37e1ad5ee7e12f8c28fdfe69963c9bc4d55ed4f6a99369",
-    "bundled_files": 1293,
-    "current_checkout_hash_matches": 1293,
+    "source_sha256": "fac681f975bc54662b3edc49098a267ea6dc28d6a82499824af3d51c65162781",
+    "bundled_files": 1294,
+    "current_checkout_hash_matches": 1294,
     "hash_differences": 0,
     "unexpected_image_files": 0,
     "checkout_files_not_in_kernel_image": [
@@ -62,10 +64,12 @@
     "new_empty_volume_created": "kokonut-kernel-candidate_kernel-gateway-audit-spool",
     "migrations_applied": false,
     "roles_or_grants_changed": false,
-    "metabase_source_or_cards_configured": false
+    "kokonut_source_or_cards_configured": false,
+    "metabase_demo_content_present": true,
+    "metabase_profile_remained_healthy": true
   },
   "rollback": {
-    "restore_app_image_tag": "docker tag kokonut-kernel-candidate-app:pre-analytics-role-20261011 kokonut-kernel-candidate-app:latest",
+    "restore_app_image_tag": "docker tag kokonut-kernel-candidate-app:pre-metabase-role-20261011 kokonut-kernel-candidate-app:latest",
     "recreate_only_app": "docker compose --env-file /dev/null -p kokonut-kernel-candidate -f docker-compose.kernel-candidate.yml up -d --no-deps --force-recreate app",
     "database_volume_or_legacy_stack_touched": false
   },

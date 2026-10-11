@@ -7,8 +7,15 @@
 # Key location: ~/.config/sops/age/keys.txt or ~/Library/Application Support/sops/age/keys.txt
 set -euo pipefail
 
-# Find the project root (parent of scripts/)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Find the project root (parent of scripts/) when sourced from Bash or zsh.
+if [ -n "${BASH_SOURCE:-}" ]; then
+    SCRIPT_SOURCE="${BASH_SOURCE[0]}"
+elif [ -n "${ZSH_VERSION:-}" ]; then
+    SCRIPT_SOURCE="${(%):-%x}"
+else
+    SCRIPT_SOURCE="$0"
+fi
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 SOPS_FILE="${PROJECT_ROOT}/.env.sops"

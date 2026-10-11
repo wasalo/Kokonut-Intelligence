@@ -107,3 +107,23 @@ application archive encountered a PostGIS duplicate-extension catalog error;
 that database was reset empty and is not part of the content evidence. No
 candidate or legacy database was touched. The retained isolated volume is
 `kokonut-kernel-metabase-content-20261011_consumer-role-postgres-data`.
+
+## Fresh candidate profile startup — 11 October 2026
+
+The optional candidate Metabase profile reached healthy status on the
+loopback-only host port. A sanitized, read-only inventory of its metadata
+database found one source, Metabase's built-in H2 sample source (`is_sample`,
+not a stub), with host and database unset and no password field. Its 39 saved
+cards and 22 dashboard placements all reference that H2 source; the database
+contains one dashboard and one user record. No Kokonut PostgreSQL source or
+Kokonut-specific card exists. Connection values and saved SQL were not read or
+printed. Treat this fresh sample content as demo material, matching the
+classification of the legacy archive; it is not analytics parity evidence.
+
+The inventory reused
+[`kernel-metabase-source-inventory.py`](../../scripts/fixtures/kernel-metabase-source-inventory.py)
+against `kokonut_metabase` over the internal candidate network. The parser now
+handles empty/non-JSON `details` values without exposing them. The candidate
+Metabase password and `MB_ENCRYPTION_SECRET_KEY` are encrypted in `.env.sops`;
+startup logs confirmed saved-credential encryption before any Kokonut source
+was registered. See [sanitized profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json).

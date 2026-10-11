@@ -30,11 +30,16 @@ and [migration source/recovery record](migration-checksum-drift.md).
 Before migrations 371–379 were applied, a read-only ACL inventory found that
 `kokonut` was the candidate's only login/superuser role and that PUBLIC had
 `CONNECT` and `TEMPORARY` privileges. The nine reviewed migrations are now
-applied, so the reporting schema and three views exist; however, the analytics,
-Directus-runtime, and Metabase metadata roles remain absent and PUBLIC database
-privileges remain. No Metabase source is configured. Provisioning must still
-scope database and inherited extension ACLs before a source login is created.
-[Pre-migration ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [post-migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
+applied and the three reporting views exist. The dedicated candidate now has a
+verified `kokonut_analytics_ro` login, with `PUBLIC CONNECT` revoked on its four
+databases and `PUBLIC TEMPORARY` revoked on the application database. Its login
+reads the views and is denied on application data, the private policy table,
+DDL, temporary tables, and other databases. Eight extension metadata relations
+and 1,165 extension functions remain accessible through inherited grants; none
+of those functions is SECURITY DEFINER. The optional Metabase profile is
+healthy on its loopback-only port with saved-credential encryption enabled. A
+sanitized inventory found one built-in sample H2 source and generic demo
+content, but no Kokonut PostgreSQL source or cards. [Pre-migration ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration result](builds/2026-10-11-recovery/candidate-migration-apply.json); [active role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json); [profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json); [profile contract](metabase-kernel-profile.md).
 
 ## Purpose and source of truth
 
@@ -160,12 +165,13 @@ Migration 377 and the expanded fixture now pass on the source-aligned scratch
 target through migration 378; transactional migration replay and rollback also
 pass on a third-generation clone. See [reporting evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json)
 and [transactional evidence](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json).
-The role setup and metadata ownership changes remain confined to isolated
-clones. The archived clone still has 25 pending migrations; a separate clone
-accepted all 25 without changing fingerprints for 16 populated tables. No
-analytics login was provisioned in candidate or legacy deployments, and
-Metabase has no source connection or Kokonut cards. Compare curated outputs
-against populated/native reference data, confirm the SAFE seed identities, then
-build cards before candidate-profile wiring. Source checksum correction and
-migration ordering are recorded in
+The active candidate has the verified analytics login and a healthy, opt-in
+Metabase profile with a separate metadata database/login and credential
+encryption. Its only registered source is Metabase's sample H2 demo source; no
+Kokonut source connection or cards exist. Next, register the PostgreSQL source
+with the read-only analytics login and build cards from the reviewed views. Use
+a populated isolated fixture for output parity because the active candidate is
+empty. The archived clone still has 25 pending migrations; a separate clone
+accepted all 25 without changing fingerprints for 16 populated tables. Source
+checksum correction and migration ordering are recorded in
 [migration-checksum-drift.md](migration-checksum-drift.md).

@@ -258,6 +258,49 @@ isolation, ARM64 and Raspberry Pi certification remain open. Rollback: retag
 force-recreate only the app with the candidate Compose file; leave the database
 volume intact. The earlier `pre-refactor-20261011` image remains available too.
 
+### Batch 4d — Optional Metabase profile and metadata isolation (Phase 3)
+
+- [x] Add a candidate-only `analytics` Compose overlay with Metabase pinned,
+  loopback-only access, private database networking, sharing disabled, and a
+  bounded JVM heap; keep it absent from the default candidate profile.
+- [x] Add an explicit one-shot metadata-role bootstrap that creates a separate
+  metadata database/login and rejects inherited PUBLIC database access.
+- [x] Run the metadata bootstrap and verify the real login can create metadata
+  objects inside its own database, with the create probe rolled back, while
+  connection to the application database is denied.
+- [x] Start Metabase under the opt-in profile and record HTTP/Docker health;
+  confirm the candidate database remains unexposed on host ports and the
+  default candidate manifest lists only `database` and `app`.
+- [x] Preserve the previous candidate image as
+  `pre-metabase-role-20261011`, rebuild after adding the bootstrap module, and
+  verify all 1,294 bundled source hashes match the checkout; retain the 11
+  expected protobuf/optional-dependency omissions.
+- [x] Recreate only the app container. Verify app/Metabase HTTP health `200`,
+  PostgreSQL container and volume unchanged, no database port published, and
+  the legacy stack still stopped.
+
+Gate: the metadata identity owns only Metabase metadata, and Metabase remains
+stopped unless the `analytics` profile is selected. Source registration and
+Kokonut report cards are a separate parity batch. Rollback: stop/remove only the
+Metabase service; retain the PostgreSQL volume and metadata database until the
+rollback window closes. **Batch 4d complete.** See [profile contract](metabase-kernel-profile.md)
+and [runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),
+plus the [current app image record](builds/2026-10-11-recovery/candidate-app-rebuild.json).
+
+### Batch 4e — Kokonut source registration and card parity (Phase 3)
+
+- [ ] Complete local Metabase first-run setup without importing the generic H2 demo board as Kokonut reporting.
+- [ ] Register `kokonut_intelligence` through `kokonut_analytics_ro`, select only `kokonut_reporting`, and verify database/source visibility.
+- [ ] Build first-party farm-summary, verified-metric, and Celo-attestation cards from the reviewed views.
+- [ ] Compare outputs bidirectionally with independent SQL and populated/rollback-only fixtures; include empty, date-bound, and eligibility cases.
+- [ ] Retain sanitized evidence, source-card exports without credentials, and the Metabase metadata backup plus encryption key.
+
+Gate: source access satisfies the reviewed data boundary and every promoted
+card matches independent reference results. Use an isolated populated fixture;
+the active candidate has no pilot rows. Rollback: remove the source/cards from
+Metabase and stop the optional profile; preserve the canonical database and
+reporting views.
+
 ## Batch 5 — Optional transports and application access (Phases 6, 7)
 
 - [ ] Complete HTTP/MQTT sensor, gRPC and proxy deployment contracts in separate slices.

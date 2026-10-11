@@ -69,7 +69,10 @@ def main() -> int:
             credential_configs = 0
             for engine, details, is_sample, is_stub in sources:
                 if isinstance(details, str):
-                    details = json.loads(details)
+                    try:
+                        details = json.loads(details) if details.strip() else {}
+                    except json.JSONDecodeError:
+                        details = {}
                 if not isinstance(details, dict):
                     details = {}
                 engine_name = str(engine or "unknown")

@@ -147,7 +147,10 @@ failures; the exact-target plan now reports zero pending across 370 schema
 migrations. The reporting schema's three views and the NOI crop-cycle unique
 index exist. The candidate app and private database are healthy. Its supervisor
 runs scheduler and event-worker processes, but scheduler status reports zero
-enabled, disabled, or running tasks; the NOI daily task is not registered. The candidate app still uses its owner credential; the separate analytics login is provisioned and verified, while Metabase source/cards remain unconfigured. [Active migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
+enabled, disabled, or running tasks; the NOI daily task is not registered. The
+candidate app still uses its owner credential; the separate analytics login is
+provisioned and verified. Metabase has only its built-in H2 demo source; no
+Kokonut source or cards are configured. [Active migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
 
 The rollback statement above applies to the earlier build-only checkpoint. For
 the active database migration, restore the retained encrypted pre-repair
@@ -157,24 +160,25 @@ requires the audited repair. See [candidate migration evidence](builds/2026-10-1
 
 ## Active candidate app rebuild — 11 October 2026
 
-The running app image was rebuilt from the current checkout after migration 379
-was applied, then rebuilt again after the optional analytics-role bootstrap
-module was added. The current image is
-`sha256:76467534a977c60bcc5ffaac97a5761aa8b91fbe9f21fab520328d8d4c90a8c0`
-(`linux/amd64`) and matches all 1,293 embedded source hashes in the checkout.
-The immediate prior image (`sha256:5d8302…9870272`) is preserved as
-`kokonut-kernel-candidate-app:pre-analytics-role-20261011`; the earlier
-`pre-refactor-20261011` image remains available too. Eleven optional or
-development files (five protobuf definitions and six non-Kernel requirement
-groups) are not in the Kernel image.
+The running app image was rebuilt from the current checkout after migration 379,
+then again after the optional analytics- and Metabase-role bootstrap modules
+were added. The current image is
+`sha256:eea7d9d7b30db5c354aa8364c44aec9f297b543bf7c24b6e331794274a71e49c`
+(`linux/amd64`) and matches all 1,294 embedded source hashes in the checkout.
+The previous image is preserved as
+`kokonut-kernel-candidate-app:pre-metabase-role-20261011`; earlier
+`pre-analytics-role-20261011` and `pre-refactor-20261011` tags remain available.
+Eleven optional or development files (five protobuf definitions and six
+non-Kernel requirement groups) are not in the Kernel image.
 
-Compose recreated only `kokonut-kernel-candidate-app-1`. The PostgreSQL
-container ID and private volume were preserved; both app and database report
-healthy. `GET /health` returned 200. The host-side, explicit-project schema plan
-reports zero pending of 370 migrations through 379. Scheduler status remains at
-zero enabled, disabled or running jobs; the NOI daily task is not registered.
-Compose created a new empty gateway-audit spool volume. No database migration,
-role or grant changed in either app-image rebuild. The legacy stack remains
+Compose recreated only `kokonut-kernel-candidate-app-1`; its current container
+ID is `aa54d2b3407ec7eab155c42c1282823a58026768a0ac4f1ba2b26a47c2780ce7`.
+The PostgreSQL container ID and private volume were preserved. The app,
+database, and Metabase all report healthy, and both loopback health endpoints
+returned 200. The host-side explicit-project schema plan remains at zero
+pending of 370 migrations through 379. Scheduler status remains at zero enabled,
+disabled, or running jobs; the NOI daily task is not registered. No migration,
+role or grant changed during this app-only rebuild. The legacy stack remains
 stopped.
 
 This establishes current-source image alignment and launch only. It does not
@@ -208,3 +212,20 @@ To disable the source login, set it to `NOLOGIN` and revoke its view grants.
 Reversing the instance-wide PUBLIC database ACL changes requires the exact
 pre-change ACL for each database; the earlier ACL inventory covered the app,
 `postgres`, and `template1`, but not `template_postgis`.
+
+## Active candidate optional Metabase profile — 11 October 2026
+
+The opt-in `analytics` profile runs pinned Metabase 0.62.4 on
+`127.0.0.1:3001`; it is absent from the default candidate manifest. PostgreSQL
+has no host-published port. The separate `kokonut_metabase_app` role has
+CONNECT and CREATE only on `kokonut_metabase`; a real login can create metadata
+objects there and is denied on `kokonut_intelligence`. Its credential and the
+distinct saved-credential encryption key are in SOPS. Metabase is healthy and
+reports credential encryption enabled.
+
+The fresh profile inventory found one built-in H2 sample source, 39 generic
+demo cards, one dashboard with 22 placements, and one user record. There is no
+Kokonut PostgreSQL source or Kokonut card. Preserve the H2 content only as a
+demo, not as parity evidence. See the [profile contract](metabase-kernel-profile.md),
+[sanitized runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),
+and [source inventory](metabase-source-inventory.md).

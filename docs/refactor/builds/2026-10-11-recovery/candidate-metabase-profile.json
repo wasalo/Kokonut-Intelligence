@@ -1,0 +1,85 @@
+{
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "application_database": "kokonut_intelligence",
+    "application_container_id": "aa54d2b3407ec7eab155c42c1282823a58026768a0ac4f1ba2b26a47c2780ce7",
+    "application_image_id": "sha256:eea7d9d7b30db5c354aa8364c44aec9f297b543bf7c24b6e331794274a71e49c",
+    "application_source_manifest_sha256": "fac681f975bc54662b3edc49098a267ea6dc28d6a82499824af3d51c65162781",
+    "application_bundled_files": 1294,
+    "application_bundled_hashes_match": 1294,
+    "application_host_http_status": 200,
+    "database_container_id": "69417747ae35c006364b3d56f6a87d1ae43076b369a5523e897b26294b62e922",
+    "database_host_ports": [],
+    "application_remained_healthy": true,
+    "legacy_stack_remained_stopped": true
+  },
+  "metadata_role": {
+    "database": "kokonut_metabase",
+    "user": "kokonut_metabase_app",
+    "database_owner": "kokonut_metabase_app",
+    "database_privileges": {
+      "kokonut_intelligence": {
+        "connect": false,
+        "create": false
+      },
+      "kokonut_metabase": {
+        "connect": true,
+        "create": true
+      },
+      "postgres": {
+        "connect": false,
+        "create": false
+      },
+      "template1": {
+        "connect": false,
+        "create": false
+      },
+      "template_postgis": {
+        "connect": false,
+        "create": false
+      }
+    },
+    "real_login_verified": true,
+    "metadata_table_create_probe_rolled_back": true,
+    "application_database_connection_denied": true
+  },
+  "metabase": {
+    "compose_profile": "analytics",
+    "container_id": "6bf987cd9fb82a7bb726383cb9265b176dd63b7999e0232ce59d6292ef840a7d",
+    "image": "metabase/metabase:v0.62.4@sha256:22ddc782a45f8aecf47c0f039b86a323435565595643e429fb33d29939b41675",
+    "health": "healthy",
+    "host_http_status": 200,
+    "host_binding": "127.0.0.1:3001->3000/tcp",
+    "database_port_published": false,
+    "credential_encryption_enabled": true,
+    "public_sharing_enabled": false,
+    "static_embedding_enabled": false,
+    "maximum_jvm_heap_mib": 768,
+    "source_inventory": {
+      "result": "passed",
+      "inventory_scope": "sanitized read-only metadata inventory",
+      "registered_source_count": 1,
+      "registered_source_engines": {
+        "h2": 1
+      },
+      "registered_source_is_sample": true,
+      "registered_source_is_stub": false,
+      "source_host_and_database_unset": true,
+      "source_password_fields": 0,
+      "source_detail_keys": [],
+      "saved_cards": 39,
+      "dashboards": 1,
+      "dashboard_card_placements": 22,
+      "users": 1,
+      "all_saved_cards_use_sample_h2": true,
+      "kokonut_postgres_source_registered": false,
+      "connection_values_printed": false,
+      "saved_query_sql_read": false
+    },
+    "kokonut_cards_created": 0
+  },
+  "limitations": [
+    "Metabase default sample content is demo data and is not Kokonut reporting.",
+    "Source registration and populated report-output parity remain pending."
+  ]
+}

@@ -87,14 +87,14 @@ minimal image: optional dependencies and full access paths still require assessm
 D/P describe only the named slice, never completion of the whole capability.
 
 The active AMD64 Kernel candidate has a private database and healthy app. Its
-rebuilt image matches all 1,293 bundled source hashes in the checkout, and its
+rebuilt image matches all 1,294 bundled source hashes in the checkout, and its
 schema-only migration plan reports zero pending across 370 applied migrations
 through 379. The app liveness endpoint returns 200; its scheduler currently has
 zero enabled, disabled or running tasks. No numbered seeds or pilot fixture were
 loaded. These are operational checks, not proof of a complete
 farm/metric/reviewer/mobile workflow. Legacy remains stopped with volumes
 retained. The previous app image is preserved under a rollback tag. The active
-candidate app still uses its owner login; the verified read-only analytics login is separate. No Metabase source or Kokonut cards are configured. All MAN-CAP acceptance gates remain open.
+candidate app still uses its owner login; the verified read-only analytics login is separate. The opt-in Metabase profile is healthy with credential encryption enabled; its only source and saved cards are the built-in H2 demo. No Kokonut source or cards are configured. All MAN-CAP acceptance gates remain open.
 
 Shared infrastructure changes (provider flags, adapters, requirement groups,
 scheduler/events/cache ports, images and migrations) support many rows but do not
@@ -821,5 +821,11 @@ analytics-source, or Metabase metadata role existed, and migration 377's
 reporting schema/views were absent. `PUBLIC` could connect to the application
 database and create temporary objects. No roles, grants, schemas, source, or
 data were changed by that review. Migrations 371–379 have since been applied;
-the reporting views exist, while source provisioning, cards, and CAP-007
-acceptance remain open. [ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json).
+the reporting views and the verified `kokonut_analytics_ro` login now exist.
+The candidate-only Metabase metadata database/login are also provisioned, with
+real-login metadata CREATE success and application-database denial. Metabase
+is healthy under the explicit profile with saved-credential encryption enabled;
+the default manifest still lists only `database` and `app`, and PostgreSQL has
+no host port. Its only source is the built-in H2 demo with 39 generic cards and
+one dashboard. Source registration, Kokonut cards, populated output parity,
+and CAP-007 acceptance remain open. [ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json); [analytics role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json); [profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json); [profile contract](metabase-kernel-profile.md).

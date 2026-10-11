@@ -73,6 +73,50 @@ remain inherited from `PUBLIC`; review them for the selected PostgreSQL image.
 If another database is added to the instance later, rerun the bootstrap after
 review because database-level `PUBLIC CONNECT` defaults may apply again.
 
+## Optional Metabase metadata role
+
+`services.migration.metabase_role` provisions `kokonut_metabase_app` as the
+owner of a separate `kokonut_metabase` metadata database. It does not grant
+that identity access to `kokonut_intelligence`; Metabase's operational source
+must use the distinct `kokonut_analytics_ro` login. The bootstrap requires the
+dedicated Kernel candidate and refuses to proceed while other databases inherit
+`PUBLIC CONNECT`. The metadata role receives only `CONNECT` and database-level
+`CREATE` on its own database; the bootstrap verifies a real login, rolls back a
+metadata table-creation probe, and checks that connection to the application
+database is denied.
+
+Store `KOKONUT_METABASE_PASSWORD` in encrypted `.env.sops`, then run:
+
+```bash
+source scripts/load-secrets.sh
+docker compose --env-file /dev/null -p kokonut-kernel-candidate \
+  --profile analytics-admin \
+  -f docker-compose.kernel-candidate.yml \
+  -f docker-compose.kernel-metabase.yml \
+  run --rm metabase-role-bootstrap
+```
+
+Start Metabase separately and only when needed:
+
+```bash
+docker compose --env-file /dev/null -p kokonut-kernel-candidate \
+  --profile analytics \
+  -f docker-compose.kernel-candidate.yml \
+  -f docker-compose.kernel-metabase.yml \
+  up -d metabase
+```
+
+The service has a loopback-only host port and stays on the private candidate
+network. On first startup, complete Metabase's local setup UI, then add a
+PostgreSQL source at host `database`, port `5432`, database
+`kokonut_intelligence`, using `kokonut_analytics_ro` and its SOPS-managed
+password. Select only the `kokonut_reporting` schema. Do not restore or reuse
+the legacy sample H2 cards as Kokonut reports.
+
+Keep `KOKONUT_METABASE_ENCRYPTION_KEY` alongside encrypted metadata backups.
+The pinned Metabase image must start with `MB_ENCRYPTION_SECRET_KEY` set before
+any source credentials are registered.
+
 This command is inappropriate for a PostgreSQL cluster shared with unrelated
 applications: instance-wide PUBLIC database privileges are changed. The current
 local candidate had 16 extension-owned relations with `PUBLIC SELECT`, eight
@@ -99,7 +143,8 @@ reviewed execution policy exists.
 - `cli` — Discover, track, and apply PostgreSQL schema and seed migrations.
 - `runtime_role` — Provision a bounded application runtime role.
 - `analytics_role` — Provision and verify the optional curated reporting-source login.
+- `metabase_role` — Provision and verify the isolated optional Metabase metadata database/login.
 
 ## Files
 
-3 Python modules
+4 Python modules
