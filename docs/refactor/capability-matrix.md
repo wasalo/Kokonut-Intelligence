@@ -808,3 +808,13 @@ Metabase still use the `kokonut` superuser in the legacy Compose file and are no
 included in the candidate runtime-role overlay; separate service roles and
 grants remain open. Full domain workflow acceptance is also open. No capability
 count changes; Batch 2 remains partial.
+
+### CAP-007 candidate analytics-source ACL review — 11 October 2026
+
+The active candidate was reviewed in a read-only database session. `kokonut` is
+its only login/superuser role; no runtime, analytics-source, or Metabase metadata
+role exists, and migration 377's reporting schema/views are pending behind the
+exact-target checksum gate. `PUBLIC` can connect to the application database
+and create temporary objects. No roles, grants, schemas, source, or data were
+changed. This closes the ACL inventory task only; source provisioning, cards,
+and CAP-007 acceptance remain open. [Evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json).

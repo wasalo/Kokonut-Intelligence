@@ -1291,3 +1291,18 @@ The active candidate has 361 applied schema rows through migration 370 and nine 
 A fresh encrypted checkpoint was created for this exact candidate and its archive authenticated and restored successfully into an internal-only database. The ledger, relation count, and selected table counts matched. The checkpoint is mirrored under the same disk. Separately, all 370 current schema sources applied with zero failures to a network-disabled fresh database; its final plan had zero pending. Both scratch projects were removed. The checksum mismatch still blocks applying migrations to the existing candidate under the repository migration-integrity rules.
 
 Evidence: [candidate preflight, backup and fresh replay](builds/2026-10-11-recovery/candidate-migration-preflight.json), [checksum history](migration-checksum-drift.md), [Batch 4a](batches.md), and the ignored root plan.
+
+
+### Candidate reporting-source ACL review — 11 October 2026
+
+Read the active candidate's roles and database/schema ACLs inside a
+`BEGIN READ ONLY` transaction. `kokonut` is the only login/superuser role; the
+runtime, analytics-source, and Metabase metadata roles and migration-377
+reporting objects are absent. `PUBLIC` retains `CONNECT` and `TEMPORARY` on
+the application database (and `CONNECT` on `postgres` and `template1`). No
+grant, schema, role, application row, or Metabase source was changed. This
+closes the exact-target ACL inventory item and confirms the reporting source is
+not ready. The next target-side steps remain blocked behind the reviewed
+checksum-history policy, migration application, and dedicated role/ACL setup.
+
+Evidence: [candidate reporting ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json), [reporting contract](metabase-reporting-contract.md), [optional database roles](optional-database-roles.md), and [Batch 4b](batches.md). No test suites were run; capability counts and deployment selection are unchanged.

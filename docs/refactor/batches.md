@@ -195,8 +195,14 @@ migration removes its index.
 - [x] Exercise nonempty metric output with a published policy in the
   transaction-rolled-back role fixture; verify value, period, method, and review
   fields. The populated source itself has no published policies.
-- [ ] Review the exact source grants and database ACLs for a deployment target;
-  do not configure a Metabase source or cards until the output fields are approved.
+- [x] Review exact source grants and database ACLs on the active candidate. The
+  target is not ready: `kokonut` is its only login/superuser role, PUBLIC has CONNECT
+  (and TEMPORARY on the application database), and migration 377/reporting views
+  are still pending. No source role or Metabase connection was provisioned
+  ([ACL review](builds/2026-10-11-recovery/candidate-reporting-acl-review.json)).
+- [ ] After the migration-history gate is resolved and the reporting schema is
+  applied, provision a dedicated analytics login on the exact target; verify
+  only approved named view access, database isolation, and extension ACLs.
 
 Evidence: [populated report-view parity](builds/2026-10-11-recovery/populated-report-view-parity.json).
 The farm summary matched 2 rows, the Celo attestation summary matched 1 row,
@@ -204,6 +210,10 @@ and both had zero bidirectional differences. The metric view and its independent
 query both returned zero because no metric publication policy is published.
 The separate rollback-only synthetic role fixture passed the published metric
 period/method/review-field probe ([fixture evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json)).
+The active candidate ACL review found no analytics role or reporting schema;
+the database is still owned by the `kokonut` superuser and has default PUBLIC
+CONNECT/TEMPORARY exposure. Migration 377 remains pending behind the recorded
+checksum mismatch, so source provisioning is intentionally deferred.
 Rollback: no source rows or source grants were changed; the copied database was
 discarded after evidence capture.
 

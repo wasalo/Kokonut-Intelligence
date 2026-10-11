@@ -27,6 +27,15 @@ Metabase remains optional and belongs only in the analytics profile. See the
 [transactional replay evidence](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json),
 and [migration source/recovery record](migration-checksum-drift.md).
 
+An exact read-only ACL inventory of the active candidate found that `kokonut`
+is its only login/superuser role; the analytics, Directus-runtime, and Metabase
+metadata roles are absent. The application database has default `PUBLIC
+CONNECT` and `TEMPORARY` privileges, and the reporting schema/view are not
+present because migration 377 remains pending behind the candidate checksum
+gate. Do not provision a Metabase source on this target until the migration
+history is reviewed, the reporting migration is applied, and the database plus
+inherited extension ACLs are deliberately scoped. [Candidate ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json).
+
 ## Purpose and source of truth
 
 PostgreSQL remains canonical for operational and governed records. Metabase is

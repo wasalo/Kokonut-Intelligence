@@ -18,6 +18,15 @@ the private policy table, and DDL. The candidate and legacy databases were not
 changed. The recovery-only Compose manifest is not a deployable Kernel profile.
 See [populated parity evidence](builds/2026-10-11-recovery/populated-report-view-parity.json).
 
+The active candidate was separately reviewed read-only on 11 October. `kokonut`
+is its only login/superuser role; the runtime, analytics-source, and Metabase
+metadata roles are absent, as are the migration-377 reporting schema and views.
+Its application database still grants `PUBLIC CONNECT` and `PUBLIC TEMPORARY`.
+No consumer role or source was added. Since the tested bootstrap revokes
+`PUBLIC CONNECT` instance-wide, that change needs an exact database ACL and
+extension-grant review after the candidate's migration checksum gate is
+resolved. [Candidate ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json).
+
 ## Why these are separate identities
 
 The legacy `docker-compose.yml` connects both Directus and Metabase as the
