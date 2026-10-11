@@ -223,12 +223,14 @@ objects there and is denied on `kokonut_intelligence`. Its credential and the
 distinct saved-credential encryption key are in SOPS. Metabase is healthy and
 reports credential encryption enabled.
 
-The fresh profile inventory found one built-in H2 sample source, 39 generic
-demo cards, and one dashboard with 22 placements. The `Kokonut Reporting Views`
+The profile inventory found one built-in H2 sample source, 39 generic demo
+cards, and 22 saved-card placements in the E-commerce dashboard, plus 14
+populated virtual tiles. The `Kokonut Reporting Views`
 source now uses `kokonut_analytics_ro` with an inclusion filter for
 `kokonut_reporting`; Metabase lists only the three reviewed views. Three
 first-party cards are in a separate Kokonut reporting dashboard. Their queries
-complete with zero rows on the empty candidate, so populated card-output parity
+complete with zero rows on the empty candidate. A network-disabled full restore
+reproduced all live metadata aggregates exactly. Populated card-output parity
 remains open. Preserve the H2 content only as a demo, not as parity evidence.
 See the [profile contract](metabase-kernel-profile.md),
 [sanitized runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),

@@ -141,9 +141,13 @@ same three views; the actual source credential was never printed.
 The `Kokonut Reporting` collection now contains three native SQL cards for farm
 summary, verified metric values, and Celo attestation summary. The
 `Kokonut Intelligence | Reporting Overview` dashboard contains all three. The
-sanitized metadata inventory now counts 42 cards, two dashboards, 25 dashboard
-placements, and two user records: 39 H2 demo cards/22 placements and three
-PostgreSQL Kokonut cards/placements. The cards execute successfully, but each
-returns zero rows on the empty candidate. Populated output parity remains open.
+sanitized metadata inventory counts 42 saved cards and two dashboards. There
+are 25 saved-card placements: 22 in the H2 demo and three Kokonut cards. The
+E-commerce dashboard also has 14 populated virtual heading/text/link/iframe
+tiles, for 39 dashboard placements total. A full restore to a network-disabled
+PostGIS 16 target reproduced the live source/card/dashboard/placement/tile/user
+counts exactly; the target was removed without changing the live metadata.
+The cards execute successfully, but each returns zero rows on the empty
+candidate. Populated output parity remains open.
 See [current runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json)
 and the [credential-free card export](metabase/kokonut-reporting-cards.json).

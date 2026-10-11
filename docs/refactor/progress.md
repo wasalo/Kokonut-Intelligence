@@ -1441,12 +1441,14 @@ encryption to the ignored local `backups/kernel-metabase-20261011/` directory;
 no plaintext dump was written. Decryption with the supplied age identity and
 `pg_restore --list` both succeeded with 2,177 archive entries. The
 `KOKONUT_METABASE_ENCRYPTION_KEY`, source password, and admin password remain in
-SOPS. A full restore rehearsal and populated card-output parity remain open;
-the first full-restore attempt did not pass in a disposable target. Its initial
-failure used the container OS role; a retry with the metadata owner also failed.
-The temporary target was removed and the source metadata database was not
-changed. The database-view parity evidence from Batch 4b does not by itself
-certify the Metabase card layer.
+SOPS. The archive restored successfully with `--exit-on-error` into a
+network-disabled, disposable container using the matching PostGIS 16 image.
+Counts matched the live metadata exactly: two sources, 42 saved cards, two
+dashboards, 25 saved-card placements, 14 virtual tiles, and two users. The
+E-commerce board's virtual tiles are populated heading/text/link/iframe content,
+not empty cards. The disposable target was removed and the live metadata was
+unchanged. Populated card-output parity remains open; the database-view parity
+evidence from Batch 4b does not by itself certify the Metabase card layer.
 
 Evidence: [candidate runtime and card results](builds/2026-10-11-recovery/candidate-metabase-profile.json),
 [sanitized source inventory](metabase-source-inventory.md),

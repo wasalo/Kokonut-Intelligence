@@ -97,9 +97,10 @@ Before treating this as a supported analyst profile:
 5. Keep the generic H2 E-commerce Insights board labeled as demo content; do not
    promote it as Kokonut parity.
 6. Restore an encrypted metadata archive into a separate disposable database
-   and confirm the restored dashboard/source inventory. Archive decryption and
-   `pg_restore --list` passed, but the first full restore attempt did not pass;
-   see the [backup manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json).
+   and confirm the restored dashboard/source inventory. **Passed:** the
+   network-disabled PostGIS 16 restore completed with `--exit-on-error`; source,
+   card, dashboard, saved-placement, virtual-tile and user counts match the live
+   candidate. See the [backup manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json).
 
 The current candidate database is empty, so zero-row card output alone cannot
 complete item 4. Use an isolated populated copy or a rollback-only synthetic
