@@ -31,6 +31,10 @@ class PublicMetricSummary(PublicModel):
     total_computed: int = Field(ge=0)
 
 
+class PublicMetricSummaryEnvelope(PublicModel):
+    data: PublicMetricSummary
+
+
 class PublicCrispAssessment(PublicModel):
     assessment_id: UUID
     location_id: UUID
@@ -43,6 +47,10 @@ class PublicCrispAssessment(PublicModel):
     evidence_maturity_level: int | None
     score_computed_at: datetime | None
     status: Literal["published"]
+
+
+class PublicCrispAssessmentEnvelope(PublicModel):
+    data: PublicCrispAssessment
 
 
 class PublicLocation(PublicModel):
@@ -78,3 +86,7 @@ class PublicLocationSummary(PublicModel):
     location: PublicLocation
     metrics: PublicMetricCounts
     attestations: PublicAttestationCounts
+
+
+class PublicLocationSummaryEnvelope(PublicModel):
+    data: PublicLocationSummary

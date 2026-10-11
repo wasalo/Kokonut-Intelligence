@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any, Literal, Optional
 from urllib.parse import quote
 
@@ -28,6 +29,124 @@ class PublicLocation:
         )
 
 
+def _parse_datetime(value: Any) -> Optional[datetime]:
+    if value is None:
+        return None
+    text = str(value)
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    return datetime.fromisoformat(text)
+
+
+@dataclass(frozen=True)
+class PublicMetric:
+    metric_key: str
+    display_name: str
+    unit: Optional[str]
+    value: Optional[float]
+    computed_at: Optional[datetime]
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "PublicMetric":
+        raw_value = payload.get("value")
+        return cls(
+            metric_key=str(payload["metric_key"]),
+            display_name=str(payload["display_name"]),
+            unit=payload.get("unit"),
+            value=None if raw_value is None else float(raw_value),
+            computed_at=_parse_datetime(payload.get("computed_at")),
+        )
+
+
+@dataclass(frozen=True)
+class PublicMetricSummary:
+    location_id: str
+    computed: list[PublicMetric]
+    total_computed: int
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "PublicMetricSummary":
+        return cls(
+            location_id=str(payload["location_id"]),
+            computed=[PublicMetric.from_payload(row) for row in payload["computed"]],
+            total_computed=int(payload["total_computed"]),
+        )
+
+
+@dataclass(frozen=True)
+class PublicCrispAssessment:
+    assessment_id: str
+    location_id: str
+    period_start: date
+    period_end: date
+    methodology_version: str
+    composite_score: Optional[float]
+    rating: Optional[str]
+    confidence_level: Optional[str]
+    evidence_maturity_level: Optional[int]
+    score_computed_at: Optional[datetime]
+    status: Literal["published"]
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "PublicCrispAssessment":
+        score = payload.get("composite_score")
+        maturity = payload.get("evidence_maturity_level")
+        return cls(
+            assessment_id=str(payload["assessment_id"]),
+            location_id=str(payload["location_id"]),
+            period_start=date.fromisoformat(str(payload["period_start"])),
+            period_end=date.fromisoformat(str(payload["period_end"])),
+            methodology_version=str(payload["methodology_version"]),
+            composite_score=None if score is None else float(score),
+            rating=payload.get("rating"),
+            confidence_level=payload.get("confidence_level"),
+            evidence_maturity_level=None if maturity is None else int(maturity),
+            score_computed_at=_parse_datetime(payload.get("score_computed_at")),
+            status=payload["status"],
+        )
+
+
+@dataclass(frozen=True)
+class PublicMetricCounts:
+    metric_count: int
+    latest_computed_at: Optional[datetime]
+
+
+@dataclass(frozen=True)
+class PublicAttestationCounts:
+    total_attestations: int
+    published_count: int
+    latest_attestation: Optional[datetime]
+
+
+@dataclass(frozen=True)
+class PublicLocationSummary:
+    summary_type: Literal["public_location_summary"]
+    location_id: str
+    location: PublicLocation
+    metrics: PublicMetricCounts
+    attestations: PublicAttestationCounts
+
+    @classmethod
+    def from_payload(cls, payload: dict[str, Any]) -> "PublicLocationSummary":
+        metrics = payload["metrics"]
+        attestations = payload["attestations"]
+        return cls(
+            summary_type=payload["summary_type"],
+            location_id=str(payload["location_id"]),
+            location=PublicLocation.from_payload(payload["location"]),
+            metrics=PublicMetricCounts(
+                metric_count=int(metrics["metric_count"]),
+                latest_computed_at=_parse_datetime(metrics.get("latest_computed_at")),
+            ),
+            attestations=PublicAttestationCounts(
+                total_attestations=int(attestations["total_attestations"]),
+                published_count=int(attestations["published_count"]),
+                latest_attestation=_parse_datetime(attestations.get("latest_attestation")),
+            ),
+        )
+
+
 class PublicApiError(Exception):
     """Raised when the versioned public API returns an unsuccessful response."""
 
@@ -48,6 +167,36 @@ class PublicLocationMethods:
         path_id = quote(location_id, safe="")
         payload = self._client._get(f"/locations/{path_id}")["data"]
         return PublicLocation.from_payload(payload)
+
+
+class PublicMetricMethods:
+    def __init__(self, client: "KokonutPublicApiClient") -> None:
+        self._client = client
+
+    def get(self, location_id: str) -> PublicMetricSummary:
+        path_id = quote(location_id, safe="")
+        payload = self._client._get(f"/metrics/{path_id}")["data"]
+        return PublicMetricSummary.from_payload(payload)
+
+
+class PublicCrispMethods:
+    def __init__(self, client: "KokonutPublicApiClient") -> None:
+        self._client = client
+
+    def get(self, location_id: str) -> PublicCrispAssessment:
+        path_id = quote(location_id, safe="")
+        payload = self._client._get(f"/crisp/{path_id}")["data"]
+        return PublicCrispAssessment.from_payload(payload)
+
+
+class PublicAnalyticsMethods:
+    def __init__(self, client: "KokonutPublicApiClient") -> None:
+        self._client = client
+
+    def get_summary(self, location_id: str) -> PublicLocationSummary:
+        path_id = quote(location_id, safe="")
+        payload = self._client._get(f"/analytics/{path_id}/summary")["data"]
+        return PublicLocationSummary.from_payload(payload)
 
 
 class KokonutPublicApiClient:
@@ -72,6 +221,9 @@ class KokonutPublicApiClient:
         if api_key:
             self.session.headers["x-api-key"] = api_key
         self.locations = PublicLocationMethods(self)
+        self.metrics = PublicMetricMethods(self)
+        self.crisp = PublicCrispMethods(self)
+        self.analytics = PublicAnalyticsMethods(self)
 
     def close(self) -> None:
         self.session.close()

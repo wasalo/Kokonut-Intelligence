@@ -16,7 +16,10 @@ try:
         PublicLocationListResponse,
         PublicLocationResponse,
         PublicLocationSummary,
+        PublicLocationSummaryEnvelope,
+        PublicCrispAssessmentEnvelope,
         PublicMetricSummary,
+        PublicMetricSummaryEnvelope,
     )
 except ImportError:
     # Stub for environments without FastAPI
@@ -31,6 +34,8 @@ except ImportError:
     JSONResponse = None
     PublicCrispAssessment = PublicError = PublicLocationListResponse = None
     PublicLocationResponse = PublicLocationSummary = PublicMetricSummary = None
+    PublicLocationSummaryEnvelope = PublicCrispAssessmentEnvelope = None
+    PublicMetricSummaryEnvelope = None
 
 router = APIRouter()
 logger = get_logger("gateway.router")
@@ -54,6 +59,9 @@ _ROUTE_POLICIES = (
     ("POST", re.compile(r"^/api/mobile/sync$"), "offline_collection", "write", True),
     ("GET", re.compile(r"^/api/mobile/sync/status$"), "offline_collection", "read", True),
     ("GET", re.compile(r"^/api/v1/locations(?:/([^/]+))?$"), "location", "read", True),
+    ("GET", re.compile(r"^/api/v1/metrics/([^/]+)$"), "metric", "read", True),
+    ("GET", re.compile(r"^/api/v1/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
+    ("GET", re.compile(r"^/api/v1/analytics/([^/]+)/summary$"), "analytics", "read", True),
     ("GET", re.compile(r"^/api/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
@@ -96,6 +104,17 @@ def _public_response(model, payload: dict):
 
     validated = model.model_validate(payload)
     return JSONResponse(content=jsonable_encoder(validated.model_dump(mode="python")))
+
+
+def _versioned_envelope(response):
+    """Wrap a successful legacy read response without changing its old route."""
+    if isinstance(response, JSONResponse):
+        if response.status_code >= 400:
+            return response
+        import json
+
+        return {"data": json.loads(response.body)}
+    return {"data": response}
 
 
 @router.get("/locations")
@@ -297,6 +316,38 @@ async def get_analytics_summary(location_id: str):
         return _public_response(PublicLocationSummary, result)
     except Exception as exc:
         return _internal_error(exc)
+
+
+@router.get(
+    "/v1/metrics/{location_id}",
+    response_model=PublicMetricSummaryEnvelope,
+    responses={400: {"model": PublicError}, 500: {"model": PublicError}},
+    operation_id="getPublicMetricSummaryV1",
+)
+async def get_public_metrics_v1(location_id: str):
+    return _versioned_envelope(await get_metrics(location_id))
+
+
+@router.get(
+    "/v1/crisp/{location_id}",
+    response_model=PublicCrispAssessmentEnvelope,
+    responses={400: {"model": PublicError}, 404: {"model": PublicError},
+               500: {"model": PublicError}},
+    operation_id="getPublicCrispAssessmentV1",
+)
+async def get_public_crisp_v1(location_id: str):
+    return _versioned_envelope(await get_crisp(location_id))
+
+
+@router.get(
+    "/v1/analytics/{location_id}/summary",
+    response_model=PublicLocationSummaryEnvelope,
+    responses={400: {"model": PublicError}, 404: {"model": PublicError},
+               500: {"model": PublicError}},
+    operation_id="getPublicLocationSummaryV1",
+)
+async def get_public_analytics_summary_v1(location_id: str):
+    return _versioned_envelope(await get_analytics_summary(location_id))
 
 
 @router.post("/data-stream/post")

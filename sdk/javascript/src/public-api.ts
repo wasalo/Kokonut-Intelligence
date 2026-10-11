@@ -8,6 +8,49 @@ export interface PublicLocationV1 {
   status: 'active';
 }
 
+export interface PublicMetricV1 {
+  metric_key: string;
+  display_name: string;
+  unit: string | null;
+  value: number | null;
+  computed_at: string | null;
+}
+
+export interface PublicMetricSummaryV1 {
+  location_id: string;
+  computed: PublicMetricV1[];
+  total_computed: number;
+}
+
+export interface PublicCrispAssessmentV1 {
+  assessment_id: string;
+  location_id: string;
+  period_start: string;
+  period_end: string;
+  methodology_version: string;
+  composite_score: number | null;
+  rating: 'AAA' | 'AA' | 'A' | 'B' | 'C' | 'D' | null;
+  confidence_level: 'high' | 'moderate' | 'low' | 'insufficient_evidence' | null;
+  evidence_maturity_level: number | null;
+  score_computed_at: string | null;
+  status: 'published';
+}
+
+export interface PublicLocationSummaryV1 {
+  summary_type: 'public_location_summary';
+  location_id: string;
+  location: PublicLocationV1;
+  metrics: {
+    metric_count: number;
+    latest_computed_at: string | null;
+  };
+  attestations: {
+    total_attestations: number;
+    published_count: number;
+    latest_attestation: string | null;
+  };
+}
+
 export interface PublicApiClientOptions {
   apiKey?: string;
   fetch?: PublicFetch;
@@ -47,6 +90,15 @@ export class KokonutPublicApiClient {
     list: () => Promise<PublicLocationV1[]>;
     get: (locationId: string) => Promise<PublicLocationV1>;
   };
+  public readonly metrics: {
+    get: (locationId: string) => Promise<PublicMetricSummaryV1>;
+  };
+  public readonly crisp: {
+    get: (locationId: string) => Promise<PublicCrispAssessmentV1>;
+  };
+  public readonly analytics: {
+    getSummary: (locationId: string) => Promise<PublicLocationSummaryV1>;
+  };
 
   /**
    * `baseUrl` is the Gateway origin, for example `http://localhost:8098`.
@@ -64,6 +116,18 @@ export class KokonutPublicApiClient {
       list: () => this.get<PublicLocationV1[]>('/locations'),
       get: (locationId: string) =>
         this.get<PublicLocationV1>(`/locations/${encodeURIComponent(locationId)}`),
+    };
+    this.metrics = {
+      get: (locationId: string) =>
+        this.get<PublicMetricSummaryV1>(`/metrics/${encodeURIComponent(locationId)}`),
+    };
+    this.crisp = {
+      get: (locationId: string) =>
+        this.get<PublicCrispAssessmentV1>(`/crisp/${encodeURIComponent(locationId)}`),
+    };
+    this.analytics = {
+      getSummary: (locationId: string) =>
+        this.get<PublicLocationSummaryV1>(`/analytics/${encodeURIComponent(locationId)}/summary`),
     };
   }
 

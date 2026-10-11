@@ -314,7 +314,8 @@ reporting views.
 - [x] Map the existing device/location/media boundary and document the consent, form-validation, and tenant gaps ([contract](mobile-access-contract.md)).
 - [ ] Define participant-to-party consent mapping and form/version enforcement, then implement and verify the approved mobile policy.
 - [x] Add an OpenAPI-backed, versioned v1 public-location list/detail contract while preserving the legacy location routes.
-- [x] Add typed v1 public-location methods to the existing Python and JavaScript SDK sources.
+- [x] Add additive v1 metrics, published-CRISP, and location-summary read aliases with explicit authorization policy and strict response models.
+- [x] Add typed v1 location, metrics, CRISP, and location-summary methods to the Python and JavaScript SDK sources.
 - [ ] Generate the remaining versioned SDK surface from OpenAPI, publish a release, and implement an operations console slice.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 

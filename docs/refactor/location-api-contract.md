@@ -20,10 +20,14 @@ visibility remains the view's active-location plus verified/published farm
 registry rule. The existing unversioned `/api/locations` routes remain intact
 for their historical double-encoded wrapper and Directus behavior; they have no
 deprecation date. Consumers should move only after response and authorization
-parity is reviewed. The API version namespace does not certify the other
-unversioned gateway routes. The Python and JavaScript SDKs expose typed clients
-for these two v1 methods; other versioned resources and OpenAPI-based code
-generation remain future work.
+parity is reviewed. The API version namespace does not certify other unversioned
+gateway routes. Additive `/api/v1/metrics/{location_id}`,
+`/api/v1/crisp/{location_id}`, and
+`/api/v1/analytics/{location_id}/summary` aliases now expose existing governed
+read handlers with strict OpenAPI response models and explicit public read
+policies; see [public summary contracts](public-summary-contracts.md). The
+Python and JavaScript SDKs expose typed clients for these reads, while
+schema-driven SDK generation and runtime parity remain future work.
 
 | Contract | List | Detail |
 | --- | --- | --- |
