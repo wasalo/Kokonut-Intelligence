@@ -37,6 +37,7 @@ JOBS = MappingProxyType({
     "anomaly": JobSpec("services.ingestion.anomaly_detector", (), 300, 2, 300, "Anomaly detection"),
     "freshness": JobSpec("services.ingestion.data_freshness", ("--check",), 120, 2, 120, "Freshness check"),
     "metrics": JobSpec("services.metrics", ("--compute", "--all-locations"), 1800, 2, 600, "Metrics computation"),
+    "noi_snapshots": JobSpec("services.metrics", ("--reconcile-noi-snapshots",), 300, 2, 600, "Crop-cycle NOI snapshot reconciliation"),
     "dashboards": JobSpec("services.export.dataset_refresh", ("--all",), 900, 2, 300, "Dashboard refresh"),
     "credit_adjustment": JobSpec("services.analytics.carbon_credits", ("--check-adjustments",), 600, 2, 600, "Credit adjustment check"),
     "remote_sensing": JobSpec("services.ingestion.remote_sensing_fetcher", ("--run-jobs",), 1800, 2, 600, "Remote sensing fetch"),

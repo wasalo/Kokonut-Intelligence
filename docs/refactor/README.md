@@ -14,7 +14,7 @@ Implementation branch: chore/kernel-plan-ignore, created from main.
 The initial worktree change was the requested root plan ignore rule.
 The root implementation plan remains a local, ignored file; these smaller
 execution records are kept in the repository for review. Implementation changes
-currently remain uncommitted; see the progress ledger for release status.
+are committed locally; no implementation PR/merge or release CI is recorded.
 
 The local checkout replaces the cached browser snapshot used to write the plan.
 Regenerate static evidence with:
@@ -46,6 +46,9 @@ assertion after later commits.
   CRISP/portfolio imports with governed persisted reads; deployed to the private AMD64 API.
 - [Native metric read execution](native-metric-reads.md): bounded read-only
   catalog query, async offloading, UUID validation, and Decimal JSON encoding.
+- [Crop-cycle NOI reconciliation](noi-snapshot-reconciliation.md): SAFE seed
+  verification, stale-snapshot finding, additive uniqueness migration and
+  isolated native reconciliation evidence.
 - [Public location API contract](location-api-contract.md): scoped Directus
   migration map and bounded native read execution; parity acceptance pending.
 - [Portability workers](portability-workers.md): optional separate native worker

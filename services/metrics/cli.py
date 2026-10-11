@@ -14,7 +14,7 @@ Usage:
 import argparse
 import sys
 
-from services.common.cli import print_json, run
+from services.common.cli import get_connection, print_json, run
 
 
 def main():
@@ -30,8 +30,65 @@ def main():
     parser.add_argument("--verify-value", help="Metric value UUID to verify")
     parser.add_argument("--verified-by", help="Human reviewer UUID (required with --verify-value)")
     parser.add_argument("--verification-notes", help="Reviewer notes")
+    parser.add_argument(
+        "--reconcile-noi-snapshots",
+        action="store_true",
+        help="Refresh eligible crop-cycle NOI snapshots from v_crop_cycle_noi",
+    )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     args = parser.parse_args()
+
+    if args.reconcile_noi_snapshots:
+        with get_connection() as conn:
+            result = conn.execute("""
+                INSERT INTO noi_snapshot (
+                    crop_cycle_id, location_id, period_start, period_end,
+                    gross_revenue, returns_and_discounts, net_revenue,
+                    direct_crop_costs, allocated_shared_costs, total_costs,
+                    noi, operating_margin_pct, loss_rate_pct,
+                    calculation_version, calculated_at, inputs
+                )
+                SELECT
+                    v.crop_cycle_id, v.location_id,
+                    COALESCE(v.period_start, CURRENT_DATE),
+                    COALESCE(v.period_end, v.period_start, CURRENT_DATE),
+                    v.gross_revenue, v.returns_discounts, v.net_revenue,
+                    v.direct_crop_costs, v.allocated_shared_costs,
+                    v.total_costs, v.noi, v.operating_margin_pct,
+                    v.loss_rate_pct, '1.0', NOW(),
+                    jsonb_build_object(
+                        'source_view', 'v_crop_cycle_noi',
+                        'formula_version', '1.0'
+                    )
+                FROM v_crop_cycle_noi AS v
+                JOIN crop_cycle AS cc ON cc.id = v.crop_cycle_id
+                WHERE cc.status IN (
+                    'active', 'flowering', 'harvesting', 'harvested', 'completed'
+                )
+                ON CONFLICT (crop_cycle_id) DO UPDATE SET
+                    location_id = EXCLUDED.location_id,
+                    period_start = EXCLUDED.period_start,
+                    period_end = EXCLUDED.period_end,
+                    gross_revenue = EXCLUDED.gross_revenue,
+                    returns_and_discounts = EXCLUDED.returns_and_discounts,
+                    net_revenue = EXCLUDED.net_revenue,
+                    direct_crop_costs = EXCLUDED.direct_crop_costs,
+                    allocated_shared_costs = EXCLUDED.allocated_shared_costs,
+                    total_costs = EXCLUDED.total_costs,
+                    noi = EXCLUDED.noi,
+                    operating_margin_pct = EXCLUDED.operating_margin_pct,
+                    loss_rate_pct = EXCLUDED.loss_rate_pct,
+                    calculation_version = EXCLUDED.calculation_version,
+                    calculated_at = EXCLUDED.calculated_at,
+                    inputs = EXCLUDED.inputs
+                RETURNING crop_cycle_id
+            """)
+        print_json({
+            "status": "success",
+            "reconciled": result.rowcount,
+            "source": "v_crop_cycle_noi",
+        })
+        return
 
     from ..ingestion.base import get_db
 

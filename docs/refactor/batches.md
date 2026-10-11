@@ -143,13 +143,34 @@ the existing governed provider path until parity is accepted.
 
 ## Batch 4 — Native orchestration and analytics parity (Phases 3–5)
 
-- [ ] Assign each of the 14 jobs a schedule owner and cutover/replay policy.
+- [ ] Assign each known job a schedule owner and cutover/replay policy.
 - [ ] Close projection, named-query, report and dashboard parity gaps in scoped groups.
 - [ ] Resolve Redis session/cache inventory and shared limiter requirements.
 - [ ] With verification authorization, exercise leases, retries, idempotency and outages.
 
 Gate: every migrated flow has durable recovery and output parity evidence.
 Rollback: disable new schedules before restoring legacy ownership; avoid dual writers.
+
+### Batch 4a — Crop-cycle NOI snapshot reconciliation (Phases 3–4)
+
+- [x] Verify both migration-354 SAFE deployments, owner lists, thresholds,
+  versions, and nonces against read-only Gnosis Chain calls.
+- [x] Independently recompute NOI and loss rate on the populated review clone;
+  confirm the view formula, identify six stale snapshots, and check duplicate
+  crop-cycle keys.
+- [x] Add migration 379, align Directus writes, and add the native reconciliation
+  CLI plus a disabled daily job.
+- [x] Apply migration 379 through the transactional runner and reconcile six
+  rows on a separate network-disabled volume copy; verify zero view mismatches.
+- [ ] Before active-target apply, verify a backup, exact-target checksums, and
+  zero duplicate `crop_cycle_id` values. Keep the scheduler task disabled until
+  its owner approves cutover and retry policy.
+
+Evidence: [NOI/SAFE record](noi-snapshot-reconciliation.md) and
+[sanitized run output](builds/2026-10-11-recovery/noi-snapshot-parity.json).
+Rollback: disable the new schedule and restore affected snapshot rows from the
+verified pre-run backup; retain migration 379 unless a reviewed forward
+migration removes its index.
 
 ## Batch 5 — Optional transports and application access (Phases 6, 7)
 

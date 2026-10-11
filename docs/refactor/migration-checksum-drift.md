@@ -58,10 +58,14 @@ separate from the reporting-role fixture evidence.
 The 25 pending migrations were reviewed in order and applied successfully to a
 separate network-isolated copy of the archived clone. All 16 selected populated
 table fingerprints over pre-existing columns matched; the retained archived
-clone remains unchanged with 25 pending migrations. Before applying to any
-active target, confirm SAFE seed identities, verify NOI output parity, review
-the exact target's objects/rows, and take a verified backup. Populated report
-parity and Metabase source setup remain gated.
+clone remains unchanged with 25 pending migrations. The migration-354 SAFE records' code, owners, thresholds, versions, and nonces
+now match read-only Gnosis Chain calls. An independent source-event recomputation
+matched the NOI view for six cycles; six snapshots were stale because the Directus
+conflict key lacked a unique index. Migration 379, the native reconciler, and
+Directus-hook alignment were exercised on a further network-disabled copy and
+brought all six snapshots into parity. Before applying to an active target, check
+for duplicate snapshot keys, review target objects and checksums, and take a
+verified backup. Populated report parity and Metabase source setup remain gated.
 
 Sanitized investigation and pending-plan details are in
 [application-migration-checksum-drift.json](builds/2026-10-11-recovery/application-migration-checksum-drift.json).
@@ -73,3 +77,5 @@ Populated-clone compatibility review and row fingerprints are in
 [application-migration-populated-clone-replay.json](builds/2026-10-11-recovery/application-migration-populated-clone-replay.json),
 [application-migration-review-fingerprints.json](builds/2026-10-11-recovery/application-migration-review-fingerprints.json),
 and [the per-migration review](pending-migration-compatibility-review.md).
+NOI and SAFE evidence: [reconciliation record](noi-snapshot-reconciliation.md)
+and [sanitized results](builds/2026-10-11-recovery/noi-snapshot-parity.json).
