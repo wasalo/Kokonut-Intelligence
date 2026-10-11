@@ -165,6 +165,18 @@ live Directus behavior, public-route parity, or SDK release readiness. Local
 client adapter change; the prior source failed this same compile. See the
 [Batch 5 checklist](batches.md).
 
+## Phase 7 JavaScript SDK package preflight — 11 October 2026
+
+The npm package is configured as ESM to match `@directus/sdk` 17, its repository
+metadata now points to this checkout's `sdk/javascript` directory, the Apache
+license is included at the package root, and `src/__tests__` is excluded from
+the published build. After cleaning only the generated, ignored `dist/`, the
+TypeScript build passed and `npm pack --dry-run --json` listed 27 files with no
+test output. No tarball was created or published. `npm install` reported five
+dependency audit findings (2 moderate, 1 high, 2 critical); detailed review and
+versioned release remain open. No test suite or package runtime import was run.
+See the [Batch 5 checklist](batches.md).
+
 ## Batch 5 mobile access boundary review — 11 October 2026
 
 Read `services/mobile/api.py`, migrations 139/215/320/322/357/358, and the

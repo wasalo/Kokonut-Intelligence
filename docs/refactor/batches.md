@@ -319,8 +319,9 @@ reporting views.
 - [x] Export the scoped Gateway v1 OpenAPI document, including explicit policy metadata, separately from the Directus OpenAPI file.
 - [x] Generate the v1 response types and route templates from the native OpenAPI snapshot and make both SDK clients consume the generated definitions.
 - [x] Install the declared TypeScript compiler and build the JavaScript SDK; fix compile-time Directus SDK API mismatches ([progress](progress.md#phase-7-javascript-sdk-compiler-compatibility--11-october-2026)).
+- [x] Preflight the JavaScript ESM package archive; include its license, exclude test output, and align repository metadata ([progress](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)).
 - [x] Add a local, read-only Kernel CLI overview of build metadata and provider selection ([operator contract](kernel-operator-cli.md)).
-- [ ] Prepare and publish the Python/JavaScript SDK release.
+- [ ] Review the npm dependency audit findings and prepare versioned Python/JavaScript SDK release artifacts; publish only after explicit release authorization.
 - [ ] Define operator identity/scope and implement a browser operations-console slice.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 

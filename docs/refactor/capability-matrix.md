@@ -87,10 +87,12 @@ minimal image: optional dependencies and full access paths still require assessm
 D/P describe only the named slice, never completion of the whole capability.
 
 The JavaScript SDK package now compiles with TypeScript 5.8.3 after aligning its
-Directus adapter calls with the installed SDK command API. This is source/build
-evidence only; no route request, auth behavior, or capability parity was checked,
-so it does not change the 6 D / 4 P / 56 B / 0 accepted counts. See the
-[Phase 7 ledger](progress.md#phase-7-javascript-sdk-compiler-compatibility--11-october-2026).
+Directus adapter calls with the installed SDK command API. Its ESM package
+preflight includes the license and excludes test output; npm's dry-run lists 27
+files. No route request, auth behavior, package runtime import, or capability
+parity was checked, so the 6 D / 4 P / 56 B / 0 accepted counts do not change.
+Five npm dependency audit findings remain for release review. See the
+[Phase 7 ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026).
 
 The active AMD64 Kernel candidate has a private database and healthy app. Its
 rebuilt image matches all 1,294 bundled source hashes in the checkout, and its
