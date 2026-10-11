@@ -509,6 +509,7 @@ Documentation lives under `docs/`. Key entry points:
 | [User Guide](docs/user-guide.md) | Role workflows, data entry, lifecycle, dashboards, analytics, export |
 | [Architecture](docs/architecture.md) | System overview, data flow, security model |
 | [Platform Integrity](docs/platform-integrity.md) | Cross-cutting integrity boundaries and operational guarantees |
+| [Kernel Refactor Baseline](docs/refactor/README.md) | Capability inventory, dependency decisions, and local data migration gates |
 | [Migrations](docs/migrations.md) | Ordered migration execution, checksums, drift detection, and recovery |
 | [Gateway](docs/gateway.md) | Route policy, authentication, default-deny behavior, rate limits, and audit |
 | [Data Dictionary](docs/data-dictionary.md) | Collections, fields, governed metrics |

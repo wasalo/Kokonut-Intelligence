@@ -1,0 +1,47 @@
+{
+  "audit": {
+    "durable_rows_written": false,
+    "method": "GatewayAudit.log replaced with in-memory no-op in each worker"
+  },
+  "check": "Gateway ASGI middleware rate limits shared across OS processes",
+  "database": {
+    "bucket_rows_after": 0,
+    "bucket_rows_before": 0,
+    "compose_project": "kokonut-kernel-portability",
+    "migration": 373,
+    "returned_to_prior_stopped_state": true,
+    "service": "database"
+  },
+  "date": "2026-10-11",
+  "image": {
+    "image_id": "sha256:af60cbcb698dec288b3064dfa0b1bf4ee1891d25665ee0f56198a5b465cd2130",
+    "tag": "kokonut-kernel-portability-app:local"
+  },
+  "isolation": {
+    "candidate_stack_touched": false,
+    "domain_rows_written": false,
+    "one_off_app_container_removed": true,
+    "pytest_suite_run": false,
+    "schema_migrations_run": false
+  },
+  "limitations": [
+    "ASGI calls ran in four OS processes inside one disposable app container; no network HTTP ingress or separate API containers/replicas were exercised.",
+    "Audit writes were intentionally suppressed to isolate limiter behavior; outage audit behavior is recorded separately.",
+    "PostgreSQL remains opt-in; the active candidate continues using the local provider."
+  ],
+  "probe": {
+    "asgi_requests": 160,
+    "elapsed_seconds": 3.527,
+    "gateway_processes": 4,
+    "passed": true,
+    "provider": "PostgresRateLimiter",
+    "refill_aware_upper_bound": 140,
+    "remaining_bucket_rows": 0,
+    "retry_after_min_seconds": 1,
+    "status_200": 121,
+    "status_429": 39,
+    "synthetic_rows_deleted": 1,
+    "unexpected_statuses": []
+  },
+  "rollback": "Deleted the synthetic caller bucket and stopped the portability database, restoring its prior stopped state; no configuration changed."
+}

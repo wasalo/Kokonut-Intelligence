@@ -1,0 +1,47 @@
+{
+  "check": "kernel-gateway-cors-preflight",
+  "date_local": "2026-10-10",
+  "phase": 6,
+  "candidate_app": "kokonut-kernel-candidate-app-1",
+  "gateway_url": "http://127.0.0.1:8098/health",
+  "transport": "direct loopback to the candidate gateway; Caddy was not in this path",
+  "active_cors_origins": [
+    "http://localhost:8055",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://localhost"
+  ],
+  "checks": {
+    "configured_origin_preflight": {
+      "origin": "http://localhost:3000",
+      "requested_method": "GET",
+      "requested_headers": ["x-api-key"],
+      "status": 200,
+      "access_control_allow_origin": "http://localhost:3000",
+      "allow_methods_included_get": true,
+      "allow_headers_included_x_api_key": true
+    },
+    "untrusted_origin_preflight": {
+      "origin": "https://untrusted.invalid",
+      "requested_method": "GET",
+      "requested_headers": ["x-api-key"],
+      "status": 400,
+      "access_control_allow_origin_present": false
+    }
+  },
+  "side_effects": {
+    "preflight_options_reaches_gateway_audit_or_rate_limit_middleware": false,
+    "reachability_health_get": "A separate GET /health confirmed the loopback endpoint; it traversed normal gateway middleware and audit persistence was not queried",
+    "farm_or_sensor_domain_writes": false,
+    "schema_migrations": false,
+    "pytest_suite": false
+  },
+  "not_covered": [
+    "CORS headers on normal authenticated GET or mutation responses",
+    "credentialed browser requests and cookie policy",
+    "mobile private-media and upload routes",
+    "public/non-loopback origins",
+    "Caddy or multi-proxy CORS deployment",
+    "rate-limit behavior"
+  ]
+}

@@ -1,0 +1,26 @@
+# Standalone recovery destination. Never overlay onto a running deployment.
+name: kokonut-kernel-recovery
+services:
+  database:
+    image: ${KOKONUT_RECOVERY_DATABASE_IMAGE:?Set the recorded source database image ID}
+    platform: linux/amd64
+    restart: "no"
+    stop_grace_period: 40s
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Load encrypted secrets}
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    volumes:
+      - recovery-postgres-data:/var/lib/postgresql/data
+    networks: [recovery]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+networks:
+  recovery:
+    internal: true
+volumes:
+  recovery-postgres-data:

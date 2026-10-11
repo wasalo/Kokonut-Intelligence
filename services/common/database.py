@@ -15,12 +15,12 @@ Provides two connection factories:
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable, Iterator, Optional
+from typing import Any, Iterator, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from .db import PG_HOST, PG_PORT, PG_DB, PG_USER, PG_PASSWORD
+from .db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
 
 _NAMED_PARAMETER = re.compile(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)")
 
@@ -30,7 +30,7 @@ def _to_psycopg2_sql(sql: str) -> str:
     return _NAMED_PARAMETER.sub(r"%(\1)s", sql)
 
 
-def get_db():
+def get_db(*, connect_timeout: int | None = None):
     """Return a raw psycopg2 connection using shared ``common.db`` constants.
 
     This is the single canonical connection factory for the platform.
@@ -38,12 +38,18 @@ def get_db():
     delegate here to ensure a consistent default database name and
     connection parameters.
     """
+    options = {}
+    if connect_timeout is not None:
+        if isinstance(connect_timeout, bool) or not isinstance(connect_timeout, int) or connect_timeout <= 0:
+            raise ValueError("connect_timeout must be a positive integer")
+        options["connect_timeout"] = connect_timeout
     return psycopg2.connect(
         host=PG_HOST,
         port=PG_PORT,
         dbname=PG_DB,
         user=PG_USER,
         password=PG_PASSWORD,
+        **options,
     )
 
 
@@ -103,8 +109,13 @@ class MappingResult:
 class DatabaseConnection:
     """Transaction-owning connection adapter used by CLI entry points."""
 
-    def __init__(self, connection=None):
-        self._connection = connection or get_db()
+    def __init__(self, connection=None, *, connect_timeout: int | None = None):
+        if connection is not None:
+            if connect_timeout is not None:
+                raise ValueError("connect_timeout cannot configure an existing connection")
+            self._connection = connection
+        else:
+            self._connection = get_db() if connect_timeout is None else get_db(connect_timeout=connect_timeout)
 
     @staticmethod
     def text(sql: str) -> str:
@@ -121,6 +132,14 @@ class DatabaseConnection:
 
     def commit(self) -> None:
         self._connection.commit()
+
+    def cursor(self, *args, **kwargs):
+        """Expose DB-API cursors for legacy operations under shared ownership.
+
+        Callers close their cursors; this adapter owns transaction and connection
+        cleanup. Named-parameter services should continue using execute().
+        """
+        return self._connection.cursor(*args, **kwargs)
 
     def rollback(self) -> None:
         self._connection.rollback()
@@ -142,6 +161,6 @@ class DatabaseConnection:
         return False
 
 
-def get_connection() -> DatabaseConnection:
+def get_connection(*, connect_timeout: int | None = None) -> DatabaseConnection:
     """Return a transaction-owning credit-service connection."""
-    return DatabaseConnection()
+    return DatabaseConnection(connect_timeout=connect_timeout)

@@ -1,0 +1,80 @@
+{
+  "checks": {
+    "schema_reapplied": true,
+    "distinct_wallets_preserved": true,
+    "action_chain_protocol_dimensions_preserved": true,
+    "nullable_remote_averages_and_extremes_correct": true,
+    "outputs_stable_after_raw_and_legacy_merges": true
+  },
+  "results": {
+    "wallet": [
+      {
+        "month": "2026-10-01",
+        "chain": "synthetic",
+        "unique_wallets": 2,
+        "total_events": 3
+      }
+    ],
+    "usage": [
+      {
+        "day": "2026-10-10",
+        "protocol_id": "f0000000-0000-4000-8000-000000000031",
+        "action_type": "deposit",
+        "chain": "synthetic-a",
+        "action_count": 1,
+        "total_amount": 10
+      },
+      {
+        "day": "2026-10-10",
+        "protocol_id": "f0000000-0000-4000-8000-000000000031",
+        "action_type": "withdraw",
+        "chain": "synthetic-a",
+        "action_count": 1,
+        "total_amount": 20
+      },
+      {
+        "day": "2026-10-10",
+        "protocol_id": "f0000000-0000-4000-8000-000000000032",
+        "action_type": "deposit",
+        "chain": "synthetic-b",
+        "action_count": 1,
+        "total_amount": 30
+      }
+    ],
+    "value": [
+      {
+        "month": "2026-10-01",
+        "location_id": "f0000000-0000-4000-8000-000000000021",
+        "protocol_id": "f0000000-0000-4000-8000-000000000031",
+        "total_value": 30,
+        "usage_count": 2
+      },
+      {
+        "month": "2026-10-01",
+        "location_id": "f0000000-0000-4000-8000-000000000021",
+        "protocol_id": "f0000000-0000-4000-8000-000000000032",
+        "total_value": 30,
+        "usage_count": 1
+      }
+    ],
+    "remote": [
+      {
+        "day": "2026-10-10",
+        "location_id": "f0000000-0000-4000-8000-000000000021",
+        "source": "synthetic",
+        "avg_ndvi": 0.30000000000000004,
+        "avg_ndre": null,
+        "avg_evi": null,
+        "avg_savi": null,
+        "avg_msavi": null,
+        "avg_ndwi": null,
+        "avg_cloud_cover": 20,
+        "observation_count": 3,
+        "min_cloud_cover": 10,
+        "max_cloud_cover": 30
+      }
+    ]
+  },
+  "schema_sha256": "860434e62a12497475048e0685c3defb3f1cde831dbe7a8e11573199a4a91d6f",
+  "scope": "Synthetic isolated view correctness; no on-chain calls, PostgreSQL/outbox parity, saved-dashboard switch or production certification."
+}

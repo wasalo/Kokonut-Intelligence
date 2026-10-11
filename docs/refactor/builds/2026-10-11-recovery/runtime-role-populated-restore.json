@@ -1,0 +1,119 @@
+{
+  "run_id": "runtime-role-populated-restore-20261011",
+  "date": "2026-10-11",
+  "result": "passed",
+  "scope": "least-privilege runtime-role compatibility against a fresh populated Kokonut restore",
+  "source_restore": {
+    "archive": "backups/legacy-logical-batch2-20261010/kokonut_intelligence.dump.age",
+    "archive_bytes": 5170459,
+    "archive_sha256": "ec38e3652c58d2aefa2ab2c54675a50d7b3583714bf8af355b335aa5e7803fc4",
+    "manifest_checksum_verified": true,
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_method": "age stream directly to pg_restore; --single-transaction --no-owner --no-privileges; no plaintext dump file",
+    "target_database": "kokonut_intelligence_restore",
+    "selected_row_counts": {
+      "schema_migration": 376,
+      "platform_event": 4,
+      "sensor_reading": 15,
+      "weather_observation": 12,
+      "wallet_activity_event": 15,
+      "attestation_record": 4,
+      "scheduled_task": 0,
+      "task_run": 0,
+      "file_upload": 0
+    },
+    "spatial_extensions": {
+      "postgis_extension_version": "3.4.3",
+      "postgis_version_function": "3.4",
+      "srid_check": 4326,
+      "schemas_present": [
+        "public",
+        "tiger",
+        "topology"
+      ]
+    }
+  },
+  "fixture": {
+    "compose_project": "kokonut-kernel-runtime-role-populated-20261011",
+    "database_container": "kokonut-kernel-runtime-role-populated-20261011-database-1",
+    "runner_image": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "volume": "kokonut-kernel-runtime-role-populated-20261011_recovery-postgres-data",
+    "network": "kokonut-kernel-runtime-role-populated-20261011_recovery",
+    "network_internal": true,
+    "network_egress": "disabled",
+    "published_ports": [],
+    "credentials": "synthetic; values intentionally omitted",
+    "status_after_check": "stopped",
+    "volume_retained": true
+  },
+  "verification": {
+    "runner_exit_code": 0,
+    "role_provisioning_runs": 2,
+    "runtime_user": "kokonut_runtime",
+    "native_public_locations_query": "passed",
+    "public_location_count_emitted": 2,
+    "runtime_postgis_query": "passed",
+    "synthetic_admin_owned_table": {
+      "runtime_operations": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "sequence use"
+      ],
+      "cleaned_up": true,
+      "remaining_probe_relations": 0
+    },
+    "denied_actions": [
+      "persistent table DDL",
+      "CREATE ROLE",
+      "CREATE DATABASE",
+      "SET ROLE to admin",
+      "CONNECT to postgres",
+      "CONNECT to kokonut_intelligence"
+    ],
+    "runtime_connect_privileges": {
+      "kokonut_intelligence_restore": true,
+      "kokonut_intelligence": false,
+      "postgres": false,
+      "template1": false,
+      "template_postgis": false
+    },
+    "role_attributes": {
+      "superuser": false,
+      "createdb": false,
+      "createrole": false,
+      "replication": false,
+      "bypassrls": false,
+      "inherit": false,
+      "public_schema_create": false,
+      "role_memberships": false,
+      "owns_relations": false
+    },
+    "restored_domain_rows_changed": false,
+    "payloads_emitted_to_logs": false,
+    "candidate_state": "healthy, owner-backed credential unchanged",
+    "legacy_stack_state": "stopped, unchanged",
+    "pytest_suite_run": false
+  },
+  "source_sha256": {
+    "services/common/db.py": "c56fdd32100e888aa0aaa696f114d9d7f39cd223c02fc64af2be0c643d952dbe",
+    "services/migration/runtime_role.py": "097d89535e4c5d58b635cad1ae9b8eec143036103a03846d64b761faa927dbf3",
+    "scripts/fixtures/kernel-db-runtime-role-check.py": "6ee6e4f3ed4950eb30dec05b154a97ecd4f8d1e2c0f808eebbbac18446c0c9ea",
+    "scripts/fixtures/kernel-db-runtime-role-populated-check.py": "4f6a80da8156bdde982be6661c3f38b27273e601c603b2225027513d8315d256",
+    "docker-compose.kernel-runtime-role.yml": "94526bf60ad4f9601c3f6a9f776728ff2b2829b87db78c12560e461e8cde53b0",
+    "docker-compose.kernel-recovery.yml": "6f4ab683d48947f438f8a11002cf53d8c0389516059620ebd026af2e2a9b609b",
+    "docker-compose.kernel-recovery-db-role.yml": "145b75243b4e6ee986873f7f3368ffb49e96822a0c594c8bbd8669b9dc7d3f98",
+    "docker-compose.kernel-recovery-populated-role.yml": "8a20f49fe790814639187f9970030149e4ab5a35aa64596aaa60c821e9f285b3",
+    "docker-compose.kernel-candidate.yml": "86552bce513c51ba009d0b6be8ce42ffb2e19ee74d5345246c1511a33b549d05",
+    "docker-compose.kernel-standard.yml": "8653ad32090d0c06fa6c79b5c69e1d7c7bcfe016fab25d93a1b88519867ddaa9",
+    "docker-compose.yml": "2c44cf0b3e500acf072ace2a769d7ba5b901272359f51bc05ccbdf77b6d2ddf1"
+  },
+  "limitations": [
+    "The native public projection and PostGIS function were checked; not every domain read/write workflow was run.",
+    "Directus and Metabase were not started. Legacy Compose currently connects them as the kokonut superuser; separate service identities/grants remain open.",
+    "The bootstrap has instance-wide PUBLIC CONNECT effects and is allowed only on a dedicated Kernel PostgreSQL instance.",
+    "The runtime role has DML across public-schema relations; this is not row-level authorization.",
+    "Candidate, portability and legacy deployment databases were not changed."
+  ]
+}

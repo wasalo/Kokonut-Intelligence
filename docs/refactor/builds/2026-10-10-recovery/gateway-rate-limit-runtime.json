@@ -1,0 +1,104 @@
+{
+  "check": "kernel-gateway-local-rate-limit-runtime",
+  "date_local": "2026-10-10",
+  "phases": [5, 6],
+  "candidate_project": "kokonut-kernel-candidate",
+  "canary": {
+    "image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "container": "kokonut-kernel-rate-limit-canary",
+    "role": "API only; no worker processes",
+    "host_binding": "127.0.0.1:18098->8099/tcp",
+    "network": "existing private candidate network",
+    "database": "existing candidate PostgreSQL container and volume",
+    "provider": "local",
+    "cors_origin": "http://localhost:3000"
+  },
+  "runtime_probe": {
+    "path": "/health",
+    "method": "GET",
+    "user_agent": "kernel-rate-limit-runtime-20261010-a1e1e01c",
+    "source_default_policy": {
+      "capacity_tokens": 100,
+      "refill_tokens_per_second": 10.0
+    },
+    "sequential_burst_elapsed_seconds": 2.766,
+    "allowed_gets_before_first_429": 127,
+    "first_limited_response": {
+      "status": 429,
+      "retry_after_seconds": "1",
+      "access_control_allow_origin": "http://localhost:3000"
+    },
+    "configured_origin_preflight_after_exhaustion": {
+      "method": "OPTIONS",
+      "status": 200,
+      "access_control_allow_origin": "http://localhost:3000"
+    },
+    "next_get_after_preflight": {
+      "status": 429,
+      "retry_after_seconds": "1"
+    }
+  },
+  "persistent_audit_query": {
+    "scope": "read-only exact user-agent query against access_audit_log",
+    "user_agent": "kernel-rate-limit-runtime-20261010-a1e1e01c",
+    "rows": [
+      {
+        "status": "allowed",
+        "status_code": 200,
+        "reason": "",
+        "count": 127
+      },
+      {
+        "status": "denied",
+        "status_code": 429,
+        "reason": "rate_limited",
+        "count": 2
+      }
+    ],
+    "records_intentionally_retained": true
+  },
+  "diagnostic_requests_retained": {
+    "kernel-rate-limit-runtime-20261010-a1e1e01b": {
+      "allowed_200": 125,
+      "denied_429_rate_limited": 1,
+      "note": "Exploratory sequential probe; header lookup was case-sensitive and a follow-up GET succeeded after refill. Not used for acceptance."
+    },
+    "kernel-rate-limit-header-inspect": {
+      "allowed_200": 1
+    }
+  },
+  "promotion": {
+    "active_app_image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "compose_provider": "local",
+    "active_app_status": "healthy",
+    "post_promotion_health_get": {
+      "user_agent": "kernel-rate-limit-post-promote-20261010-b9f812cd",
+      "status": 200,
+      "access_control_allow_origin": "http://localhost:3000"
+    },
+    "database_container_recreated": false,
+    "database_started_at_utc": "2026-10-11T00:36:47.81658807Z",
+    "canary_removed": true
+  },
+  "rollback": {
+    "previous_container_image_id": "sha256:897925167d07fd1530b3f1c3e02f492693ffad4539695fe8c636d70597bafd50",
+    "snapshot_method": "docker export of the old app container filesystem with no mounts, then docker import with explicit app user/workdir/command; a small local image layer restored the healthcheck",
+    "image_tag": "kokonut-kernel-candidate-app:rollback-20261010-with-healthcheck",
+    "image_id": "sha256:f5a69100711ab29c16c3af33af8692ad157a46ba6fd84fd819409655f0bbfb0d",
+    "restore": "docker tag kokonut-kernel-candidate-app:rollback-20261010-with-healthcheck kokonut-kernel-candidate-app:latest; source scripts/load-secrets.sh; docker compose --env-file /dev/null -p kokonut-kernel-candidate -f docker-compose.kernel-candidate.yml up -d --no-deps --force-recreate --no-build app"
+  },
+  "side_effects": {
+    "gateway_audit_rows_written": true,
+    "domain_data_writes": false,
+    "schema_migrations": false,
+    "database_restarted": false,
+    "legacy_project_started": false,
+    "pytest_suite": false
+  },
+  "not_covered": [
+    "PostgreSQL shared limiter provider and migration 373 on the candidate database",
+    "concurrent request correctness, process restart budget reset, eviction, and multi-replica limits",
+    "public/non-loopback ingress, authenticated mutation routes, or mobile/media route parity",
+    "long-running latency, pool saturation, or outage behavior"
+  ]
+}

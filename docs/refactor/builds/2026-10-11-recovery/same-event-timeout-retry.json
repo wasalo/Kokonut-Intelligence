@@ -1,0 +1,90 @@
+{
+  "format": 1,
+  "recorded_at": "2026-10-11T14:31:49.540076+00:00",
+  "batch": "2",
+  "phase": "3 recovery evidence supporting the future Phase 7 governed workflow",
+  "capability": "CAP-040",
+  "repository": {
+    "branch": "chore/kernel-plan-ignore",
+    "head": "ad806f5",
+    "working_tree_changes_present": true,
+    "source_mounted_read_only": true,
+    "source_hashes": {
+      "scripts/fixtures/kernel-recovery-same-event-claim.py": "e97778870ac81478167a09fa5bbb1f6547b8a05b1cb51b95d061ce364a9c51da",
+      "services/events/bus.py": "f04359795fa429634a784059d9f6f5963206bd13f0c0fe13077ca0e7fa4d3e78",
+      "services/cache/events.py": "3d281b3dc322b94091587f49e523c98142a2be1f607975ec9358b8aa234ebc1d",
+      "services/cache/cache.py": "196e7d26014cc6a1a9b6c35490f3101044094937ae50dd47bf87fdfeb3de90ee",
+      "services/common/database.py": "3515dca6f5cedd4c48f3219d5f6033ac9160e259eb8640fe3e64044247a1de3b",
+      "services/common/db.py": "a98c93704206264c63867f35b864dd583f39df17ee609d309cfccc5dde858584"
+    }
+  },
+  "checkpoint_restore": {
+    "archive": "backups/recovery-fixture-20261010/database/postgres.dump.age",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "destination_was_empty": true,
+    "plaintext_dump_written_to_disk": false
+  },
+  "isolated_runtime": {
+    "compose_project": "kokonut-kernel-recovery-handler-b2-20261011",
+    "database_container": "kokonut-kernel-recovery-handler-b2-20261011-database-1",
+    "database_volume": "kokonut-kernel-recovery-handler-b2-20261011_fixture-postgres-data",
+    "network": "kokonut-kernel-recovery-handler-b2-20261011_fixture",
+    "network_internal": true,
+    "host_port_bindings": {},
+    "operator_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+    "status_after_probe": "stopped; volume retained",
+    "legacy_stack": "stopped and unchanged"
+  },
+  "probe": {
+    "run_id": "7ae11de3-fbc3-4ade-a18e-5eca56705b49",
+    "verified_at": "2026-10-11T14:31:49.540076+00:00",
+    "helper": "scripts/fixtures/kernel-recovery-same-event-claim.py",
+    "event_id": "64e3dc9f-763c-528d-a633-5b854d69a708",
+    "handler": "services.cache.events.handle_crisp_scored",
+    "event_type": "crisp_scored",
+    "cache_type": "crisp",
+    "initial_timeout": {
+      "worker_id": "kernel-b2-same-event-a",
+      "cause": "A temporary PostgreSQL cache-table lock held the handler beyond its 30-second deadline.",
+      "event_status_after_attempt": "pending",
+      "event_retry_count_after_attempt": 1,
+      "delivery_status_after_attempt": "timeout",
+      "delivery_attempt_count_after_attempt": 1,
+      "handler_timeout_logs": 1
+    },
+    "retry": {
+      "worker_id": "kernel-b2-same-event-retry",
+      "processed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "final_state": {
+      "event_completed": 1,
+      "event_worker_id": "kernel-b2-same-event-retry",
+      "event_retry_count": 1,
+      "event_lease_released": true,
+      "delivery_attempt_count": 2,
+      "final_delivery_status": "success",
+      "handler_logs": {
+        "total": 2,
+        "timeout": 1,
+        "success": 1
+      },
+      "target_cache_rows_invalidated": 1,
+      "sentinel_cache_rows_preserved": 1,
+      "invalidation_reason": "crisp_scored:crisp_scored"
+    }
+  },
+  "checkpoint_fixture_preservation": {
+    "synthetic_event_id": "f0000000-0000-4000-8000-000000000005",
+    "temporary_lease_expires_at": "2026-10-11T15:12:42.378925+00:00",
+    "restored_lease_expires_at": "2026-10-10T10:01:00+00:00",
+    "other_event_fields_changed": false
+  },
+  "limits": [
+    "Confirms a durable retry after a handler timeout for one allowlisted cache effect.",
+    "The timeout interrupted the planned stale-lease takeover attempt before a second worker was started; no lease takeover was exercised.",
+    "Does not cover process crash after a handler side effect and before receipt/event completion commits, or exactly-once external effects.",
+    "Other handler types, production runtime-role policy, provider recovery and broader CAP-040 parity remain open."
+  ]
+}

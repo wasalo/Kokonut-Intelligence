@@ -1,0 +1,29 @@
+# Isolated live sink companion; combine only with kernel-recovery-fixture.
+services:
+  operator:
+    image: kokonut-kernel-recovery-analytics:local
+    environment:
+      KOKONUT_FEATURE_CLICKHOUSE: "true"
+      CH_HOST: analytics
+      CH_PORT: "8123"
+      CH_USER: kokonut
+      CH_DB: kokonut_analytics
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?Load encrypted secrets}
+  analytics:
+    image: sha256:a9d328123ff8a61bf6b16448528b577d59deb85758172e13b09054b0727f8adf
+    platform: linux/amd64
+    restart: "no"
+    environment:
+      CLICKHOUSE_DB: kokonut_analytics
+      CLICKHOUSE_USER: kokonut
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?Load encrypted secrets}
+    volumes:
+      - fixture-analytics-data:/var/lib/clickhouse
+    networks: [fixture]
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+volumes:
+  fixture-analytics-data:

@@ -1,0 +1,17 @@
+# Companion for candidate + standard + analytics, selected in that order.
+# This file only configures the worker; it does not create a delivery schedule.
+services:
+  worker:
+    build:
+      args:
+        KOKONUT_CLICKHOUSE: "true"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      KOKONUT_FEATURE_CLICKHOUSE: "true"
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set for analytics}
+      CH_HOST: clickhouse
+      CH_PORT: "8123"
+      CH_USER: kokonut
+      CH_DB: kokonut_analytics

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import os
 from datetime import datetime, timezone
 
 from services.common.logging import get_logger
+from services.gateway.rate_limit_backend import RateLimitBackend, get_rate_limiter
 
 logger = get_logger("gateway.app")
 
@@ -41,18 +43,18 @@ async def _request_location(request, policy: dict) -> str | None:
         return None
 
 
-def create_app():
+def create_app(*, rate_limiter: RateLimitBackend | None = None):
     """Create the FastAPI gateway application."""
     try:
         from fastapi import FastAPI, Request
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.responses import JSONResponse
+        from starlette.concurrency import run_in_threadpool
     except ImportError:
         raise ImportError("FastAPI is required: pip install fastapi uvicorn")
 
     from services.gateway.audit import GatewayAudit
     from services.gateway.auth import verify_request
-    from services.gateway.rate_limiter import RateLimiter
     from services.gateway.router import get_route_policy, router
     from services.mobile.api import router as mobile_router
 
@@ -70,8 +72,34 @@ def create_app():
         logger.warning("Ignoring wildcard CORS origin; configure explicit trusted origins")
         cors_origins = [origin for origin in cors_origins if origin != "*"]
 
-    rate_limiter = RateLimiter()
+    rate_limiter = get_rate_limiter() if rate_limiter is None else rate_limiter
     audit = GatewayAudit()
+    audit_replay = GatewayAudit()
+    audit_replay_task = None
+
+    async def audit_replay_loop():
+        while True:
+            try:
+                await run_in_threadpool(audit_replay.replay_pending, 100)
+            except Exception as exc:
+                logger.warning("Gateway audit replay unavailable (%s)", type(exc).__name__)
+            await asyncio.sleep(15)
+
+    @app.on_event("startup")
+    async def start_audit_replay():
+        nonlocal audit_replay_task
+        audit_replay_task = asyncio.create_task(audit_replay_loop())
+
+    @app.on_event("shutdown")
+    async def stop_audit_replay():
+        nonlocal audit_replay_task
+        if audit_replay_task is not None:
+            audit_replay_task.cancel()
+            try:
+                await audit_replay_task
+            except asyncio.CancelledError:
+                pass
+            audit_replay_task = None
 
     @app.middleware("http")
     async def gateway_middleware(request: Request, call_next):
@@ -84,9 +112,25 @@ def create_app():
 
         # Rate limiting
         caller = _request_identity(request, client_ip)
-        allowed = rate_limiter.check(caller)
+        try:
+            allowed = await run_in_threadpool(rate_limiter.check, caller)
+            retry_after = await run_in_threadpool(rate_limiter.retry_after, caller) if not allowed else 0
+        except Exception as exc:
+            logger.warning("Gateway rate-limit backend unavailable (%s)", type(exc).__name__)
+            await run_in_threadpool(
+                audit.log,
+                caller=caller, path=request.url.path, method=request.method,
+                status="denied", ip=client_ip, user_agent=user_agent,
+                status_code=503, reason="rate_limit_unavailable",
+                resource="gateway", action=request.method.lower(),
+            )
+            return JSONResponse(
+                status_code=503, content={"error": "Request limit service unavailable"},
+                headers={"Retry-After": "30"},
+            )
         if not allowed:
-            audit.log(
+            await run_in_threadpool(
+                audit.log,
                 caller=caller,
                 path=request.url.path,
                 method=request.method,
@@ -101,14 +145,15 @@ def create_app():
             return JSONResponse(
                 status_code=429,
                 content={"error": "Rate limit exceeded"},
-                headers={"Retry-After": str(rate_limiter.retry_after(caller))},
+                headers={"Retry-After": str(retry_after)},
             )
 
         policy = get_route_policy(request.method, request.url.path)
         max_body_bytes = 2_000_000 if request.url.path == "/api/mobile/media/uploads" else 8_000_000
         if request.method in {"POST", "PUT", "PATCH"}:
-            def reject_body(status_code: int, reason: str, message: str):
-                audit.log(
+            async def reject_body(status_code: int, reason: str, message: str):
+                await run_in_threadpool(
+                    audit.log,
                     caller=auth_result_caller,
                     path=request.url.path,
                     method=request.method,
@@ -128,18 +173,18 @@ def create_app():
                 try:
                     declared_size = int(content_length)
                 except ValueError:
-                    return reject_body(400, "invalid_content_length", "Invalid Content-Length")
+                    return await reject_body(400, "invalid_content_length", "Invalid Content-Length")
                 if declared_size < 0:
-                    return reject_body(400, "invalid_content_length", "Invalid Content-Length")
+                    return await reject_body(400, "invalid_content_length", "Invalid Content-Length")
                 if declared_size > max_body_bytes:
-                    return reject_body(413, "request_body_too_large", "Request body too large")
+                    return await reject_body(413, "request_body_too_large", "Request body too large")
 
             body_chunks = []
             body_size = 0
             async for chunk in request.stream():
                 body_size += len(chunk)
                 if body_size > max_body_bytes:
-                    return reject_body(413, "request_body_too_large", "Request body too large")
+                    return await reject_body(413, "request_body_too_large", "Request body too large")
                 body_chunks.append(chunk)
             body = b"".join(body_chunks)
             request._body = body
@@ -164,7 +209,8 @@ def create_app():
             )
         if not auth_result.get("authenticated"):
             denial_status = 403 if auth_result.get("reason") == "api_key_scope_denied" else 401
-            audit.log(
+            await run_in_threadpool(
+                audit.log,
                 caller=caller,
                 path=request.url.path,
                 method=request.method,
@@ -186,46 +232,61 @@ def create_app():
 
         request.state.caller = auth_result.get("caller", "anonymous")
 
-        # Process request, retaining an audit record if the handler fails.
+        mutation_reservation = None
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"} and policy.get("action") != "read":
+            mutation_reservation = await run_in_threadpool(audit.reserve_mutation)
+            if mutation_reservation is None:
+                return JSONResponse(
+                    status_code=503,
+                    content={"error": "Write operations are temporarily unavailable"},
+                    headers={"Retry-After": "30"},
+                )
+
+        # Process and audit the request before releasing reserved spool headroom.
         try:
-            response = await call_next(request)
-        except Exception as exc:
-            audit.log(
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                await run_in_threadpool(
+                    audit.log,
+                    caller=auth_result.get("caller", caller),
+                    path=request.url.path,
+                    method=request.method,
+                    status="error",
+                    ip=client_ip,
+                    user_agent=user_agent,
+                    reason=type(exc).__name__,
+                    resource=policy["resource"],
+                    action=policy["action"],
+                    location_id=location_id,
+                    capability_token_id=auth_result.get("capability_token_id"),
+                    scope_checked=auth_result.get("scope_checked"),
+                )
+                raise
+
+            # Audit logging
+            duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+            await run_in_threadpool(
+                audit.log,
                 caller=auth_result.get("caller", caller),
                 path=request.url.path,
                 method=request.method,
-                status="error",
+                status="allowed" if response.status_code < 400 else "denied",
                 ip=client_ip,
                 user_agent=user_agent,
-                reason=type(exc).__name__,
+                duration_ms=duration_ms,
+                status_code=response.status_code,
+                reason="" if response.status_code < 400 else "handler_response",
                 resource=policy["resource"],
                 action=policy["action"],
                 location_id=location_id,
                 capability_token_id=auth_result.get("capability_token_id"),
                 scope_checked=auth_result.get("scope_checked"),
             )
-            raise
-
-        # Audit logging
-        duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
-        audit.log(
-            caller=auth_result.get("caller", caller),
-            path=request.url.path,
-            method=request.method,
-            status="allowed" if response.status_code < 400 else "denied",
-            ip=client_ip,
-            user_agent=user_agent,
-            duration_ms=duration_ms,
-            status_code=response.status_code,
-            reason="" if response.status_code < 400 else "handler_response",
-            resource=policy["resource"],
-            action=policy["action"],
-            location_id=location_id,
-            capability_token_id=auth_result.get("capability_token_id"),
-            scope_checked=auth_result.get("scope_checked"),
-        )
-
-        return response
+            return response
+        finally:
+            if mutation_reservation is not None:
+                await run_in_threadpool(audit.release_mutation, mutation_reservation)
 
     @app.get("/health")
     async def health():
@@ -234,6 +295,7 @@ def create_app():
 
         return {
             "status": "ok",
+            "audit_capture": await run_in_threadpool(audit.capture_status),
             "service": "gateway",
             "version": __version__,
             "git_sha": __git_sha__,

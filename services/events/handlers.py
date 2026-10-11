@@ -11,54 +11,29 @@ from services.common.logging import get_logger
 logger = get_logger("events.handlers")
 
 
-def handle_alert_notification(event_type: str, payload: dict) -> None:
-    """Send alert notifications when thresholds are breached."""
-    import os
+def handle_alert_notification(event_type: str, payload: dict, *, event_id: str | None = None) -> None:
+    """Persist configured alert notifications before acknowledging the event."""
+    from services.common.database import get_connection
+    from services.events.notification_outbox import (
+        _notification_payloads,
+        enqueue_event_notification,
+    )
 
-    severity = payload.get("severity", "warning")
-    metric = payload.get("metric", "unknown")
-    value = payload.get("value")
-    threshold = payload.get("threshold")
-    device_id = payload.get("sensor_device_id", "unknown")
-    message = payload.get("message", f"{metric} = {value} (threshold: {threshold})")
+    if not event_id:
+        if _notification_payloads(event_type, payload):
+            raise ValueError("configured alert notifications require their source event ID")
+        logger.debug("No configured notification destination for event type %s", event_type)
+        return
 
-    logger.info("Alert notification: %s severity=%s", message, severity)
-
-    # Webhook notification
-    webhook_url = os.environ.get("ALERT_WEBHOOK_URL", "")
-    if webhook_url:
-        try:
-            from services.common.http import http
-
-            http.post(webhook_url, json={
-                "text": f"[{severity.upper()}] {message}",
-                "severity": severity,
-                "metric": metric,
-                "value": value,
-                "threshold": threshold,
-                "device_id": device_id,
-            })
-            logger.info("Alert webhook sent successfully")
-        except Exception:
-            logger.exception("Failed to send alert webhook")
-
-    # Directus notification
-    directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
-    admin_token = os.environ.get("DIRECTUS_ADMIN_TOKEN", "")
-    if admin_token:
-        try:
-            from services.common.http import http
-
-            http.post(
-                f"{directus_url}/notifications",
-                json={"message": message, "severity": severity},
-                headers={"Authorization": f"Bearer {admin_token}"},
-            )
-            logger.info("Directus notification sent")
-        except Exception:
-            logger.exception("Failed to send Directus notification")
+    with get_connection() as conn:
+        queued = enqueue_event_notification(
+            conn, event_id=event_id, event_type=event_type, payload=payload
+        )
+    logger.info("Queued %d alert notification deliveries for event %s", queued, event_id)
 
 
-def handle_stale_data(event_type: str, payload: dict) -> None:
-    """Adapt stale-data events to the standard alert notification handler."""
-    handle_alert_notification(event_type, payload)
+def handle_stale_data(
+    event_type: str, payload: dict, *, event_id: str | None = None
+) -> None:
+    """Adapt stale-data events to the durable alert notification outbox."""
+    handle_alert_notification(event_type, payload, event_id=event_id)

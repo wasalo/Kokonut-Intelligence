@@ -1,0 +1,61 @@
+{
+  "check": "kernel-gateway-local-rate-limit-contract",
+  "date_local": "2026-10-11",
+  "time_utc": "2026-10-11T04:14:30Z",
+  "phases": [5, 6],
+  "image": {
+    "tag": "kokonut-kernel-candidate-app:latest",
+    "image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10"
+  },
+  "harness": {
+    "container": "disposable docker run --rm",
+    "network": "none",
+    "mounts": [],
+    "database_access": false,
+    "active_candidate_changed": false,
+    "pytest_suite": false
+  },
+  "concurrent_consumption": {
+    "capacity_tokens": 5,
+    "refill_tokens_per_second": 1e-12,
+    "caller_buckets": 100,
+    "attempts": 100,
+    "worker_threads": 32,
+    "allowed": 5,
+    "denied": 95,
+    "result": "pass"
+  },
+  "lru_eviction": {
+    "capacity_tokens": 1,
+    "refill_tokens_per_second": 1e-12,
+    "caller_buckets": 2,
+    "sequence": [
+      "consume caller A",
+      "consume caller B",
+      "deny caller A to make A most-recently-used",
+      "insert caller C, evicting oldest caller B",
+      "deny caller A, confirming its exhausted bucket remains",
+      "allow caller B, confirming an evicted caller starts with a fresh bucket"
+    ],
+    "result": "pass"
+  },
+  "reset_semantics": {
+    "same_identity": "same-caller",
+    "first_limiter_instance": "one request allowed, next request denied",
+    "fresh_limiter_instance": "same caller allowed from a full bucket",
+    "result": "pass",
+    "scope_note": "This verifies in-memory instance reconstruction. It is not an OS process kill/restart or live Compose service restart test."
+  },
+  "limits": [
+    "No PostgreSQL shared-provider behavior or multi-replica budget was exercised.",
+    "The active candidate app and database were not contacted or restarted.",
+    "This verifies local limiter object behavior from the promoted image, not end-to-end contention through multiple gateway worker processes."
+  ],
+  "side_effects": {
+    "domain_data_writes": false,
+    "schema_migrations": false,
+    "gateway_audit_rows_written": false,
+    "candidate_containers_changed": false,
+    "pytest_suite": false
+  }
+}

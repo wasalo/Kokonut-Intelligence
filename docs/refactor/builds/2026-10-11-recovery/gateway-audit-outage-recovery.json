@@ -1,0 +1,39 @@
+{
+  "check": "Gateway audit behavior across PostgreSQL outage and recovery",
+  "date": "2026-10-11",
+  "deployment": {
+    "database_service": "isolated Kokonut portability PostgreSQL",
+    "database_prior_state": "stopped",
+    "probe_container": "kokonut-audit-recovery-probe",
+    "network": "private Compose portability network; no host ports published"
+  },
+  "isolation": {
+    "active_candidate_stack_touched": false,
+    "domain_rows_written": false,
+    "migrations_run": false,
+    "pytest_suite_run": false
+  },
+  "outage": {
+    "audit_writer": "real GatewayAudit.log",
+    "synthetic_path": "/__kernel_probe__/audit-outage-no-replay",
+    "failure_type": "OperationalError",
+    "event_persisted_after_recovery": false,
+    "replay_or_reconciliation": false
+  },
+  "recovery": {
+    "database_restarted_healthy": true,
+    "post_recovery_control_path": "/__kernel_probe__/audit-after-recovery",
+    "post_recovery_control_persisted": true,
+    "aggregate_outage_path_rows": 0,
+    "aggregate_control_path_rows": 1,
+    "synthetic_control_row_deleted": true,
+    "remaining_rows_for_synthetic_caller_resource": 0
+  },
+  "result": {
+    "forward_audit_writes_resume": true,
+    "durable_outage_replay_available": false,
+    "passed": true,
+    "acceptance_gate_remains_open": true
+  },
+  "rollback": "Removed the temporary app container and exact synthetic audit row; confirmed no rows remained for its caller/resource pair; stopped the portability database, restoring its prior state."
+}

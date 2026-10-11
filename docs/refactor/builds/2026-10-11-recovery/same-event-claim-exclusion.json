@@ -1,0 +1,98 @@
+{
+  "format": 1,
+  "recorded_at": "2026-10-11T14:23:37.222780+00:00",
+  "batch": "2",
+  "phase": "3 recovery evidence supporting the future Phase 7 governed workflow",
+  "capability": "CAP-040",
+  "repository": {
+    "branch": "chore/kernel-plan-ignore",
+    "head": "ad806f5",
+    "working_tree_changes_present": true,
+    "source_mounted_read_only": true,
+    "source_hashes": {
+      "services/events/bus.py": "f04359795fa429634a784059d9f6f5963206bd13f0c0fe13077ca0e7fa4d3e78",
+      "services/cache/events.py": "3d281b3dc322b94091587f49e523c98142a2be1f607975ec9358b8aa234ebc1d",
+      "services/cache/cache.py": "196e7d26014cc6a1a9b6c35490f3101044094937ae50dd47bf87fdfeb3de90ee",
+      "services/common/database.py": "3515dca6f5cedd4c48f3219d5c6033ac9160e259eb8640fe3e64044247a1de3b",
+      "services/common/db.py": "a98c93704206264c63867f35b864dd583f39df17ee609d309cfccc5dde858584"
+    }
+  },
+  "checkpoint_restore": {
+    "archive": "backups/recovery-fixture-20261010/database/postgres.dump.age",
+    "archive_sha256": "608ba807fe98ffcaefca2b917f3939cb20ebadaeeb3b205233d7ab441612233e",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "applied_schema_migration_count": 364,
+    "destination_was_empty": true,
+    "plaintext_dump_written_to_disk": false
+  },
+  "isolated_runtime": {
+    "compose_project": "kokonut-kernel-recovery-handler-b2-20261011",
+    "database_container": "kokonut-kernel-recovery-handler-b2-20261011-database-1",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "database_volume": "kokonut-kernel-recovery-handler-b2-20261011_fixture-postgres-data",
+    "network": "kokonut-kernel-recovery-handler-b2-20261011_fixture",
+    "network_internal": true,
+    "host_port_bindings": {},
+    "operator_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+    "status_after_probe": "stopped; volume retained",
+    "candidate_app_and_database": "healthy and unchanged",
+    "legacy_stack": "stopped and unchanged"
+  },
+  "probe": {
+    "run_id": "5dfc4b09-ad13-4c11-b853-98a080fa6c88",
+    "created_at": "2026-10-11T14:22:31.699170+00:00",
+    "verified_at": "2026-10-11T14:23:37.222780+00:00",
+    "helper": {
+      "path": "scripts/fixtures/kernel-recovery-same-event-claim.py",
+      "sha256": "fbd16fd5f917c1066ca4f3d38f4e886f185f1d4943c3cdc79b81042b23b35291"
+    },
+    "event_id": "c6a1d68b-cee2-5798-8583-7b62b303d199",
+    "handler": "services.cache.events.handle_crisp_scored",
+    "handler_id": "60c50b41-5d46-46c0-bf7e-044d498b15c9",
+    "event_type": "crisp_scored",
+    "cache_type": "crisp",
+    "active_lease_observation": {
+      "worker_a": "kernel-b2-same-event-a",
+      "state_before_worker_b": {
+        "event_status": "processing",
+        "delivery_status": "processing",
+        "delivery_attempt_count": 1,
+        "lease_owner": "kernel-b2-same-event-a"
+      },
+      "worker_b": "kernel-b2-same-event-b",
+      "worker_b_processed_events": 0,
+      "state_after_worker_b": {
+        "event_status": "processing",
+        "delivery_status": "processing",
+        "delivery_attempt_count": 1,
+        "lease_owner": "kernel-b2-same-event-a"
+      },
+      "cache_write_held_by_temporary_share_table_lock": true,
+      "lock_released_after_second_worker_attempt": true
+    },
+    "final_state": {
+      "event_completed": 1,
+      "event_worker_id": "kernel-b2-same-event-a",
+      "retry_count": 0,
+      "event_lease_released": true,
+      "successful_delivery_receipts": 1,
+      "delivery_attempt_count": 1,
+      "successful_handler_logs": 1,
+      "target_cache_rows_invalidated": 1,
+      "sentinel_cache_rows_preserved": 1,
+      "invalidation_reason": "crisp_scored:crisp_scored"
+    }
+  },
+  "checkpoint_fixture_preservation": {
+    "synthetic_event_id": "f0000000-0000-4000-8000-000000000005",
+    "temporary_lease_expires_at": "2026-10-11T15:07:20.205603+00:00",
+    "restored_lease_expires_at": "2026-10-10T10:01:00+00:00",
+    "other_event_fields_changed": false
+  },
+  "limits": [
+    "Confirms a second worker cannot claim the same event while its lease remains active.",
+    "Does not cover takeover after lease expiry while the original handler is still running.",
+    "Does not cover a process crash after an external handler side effect and before receipt/event completion commits.",
+    "Production runtime-role policy, provider recovery, other handler types and broader CAP-040 parity remain open."
+  ]
+}

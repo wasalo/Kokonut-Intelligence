@@ -1,0 +1,137 @@
+{
+  "tables_compared": 16,
+  "unchanged": 16,
+  "changed": [],
+  "before": {
+    "attestation_request": {
+      "rows": 1,
+      "fingerprint": "b7f528c698c8fb38bcea17e5f6960d75"
+    },
+    "crop_cost_allocation": {
+      "rows": 126,
+      "fingerprint": "625872b4f71f3bfd758d1a2e17b4b228"
+    },
+    "crop_cycle": {
+      "rows": 6,
+      "fingerprint": "aca004b42005b868b181ba82ba058dd2"
+    },
+    "expense_event": {
+      "rows": 43,
+      "fingerprint": "48749012bd1794da7f6a1e9c05db3a67"
+    },
+    "farm": {
+      "rows": 2,
+      "fingerprint": "564762d7348e7f1b5c17d9ae0d3920f0"
+    },
+    "farm_activity": {
+      "rows": 30,
+      "fingerprint": "408f94632ad52d5a408ac890a95d51b1"
+    },
+    "farm_registry_record": {
+      "rows": 2,
+      "fingerprint": "38f403cc0afd5b99e670e0d5cb23f627"
+    },
+    "harvest_event": {
+      "rows": 12,
+      "fingerprint": "cf68cbc053720d3168521ca6f834ec3e"
+    },
+    "location": {
+      "rows": 2,
+      "fingerprint": "5d29819c9a0765ac053426aeb3a5b7c6"
+    },
+    "metric_definition": {
+      "rows": 93,
+      "fingerprint": "d24112ad3f327283937dabebded9bbc4"
+    },
+    "metric_value": {
+      "rows": 80,
+      "fingerprint": "b5e3ab08c747737075ae26224e0bd471"
+    },
+    "mobile_device": {
+      "rows": 4,
+      "fingerprint": "07630361857b753811faabe770c0dda3"
+    },
+    "plot": {
+      "rows": 3,
+      "fingerprint": "7e82422d989c63354ff294c46bb7c656"
+    },
+    "sales_event": {
+      "rows": 15,
+      "fingerprint": "13d3f188f0be5823349dca246100c1e4"
+    },
+    "scheduled_task": {
+      "rows": 0,
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "task_run": {
+      "rows": 0,
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  },
+  "after": {
+    "attestation_request": {
+      "rows": 1,
+      "fingerprint": "b7f528c698c8fb38bcea17e5f6960d75"
+    },
+    "crop_cost_allocation": {
+      "rows": 126,
+      "fingerprint": "625872b4f71f3bfd758d1a2e17b4b228"
+    },
+    "crop_cycle": {
+      "rows": 6,
+      "fingerprint": "aca004b42005b868b181ba82ba058dd2"
+    },
+    "expense_event": {
+      "rows": 43,
+      "fingerprint": "48749012bd1794da7f6a1e9c05db3a67"
+    },
+    "farm": {
+      "rows": 2,
+      "fingerprint": "564762d7348e7f1b5c17d9ae0d3920f0"
+    },
+    "farm_activity": {
+      "rows": 30,
+      "fingerprint": "408f94632ad52d5a408ac890a95d51b1"
+    },
+    "farm_registry_record": {
+      "rows": 2,
+      "fingerprint": "38f403cc0afd5b99e670e0d5cb23f627"
+    },
+    "harvest_event": {
+      "rows": 12,
+      "fingerprint": "cf68cbc053720d3168521ca6f834ec3e"
+    },
+    "location": {
+      "rows": 2,
+      "fingerprint": "5d29819c9a0765ac053426aeb3a5b7c6"
+    },
+    "metric_definition": {
+      "rows": 93,
+      "fingerprint": "d24112ad3f327283937dabebded9bbc4"
+    },
+    "metric_value": {
+      "rows": 80,
+      "fingerprint": "b5e3ab08c747737075ae26224e0bd471"
+    },
+    "mobile_device": {
+      "rows": 4,
+      "fingerprint": "07630361857b753811faabe770c0dda3"
+    },
+    "plot": {
+      "rows": 3,
+      "fingerprint": "7e82422d989c63354ff294c46bb7c656"
+    },
+    "sales_event": {
+      "rows": 15,
+      "fingerprint": "13d3f188f0be5823349dca246100c1e4"
+    },
+    "scheduled_task": {
+      "rows": 0,
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    "task_run": {
+      "rows": 0,
+      "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+    }
+  }
+}

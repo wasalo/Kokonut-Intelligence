@@ -1,0 +1,4184 @@
+{
+  "baseline_commit": "ad806f504bfef15cba41446d777cb22f6bd8fe6a",
+  "capabilities": [
+    {
+      "category": "Farm Operations",
+      "description": "Activities, harvests, sales, expenses, losses, labor, field notes, inventory, maintenance, revenue events, partner-scoped access via Directus",
+      "id": "CAP-001",
+      "name": "Governed farm operations",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Farm Operations",
+      "description": "Yield monitoring with prediction/benchmarking, precision irrigation with zone management and water-balance, digital twin crop simulation, nutrient budget tracking, mobile offline-first collection",
+      "id": "CAP-002",
+      "name": "Precision agriculture",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Farm Operations",
+      "description": "Batch tracking with custody chain, quality testing, food safety, cold chain monitoring, forward/backward tracing",
+      "id": "CAP-003",
+      "name": "Traceability",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Farm Operations",
+      "description": "Learning modules, peer groups, delivery tracking, assessment effectiveness",
+      "id": "CAP-004",
+      "name": "Extension & peer learning",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Farm Operations",
+      "description": "Profiles with credentials/KYC, role-based access, device registration, cooperative membership, asset booking, purchase aggregation, collective market orders",
+      "id": "CAP-005",
+      "name": "Farmer identity & cooperatives",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Farm Operations",
+      "description": "Energy source monitoring with efficiency/carbon intensity, waste recording with composting/incident tracking, habitat/corridor management, hedgerow recording, buffer compliance, pollinator health",
+      "id": "CAP-006",
+      "name": "Energy, waste & landscape",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Intelligence",
+      "description": "Versioned metric definitions, scenario forecasts, Fortune 500-style farm scoring, ecological analytics, revenue multiplier opportunity maps, EBF scorecards with trust graphs, AI-generated summaries",
+      "id": "CAP-007",
+      "name": "Metrics & analytics",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Intelligence",
+      "description": "Least-squares estimation, Mann-Kendall significance, exponential smoothing, seasonal decomposition, CUSUM/PELT change-point detection, ARIMA forecasting, variogram modeling, kriging, sequential Gaussian simulation, spatial cross-validation",
+      "id": "CAP-008",
+      "name": "Trend analysis & geostatistics",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Intelligence",
+      "description": "Causal loop diagrams, leverage point identification, system archetypes, double-loop learning, time delay tracking, stock-and-flow simulation, mental model elicitations",
+      "id": "CAP-009",
+      "name": "Systems thinking",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Intelligence",
+      "description": "Observe\u2192Orient\u2192Decide\u2192Act cycle with situation assessment, adaptive thresholds, decision policy engine, cycle tracking, human-approval gateways",
+      "id": "CAP-010",
+      "name": "OODA loop & adaptive decisions",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Intelligence",
+      "description": "Process mining (variant discovery, conformance checking, cycle-time analysis), predictive BPM with SLA breach forecasting, SPC charts, CTQ analysis, process health dashboards",
+      "id": "CAP-011",
+      "name": "Process intelligence",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Intelligence",
+      "description": "Process architecture mapping, interface definitions, target setting, simulation, gap analysis, service catalog, process costing",
+      "id": "CAP-012",
+      "name": "Process architecture & costing",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Impact & Evidence",
+      "description": "Evidence maturity levels, stakeholder feedback, impact claims, participatory metric proposals, holistic well-being, financial resilience, capital efficiency, commons liberation, GNH alignment, regenerative outcomes, CIDS Essential Tier JSON-LD export",
+      "id": "CAP-013",
+      "name": "Impact accountability",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Impact & Evidence",
+      "description": "Five-dimension risk scoring (carbon yield, climate, policy, financial, implementation) with configurable per-location weights and AAA-D composite rating",
+      "id": "CAP-014",
+      "name": "CRISP risk scoring",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Impact & Evidence",
+      "description": "Organic compliance records for transition tracking, input audit, buffer zones, harvest segregation, composite readiness scoring (0-100)",
+      "id": "CAP-015",
+      "name": "Organic certification readiness",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Impact & Evidence",
+      "description": "Hidden cost tracking, natural/social capital valuation, life cycle assessment, GRI indicator mapping, cross-capital flow analysis",
+      "id": "CAP-016",
+      "name": "True cost accounting",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Impact & Evidence",
+      "description": "Incident tracking with response actions, recovery timelines, lessons learned",
+      "id": "CAP-017",
+      "name": "Emergency response",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Web3 & Verification",
+      "description": "KokonutResolver attester gating, onchain/offchain attestations, private evidence hashes, public attestation summaries, 4 registered schemas",
+      "id": "CAP-018",
+      "name": "EAS on Celo",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Web3 & Verification",
+      "description": "Credit class/batch hierarchy, basket with token deposits, marketplace with escrow, per-account balance tracking, bridge operations, project enrollment, retirement certificates",
+      "id": "CAP-019",
+      "name": "Ecocredit module",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Web3 & Verification",
+      "description": "Ledger-backed balances preserving account/batch custody, atomic retirement with human confirmation, governed certificate generation",
+      "id": "CAP-020",
+      "name": "Credit custody & retirement",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Web3 & Verification",
+      "description": "IRI system with versioning, RDF triple store, SPARQL queries, content-addressed storage, resolver registry, evidence chaining",
+      "id": "CAP-021",
+      "name": "Linked data infrastructure",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Web3 & Verification",
+      "description": "Chronological project data posts with Markdown content, file attachments, geo-tagged files, full-text search, blockchain anchoring via EAS",
+      "id": "CAP-022",
+      "name": "Data Stream",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Governance",
+      "description": "Pluggable `GovernanceFramework` adapters; Moloch v3 (Baal) on Gnosis for proposals, votes, members, shamans; future: OpenZeppelin Governor, Aragon, Colony",
+      "id": "CAP-023",
+      "name": "Governance framework abstraction",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Governance",
+      "description": "Holacracy-inspired circles, role authority, tension tracking, proposals, tactical coordination, cockpit dashboards",
+      "id": "CAP-024",
+      "name": "Governance circles & roles",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Governance",
+      "description": "Stakeholder foundation, consent management, identity resolution, engagement plans, grievance handling, representation metrics, decision lineage, trust evidence with timeline",
+      "id": "CAP-025",
+      "name": "Stakeholder ecosystem",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Governance",
+      "description": "Threats, warning signals, cross-impact/cascade analysis, future narratives, horizons, backcast milestones, sustainability-principle alignment, assumption challenges, comparable pathways",
+      "id": "CAP-026",
+      "name": "Threatcasting & backcasting",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Governance",
+      "description": "Roundless pseudonymous panel consultation, weighted consensus, stability tracking; facilitator outputs are drafts, recommendations require human approval",
+      "id": "CAP-027",
+      "name": "Real-time Delphi",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Strategy & Planning",
+      "description": "Strategy plans, choices, assumptions, investments, allocation, coherence, execution snapshots, governance reporting, integrity gates, risk evidence, portfolio selection, contingencies, consultation, foresight frames",
+      "id": "CAP-028",
+      "name": "Strategy system",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Strategy & Planning",
+      "description": "Competitive analysis, strategic positioning, advantage assessment, advantage outcomes, customer value analysis, competitive monitoring",
+      "id": "CAP-029",
+      "name": "Competitive landscape",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Strategy & Planning",
+      "description": "Work items with SLA tracking, responsibility assignments, escalation sweeps, capacity-aware organizational planning",
+      "id": "CAP-030",
+      "name": "Management workflow",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Strategy & Planning",
+      "description": "Budgets with variance analysis, objectives with KPIs, portfolio management (programs and projects), S&OP cockpit",
+      "id": "CAP-031",
+      "name": "Planning & budgeting",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Strategy & Planning",
+      "description": "Capability maps, strategy maps with initiative tracking, vision/mission governance, formal value stream definitions",
+      "id": "CAP-032",
+      "name": "Business architecture",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Strategy & Planning",
+      "description": "Pitch deck generation with evidence backing, elevator pitches, business plan generation, template-based BMCs",
+      "id": "CAP-033",
+      "name": "Pitch & business planning",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Coordination",
+      "description": "Alliance management, coordination workflows, learning accounting, governance cockpit, trigger safety, integrity controls",
+      "id": "CAP-034",
+      "name": "Coordination & alliance system",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Coordination",
+      "description": "Solution experiments, funding tracking, adoption metrics, scale/learning/retirement stages, sequential gate integrity",
+      "id": "CAP-035",
+      "name": "Solution lifecycle",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Coordination",
+      "description": "Sequential evidence ledger, decision engine, experiment analysis, odds calculation, decision integrity controls",
+      "id": "CAP-036",
+      "name": "Sequential evidence & decisions",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Coordination",
+      "description": "Capacity-aware planning, work selection claims, competencies/learning tracking, coaching/resources, dual-scope operating pilot",
+      "id": "CAP-037",
+      "name": "Operating pilot",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Agents & AI",
+      "description": "Agent identities with capability manifests, tasks, action logs, AI summaries, scoped MCP/Directus access; agents can draft/submit but cannot verify/publish/attest/score",
+      "id": "CAP-038",
+      "name": "Agent ecosystem",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Agents & AI",
+      "description": "Single `python3 -m services.cli` entry point aggregating all service CLIs; legacy per-service invocations remain supported",
+      "id": "CAP-039",
+      "name": "Unified meta-CLI",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Agents & AI",
+      "description": "Automated satellite data collection (GEE/Copernicus), real-time IoT ingestion (MQTT/HTTP), ML anomaly detection (Prophet + Isolation Forest), EAS on-chain verification",
+      "id": "CAP-040",
+      "name": "dMRV architecture",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Agents & AI",
+      "description": "XGBoost-based SOC prediction with spectral indices, time-series features, geographic cross-validation",
+      "id": "CAP-041",
+      "name": "Digital soil mapping",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Smart Contracts",
+      "description": "Registry, Domain, TaskBoard, EvidenceReview, Governance, Points, UpgradeTimelock \u2014 all deployed on Gnosis Mainnet",
+      "id": "CAP-042",
+      "name": "Guild protocol",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Smart Contracts",
+      "description": "ERC-20 with burning, pausing, and role-based access; deployed behind ERC1967 proxy",
+      "id": "CAP-043",
+      "name": "Credit Token",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Smart Contracts",
+      "description": "On-chain price feeds with emergency updater role; deployed behind ERC1967 proxy",
+      "id": "CAP-044",
+      "name": "Price Oracle",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Smart Contracts",
+      "description": "Privacy-preserving attestation gating; deployed behind ERC1967 proxy",
+      "id": "CAP-045",
+      "name": "Selective Disclosure",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Smart Contracts",
+      "description": "EAS attester gating for registered schemas on Celo",
+      "id": "CAP-046",
+      "name": "KokonutResolver",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Platform",
+      "description": "Ordered checksummed PostgreSQL migrations reject drift; API gateway defaults unknown routes to authenticated access; durable scheduler leases and event outbox/dead-letter handling",
+      "id": "CAP-047",
+      "name": "Platform integrity",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Platform",
+      "description": "Monitorable reserve registry (carbon buffer, commons reserve, financial ring-fence, capability standby, seed vault) with adequacy, drawdown headroom, trigger/breach status; release proposals are DRAFT-only and human-approved",
+      "id": "CAP-048",
+      "name": "Strategic reserve",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Platform",
+      "description": "Dynamic 8 Forms of Capital inventory, Keynes-inspired deferred-credit ledger, capacity assessment, consumption-vs-reinvestment diversion, value-capture risk diagnostics",
+      "id": "CAP-049",
+      "name": "Capital accounting",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Platform",
+      "description": "Chess-inspired governance tactics (fork, pin, zwischenzug, double-check, promotion ladder), Monte Carlo perturbation, CRT-style clash resolution",
+      "id": "CAP-050",
+      "name": "Tactical layer & simulation",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Platform",
+      "description": "Consent management, access logging, data portability, retention policies, sharing agreements with audit trails",
+      "id": "CAP-051",
+      "name": "Data governance",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Platform",
+      "description": "Timelock-gated upgrade authority, staged deployment with temporary upgrader handoff, upgrade verification scripts",
+      "id": "CAP-052",
+      "name": "Platform upgrade system",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Field Data",
+      "description": "Detailed SOPs for soil sampling, tree measurement, biodiversity surveys, water sampling, harvest recording, pest monitoring with measurement cadence matrix",
+      "id": "CAP-053",
+      "name": "Field data collection",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Field Data",
+      "description": "Individual tree GPS tracking, growth rate analytics, GeoJSON/KML/XML export, spatial clustering, pest hotspots, canopy analysis, habitat connectivity scoring",
+      "id": "CAP-054",
+      "name": "Silvi tree tracking",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Field Data",
+      "description": "Multi-source price feeds with median consensus, real-time commodity futures, actuator command dispatch",
+      "id": "CAP-055",
+      "name": "Oracle infrastructure",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Business",
+      "description": "Revenue streams, pricing strategies, cost structures, break-even analysis, sensitivity analysis, multi-channel orchestration (SMS, WhatsApp, mobile app, email), partner lifecycle",
+      "id": "CAP-056",
+      "name": "Revenue model & channels",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Business",
+      "description": "Multi-step PESTEL analysis, regional readiness assessments with benchmarks, public and segment mapping, demand analysis",
+      "id": "CAP-057",
+      "name": "Environmental scanning",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Business",
+      "description": "Listings, orders, price trends, cooperative market orders",
+      "id": "CAP-058",
+      "name": "Marketplace",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Regulatory",
+      "description": "Impact estimate posts, 3-tier validation with quadratic voting, tokenized carbon credits with auto-adjustment, incentive alignment tracking",
+      "id": "CAP-059",
+      "name": "Abundance Protocol",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Regulatory",
+      "description": "All LinkML schemas mapped to schema.org URIs, JSON-LD context generation, `@graph` support",
+      "id": "CAP-060",
+      "name": "Schema.org alignment",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Regulatory",
+      "description": "ClaimType, VerificationStatus, VerdictType enums, CreditClassInfo, ProjectInfo, ProjectPost schemas, Data module v2 concepts",
+      "id": "CAP-061",
+      "name": "Regen Network parity",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Regulatory",
+      "description": "Time-scoped data (expires_at), origin transaction indexing, marketplace fee collection/distribution",
+      "id": "CAP-062",
+      "name": "ARKIV parity",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "Regulatory",
+      "description": "Shapefile/KML import, raster metadata, CSW OGC Catalogue Service, ISO 19115 metadata, hierarchical thesaurus, Leaflet map viewer, geostories",
+      "id": "CAP-063",
+      "name": "GeoNode parity",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "External",
+      "description": "Type-safe external API with Protobuf schemas, server-side streaming (5s batching), API key auth, Buf codegen for Python/TypeScript, gRPC-web support",
+      "id": "CAP-064",
+      "name": "gRPC API",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "External",
+      "description": "1-click BMC derivation from canonical tables; comprehensive status composing 13 per-location sections plus network-wide rollup",
+      "id": "CAP-065",
+      "name": "Business Model Canvas",
+      "parity": "not_yet_validated"
+    },
+    {
+      "category": "External",
+      "description": "Ecosystem report across locations with ecosystem-actor funding view; Mermaid + JSON visual timelines (ecosystem tree, Ikigai, farm phases, crop timelines)",
+      "id": "CAP-066",
+      "name": "State of Kokonut",
+      "parity": "not_yet_validated"
+    }
+  ],
+  "domains": [
+    {
+      "migrations": [
+        "001_locations.sql",
+        "064_organization.sql",
+        "148_farmer_identity.sql"
+      ],
+      "name": "Identity",
+      "services": [
+        "services/analytics/farmer_identity.py"
+      ]
+    },
+    {
+      "migrations": [
+        "030_stakeholder_feedback.sql",
+        "213_stakeholder_vocabulary.sql",
+        "215_stakeholder_consent.sql",
+        "216_stakeholder_engagement.sql",
+        "218_stakeholder_grievances.sql",
+        "219_stakeholder_representation.sql",
+        "221_stakeholder_decisions.sql"
+      ],
+      "name": "Stakeholders",
+      "services": [
+        "services/analytics/stakeholder_*.py",
+        "services/feedback/controller.py"
+      ]
+    },
+    {
+      "migrations": [
+        "001_locations.sql",
+        "002_crops.sql",
+        "003_operations.sql",
+        "009_operations_ux.sql",
+        "027_farm_onboarding_profile.sql",
+        "055_organic_certification.sql"
+      ],
+      "name": "Farm Operations",
+      "services": [
+        "services/analytics/crop_rotation.py",
+        "services/analytics/pest_management.py",
+        "services/analytics/yield_monitoring.py"
+      ]
+    },
+    {
+      "migrations": [
+        "005_environmental.sql",
+        "011_sensor_registry.sql",
+        "077_telemetry_infrastructure.sql"
+      ],
+      "name": "Environmental Measurement",
+      "services": [
+        "services/analytics/climate_data.py",
+        "services/ingestion/anomaly_detector.py",
+        "services/ingestion/remote_sensing_fetcher.py",
+        "services/ingestion/sensor_ingester.py",
+        "services/ingestion/weather.py"
+      ]
+    },
+    {
+      "migrations": [
+        "028_carbon_framework.sql",
+        "046_ecological_modeling.sql",
+        "047_ecological_modeling_v2.sql"
+      ],
+      "name": "Carbon and Environmental Impact",
+      "services": [
+        "services/analytics/carbon_credits.py",
+        "services/analytics/ecological_modeling.py",
+        "services/analytics/tree_tracking.py"
+      ]
+    },
+    {
+      "migrations": [
+        "007_modeled_outputs.sql"
+      ],
+      "name": "Metrics and Modeled Outputs",
+      "services": [
+        "services/export/report_generator.py",
+        "services/forecast/",
+        "services/metrics/"
+      ]
+    },
+    {
+      "migrations": [
+        "032_ebf_scorecard.sql",
+        "033_ebf_p1_operations.sql"
+      ],
+      "name": "EBF Scoring and Calibration",
+      "services": [
+        "services/scoring/"
+      ]
+    },
+    {
+      "migrations": [
+        "076_crisp_risk_scoring.sql"
+      ],
+      "name": "CRISP Risk Scoring",
+      "services": [
+        "services/crisp/"
+      ]
+    },
+    {
+      "migrations": [
+        "004_finance.sql",
+        "070_financial_enhancements.sql",
+        "141_digital_finance.sql",
+        "142_marketplace.sql",
+        "367_external_grant_tranche.sql"
+      ],
+      "name": "Financial and Marketplace",
+      "services": [
+        "services/analytics/marketplace.py",
+        "services/analytics/revenue_model.py",
+        "services/finance/"
+      ]
+    },
+    {
+      "migrations": [
+        "141_digital_finance.sql"
+      ],
+      "name": "Digital Finance",
+      "services": [
+        "services/analytics/digital_finance.py"
+      ]
+    },
+    {
+      "migrations": [
+        "078_carbon_credits.sql"
+      ],
+      "name": "Carbon Credits and Ecocredits",
+      "services": [
+        "services/analytics/carbon_credits.py",
+        "services/credit_class/"
+      ]
+    },
+    {
+      "migrations": [
+        "078_carbon_credits.sql"
+      ],
+      "name": "Credit Lifecycle",
+      "services": [
+        "services/credit_class/"
+      ]
+    },
+    {
+      "migrations": [
+        "008_governance.sql",
+        "307_strategy_markup_projection.sql"
+      ],
+      "name": "Strategy and Governance",
+      "services": [
+        "services/analytics/business_model_canvas.py",
+        "services/analytics/strategy_map.py",
+        "services/strategy_markup/"
+      ]
+    },
+    {
+      "migrations": [
+        "159_threatcasting.sql",
+        "160_backcasting_enhancements.sql"
+      ],
+      "name": "Threatcasting and Backcasting",
+      "services": [
+        "services/threatcasting/"
+      ]
+    },
+    {
+      "migrations": [
+        "161_delphi.sql"
+      ],
+      "name": "Delphi Consultation",
+      "services": [
+        "services/delphi/"
+      ]
+    },
+    {
+      "migrations": [
+        "175_management_work_items.sql",
+        "182_process_mining.sql"
+      ],
+      "name": "Workflow and Lifecycle",
+      "services": [
+        "services/analytics/predictive_bpm.py",
+        "services/analytics/process_mining.py",
+        "services/management/",
+        "services/workflow_specs/"
+      ]
+    },
+    {
+      "migrations": [
+        "144_data_governance.sql",
+        "298_consent_privacy_p0.sql",
+        "301_data_governance_p2.sql",
+        "320_consent_lifecycle_public_gates.sql"
+      ],
+      "name": "Data Governance and Consent",
+      "services": [
+        "services/analytics/data_governance.py"
+      ]
+    },
+    {
+      "migrations": [
+        "013_prd_completion.sql",
+        "029_impact_accountability_foundation.sql"
+      ],
+      "name": "Agent Identity and Safety",
+      "services": [
+        "services/agents/safety.py",
+        "services/agents/tasks.py"
+      ]
+    },
+    {
+      "migrations": [
+        "100_data_stream.sql",
+        "102_iri_system.sql",
+        "104_rdf_triples.sql",
+        "173_typed_temporal_graph.sql"
+      ],
+      "name": "Linked Data, IRIs, and Evidence Lineage",
+      "services": [
+        "services/data_stream/",
+        "services/graph_projection/",
+        "services/iri/",
+        "services/rdf/"
+      ]
+    },
+    {
+      "migrations": [
+        "146_precision_irrigation.sql",
+        "149_pest_management.sql",
+        "151_nutrient_budget.sql"
+      ],
+      "name": "Precision Agriculture",
+      "services": [
+        "services/analytics/crop_phenology.py",
+        "services/analytics/nutrient_budget.py",
+        "services/analytics/pest_management.py",
+        "services/analytics/precision_irrigation.py",
+        "services/analytics/yield_monitoring.py"
+      ]
+    },
+    {
+      "migrations": [
+        "046_ecological_modeling.sql",
+        "154_landscape_conservation.sql",
+        "155_pollinator_health.sql"
+      ],
+      "name": "Ecological Modeling and Environmental Services",
+      "services": [
+        "services/analytics/ecological_modeling.py",
+        "services/analytics/energy_monitoring.py",
+        "services/analytics/landscape_conservation.py",
+        "services/analytics/pollinator_health.py",
+        "services/analytics/waste_management.py"
+      ]
+    },
+    {
+      "migrations": [
+        "147_cooperative.sql",
+        "222_cooperative_trust.sql"
+      ],
+      "name": "Cooperative and Collective Operations",
+      "services": [
+        "services/analytics/cooperative.py"
+      ]
+    },
+    {
+      "migrations": [
+        "145_extension.sql"
+      ],
+      "name": "Extension and Training",
+      "services": [
+        "services/analytics/extension.py"
+      ]
+    },
+    {
+      "migrations": [
+        "143_traceability.sql"
+      ],
+      "name": "Traceability and Supply Chain",
+      "services": [
+        "services/analytics/traceability.py"
+      ]
+    },
+    {
+      "migrations": [
+        "043_bio_factory_operations.sql"
+      ],
+      "name": "Bio Factory Operations",
+      "services": [
+        "services/agents/bio_factory_agent.py"
+      ]
+    },
+    {
+      "migrations": [
+        "327_strategic_reserve.sql",
+        "328_strategic_reserve_preempt.sql",
+        "330_capital_accounting.sql"
+      ],
+      "name": "Resilience, Capital, and Simulation",
+      "services": [
+        "services/capital/",
+        "services/simulation/",
+        "services/strategic_reserve/",
+        "services/systems/stock_flow.py"
+      ]
+    },
+    {
+      "migrations": [
+        "025_kokonut_framework_alignment.sql",
+        "317_kgp_protocol.sql",
+        "318_guild_protocol_projection.sql",
+        "319_guild_integrity_controls.sql"
+      ],
+      "name": "Guilds and KGP Protocol",
+      "services": [
+        "services/guilds/"
+      ]
+    },
+    {
+      "migrations": [
+        "290_solution_funding.sql",
+        "291_solution_adoption.sql",
+        "292_solution_scale_learning_retirement.sql"
+      ],
+      "name": "Innovation and Solutions",
+      "services": [
+        "services/innovation/"
+      ]
+    },
+    {
+      "migrations": [
+        "124_orientation.sql",
+        "126_feedback_loops.sql",
+        "127_ooda_cycles.sql"
+      ],
+      "name": "Orientation and OODA",
+      "services": [
+        "services/feedback/",
+        "services/orientation/",
+        "services/systems/improvement_tracker.py",
+        "services/systems/velocity_tracker.py"
+      ]
+    },
+    {
+      "migrations": [
+        "009_operations_ux.sql",
+        "300_ingestion_reliability.sql"
+      ],
+      "name": "Ingestion and Data Quality",
+      "services": [
+        "services/ingestion/",
+        "services/stream/"
+      ]
+    },
+    {
+      "migrations": [
+        "008_governance.sql"
+      ],
+      "name": "Events and Scheduling",
+      "services": [
+        "services/events/",
+        "services/scheduler/"
+      ]
+    },
+    {
+      "migrations": [
+        "008_governance.sql"
+      ],
+      "name": "Platform Infrastructure",
+      "services": [
+        "services/gateway/",
+        "services/migration/",
+        "services/sandbox/",
+        "services/security/"
+      ]
+    },
+    {
+      "migrations": [
+        "007_modeled_outputs.sql",
+        "018_public_views.sql"
+      ],
+      "name": "Reporting and Dashboards",
+      "services": [
+        "services/export/report_generator.py",
+        "services/registry/cids_export.py"
+      ]
+    },
+    {
+      "migrations": [
+        "008_governance.sql",
+        "324_baal_governance.sql"
+      ],
+      "name": "Governance and DAO",
+      "services": [
+        "services/governance/"
+      ]
+    },
+    {
+      "migrations": [
+        "034_holistic_wellbeing.sql",
+        "035_financial_resilience_and_scaling.sql",
+        "036_capital_efficiency_and_utility.sql",
+        "037_commons_liberation_and_stewardship.sql",
+        "038_gnh_alignment_and_inclusion.sql",
+        "039_regenerative_outcomes_and_stewardship.sql",
+        "040_open_source_capitalist_scaling.sql",
+        "041_kokonut_commons_governance.sql"
+      ],
+      "name": "Impact Domains (Holistic, Financial, Commons, GNH, Capital, Regenerative)",
+      "services": [
+        "services/agents/*_agent.py",
+        "services/analytics/capital_efficiency.py",
+        "services/analytics/commons_liberation.py",
+        "services/analytics/financial_resilience.py",
+        "services/analytics/gnh_alignment.py",
+        "services/analytics/holistic_wellbeing.py",
+        "services/analytics/kokonut_commons_governance.py",
+        "services/analytics/open_source_capitalist_scaling.py",
+        "services/analytics/regenerative_outcomes.py"
+      ]
+    }
+  ],
+  "format_version": 1,
+  "http_routes": [
+    {
+      "line": 230,
+      "method": "GET",
+      "path": "/health",
+      "source": "services/gateway/app.py"
+    },
+    {
+      "line": 243,
+      "method": "GET",
+      "path": "/",
+      "source": "services/gateway/app.py"
+    },
+    {
+      "line": 253,
+      "method": "GET",
+      "path": "/mobile",
+      "source": "services/gateway/app.py"
+    },
+    {
+      "line": 254,
+      "method": "GET",
+      "path": "/mobile/",
+      "source": "services/gateway/app.py"
+    },
+    {
+      "line": 263,
+      "method": "GET",
+      "path": "/field-collector-vault.js",
+      "source": "services/gateway/app.py"
+    },
+    {
+      "line": 272,
+      "method": "GET",
+      "path": "/mobile/field-collector-vault.js",
+      "source": "services/gateway/app.py"
+    },
+    {
+      "line": 81,
+      "method": "GET",
+      "path": "/locations",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 98,
+      "method": "GET",
+      "path": "/locations/{location_id}",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 121,
+      "method": "GET",
+      "path": "/metrics/{location_id}",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 162,
+      "method": "GET",
+      "path": "/crisp/{location_id}",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 174,
+      "method": "GET",
+      "path": "/analytics/{location_id}/summary",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 186,
+      "method": "POST",
+      "path": "/data-stream/post",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 204,
+      "method": "GET",
+      "path": "/iri/resolve",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 217,
+      "method": "GET",
+      "path": "/federation/nodes",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 229,
+      "method": "GET",
+      "path": "/drivers",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 241,
+      "method": "GET",
+      "path": "/health/services",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 203,
+      "method": "POST",
+      "path": "/api/v1/sensors/{device_id}/readings",
+      "source": "services/ingestion/http_sensor_receiver.py"
+    },
+    {
+      "line": 226,
+      "method": "POST",
+      "path": "/api/v1/sensors/{device_id}/readings/batch",
+      "source": "services/ingestion/http_sensor_receiver.py"
+    },
+    {
+      "line": 251,
+      "method": "GET",
+      "path": "/api/v1/health",
+      "source": "services/ingestion/http_sensor_receiver.py"
+    },
+    {
+      "line": 25,
+      "method": "GET",
+      "path": "/data/v2/metadata-graph/{iri:path}",
+      "source": "services/metadata_api/app.py"
+    },
+    {
+      "line": 36,
+      "method": "POST",
+      "path": "/data/v2/iri-gen",
+      "source": "services/metadata_api/app.py"
+    },
+    {
+      "line": 45,
+      "method": "GET",
+      "path": "/data/v2/entity/{entity_type}/{entity_id}",
+      "source": "services/metadata_api/app.py"
+    },
+    {
+      "line": 56,
+      "method": "GET",
+      "path": "/marketplace/v1/project/{location_id}",
+      "source": "services/metadata_api/app.py"
+    },
+    {
+      "line": 67,
+      "method": "GET",
+      "path": "/marketplace/v1/projects",
+      "source": "services/metadata_api/app.py"
+    },
+    {
+      "line": 82,
+      "method": "POST",
+      "path": "/data/v2/sparql",
+      "source": "services/metadata_api/app.py"
+    },
+    {
+      "line": 90,
+      "method": "GET",
+      "path": "/data/v2/graphs",
+      "source": "services/metadata_api/app.py"
+    },
+    {
+      "line": 108,
+      "method": "GET",
+      "path": "/app",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 114,
+      "method": "GET",
+      "path": "/field-collector-vault.js",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 127,
+      "method": "POST",
+      "path": "/media/uploads",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 222,
+      "method": "GET",
+      "path": "/forms",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 276,
+      "method": "POST",
+      "path": "/locations/{location_id}/enrollments",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 317,
+      "method": "POST",
+      "path": "/register",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 390,
+      "method": "DELETE",
+      "path": "/locations/{location_id}/enrollments/{enrollment_id}",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 419,
+      "method": "POST",
+      "path": "/locations/{location_id}/devices/{device_id}/revoke",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 474,
+      "method": "POST",
+      "path": "/sync",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 655,
+      "method": "GET",
+      "path": "/sync/status",
+      "source": "services/mobile/api.py"
+    }
+  ],
+  "limitations": [
+    "Static references are coverage candidates, not test results.",
+    "No runtime environment values or business records are collected.",
+    "Dynamic imports, SQL data lineage, and route policies require manual review."
+  ],
+  "parse_errors": [],
+  "schemas": {
+    "clickhouse": [
+      "schemas/clickhouse/001_events.sql",
+      "schemas/clickhouse/002_materialized_views.sql",
+      "schemas/clickhouse/003_sensor_views.sql",
+      "schemas/clickhouse/004_remote_sensing_and_attestations.sql",
+      "schemas/clickhouse/005_portfolio_views.sql",
+      "schemas/clickhouse/006_telemetry_sync.sql"
+    ],
+    "postgres": [
+      "schemas/postgres/000_extensions.sql",
+      "schemas/postgres/001_locations.sql",
+      "schemas/postgres/002_crops.sql",
+      "schemas/postgres/003_operations.sql",
+      "schemas/postgres/004_finance.sql",
+      "schemas/postgres/005_environmental.sql",
+      "schemas/postgres/006_web3.sql",
+      "schemas/postgres/007_modeled_outputs.sql",
+      "schemas/postgres/008_governance.sql",
+      "schemas/postgres/009_operations_ux.sql",
+      "schemas/postgres/010_market_data.sql",
+      "schemas/postgres/011_sensor_registry.sql",
+      "schemas/postgres/012_property.sql",
+      "schemas/postgres/013_prd_completion.sql",
+      "schemas/postgres/014_directus_metadata_repair.sql",
+      "schemas/postgres/015_constraints.sql",
+      "schemas/postgres/016_revenue_multiplier_config.sql",
+      "schemas/postgres/017_fr_gaps.sql",
+      "schemas/postgres/018_public_views.sql",
+      "schemas/postgres/019_module_b_gaps.sql",
+      "schemas/postgres/020_per_sqm_revenue.sql",
+      "schemas/postgres/023_source_lineage_fix.sql",
+      "schemas/postgres/024_metric_governance_enforcement.sql",
+      "schemas/postgres/025_kokonut_framework_alignment.sql",
+      "schemas/postgres/026_ground_analytics.sql",
+      "schemas/postgres/027_farm_onboarding_profile.sql",
+      "schemas/postgres/028_carbon_framework.sql",
+      "schemas/postgres/029_impact_accountability_foundation.sql",
+      "schemas/postgres/030_stakeholder_feedback.sql",
+      "schemas/postgres/031_impact_claims_and_cids.sql",
+      "schemas/postgres/032_ebf_scorecard.sql",
+      "schemas/postgres/033_ebf_p1_operations.sql",
+      "schemas/postgres/034_holistic_wellbeing.sql",
+      "schemas/postgres/035_financial_resilience_and_scaling.sql",
+      "schemas/postgres/036_capital_efficiency_and_utility.sql",
+      "schemas/postgres/037_commons_liberation_and_stewardship.sql",
+      "schemas/postgres/038_gnh_alignment_and_inclusion.sql",
+      "schemas/postgres/039_regenerative_outcomes_and_stewardship.sql",
+      "schemas/postgres/040_open_source_capitalist_scaling.sql",
+      "schemas/postgres/041_kokonut_commons_governance.sql",
+      "schemas/postgres/042_fk_index_fixes.sql",
+      "schemas/postgres/043_bio_factory_operations.sql",
+      "schemas/postgres/046_ecological_modeling.sql",
+      "schemas/postgres/047_ecological_modeling_v2.sql",
+      "schemas/postgres/048_economic_social_enhancement.sql",
+      "schemas/postgres/049_model_validation.sql",
+      "schemas/postgres/050_remaining_gaps.sql",
+      "schemas/postgres/051_gap_closures.sql",
+      "schemas/postgres/052_final_gaps.sql",
+      "schemas/postgres/053_configurable_containers.sql",
+      "schemas/postgres/054_grant_network.sql",
+      "schemas/postgres/055_organic_certification.sql",
+      "schemas/postgres/056_emergency_response.sql",
+      "schemas/postgres/057_tree_tracking.sql",
+      "schemas/postgres/058_spatial_export.sql",
+      "schemas/postgres/059_drone_raster_integration.sql",
+      "schemas/postgres/060_scenario_parameters.sql",
+      "schemas/postgres/061_impact_value_chain.sql",
+      "schemas/postgres/062_true_cost_accounting.sql",
+      "schemas/postgres/063_statement_of_work.sql",
+      "schemas/postgres/064_organization.sql",
+      "schemas/postgres/065_funding_flow.sql",
+      "schemas/postgres/066_ecosystem_landscape.sql",
+      "schemas/postgres/067_impact_bounties.sql",
+      "schemas/postgres/068_impact_office.sql",
+      "schemas/postgres/069_demand_analysis.sql",
+      "schemas/postgres/070_financial_enhancements.sql",
+      "schemas/postgres/071_sample_plot_design.sql",
+      "schemas/postgres/072_spatial_import.sql",
+      "schemas/postgres/073_measurement_schedule.sql",
+      "schemas/postgres/074_dsm_soc_prediction.sql",
+      "schemas/postgres/075_feature_engineering.sql",
+      "schemas/postgres/076_crisp_risk_scoring.sql",
+      "schemas/postgres/077_telemetry_infrastructure.sql",
+      "schemas/postgres/078_carbon_credits.sql",
+      "schemas/postgres/079_web_of_trust.sql",
+      "schemas/postgres/080_field_collection.sql",
+      "schemas/postgres/081_oracle_infrastructure.sql",
+      "schemas/postgres/082_procurement.sql",
+      "schemas/postgres/083_logistics.sql",
+      "schemas/postgres/084_curriculum.sql",
+      "schemas/postgres/085_capacity_utilization.sql",
+      "schemas/postgres/086_abundance_estimates.sql",
+      "schemas/postgres/087_abundance_validation.sql",
+      "schemas/postgres/088_abundance_periodic.sql",
+      "schemas/postgres/089_abundance_economics.sql",
+      "schemas/postgres/090_externality_countermeasures.sql",
+      "schemas/postgres/091_superalignment.sql",
+      "schemas/postgres/092_content_layer.sql",
+      "schemas/postgres/093_ai_evaluation.sql",
+      "schemas/postgres/094_currency_stability.sql",
+      "schemas/postgres/095_soil_protocol.sql",
+      "schemas/postgres/096_token_integration.sql",
+      "schemas/postgres/097_hybrid_voting.sql",
+      "schemas/postgres/098_multi_farm.sql",
+      "schemas/postgres/100_data_stream.sql",
+      "schemas/postgres/102_iri_system.sql",
+      "schemas/postgres/103_credit_class_batch.sql",
+      "schemas/postgres/104_rdf_triples.sql",
+      "schemas/postgres/105_retirement_certificates.sql",
+      "schemas/postgres/106_linkml_schemas.sql",
+      "schemas/postgres/107_app_metadata.sql",
+      "schemas/postgres/108_project_info.sql",
+      "schemas/postgres/109_ecocredit_parity.sql",
+      "schemas/postgres/110_data_v2_parity.sql",
+      "schemas/postgres/111_ecocredit_enhancements.sql",
+      "schemas/postgres/112_regen_standards_parity.sql",
+      "schemas/postgres/113_arkiv_parity.sql",
+      "schemas/postgres/114_geonode_parity.sql",
+      "schemas/postgres/115_geospatial_enhancement.sql",
+      "schemas/postgres/116_event_bus.sql",
+      "schemas/postgres/117_task_scheduler.sql",
+      "schemas/postgres/118_computation_cache.sql",
+      "schemas/postgres/119_driver_registry.sql",
+      "schemas/postgres/120_stream_processor.sql",
+      "schemas/postgres/121_capability_tokens.sql",
+      "schemas/postgres/122_federation.sql",
+      "schemas/postgres/123_analysis_environments.sql",
+      "schemas/postgres/124_orientation.sql",
+      "schemas/postgres/125_decision_policy.sql",
+      "schemas/postgres/126_feedback_loop.sql",
+      "schemas/postgres/127_ooda_cycles.sql",
+      "schemas/postgres/128_adaptive_sampling.sql",
+      "schemas/postgres/129_systems_thinking.sql",
+      "schemas/postgres/130_double_loop.sql",
+      "schemas/postgres/131_trend_analysis.sql",
+      "schemas/postgres/132_trend_config.sql",
+      "schemas/postgres/133_geostatistics.sql",
+      "schemas/postgres/134_weather_forecast.sql",
+      "schemas/postgres/135_prescription_maps.sql",
+      "schemas/postgres/136_advisory_engine.sql",
+      "schemas/postgres/137_yield_monitoring.sql",
+      "schemas/postgres/138_digital_twin.sql",
+      "schemas/postgres/139_mobile_offline.sql",
+      "schemas/postgres/140_llm_chat.sql",
+      "schemas/postgres/141_digital_finance.sql",
+      "schemas/postgres/142_marketplace.sql",
+      "schemas/postgres/143_traceability.sql",
+      "schemas/postgres/144_data_governance.sql",
+      "schemas/postgres/145_extension.sql",
+      "schemas/postgres/146_precision_irrigation.sql",
+      "schemas/postgres/147_cooperative.sql",
+      "schemas/postgres/148_farmer_identity.sql",
+      "schemas/postgres/149_pest_management.sql",
+      "schemas/postgres/150_crop_rotation.sql",
+      "schemas/postgres/151_nutrient_budget.sql",
+      "schemas/postgres/152_energy_monitoring.sql",
+      "schemas/postgres/153_waste_management.sql",
+      "schemas/postgres/154_landscape_conservation.sql",
+      "schemas/postgres/155_pollinator_health.sql",
+      "schemas/postgres/156_pest_biology.sql",
+      "schemas/postgres/157_pest_trap_monitoring.sql",
+      "schemas/postgres/158_adaptation_acceleration.sql",
+      "schemas/postgres/159_threatcasting.sql",
+      "schemas/postgres/160_backcasting_enhancements.sql",
+      "schemas/postgres/161_delphi.sql",
+      "schemas/postgres/162_platform_integrity.sql",
+      "schemas/postgres/163_carbon_retirement_integrity.sql",
+      "schemas/postgres/164_scheduler_durability.sql",
+      "schemas/postgres/165_event_bus_durability.sql",
+      "schemas/postgres/166_optimism_bias_integrity.sql",
+      "schemas/postgres/167_path_comparison_integrity.sql",
+      "schemas/postgres/168_path_comparison_view_compatibility.sql",
+      "schemas/postgres/169_prediction_calibration_outside_view.sql",
+      "schemas/postgres/170_delphi_threat_resolution.sql",
+      "schemas/postgres/171_graph_integrity_repairs.sql",
+      "schemas/postgres/172_backcast_cascade_normalization.sql",
+      "schemas/postgres/173_typed_temporal_graph.sql",
+      "schemas/postgres/174_management_organization.sql",
+      "schemas/postgres/175_management_work_items.sql",
+      "schemas/postgres/176_financial_planning.sql",
+      "schemas/postgres/177_objective_enhancements.sql",
+      "schemas/postgres/178_program_portfolio.sql",
+      "schemas/postgres/179_lifecycle_transition.sql",
+      "schemas/postgres/180_metric_definition_category.sql",
+      "schemas/postgres/181_swot_analysis.sql",
+      "schemas/postgres/182_process_mining.sql",
+      "schemas/postgres/183_predictive_process.sql",
+      "schemas/postgres/184_process_control.sql",
+      "schemas/postgres/185_process_escalation.sql",
+      "schemas/postgres/186_process_state_models.sql",
+      "schemas/postgres/187_state_model_triggers.sql",
+      "schemas/postgres/188_process_architecture.sql",
+      "schemas/postgres/190_process_interfaces.sql",
+      "schemas/postgres/191_process_targets.sql",
+      "schemas/postgres/192_process_costing.sql",
+      "schemas/postgres/193_process_simulation.sql",
+      "schemas/postgres/194_process_taxonomy_expansion.sql",
+      "schemas/postgres/195_service_catalog.sql",
+      "schemas/postgres/196_prm_completion.sql",
+      "schemas/postgres/197_business_model_canvas.sql",
+      "schemas/postgres/198_revenue_model.sql",
+      "schemas/postgres/199_channel_health.sql",
+      "schemas/postgres/200_partner_lifecycle.sql",
+      "schemas/postgres/201_swot_enhancements.sql",
+      "schemas/postgres/202_pitch_presentation.sql",
+      "schemas/postgres/203_pestel_analysis.sql",
+      "schemas/postgres/204_regional_readiness.sql",
+      "schemas/postgres/205_publics_market_segmentation.sql",
+      "schemas/postgres/206_env_scanning.sql",
+      "schemas/postgres/207_capability_map.sql",
+      "schemas/postgres/208_strategy_map.sql",
+      "schemas/postgres/209_vision_mission.sql",
+      "schemas/postgres/210_value_stream_definitions.sql",
+      "schemas/postgres/211_market_order_process_model_cleanup.sql",
+      "schemas/postgres/212_technology_roadmap.sql",
+      "schemas/postgres/213_stakeholder_vocabulary.sql",
+      "schemas/postgres/214_stakeholder_compatibility_views.sql",
+      "schemas/postgres/215_stakeholder_consent.sql",
+      "schemas/postgres/216_stakeholder_engagement.sql",
+      "schemas/postgres/217_stakeholder_engagement_scope_view.sql",
+      "schemas/postgres/218_stakeholder_grievances.sql",
+      "schemas/postgres/219_stakeholder_representation.sql",
+      "schemas/postgres/220_stakeholder_representation_metrics_fix.sql",
+      "schemas/postgres/221_stakeholder_decisions.sql",
+      "schemas/postgres/222_cooperative_trust.sql",
+      "schemas/postgres/223_stakeholder_capabilities_value_streams.sql",
+      "schemas/postgres/224_nature_future_generations.sql",
+      "schemas/postgres/225_stakeholder_cockpit.sql",
+      "schemas/postgres/226_stakeholder_acceptance_links.sql",
+      "schemas/postgres/227_stakeholder_identity_accountability.sql",
+      "schemas/postgres/228_stakeholder_consent_enforcement.sql",
+      "schemas/postgres/229_stakeholder_decision_controls.sql",
+      "schemas/postgres/230_stakeholder_public_safety.sql",
+      "schemas/postgres/231_stakeholder_human_review_gates.sql",
+      "schemas/postgres/232_stakeholder_trigger_safety.sql",
+      "schemas/postgres/233_stakeholder_approval_integration.sql",
+      "schemas/postgres/234_marketplace_view_alignment.sql",
+      "schemas/postgres/235_coordination_strategy.sql",
+      "schemas/postgres/236_coordination_workflow_integration.sql",
+      "schemas/postgres/237_coordination_learning_accounting.sql",
+      "schemas/postgres/238_coordination_governance_cockpit.sql",
+      "schemas/postgres/239_coordination_trigger_safety.sql",
+      "schemas/postgres/240_coordination_alliance_types.sql",
+      "schemas/postgres/241_coordination_integrity_controls.sql",
+      "schemas/postgres/242_governance_circles_roles.sql",
+      "schemas/postgres/243_governance_role_authority.sql",
+      "schemas/postgres/244_governance_tensions.sql",
+      "schemas/postgres/245_governance_tension_submission_fix.sql",
+      "schemas/postgres/246_governance_proposals.sql",
+      "schemas/postgres/247_governance_tactical_coordination.sql",
+      "schemas/postgres/248_governance_circle_links.sql",
+      "schemas/postgres/249_governance_cockpit.sql",
+      "schemas/postgres/250_work_selection_claims.sql",
+      "schemas/postgres/251_operating_capacity_demand.sql",
+      "schemas/postgres/252_operating_competencies_learning.sql",
+      "schemas/postgres/253_operating_coaching_resources.sql",
+      "schemas/postgres/254_capacity_aware_planning.sql",
+      "schemas/postgres/255_dual_scope_operating_pilot.sql",
+      "schemas/postgres/256_strategy_plans.sql",
+      "schemas/postgres/257_strategy_choices_assumptions.sql",
+      "schemas/postgres/258_strategy_investments_allocation.sql",
+      "schemas/postgres/259_strategy_coherence.sql",
+      "schemas/postgres/260_strategy_execution_snapshots.sql",
+      "schemas/postgres/261_strategy_governance_reporting.sql",
+      "schemas/postgres/262_strategy_integrity_gates.sql",
+      "schemas/postgres/263_strategy_governance_validation.sql",
+      "schemas/postgres/264_strategy_risk_evidence.sql",
+      "schemas/postgres/265_strategy_portfolio_selection.sql",
+      "schemas/postgres/266_strategy_control_variance.sql",
+      "schemas/postgres/267_strategy_review_tasks.sql",
+      "schemas/postgres/268_competitive_landscape.sql",
+      "schemas/postgres/269_strategic_positioning.sql",
+      "schemas/postgres/270_advantage_assessments.sql",
+      "schemas/postgres/271_advantage_fit_links.sql",
+      "schemas/postgres/272_competitive_monitoring.sql",
+      "schemas/postgres/273_competitive_health.sql",
+      "schemas/postgres/274_strategy_evidence_lineage.sql",
+      "schemas/postgres/275_strategy_evidence_identity_fix.sql",
+      "schemas/postgres/276_strategy_cascades.sql",
+      "schemas/postgres/277_strategy_executable_gates.sql",
+      "schemas/postgres/278_strategy_kpi_refresh.sql",
+      "schemas/postgres/279_strategy_portfolio_execution.sql",
+      "schemas/postgres/280_strategy_contingencies.sql",
+      "schemas/postgres/281_strategy_consultation_communication.sql",
+      "schemas/postgres/282_strategy_integrity_fixes.sql",
+      "schemas/postgres/283_strategy_foresight_frame.sql",
+      "schemas/postgres/284_competitive_advantage_integrity.sql",
+      "schemas/postgres/285_competitive_value_economics.sql",
+      "schemas/postgres/286_advantage_outcomes_renewal.sql",
+      "schemas/postgres/287_decision_execution_integrity.sql",
+      "schemas/postgres/288_solution_lifecycle.sql",
+      "schemas/postgres/289_solution_experiments.sql",
+      "schemas/postgres/290_solution_funding.sql",
+      "schemas/postgres/291_solution_adoption.sql",
+      "schemas/postgres/292_solution_scale_learning_retirement.sql",
+      "schemas/postgres/293_sequential_gate_integrity.sql",
+      "schemas/postgres/294_sequential_evidence_ledger.sql",
+      "schemas/postgres/295_sequential_decision_engine.sql",
+      "schemas/postgres/296_sequential_experiment_analysis.sql",
+      "schemas/postgres/297_event_handler_registration_fix.sql",
+      "schemas/postgres/298_consent_privacy_p0.sql",
+      "schemas/postgres/299_sequential_decision_integrity.sql",
+      "schemas/postgres/300_ingestion_reliability.sql",
+      "schemas/postgres/301_data_governance_p2.sql",
+      "schemas/postgres/302_feedback_proposal_integrity.sql",
+      "schemas/postgres/303_coordination_consent_null_target.sql",
+      "schemas/postgres/304_phase5_source_of_truth_cleanup.sql",
+      "schemas/postgres/305_directus_permission_field_cleanup.sql",
+      "schemas/postgres/306_regional_readiness_dimension_key.sql",
+      "schemas/postgres/307_strategy_markup_projection.sql",
+      "schemas/postgres/308_er_integrity_foundations.sql",
+      "schemas/postgres/309_relationship_entities.sql",
+      "schemas/postgres/310_cardinality_temporal_integrity.sql",
+      "schemas/postgres/311_relationship_reference_policy.sql",
+      "schemas/postgres/313_phase2_backfill_phase3_reference_validation.sql",
+      "schemas/postgres/314_reference_policy_correction.sql",
+      "schemas/postgres/315_temporal_semantics.sql",
+      "schemas/postgres/316_stakeholder_analytics_safety.sql",
+      "schemas/postgres/317_kgp_protocol.sql",
+      "schemas/postgres/318_guild_protocol_projection.sql",
+      "schemas/postgres/319_guild_integrity_controls.sql",
+      "schemas/postgres/320_consent_lifecycle_public_gates.sql",
+      "schemas/postgres/321_public_financial_governance.sql",
+      "schemas/postgres/322_consent_append_only.sql",
+      "schemas/postgres/323_guild_projection_reorg_recovery.sql",
+      "schemas/postgres/324_baal_governance.sql",
+      "schemas/postgres/325_baal_indexer_idempotency.sql",
+      "schemas/postgres/326_state_of_kokonut_funding.sql",
+      "schemas/postgres/327_strategic_reserve.sql",
+      "schemas/postgres/328_strategic_reserve_preempt.sql",
+      "schemas/postgres/329_tactical_layer.sql",
+      "schemas/postgres/330_capital_accounting.sql",
+      "schemas/postgres/331_data_stream_public_governance.sql",
+      "schemas/postgres/332_data_stream_idempotent_publication.sql",
+      "schemas/postgres/333_data_stream_rejection_and_file_controls.sql",
+      "schemas/postgres/334_ingestion_validation_provenance.sql",
+      "schemas/postgres/335_clickhouse_outbox.sql",
+      "schemas/postgres/336_kgp_worker_durability.sql",
+      "schemas/postgres/337_scheduler_ownership.sql",
+      "schemas/postgres/338_remote_telemetry_reliability.sql",
+      "schemas/postgres/340_graph_rebuild_synchronization.sql",
+      "schemas/postgres/341_freshness_alert_durability.sql",
+      "schemas/postgres/342_graph_rebuild_coordinator.sql",
+      "schemas/postgres/343_report_generation_runs.sql",
+      "schemas/postgres/344_mobile_device_tokens.sql",
+      "schemas/postgres/345_threat_signal_dedup.sql",
+      "schemas/postgres/346_kgp_deployment.sql",
+      "schemas/postgres/347_marketplace_fee_settlement.sql",
+      "schemas/postgres/348_selective_disclosure.sql",
+      "schemas/postgres/349_eas_data_stream_anchor.sql",
+      "schemas/postgres/350_agent_safety_triggers.sql",
+      "schemas/postgres/351_platform_upgrade.sql",
+      "schemas/postgres/352_attestation_request_anchor_fields.sql",
+      "schemas/postgres/353_crop_cycle_noi_view.sql",
+      "schemas/postgres/354_safe_treasury_accounts.sql",
+      "schemas/postgres/355_safe_attestation_flow.sql",
+      "schemas/postgres/356_safe_settlement.sql",
+      "schemas/postgres/357_field_collector_enrollment_hardening.sql",
+      "schemas/postgres/358_mobile_private_media.sql",
+      "schemas/postgres/359_activity_scope_and_outputs.sql",
+      "schemas/postgres/360_job_role_department_relationships.sql",
+      "schemas/postgres/361_farm_task_relationships.sql",
+      "schemas/postgres/362_farm_staff_membership.sql",
+      "schemas/postgres/363_expense_farm_weekly_plan_scope.sql",
+      "schemas/postgres/364_reported_activity_output_metrics.sql",
+      "schemas/postgres/365_expense_weekly_plan_scope_exception.sql",
+      "schemas/postgres/366_crop_category_extensions.sql",
+      "schemas/postgres/367_external_grant_tranche.sql",
+      "schemas/postgres/369_baserow_activity_source_options.sql",
+      "schemas/postgres/370_baserow_expense_fields.sql"
+    ],
+    "seeds": [
+      "schemas/seeds/000_expense_categories.sql",
+      "schemas/seeds/000_metric_definitions.sql",
+      "schemas/seeds/001_pilot_farm.sql",
+      "schemas/seeds/002_pilot_operations.sql",
+      "schemas/seeds/003_pilot_environmental.sql",
+      "schemas/seeds/004_pilot_web3.sql",
+      "schemas/seeds/005_pilot_forecasts.sql",
+      "schemas/seeds/006_pilot_farm_dao.sql",
+      "schemas/seeds/007_pilot_prices.sql",
+      "schemas/seeds/008_pilot_capital_flows.sql",
+      "schemas/seeds/009_pilot_carbon_biodiversity.sql",
+      "schemas/seeds/010_pilot_mrv_claims.sql",
+      "schemas/seeds/011_pilot_partners_extended.sql",
+      "schemas/seeds/012_pilot_bioinputs.sql",
+      "schemas/seeds/013_pilot_registry_mrv_agents.sql",
+      "schemas/seeds/014_pilot_celo_eas.sql",
+      "schemas/seeds/015_revenue_multiplier_config.sql",
+      "schemas/seeds/016_pilot_dapp_sessions.sql",
+      "schemas/seeds/017_dashboard_datasets.sql",
+      "schemas/seeds/018_module_e_water_access.sql",
+      "schemas/seeds/019_pilot_per_sqm.sql",
+      "schemas/seeds/020_gnosis_chain.sql",
+      "schemas/seeds/021_metric_versions.sql",
+      "schemas/seeds/022_metric_governance.sql",
+      "schemas/seeds/023_impact_frameworks.sql",
+      "schemas/seeds/024_adelphi_alignment.sql",
+      "schemas/seeds/025_pilot_ground_analytics.sql",
+      "schemas/seeds/026_pilot_farm_onboarding.sql",
+      "schemas/seeds/027_carbon_framework_seeds.sql",
+      "schemas/seeds/028_pilot_carbon_framework.sql",
+      "schemas/seeds/029_pilot_impact_accountability.sql",
+      "schemas/seeds/030_pilot_financial_resilience.sql",
+      "schemas/seeds/031_pilot_capital_efficiency.sql",
+      "schemas/seeds/032_ebf_rubric.sql",
+      "schemas/seeds/033_ebf_dashboard_datasets.sql",
+      "schemas/seeds/034_ebf_p2_dashboard_datasets.sql",
+      "schemas/seeds/035_holistic_wellbeing.sql",
+      "schemas/seeds/036_financial_resilience_and_scaling.sql",
+      "schemas/seeds/037_capital_efficiency_and_utility.sql",
+      "schemas/seeds/038_commons_liberation_and_stewardship.sql",
+      "schemas/seeds/038_pilot_commons_liberation.sql",
+      "schemas/seeds/039_gnh_alignment_and_inclusion.sql",
+      "schemas/seeds/039_pilot_gnh_alignment.sql",
+      "schemas/seeds/040_pilot_regenerative_outcomes.sql",
+      "schemas/seeds/040_regenerative_outcomes_and_stewardship.sql",
+      "schemas/seeds/041_open_source_capitalist_scaling.sql",
+      "schemas/seeds/041_pilot_open_source_capitalist_scaling.sql",
+      "schemas/seeds/042_kokonut_commons_governance.sql",
+      "schemas/seeds/042_pilot_kokonut_commons_governance.sql",
+      "schemas/seeds/043_pilot_bio_factory_operations.sql",
+      "schemas/seeds/044_bio_factory_operations.sql",
+      "schemas/seeds/045_pilot_bio_factory_recipes.sql",
+      "schemas/seeds/046_ecological_modeling.sql",
+      "schemas/seeds/047_ecological_modeling_v2.sql",
+      "schemas/seeds/048_economic_social_enhancement.sql",
+      "schemas/seeds/049_model_validation.sql",
+      "schemas/seeds/050_remaining_gaps.sql",
+      "schemas/seeds/050_scheduled_tasks.sql",
+      "schemas/seeds/051_gap_closures.sql",
+      "schemas/seeds/052_final_gaps.sql",
+      "schemas/seeds/053_configurable_containers.sql",
+      "schemas/seeds/054_grant_network.sql",
+      "schemas/seeds/055_organic_certification.sql",
+      "schemas/seeds/056_emergency_response.sql",
+      "schemas/seeds/057_tree_tracking.sql",
+      "schemas/seeds/058_spatial_export.sql",
+      "schemas/seeds/059_drone_raster_integration.sql",
+      "schemas/seeds/060_scenario_parameters.sql",
+      "schemas/seeds/061_impact_value_chain.sql",
+      "schemas/seeds/062_true_cost_accounting.sql",
+      "schemas/seeds/063_statement_of_work.sql",
+      "schemas/seeds/064-068_impact_network.sql",
+      "schemas/seeds/069_demand_analysis.sql",
+      "schemas/seeds/070_financial_enhancements.sql",
+      "schemas/seeds/071_sample_plot_design.sql",
+      "schemas/seeds/073_measurement_schedule.sql",
+      "schemas/seeds/074_dsm_soc_prediction.sql",
+      "schemas/seeds/076_crisp_risk_scoring.sql",
+      "schemas/seeds/077_telemetry_infrastructure.sql",
+      "schemas/seeds/078_carbon_credits.sql",
+      "schemas/seeds/080_ooda_policies.sql",
+      "schemas/seeds/081_adaptive_thresholds.sql",
+      "schemas/seeds/082_causal_loops.sql",
+      "schemas/seeds/083_time_delays.sql",
+      "schemas/seeds/084_structural_assumptions.sql",
+      "schemas/seeds/085_trend_monitor_defaults.sql",
+      "schemas/seeds/086_smoothing_defaults.sql",
+      "schemas/seeds/087_geostat_defaults.sql",
+      "schemas/seeds/088_crop_gdd_configs.sql",
+      "schemas/seeds/089_advisory_rules.sql",
+      "schemas/seeds/090_pitch_templates.sql",
+      "schemas/seeds/091_business_architecture.sql",
+      "schemas/seeds/092_if_efficiency_metrics.sql",
+      "schemas/seeds/092_technology_roadmap.sql",
+      "schemas/seeds/093_pest_biology_reference.sql",
+      "schemas/seeds/094_pest_mode_of_action.sql",
+      "schemas/seeds/095_pest_crop_interactions.sql",
+      "schemas/seeds/098_multi_farm.sql",
+      "schemas/seeds/099_coconut_syntropic_template.sql",
+      "schemas/seeds/100_pest_advisory_rules.sql",
+      "schemas/seeds/101_adaptation_velocity_config.sql",
+      "schemas/seeds/101_pilot_data_stream_posts.sql",
+      "schemas/seeds/102_improvement_metrics_config.sql",
+      "schemas/seeds/103_flow_metrics.sql",
+      "schemas/seeds/104_flow_dashboard_datasets.sql",
+      "schemas/seeds/105_stakeholder_vocabulary.sql",
+      "schemas/seeds/106_stakeholder_engagement.sql",
+      "schemas/seeds/107_stakeholder_cockpit.sql",
+      "schemas/seeds/108_coordination_example.sql",
+      "schemas/seeds/109_adelphi_governance_roles.sql",
+      "schemas/seeds/110_adelphi_governance_circles.sql",
+      "schemas/seeds/111_pilot_ebf_scorecard.sql",
+      "schemas/seeds/111_pilot_source_of_truth_cleanup.sql",
+      "schemas/seeds/112_pilot_operational_context.sql",
+      "schemas/seeds/113_pilot_organization.sql",
+      "schemas/seeds/114_state_of_kokonut_funding.sql",
+      "schemas/seeds/115_strategic_reserve.sql",
+      "schemas/seeds/116_pilot_celo_data_post_uid.sql",
+      "schemas/seeds/140_mobile_forms.sql"
+    ]
+  },
+  "service_groups": {
+    "abundance": {
+      "environment_names": [],
+      "modules": [
+        "services/abundance/__init__.py",
+        "services/abundance/ai_evaluation.py",
+        "services/abundance/content.py",
+        "services/abundance/currency_stability.py",
+        "services/abundance/economics.py",
+        "services/abundance/estimates.py",
+        "services/abundance/externalities.py",
+        "services/abundance/periodic.py",
+        "services/abundance/superalignment.py",
+        "services/abundance/validation.py"
+      ],
+      "test_references": [
+        "tests/test_abundance_book.py",
+        "tests/test_abundance_protocol.py",
+        "tests/test_ai_evaluation.py"
+      ]
+    },
+    "agents": {
+      "environment_names": [],
+      "modules": [
+        "services/agents/__init__.py",
+        "services/agents/__main__.py",
+        "services/agents/ai_summary.py",
+        "services/agents/base.py",
+        "services/agents/bio_factory_agent.py",
+        "services/agents/capital_efficiency_agent.py",
+        "services/agents/cids_agent.py",
+        "services/agents/cli.py",
+        "services/agents/commons_agent.py",
+        "services/agents/delphi_facilitator_agent.py",
+        "services/agents/ebf_calibration_agent.py",
+        "services/agents/ebf_evidence_gap_agent.py",
+        "services/agents/ebf_scorecard_agent.py",
+        "services/agents/ecological_modeling_agent.py",
+        "services/agents/feedback_agent.py",
+        "services/agents/gnh_agent.py",
+        "services/agents/kokonut_commons_agent.py",
+        "services/agents/logging.py",
+        "services/agents/manifest.py",
+        "services/agents/open_source_capitalist_agent.py",
+        "services/agents/organic_readiness_agent.py",
+        "services/agents/regenerator_agent.py",
+        "services/agents/resilience_agent.py",
+        "services/agents/safety.py",
+        "services/agents/tasks.py",
+        "services/agents/wellbeing_agent.py"
+      ],
+      "test_references": [
+        "tests/test_agent_safety.py",
+        "tests/test_agent_tasks.py",
+        "tests/test_agents_base.py",
+        "tests/test_bio_factory_operations.py",
+        "tests/test_capital_accounting.py",
+        "tests/test_capital_efficiency.py",
+        "tests/test_carbon_credits.py",
+        "tests/test_commons_liberation.py",
+        "tests/test_coordination.py",
+        "tests/test_coordination_accounting.py",
+        "tests/test_coordination_end_to_end.py",
+        "tests/test_coordination_governance.py",
+        "tests/test_data_stream.py",
+        "tests/test_delphi.py",
+        "tests/test_ebf_agent_safety.py",
+        "tests/test_ebf_agents.py",
+        "tests/test_ebf_privacy.py",
+        "tests/test_ecological_modeling.py",
+        "tests/test_ecological_modeling_v2.py",
+        "tests/test_financial_resilience.py",
+        "tests/test_gnh_alignment.py",
+        "tests/test_governance_integration.py",
+        "tests/test_holistic_wellbeing.py",
+        "tests/test_kokonut_commons_governance.py",
+        "tests/test_linked_data.py",
+        "tests/test_open_source_capitalist_scaling.py",
+        "tests/test_regenerative_outcomes.py",
+        "tests/test_remaining_gaps.py"
+      ]
+    },
+    "analytics": {
+      "environment_names": [],
+      "modules": [
+        "services/analytics/__init__.py",
+        "services/analytics/__main__.py",
+        "services/analytics/advantage_assessment.py",
+        "services/analytics/advantage_outcomes.py",
+        "services/analytics/advisor.py",
+        "services/analytics/business_model_canvas.py",
+        "services/analytics/capability_map.py",
+        "services/analytics/capacity_utilization.py",
+        "services/analytics/carbon_balance.py",
+        "services/analytics/carbon_credits.py",
+        "services/analytics/channel_orchestration.py",
+        "services/analytics/cli.py",
+        "services/analytics/cli_capability_map.py",
+        "services/analytics/cli_consent.py",
+        "services/analytics/cli_cooperative.py",
+        "services/analytics/cli_coordination.py",
+        "services/analytics/cli_crop_rotation.py",
+        "services/analytics/cli_data_governance.py",
+        "services/analytics/cli_digital_finance.py",
+        "services/analytics/cli_energy_monitoring.py",
+        "services/analytics/cli_extension.py",
+        "services/analytics/cli_farmer_identity.py",
+        "services/analytics/cli_governance_links.py",
+        "services/analytics/cli_governance_proposals.py",
+        "services/analytics/cli_governance_roles.py",
+        "services/analytics/cli_governance_tactical.py",
+        "services/analytics/cli_governance_tensions.py",
+        "services/analytics/cli_marketplace.py",
+        "services/analytics/cli_pest_management.py",
+        "services/analytics/cli_pollinator_health.py",
+        "services/analytics/cli_precision_irrigation.py",
+        "services/analytics/cli_stakeholder_decisions.py",
+        "services/analytics/cli_stakeholder_engagement.py",
+        "services/analytics/cli_stakeholder_grievances.py",
+        "services/analytics/cli_stakeholder_identity.py",
+        "services/analytics/cli_stakeholder_representation.py",
+        "services/analytics/cli_stakeholder_trust.py",
+        "services/analytics/cli_stakeholders.py",
+        "services/analytics/cli_strategy_map.py",
+        "services/analytics/cli_technology_roadmap.py",
+        "services/analytics/cli_traceability.py",
+        "services/analytics/cli_value_stream_defs.py",
+        "services/analytics/cli_vision_mission.py",
+        "services/analytics/competitive_landscape.py",
+        "services/analytics/competitive_report.py",
+        "services/analytics/configurable_containers.py",
+        "services/analytics/consent_resolver.py",
+        "services/analytics/cooperative.py",
+        "services/analytics/cooperative_governance.py",
+        "services/analytics/coordination.py",
+        "services/analytics/coordination_accounting.py",
+        "services/analytics/coordination_strategy.py",
+        "services/analytics/crop_phenology.py",
+        "services/analytics/crop_rotation.py",
+        "services/analytics/curriculum.py",
+        "services/analytics/customer_value.py",
+        "services/analytics/data_governance.py",
+        "services/analytics/data_quality.py",
+        "services/analytics/demand.py",
+        "services/analytics/digital_finance.py",
+        "services/analytics/digital_twin.py",
+        "services/analytics/ecological_modeling.py",
+        "services/analytics/ecological_modeling_v2.py",
+        "services/analytics/ecology.py",
+        "services/analytics/economic_performance.py",
+        "services/analytics/emergency_response.py",
+        "services/analytics/energy_monitoring.py",
+        "services/analytics/env_scanning.py",
+        "services/analytics/equipment.py",
+        "services/analytics/evapotranspiration.py",
+        "services/analytics/extension.py",
+        "services/analytics/farmer_identity.py",
+        "services/analytics/financial_sustainability.py",
+        "services/analytics/gap_closures.py",
+        "services/analytics/governance_cockpit.py",
+        "services/analytics/governance_links.py",
+        "services/analytics/governance_proposals.py",
+        "services/analytics/governance_roles.py",
+        "services/analytics/governance_tactical.py",
+        "services/analytics/governance_tensions.py",
+        "services/analytics/grant_network.py",
+        "services/analytics/gri_reporting.py",
+        "services/analytics/hybrid_voting.py",
+        "services/analytics/impact_value_chain.py",
+        "services/analytics/landscape_conservation.py",
+        "services/analytics/life_cycle.py",
+        "services/analytics/livestock_feed.py",
+        "services/analytics/llm_chat.py",
+        "services/analytics/logistics.py",
+        "services/analytics/marketplace.py",
+        "services/analytics/measurement_schedule.py",
+        "services/analytics/mitigation.py",
+        "services/analytics/mobile_offline.py",
+        "services/analytics/model_validation.py",
+        "services/analytics/multi_farm.py",
+        "services/analytics/nutrient_budget.py",
+        "services/analytics/organic_certification.py",
+        "services/analytics/partner_lifecycle.py",
+        "services/analytics/pest_management.py",
+        "services/analytics/pestel.py",
+        "services/analytics/pin_dependency.py",
+        "services/analytics/pitch.py",
+        "services/analytics/pollinator_health.py",
+        "services/analytics/portfolio.py",
+        "services/analytics/precision_irrigation.py",
+        "services/analytics/predictive_bpm.py",
+        "services/analytics/prescription.py",
+        "services/analytics/prm_metrics.py",
+        "services/analytics/process_architecture.py",
+        "services/analytics/process_costing.py",
+        "services/analytics/process_gap.py",
+        "services/analytics/process_health.py",
+        "services/analytics/process_interfaces.py",
+        "services/analytics/process_mining.py",
+        "services/analytics/process_model_sync.py",
+        "services/analytics/process_simulation.py",
+        "services/analytics/procurement.py",
+        "services/analytics/promotion_ladder.py",
+        "services/analytics/publics.py",
+        "services/analytics/regional_readiness.py",
+        "services/analytics/reporting_cadence.py",
+        "services/analytics/resource_efficiency.py",
+        "services/analytics/revenue_model.py",
+        "services/analytics/reward_calibration.py",
+        "services/analytics/sample_plot_generator.py",
+        "services/analytics/sampling_protocol.py",
+        "services/analytics/service_catalog.py",
+        "services/analytics/soc_prediction.py",
+        "services/analytics/spatial_analytics.py",
+        "services/analytics/spectral_indices.py",
+        "services/analytics/stakeholder_decisions.py",
+        "services/analytics/stakeholder_engagement.py",
+        "services/analytics/stakeholder_grievances.py",
+        "services/analytics/stakeholder_identity_resolution.py",
+        "services/analytics/stakeholder_representation.py",
+        "services/analytics/stakeholder_trust.py",
+        "services/analytics/stakeholders.py",
+        "services/analytics/strategic_positioning.py",
+        "services/analytics/strategy_choices.py",
+        "services/analytics/strategy_coherence.py",
+        "services/analytics/strategy_consultation.py",
+        "services/analytics/strategy_contingency.py",
+        "services/analytics/strategy_evidence.py",
+        "services/analytics/strategy_execution.py",
+        "services/analytics/strategy_foresight.py",
+        "services/analytics/strategy_governance.py",
+        "services/analytics/strategy_kernel.py",
+        "services/analytics/strategy_kpi_refresh.py",
+        "services/analytics/strategy_map.py",
+        "services/analytics/strategy_monitoring.py",
+        "services/analytics/swot.py",
+        "services/analytics/swot_enhanced.py",
+        "services/analytics/systems_thinking.py",
+        "services/analytics/technology_roadmap.py",
+        "services/analytics/time_series_features.py",
+        "services/analytics/token_integration.py",
+        "services/analytics/traceability.py",
+        "services/analytics/tree_tracking.py",
+        "services/analytics/true_cost_accounting.py",
+        "services/analytics/value_stream.py",
+        "services/analytics/value_stream_defs.py",
+        "services/analytics/vision_mission.py",
+        "services/analytics/waste_management.py",
+        "services/analytics/yield_monitoring.py"
+      ],
+      "test_references": [
+        "tests/test_advantage_assessment.py",
+        "tests/test_advantage_links.py",
+        "tests/test_advantage_outcomes.py",
+        "tests/test_advisor.py",
+        "tests/test_ba_integration.py",
+        "tests/test_bmc_oneclick.py",
+        "tests/test_bpm_state_models.py",
+        "tests/test_business_model_canvas.py",
+        "tests/test_capability_map.py",
+        "tests/test_carbon_credits.py",
+        "tests/test_channel_health.py",
+        "tests/test_competitive_landscape.py",
+        "tests/test_competitive_report.py",
+        "tests/test_configurable_containers.py",
+        "tests/test_cooperative.py",
+        "tests/test_coordination.py",
+        "tests/test_coordination_accounting.py",
+        "tests/test_coordination_governance.py",
+        "tests/test_coordination_market_cycles.py",
+        "tests/test_coordination_strategy.py",
+        "tests/test_crop_phenology.py",
+        "tests/test_crop_rotation.py",
+        "tests/test_customer_value.py",
+        "tests/test_data_governance.py",
+        "tests/test_data_quality.py",
+        "tests/test_demand_analysis.py",
+        "tests/test_digital_finance.py",
+        "tests/test_digital_twin.py",
+        "tests/test_drone_raster_integration.py",
+        "tests/test_dsm_soc_prediction.py",
+        "tests/test_ecological_modeling.py",
+        "tests/test_ecological_modeling_v2.py",
+        "tests/test_emergency_response.py",
+        "tests/test_energy_monitoring.py",
+        "tests/test_env_scanning.py",
+        "tests/test_equipment.py",
+        "tests/test_evapotranspiration.py",
+        "tests/test_extension.py",
+        "tests/test_farmer_identity.py",
+        "tests/test_financial_sustainability.py",
+        "tests/test_gap_closures.py",
+        "tests/test_geostatistics.py",
+        "tests/test_governance_integration.py",
+        "tests/test_governance_links.py",
+        "tests/test_governance_proposals.py",
+        "tests/test_governance_role_authority.py",
+        "tests/test_governance_roles.py",
+        "tests/test_governance_tactical.py",
+        "tests/test_governance_tensions.py",
+        "tests/test_grant_network.py",
+        "tests/test_impact_value_chain.py",
+        "tests/test_landscape_conservation.py",
+        "tests/test_llm_chat.py",
+        "tests/test_marketplace.py",
+        "tests/test_marketplace_integration.py",
+        "tests/test_measurement_schedule.py",
+        "tests/test_mobile_offline.py",
+        "tests/test_nutrient_budget.py",
+        "tests/test_organic_certification.py",
+        "tests/test_overjustification.py",
+        "tests/test_partner_lifecycle.py",
+        "tests/test_pest_management.py",
+        "tests/test_pestel.py",
+        "tests/test_pitch.py",
+        "tests/test_pollinator_health.py",
+        "tests/test_portfolio.py",
+        "tests/test_precision_irrigation.py",
+        "tests/test_predictive_bpm.py",
+        "tests/test_prescription.py",
+        "tests/test_prm_metrics.py",
+        "tests/test_process_architecture.py",
+        "tests/test_process_costing.py",
+        "tests/test_process_gap.py",
+        "tests/test_process_health.py",
+        "tests/test_process_interfaces.py",
+        "tests/test_process_mining.py",
+        "tests/test_process_model_sync.py",
+        "tests/test_process_simulation.py",
+        "tests/test_publics.py",
+        "tests/test_regional_readiness.py",
+        "tests/test_remaining_gaps.py",
+        "tests/test_revenue_model.py",
+        "tests/test_sample_plot_generator.py",
+        "tests/test_sequential_integration.py",
+        "tests/test_service_catalog.py",
+        "tests/test_spectral_indices.py",
+        "tests/test_stakeholder_consent.py",
+        "tests/test_stakeholder_decisions.py",
+        "tests/test_stakeholder_dod_closure.py",
+        "tests/test_stakeholder_end_to_end.py",
+        "tests/test_stakeholder_engagement.py",
+        "tests/test_stakeholder_foundation.py",
+        "tests/test_stakeholder_grievances.py",
+        "tests/test_stakeholder_phases_8_11.py",
+        "tests/test_stakeholder_representation.py",
+        "tests/test_strategic_positioning.py",
+        "tests/test_strategy_allocation.py",
+        "tests/test_strategy_cascade.py",
+        "tests/test_strategy_choices.py",
+        "tests/test_strategy_coherence.py",
+        "tests/test_strategy_consultation.py",
+        "tests/test_strategy_contingency.py",
+        "tests/test_strategy_evidence.py",
+        "tests/test_strategy_execution.py",
+        "tests/test_strategy_foresight.py",
+        "tests/test_strategy_governance.py",
+        "tests/test_strategy_kernel.py",
+        "tests/test_strategy_kpi_refresh.py",
+        "tests/test_strategy_map.py",
+        "tests/test_strategy_monitoring.py",
+        "tests/test_strategy_portfolio_execution.py",
+        "tests/test_strategy_review.py",
+        "tests/test_strategy_variance.py",
+        "tests/test_swot.py",
+        "tests/test_swot_enhanced.py",
+        "tests/test_tactical_layer.py",
+        "tests/test_technology_roadmap.py",
+        "tests/test_token_dao_multifarm.py",
+        "tests/test_traceability.py",
+        "tests/test_tree_tracking.py",
+        "tests/test_true_cost_accounting.py",
+        "tests/test_value_stream.py",
+        "tests/test_value_stream_defs.py",
+        "tests/test_vision_mission.py",
+        "tests/test_waste_management.py",
+        "tests/test_yield_monitoring.py"
+      ]
+    },
+    "attestation": {
+      "environment_names": [
+        "ATTESTER_PRIVATE_KEY",
+        "BASE_RPC_URL",
+        "CELO_ALFAJORES_RPC_URL",
+        "CELO_RPC_URL",
+        "EAS_RESOLVER_ADDRESS",
+        "ETH_RPC_URL",
+        "OPTIMISM_RPC_URL",
+        "SAFE_DELEGATE_KEY"
+      ],
+      "modules": [
+        "services/attestation/__init__.py",
+        "services/attestation/__main__.py",
+        "services/attestation/cli.py",
+        "services/attestation/config.py",
+        "services/attestation/contracts/__init__.py",
+        "services/attestation/eas_client.py",
+        "services/attestation/offchain.py",
+        "services/attestation/payload.py",
+        "services/attestation/publisher.py",
+        "services/attestation/reconciliation.py",
+        "services/attestation/safe_flow.py",
+        "services/attestation/schema_encoder.py",
+        "services/attestation/schemas.py",
+        "services/attestation/selective_disclosure.py",
+        "services/attestation/signer.py",
+        "services/attestation/signer_service.py"
+      ],
+      "test_references": [
+        "tests/test_attestation.py",
+        "tests/test_attestation_safe.py",
+        "tests/test_data_stream.py",
+        "tests/test_runtime_import_regressions.py"
+      ]
+    },
+    "cache": {
+      "environment_names": [],
+      "modules": [
+        "services/cache/__init__.py",
+        "services/cache/cache.py",
+        "services/cache/events.py"
+      ],
+      "test_references": [
+        "tests/test_cache_cache.py",
+        "tests/test_cache_events.py",
+        "tests/test_os_architecture.py"
+      ]
+    },
+    "capital": {
+      "environment_names": [],
+      "modules": [
+        "services/capital/__init__.py",
+        "services/capital/accounting_report.py",
+        "services/capital/capacity.py",
+        "services/capital/capture.py",
+        "services/capital/cli.py",
+        "services/capital/credit.py",
+        "services/capital/diversion.py"
+      ],
+      "test_references": [
+        "tests/test_capital_accounting.py"
+      ]
+    },
+    "certificates": {
+      "environment_names": [],
+      "modules": [
+        "services/certificates/__init__.py",
+        "services/certificates/cli.py",
+        "services/certificates/generator.py"
+      ],
+      "test_references": [
+        "tests/test_linked_data.py"
+      ]
+    },
+    "common": {
+      "environment_names": [
+        "CH_DB",
+        "CH_HOST",
+        "CH_PORT",
+        "CH_USER",
+        "KOKONUT_ALLOW_PLAINTEXT_ENV",
+        "KOKONUT_ENV",
+        "KOKONUT_LOG_LEVEL",
+        "PG_DB",
+        "PG_HOST",
+        "PG_PORT",
+        "PG_USER"
+      ],
+      "modules": [
+        "services/common/__init__.py",
+        "services/common/cli.py",
+        "services/common/commands.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/utils.py"
+      ],
+      "test_references": [
+        "tests/conftest.py",
+        "tests/test_agent_safety.py",
+        "tests/test_clickhouse_failure_injection.py",
+        "tests/test_common_commands.py",
+        "tests/test_common_database.py",
+        "tests/test_common_env.py",
+        "tests/test_common_http.py",
+        "tests/test_common_logging.py"
+      ]
+    },
+    "compliance": {
+      "environment_names": [],
+      "modules": [
+        "services/compliance/mica.py"
+      ],
+      "test_references": [
+        "tests/test_mica_classification.py"
+      ]
+    },
+    "core": {
+      "environment_names": [
+        "DIRECTUS_URL",
+        "KOKONUT_FEATURE_AGENTS",
+        "KOKONUT_FEATURE_CRISP",
+        "KOKONUT_FEATURE_EVENT_BUS",
+        "KOKONUT_FEATURE_GRPC",
+        "KOKONUT_FEATURE_METABASE",
+        "KOKONUT_FEATURE_MQTT",
+        "KOKONUT_FEATURE_PREFECT",
+        "KOKONUT_FEATURE_REPORTS",
+        "KOKONUT_FEATURE_SCHEDULER"
+      ],
+      "modules": [
+        "services/core/__init__.py",
+        "services/core/features.py",
+        "services/core/health.py"
+      ],
+      "test_references": [
+        "tests/test_core_features.py",
+        "tests/test_driver_registry.py"
+      ]
+    },
+    "credit_class": {
+      "environment_names": [
+        "ATTESTER_PRIVATE_KEY",
+        "CREDIT_ISSUER_PRIVATE_KEY",
+        "CREDIT_ONCHAIN_SYNC_ENABLED",
+        "SAFE_DELEGATE_KEY"
+      ],
+      "modules": [
+        "services/credit_class/__init__.py",
+        "services/credit_class/balance.py",
+        "services/credit_class/basket.py",
+        "services/credit_class/batch_manager.py",
+        "services/credit_class/bridge.py",
+        "services/credit_class/chain_sync.py",
+        "services/credit_class/class_manager.py",
+        "services/credit_class/cli.py",
+        "services/credit_class/enrollment.py",
+        "services/credit_class/entities.py",
+        "services/credit_class/fees.py",
+        "services/credit_class/marketplace.py",
+        "services/credit_class/params.py",
+        "services/credit_class/safe_settlement.py"
+      ],
+      "test_references": [
+        "tests/test_credit_balance.py",
+        "tests/test_credit_basket.py",
+        "tests/test_credit_batch_manager.py",
+        "tests/test_credit_chain_sync.py",
+        "tests/test_credit_class_manager.py",
+        "tests/test_credit_enrollment.py",
+        "tests/test_credit_fees.py",
+        "tests/test_credit_params.py",
+        "tests/test_linked_data.py",
+        "tests/test_safe_settlement.py"
+      ]
+    },
+    "crisp": {
+      "environment_names": [],
+      "modules": [
+        "services/crisp/__init__.py",
+        "services/crisp/__main__.py",
+        "services/crisp/carbon_yield.py",
+        "services/crisp/cli.py",
+        "services/crisp/climate_risk.py",
+        "services/crisp/config.py",
+        "services/crisp/financial_risk.py",
+        "services/crisp/implementation_risk.py",
+        "services/crisp/models.py",
+        "services/crisp/normalization.py",
+        "services/crisp/policy_risk.py",
+        "services/crisp/scoring_engine.py"
+      ],
+      "test_references": [
+        "tests/test_crisp_scoring.py",
+        "tests/test_runtime_import_regressions.py"
+      ]
+    },
+    "csw": {
+      "environment_names": [],
+      "modules": [
+        "services/csw/__init__.py",
+        "services/csw/serializer.py"
+      ],
+      "test_references": [
+        "tests/test_linked_data.py"
+      ]
+    },
+    "data_module": {
+      "environment_names": [],
+      "modules": [
+        "services/data_module/__init__.py",
+        "services/data_module/attestor.py",
+        "services/data_module/cli.py",
+        "services/data_module/content_hash.py",
+        "services/data_module/resolver.py"
+      ],
+      "test_references": [
+        "tests/test_data_module_all.py",
+        "tests/test_linked_data.py"
+      ]
+    },
+    "data_stream": {
+      "environment_names": [],
+      "modules": [
+        "services/data_stream/__init__.py",
+        "services/data_stream/anchor.py",
+        "services/data_stream/cli.py",
+        "services/data_stream/comments.py",
+        "services/data_stream/files.py",
+        "services/data_stream/post.py",
+        "services/data_stream/stream.py"
+      ],
+      "test_references": [
+        "tests/test_data_stream.py"
+      ]
+    },
+    "decision": {
+      "environment_names": [],
+      "modules": [
+        "services/decision/__init__.py",
+        "services/decision/odds_engine.py",
+        "services/decision/policies.py",
+        "services/decision/policy_engine.py",
+        "services/decision/sequential_evidence.py",
+        "services/decision/sequential_integration.py"
+      ],
+      "test_references": [
+        "tests/test_decision_policy.py",
+        "tests/test_odds_engine.py",
+        "tests/test_sequential_evidence.py",
+        "tests/test_sequential_integration.py"
+      ]
+    },
+    "delphi": {
+      "environment_names": [],
+      "modules": [
+        "services/delphi/__init__.py",
+        "services/delphi/__main__.py",
+        "services/delphi/cli.py",
+        "services/delphi/consensus.py",
+        "services/delphi/facilitator.py",
+        "services/delphi/minority.py",
+        "services/delphi/models.py",
+        "services/delphi/panel.py"
+      ],
+      "test_references": [
+        "tests/test_delphi.py"
+      ]
+    },
+    "drivers": {
+      "environment_names": [],
+      "modules": [
+        "services/drivers/__init__.py",
+        "services/drivers/base.py",
+        "services/drivers/cli.py",
+        "services/drivers/protocol.py",
+        "services/drivers/registry.py"
+      ],
+      "test_references": [
+        "tests/test_driver_registry.py"
+      ]
+    },
+    "events": {
+      "environment_names": [
+        "ALERT_WEBHOOK_URL",
+        "DIRECTUS_ADMIN_TOKEN",
+        "DIRECTUS_URL",
+        "HOSTNAME"
+      ],
+      "modules": [
+        "services/events/__init__.py",
+        "services/events/__main__.py",
+        "services/events/bus.py",
+        "services/events/cli.py",
+        "services/events/fork_detector.py",
+        "services/events/handlers.py",
+        "services/events/insight_transfer.py"
+      ],
+      "test_references": [
+        "tests/test_event_bus_durability.py",
+        "tests/test_insight_transfer.py",
+        "tests/test_os_architecture.py",
+        "tests/test_tactical_layer.py"
+      ]
+    },
+    "export": {
+      "environment_names": [],
+      "modules": [
+        "services/export/__init__.py",
+        "services/export/__main__.py",
+        "services/export/business_plan.py",
+        "services/export/cli.py",
+        "services/export/dataset_refresh.py",
+        "services/export/exporter.py",
+        "services/export/kokonut_graphs.py",
+        "services/export/report_generator.py",
+        "services/export/reports/__init__.py",
+        "services/export/reports/common.py",
+        "services/export/reports/commons/__init__.py",
+        "services/export/reports/commons/bio_factory.py",
+        "services/export/reports/commons/ecological.py",
+        "services/export/reports/commons/kokonut.py",
+        "services/export/reports/commons/liberation.py",
+        "services/export/reports/commons/scaling.py",
+        "services/export/reports/commons/stewardship.py",
+        "services/export/reports/commons/wellbeing.py",
+        "services/export/reports/commons.py",
+        "services/export/reports/context.py",
+        "services/export/reports/core.py",
+        "services/export/reports/operations.py",
+        "services/export/reports/state.py",
+        "services/export/reports/strategy.py",
+        "services/export/reports/wellbeing.py",
+        "services/export/spatial_export.py",
+        "services/export/spatial_import.py",
+        "services/export/spreadsheet_bridge.py"
+      ],
+      "test_references": [
+        "tests/test_bio_factory_operations.py",
+        "tests/test_business_plan.py",
+        "tests/test_capital_efficiency.py",
+        "tests/test_commons_liberation.py",
+        "tests/test_comprehensive_status.py",
+        "tests/test_coordination_end_to_end.py",
+        "tests/test_dao_proposal_history.py",
+        "tests/test_data_stream.py",
+        "tests/test_ebf_csv_import.py",
+        "tests/test_ecological_modeling.py",
+        "tests/test_ecological_modeling_v2.py",
+        "tests/test_export_reliability.py",
+        "tests/test_financial_resilience.py",
+        "tests/test_gnh_alignment.py",
+        "tests/test_governance_integration.py",
+        "tests/test_holistic_wellbeing.py",
+        "tests/test_kokonut_commons_governance.py",
+        "tests/test_open_source_capitalist_scaling.py",
+        "tests/test_overjustification.py",
+        "tests/test_process_health.py",
+        "tests/test_regenerative_outcomes.py",
+        "tests/test_remaining_gaps.py",
+        "tests/test_report_governance.py",
+        "tests/test_smoke.py",
+        "tests/test_spatial_export.py",
+        "tests/test_spatial_import.py",
+        "tests/test_spreadsheet_bridge.py",
+        "tests/test_stakeholder_end_to_end.py",
+        "tests/test_stakeholder_engagement.py",
+        "tests/test_stakeholder_foundation.py",
+        "tests/test_stakeholder_phases_8_11.py",
+        "tests/test_state_of_kokonut.py",
+        "tests/test_state_of_kokonut_graphs.py",
+        "tests/test_strategic_reserve.py",
+        "tests/test_technology_roadmap.py"
+      ]
+    },
+    "federation": {
+      "environment_names": [],
+      "modules": [
+        "services/federation/__init__.py",
+        "services/federation/cli.py",
+        "services/federation/node.py",
+        "services/federation/protocol.py",
+        "services/federation/sync.py"
+      ],
+      "test_references": [
+        "tests/test_phase3_4.py"
+      ]
+    },
+    "feedback": {
+      "environment_names": [],
+      "modules": [
+        "services/feedback/__init__.py",
+        "services/feedback/automation.py",
+        "services/feedback/controller.py",
+        "services/feedback/outcomes.py"
+      ],
+      "test_references": [
+        "tests/test_feedback_automation.py",
+        "tests/test_feedback_controller.py",
+        "tests/test_feedback_outcomes.py",
+        "tests/test_tactical_layer.py"
+      ]
+    },
+    "finance": {
+      "environment_names": [],
+      "modules": [
+        "services/finance/__init__.py",
+        "services/finance/cli.py",
+        "services/finance/financial_statements.py",
+        "services/finance/models.py",
+        "services/finance/return_calculator.py"
+      ],
+      "test_references": [
+        "tests/test_financial_enhancements.py"
+      ]
+    },
+    "flows": {
+      "environment_names": [],
+      "modules": [
+        "services/flows/__init__.py",
+        "services/flows/anomaly_detection.py",
+        "services/flows/climate_data.py",
+        "services/flows/credit_adjustment.py",
+        "services/flows/dashboards.py",
+        "services/flows/eas_indexer.py",
+        "services/flows/freshness.py",
+        "services/flows/gnosis_indexer.py",
+        "services/flows/health_check.py",
+        "services/flows/market_data.py",
+        "services/flows/metrics.py",
+        "services/flows/pipelines.py",
+        "services/flows/price_feed.py",
+        "services/flows/remote_sensing.py",
+        "services/flows/rpc_indexer.py",
+        "services/flows/sensors.py",
+        "services/flows/weather.py"
+      ],
+      "test_references": []
+    },
+    "forecast": {
+      "environment_names": [
+        "FORECAST_AUTO_CALIBRATION"
+      ],
+      "modules": [
+        "services/forecast/__init__.py",
+        "services/forecast/__main__.py",
+        "services/forecast/cli.py",
+        "services/forecast/config.py",
+        "services/forecast/cost_forecast.py",
+        "services/forecast/ecology.py",
+        "services/forecast/engine.py",
+        "services/forecast/models.py",
+        "services/forecast/monte_carlo.py",
+        "services/forecast/pricing.py",
+        "services/forecast/reference_class.py",
+        "services/forecast/risk.py",
+        "services/forecast/scenario_params.py",
+        "services/forecast/yield_forecast.py"
+      ],
+      "test_references": [
+        "tests/test_forecast.py",
+        "tests/test_reference_class.py",
+        "tests/test_scenario_parameters.py"
+      ]
+    },
+    "fortune500": {
+      "environment_names": [],
+      "modules": [
+        "services/fortune500/__init__.py",
+        "services/fortune500/__main__.py",
+        "services/fortune500/calculator.py",
+        "services/fortune500/cli.py"
+      ],
+      "test_references": [
+        "tests/test_fortune500.py"
+      ]
+    },
+    "gateway": {
+      "environment_names": [
+        "CORS_ORIGIN",
+        "DIRECTUS_ADMIN_TOKEN",
+        "DIRECTUS_URL",
+        "GRPC_API_KEY",
+        "KOKONUT_API_KEYS",
+        "KOKONUT_API_KEY_SCOPES",
+        "KOKONUT_STRICT_LOCATION_SCOPE"
+      ],
+      "modules": [
+        "services/gateway/__init__.py",
+        "services/gateway/app.py",
+        "services/gateway/audit.py",
+        "services/gateway/auth.py",
+        "services/gateway/cli.py",
+        "services/gateway/rate_limiter.py",
+        "services/gateway/router.py"
+      ],
+      "test_references": [
+        "tests/test_gateway_audit.py",
+        "tests/test_gateway_auth.py",
+        "tests/test_gateway_public_metrics.py",
+        "tests/test_mobile_api.py",
+        "tests/test_phase3_4.py"
+      ]
+    },
+    "geostatistics": {
+      "environment_names": [],
+      "modules": [
+        "services/geostatistics/__init__.py",
+        "services/geostatistics/autocorrelation.py",
+        "services/geostatistics/cli.py",
+        "services/geostatistics/config.py",
+        "services/geostatistics/cross_validation.py",
+        "services/geostatistics/kriging.py",
+        "services/geostatistics/sensor_optimization.py",
+        "services/geostatistics/simulation.py",
+        "services/geostatistics/variogram.py"
+      ],
+      "test_references": [
+        "tests/test_geostatistics.py"
+      ]
+    },
+    "geostory": {
+      "environment_names": [],
+      "modules": [
+        "services/geostory/__init__.py"
+      ],
+      "test_references": [
+        "tests/test_linked_data.py"
+      ]
+    },
+    "governance": {
+      "environment_names": [],
+      "modules": [
+        "services/governance/__init__.py",
+        "services/governance/adapters.py",
+        "services/governance/baal.py",
+        "services/governance/base.py",
+        "services/governance/cli.py",
+        "services/governance/registry.py"
+      ],
+      "test_references": [
+        "tests/test_governance_framework.py"
+      ]
+    },
+    "graph_projection": {
+      "environment_names": [],
+      "modules": [
+        "services/graph_projection/__init__.py",
+        "services/graph_projection/__main__.py",
+        "services/graph_projection/cli.py",
+        "services/graph_projection/coordinator.py",
+        "services/graph_projection/evidence_lineage.py",
+        "services/graph_projection/kernel.py",
+        "services/graph_projection/policy.py",
+        "services/graph_projection/query.py"
+      ],
+      "test_references": [
+        "tests/test_graph_projection.py"
+      ]
+    },
+    "grpc": {
+      "environment_names": [
+        "GRPC_DB_MAX_CONN",
+        "GRPC_DB_MIN_CONN",
+        "GRPC_MAX_WORKERS",
+        "GRPC_PORT",
+        "GRPC_TLS_CERT",
+        "GRPC_TLS_KEY"
+      ],
+      "modules": [
+        "services/grpc/__init__.py",
+        "services/grpc/auth.py",
+        "services/grpc/cli.py",
+        "services/grpc/credit_class_service.py",
+        "services/grpc/data_service.py",
+        "services/grpc/health.py",
+        "services/grpc/interceptors.py",
+        "services/grpc/server.py"
+      ],
+      "test_references": [
+        "tests/test_grpc.py"
+      ]
+    },
+    "guilds": {
+      "environment_names": [
+        "KGP_BLOCK_BATCH",
+        "KGP_CONFIRMATIONS"
+      ],
+      "modules": [
+        "services/guilds/__init__.py",
+        "services/guilds/cli.py",
+        "services/guilds/indexer.py",
+        "services/guilds/kgp.py",
+        "services/guilds/kgp_deploy.py",
+        "services/guilds/moloch.py",
+        "services/guilds/projections.py",
+        "services/guilds/reputation.py"
+      ],
+      "test_references": [
+        "tests/test_guild_services.py",
+        "tests/test_kgp_service.py",
+        "tests/test_kgp_worker_durability.py"
+      ]
+    },
+    "ingestion": {
+      "environment_names": [
+        "ALERT_EMAIL_FROM",
+        "ALERT_EMAIL_TO",
+        "ALERT_SMTP_HOST",
+        "ALERT_SMTP_PASSWORD",
+        "ALERT_SMTP_PORT",
+        "ALERT_SMTP_USER",
+        "ALERT_WEBHOOK_URL",
+        "ARBITRUM_RPC_URL",
+        "ATTESTER_PRIVATE_KEY",
+        "BASE_RPC_URL",
+        "CELO_ALFAJORES_RPC_URL",
+        "CELO_RPC_URL",
+        "COPERNICUS_CLIENT_ID",
+        "COPERNICUS_CLIENT_SECRET",
+        "COPERNICUS_EMAIL",
+        "COPERNICUS_PASSWORD",
+        "DIRECTUS_ADMIN_TOKEN",
+        "DIRECTUS_URL",
+        "EAS_GRAPHQL_URL",
+        "EAS_RESOLVER_ADDRESS",
+        "ETH_RPC_URL",
+        "GEE_SERVICE_ACCOUNT_KEY",
+        "GNOSIS_RPC_URL",
+        "INGESTION_BACKOFF",
+        "INGESTION_JITTER",
+        "INGESTION_MAX_RETRIES",
+        "ML_MODEL_DIR",
+        "MQTT_BROKER",
+        "MQTT_BROKER_HOST",
+        "MQTT_BROKER_PORT",
+        "MQTT_CA_CERT",
+        "MQTT_CLIENT_CERT",
+        "MQTT_CLIENT_KEY",
+        "MQTT_PASSWORD",
+        "MQTT_PORT",
+        "MQTT_USERNAME",
+        "OPENWEATHERMAP_API_KEY",
+        "OPTIMISM_RPC_URL",
+        "OpenWeatherMap_API_KEY",
+        "WORLD_BANK_PINK_SHEET_URL"
+      ],
+      "modules": [
+        "services/ingestion/__init__.py",
+        "services/ingestion/adaptive_sampler.py",
+        "services/ingestion/anomaly_detector.py",
+        "services/ingestion/baal_indexer.py",
+        "services/ingestion/base.py",
+        "services/ingestion/cli.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/climate_data.py",
+        "services/ingestion/config.py",
+        "services/ingestion/copernicus_remote_sensing.py",
+        "services/ingestion/data_freshness.py",
+        "services/ingestion/device_manager.py",
+        "services/ingestion/drivers/__init__.py",
+        "services/ingestion/drivers/blockchain_eas.py",
+        "services/ingestion/drivers/blockchain_gnosis.py",
+        "services/ingestion/drivers/blockchain_rpc.py",
+        "services/ingestion/drivers/market_worldbank.py",
+        "services/ingestion/drivers/remote_sensing_copernicus.py",
+        "services/ingestion/drivers/remote_sensing_gee.py",
+        "services/ingestion/drivers/sensor_csv.py",
+        "services/ingestion/drivers/sensor_mqtt.py",
+        "services/ingestion/drivers/weather_forecast.py",
+        "services/ingestion/drivers/weather_openweathermap.py",
+        "services/ingestion/eas_indexer.py",
+        "services/ingestion/field_validation.py",
+        "services/ingestion/gee_climate.py",
+        "services/ingestion/gee_remote_sensing.py",
+        "services/ingestion/gis_import.py",
+        "services/ingestion/gnosis_indexer.py",
+        "services/ingestion/harvest_manager.py",
+        "services/ingestion/http_sensor_receiver.py",
+        "services/ingestion/kml_import.py",
+        "services/ingestion/market_data.py",
+        "services/ingestion/ml_anomaly_detector.py",
+        "services/ingestion/mock_sensors.py",
+        "services/ingestion/mqtt_actuator.py",
+        "services/ingestion/mqtt_subscriber.py",
+        "services/ingestion/oracle_aggregator.py",
+        "services/ingestion/oracle_price_sync.py",
+        "services/ingestion/price_attestation.py",
+        "services/ingestion/raster_metadata.py",
+        "services/ingestion/remote_sensing.py",
+        "services/ingestion/remote_sensing_fetcher.py",
+        "services/ingestion/rpc_indexer.py",
+        "services/ingestion/sensor_ingester.py",
+        "services/ingestion/shapefile_import.py",
+        "services/ingestion/status.py",
+        "services/ingestion/subgraph_indexer.py",
+        "services/ingestion/weather.py",
+        "services/ingestion/weather_forecast.py",
+        "services/ingestion/yahoo_finance.py"
+      ],
+      "test_references": [
+        "tests/test_adaptive_sampler.py",
+        "tests/test_advantage_assessment.py",
+        "tests/test_advantage_links.py",
+        "tests/test_advantage_outcomes.py",
+        "tests/test_anomaly_detector.py",
+        "tests/test_ba_integration.py",
+        "tests/test_bpm_state_models.py",
+        "tests/test_business_model_canvas.py",
+        "tests/test_business_plan.py",
+        "tests/test_capability_map.py",
+        "tests/test_capacity_signals.py",
+        "tests/test_channel_health.py",
+        "tests/test_clickhouse_failure_injection.py",
+        "tests/test_clickhouse_outbox.py",
+        "tests/test_climate_data.py",
+        "tests/test_competitive_landscape.py",
+        "tests/test_competitive_report.py",
+        "tests/test_coordination.py",
+        "tests/test_coordination_accounting.py",
+        "tests/test_coordination_governance.py",
+        "tests/test_coordination_market_cycles.py",
+        "tests/test_coordination_strategy.py",
+        "tests/test_customer_value.py",
+        "tests/test_device_manager.py",
+        "tests/test_env_scanning.py",
+        "tests/test_field_validation.py",
+        "tests/test_flow_metrics.py",
+        "tests/test_gis_import.py",
+        "tests/test_governance_framework.py",
+        "tests/test_governance_integration.py",
+        "tests/test_governance_links.py",
+        "tests/test_governance_proposals.py",
+        "tests/test_governance_role_authority.py",
+        "tests/test_governance_roles.py",
+        "tests/test_governance_tactical.py",
+        "tests/test_governance_tensions.py",
+        "tests/test_harvest_url_safety.py",
+        "tests/test_ingestion_outbox_producers.py",
+        "tests/test_ingestion_retry.py",
+        "tests/test_iot_sensor_push.py",
+        "tests/test_learning_plans.py",
+        "tests/test_linked_data.py",
+        "tests/test_management_workflow.py",
+        "tests/test_market_data.py",
+        "tests/test_marketplace_integration.py",
+        "tests/test_metrics.py",
+        "tests/test_ml_anomaly.py",
+        "tests/test_ml_model_loading_security.py",
+        "tests/test_objective_performance.py",
+        "tests/test_odds_engine.py",
+        "tests/test_operating_pilot.py",
+        "tests/test_operating_support.py",
+        "tests/test_oracle_infrastructure.py",
+        "tests/test_partner_lifecycle.py",
+        "tests/test_pestel.py",
+        "tests/test_pitch.py",
+        "tests/test_planning_budget.py",
+        "tests/test_predictive_bpm.py",
+        "tests/test_price_attestation.py",
+        "tests/test_process_control.py",
+        "tests/test_process_costing.py",
+        "tests/test_process_escalation.py",
+        "tests/test_process_gap.py",
+        "tests/test_process_health.py",
+        "tests/test_process_interfaces.py",
+        "tests/test_process_mining.py",
+        "tests/test_process_model_sync.py",
+        "tests/test_process_simulation.py",
+        "tests/test_program_portfolio.py",
+        "tests/test_publics.py",
+        "tests/test_reference_class.py",
+        "tests/test_regional_readiness.py",
+        "tests/test_remote_sensing_automation.py",
+        "tests/test_responsibility_assignment.py",
+        "tests/test_revenue_model.py",
+        "tests/test_revenue_multiplier.py",
+        "tests/test_runtime_import_regressions.py",
+        "tests/test_sandop.py",
+        "tests/test_sensor_ingester.py",
+        "tests/test_sequential_evidence.py",
+        "tests/test_sequential_integration.py",
+        "tests/test_smoke.py",
+        "tests/test_solution_adoption.py",
+        "tests/test_solution_experiments.py",
+        "tests/test_solution_funding.py",
+        "tests/test_solution_lifecycle.py",
+        "tests/test_solution_scale.py",
+        "tests/test_stakeholder_consent.py",
+        "tests/test_stakeholder_decisions.py",
+        "tests/test_stakeholder_dod_closure.py",
+        "tests/test_stakeholder_end_to_end.py",
+        "tests/test_stakeholder_engagement.py",
+        "tests/test_stakeholder_foundation.py",
+        "tests/test_stakeholder_grievances.py",
+        "tests/test_stakeholder_phases_8_11.py",
+        "tests/test_stakeholder_representation.py",
+        "tests/test_strategic_positioning.py",
+        "tests/test_strategy_allocation.py",
+        "tests/test_strategy_cascade.py",
+        "tests/test_strategy_choices.py",
+        "tests/test_strategy_coherence.py",
+        "tests/test_strategy_consultation.py",
+        "tests/test_strategy_contingency.py",
+        "tests/test_strategy_evidence.py",
+        "tests/test_strategy_execution.py",
+        "tests/test_strategy_foresight.py",
+        "tests/test_strategy_kernel.py",
+        "tests/test_strategy_kpi_refresh.py",
+        "tests/test_strategy_map.py",
+        "tests/test_strategy_monitoring.py",
+        "tests/test_strategy_portfolio_execution.py",
+        "tests/test_swot.py",
+        "tests/test_swot_enhanced.py",
+        "tests/test_technology_roadmap.py",
+        "tests/test_telemetry_freshness.py",
+        "tests/test_value_stream.py",
+        "tests/test_value_stream_defs.py",
+        "tests/test_vision_mission.py",
+        "tests/test_weather_forecast.py",
+        "tests/test_work_selection.py"
+      ]
+    },
+    "innovation": {
+      "environment_names": [],
+      "modules": [
+        "services/innovation/__init__.py",
+        "services/innovation/solution_adoption.py",
+        "services/innovation/solution_experiments.py",
+        "services/innovation/solution_funding.py",
+        "services/innovation/solution_lifecycle.py",
+        "services/innovation/solution_scale.py"
+      ],
+      "test_references": [
+        "tests/test_solution_adoption.py",
+        "tests/test_solution_experiments.py",
+        "tests/test_solution_funding.py",
+        "tests/test_solution_lifecycle.py",
+        "tests/test_solution_scale.py"
+      ]
+    },
+    "iri": {
+      "environment_names": [],
+      "modules": [
+        "services/iri/__init__.py",
+        "services/iri/cli.py",
+        "services/iri/resolver.py",
+        "services/iri/versioning.py"
+      ],
+      "test_references": [
+        "tests/test_iri_synchronization.py",
+        "tests/test_linked_data.py"
+      ]
+    },
+    "linkml": {
+      "environment_names": [],
+      "modules": [
+        "services/linkml/__init__.py",
+        "services/linkml/jsonld.py",
+        "services/linkml/validator.py"
+      ],
+      "test_references": [
+        "tests/test_linked_data.py"
+      ]
+    },
+    "management": {
+      "environment_names": [],
+      "modules": [
+        "services/management/__init__.py",
+        "services/management/__main__.py",
+        "services/management/capacity_signals.py",
+        "services/management/cli.py",
+        "services/management/escalation.py",
+        "services/management/learning_plans.py",
+        "services/management/model.py",
+        "services/management/operating_pilot.py",
+        "services/management/operating_support.py",
+        "services/management/responsibility.py",
+        "services/management/work_selection.py",
+        "services/management/workbench.py"
+      ],
+      "test_references": [
+        "tests/test_capacity_signals.py",
+        "tests/test_learning_plans.py",
+        "tests/test_management_workflow.py",
+        "tests/test_operating_pilot.py",
+        "tests/test_operating_support.py",
+        "tests/test_process_escalation.py",
+        "tests/test_responsibility_assignment.py",
+        "tests/test_work_selection.py"
+      ]
+    },
+    "maps": {
+      "environment_names": [],
+      "modules": [
+        "services/maps/__init__.py"
+      ],
+      "test_references": []
+    },
+    "metadata_api": {
+      "environment_names": [],
+      "modules": [
+        "services/metadata_api/__init__.py",
+        "services/metadata_api/anchor.py",
+        "services/metadata_api/app.py",
+        "services/metadata_api/app_metadata.py",
+        "services/metadata_api/cli.py",
+        "services/metadata_api/project_info.py",
+        "services/metadata_api/resolver.py"
+      ],
+      "test_references": [
+        "tests/test_linked_data.py"
+      ]
+    },
+    "metrics": {
+      "environment_names": [],
+      "modules": [
+        "services/metrics/__init__.py",
+        "services/metrics/__main__.py",
+        "services/metrics/calculators/__init__.py",
+        "services/metrics/calculators/allocated_shared_cost.py",
+        "services/metrics/calculators/attestation_coverage.py",
+        "services/metrics/calculators/baseline_asset_value.py",
+        "services/metrics/calculators/baseline_cash_flow.py",
+        "services/metrics/calculators/baseline_cost.py",
+        "services/metrics/calculators/baseline_revenue.py",
+        "services/metrics/calculators/biodiversity_delta.py",
+        "services/metrics/calculators/crop_noi.py",
+        "services/metrics/calculators/crop_revenue.py",
+        "services/metrics/calculators/digital_lego.py",
+        "services/metrics/calculators/direct_crop_cost.py",
+        "services/metrics/calculators/first_time_through_yield.py",
+        "services/metrics/calculators/governed_lead_time.py",
+        "services/metrics/calculators/loss_rate_pct.py",
+        "services/metrics/calculators/net_crop_revenue.py",
+        "services/metrics/calculators/operating_margin.py",
+        "services/metrics/calculators/rework_rate.py",
+        "services/metrics/calculators/soil_carbon_delta.py",
+        "services/metrics/calculators/value_flowed.py",
+        "services/metrics/calculators/wallet_retention.py",
+        "services/metrics/cli.py",
+        "services/metrics/engine.py"
+      ],
+      "test_references": [
+        "tests/test_flow_metrics.py",
+        "tests/test_metrics.py"
+      ]
+    },
+    "migration": {
+      "environment_names": [],
+      "modules": [
+        "services/migration/__init__.py",
+        "services/migration/__main__.py",
+        "services/migration/cli.py"
+      ],
+      "test_references": [
+        "tests/test_migration.py"
+      ]
+    },
+    "mobile": {
+      "environment_names": [],
+      "modules": [
+        "services/mobile/__init__.py",
+        "services/mobile/api.py",
+        "services/mobile/media_storage.py"
+      ],
+      "test_references": [
+        "tests/test_mobile_api.py",
+        "tests/test_mobile_media_storage.py"
+      ]
+    },
+    "office": {
+      "environment_names": [],
+      "modules": [
+        "services/office/__init__.py",
+        "services/office/cli.py"
+      ],
+      "test_references": [
+        "tests/test_impact_network.py",
+        "tests/test_impact_office_integrity.py"
+      ]
+    },
+    "orientation": {
+      "environment_names": [],
+      "modules": [
+        "services/orientation/__init__.py",
+        "services/orientation/assess.py",
+        "services/orientation/cycle_tracker.py"
+      ],
+      "test_references": [
+        "tests/test_ooda_cycles.py",
+        "tests/test_orientation.py"
+      ]
+    },
+    "planning": {
+      "environment_names": [],
+      "modules": [
+        "services/planning/__init__.py",
+        "services/planning/__main__.py",
+        "services/planning/budget.py",
+        "services/planning/capacity_aware.py",
+        "services/planning/cli.py",
+        "services/planning/model.py",
+        "services/planning/performance.py",
+        "services/planning/portfolio.py",
+        "services/planning/sandop.py",
+        "services/planning/strategy_allocation.py"
+      ],
+      "test_references": [
+        "tests/test_capacity_aware_planning.py",
+        "tests/test_objective_performance.py",
+        "tests/test_planning_budget.py",
+        "tests/test_program_portfolio.py",
+        "tests/test_sandop.py",
+        "tests/test_strategy_allocation.py",
+        "tests/test_strategy_kernel.py",
+        "tests/test_strategy_portfolio_execution.py",
+        "tests/test_strategy_portfolio_selection.py",
+        "tests/test_strategy_risk_evidence.py"
+      ]
+    },
+    "predictions": {
+      "environment_names": [
+        "CALIBRATION_MAX_AGE_DAYS"
+      ],
+      "modules": [
+        "services/predictions/__init__.py",
+        "services/predictions/__main__.py",
+        "services/predictions/cli.py",
+        "services/predictions/service.py"
+      ],
+      "test_references": [
+        "tests/test_prediction_calibration.py"
+      ]
+    },
+    "rdf": {
+      "environment_names": [],
+      "modules": [
+        "services/rdf/__init__.py",
+        "services/rdf/cli.py",
+        "services/rdf/evidence_chain.py",
+        "services/rdf/graph_builder.py",
+        "services/rdf/serializers.py",
+        "services/rdf/sparql_engine.py",
+        "services/rdf/triple_store.py"
+      ],
+      "test_references": [
+        "tests/test_linked_data.py",
+        "tests/test_rdf_graph.py",
+        "tests/test_sparql_engine.py",
+        "tests/test_triple_store.py"
+      ]
+    },
+    "registry": {
+      "environment_names": [
+        "KOKONUT_CIDS_BASE_URL"
+      ],
+      "modules": [
+        "services/registry/__init__.py",
+        "services/registry/__main__.py",
+        "services/registry/cids_export.py",
+        "services/registry/common_schema.py"
+      ],
+      "test_references": [
+        "tests/test_cids_export.py",
+        "tests/test_ebf_cids.py"
+      ]
+    },
+    "revenue_multiplier": {
+      "environment_names": [],
+      "modules": [
+        "services/revenue_multiplier/__init__.py",
+        "services/revenue_multiplier/__main__.py",
+        "services/revenue_multiplier/analyzer.py",
+        "services/revenue_multiplier/cli.py",
+        "services/revenue_multiplier/config.py",
+        "services/revenue_multiplier/dimensions/__init__.py",
+        "services/revenue_multiplier/dimensions/bioinput.py",
+        "services/revenue_multiplier/dimensions/buyer_channel.py",
+        "services/revenue_multiplier/dimensions/crop_mix.py",
+        "services/revenue_multiplier/dimensions/ecological_verification.py",
+        "services/revenue_multiplier/dimensions/loss_reduction.py",
+        "services/revenue_multiplier/dimensions/partner_sponsorship.py",
+        "services/revenue_multiplier/dimensions/public_goods.py",
+        "services/revenue_multiplier/dimensions/regional_clusters.py",
+        "services/revenue_multiplier/dimensions/value_added.py",
+        "services/revenue_multiplier/dimensions/web3_replication.py",
+        "services/revenue_multiplier/models.py"
+      ],
+      "test_references": [
+        "tests/test_revenue_multiplier.py"
+      ]
+    },
+    "sandbox": {
+      "environment_names": [],
+      "modules": [
+        "services/sandbox/__init__.py",
+        "services/sandbox/cli.py",
+        "services/sandbox/environment.py",
+        "services/sandbox/isolation.py",
+        "services/sandbox/monitor.py"
+      ],
+      "test_references": [
+        "tests/test_phase3_4.py"
+      ]
+    },
+    "scheduler": {
+      "environment_names": [],
+      "modules": [
+        "services/scheduler/__init__.py",
+        "services/scheduler/cli.py",
+        "services/scheduler/engine.py",
+        "services/scheduler/parser.py",
+        "services/scheduler/resources.py",
+        "services/scheduler/worker.py"
+      ],
+      "test_references": [
+        "tests/test_os_architecture.py",
+        "tests/test_scheduler_durability.py"
+      ]
+    },
+    "schema_introspection": {
+      "environment_names": [],
+      "modules": [
+        "services/schema_introspection/__init__.py",
+        "services/schema_introspection/__main__.py",
+        "services/schema_introspection/inventory.py"
+      ],
+      "test_references": [
+        "tests/test_schema_introspection.py",
+        "tests/test_schema_introspection_risks.py"
+      ]
+    },
+    "scoring": {
+      "environment_names": [],
+      "modules": [
+        "services/scoring/__init__.py",
+        "services/scoring/__main__.py",
+        "services/scoring/air_quality.py",
+        "services/scoring/biodiversity.py",
+        "services/scoring/calculators.py",
+        "services/scoring/carbon_sequestration.py",
+        "services/scoring/cli.py",
+        "services/scoring/confidence.py",
+        "services/scoring/equity.py",
+        "services/scoring/equity_community.py",
+        "services/scoring/evaluator.py",
+        "services/scoring/export.py",
+        "services/scoring/gates.py",
+        "services/scoring/implementation_quality.py",
+        "services/scoring/network.py",
+        "services/scoring/normalization.py",
+        "services/scoring/rankings.py",
+        "services/scoring/rubric.py",
+        "services/scoring/soil_health.py",
+        "services/scoring/trust_graph.py",
+        "services/scoring/water_management.py"
+      ],
+      "test_references": [
+        "tests/test_ebf_carbon_gates.py",
+        "tests/test_ebf_equity_scoring.py",
+        "tests/test_ebf_gates.py",
+        "tests/test_ebf_json_export.py",
+        "tests/test_ebf_normalization.py",
+        "tests/test_ebf_p1.py",
+        "tests/test_ebf_rubric.py",
+        "tests/test_ebf_scoring.py",
+        "tests/test_ebf_trust_graph.py",
+        "tests/test_evaluator_reputation.py",
+        "tests/test_network_trust.py",
+        "tests/test_preferences_rankings.py",
+        "tests/test_scoring_normalization.py"
+      ]
+    },
+    "security": {
+      "environment_names": [],
+      "modules": [
+        "services/security/__init__.py",
+        "services/security/audit.py",
+        "services/security/capabilities.py",
+        "services/security/cli.py",
+        "services/security/execution_allowlist.py",
+        "services/security/interceptor.py"
+      ],
+      "test_references": [
+        "tests/test_phase3_4.py",
+        "tests/test_security_allowlist.py",
+        "tests/test_security_audit.py",
+        "tests/test_security_capabilities.py",
+        "tests/test_security_interceptor.py"
+      ]
+    },
+    "simulation": {
+      "environment_names": [],
+      "modules": [
+        "services/simulation/__init__.py",
+        "services/simulation/clash_examples.py",
+        "services/simulation/resolution.py"
+      ],
+      "test_references": [
+        "tests/test_simulation_resolution.py"
+      ]
+    },
+    "storage": {
+      "environment_names": [],
+      "modules": [
+        "services/storage/__init__.py",
+        "services/storage/__main__.py",
+        "services/storage/cid.py"
+      ],
+      "test_references": []
+    },
+    "strategic_reserve": {
+      "environment_names": [],
+      "modules": [
+        "services/strategic_reserve/__init__.py",
+        "services/strategic_reserve/cli.py",
+        "services/strategic_reserve/health.py"
+      ],
+      "test_references": [
+        "tests/test_good_offense.py",
+        "tests/test_strategic_reserve.py"
+      ]
+    },
+    "strategy_markup": {
+      "environment_names": [],
+      "modules": [
+        "services/strategy_markup/__init__.py",
+        "services/strategy_markup/__main__.py",
+        "services/strategy_markup/exporter.py",
+        "services/strategy_markup/ids.py",
+        "services/strategy_markup/mapping.py",
+        "services/strategy_markup/model.py",
+        "services/strategy_markup/validator.py"
+      ],
+      "test_references": [
+        "tests/test_strategy_markup.py"
+      ]
+    },
+    "stream": {
+      "environment_names": [],
+      "modules": [
+        "services/stream/__init__.py",
+        "services/stream/alerts.py",
+        "services/stream/buffer.py",
+        "services/stream/cli.py",
+        "services/stream/processor.py",
+        "services/stream/windows.py"
+      ],
+      "test_references": [
+        "tests/test_phase3_4.py"
+      ]
+    },
+    "systems": {
+      "environment_names": [],
+      "modules": [
+        "services/systems/__init__.py",
+        "services/systems/archetypes.py",
+        "services/systems/causal_loops.py",
+        "services/systems/cli.py",
+        "services/systems/config.py",
+        "services/systems/delays.py",
+        "services/systems/double_loop.py",
+        "services/systems/growth_curve.py",
+        "services/systems/improvement_tracker.py",
+        "services/systems/leverage.py",
+        "services/systems/mental_models.py",
+        "services/systems/meta_learning.py",
+        "services/systems/ml_retraining.py",
+        "services/systems/process_control.py",
+        "services/systems/stock_flow.py",
+        "services/systems/velocity_tracker.py"
+      ],
+      "test_references": [
+        "tests/test_growth_curve.py",
+        "tests/test_improvement_tracker.py",
+        "tests/test_meta_learning.py",
+        "tests/test_ml_retraining.py",
+        "tests/test_process_control.py",
+        "tests/test_process_control_unit.py",
+        "tests/test_process_gap.py",
+        "tests/test_runtime_import_regressions.py",
+        "tests/test_security_hardening.py",
+        "tests/test_stock_flow_mental.py",
+        "tests/test_systems_thinking.py",
+        "tests/test_velocity_tracker.py"
+      ]
+    },
+    "thesaurus": {
+      "environment_names": [],
+      "modules": [
+        "services/thesaurus/__init__.py"
+      ],
+      "test_references": [
+        "tests/test_linked_data.py"
+      ]
+    },
+    "threatcasting": {
+      "environment_names": [],
+      "modules": [
+        "services/threatcasting/__init__.py",
+        "services/threatcasting/__main__.py",
+        "services/threatcasting/backcasting.py",
+        "services/threatcasting/cascades.py",
+        "services/threatcasting/cli.py",
+        "services/threatcasting/config.py",
+        "services/threatcasting/cross_impact.py",
+        "services/threatcasting/desirability.py",
+        "services/threatcasting/flags.py",
+        "services/threatcasting/horizons.py",
+        "services/threatcasting/intelligence.py",
+        "services/threatcasting/models.py",
+        "services/threatcasting/narratives.py",
+        "services/threatcasting/path_comparison.py",
+        "services/threatcasting/preempt.py",
+        "services/threatcasting/principles.py",
+        "services/threatcasting/probability.py",
+        "services/threatcasting/signals.py"
+      ],
+      "test_references": [
+        "tests/test_backcast_dag.py",
+        "tests/test_backcasting_enhancements.py",
+        "tests/test_good_offense.py",
+        "tests/test_prediction_calibration.py",
+        "tests/test_tactical_layer.py",
+        "tests/test_threatcasting.py",
+        "tests/test_threatcasting_cli_compat.py"
+      ]
+    },
+    "treasury": {
+      "environment_names": [
+        "ATTESTER_PRIVATE_KEY",
+        "SAFE_API_KEY",
+        "SAFE_DELEGATE_KEY"
+      ],
+      "modules": [
+        "services/treasury/__init__.py",
+        "services/treasury/__main__.py",
+        "services/treasury/cli.py",
+        "services/treasury/ops.py",
+        "services/treasury/propose.py",
+        "services/treasury/provisioning.py",
+        "services/treasury/safe.py"
+      ],
+      "test_references": [
+        "tests/test_attestation_safe.py",
+        "tests/test_treasury.py",
+        "tests/test_treasury_ops.py",
+        "tests/test_treasury_propose.py",
+        "tests/test_treasury_provisioning.py"
+      ]
+    },
+    "trends": {
+      "environment_names": [],
+      "modules": [
+        "services/trends/__init__.py",
+        "services/trends/accuracy.py",
+        "services/trends/change_points.py",
+        "services/trends/config.py",
+        "services/trends/dashboard.py",
+        "services/trends/decomposer.py",
+        "services/trends/estimator.py",
+        "services/trends/forecasting.py",
+        "services/trends/significance.py",
+        "services/trends/smoothing.py"
+      ],
+      "test_references": [
+        "tests/test_trend_change_points.py",
+        "tests/test_trend_estimator.py",
+        "tests/test_trend_forecasting.py",
+        "tests/test_trend_smoothing.py"
+      ]
+    },
+    "workflow_specs": {
+      "environment_names": [],
+      "modules": [
+        "services/workflow_specs/__init__.py",
+        "services/workflow_specs/__main__.py",
+        "services/workflow_specs/ai_summary.py",
+        "services/workflow_specs/budget.py",
+        "services/workflow_specs/carbon_retirement.py",
+        "services/workflow_specs/cli.py",
+        "services/workflow_specs/cooperative_order.py",
+        "services/workflow_specs/coordination_alliance.py",
+        "services/workflow_specs/data_stream_post.py",
+        "services/workflow_specs/emergency_incident.py",
+        "services/workflow_specs/event_bus.py",
+        "services/workflow_specs/extension_enrollment.py",
+        "services/workflow_specs/farm_activity.py",
+        "services/workflow_specs/governance.py",
+        "services/workflow_specs/harvest_event.py",
+        "services/workflow_specs/impact_claim.py",
+        "services/workflow_specs/insurance_claim.py",
+        "services/workflow_specs/market_order.py",
+        "services/workflow_specs/metadata.py",
+        "services/workflow_specs/metric_value.py",
+        "services/workflow_specs/model.py",
+        "services/workflow_specs/objective.py",
+        "services/workflow_specs/pest_intervention.py",
+        "services/workflow_specs/project.py",
+        "services/workflow_specs/registry.py",
+        "services/workflow_specs/render.py",
+        "services/workflow_specs/report_snapshot.py",
+        "services/workflow_specs/stakeholder_feedback.py",
+        "services/workflow_specs/traceability_batch.py",
+        "services/workflow_specs/validator.py",
+        "services/workflow_specs/work_item.py"
+      ],
+      "test_references": [
+        "tests/test_governance_integration.py",
+        "tests/test_management_workflow.py",
+        "tests/test_objective_performance.py",
+        "tests/test_planning_budget.py",
+        "tests/test_process_architecture.py",
+        "tests/test_program_portfolio.py",
+        "tests/test_service_catalog.py",
+        "tests/test_workflow_spec_conformance.py",
+        "tests/test_workflow_specs.py"
+      ]
+    }
+  },
+  "test_files": [
+    "tests/test_abundance_book.py",
+    "tests/test_abundance_protocol.py",
+    "tests/test_adaptive_sampler.py",
+    "tests/test_advantage_assessment.py",
+    "tests/test_advantage_links.py",
+    "tests/test_advantage_outcomes.py",
+    "tests/test_advisor.py",
+    "tests/test_agent_safety.py",
+    "tests/test_agent_tasks.py",
+    "tests/test_agents_base.py",
+    "tests/test_ai_evaluation.py",
+    "tests/test_analytics_join_safety.py",
+    "tests/test_anomaly_detector.py",
+    "tests/test_attestation.py",
+    "tests/test_attestation_safe.py",
+    "tests/test_ba_integration.py",
+    "tests/test_backcast_dag.py",
+    "tests/test_backcasting_enhancements.py",
+    "tests/test_baserow_activity_mapping_schema.py",
+    "tests/test_baserow_activity_metrics_mapping.py",
+    "tests/test_baserow_activity_type_mapping.py",
+    "tests/test_baserow_biofactory_mapping_schema.py",
+    "tests/test_baserow_ebf_ground_analytics_mapping.py",
+    "tests/test_baserow_ecosystem_mapping.py",
+    "tests/test_baserow_equipment_resources_mapping.py",
+    "tests/test_baserow_expense_farm_crop_schema.py",
+    "tests/test_baserow_expense_farm_weekly_plan_schema.py",
+    "tests/test_baserow_expense_fields_migration.py",
+    "tests/test_baserow_farm_staff_membership_schema.py",
+    "tests/test_baserow_farm_task_relationship_schema.py",
+    "tests/test_baserow_funding_mapping_contract.py",
+    "tests/test_baserow_funding_milestones_mapping.py",
+    "tests/test_baserow_funding_tranche_schema.py",
+    "tests/test_baserow_harvest_sales_mapping.py",
+    "tests/test_baserow_impact_reference_mapping.py",
+    "tests/test_baserow_kokonut_farms_batch30.py",
+    "tests/test_baserow_organization_mapping_schema.py",
+    "tests/test_baserow_organizational_relationship_schema.py",
+    "tests/test_baserow_phase_step_mapping.py",
+    "tests/test_baserow_projection_scope_expansion.py",
+    "tests/test_baserow_reconciliation_apply.py",
+    "tests/test_baserow_reconciliation_dry_run.py",
+    "tests/test_baserow_reconciliation_projection.py",
+    "tests/test_baserow_species_mapping.py",
+    "tests/test_baserow_technology_mapping.py",
+    "tests/test_bio_factory_operations.py",
+    "tests/test_bmc_oneclick.py",
+    "tests/test_bpm_state_models.py",
+    "tests/test_business_model_canvas.py",
+    "tests/test_business_plan.py",
+    "tests/test_cache_cache.py",
+    "tests/test_cache_events.py",
+    "tests/test_capability_map.py",
+    "tests/test_capacity_aware_planning.py",
+    "tests/test_capacity_signals.py",
+    "tests/test_capital_accounting.py",
+    "tests/test_capital_efficiency.py",
+    "tests/test_carbon_credits.py",
+    "tests/test_cardinality_constraints.py",
+    "tests/test_channel_health.py",
+    "tests/test_cids_export.py",
+    "tests/test_cli.py",
+    "tests/test_cli_registry.py",
+    "tests/test_clickhouse_failure_injection.py",
+    "tests/test_clickhouse_outbox.py",
+    "tests/test_climate_data.py",
+    "tests/test_common_commands.py",
+    "tests/test_common_database.py",
+    "tests/test_common_env.py",
+    "tests/test_common_foundations.py",
+    "tests/test_common_http.py",
+    "tests/test_common_logging.py",
+    "tests/test_commons_liberation.py",
+    "tests/test_competitive_landscape.py",
+    "tests/test_competitive_report.py",
+    "tests/test_compose_metabase_profile.py",
+    "tests/test_comprehensive_status.py",
+    "tests/test_configurable_containers.py",
+    "tests/test_consent_append_only.py",
+    "tests/test_consent_privacy_p0.py",
+    "tests/test_cooperative.py",
+    "tests/test_coordination.py",
+    "tests/test_coordination_accounting.py",
+    "tests/test_coordination_end_to_end.py",
+    "tests/test_coordination_governance.py",
+    "tests/test_coordination_learning.py",
+    "tests/test_coordination_market_cycles.py",
+    "tests/test_coordination_strategy.py",
+    "tests/test_core_features.py",
+    "tests/test_credit_balance.py",
+    "tests/test_credit_basket.py",
+    "tests/test_credit_batch_manager.py",
+    "tests/test_credit_chain_sync.py",
+    "tests/test_credit_class_manager.py",
+    "tests/test_credit_enrollment.py",
+    "tests/test_credit_fees.py",
+    "tests/test_credit_params.py",
+    "tests/test_crisp_scoring.py",
+    "tests/test_crop_phenology.py",
+    "tests/test_crop_rotation.py",
+    "tests/test_customer_value.py",
+    "tests/test_dao_proposal_history.py",
+    "tests/test_data_governance.py",
+    "tests/test_data_module_all.py",
+    "tests/test_data_quality.py",
+    "tests/test_data_stream.py",
+    "tests/test_decision_policy.py",
+    "tests/test_delphi.py",
+    "tests/test_demand_analysis.py",
+    "tests/test_device_manager.py",
+    "tests/test_digital_finance.py",
+    "tests/test_digital_twin.py",
+    "tests/test_directus_metadata.py",
+    "tests/test_directus_tenant_permissions.py",
+    "tests/test_documentation_consistency.py",
+    "tests/test_driver_registry.py",
+    "tests/test_drone_raster_integration.py",
+    "tests/test_dsm_soc_prediction.py",
+    "tests/test_e2e_platform.py",
+    "tests/test_ebf_agent_safety.py",
+    "tests/test_ebf_agents.py",
+    "tests/test_ebf_calibration.py",
+    "tests/test_ebf_carbon_gates.py",
+    "tests/test_ebf_cids.py",
+    "tests/test_ebf_csv_import.py",
+    "tests/test_ebf_dashboard.py",
+    "tests/test_ebf_db_integration.py",
+    "tests/test_ebf_equity_scoring.py",
+    "tests/test_ebf_gates.py",
+    "tests/test_ebf_json_export.py",
+    "tests/test_ebf_normalization.py",
+    "tests/test_ebf_p0.py",
+    "tests/test_ebf_p1.py",
+    "tests/test_ebf_p2.py",
+    "tests/test_ebf_pilot_seed.py",
+    "tests/test_ebf_privacy.py",
+    "tests/test_ebf_public_views.py",
+    "tests/test_ebf_rubric.py",
+    "tests/test_ebf_schema.py",
+    "tests/test_ebf_scoring.py",
+    "tests/test_ebf_trust_graph.py",
+    "tests/test_ecological_modeling.py",
+    "tests/test_ecological_modeling_v2.py",
+    "tests/test_emergency_response.py",
+    "tests/test_energy_monitoring.py",
+    "tests/test_env_scanning.py",
+    "tests/test_equipment.py",
+    "tests/test_evaluator_reputation.py",
+    "tests/test_evapotranspiration.py",
+    "tests/test_event_bus_durability.py",
+    "tests/test_evidence_lineage_integrity.py",
+    "tests/test_export_reliability.py",
+    "tests/test_extension.py",
+    "tests/test_farmer_identity.py",
+    "tests/test_feedback_automation.py",
+    "tests/test_feedback_controller.py",
+    "tests/test_feedback_outcomes.py",
+    "tests/test_field_validation.py",
+    "tests/test_financial_enhancements.py",
+    "tests/test_financial_resilience.py",
+    "tests/test_financial_sustainability.py",
+    "tests/test_flow_metrics.py",
+    "tests/test_forecast.py",
+    "tests/test_fortune500.py",
+    "tests/test_gap_closures.py",
+    "tests/test_gateway_audit.py",
+    "tests/test_gateway_auth.py",
+    "tests/test_gateway_public_metrics.py",
+    "tests/test_geostatistics.py",
+    "tests/test_gis_import.py",
+    "tests/test_gnh_alignment.py",
+    "tests/test_good_offense.py",
+    "tests/test_governance_framework.py",
+    "tests/test_governance_integration.py",
+    "tests/test_governance_links.py",
+    "tests/test_governance_proposals.py",
+    "tests/test_governance_role_authority.py",
+    "tests/test_governance_roles.py",
+    "tests/test_governance_tactical.py",
+    "tests/test_governance_tensions.py",
+    "tests/test_grant_network.py",
+    "tests/test_graph_projection.py",
+    "tests/test_growth_curve.py",
+    "tests/test_grpc.py",
+    "tests/test_guild_reorg.py",
+    "tests/test_guild_services.py",
+    "tests/test_harvest_url_safety.py",
+    "tests/test_holistic_wellbeing.py",
+    "tests/test_impact_network.py",
+    "tests/test_impact_office_integrity.py",
+    "tests/test_impact_value_chain.py",
+    "tests/test_improvement_tracker.py",
+    "tests/test_ingestion_outbox_producers.py",
+    "tests/test_ingestion_reliability.py",
+    "tests/test_ingestion_retry.py",
+    "tests/test_insight_transfer.py",
+    "tests/test_iot_sensor_push.py",
+    "tests/test_iri_synchronization.py",
+    "tests/test_kgp_service.py",
+    "tests/test_kgp_worker_durability.py",
+    "tests/test_kokonut_commons_governance.py",
+    "tests/test_land_stewardship_trust.py",
+    "tests/test_landscape_conservation.py",
+    "tests/test_learning_plans.py",
+    "tests/test_linked_data.py",
+    "tests/test_llm_chat.py",
+    "tests/test_management_workflow.py",
+    "tests/test_market_data.py",
+    "tests/test_marketplace.py",
+    "tests/test_marketplace_integration.py",
+    "tests/test_measurement_schedule.py",
+    "tests/test_meta_learning.py",
+    "tests/test_metrics.py",
+    "tests/test_mica_classification.py",
+    "tests/test_migration.py",
+    "tests/test_ml_anomaly.py",
+    "tests/test_ml_model_loading_security.py",
+    "tests/test_ml_retraining.py",
+    "tests/test_mobile_api.py",
+    "tests/test_mobile_media_storage.py",
+    "tests/test_mobile_offline.py",
+    "tests/test_mobile_vault.py",
+    "tests/test_network_trust.py",
+    "tests/test_nutrient_budget.py",
+    "tests/test_objective_performance.py",
+    "tests/test_odds_engine.py",
+    "tests/test_ooda_cycles.py",
+    "tests/test_open_source_capitalist_scaling.py",
+    "tests/test_operating_pilot.py",
+    "tests/test_operating_support.py",
+    "tests/test_oracle_infrastructure.py",
+    "tests/test_organic_certification.py",
+    "tests/test_orientation.py",
+    "tests/test_os_architecture.py",
+    "tests/test_overjustification.py",
+    "tests/test_partner_lifecycle.py",
+    "tests/test_pest_management.py",
+    "tests/test_pestel.py",
+    "tests/test_phase2_phase3.py",
+    "tests/test_phase3_4.py",
+    "tests/test_phase5_source_of_truth.py",
+    "tests/test_pitch.py",
+    "tests/test_planning_budget.py",
+    "tests/test_platform_done.py",
+    "tests/test_pollinator_health.py",
+    "tests/test_polymorphic_references.py",
+    "tests/test_portfolio.py",
+    "tests/test_precision_irrigation.py",
+    "tests/test_prediction_calibration.py",
+    "tests/test_predictive_bpm.py",
+    "tests/test_prefect_workflow.py",
+    "tests/test_preferences_rankings.py",
+    "tests/test_prescription.py",
+    "tests/test_price_attestation.py",
+    "tests/test_prm_metrics.py",
+    "tests/test_process_architecture.py",
+    "tests/test_process_control.py",
+    "tests/test_process_control_unit.py",
+    "tests/test_process_costing.py",
+    "tests/test_process_escalation.py",
+    "tests/test_process_gap.py",
+    "tests/test_process_health.py",
+    "tests/test_process_interfaces.py",
+    "tests/test_process_mining.py",
+    "tests/test_process_model_sync.py",
+    "tests/test_process_simulation.py",
+    "tests/test_program_portfolio.py",
+    "tests/test_publics.py",
+    "tests/test_rdf_graph.py",
+    "tests/test_reference_class.py",
+    "tests/test_regenerative_outcomes.py",
+    "tests/test_regional_readiness.py",
+    "tests/test_relational_integrity.py",
+    "tests/test_relationship_entities.py",
+    "tests/test_relationship_reference_policy.py",
+    "tests/test_remaining_gaps.py",
+    "tests/test_remote_sensing_automation.py",
+    "tests/test_report_governance.py",
+    "tests/test_responsibility_assignment.py",
+    "tests/test_revenue_model.py",
+    "tests/test_revenue_multiplier.py",
+    "tests/test_runtime_import_regressions.py",
+    "tests/test_safe_settlement.py",
+    "tests/test_sample_plot_generator.py",
+    "tests/test_sandop.py",
+    "tests/test_scenario_parameters.py",
+    "tests/test_scheduler_durability.py",
+    "tests/test_schema_introspection.py",
+    "tests/test_schema_introspection_risks.py",
+    "tests/test_scoring_normalization.py",
+    "tests/test_sdk.py",
+    "tests/test_security_allowlist.py",
+    "tests/test_security_audit.py",
+    "tests/test_security_capabilities.py",
+    "tests/test_security_hardening.py",
+    "tests/test_security_interceptor.py",
+    "tests/test_seed_idempotency.py",
+    "tests/test_sensor_ingester.py",
+    "tests/test_sequential_evidence.py",
+    "tests/test_sequential_integration.py",
+    "tests/test_service_catalog.py",
+    "tests/test_simulation_resolution.py",
+    "tests/test_smoke.py",
+    "tests/test_solution_adoption.py",
+    "tests/test_solution_experiments.py",
+    "tests/test_solution_funding.py",
+    "tests/test_solution_lifecycle.py",
+    "tests/test_solution_scale.py",
+    "tests/test_sparql_engine.py",
+    "tests/test_spatial_export.py",
+    "tests/test_spatial_import.py",
+    "tests/test_spectral_indices.py",
+    "tests/test_spreadsheet_bridge.py",
+    "tests/test_staging_env_permissions.py",
+    "tests/test_stakeholder_consent.py",
+    "tests/test_stakeholder_decisions.py",
+    "tests/test_stakeholder_dod_closure.py",
+    "tests/test_stakeholder_end_to_end.py",
+    "tests/test_stakeholder_engagement.py",
+    "tests/test_stakeholder_foundation.py",
+    "tests/test_stakeholder_grievances.py",
+    "tests/test_stakeholder_phases_8_11.py",
+    "tests/test_stakeholder_representation.py",
+    "tests/test_state_of_kokonut.py",
+    "tests/test_state_of_kokonut_graphs.py",
+    "tests/test_statement_of_work.py",
+    "tests/test_stock_flow_mental.py",
+    "tests/test_strategic_positioning.py",
+    "tests/test_strategic_reserve.py",
+    "tests/test_strategy_allocation.py",
+    "tests/test_strategy_cascade.py",
+    "tests/test_strategy_choices.py",
+    "tests/test_strategy_coherence.py",
+    "tests/test_strategy_consultation.py",
+    "tests/test_strategy_contingency.py",
+    "tests/test_strategy_evidence.py",
+    "tests/test_strategy_execution.py",
+    "tests/test_strategy_foresight.py",
+    "tests/test_strategy_governance.py",
+    "tests/test_strategy_kernel.py",
+    "tests/test_strategy_kpi_refresh.py",
+    "tests/test_strategy_map.py",
+    "tests/test_strategy_markup.py",
+    "tests/test_strategy_monitoring.py",
+    "tests/test_strategy_portfolio_execution.py",
+    "tests/test_strategy_portfolio_selection.py",
+    "tests/test_strategy_review.py",
+    "tests/test_strategy_risk_evidence.py",
+    "tests/test_strategy_variance.py",
+    "tests/test_swot.py",
+    "tests/test_swot_enhanced.py",
+    "tests/test_systems_thinking.py",
+    "tests/test_tactical_layer.py",
+    "tests/test_technology_roadmap.py",
+    "tests/test_telemetry_freshness.py",
+    "tests/test_temporal_integrity.py",
+    "tests/test_threatcasting.py",
+    "tests/test_threatcasting_cli_compat.py",
+    "tests/test_token_dao_multifarm.py",
+    "tests/test_traceability.py",
+    "tests/test_treasury.py",
+    "tests/test_treasury_ops.py",
+    "tests/test_treasury_propose.py",
+    "tests/test_treasury_provisioning.py",
+    "tests/test_tree_tracking.py",
+    "tests/test_trend_change_points.py",
+    "tests/test_trend_estimator.py",
+    "tests/test_trend_forecasting.py",
+    "tests/test_trend_smoothing.py",
+    "tests/test_triple_store.py",
+    "tests/test_true_cost_accounting.py",
+    "tests/test_upgrade.py",
+    "tests/test_upgrade_integration.py",
+    "tests/test_value_stream.py",
+    "tests/test_value_stream_defs.py",
+    "tests/test_velocity_tracker.py",
+    "tests/test_vision_mission.py",
+    "tests/test_waste_management.py",
+    "tests/test_weather_forecast.py",
+    "tests/test_work_selection.py",
+    "tests/test_workflow_spec_conformance.py",
+    "tests/test_workflow_specs.py",
+    "tests/test_yield_monitoring.py"
+  ],
+  "vendor_import_edges": [
+    {
+      "line": 131,
+      "module": "clickhouse_connect",
+      "path": "services/export/exporter.py",
+      "provider": "clickhouse"
+    },
+    {
+      "line": 7,
+      "module": "prefect",
+      "path": "services/flows/__init__.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 7,
+      "module": "prefect.flow",
+      "path": "services/flows/__init__.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 7,
+      "module": "prefect.task",
+      "path": "services/flows/__init__.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/anomaly_detection.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/anomaly_detection.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/climate_data.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/climate_data.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/credit_adjustment.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/credit_adjustment.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/dashboards.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/dashboards.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/eas_indexer.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/eas_indexer.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/freshness.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/freshness.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/gnosis_indexer.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/gnosis_indexer.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/health_check.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/health_check.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/market_data.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/market_data.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/metrics.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/metrics.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 6,
+      "module": "prefect",
+      "path": "services/flows/pipelines.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 6,
+      "module": "prefect.flow",
+      "path": "services/flows/pipelines.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 6,
+      "module": "prefect.task",
+      "path": "services/flows/pipelines.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 7,
+      "module": "prefect.tasks",
+      "path": "services/flows/pipelines.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 7,
+      "module": "prefect.tasks.task_input_hash",
+      "path": "services/flows/pipelines.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/price_feed.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/price_feed.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/remote_sensing.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/remote_sensing.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/rpc_indexer.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/rpc_indexer.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/sensors.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/sensors.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect",
+      "path": "services/flows/weather.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 3,
+      "module": "prefect.flow",
+      "path": "services/flows/weather.py",
+      "provider": "prefect"
+    },
+    {
+      "line": 10,
+      "module": "grpc",
+      "path": "services/grpc/auth.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 15,
+      "module": "grpc",
+      "path": "services/grpc/cli.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 16,
+      "module": "grpc_health.v1",
+      "path": "services/grpc/cli.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 16,
+      "module": "grpc_health.v1.health_pb2",
+      "path": "services/grpc/cli.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 16,
+      "module": "grpc_health.v1.health_pb2_grpc",
+      "path": "services/grpc/cli.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 9,
+      "module": "grpc",
+      "path": "services/grpc/credit_class_service.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 8,
+      "module": "grpc",
+      "path": "services/grpc/data_service.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 5,
+      "module": "grpc",
+      "path": "services/grpc/health.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 6,
+      "module": "grpc_health.v1",
+      "path": "services/grpc/health.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 6,
+      "module": "grpc_health.v1.health_pb2",
+      "path": "services/grpc/health.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 13,
+      "module": "grpc_health.v1.health_pb2",
+      "path": "services/grpc/health.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 19,
+      "module": "grpc_health.v1.health_pb2",
+      "path": "services/grpc/health.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 13,
+      "module": "grpc_health.v1.health_pb2.HealthCheckResponse",
+      "path": "services/grpc/health.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 19,
+      "module": "grpc_health.v1.health_pb2.HealthCheckResponse",
+      "path": "services/grpc/health.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 6,
+      "module": "grpc_health.v1.health_pb2_grpc",
+      "path": "services/grpc/health.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 7,
+      "module": "grpc",
+      "path": "services/grpc/interceptors.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 10,
+      "module": "grpc",
+      "path": "services/grpc/server.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 11,
+      "module": "grpc_health.v1",
+      "path": "services/grpc/server.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 11,
+      "module": "grpc_health.v1.health_pb2_grpc",
+      "path": "services/grpc/server.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 12,
+      "module": "grpc_reflection.v1alpha",
+      "path": "services/grpc/server.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 12,
+      "module": "grpc_reflection.v1alpha.reflection",
+      "path": "services/grpc/server.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 64,
+      "module": "clickhouse_connect",
+      "path": "services/ingestion/base.py",
+      "provider": "clickhouse"
+    },
+    {
+      "line": 178,
+      "module": "paho.mqtt.client",
+      "path": "services/ingestion/mqtt_actuator.py",
+      "provider": "mqtt"
+    },
+    {
+      "line": 310,
+      "module": "paho.mqtt.client",
+      "path": "services/ingestion/mqtt_subscriber.py",
+      "provider": "mqtt"
+    },
+    {
+      "line": 5,
+      "module": "grpc",
+      "path": "services/security/interceptor.py",
+      "provider": "grpc"
+    }
+  ]
+}

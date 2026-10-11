@@ -1,0 +1,38 @@
+# Opt-in private gRPC transport; combine only with the standalone candidate.
+services:
+  grpc:
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: grpc
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 40s
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut}
+      KOKONUT_ENV: production
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}}
+      KOKONUT_FEATURE_DIRECTUS: "false"
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      KOKONUT_FEATURE_GRPC: "true"
+      KOKONUT_FEATURE_METABASE: "false"
+      KOKONUT_FEATURE_MQTT: "false"
+      KOKONUT_FEATURE_PREFECT: "false"
+      GRPC_PORT: "50051"
+      GRPC_MAX_WORKERS: "4"
+      GRPC_DB_MIN_CONN: "1"
+      GRPC_DB_MAX_CONN: "5"
+    networks:
+      - kernel
+    healthcheck:
+      test: ["CMD", "python3", "-m", "services.grpc.cli", "health", "--target", "127.0.0.1:50051"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s

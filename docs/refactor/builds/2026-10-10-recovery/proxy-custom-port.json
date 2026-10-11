@@ -1,0 +1,56 @@
+{
+  "check": "kernel-caddy-configurable-loopback-port",
+  "date_local": "2026-10-10",
+  "phase": 6,
+  "compose_project": "kokonut-kernel-proxy-custom-port-20261011",
+  "caddy_image": "caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+  "candidate_app": {
+    "container": "kokonut-kernel-candidate-app-1",
+    "reused_existing_healthy_container": true,
+    "rebuilt_or_restarted": false
+  },
+  "configuration": {
+    "KOKONUT_KERNEL_HTTP_PORT": "18088",
+    "KOKONUT_KERNEL_HTTPS_PORT": "18448",
+    "caddy_https_port_environment": "18448"
+  },
+  "isolation": {
+    "proxy_host_bindings": [
+      "127.0.0.1:18088->80/tcp",
+      "127.0.0.1:18448->443/tcp"
+    ],
+    "upstream_network": "kokonut-kernel-candidate_kernel",
+    "candidate_database_rebuilt_or_restarted": false,
+    "legacy_stack_started": false
+  },
+  "checks": {
+    "compose_model": "valid; alternate ports published only on 127.0.0.1 and HTTPS port passed to Caddy",
+    "caddy_validate": "passed",
+    "http_redirect": {
+      "url": "http://localhost:18088/health",
+      "status": 308,
+      "location": "https://localhost:18448/health"
+    },
+    "followed_tls_health": {
+      "final_status": 200,
+      "redirect_count": 1,
+      "local_ca_explicitly_trusted": true,
+      "certificate_hostname_verified": true
+    }
+  },
+  "side_effects": {
+    "gateway_audit": "Health request traversed normal gateway middleware; audit persistence was not queried",
+    "farm_or_sensor_domain_writes": false,
+    "schema_migrations": false,
+    "pytest_suite": false
+  },
+  "not_covered": [
+    "non-loopback or public ingress",
+    "public DNS, ACME, or external certificates",
+    "OS/browser trust-store installation",
+    "mobile, upload, or full authorization parity",
+    "CORS and rate-limit behavior",
+    "multiple trusted proxy hops"
+  ],
+  "cleanup": "Removed the temporary proxy container, its uniquely named project volumes, and temporary override/CA files. The existing candidate app/database remain running; legacy containers were not started."
+}

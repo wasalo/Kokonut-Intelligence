@@ -1,0 +1,81 @@
+{
+  "evidence_version": 1,
+  "recorded_at": "2026-10-11T15:07:13.022641+00:00",
+  "check": "event worker process crash after handler side effect and before receipt update",
+  "scope": "One synthetic crisp_scored event, one target CRISP cache row and one sentinel cache row. No canonical farm/domain record or external integration was touched.",
+  "recovery_deployment": {
+    "compose_project": "kokonut-kernel-recovery-handler-b2-20261011",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "operator_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+    "network": "kokonut-kernel-recovery-handler-b2-20261011_fixture",
+    "network_internal": true,
+    "published_ports": [],
+    "postgres_volume": "kokonut-kernel-recovery-handler-b2-20261011_fixture-postgres-data",
+    "media_volume": "kokonut-kernel-recovery-handler-b2-20261011_fixture-private-media",
+    "database_stopped_after_check": true,
+    "volumes_retained": true,
+    "legacy_compose_project_touched": false
+  },
+  "run": {
+    "run_id": "adee570a-1adb-4483-9fe9-7899749101c1",
+    "event_id": "26ff6029-0aec-55fa-a7af-22c9750f82d6",
+    "handler_id": "60c50b41-5d46-46c0-bf7e-044d498b15c9",
+    "handler": "services.cache.events.handle_crisp_scored",
+    "target_location_id": "68c63869-1004-5182-a468-497e6f2d9f2b",
+    "sentinel_location_id": "a9c4e4f3-56ec-5913-8caa-222cfff6dfc4",
+    "crash_worker": "kernel-b2-crash-after-effect",
+    "recovery_worker": "kernel-b2-crash-recovery"
+  },
+  "crash_checkpoint": {
+    "worker_exit_code": 86,
+    "crash_point": "after handler success and committed cache effect, before delivery receipt update",
+    "event_status": "processing",
+    "lease_owner": "kernel-b2-crash-after-effect",
+    "retry_count": 0,
+    "delivery_status": "processing",
+    "delivery_attempt_count": 1,
+    "handler_log_count": 0,
+    "target_cache_rows_invalidated": 1,
+    "sentinel_cache_rows_preserved": 1
+  },
+  "recovery": {
+    "lease_expiry_accelerated_for_synthetic_event": true,
+    "event_lease_after_guarded_expiry": "2026-10-11T15:06:34.324280+00:00",
+    "cli_command": "python3 -m services.events --process --batch-size 1 --worker-id kernel-b2-crash-recovery",
+    "cli_result": {
+      "processed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "lease_lost": 0
+    },
+    "event_status": "completed",
+    "final_worker": "kernel-b2-crash-recovery",
+    "retry_count": 0,
+    "delivery_status": "success",
+    "delivery_attempt_count": 2,
+    "successful_handler_log_count": 1,
+    "target_cache_rows_invalidated_once": 1,
+    "sentinel_cache_rows_preserved": 1,
+    "recovered_handler_was_reinvoked": true,
+    "second_cache_update_invalidated_zero_rows": true
+  },
+  "unrelated_seeded_fixture_event": {
+    "event_id": "f0000000-0000-4000-8000-000000000005",
+    "lease_timestamp_before": "2026-10-10T10:01:00+00:00",
+    "temporarily_deferred_to_avoid_global_claim": true,
+    "lease_timestamp_restored_exactly": "2026-10-10T10:01:00+00:00",
+    "other_record_fields_changed": false
+  },
+  "source_sha256": {
+    "scripts/fixtures/kernel-recovery-crash-after-effect.py": "aeef7867aa002fd6ec0e93bc59dcb1f3bb3336005ec3b0c4483b9e881b42308f",
+    "services/events/bus.py": "c5976fc2c718fbb8df37f6640ed52beaeb848666dda8bd44b5c8a70fe4681086",
+    "services/events/cli.py": "bb6f0255255f2310470bc85d13e5a6a5cb3062cf3121772b67cb6392b07bf908",
+    "services/cache/events.py": "3d281b3dc322b94091587f49e523c98142a2be1f607975ec9358b8aa234ebc1d",
+    "services/cache/cache.py": "196e7d26014cc6a1a9b6c35490f3101044094937ae50dd47bf87fdfeb3de90ee",
+    "services/common/database.py": "3515dca6f5cedd4c48f3219d5c6033ac9160e259eb8640fe3e64044247a1de3b"
+  },
+  "limitations": [
+    "This verifies duplicate invocation only for the idempotent CRISP cache invalidation handler; it does not prove exactly-once behavior for non-idempotent or external side effects.",
+    "The synthetic event lease was expired by a guarded update instead of waiting for its full lease duration."
+  ]
+}

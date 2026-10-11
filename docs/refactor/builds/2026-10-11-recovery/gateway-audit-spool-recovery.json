@@ -1,0 +1,69 @@
+{
+  "check": "Gateway audit outage journaling and replay after app-container replacement",
+  "date": "2026-10-11",
+  "image": {
+    "tag": "kokonut-kernel-portability-app:local",
+    "image_id": "sha256:14b398052b1d4590cfe3944b47a7558de659f9a1fa22b4652acf7085358db361"
+  },
+  "deployment": {
+    "compose_project": "kokonut-kernel-portability",
+    "database_migration": 373,
+    "network": "private Compose network without published host ports",
+    "spool": "dedicated named volume mounted at /var/lib/kokonut/gateway-audit",
+    "probe_containers": [
+      "kokonut-audit-asgi-probe-a",
+      "kokonut-audit-asgi-probe-b"
+    ]
+  },
+  "outage_request": {
+    "provider": "PostgresRateLimiter",
+    "method": "GET",
+    "path": "/health",
+    "http_status": 503,
+    "retry_after_seconds": 30,
+    "response_body": "generic unavailable response",
+    "gateway_audit_writer": "real GatewayAudit.log through ASGI middleware and thread pool",
+    "postgres_error_type": "OperationalError",
+    "journal_pending_after_failure": 1,
+    "journal_file_mode": "0600",
+    "event_id_present": true,
+    "original_occurrence_time_present": true
+  },
+  "recovery": {
+    "first_app_container_removed": true,
+    "replacement_attached_to_same_spool_volume": true,
+    "postgres_restarted_healthy": true,
+    "replay_trigger": "FastAPI startup worker; no new request required",
+    "replayed_event_count": 1,
+    "database_rows_for_synthetic_event": 1,
+    "original_created_at_preserved": true,
+    "journal_pending_after_replay": 0,
+    "duplicate_event_id_row_count": 1
+  },
+  "bounds": {
+    "default_max_pending_events": 10000,
+    "maximum_serialized_event_bytes": 16384,
+    "configured_one_event_limit_rejected_second_event": true,
+    "existing_event_retained_at_limit": true,
+    "sqlite_file_mode": "0600",
+    "sqlite_directory_policy": "application-owned with no group/world permissions"
+  },
+  "isolation": {
+    "active_candidate_stack_touched": false,
+    "synthetic_audit_rows_removed": 1,
+    "temporary_app_containers_removed": true,
+    "temporary_spool_volume_removed": true,
+    "portability_database_restored_to_stopped_state": true,
+    "migrations_run": false,
+    "domain_rows_written": false,
+    "pytest_suite_run": false
+  },
+  "limitations": [
+    "The local spool survives container replacement only when its per-instance volume survives; it does not protect against host or volume loss.",
+    "Do not share the SQLite journal over a multi-host network filesystem; multi-replica and failover acceptance remains open.",
+    "The journal is bounded. If PostgreSQL is unavailable and the journal fills or cannot be written, the event is logged as a failure but this change does not make every route fail closed.",
+    "The journal is not application-encrypted; protect its volume with host or storage encryption and access controls appropriate for gateway audit data.",
+    "The active candidate continues to use the local rate limiter; candidate provider activation was not performed."
+  ],
+  "rollback": "Removed the exact synthetic access_audit_log row, both temporary app containers, and the temporary spool volume; stopped the portability database. No candidate container, volume, or provider setting changed."
+}

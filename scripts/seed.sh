@@ -27,6 +27,11 @@ echo ""
 source_secrets strict
 
 CH_SERVICE="${CH_SERVICE:-clickhouse}"
+CH_DB="${CH_DB:-kokonut_analytics}"
+if [[ ! "$CH_DB" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+    echo "CH_DB must be a simple database identifier" >&2
+    exit 2
+fi
 DB_WAIT_ATTEMPTS="${DB_WAIT_ATTEMPTS:-60}"
 
 # Wait for database
@@ -54,11 +59,11 @@ if [ "$REFERENCE_ONLY" = "false" ]; then
     echo ""
     echo "Applying ClickHouse schemas..."
     CH_SCHEMA_DIR="$PROJECT_DIR/schemas/clickhouse"
-    if docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --query "SELECT 1" > /dev/null 2>&1; then
+    if docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --database "$CH_DB" --query "SELECT 1" > /dev/null 2>&1; then
         for ch_file in "$CH_SCHEMA_DIR"/*.sql; do
             filename=$(basename "$ch_file")
             echo "  Applying: $filename"
-            docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --multiquery < "$ch_file"
+            docker compose -f "$COMPOSE_FILE" exec -T "$CH_SERVICE" clickhouse-client --user kokonut --password "$CLICKHOUSE_PASSWORD" --database "$CH_DB" --multiquery < "$ch_file"
         done
         echo "ClickHouse schemas applied."
     else

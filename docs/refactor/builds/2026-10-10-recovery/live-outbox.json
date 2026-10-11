@@ -1,0 +1,14 @@
+{
+  "checks": {
+    "insert_before_ack_crash_replay_deduplicated_within_window": true,
+    "successful_records_not_redelivered": true,
+    "json_datetime_nullable_uuid_and_selected_database_delivery": true,
+    "v3_summary_matches_postgres_outbox_payload_aggregates": true
+  },
+  "raw_readings": 3,
+  "daily_average": 20.0,
+  "scope": "Live clickhouse-connect and PostgreSQL outbox; one deterministic insert-before-ack crash inside configured block window. Canonical domain source ingestion, window eviction, restart, concurrent writers and other payload types remain unassessed.",
+  "operator_image": "sha256:aa8a54ebff884945c2104a792cd9badfcd184e0216114a9bf3afbe4e9bea0a38",
+  "execution": "Local optional-driver image plus read-only final outbox source override; fresh private analytics volume. Source override is not bundled in recorded image.",
+  "source_sha256": "06a4a112b72ab72b4291740a4827080de9289c862b3ac525f49aeb480fca103e"
+}

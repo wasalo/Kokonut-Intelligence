@@ -34,9 +34,16 @@ class AuditLogger:
         ip_address: str | None = None,
         user_agent: str | None = None,
         metadata: dict | None = None,
+        event_id: str | None = None,
+        occurred_at: datetime | str | None = None,
     ) -> str:
         """Log an access attempt. Returns the log entry ID."""
-        log_id = str(uuid.uuid4())
+        log_id = str(uuid.uuid4()) if event_id is None else str(uuid.UUID(str(event_id)))
+        if isinstance(occurred_at, str):
+            occurred_at = datetime.fromisoformat(occurred_at)
+        if occurred_at is not None and occurred_at.tzinfo is None:
+            raise ValueError("occurred_at must include a timezone")
+        created_at = occurred_at or datetime.now(timezone.utc)
         conn = self._get_conn()
 
         try:
@@ -45,14 +52,17 @@ class AuditLogger:
                     """
                     INSERT INTO access_audit_log
                         (id, caller, capability_token_id, resource_type,
-                         resource_id, action, status, ip_address, user_agent, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                         resource_id, action, status, ip_address, user_agent, metadata,
+                         created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO NOTHING
                     """,
                     (
                         log_id, caller, capability_token_id,
                         resource_type, resource_id, action, status,
                         ip_address, user_agent,
                         __import__("json").dumps(metadata) if metadata else None,
+                        created_at,
                     ),
                 )
             conn.commit()

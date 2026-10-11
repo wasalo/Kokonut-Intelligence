@@ -118,7 +118,7 @@ async def mobile_vault_script():
 
 
 def get_media_store():
-    """Return the configured private S3-compatible object-store adapter."""
+    """Return the explicitly configured private media storage adapter."""
     from services.mobile.media_storage import create_media_store
 
     return create_media_store()

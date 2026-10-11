@@ -1,0 +1,17 @@
+{
+  "checks": {
+    "orphan_replay_rejected": true,
+    "operator_identity_and_reason_required": true,
+    "expired_lease_reclaimed_and_stale_owner_rejected": true,
+    "successful_delivery_skipped_on_retry": true,
+    "bounded_retry_reaches_durable_dead_letter": true,
+    "replay_audited_and_duplicate_rejected": true,
+    "replay_preserves_successful_delivery": true,
+    "disposal_audited_and_duplicate_rejected": true
+  },
+  "scope": "Real PostgreSQL durable state; controlled handler outcomes; no domain effects, timeout or concurrency certification.",
+  "operator_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+  "fixture_container": "kokonut-kernel-recovery-fixture-database-1",
+  "check_script_sha256": "3682139a6e4b4496f8a7c30aacf102fe287b0b97fa2731394be0e464ea07a6ce",
+  "execution": "Dedicated retained fixture after host restart; host project/image/volume/network/schema guard passed. First attempt failed at overly broad enabled-handler precondition before any claim; corrected to synthetic event type and reran successfully."
+}

@@ -1,0 +1,66 @@
+{
+  "format": 1,
+  "created_at": "2026-10-10T23:04:59.122681+00:00",
+  "archive": "legacy-storage.tar.age",
+  "bytes": 2887514584,
+  "sha256": "53402249c4a575bafccfc380d293ff46a964b83f98e2998e33d9dcdedf269b77",
+  "helper_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+  "volumes": {
+    "volume-0": "37fd1f759248c37b3d3a8bf527836e73f49939c4f5817ecd3be27d5e2b32cd96",
+    "volume-1": "f7bd99b76ae32ea1203e6d4c4674802b5878b451a323c84088cb853d09042e9f",
+    "volume-2": "kokonut-intelligence_caddy-config",
+    "volume-3": "kokonut-intelligence_caddy-data",
+    "volume-4": "kokonut-intelligence_clickhouse-data",
+    "volume-5": "kokonut-intelligence_clickhouse-logs",
+    "volume-6": "kokonut-intelligence_directus-uploads",
+    "volume-7": "kokonut-intelligence_metabase-data",
+    "volume-8": "kokonut-intelligence_mosquitto-data",
+    "volume-9": "kokonut-intelligence_postgres-data"
+  },
+  "sources": [
+    {
+      "container": "/kokonut-intelligence-database-1",
+      "image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5"
+    },
+    {
+      "container": "/kokonut-intelligence-cache-1",
+      "image": "sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
+    },
+    {
+      "container": "/kokonut-intelligence-directus-1",
+      "image": "sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d"
+    },
+    {
+      "container": "/kokonut-intelligence-metabase-1",
+      "image": "sha256:22ddc782a45f8aecf47c0f039b86a323435565595643e429fb33d29939b41675"
+    },
+    {
+      "container": "/kokonut-intelligence-clickhouse-1",
+      "image": "sha256:a9d328123ff8a61bf6b16448528b577d59deb85758172e13b09054b0727f8adf"
+    },
+    {
+      "container": "/kokonut-intelligence-mosquitto-1",
+      "image": "sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797"
+    },
+    {
+      "container": "/kokonut-intelligence-caddy-1",
+      "image": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648"
+    },
+    {
+      "container": "/kokonut-intelligence-gateway-1",
+      "image": "sha256:55dd5a04a4614b877eb65ab707082f310306fc4e69863b8225435aa1a9a2c671"
+    },
+    {
+      "container": "/kokonut-intelligence-grpc-1",
+      "image": "sha256:95bc0578d6df09f8834581cf01a8f4ccbd61224e2459d1a34c47112802538637"
+    }
+  ],
+  "bindings": [
+    "config/",
+    "extensions/",
+    ".env.sops"
+  ],
+  "scope": "Stopped volume files and selected encrypted configuration; no external services, age identity, application checkout or independent remote backup.",
+  "restore_rehearsed": false,
+  "warning": "Raw PostgreSQL/ClickHouse files require compatible engines and crash recovery; not logical portable dumps."
+}

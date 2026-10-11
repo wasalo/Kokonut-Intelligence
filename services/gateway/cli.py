@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import sys
+
 from services.common.cli import print_json
+
 
 def cmd_serve(args):
     """Start the gateway server."""
@@ -21,7 +23,9 @@ def cmd_serve(args):
 
     from services.gateway.app import create_app
     app = create_app()
-    uvicorn.run(app, host="0.0.0.0", port=args.port, log_level="info")
+    # Preserve socket-peer identity; forwarding trust requires a separate,
+    # explicitly scoped deployment policy rather than inherited environment.
+    uvicorn.run(app, host="0.0.0.0", port=args.port, log_level="info", proxy_headers=False)
     return 0
 
 

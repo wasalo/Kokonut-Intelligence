@@ -1,0 +1,1148 @@
+{
+  "card_descriptions_or_user_records_read": false,
+  "cards": [
+    {
+      "archived": false,
+      "card_id": 1,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "fields": 2,
+        "joins": 1
+      },
+      "name": "Orders + People",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "PEOPLE",
+          "schema": "PUBLIC"
+        },
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "table"
+    },
+    {
+      "archived": false,
+      "card_id": 2,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1
+      },
+      "name": "Revenue by state",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "saved_question"
+      ],
+      "source_tables": [],
+      "visualization": "map"
+    },
+    {
+      "archived": false,
+      "card_id": 3,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 3,
+        "order-by": 1
+      },
+      "name": "Customer satisfaction per category",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "bar"
+    },
+    {
+      "archived": false,
+      "card_id": 4,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 4,
+        "joins": 1
+      },
+      "name": "Product category orders per age group",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table",
+        "saved_question"
+      ],
+      "source_tables": [
+        {
+          "name": "PRODUCTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "bar"
+    },
+    {
+      "archived": false,
+      "card_id": 5,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "filter": 4,
+        "order-by": 1
+      },
+      "name": "Customer survey responses",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "FEEDBACK",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "table"
+    },
+    {
+      "archived": false,
+      "card_id": 6,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 2
+      },
+      "name": "Checkout funnel",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "nested_query",
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ANALYTIC_EVENTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "funnel"
+    },
+    {
+      "archived": false,
+      "card_id": 7,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 3
+      },
+      "name": "Product breakdown",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "nested_query",
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "pie"
+    },
+    {
+      "archived": false,
+      "card_id": 8,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 3,
+        "breakout": 3
+      },
+      "name": "Total order amount vs. discount given",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "scatter"
+    },
+    {
+      "archived": false,
+      "card_id": 9,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 5
+      },
+      "name": "Revenue",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "line"
+    },
+    {
+      "archived": false,
+      "card_id": 10,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 5
+      },
+      "name": "Orders according to sources per quarter",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "pivot"
+    },
+    {
+      "archived": false,
+      "card_id": 11,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 3
+      },
+      "name": "User flow diagram",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "nested_query",
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ANALYTIC_EVENTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "sankey"
+    },
+    {
+      "archived": false,
+      "card_id": 12,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 4,
+        "breakout": 2,
+        "filter": 5
+      },
+      "name": "Revenue and orders over time",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "combo"
+    },
+    {
+      "archived": false,
+      "card_id": 13,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 4,
+        "breakout": 2,
+        "filter": 4
+      },
+      "name": "Revenue by product category",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "bar"
+    },
+    {
+      "archived": false,
+      "card_id": 14,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 5
+      },
+      "name": "Subscription seats over time",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "nested_query",
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ACCOUNTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "waterfall"
+    },
+    {
+      "archived": false,
+      "card_id": 15,
+      "dashboard_placements": 1,
+      "feature_counts": {},
+      "name": "Revenue per quarter",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "unresolved"
+      ],
+      "source_tables": [],
+      "visualization": "smartscalar"
+    },
+    {
+      "archived": false,
+      "card_id": 16,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 3
+      },
+      "name": "Number of subscriptions",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "nested_query",
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ANALYTIC_EVENTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "area"
+    },
+    {
+      "archived": false,
+      "card_id": 17,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "filter": 4
+      },
+      "name": "Revenue goal for this quarter",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "progress"
+    },
+    {
+      "archived": false,
+      "card_id": 18,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "joins": 1
+      },
+      "name": "Product category orders per age",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table",
+        "saved_question"
+      ],
+      "source_tables": [
+        {
+          "name": "PRODUCTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "bar"
+    },
+    {
+      "archived": false,
+      "card_id": 19,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 5
+      },
+      "name": "Number of Orders",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "line"
+    },
+    {
+      "archived": false,
+      "card_id": 20,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1
+      },
+      "name": "Total orders by product category",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "pie"
+    },
+    {
+      "archived": false,
+      "card_id": 21,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 6,
+        "order-by": 1
+      },
+      "name": "Best selling products",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "nested_query",
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "row"
+    },
+    {
+      "archived": false,
+      "card_id": 22,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1
+      },
+      "name": "Average product rating",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "PRODUCTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "gauge"
+    },
+    {
+      "archived": false,
+      "card_id": 23,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "fields": 10,
+        "filter": 4,
+        "order-by": 1
+      },
+      "name": "Most recent subscription",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ACCOUNTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "object"
+    },
+    {
+      "archived": false,
+      "card_id": 24,
+      "dashboard_placements": 1,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 5
+      },
+      "name": "Orders by product category",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "line"
+    },
+    {
+      "archived": false,
+      "card_id": 25,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "fields": 10,
+        "filter": 4,
+        "order-by": 1
+      },
+      "name": "All subscriptions in table view",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ACCOUNTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "table"
+    },
+    {
+      "archived": false,
+      "card_id": 26,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 3
+      },
+      "name": "Heavy-Duty Silk Chair trend",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "smartscalar"
+    },
+    {
+      "archived": false,
+      "card_id": 27,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 5
+      },
+      "name": "Quantity sold per quarter",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "smartscalar"
+    },
+    {
+      "archived": false,
+      "card_id": 28,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 4
+      },
+      "name": "Revenue per age group",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "saved_question"
+      ],
+      "source_tables": [],
+      "visualization": "bar"
+    },
+    {
+      "archived": false,
+      "card_id": 29,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 3
+      },
+      "name": "Enormous Wool Car trend",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "smartscalar"
+    },
+    {
+      "archived": false,
+      "card_id": 30,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 4
+      },
+      "name": "Unique customers per month",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "saved_question"
+      ],
+      "source_tables": [],
+      "visualization": "smartscalar"
+    },
+    {
+      "archived": false,
+      "card_id": 31,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 2
+      },
+      "name": "Checkout funnel - Modified",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "nested_query",
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ANALYTIC_EVENTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "funnel"
+    },
+    {
+      "archived": false,
+      "card_id": 32,
+      "dashboard_placements": 0,
+      "feature_counts": {},
+      "name": "People with age",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "PEOPLE",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "table"
+    },
+    {
+      "archived": false,
+      "card_id": 33,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1
+      },
+      "name": "Revenue per individual age",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "saved_question"
+      ],
+      "source_tables": [],
+      "visualization": "bar"
+    },
+    {
+      "archived": false,
+      "card_id": 34,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 5
+      },
+      "name": "Discounts given per quarter",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "smartscalar"
+    },
+    {
+      "archived": false,
+      "card_id": 35,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "joins": 1
+      },
+      "name": "Orders by source per individual age",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table",
+        "saved_question"
+      ],
+      "source_tables": [
+        {
+          "name": "PRODUCTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "bar"
+    },
+    {
+      "archived": false,
+      "card_id": 36,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 2,
+        "filter": 4,
+        "joins": 1
+      },
+      "name": "Orders by source per age group",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table",
+        "saved_question"
+      ],
+      "source_tables": [
+        {
+          "name": "PRODUCTS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "bar"
+    },
+    {
+      "archived": false,
+      "card_id": 37,
+      "dashboard_placements": 0,
+      "feature_counts": {
+        "aggregation": 1,
+        "breakout": 1,
+        "filter": 3
+      },
+      "name": "Aerodynamic Copper Knife trend",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "physical_table"
+      ],
+      "source_tables": [
+        {
+          "name": "ORDERS",
+          "schema": "PUBLIC"
+        }
+      ],
+      "visualization": "smartscalar"
+    },
+    {
+      "archived": false,
+      "card_id": 38,
+      "dashboard_placements": 1,
+      "feature_counts": {},
+      "name": "Order value distribution by category",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "unresolved"
+      ],
+      "source_tables": [],
+      "visualization": "boxplot"
+    },
+    {
+      "archived": false,
+      "card_id": 39,
+      "dashboard_placements": 1,
+      "feature_counts": {},
+      "name": "Total orders this quarter",
+      "query_mode": "query",
+      "query_type": "query",
+      "source_engine": "h2",
+      "source_reference_kinds": [
+        "unresolved"
+      ],
+      "source_tables": [],
+      "visualization": "scalar"
+    }
+  ],
+  "dashboards": [
+    {
+      "archived": false,
+      "dashboard_id": 1,
+      "name": "E-commerce Insights",
+      "placements": [
+        {
+          "card_id": 15,
+          "card_name": "Revenue per quarter",
+          "column": 0,
+          "height": 4,
+          "row": 2,
+          "width": 8
+        },
+        {
+          "card_id": 7,
+          "card_name": "Product breakdown",
+          "column": 0,
+          "height": 8,
+          "row": 2,
+          "width": 12
+        },
+        {
+          "card_id": 11,
+          "card_name": "User flow diagram",
+          "column": 0,
+          "height": 7,
+          "row": 2,
+          "width": 24
+        },
+        {
+          "card_id": 17,
+          "card_name": "Revenue goal for this quarter",
+          "column": 8,
+          "height": 4,
+          "row": 2,
+          "width": 9
+        },
+        {
+          "card_id": 38,
+          "card_name": "Order value distribution by category",
+          "column": 12,
+          "height": 8,
+          "row": 2,
+          "width": 12
+        },
+        {
+          "card_id": 39,
+          "card_name": "Total orders this quarter",
+          "column": 17,
+          "height": 4,
+          "row": 2,
+          "width": 7
+        },
+        {
+          "card_id": 12,
+          "card_name": "Revenue and orders over time",
+          "column": 0,
+          "height": 8,
+          "row": 6,
+          "width": 24
+        },
+        {
+          "card_id": 6,
+          "card_name": "Checkout funnel",
+          "column": 0,
+          "height": 7,
+          "row": 9,
+          "width": 14
+        },
+        {
+          "card_id": 16,
+          "card_name": "Number of subscriptions",
+          "column": 14,
+          "height": 7,
+          "row": 9,
+          "width": 10
+        },
+        {
+          "card_id": 21,
+          "card_name": "Best selling products",
+          "column": 0,
+          "height": 8,
+          "row": 10,
+          "width": 12
+        },
+        {
+          "card_id": 2,
+          "card_name": "Revenue by state",
+          "column": 12,
+          "height": 8,
+          "row": 10,
+          "width": 12
+        },
+        {
+          "card_id": 20,
+          "card_name": "Total orders by product category",
+          "column": 0,
+          "height": 7,
+          "row": 16,
+          "width": 12
+        },
+        {
+          "card_id": 14,
+          "card_name": "Subscription seats over time",
+          "column": 0,
+          "height": 7,
+          "row": 16,
+          "width": 14
+        },
+        {
+          "card_id": 13,
+          "card_name": "Revenue by product category",
+          "column": 12,
+          "height": 7,
+          "row": 16,
+          "width": 12
+        },
+        {
+          "card_id": 23,
+          "card_name": "Most recent subscription",
+          "column": 14,
+          "height": 6,
+          "row": 16,
+          "width": 10
+        },
+        {
+          "card_id": 8,
+          "card_name": "Total order amount vs. discount given",
+          "column": 0,
+          "height": 8,
+          "row": 18,
+          "width": 24
+        },
+        {
+          "card_id": 24,
+          "card_name": "Orders by product category",
+          "column": 0,
+          "height": 7,
+          "row": 23,
+          "width": 24
+        },
+        {
+          "card_id": 18,
+          "card_name": "Product category orders per age",
+          "column": 0,
+          "height": 6,
+          "row": 26,
+          "width": 24
+        },
+        {
+          "card_id": 10,
+          "card_name": "Orders according to sources per quarter",
+          "column": 0,
+          "height": 8,
+          "row": 30,
+          "width": 24
+        },
+        {
+          "card_id": 22,
+          "card_name": "Average product rating",
+          "column": 0,
+          "height": 7,
+          "row": 34,
+          "width": 10
+        },
+        {
+          "card_id": 3,
+          "card_name": "Customer satisfaction per category",
+          "column": 10,
+          "height": 7,
+          "row": 34,
+          "width": 14
+        },
+        {
+          "card_id": 5,
+          "card_name": "Customer survey responses",
+          "column": 0,
+          "height": 10,
+          "row": 41,
+          "width": 24
+        }
+      ]
+    }
+  ],
+  "fixture": {
+    "compose_project": "kokonut-kernel-metabase-content-20261011",
+    "connection_values_emitted": false,
+    "database": "metabase",
+    "database_image_digest": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "decryption_streamed_to_pg_restore": true,
+    "domain_source_rows_read": false,
+    "network_internal": true,
+    "plaintext_dump_written_to_disk": false,
+    "published_ports": false,
+    "restored_archive": "backups/legacy-logical-batch2-20261010/metabase.dump.age",
+    "restored_archive_sha256": "6aecd5fbadf449778d2a667d27d89ad00977aaed89184f6d52404b4db31118bb",
+    "runner_image_digest": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "saved_card_queries_executed": false
+  },
+  "query_filter_values_or_rows_read_from_domain_sources": false,
+  "raw_dataset_query_or_sql_printed": false,
+  "result": "passed",
+  "scope": "isolated restored metadata; structural summary only",
+  "summary": {
+    "card_count": 39,
+    "dashboard_count": 1,
+    "dashboard_placement_count": 22,
+    "query_feature_counts": {
+      "aggregation": 39,
+      "breakout": 44,
+      "fields": 22,
+      "filter": 107,
+      "joins": 5,
+      "order-by": 5
+    },
+    "source_engine_counts": {
+      "h2": 39
+    },
+    "source_reference_kind_counts": {
+      "nested_query": 7,
+      "physical_table": 32,
+      "saved_question": 8,
+      "unresolved": 3
+    },
+    "visualization_counts": {
+      "area": 1,
+      "bar": 8,
+      "boxplot": 1,
+      "combo": 1,
+      "funnel": 2,
+      "gauge": 1,
+      "line": 3,
+      "map": 1,
+      "object": 1,
+      "pie": 2,
+      "pivot": 1,
+      "progress": 1,
+      "row": 1,
+      "sankey": 1,
+      "scalar": 1,
+      "scatter": 1,
+      "smartscalar": 7,
+      "table": 4,
+      "waterfall": 1
+    }
+  },
+  "user_count": 1
+}

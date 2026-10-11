@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from typing import Protocol
 from urllib.parse import urlsplit
 
 MAX_MEDIA_BYTES = 2_000_000
@@ -11,6 +12,12 @@ ALLOWED_CONTENT_TYPES = frozenset({"image/jpeg"})
 
 class MediaStorageNotConfigured(RuntimeError):
     """Raised when private object storage is not configured safely."""
+
+
+class PrivateMediaStore(Protocol):
+    def put_private(self, key: str, body: bytes, content_type: str) -> None: ...
+    def head_private(self, key: str) -> dict: ...
+    def delete_private(self, key: str) -> None: ...
 
 
 class S3CompatibleMediaStore:
@@ -48,9 +55,20 @@ def _default_client_factory(**kwargs):
     return boto3.client("s3", config=Config(signature_version="s3v4"), **kwargs)
 
 
-def create_media_store(environ=None, *, client_factory=None) -> S3CompatibleMediaStore:
+def create_media_store(environ=None, *, client_factory=None) -> PrivateMediaStore:
     """Build the adapter from explicit S3-compatible private-bucket settings."""
     source = os.environ if environ is None else environ
+    provider = source.get("MOBILE_MEDIA_PROVIDER", "s3").strip().lower()
+    if provider == "local":
+        from services.mobile.local_media import LocalMediaStore
+
+        directory = source.get("MOBILE_MEDIA_LOCAL_DIRECTORY", "").strip()
+        key = source.get("MOBILE_MEDIA_LOCAL_KEY", "").strip()
+        if not directory or not key:
+            raise MediaStorageNotConfigured("Local media directory and encryption key are required")
+        return LocalMediaStore(directory, key)
+    if provider != "s3":
+        raise MediaStorageNotConfigured("Unknown private media provider")
     names = (
         "MOBILE_MEDIA_S3_ENDPOINT",
         "MOBILE_MEDIA_S3_BUCKET",

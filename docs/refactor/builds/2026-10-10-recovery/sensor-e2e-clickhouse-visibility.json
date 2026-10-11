@@ -1,0 +1,31 @@
+{
+  "scope": "Sanitized ClickHouse query-log evidence from the isolated recovery analytics volume; timestamps are UTC.",
+  "insert_window": {
+    "database": "kokonut_analytics",
+    "completed_insert_queries": 2,
+    "exceptions": 0,
+    "started_at": "2026-10-11T01:43:00.997529Z",
+    "last_completed_at": "2026-10-11T01:43:01.049913Z"
+  },
+  "first_read_window": {
+    "database": "kokonut_analytics",
+    "post_insert_aggregate_reads": 44,
+    "reported_read_rows": 0,
+    "exceptions": 0,
+    "last_read_at": "2026-10-11T01:43:06.000106Z",
+    "observed_aggregate_count": 0
+  },
+  "later_read": {
+    "database": "kokonut_analytics",
+    "at": "2026-10-11T01:43:20.364502Z",
+    "read_rows": 18,
+    "result_rows": 9,
+    "sensor_date_slice_rows": 2
+  },
+  "relevant_settings": {
+    "async_insert": "0",
+    "use_query_cache": "0",
+    "wait_for_async_insert": "1"
+  },
+  "interpretation": "Database selection, configured asynchronous inserts, and query result cache do not explain the delay. Root cause remains undetermined; the outbox acknowledgement/visibility contract needs further investigation."
+}

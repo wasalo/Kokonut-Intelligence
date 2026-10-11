@@ -6,6 +6,11 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 
 | Script | Purpose | Context |
 |--------|---------|---------|
+| `kernel-inventory.py` | Static Kernel capability/dependency inventory without importing services or reading secrets | Manual |
+| `kernel-profile.py` | Print an explicit Kernel candidate Compose command; see docs/refactor/profile-selection.md | Manual |
+| `kernel-portability.py` | Print isolated AMD64/ARM64 evaluation build/readiness commands; see docs/refactor/portability-database.md | Manual |
+| `check-provider-boundaries.py` | Reject optional vendor imports outside declared adapters | CI, manual |
+| `check-requirement-groups.py` | Keep candidate groups aligned with legacy dependency constraints | CI, manual |
 | `setup.sh` | First-run bootstrap: prerequisites check, `.env` creation, data directories, infrastructure startup | Manual |
 | `load-secrets.sh` | Decrypt `.env.sops` via SOPS/age and export into current shell. **Must be sourced**, not executed. | Manual |
 | `seed.sh` | Apply PostgreSQL schema migrations + ClickHouse schemas + Directus permissions + curated seeds | Manual, CI |
@@ -86,3 +91,46 @@ All scripts use Docker Compose service names (not container names):
 - `clickhouse`
 - `directus`
 - `metabase` (only when the `metabase` Compose profile is enabled)
+
+### Scoped Kernel recovery preparation
+
+`bash scripts/kernel-checkpoint.sh SOURCE_CONTAINER NEW_DIRECTORY AGE_RECIPIENT`
+creates an encrypted single-database checkpoint without requiring ClickHouse.
+It excludes roles/grants, other databases and provider/media storage. See
+[scope, isolated restore and remaining gates](../docs/refactor/recovery-preparation.md).
+
+`python3 scripts/kernel-legacy-archive.py --destination NEW_DIRECTORY --recipient AGE_PUBLIC_RECIPIENT`
+streams all attached stopped legacy volumes and selected config into an encrypted
+archive. See [scope and staging restore](../docs/refactor/legacy-storage-preservation.md).
+
+`bash scripts/kernel-legacy-logical-checkpoint.sh NEW_DIRECTORY AGE_PUBLIC_RECIPIENT`
+captures all non-template databases and globals from the isolated no-network legacy
+PostgreSQL clone. See [inventory and restore limits](../docs/refactor/provider-clone-inventory.md).
+
+`python3 scripts/kernel-broker-inventory.py PATH_TO_PERSISTENCE_COPY` counts only
+Mosquitto v6 chunk framing without printing payloads. Prefer a read-only mount of
+the stopped original snapshot; see [limits and evidence](../docs/refactor/analytics-broker-recovery.md).
+
+Local-media recovery commands: `kernel-media-checkpoint.py` and
+`kernel-media-restore.py`. Require quiesced owner-controlled storage and a new
+restore directory. See [full command syntax, key custody and acceptance gaps](../docs/refactor/work-media-recovery.md).
+
+`python3 scripts/kernel-recovery-fixture.py [--apply]` targets only the dedicated
+recovery fixture deployment. It preserves migration history and inserts disabled
+synthetic work transactionally. [Setup and remaining gates](../docs/refactor/recovery-fixture-setup.md).
+
+`kernel-recovery-media.py` authenticates existing synthetic local media before
+registering references on the guarded recovery fixture. See [required inputs and
+limits](../docs/refactor/recovery-media-fixture.md). No enrollment/device token is minted.
+
+`kernel-recovery-event-checks.sh` guards and exercises the retained synthetic event
+fixture with controlled handler outcomes. It mutates work state; preserve its
+checkpoint first. See [recovery evidence](../docs/refactor/builds/2026-10-10-recovery/fixture-events.json).
+
+Outbox recovery operators require actor/reason and schema 374. See [audited operations](../docs/refactor/outbox-operator-audit.md).
+
+`scripts/fixtures/kernel-recovery-sensor-e2e-verify.py` performs a read-only
+verification of the retained single-reading recovery slice across PostgreSQL,
+the outbox, ClickHouse raw rows and sensor-v3 daily summary. It requires the
+isolated recovery fixture and does not create or repair rows. See [scope and
+known visibility observation](../docs/refactor/sensor-entrypoint-recovery.md).

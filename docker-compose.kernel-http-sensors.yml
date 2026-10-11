@@ -1,0 +1,35 @@
+# Optional private HTTP sensor transport; no public ingress is selected here.
+services:
+  http-sensors:
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 40s
+    command: ["python3", "-m", "services.ingestion.http_sensor_receiver", "--port", "8056"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut}
+      KOKONUT_ENV: production
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}}
+      KOKONUT_FEATURE_DIRECTUS: "false"
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      KOKONUT_FEATURE_GRPC: "false"
+      KOKONUT_FEATURE_METABASE: "false"
+      KOKONUT_FEATURE_MQTT: "false"
+      KOKONUT_FEATURE_PREFECT: "false"
+      KOKONUT_SENSOR_TIMESTAMP_MODE: ${KOKONUT_SENSOR_TIMESTAMP_MODE:-legacy}
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8056/api/v1/health', timeout=5).close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - kernel

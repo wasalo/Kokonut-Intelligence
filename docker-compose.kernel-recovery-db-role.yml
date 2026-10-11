@@ -1,0 +1,54 @@
+# Disposable database-role fixture. Internal-only, with no published ports.
+name: kokonut-kernel-runtime-role-recovery
+services:
+  database:
+    image: sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b
+    platform: linux/amd64
+    restart: "no"
+    stop_grace_period: 40s
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
+    volumes:
+      - runtime-role-postgres-data:/var/lib/postgresql/data
+    networks: [runtime-role-recovery]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  runner:
+    profiles: [tools]
+    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    entrypoint: ["python3"]
+    command: ["/workspace/scripts/fixtures/kernel-db-runtime-role-check.py"]
+    working_dir: /workspace
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      KOKONUT_DB_ADMIN_USER: kokonut
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
+      KOKONUT_RUNTIME_USER: kokonut_runtime
+      KOKONUT_RUNTIME_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?Supply a distinct synthetic fixture runtime password}
+      PYTHONPATH: /workspace
+    volumes:
+      - ./VERSION:/workspace/VERSION:ro
+      - ./services:/workspace/services:ro
+      - ./scripts/fixtures/kernel-db-runtime-role-check.py:/workspace/scripts/fixtures/kernel-db-runtime-role-check.py:ro
+    networks: [runtime-role-recovery]
+
+networks:
+  runtime-role-recovery:
+    internal: true
+
+volumes:
+  runtime-role-postgres-data:

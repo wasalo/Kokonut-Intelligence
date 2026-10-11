@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-11",
+  "result": "passed",
+  "scope": "read-only compatibility inventory plus transactional application of the 25 pending current schema migrations to a separate clone of the archived application clone",
+  "source_clone": {
+    "volume": "kokonut-kernel-metabase-reporting-20261011_consumer-role-postgres-data",
+    "database": "kokonut_intelligence",
+    "applied_schema_migrations_before": 344,
+    "applied_seed_migrations_before": 32,
+    "pending_schema_migrations_before": 25,
+    "pending_migrations_applied_to_source_clone": 0
+  },
+  "review_clone": {
+    "volume": "kokonut-kernel-migration-review-20261011_data",
+    "compose_project": "kokonut-kernel-migration-review-20261011",
+    "database": "kokonut_intelligence",
+    "network_mode": "none",
+    "published_ports": [],
+    "migrations_attempted": 25,
+    "migrations_applied": 25,
+    "migration_failures": 0,
+    "applied_schema_migrations_after": 369,
+    "applied_seed_migrations_after": 32,
+    "pending_schema_migrations_after": 0,
+    "source_checksums_validated": true,
+    "pending_migrations_applied": [
+      "schema:353_crop_cycle_noi_view.sql",
+      "schema:354_safe_treasury_accounts.sql",
+      "schema:355_safe_attestation_flow.sql",
+      "schema:356_safe_settlement.sql",
+      "schema:357_field_collector_enrollment_hardening.sql",
+      "schema:358_mobile_private_media.sql",
+      "schema:359_activity_scope_and_outputs.sql",
+      "schema:360_job_role_department_relationships.sql",
+      "schema:361_farm_task_relationships.sql",
+      "schema:362_farm_staff_membership.sql",
+      "schema:363_expense_farm_weekly_plan_scope.sql",
+      "schema:364_reported_activity_output_metrics.sql",
+      "schema:365_expense_weekly_plan_scope_exception.sql",
+      "schema:366_crop_category_extensions.sql",
+      "schema:367_external_grant_tranche.sql",
+      "schema:369_baserow_activity_source_options.sql",
+      "schema:370_baserow_expense_fields.sql",
+      "schema:371_scheduler_run_windows.sql",
+      "schema:372_mqtt_delivery_records.sql",
+      "schema:373_gateway_rate_buckets.sql",
+      "schema:374_clickhouse_outbox_operator_audit.sql",
+      "schema:375_notification_outbox.sql",
+      "schema:376_sensor_anomaly_delivery.sql",
+      "schema:377_kokonut_reporting_contract.sql",
+      "schema:378_optional_extensions.sql"
+    ]
+  },
+  "preflight_observations": {
+    "database_default_transaction_read_only": true,
+    "weekly_plan_farm_location_mismatches": 0,
+    "farm_activity_plot_location_mismatches": 0,
+    "attestation_request_rows": 1,
+    "credit_sell_order_rows": 0,
+    "credit_buy_order_rows": 0,
+    "actuation_log_rows": 0,
+    "weekly_plan_rows": 0,
+    "farm_task_rows": 0,
+    "scheduled_task_rows": 0,
+    "task_run_rows": 0,
+    "preexisting_new_migration_tables": [],
+    "reporting_schema_existed": false,
+    "crop_cycle_noi_view_existed": false,
+    "scheduler_window_index_existed": false,
+    "optional_extensions_already_installed": {
+      "postgis_topology": "3.4.3",
+      "pg_trgm": "1.6",
+      "pg_stat_statements": "1.10"
+    }
+  },
+  "populated_data_comparison": {
+    "method": "MD5 of sorted row JSON after removing only columns introduced by the pending migrations, so the comparison covers columns that existed before migration.",
+    "tables_compared": 16,
+    "unchanged": 16,
+    "changed": [],
+    "fingerprints": "application-migration-review-fingerprints.json"
+  },
+  "expected_schema_additions": {
+    "safe_account_seed_rows": 2,
+    "reporting_views_created": 3,
+    "metric_publication_policy_rows": 0,
+    "other_new_workflow_outbox_transport_and_audit_tables_empty": true,
+    "schema_version_metadata_keys_written": [
+      "safe-treasury-accounts-v1",
+      "safe-attestation-flow-v1",
+      "field-collector-enrollment-v1",
+      "mobile-private-media-v1",
+      "activity-scope-outputs-v1",
+      "safe-settlement-v1"
+    ],
+    "safe_account_seed_invariants_valid": true,
+    "new_column_default_checks_passed": true
+  },
+  "limitations": [
+    "This is compatibility evidence for the inspected copied legacy dataset only; it does not authorize migration on an active or production database.",
+    "The historical SAFE account seeds still require an owner to confirm addresses, chain, owners, and thresholds against current deployment records before production use.",
+    "The crop-cycle NOI view still needs result parity against the native metric implementation and TypeScript hook.",
+    "Mobile media storage transfer, scheduler activation, notification/MQTT delivery, gateway shared-state selection, and populated Metabase card parity remain separate gates."
+  ],
+  "rollback": "Discard the review clone to return to the exact pre-migration state. After a successful migration on an operational target, use configuration/image rollback for compatible additive changes or restore a verified backup for schema/data rollback; do not run destructive down migrations."
+}

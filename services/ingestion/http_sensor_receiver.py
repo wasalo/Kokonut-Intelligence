@@ -12,19 +12,19 @@ Usage:
     uvicorn services.ingestion.http_sensor_receiver:app --host 0.0.0.0 --port 8056
 """
 
-from __future__ import annotations
-
 import hashlib
 import hmac
 import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from services.events.backend import get_event_store
+
 from ..common.logging import get_logger
-from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows
-from .clickhouse_outbox import enqueue
-from .field_validation import SENSOR_RANGES, validate_sensor_reading
+from .base import get_db, hash_payload, log_ingestion
+from .field_validation import get_transport_timestamp_mode, parse_transport_timestamp, validate_sensor_reading
 from .sensor_ingester import get_sensor_type_ranges
+from .sensor_projection import project_sensor_reading
 
 logger = get_logger("ingestion.http_sensor_receiver")
 
@@ -49,9 +49,11 @@ def _get_app():
     if app is not None:
         return app
 
+    timestamp_mode = get_transport_timestamp_mode()
+
     try:
         from fastapi import FastAPI, Header, HTTPException, Request
-        from pydantic import BaseModel
+        from pydantic import BaseModel, Field
     except ImportError:
         logger.error("fastapi not installed. Run: pip install fastapi uvicorn")
         return None
@@ -61,47 +63,63 @@ def _get_app():
         description="HTTP webhook for IoT sensor readings",
         version="1.0.0",
     )
+    from .http_sensor_limits import SensorBodyLimit
+
+    app.add_middleware(SensorBodyLimit)
 
     class SensorReading(BaseModel):
-        device_id: str
+        device_id: str = Field(min_length=1, max_length=255)
         value: float
-        unit: str = ""
-        timestamp: Optional[str] = None
-        quality: str = "good"
+        unit: str = Field(default="", max_length=64)
+        timestamp: Optional[str] = Field(default=None, max_length=128)
+        quality: str = Field(default="good", max_length=32)
 
     class BatchReadings(BaseModel):
-        readings: List[SensorReading]
+        readings: List[SensorReading] = Field(min_length=1, max_length=100)
 
     def _get_device_secret(device_id: str) -> Optional[str]:
         """Get shared secret for a device from metadata."""
         db = get_db()
+        cur = None
         try:
             cur = db.cursor()
             cur.execute(
-                "SELECT metadata->>'shared_secret' FROM sensor_device WHERE slug = %s",
+                "SELECT metadata->>'shared_secret' FROM sensor_device WHERE slug = %s AND status = 'active'",
                 (device_id,),
             )
             row = cur.fetchone()
             return row[0] if row and row[0] else None
         finally:
-            db.close()
+            try:
+                if cur is not None:
+                    cur.close()
+            finally:
+                db.close()
 
-    def _process_reading(reading: SensorReading) -> Dict[str, Any]:
+    def _process_reading(reading: SensorReading, authenticated_secret: str) -> Dict[str, Any]:
         """Process a single sensor reading."""
-        db = get_db()
+        db = None
+        cur = None
         try:
+            db = get_db()
             cur = db.cursor()
+            cur.execute("SET LOCAL lock_timeout = '5s'")
 
             # Look up device
             cur.execute("""
-                SELECT sd.id, sd.location_id, sd.plot_id, st.name AS sensor_type
+                SELECT sd.id, sd.location_id, sd.plot_id, st.name AS sensor_type,
+                       sd.metadata->>'shared_secret'
                 FROM sensor_device sd
                 JOIN sensor_type st ON st.id = sd.sensor_type_id
-                WHERE sd.slug = %s
+                WHERE sd.slug = %s AND sd.status = 'active'
+                FOR SHARE OF sd
             """, (reading.device_id,))
             row = cur.fetchone()
             if not row:
                 return {"status": "error", "message": f"Unknown device: {reading.device_id}"}
+            if not row[4] or not hmac.compare_digest(row[4], authenticated_secret):
+                return {"status": "error", "message": "Device credentials changed; authenticate again",
+                        "retryable": False}
 
             device_db_id = str(row[0])
             location_id = str(row[1])
@@ -109,15 +127,12 @@ def _get_app():
             sensor_type = row[3]
 
             # Parse timestamp
-            if reading.timestamp:
-                ts = datetime.fromisoformat(reading.timestamp.replace("Z", "+00:00"))
-            else:
-                ts = datetime.now(timezone.utc)
-
             try:
-                ranges = get_sensor_type_ranges(db)
-            except Exception:
-                ranges = SENSOR_RANGES
+                ts = parse_transport_timestamp(reading.timestamp, timestamp_mode)
+            except (TypeError, ValueError, OverflowError):
+                return {"status": "error", "message": "Invalid reading timestamp", "retryable": False}
+
+            ranges = get_sensor_type_ranges(db, strict=True)
             validation = validate_sensor_reading(
                 reading.value, sensor_type, reading.unit, ts, reading.quality,
                 ranges=ranges, identity=reading.device_id,
@@ -175,6 +190,25 @@ def _get_app():
                 reading_id, location_id, plot_id, device_db_id, sensor_type,
                 reading.value, reading.unit, ts, quality, db,
             )
+            event_store = get_event_store(conn=db)
+            event_store.publish(
+                "sensor_reading",
+                {
+                    "sensor_id": device_db_id,
+                    "sensor_type": sensor_type,
+                    "location_id": location_id,
+                    "value": reading.value,
+                    "quality": quality,
+                    "reading_date": ts.date().isoformat(),
+                    "reading_time": ts.time().replace(tzinfo=None).isoformat(),
+                    "source": "http_sensor",
+                },
+                source_table="sensor_reading",
+                source_id=reading_id,
+                priority="normal",
+            )
+            # Publish with the same connection so source, health, outbox, and
+            # durable platform event become visible atomically.
             db.commit()
 
             log_ingestion(
@@ -196,9 +230,36 @@ def _get_app():
 
         except Exception as e:
             logger.exception("Error processing reading: %s", e)
-            return {"status": "error", "message": "Unable to process sensor reading"}
+            return {"status": "error", "message": "Unable to process sensor reading", "retryable": True}
         finally:
-            db.close()
+            try:
+                if cur is not None:
+                    cur.close()
+            finally:
+                try:
+                    # Clear rejected, failed, and read-only transactions as well
+                    # as any transaction opened after a successful commit.
+                    if db is not None:
+                        db.rollback()
+                finally:
+                    if db is not None:
+                        db.close()
+
+    def _authenticated_secret(device_id: str) -> Optional[str]:
+        try:
+            return _get_device_secret(device_id)
+        except Exception:
+            logger.exception("Sensor credential lookup unavailable")
+            raise HTTPException(status_code=503, detail="Sensor storage unavailable", headers={"Retry-After": "30"})
+
+    def _process_with_retry_outcome(reading: SensorReading, authenticated_secret: str) -> Dict[str, Any]:
+        try:
+            return _process_reading(reading, authenticated_secret)
+        except Exception:
+            # Cleanup/commit uncertainty can occur after a durable write. The
+            # caller must retry the same timestamp, not generate a new reading.
+            logger.exception("Sensor processing cleanup failed")
+            return {"status": "error", "message": "Unable to process sensor reading", "retryable": True}
 
     @app.post("/api/v1/sensors/{device_id}/readings")
     async def receive_reading(
@@ -208,7 +269,7 @@ def _get_app():
         x_signature: Optional[str] = Header(None),
     ):
         """Receive a single sensor reading."""
-        secret = _get_device_secret(device_id)
+        secret = _authenticated_secret(device_id)
         if not secret or not x_signature or not _verify_signature(
             await request.body(), x_signature, secret
         ):
@@ -218,8 +279,10 @@ def _get_app():
             raise HTTPException(status_code=400, detail="Payload device does not match URL device")
         reading.device_id = device_id
 
-        result = _process_reading(reading)
+        result = _process_with_retry_outcome(reading, secret)
         if result["status"] == "error":
+            if result.get("retryable"):
+                raise HTTPException(status_code=503, detail=result["message"], headers={"Retry-After": "30"})
             raise HTTPException(status_code=400, detail=result["message"])
         return result
 
@@ -231,22 +294,24 @@ def _get_app():
         x_signature: Optional[str] = Header(None),
     ):
         """Receive multiple sensor readings."""
-        secret = _get_device_secret(device_id)
+        secret = _authenticated_secret(device_id)
         if not secret or not x_signature or not _verify_signature(
             await request.body(), x_signature, secret
         ):
             raise HTTPException(status_code=401, detail="Invalid or missing signature")
 
+        if any(reading.device_id != device_id for reading in batch.readings):
+            raise HTTPException(status_code=400, detail="Payload device does not match URL device")
         results = []
         for reading in batch.readings:
-            if reading.device_id != device_id:
-                raise HTTPException(status_code=400, detail="Payload device does not match URL device")
             reading.device_id = device_id
-            result = _process_reading(reading)
+            result = _process_with_retry_outcome(reading, secret)
             results.append(result)
 
         success = sum(1 for r in results if r["status"] == "success")
-        return {"total": len(results), "success": success, "results": results}
+        retryable = sum(1 for r in results if r.get("retryable"))
+        return {"total": len(results), "success": success, "results": results,
+                "retryable": retryable, "retry_after_seconds": 30 if retryable else 0}
 
     @app.get("/api/v1/health")
     async def health():
@@ -257,43 +322,32 @@ def _get_app():
 
 
 def _insert_ch(reading_id, location_id, plot_id, sensor_id, sensor_type, value, unit, timestamp, quality="good", conn=None):
-    """Queue canonical reading; direct writes are demo-only when conn is absent."""
-    columns = ["timestamp", "sensor_id", "sensor_type", "location_id", "plot_id",
-               "value", "unit", "quality", "metadata"]
-    rows = [[timestamp, str(sensor_id), str(sensor_type), str(location_id),
-             str(plot_id or ""), float(value), str(unit or ""), quality, {}]]
+    """Compatibility wrapper over the shared sensor projection."""
+    if conn is not None:
+        return project_sensor_reading(reading_id, location_id, plot_id, sensor_id, sensor_type,
+                                      value, unit, timestamp, quality, conn)
     try:
-        if conn is not None:
-            payload_hash = hash_payload({"reading_id": str(reading_id), "value": value,
-                                         "timestamp": str(timestamp)})
-            enqueue(conn, event_key=f"sensor_reading:sensor_readings:{reading_id}",
-                    source_table="sensor_reading", source_id=str(reading_id),
-                    target_table="sensor_readings", columns=columns, rows=rows,
-                    payload_hash=payload_hash)
-            return
-        # No PostgreSQL transaction means this is an explicit demo/maintenance path.
-        post_clickhouse_rows(
-            "sensor_readings",
-            columns, rows,
-        )
-    except Exception as e:
-        logger.warning("ClickHouse insert failed: %s", e)
-
+        project_sensor_reading(reading_id, location_id, plot_id, sensor_id, sensor_type,
+                               value, unit, timestamp, quality)
+    except Exception as exc:
+        logger.warning("ClickHouse insert failed: %s", exc)
 
 def run(host: str = "0.0.0.0", port: int = 8056):
     """Run the HTTP sensor receiver."""
     try:
         import uvicorn
-    except ImportError:
-        logger.error("uvicorn not installed. Run: pip install uvicorn")
-        return
+    except ImportError as exc:
+        raise RuntimeError("uvicorn is required for the HTTP sensor receiver") from exc
+
+    if not 1 <= port <= 65535:
+        raise ValueError("Receiver port must be between 1 and 65535")
 
     _get_app()
     if app is None:
-        return
+        raise RuntimeError("FastAPI is required for the HTTP sensor receiver")
 
     logger.info("Starting HTTP sensor receiver on %s:%d", host, port)
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(app, host=host, port=port, proxy_headers=False)
 
 
 if __name__ == "__main__":

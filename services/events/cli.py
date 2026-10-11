@@ -23,25 +23,36 @@ import time
 from services.common.cli import print_json
 
 def cmd_process(args):
-    from services.events.bus import EventBus
+    from services.events.backend import get_event_store
 
-    bus = EventBus()
-    result = bus.process_pending(
-        batch_size=args.batch_size,
-        worker_id=args.worker_id,
-    )
-    print_json(result)
-    return 0 if result["failed"] == 0 else 1
+    bus = get_event_store()
+    try:
+        result = bus.process_pending(
+            batch_size=args.batch_size,
+            worker_id=args.worker_id,
+        )
+        print_json(result)
+        return 0 if result["failed"] == 0 else 1
+    finally:
+        bus.close()
 
 
 def cmd_worker(args):
-    from services.events.bus import EventBus
+    from services.events.backend import get_event_store
+    from services.common.database import get_connection
+    from services.events.notification_outbox import deliver_batch
 
-    bus = EventBus(lease_seconds=args.lease_seconds)
+    bus = get_event_store(lease_seconds=args.lease_seconds)
     try:
         while True:
             result = bus.process_pending(args.batch_size, args.worker_id)
-            if not any(result.values()):
+            with get_connection() as conn:
+                notifications = deliver_batch(conn, args.worker_id, args.batch_size)
+            # Lease loss means another worker owns the event; this worker has
+            # no immediate event work. Notification failures also have a
+            # durable backoff, so an empty claim can safely sleep.
+            if (result["processed"] == 0 and result["failed"] == 0
+                    and notifications["claimed"] == 0):
                 time.sleep(args.poll_interval)
     except KeyboardInterrupt:
         return 0
@@ -50,10 +61,13 @@ def cmd_worker(args):
 
 
 def cmd_stats(args):
-    from services.events.bus import EventBus
+    from services.events.backend import get_event_store
 
-    bus = EventBus()
-    stats = bus.get_stats()
+    bus = get_event_store()
+    try:
+        stats = bus.get_stats()
+    finally:
+        bus.close()
     print("Event Bus Statistics (last 24h):")
     for status, count in sorted(stats.items()):
         print(f"  {status}: {count}")
@@ -61,10 +75,13 @@ def cmd_stats(args):
 
 
 def cmd_cleanup(args):
-    from services.events.bus import EventBus
+    from services.events.backend import get_event_store
 
-    bus = EventBus()
-    deleted = bus.cleanup_old_events(days=args.days)
+    bus = get_event_store()
+    try:
+        deleted = bus.cleanup_old_events(days=args.days)
+    finally:
+        bus.close()
     print(f"Cleaned up {deleted} old events")
     return 0
 
@@ -131,9 +148,9 @@ def cmd_list_dead_letter(args):
 
 
 def cmd_replay_dead_letter(args):
-    from services.events.bus import EventBus
+    from services.events.backend import get_event_store
 
-    bus = EventBus()
+    bus = get_event_store()
     try:
         changed = bus.replay_dead_letter(args.event_id, args.actor)
         print("Dead letter queued for replay" if changed else "Pending dead letter not found")
@@ -143,9 +160,9 @@ def cmd_replay_dead_letter(args):
 
 
 def cmd_dispose_dead_letter(args):
-    from services.events.bus import EventBus
+    from services.events.backend import get_event_store
 
-    bus = EventBus()
+    bus = get_event_store()
     try:
         changed = bus.dispose_dead_letter(
             args.event_id, args.disposition, args.actor, args.reason
@@ -154,6 +171,65 @@ def cmd_dispose_dead_letter(args):
         return 0 if changed else 1
     finally:
         bus.close()
+
+
+def cmd_notification_process(args):
+    from services.common.database import get_connection
+    from services.events.notification_outbox import deliver_batch
+
+    with get_connection() as conn:
+        result = deliver_batch(conn, args.worker_id, args.batch_size)
+    print_json(result)
+    return 0 if result["failed"] == 0 and result["lease_lost"] == 0 else 1
+
+
+def cmd_notification_stats(args):
+    from services.common.database import get_connection
+    from services.events.notification_outbox import get_stats
+
+    with get_connection() as conn:
+        result = get_stats(conn)
+    print_json(result)
+    return 0
+
+
+def cmd_notification_list_dead_letter(args):
+    from services.common.database import get_connection
+    from services.events.notification_outbox import list_dead_letters
+
+    with get_connection() as conn:
+        result = list_dead_letters(conn, args.limit)
+    print_json(result)
+    return 0
+
+
+def cmd_notification_replay_dead_letter(args):
+    from services.common.database import get_connection
+    from services.events.notification_outbox import replay_dead_letter
+
+    with get_connection() as conn:
+        changed = replay_dead_letter(
+            conn, args.notification_id, actor=args.notification_actor, reason=args.reason
+        )
+    print_json({"replayed": changed, "notification_id": args.notification_id})
+    return 0 if changed else 1
+
+
+def cmd_notification_dispose_dead_letter(args):
+    from services.common.database import get_connection
+    from services.events.notification_outbox import dispose_dead_letter
+
+    with get_connection() as conn:
+        changed = dispose_dead_letter(
+            conn,
+            args.notification_id,
+            disposition=args.disposition,
+            actor=args.notification_actor,
+            reason=args.reason,
+        )
+    print_json({"disposed": changed, "notification_id": args.notification_id,
+                "disposition": args.disposition})
+    return 0 if changed else 1
 
 
 def main():
@@ -167,6 +243,16 @@ def main():
     group.add_argument("--list-dead-letter", action="store_true", help="List dead letter events")
     group.add_argument("--replay-dead-letter", action="store_true", help="Replay a dead letter")
     group.add_argument("--dispose-dead-letter", action="store_true", help="Resolve/discard a dead letter")
+    group.add_argument("--notification-process", action="store_true",
+                       help="Deliver one batch of durable notifications")
+    group.add_argument("--notification-stats", action="store_true",
+                       help="Show notification counts, oldest open age, and storage capacity")
+    group.add_argument("--notification-list-dead-letter", action="store_true",
+                       help="List notification deliveries requiring operator review")
+    group.add_argument("--notification-replay-dead-letter", action="store_true",
+                       help="Replay one dead-letter notification with actor and reason")
+    group.add_argument("--notification-dispose-dead-letter", action="store_true",
+                       help="Resolve/discard one dead-letter notification with actor and reason")
     group.add_argument("--fork-opportunities", action="store_true",
                        help="List fork opportunities (one event resolving >=2 pending transfers/decisions)")
     group.add_argument("--propose-fork", action="store_true",
@@ -187,6 +273,8 @@ def main():
     parser.add_argument("--days", type=int, default=30, help="Days to keep events")
     parser.add_argument("--limit", type=int, default=20, help="Max dead letter entries")
     parser.add_argument("--event-id", help="Original event UUID")
+    parser.add_argument("--notification-id", help="Notification outbox UUID")
+    parser.add_argument("--notification-actor", help="Operator identity for notification dead-letter actions")
     parser.add_argument("--actor", default="cli", help="Operator recording the action")
     parser.add_argument("--disposition", choices=("resolved", "discarded"))
     parser.add_argument("--reason", default="", help="Disposition reason")
@@ -221,6 +309,23 @@ def main():
         if not args.event_id or not args.disposition:
             parser.error("--event-id and --disposition are required")
         rc = cmd_dispose_dead_letter(args)
+    elif args.notification_process:
+        rc = cmd_notification_process(args)
+    elif args.notification_stats:
+        rc = cmd_notification_stats(args)
+    elif args.notification_list_dead_letter:
+        rc = cmd_notification_list_dead_letter(args)
+    elif args.notification_replay_dead_letter:
+        if not args.notification_id or not args.notification_actor or not args.reason:
+            parser.error("--notification-id, --notification-actor and --reason are required for notification replay")
+        rc = cmd_notification_replay_dead_letter(args)
+    elif args.notification_dispose_dead_letter:
+        if not args.notification_id or not args.disposition or not args.notification_actor or not args.reason:
+            parser.error(
+                "--notification-id, --disposition, --notification-actor and --reason "
+                "are required for notification disposition"
+            )
+        rc = cmd_notification_dispose_dead_letter(args)
     elif args.fork_opportunities:
         rc = cmd_fork_opportunities(args)
     elif args.propose_fork:

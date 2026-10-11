@@ -1,0 +1,65 @@
+{
+  "checkpoint": {
+    "format": 1,
+    "created_at": "2026-10-10T22:51:03.089678+00:00",
+    "source_container": "kokonut-kernel-portability-database-1",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "database": "kokonut_intelligence",
+    "archive": "postgres.dump.age",
+    "sha256": "047baca477766567627179a9e03d3600c69b7a7a5f12faa0ebda95875871815a",
+    "bytes": 4921331,
+    "scope": "Single PostgreSQL database; ownership/grants excluded. No roles, other databases, volumes or external media.",
+    "restore_rehearsed": false
+  },
+  "restore_exit_code": 0,
+  "aggregate_comparison_equal": true,
+  "migration_inventory": {
+    "migration_count": 364,
+    "migration_digest": "0b32e3afa31b4e11c0dd8db2f1c2a58b"
+  },
+  "extensions": [
+    {
+      "name": "btree_gist",
+      "version": "1.7"
+    },
+    {
+      "name": "pg_stat_statements",
+      "version": "1.10"
+    },
+    {
+      "name": "pg_trgm",
+      "version": "1.6"
+    },
+    {
+      "name": "pgcrypto",
+      "version": "1.3"
+    },
+    {
+      "name": "plpgsql",
+      "version": "1.0"
+    },
+    {
+      "name": "postgis",
+      "version": "3.6.4"
+    },
+    {
+      "name": "postgis_topology",
+      "version": "3.6.4"
+    },
+    {
+      "name": "uuid-ossp",
+      "version": "1.1"
+    }
+  ],
+  "selected_table_counts": {
+    "scheduled_task": 0,
+    "task_run": 0,
+    "platform_event": 0,
+    "event_handler_delivery": 0,
+    "sensor_reading": 0,
+    "mobile_media_upload": 0,
+    "file_upload": 0,
+    "clickhouse_outbox": 0
+  },
+  "limitations": "Single DB only; counts not payload parity; empty durable/media workload; roles and grants excluded; no recovery worker started."
+}

@@ -1,0 +1,64 @@
+{
+  "check": "kernel-gateway-local-rate-limit-asgi",
+  "date_local": "2026-10-10",
+  "phase": 6,
+  "source": "current workspace services/ mounted read-only",
+  "runtime_base_image_digest": "sha256:897925167d07fd1530b3f1c3e02f492693ffad4539695fe8c636d70597bafd50",
+  "execution": {
+    "container_network": "none",
+    "candidate_app_or_database_accessed": false,
+    "persistent_audit": "disabled; GatewayAudit.log captured in memory",
+    "rate_limit_provider": "in-memory local limiter injected into current-source ASGI app",
+    "test_policy": {
+      "capacity_tokens": 1,
+      "refill_tokens_per_second": 0.01,
+      "is_production_default": false
+    }
+  },
+  "checks": {
+    "first_health_get": {
+      "status": 200,
+      "consumed_single_test_token": true
+    },
+    "configured_origin_preflight_after_token_exhaustion": {
+      "method": "OPTIONS",
+      "origin": "http://localhost:3000",
+      "status": 200,
+      "access_control_allow_origin": "http://localhost:3000",
+      "consumed_test_token": false
+    },
+    "next_health_get": {
+      "status": 429,
+      "retry_after_seconds": "100",
+      "access_control_allow_origin": "http://localhost:3000"
+    }
+  },
+  "in_memory_audit_capture": [
+    {
+      "status": "allowed",
+      "status_code": 200,
+      "reason": ""
+    },
+    {
+      "status": "denied",
+      "status_code": 429,
+      "reason": "rate_limited"
+    }
+  ],
+  "side_effects": {
+    "persistent_audit_writes": false,
+    "farm_or_sensor_domain_writes": false,
+    "schema_migrations": false,
+    "candidate_app_or_database_restarted": false,
+    "legacy_stack_started": false,
+    "pytest_suite": false
+  },
+  "not_covered": [
+    "candidate image rebuild and deployed runtime behavior",
+    "production default policy parity",
+    "persistent audit behavior",
+    "PostgreSQL shared limiter adapter and database outage behavior",
+    "concurrent requests, bucket eviction, restart behavior, and multi-replica limits",
+    "non-loopback/public ingress and authenticated or mutation route parity"
+  ]
+}

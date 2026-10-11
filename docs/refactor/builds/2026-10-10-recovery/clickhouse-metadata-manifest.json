@@ -1,0 +1,10 @@
+{
+  "archive": "schema.jsonl.age",
+  "bytes": 24636,
+  "sha256": "26cc23f5f7a6ce944de381705fbb2749a27cb9116a48c920e308aa26898fd902",
+  "source_image": "sha256:a9d328123ff8a61bf6b16448528b577d59deb85758172e13b09054b0727f8adf",
+  "source_engine_version": "25.8.28.1",
+  "scope": "Encrypted create_table_query definitions for 34 non-system objects in default; no row data or system history; not an executable ordered restore script.",
+  "restore_rehearsed": false,
+  "development_mirror_equal": true
+}

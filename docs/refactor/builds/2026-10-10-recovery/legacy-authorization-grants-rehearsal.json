@@ -1,0 +1,5 @@
+{
+  "database": "kokonut_intelligence",
+  "all_selected_catalog_fields_match_after_schema_grants": true,
+  "scope": "Two schema grants applied only to isolated logical recovery copy; legacy superuser compatibility, not least-privilege certification."
+}

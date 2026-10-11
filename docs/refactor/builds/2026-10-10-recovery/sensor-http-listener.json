@@ -1,0 +1,48 @@
+{
+  "date_local": "2026-10-10",
+  "environment": "isolated synthetic recovery fixture",
+  "network_scope": {
+    "receiver": "temporary operator container on the internal fixture network",
+    "client": "separate temporary operator container on the internal fixture network",
+    "host_port_published": false,
+    "tls_or_proxy": false
+  },
+  "checkpoint": {
+    "path": "backups/recovery-fixture-pre-http-listener-20261011T024804Z",
+    "encrypted": true,
+    "restore_rehearsed": false
+  },
+  "device": {
+    "identity": "synthetic fixture device f0000000-0000-4000-8000-000000000073",
+    "temporary_credential_removed": true,
+    "restored_to_inactive": true
+  },
+  "http": {
+    "health_status": 200,
+    "invalid_hmac_status": 401,
+    "authenticated_single_status": 200,
+    "authenticated_single_result": "success",
+    "authenticated_batch_status": 200,
+    "authenticated_batch_successes": 2,
+    "repeated_single_status": 200,
+    "repeated_single_result": "duplicate",
+    "signed_url_payload_mismatch_status": 400
+  },
+  "postgresql": {
+    "new_sensor_readings": 3,
+    "distinct_readings": 3,
+    "values": [22.5, 23.5, 24.5],
+    "platform_events": 3,
+    "platform_events_pending": 3,
+    "clickhouse_outbox_rows": 3,
+    "clickhouse_outbox_pending": 3,
+    "device_health": "online"
+  },
+  "limitations": [
+    "No public host listener was exposed; the request client connected over the internal Docker network.",
+    "No ClickHouse worker ran; outbox delivery remains pending by design.",
+    "No event handler was invoked; the three sensor_reading events remain pending.",
+    "TLS, reverse proxy, MQTT, concurrent requests, and restart recovery were not exercised.",
+    "Uvicorn logged Pydantic v2 deprecation warnings for BaseModel.dict(); requests still completed."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-11",
+  "database": "kokonut_reporting_atomic_20261011_v3",
+  "schema_sources": 369,
+  "schema_applied": 369,
+  "pending": [],
+  "applied_checksums_validated": true,
+  "failed_migration_probe": {
+    "migration_id": "schema:999_atomic_failure_probe.sql",
+    "failure": "intentional duplicate CREATE TABLE after table creation and insert",
+    "runner_returned_error": true,
+    "post_failure_probe_table_and_ledger_counts": "0|0",
+    "expected_counts": "0|0"
+  },
+  "target_scope": "third-generation disposable clone only; no archived application migrations applied",
+  "limitations": [
+    "The expanded reporting-role fixture is covered by the separately retained source-aligned replay evidence.",
+    "This run validates migration transaction atomicity and source-aligned schema state; it does not establish populated-row report parity."
+  ]
+}

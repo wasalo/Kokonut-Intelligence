@@ -1,0 +1,92 @@
+# Candidate Kernel image. Legacy images remain the supported complete runtime.
+FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS kernel-base
+
+WORKDIR /app
+
+RUN useradd -m -u 10001 -s /bin/bash appuser
+
+COPY requirements/kernel.txt requirements/web3.txt requirements/exports.txt requirements/clickhouse.txt requirements/storage.txt ./requirements/
+# Preserve Web3 and private field-media/spreadsheet dependencies in the candidate.
+RUN pip install --no-cache-dir \
+    -r requirements/kernel.txt \
+    -r requirements/web3.txt \
+    -r requirements/exports.txt \
+    -r requirements/storage.txt
+
+ARG KOKONUT_CLICKHOUSE=false
+RUN case "$KOKONUT_CLICKHOUSE" in \
+    true) pip install --no-cache-dir -r requirements/clickhouse.txt ;; \
+    false) : ;; \
+    *) echo "KOKONUT_CLICKHOUSE must be true or false" >&2; exit 1 ;; \
+    esac
+
+# Record resolved transitive dependencies inside each artifact. This inventory
+# is evidence for comparison, not a lockfile or a claim of reproducibility.
+RUN pip list --disable-pip-version-check --format=json > /app/python-packages.json \
+    && python3 -VV > /app/python-runtime.txt
+
+COPY services/ ./services/
+COPY schemas/ ./schemas/
+COPY config/ ./config/
+COPY VERSION ./VERSION
+COPY pyproject.toml ./pyproject.toml
+COPY Dockerfile.kernel ./Dockerfile.kernel
+RUN python3 -m services.core.image_manifest --target kernel
+
+RUN mkdir -p /app/private-media /var/lib/kokonut/gateway-audit \
+    && chmod 0700 /app/private-media \
+    && chmod 0700 /var/lib/kokonut/gateway-audit \
+    && chown -R appuser:appuser /app /var/lib/kokonut
+USER appuser
+
+EXPOSE 8099
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/health', timeout=5).close()" || exit 1
+
+CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers"]
+
+# Optional transport target. Generate protobufs inside the image, preserving
+# the existing service imports without committing generated Python artifacts.
+FROM kernel-base AS grpc
+USER root
+COPY requirements/grpc.txt ./requirements/grpc.txt
+RUN pip install --no-cache-dir -r requirements/grpc.txt \
+    && pip list --disable-pip-version-check --format=json > /app/python-packages.json
+COPY proto/ ./proto/
+RUN mkdir -p /app/generated \
+    && python3 -m grpc_tools.protoc -I proto \
+       --python_out=/app/generated --grpc_python_out=/app/generated \
+       proto/common/pagination.proto proto/ecocredit/v1/types.proto \
+       proto/ecocredit/v1/service.proto proto/data/v1/types.proto proto/data/v1/service.proto \
+    && cp -r /app/generated/ecocredit services/grpc/ecocredit \
+    && cp -r /app/generated/data services/grpc/data \
+    && cp -r /app/generated/common services/grpc/common \
+    && touch services/grpc/ecocredit/__init__.py services/grpc/ecocredit/v1/__init__.py \
+       services/grpc/data/__init__.py services/grpc/data/v1/__init__.py services/grpc/common/__init__.py \
+       /app/generated/ecocredit/__init__.py /app/generated/ecocredit/v1/__init__.py \
+       /app/generated/data/__init__.py /app/generated/data/v1/__init__.py /app/generated/common/__init__.py \
+    && chown -R appuser:appuser /app/generated services/grpc
+ENV PYTHONPATH=/app/generated
+RUN python3 -m services.core.image_manifest --target grpc \
+    && chown appuser:appuser /app/source-manifest.json
+USER appuser
+EXPOSE 50051
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
+    CMD python3 -m services.grpc.cli health --target 127.0.0.1:50051
+CMD ["python3", "-m", "services.grpc.cli", "serve"]
+
+# Optional sensor subscriber. Its broker is a separately selected service.
+FROM kernel-base AS mqtt
+USER root
+COPY requirements/mqtt.txt ./requirements/mqtt.txt
+RUN pip install --no-cache-dir -r requirements/mqtt.txt \
+    && pip list --disable-pip-version-check --format=json > /app/python-packages.json \
+    && chown appuser:appuser /app/python-packages.json
+USER appuser
+HEALTHCHECK NONE
+RUN python3 -m services.core.image_manifest --target mqtt
+CMD ["python3", "-m", "services.ingestion.mqtt_subscriber"]
+
+# Default builds remain the minimal API/worker image.
+FROM kernel-base AS kernel

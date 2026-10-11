@@ -1,0 +1,72 @@
+{
+  "scope": "Synthetic recovery fixture only; current service source mounted read-only into the isolated operator image.",
+  "checkpoint": {
+    "path": "backups/recovery-fixture-pre-sensor-transport-20261010T2200",
+    "encrypted": true,
+    "restore_rehearsed": false
+  },
+  "implementation": {
+    "fastapi_route_annotations_resolve": true,
+    "http_publishes_sensor_reading_event_in_source_transaction": true
+  },
+  "csv": {
+    "accepted_source_rows": 2,
+    "invalid_timestamp_rows_rejected_and_logged": 1
+  },
+  "http": {
+    "invalid_signature_status": 401,
+    "authenticated_single_status": 200,
+    "authenticated_batch_status": 200,
+    "authenticated_batch_successes": 2,
+    "accepted_source_rows": 3,
+    "request_execution": "FastAPI app invoked through in-process ASGI; no TCP listener or proxy path"
+  },
+  "postgres": {
+    "source_counts": {
+      "csv_upload": 2,
+      "http_sensor": 3
+    },
+    "sensor_reading_events": 5,
+    "events_left_pending_for_handlers": 5,
+    "outbox_rows": 5,
+    "outbox_succeeded": 5,
+    "unrelated_pending_rows_restored": 3
+  },
+  "clickhouse": {
+    "new_sensor_raw_rows": 5,
+    "new_sensor_sum": 150,
+    "new_sensor_average": 30,
+    "first_read_rows": 5,
+    "visible_within_five_seconds": true,
+    "location_day_type_aggregate": {
+      "raw": {
+        "count": 10,
+        "average": 29.49846,
+        "minimum": 10,
+        "maximum": 50,
+        "distinct_sensors": 3,
+        "suspect_rows": 0
+      },
+      "sensor_v3": {
+        "count": 10,
+        "average": 29.49846,
+        "minimum": 10,
+        "maximum": 50,
+        "distinct_sensors": 3,
+        "suspect_rows": 0
+      },
+      "parity": true
+    }
+  },
+  "cleanup": {
+    "test_device_inactive": true,
+    "synthetic_shared_secret_removed": true,
+    "event_handlers_invoked": false
+  },
+  "limitations": [
+    "An enabled anomaly_detector handler remains pending; handler effects and idempotency were not exercised.",
+    "TCP, TLS, proxy behavior, production route policy, restart/concurrency, legacy sensor lineage, and MQTT parity remain open.",
+    "This run had immediate ClickHouse visibility; the earlier five-second delay remains unexplained and no visibility guarantee is inferred.",
+    "The recovery fixture retains prior synthetic CSV evidence and is not a clean rerun baseline."
+  ]
+}

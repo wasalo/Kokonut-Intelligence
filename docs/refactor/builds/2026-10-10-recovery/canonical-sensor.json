@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "source_rollback_on_projection_failure": true,
+    "source_and_outbox_duplicate_identity_preserved": true,
+    "conflicting_source_reading_rejected": true,
+    "live_raw_and_v3_match_canonical_numeric_precision": true,
+    "canonical_unit_and_source_uuid_preserved": true
+  },
+  "source_rows": 3,
+  "source_average": "20.0411666666666667",
+  "scope": "Actual producer helpers, PostgreSQL source/outbox and live driver; no complete CSV/HTTP validation, event effects, device authorization or concurrency acceptance.",
+  "source_files": {
+    "services/ingestion/sensor_ingester.py": "547d3108abc2ce4702f707a64f357f0ece32aa5856b99765631e858cd2681fe8",
+    "services/ingestion/sensor_projection.py": "39acf1f550a2a604050ef12fa6175d051dc39af224c756a5e0b075a14b87eb24",
+    "services/ingestion/clickhouse_outbox.py": "06a4a112b72ab72b4291740a4827080de9289c862b3ac525f49aeb480fca103e"
+  },
+  "execution": "Retained private fixture and live sink; optional-driver image with read-only sensor_ingester and outbox source overrides."
+}

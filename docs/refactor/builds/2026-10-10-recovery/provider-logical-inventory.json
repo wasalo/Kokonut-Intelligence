@@ -1,0 +1,46 @@
+{
+  "redis": {
+    "loaded_keys": 4,
+    "databases_configured": 16,
+    "nonempty_database": 0,
+    "expiry_keys": 0,
+    "key_types": {
+      "string": 4
+    },
+    "aof_enabled": false,
+    "keys_expired_on_load": 0,
+    "limits": "Copied RDB state only; in-memory state and semantic key ownership unassessed."
+  },
+  "legacy_postgres": {
+    "databases": {
+      "kokonut_bootstrap_28232": 16392719,
+      "kokonut_intelligence": 112456163,
+      "metabase": 24601103,
+      "postgres": 7504399
+    },
+    "migration_rows": 376,
+    "counts": {
+      "scheduled_task": 0,
+      "task_run": 0,
+      "platform_event": 4,
+      "sensor_reading": 15,
+      "file_upload": 0,
+      "attestation_record": 4
+    }
+  },
+  "metabase": {
+    "cards": 39,
+    "dashboards": 1,
+    "users": 1,
+    "sessions": 0
+  },
+  "broker": {
+    "system_counters": {
+      "store_messages_count": 55,
+      "inactive_clients": 4294967295,
+      "retained_messages_count": 55
+    },
+    "limits": "Clone generates SYS retained messages. Inactive count is anomalous; counters cannot certify buffered application messages. Offline persisted-state decoding still needed."
+  },
+  "scope": "Isolated engine clones only; original legacy containers stayed stopped; counts do not establish domain parity."
+}

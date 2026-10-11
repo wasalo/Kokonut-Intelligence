@@ -69,7 +69,7 @@ class TestEventBus:
 
         bus = EventBus(conn=mock_conn)
         stats = bus.process_pending(batch_size=10)
-        assert stats == {"processed": 0, "failed": 0, "skipped": 0}
+        assert stats == {"processed": 0, "failed": 0, "skipped": 0, "lease_lost": 0}
 
     def test_process_pending_skips_event_without_handlers(self):
         """Events with no registered handlers are marked skipped."""

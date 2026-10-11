@@ -1,0 +1,100 @@
+# Standalone evaluation stack. Never combine with legacy/candidate manifests.
+name: kokonut-kernel-portability
+services:
+  database:
+    platform: ${KOKONUT_DATABASE_PLATFORM:-linux/amd64}
+    image: kokonut-kernel-portability-postgis:local
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel-postgis
+      target: kernel-postgis
+      args:
+        POSTGIS_PACKAGE_VERSION: "3.6.4+dfsg-2.pgdg12+1"
+        POSTGIS_SCRIPTS_VERSION: "3.6.4+dfsg-2.pgdg12+1"
+    restart: "no"
+    stop_grace_period: 40s
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Supply POSTGRES_PASSWORD through encrypted secrets}
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    volumes:
+      - portability-postgres-data:/var/lib/postgresql/data
+    networks:
+      - portability
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  app: &kernel-app
+    profiles: ["application"]
+    platform: ${KOKONUT_DATABASE_PLATFORM:-linux/amd64}
+    image: kokonut-kernel-portability-app:local
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+      args:
+        KOKONUT_CLICKHOUSE: "false"
+    init: true
+    restart: "no"
+    stop_grace_period: 40s
+    command: ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment: &kernel-environment
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: kokonut
+      KOKONUT_ENV: production
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?Supply POSTGRES_PASSWORD through encrypted secrets}
+      KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
+      DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}
+      KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES:-536870912}
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      KOKONUT_FEATURE_GRPC: "false"
+      KOKONUT_FEATURE_METABASE: "false"
+      KOKONUT_FEATURE_MQTT: "false"
+      KOKONUT_FEATURE_PREFECT: "false"
+      KOKONUT_RATE_LIMIT_PROVIDER: local
+      KOKONUT_GATEWAY_AUDIT_SPOOL_PATH: /var/lib/kokonut/gateway-audit/gateway-audit.sqlite3
+      KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS: ${KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS:-10000}
+      KOKONUT_GATEWAY_AUDIT_SPOOL_ALERT_THRESHOLD: ${KOKONUT_GATEWAY_AUDIT_SPOOL_ALERT_THRESHOLD:-0}
+      CORS_ORIGIN: ""
+    volumes:
+      - portability-gateway-audit-spool:/var/lib/kokonut/gateway-audit
+    networks:
+      - portability
+
+  worker:
+    <<: *kernel-app
+    profiles: ["workers"]
+    command: ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"]
+    environment:
+      <<: *kernel-environment
+      KOKONUT_FEATURE_SCHEDULER: "true"
+      KOKONUT_FEATURE_EVENT_BUS: "true"
+    # The image HTTP probe belongs to the API; durable records track worker progress.
+    healthcheck:
+      disable: true
+
+networks:
+  portability:
+
+volumes:
+  portability-postgres-data:
+  portability-gateway-audit-spool:

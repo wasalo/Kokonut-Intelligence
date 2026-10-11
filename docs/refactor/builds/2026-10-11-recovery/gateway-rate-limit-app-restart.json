@@ -1,0 +1,83 @@
+{
+  "check": "kernel-gateway-local-rate-limit-app-restart",
+  "date_local": "2026-10-11",
+  "verified_at_utc": "2026-10-11T04:21:22Z",
+  "phases": [5, 6],
+  "candidate_project": "kokonut-kernel-candidate",
+  "app": {
+    "container_name": "kokonut-kernel-candidate-app-1",
+    "container_id": "06a7a80ed849a211dfc997ee0bd4673978cc602b1687c9b9ab72ea8ba092edb2",
+    "image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "before": {
+      "pid": 71139,
+      "started_at_utc": "2026-10-11T03:54:03.718515427Z",
+      "health": "healthy"
+    },
+    "restart": "docker restart --time 15; container restarted in place, not recreated",
+    "after": {
+      "pid": 76073,
+      "started_at_utc": "2026-10-11T04:20:27.973470687Z",
+      "health": "healthy"
+    }
+  },
+  "database": {
+    "container_name": "kokonut-kernel-candidate-database-1",
+    "container_id": "69417747ae35c006364b3d56f6a87d1ae43076b369a5523e897b26294b62e922",
+    "started_at_utc_before_and_after": "2026-10-11T00:36:47.81658807Z",
+    "health_after": "healthy",
+    "restarted_or_recreated": false
+  },
+  "probe": {
+    "path": "/health",
+    "method": "GET",
+    "transport": "gateway app loopback at 127.0.0.1:8099 from inside the candidate app container",
+    "user_agent": "kernel-app-restart-20261011-batch",
+    "identity": "one synthetic API key; gateway rate-limit key is its hash; raw synthetic value is not recorded",
+    "before_restart": {
+      "attempts_until_first_429": 124,
+      "elapsed_seconds": 2.394,
+      "status_counts": {
+        "200": 123,
+        "429": 1
+      },
+      "retry_after_seconds": "1"
+    },
+    "after_restart_same_identity": {
+      "status": 200
+    }
+  },
+  "persistent_audit_query": {
+    "scope": "read-only exact user-agent query against access_audit_log metadata",
+    "user_agent": "kernel-app-restart-20261011-batch",
+    "rows": [
+      {
+        "status": "allowed",
+        "status_code": 200,
+        "reason": "",
+        "count": 124
+      },
+      {
+        "status": "denied",
+        "status_code": 429,
+        "reason": "rate_limited",
+        "count": 1
+      }
+    ],
+    "records_intentionally_retained": true
+  },
+  "scope_limits": [
+    "This verifies one local candidate gateway container restart and in-memory limiter reset; it does not test PostgreSQL shared limits or multi-replica behavior.",
+    "Requests used the gateway container loopback; this check does not certify host, Caddy, or public ingress.",
+    "No application image rebuild or container recreation occurred."
+  ],
+  "side_effects": {
+    "gateway_audit_rows_written_and_retained": 125,
+    "domain_data_writes": false,
+    "schema_migrations": false,
+    "database_restarted": false,
+    "app_container_restarted": true,
+    "app_container_recreated": false,
+    "legacy_project_started": false,
+    "pytest_suite": false
+  }
+}

@@ -183,11 +183,47 @@ def test_apply_batch_locks_and_rechecks_before_applying(tmp_path, monkeypatch):
     assert "pg_advisory_lock(777204681)" in apply_sql
     assert "migration_applied" in apply_sql
     assert "\\if :check_migration_applied" in apply_sql
+    assert apply_sql.count("BEGIN;") == 1
     assert "CREATE TABLE example" in apply_sql
     assert "INSERT INTO schema_migration" in apply_sql
+    assert apply_sql.count("COMMIT;") == 1
+    assert apply_sql.index("INSERT INTO schema_migration") < apply_sql.index("COMMIT;")
     assert "ON CONFLICT" in apply_sql
     assert "o'hare" not in apply_sql
     assert calls[0]["variables"]["migration_id"] == "schema:001_o'hare.sql"
+
+
+def test_apply_batch_folds_explicit_transaction_into_atomic_ledger_write(tmp_path, monkeypatch):
+    migration = _sql_file(
+        tmp_path / "001_wrapped.sql",
+        "-- explicit wrapper\nBEGIN;\nCREATE TABLE example (id int);\n"
+        "COMMIT;\nCREATE INDEX extra_idx ON example(id);\n",
+    )
+    calls = []
+    monkeypatch.setattr(
+        cli,
+        "_psql",
+        lambda sql, variables=None: calls.append({"sql": sql, "variables": variables}),
+    )
+
+    cli._apply_files([{
+        "id": "schema:001_wrapped.sql",
+        "name": "001_wrapped",
+        "path": migration,
+        "checksum": "abc",
+    }])
+
+    apply_sql = calls[0]["sql"]
+    assert apply_sql.count("BEGIN;") == 1
+    assert apply_sql.count("COMMIT;") == 1
+    assert apply_sql.index("CREATE TABLE example") < apply_sql.index("INSERT INTO schema_migration")
+    assert apply_sql.index("CREATE INDEX extra_idx") < apply_sql.index("INSERT INTO schema_migration")
+    assert apply_sql.index("INSERT INTO schema_migration") < apply_sql.index("COMMIT;")
+
+
+def test_transaction_wrapper_rejects_unmatched_boundary():
+    with pytest.raises(cli.MigrationError, match="unsupported transaction boundaries"):
+        cli._migration_body_without_transaction("schema:001_bad.sql", "BEGIN;\nSELECT 1;\n")
 
 
 def test_plan_does_not_initialize_or_reconcile_tracking(monkeypatch):

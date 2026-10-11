@@ -1,0 +1,92 @@
+{
+  "domain": {
+    "equal": true,
+    "tables": [
+      {
+        "table": "schema_migration",
+        "rows": 376,
+        "fingerprint": "118a0ff5433f54fa9c287917f5b909ca"
+      },
+      {
+        "table": "platform_event",
+        "rows": 4,
+        "fingerprint": "626c1d3a09f627f5d090f3ad79f8cb44"
+      },
+      {
+        "table": "sensor_reading",
+        "rows": 15,
+        "fingerprint": "44b7f2039860cfe2f3cace1aa3070ce1"
+      },
+      {
+        "table": "weather_observation",
+        "rows": 12,
+        "fingerprint": "0633f274c9b77e459d998690f39c9ed2"
+      },
+      {
+        "table": "wallet_activity_event",
+        "rows": 15,
+        "fingerprint": "014322cf65c5a4a93502d031a5c22283"
+      },
+      {
+        "table": "attestation_record",
+        "rows": 4,
+        "fingerprint": "f19d89dedfaf354661cab256f7963db3"
+      },
+      {
+        "table": "scheduled_task",
+        "rows": 0,
+        "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "task_run",
+        "rows": 0,
+        "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      {
+        "table": "file_upload",
+        "rows": 0,
+        "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+      }
+    ]
+  },
+  "metabase": {
+    "equal": true,
+    "tables": [
+      {
+        "table": "report_card",
+        "rows": 39,
+        "fingerprint": "2a8a451b400961ea866a934eff14646c"
+      },
+      {
+        "table": "report_dashboard",
+        "rows": 1,
+        "fingerprint": "afe9689d067cf9195098d3e42092fabe"
+      },
+      {
+        "table": "core_user",
+        "rows": 1,
+        "fingerprint": "9eccc4f614c5ce7f8ff9df03d66cf379"
+      },
+      {
+        "table": "core_session",
+        "rows": 0,
+        "fingerprint": "d41d8cd98f00b204e9800998ecf8427e"
+      }
+    ]
+  },
+  "restore": {
+    "databases": {
+      "kokonut_intelligence": "kokonut_intelligence",
+      "metabase": "metabase",
+      "kokonut_bootstrap_28232": "kokonut_bootstrap_28232",
+      "postgres": "legacy_postgres_archive"
+    },
+    "exit_code": 0,
+    "engine_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "container": "kokonut-kernel-recovery-logical",
+    "volume": "kokonut-kernel-recovery-logical",
+    "network": "none",
+    "globals_applied": false,
+    "limitations": "Selected table MD5 fingerprints compare restored records but do not certify all-table payloads, grants, roles, dashboard output, active lease recovery or private media."
+  }
+}

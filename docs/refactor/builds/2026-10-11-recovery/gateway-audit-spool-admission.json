@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-11",
+  "scope": "Synthetic local-worker audit-spool admission, stale-owner recovery, and ASGI checks",
+  "spool": {
+    "max_pending_events": 5,
+    "alert_threshold_events": 4,
+    "pending_before_concurrency_check": 3,
+    "worker_processes": 16,
+    "reservations_admitted": 1,
+    "reservations_released": 1,
+    "pending_after_check": 3,
+    "abrupt_worker_exit_reservation_reaped": true,
+    "forked_worker_kept_distinct_owner_lock": true,
+    "release_failure_reaped_on_next_preflight": true,
+    "health_degraded_at_queue_threshold": true
+  },
+  "asgi_lifecycle": {
+    "successful_handler": "audit completed before reservation release",
+    "exception_handler": "error audit completed before reservation release",
+    "reservations_released_on_both_paths": true,
+    "outage_write_admitted_below_threshold": true,
+    "later_write_blocked_before_handler": true,
+    "health_read_audit_consumed_remaining_spool_capacity": true,
+    "success_and_error_audit_events_released_reservations": true
+  },
+  "validation": {
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "OS-lock coordination covers local processes sharing one POSIX journal file; multi-container and replica failover are not certified.",
+    "Stale reservations are reaped on the next mutation preflight; read-only status can report them before cleanup.",
+    "Concurrent read and denial audit events can still consume journal headroom while a mutation is in flight.",
+    "No Docker services, PostgreSQL rows, domain data, migrations, or pytest suites were used."
+  ],
+  "cleanup": "Private temporary directory and synthetic journal were removed."
+}

@@ -4,9 +4,9 @@ Analytical event store for time-series data. PostgreSQL is the canonical source 
 
 ## Application
 
-`scripts/seed.sh` applies all `*.sql` files in filename order via `clickhouse-client --multiquery`. All statements are idempotent (`CREATE TABLE IF NOT EXISTS`, `CREATE MATERIALIZED VIEW IF NOT EXISTS`, `ALTER TABLE ADD COLUMN IF NOT EXISTS`).
+`scripts/seed.sh` applies all `*.sql` files in filename order via `clickhouse-client --database "$CH_DB" --multiquery` (`CH_DB` defaults to `kokonut_analytics`). All statements are idempotent (`CREATE TABLE IF NOT EXISTS`, `CREATE MATERIALIZED VIEW IF NOT EXISTS`, `ALTER TABLE ADD COLUMN IF NOT EXISTS`).
 
-There is no migration tracker — ClickHouse schemas are stateless and re-applied on every seed run.
+There is no migration tracker. Bootstrap DDL is re-applied on seed runs; table data and materialized rollups are persistent state. `IF NOT EXISTS` does not reconcile changed definitions. The selected database must already exist; never silently fall back to `default`.
 
 ## Tables
 
@@ -70,3 +70,15 @@ Pre-aggregated rollups for dashboard queries:
 ## Security
 
 Insert methods in `services/ingestion/base.py` validate table/column identifiers against `^[A-Za-z_][A-Za-z0-9_]*$` to prevent SQL injection. Values are never interpolated into SQL.
+
+## Corrected sensor read interfaces
+
+Use `v_daily_sensor_summary_v2` and `v_sensor_reading_rate_v2` for finalized
+sensor statistics. Legacy SummingMergeTree sensor summaries contain unsafe
+non-additive statistics. Schema 007 creates new views without automatically
+backfilling existing raw rows. See [migration and rollback](../../docs/refactor/sensor-rollups-v2.md).
+
+Schema 008 adds correctness-first raw read interfaces for wallet distinct counts,
+Digital Lego dimensions and remote-sensing statistics. See [interfaces and adoption](../../docs/refactor/analytics-read-views-v2.md).
+
+**Recovery update:** sensor v2 failed crash-replay parity. Prefer `v_daily_sensor_summary_v3` and `v_sensor_reading_rate_v3` over raw rows; see [live recovery](../../docs/refactor/live-outbox-recovery.md).

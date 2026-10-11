@@ -1,0 +1,64 @@
+{
+  "scope": "private synthetic ASGI and SQLite fixtures; no application database",
+  "configuration": {
+    "queue_cap_events": 5,
+    "alert_threshold_events": 4,
+    "default_threshold": "80 percent of queue cap, rounded up; absolute event-count override"
+  },
+  "threshold_enforcement": {
+    "health_audit_capture_at_threshold": "degraded",
+    "mutating_request_status": 503,
+    "retry_after_seconds": 30,
+    "handler_calls_at_threshold": 0,
+    "read_health_request_status": 200,
+    "read_health_request_allowed_during_degraded_state": true
+  },
+  "recovery_below_threshold": {
+    "action": "remove one synthetic event from the four-event queue",
+    "mutating_request_status": 200,
+    "handler_calls": 1,
+    "transactional_write_probe_rows_retained": 0,
+    "remaining_pending_events": 3
+  },
+  "storage_failure_detection": {
+    "unavailable_path_fixture": "journal parent path is a regular file",
+    "mutating_request_status": 503,
+    "health_audit_capture": "unavailable",
+    "handler_calls": 0,
+    "observed_journal_removed_during_same_process": {
+      "mutating_request_status": 503,
+      "additional_handler_calls": 0
+    }
+  },
+  "injected_disk_full_failure": {
+    "injected_error": "OSError(ENOSPC)",
+    "real_disk_filled": false,
+    "mutating_request_status": 503,
+    "retry_after_seconds": 30,
+    "health_audit_capture": "unavailable",
+    "handler_calls": 0
+  },
+  "maintenance_cli": {
+    "absent_journal_status_exit_code": 0,
+    "absent_journal_created": false,
+    "four_of_five_status_exit_code": 0,
+    "pending_events": 4,
+    "alert_active": true,
+    "write_restricted": true,
+    "event_payloads_exposed": false
+  },
+  "cleanup_and_scope": {
+    "temporary_fixtures_removed": true,
+    "compose_services_started_or_recreated": false,
+    "application_database_touched": false,
+    "migrations_or_domain_writes": false,
+    "pytest_suite_run": false,
+    "physical_device_or_power_loss_tested": false
+  },
+  "limitations": [
+    "a request already past preflight can finish if storage fails afterward",
+    "an empty replacement volume after process restart requires external volume monitoring to distinguish it from first use",
+    "alert transitions are application logs and health state; external paging integration is not configured",
+    "rejected mutations are not appended to the saturated journal"
+  ]
+}

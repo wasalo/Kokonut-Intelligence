@@ -1,0 +1,9 @@
+{
+  "source_equal": true,
+  "source_sha256": "9f0c7e592ab386ffb24292a47c5f43cf773d5df4ad9cf7ac47e3e19ea09ecfde",
+  "files": 1278,
+  "package_names_versions_equal": true,
+  "packages": 68,
+  "amd64_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+  "arm64_image": "sha256:304dbfc4e5971fed77352803500bb3efcbfd3f81ad487135da3508692f803614"
+}

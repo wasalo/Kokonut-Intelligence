@@ -1,0 +1,207 @@
+{
+  "database": "kokonut_analytics",
+  "schema_files": [
+    {
+      "file": "schemas/clickhouse/001_events.sql",
+      "sha256": "58ea395abdb7d1be0360034ba42711be732dd9661499c13d7c5f5aa1c196d63c"
+    },
+    {
+      "file": "schemas/clickhouse/002_materialized_views.sql",
+      "sha256": "27fd985024f460ec58423506b071a3743bc9116603e9d3a5bf8b06410482f951"
+    },
+    {
+      "file": "schemas/clickhouse/003_sensor_views.sql",
+      "sha256": "e59bfc94f5e75f7d3ac9206f3d954ff216a325f0d6a813ecf1865ae4b8f2adc7"
+    },
+    {
+      "file": "schemas/clickhouse/004_remote_sensing_and_attestations.sql",
+      "sha256": "089d765a4371ef83eeb050377e9b5ab6bf923ea902a36718509386a93935defd"
+    },
+    {
+      "file": "schemas/clickhouse/005_portfolio_views.sql",
+      "sha256": "7a7ebb8957a8ab8c15bfba895483f6440e839a5c3eedad0ffb1643af78a9fc7c"
+    },
+    {
+      "file": "schemas/clickhouse/006_telemetry_sync.sql",
+      "sha256": "048d6bda5662a21dce15760ac0fa40441a5fad0176dd559f67de0d903817021b"
+    }
+  ],
+  "checks": {
+    "target_initially_empty": true,
+    "six_schema_files_applied_twice": true,
+    "legacy_default_inventory_unchanged": true
+  },
+  "objects": [
+    {
+      "name": ".inner_id.07051b0e-821e-4d54-8798-4048a5d44d52",
+      "engine": "AggregatingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.4de670b3-f5cb-44b7-b7b4-c2f77e490fa3",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.69888ffe-1e85-45f5-92e6-d1d5e02479ca",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.78f43751-20ee-41a6-b099-c17609d8c5a4",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.81a76d80-727e-4e28-83cf-bcd598804eeb",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.8bc6f751-0f04-468d-aa27-31854d3ff08e",
+      "engine": "AggregatingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.ab860534-2ba8-4f54-bb16-b2ca0fd6a30f",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.bcfe80dd-fbba-4ea8-a30f-56306b0ce0a3",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.c00d6bb5-b8d3-4cf3-9db2-fd2bcbb00c55",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.c8bcf4ed-fa28-4676-8ea5-9fa5d40d2a28",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": ".inner_id.e9d1e735-9968-44ea-8bc1-190cb4cc6bd4",
+      "engine": "SummingMergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": "attestation_events",
+      "engine": "MergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": "dlego_events",
+      "engine": "MergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": "events_raw",
+      "engine": "MergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": "financial_events",
+      "engine": "MergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_daily_dlego_protocol_usage",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_daily_event_counts",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_daily_remote_sensing_summary",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_daily_sensor_summary",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_daily_wallet_activity",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_daily_weather_summary",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_dlego_value_by_location",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_hourly_sensor_stats",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_monthly_financial_summary",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_monthly_wallet_unique_active",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "mv_sensor_reading_rate",
+      "engine": "MaterializedView",
+      "total_rows": 0
+    },
+    {
+      "name": "remote_sensing_events",
+      "engine": "MergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": "sensor_readings",
+      "engine": "MergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": "v_portfolio_evaluation_summary",
+      "engine": "View",
+      "total_rows": null
+    },
+    {
+      "name": "v_portfolio_location_activity",
+      "engine": "View",
+      "total_rows": null
+    },
+    {
+      "name": "v_portfolio_monthly_evaluation",
+      "engine": "View",
+      "total_rows": null
+    },
+    {
+      "name": "v_remote_sensing_freshness",
+      "engine": "View",
+      "total_rows": null
+    },
+    {
+      "name": "wallet_events",
+      "engine": "MergeTree",
+      "total_rows": 0
+    },
+    {
+      "name": "weather_events",
+      "engine": "MergeTree",
+      "total_rows": 0
+    }
+  ],
+  "scope": "Isolated clone schema bootstrap; no production promotion or populated analytics parity."
+}

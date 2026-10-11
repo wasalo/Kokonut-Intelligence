@@ -1,0 +1,11 @@
+{
+  "archive": "legacy-redis-broker.tar.age",
+  "bytes": 10440,
+  "sha256": "5f37118a89f74b0ae69952222b8748b133ce28ab1ff0003fbdfc8e8788a23440",
+  "volumes": [
+    "f7bd99b76ae32ea1203e6d4c4674802b5878b451a323c84088cb853d09042e9f",
+    "kokonut-intelligence_mosquitto-data"
+  ],
+  "scope": "Stopped Redis persistence and broker data files only; no configuration, keys, other volumes or external services.",
+  "restore_rehearsed": false
+}

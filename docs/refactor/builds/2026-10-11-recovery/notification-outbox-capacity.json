@@ -1,0 +1,68 @@
+{
+  "run_id": "notification-outbox-capacity-check-20261011",
+  "date": "2026-10-11",
+  "result": "passed",
+  "scope": "isolated PostgreSQL notification-outbox recovery and capacity-status exercise",
+  "fixture": {
+    "compose_project": "kokonut-kernel-notification-capacity-final-20261011",
+    "database_container": "kokonut-kernel-notification-capacity-final-20261011-database-1",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "database_name": "notification_check",
+    "volume": "kokonut-kernel-notification-capacity-final-20261011_notification-check-data",
+    "network": "kokonut-kernel-notification-capacity-final-20261011_private",
+    "network_internal": true,
+    "published_ports": [],
+    "status_after_check": "stopped",
+    "volume_retained": true
+  },
+  "verification": {
+    "migration": "schemas/postgres/375_notification_outbox.sql",
+    "migration_reapplication": "passed",
+    "checks": [
+      "event/channel enqueue is idempotent",
+      "handler execution receives the stable source event id and duplicate handling enqueues once",
+      "changed payload under a reused event/channel identity is rejected",
+      "disabled provider remains unclaimed without consuming an attempt",
+      "crash after fake send is reclaimed; retry reuses the stable idempotency key",
+      "transport failure enters retryable state with backoff; a later retry succeeds",
+      "operator replay after a full retry budget preserves monotonic attempt history",
+      "operator replay and disposal both write audit rows",
+      "notification CLI help exposes the new commands",
+      "capacity status reports total/open rows, oldest-open age, relation bytes, and deterministic critical threshold state"
+    ],
+    "fake_transport_calls": 6,
+    "real_webhook_or_directus_calls": 0,
+    "network_egress": "disabled",
+    "pytest_suite": "not run",
+    "capacity_thresholds": {
+      "warning_bytes": 1,
+      "critical_bytes": 2,
+      "observed_state": "critical"
+    }
+  },
+  "source_sha256": {
+    "services/events/notification_outbox.py": "93a5f3744da5aef09a8e0ca96b088d0662875bb735b773bff65da350485bcdf4",
+    "services/events/cli.py": "8f35a3e01f533af16c6260b5e3cdb48ba17f4c6c0c3181840f95b4968c5fccfb",
+    "services/events/handlers.py": "760ba2978a4c23d6c7b90bedb4de5866a7314e3e271a82cf9e6c7ee8f5e25a2c",
+    "schemas/postgres/375_notification_outbox.sql": "f780a853ebd2455ccdf18691387625888ee55a923746bde1da763733a0fa6717",
+    "docker-compose.kernel-candidate.yml": "6cd29ddf8071f6c5ebdb10051bd546c7813ed3159710f9e3a9d3a9ed6d8eb5b0",
+    "docker-compose.kernel-standard.yml": "4d7b281df3f4f952b21c98522219bff72d92cff99685bb3b6d59519ed570bd10",
+    "docker-compose.kernel-portability.yml": "1fc4d29344372a96053f257c8a8a4205a480858492586121e0a6fdbfaad32df4",
+    ".env.example": "5409c3bf3a2a5a2391d6c31c10828316f02c947c9fe4672f8b9dcf78ace5b47c",
+    "docs/refactor/notification-outbox-operations.md": "04d6a569f88495905bf835fb03a4f9309aab10de35c6fcb33e847ebfe689ea7e"
+  },
+  "limitations": [
+    "Migration 375 was applied only to this fresh scratch database; candidate and legacy databases were not changed.",
+    "Receiver-side idempotency is not guaranteed; external delivery remains at-least-once if a receiver ignores Idempotency-Key.",
+    "Capacity reporting is advisory and covers the three outbox relations; it does not inspect database-volume free space or send an external alert.",
+    "No temporal retention interval or archive mechanism has been approved; no rows are automatically pruned.",
+    "Sensor anomaly alert/claim and actuator effects remain outside this outbox implementation.",
+    "No pytest suite was run."
+  ],
+  "environment_snapshot": {
+    "candidate_app": "healthy; 127.0.0.1:8098 -> 8099",
+    "candidate_database": "healthy; no host port published",
+    "legacy_kokonut_intelligence_services": "stopped",
+    "isolated_scratch_database": "stopped; evidence volume retained"
+  }
+}

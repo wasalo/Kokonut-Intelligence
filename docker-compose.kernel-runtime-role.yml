@@ -1,0 +1,32 @@
+# Optional least-privilege app credentials. Combine after the candidate and any
+# selected Kernel overlays. The one-shot admin service is enabled only for the
+# explicit runtime-admin profile and is run with `docker compose run --rm`.
+services:
+  runtime-role-bootstrap:
+    profiles: [runtime-admin]
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+      args:
+        KOKONUT_CLICKHOUSE: "false"
+    restart: "no"
+    command: ["python3", "-m", "services.migration.runtime_role"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      KOKONUT_DB_ADMIN_USER: ${KOKONUT_DB_ADMIN_USER:-kokonut}
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      KOKONUT_RUNTIME_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
+      KOKONUT_RUNTIME_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}
+    networks:
+      - kernel
+
+  app:
+    environment:
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut_runtime}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?KOKONUT_RUNTIME_PASSWORD must be set}

@@ -1,6 +1,6 @@
 """Health check flow."""
 
-from prefect import flow
+from services.core.adapters.prefect import flow
 
 
 @flow(name="health-check", retries=1, retry_delay_seconds=60)

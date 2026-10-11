@@ -1,0 +1,477 @@
+{
+  "scope": "Read-only metadata from isolated raw legacy clone; excludes password hashes and role secrets. Not authorization parity certification.",
+  "databases": [
+    {
+      "database": "kokonut_intelligence",
+      "roles": [
+        {
+          "name": "kokonut",
+          "superuser": true,
+          "inherit": true,
+          "create_role": true,
+          "create_database": true,
+          "login": true,
+          "replication": true,
+          "bypass_rls": true
+        }
+      ],
+      "memberships": [],
+      "database_acl": {
+        "owner": "kokonut",
+        "acl": null
+      },
+      "schemas": [
+        {
+          "name": "kokonut",
+          "owner": "kokonut",
+          "acl": "{kokonut=UC/kokonut}"
+        },
+        {
+          "name": "public",
+          "owner": "pg_database_owner",
+          "acl": "{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner,kokonut=UC/pg_database_owner}"
+        },
+        {
+          "name": "tiger",
+          "owner": "kokonut",
+          "acl": null
+        },
+        {
+          "name": "tiger_data",
+          "owner": "kokonut",
+          "acl": null
+        },
+        {
+          "name": "topology",
+          "owner": "kokonut",
+          "acl": "{kokonut=UC/kokonut,=U/kokonut}"
+        }
+      ],
+      "objects_by_owner": [
+        {
+          "schema": "public",
+          "kind": "S",
+          "owner": "kokonut",
+          "objects": 8
+        },
+        {
+          "schema": "public",
+          "kind": "c",
+          "owner": "kokonut",
+          "objects": 2
+        },
+        {
+          "schema": "public",
+          "kind": "i",
+          "owner": "kokonut",
+          "objects": 3842
+        },
+        {
+          "schema": "public",
+          "kind": "r",
+          "owner": "kokonut",
+          "objects": 1007
+        },
+        {
+          "schema": "public",
+          "kind": "v",
+          "owner": "kokonut",
+          "objects": 377
+        },
+        {
+          "schema": "tiger",
+          "kind": "S",
+          "owner": "kokonut",
+          "objects": 16
+        },
+        {
+          "schema": "tiger",
+          "kind": "c",
+          "owner": "kokonut",
+          "objects": 1
+        },
+        {
+          "schema": "tiger",
+          "kind": "i",
+          "owner": "kokonut",
+          "objects": 70
+        },
+        {
+          "schema": "tiger",
+          "kind": "r",
+          "owner": "kokonut",
+          "objects": 34
+        },
+        {
+          "schema": "topology",
+          "kind": "S",
+          "owner": "kokonut",
+          "objects": 1
+        },
+        {
+          "schema": "topology",
+          "kind": "c",
+          "owner": "kokonut",
+          "objects": 3
+        },
+        {
+          "schema": "topology",
+          "kind": "i",
+          "owner": "kokonut",
+          "objects": 4
+        },
+        {
+          "schema": "topology",
+          "kind": "r",
+          "owner": "kokonut",
+          "objects": 2
+        }
+      ],
+      "explicit_object_acls": [
+        {
+          "schema": "public",
+          "object": "geography_columns",
+          "kind": "v",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "public",
+          "object": "geometry_columns",
+          "kind": "v",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "public",
+          "object": "pg_stat_statements",
+          "kind": "v",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "public",
+          "object": "pg_stat_statements_info",
+          "kind": "v",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "public",
+          "object": "spatial_ref_sys",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "tiger",
+          "object": "geocode_settings",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "tiger",
+          "object": "geocode_settings_default",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "tiger",
+          "object": "loader_lookuptables",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "tiger",
+          "object": "loader_platform",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "tiger",
+          "object": "loader_variables",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "tiger",
+          "object": "pagc_gaz",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "tiger",
+          "object": "pagc_lex",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "tiger",
+          "object": "pagc_rules",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "topology",
+          "object": "layer",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "topology",
+          "object": "topology",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "topology",
+          "object": "topology_id_seq",
+          "kind": "S",
+          "owner": "kokonut",
+          "acl": "{kokonut=rwU/kokonut,=r/kokonut}"
+        }
+      ],
+      "default_acls": [],
+      "row_security": []
+    },
+    {
+      "database": "metabase",
+      "roles": [
+        {
+          "name": "kokonut",
+          "superuser": true,
+          "inherit": true,
+          "create_role": true,
+          "create_database": true,
+          "login": true,
+          "replication": true,
+          "bypass_rls": true
+        }
+      ],
+      "memberships": [],
+      "database_acl": {
+        "owner": "kokonut",
+        "acl": null
+      },
+      "schemas": [
+        {
+          "name": "public",
+          "owner": "pg_database_owner",
+          "acl": "{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}"
+        }
+      ],
+      "objects_by_owner": [
+        {
+          "schema": "public",
+          "kind": "S",
+          "owner": "kokonut",
+          "objects": 121
+        },
+        {
+          "schema": "public",
+          "kind": "i",
+          "owner": "kokonut",
+          "objects": 526
+        },
+        {
+          "schema": "public",
+          "kind": "r",
+          "owner": "kokonut",
+          "objects": 151
+        },
+        {
+          "schema": "public",
+          "kind": "v",
+          "owner": "kokonut",
+          "objects": 18
+        }
+      ],
+      "explicit_object_acls": [],
+      "default_acls": [],
+      "row_security": []
+    },
+    {
+      "database": "kokonut_bootstrap_28232",
+      "roles": [
+        {
+          "name": "kokonut",
+          "superuser": true,
+          "inherit": true,
+          "create_role": true,
+          "create_database": true,
+          "login": true,
+          "replication": true,
+          "bypass_rls": true
+        }
+      ],
+      "memberships": [],
+      "database_acl": {
+        "owner": "kokonut",
+        "acl": null
+      },
+      "schemas": [
+        {
+          "name": "public",
+          "owner": "pg_database_owner",
+          "acl": "{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}"
+        },
+        {
+          "name": "topology",
+          "owner": "kokonut",
+          "acl": "{kokonut=UC/kokonut,=U/kokonut}"
+        }
+      ],
+      "objects_by_owner": [
+        {
+          "schema": "public",
+          "kind": "c",
+          "owner": "kokonut",
+          "objects": 2
+        },
+        {
+          "schema": "public",
+          "kind": "i",
+          "owner": "kokonut",
+          "objects": 4
+        },
+        {
+          "schema": "public",
+          "kind": "r",
+          "owner": "kokonut",
+          "objects": 3
+        },
+        {
+          "schema": "public",
+          "kind": "v",
+          "owner": "kokonut",
+          "objects": 4
+        },
+        {
+          "schema": "topology",
+          "kind": "S",
+          "owner": "kokonut",
+          "objects": 1
+        },
+        {
+          "schema": "topology",
+          "kind": "c",
+          "owner": "kokonut",
+          "objects": 3
+        },
+        {
+          "schema": "topology",
+          "kind": "i",
+          "owner": "kokonut",
+          "objects": 4
+        },
+        {
+          "schema": "topology",
+          "kind": "r",
+          "owner": "kokonut",
+          "objects": 2
+        }
+      ],
+      "explicit_object_acls": [
+        {
+          "schema": "public",
+          "object": "geography_columns",
+          "kind": "v",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "public",
+          "object": "geometry_columns",
+          "kind": "v",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "public",
+          "object": "pg_stat_statements",
+          "kind": "v",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "public",
+          "object": "pg_stat_statements_info",
+          "kind": "v",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "public",
+          "object": "spatial_ref_sys",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "topology",
+          "object": "layer",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "topology",
+          "object": "topology",
+          "kind": "r",
+          "owner": "kokonut",
+          "acl": "{kokonut=arwdDxt/kokonut,=r/kokonut}"
+        },
+        {
+          "schema": "topology",
+          "object": "topology_id_seq",
+          "kind": "S",
+          "owner": "kokonut",
+          "acl": "{kokonut=rwU/kokonut,=r/kokonut}"
+        }
+      ],
+      "default_acls": [],
+      "row_security": []
+    },
+    {
+      "database": "postgres",
+      "roles": [
+        {
+          "name": "kokonut",
+          "superuser": true,
+          "inherit": true,
+          "create_role": true,
+          "create_database": true,
+          "login": true,
+          "replication": true,
+          "bypass_rls": true
+        }
+      ],
+      "memberships": [],
+      "database_acl": {
+        "owner": "kokonut",
+        "acl": null
+      },
+      "schemas": [
+        {
+          "name": "public",
+          "owner": "pg_database_owner",
+          "acl": "{pg_database_owner=UC/pg_database_owner,=U/pg_database_owner}"
+        }
+      ],
+      "objects_by_owner": null,
+      "explicit_object_acls": [],
+      "default_acls": [],
+      "row_security": []
+    }
+  ]
+}

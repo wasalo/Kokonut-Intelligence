@@ -1,0 +1,2 @@
+# Existing version constraint retained from requirements.txt.
+clickhouse-connect>=1.4.1,<2.0.0

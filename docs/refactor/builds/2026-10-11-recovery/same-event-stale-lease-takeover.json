@@ -1,0 +1,115 @@
+{
+  "format": 1,
+  "recorded_at": "2026-10-11T14:46:35.153998+00:00",
+  "batch": "2",
+  "phase": "3 recovery evidence supporting the future Phase 7 governed workflow",
+  "capability": "CAP-040",
+  "repository": {
+    "branch": "chore/kernel-plan-ignore",
+    "head": "ad806f5",
+    "working_tree_changes_present": true,
+    "source_mounted_read_only": true,
+    "source_hashes": {
+      "scripts/fixtures/kernel-recovery-same-event-claim.py": "f7ea3f34c00a33a24d92074ae9b101a4217479448cf37b996bc9455462a6fe62",
+      "services/events/bus.py": "f04359795fa429634a784059d9f6f5963206bd13f0c0fe13077ca0e7fa4d3e78",
+      "services/cache/events.py": "3d281b3dc322b94091587f49e523c98142a2be1f607975ec9358b8aa234ebc1d",
+      "services/cache/cache.py": "196e7d26014cc6a1a9b6c35490f3101044094937ae50dd47bf87fdfeb3de90ee",
+      "services/common/database.py": "3515dca6f5cedd4c48f3219d5c6033ac9160e259eb8640fe3e64044247a1de3b",
+      "services/common/db.py": "a98c93704206264c63867f35b864dd583f39df17ee609d309cfccc5dde858584"
+    }
+  },
+  "checkpoint_restore": {
+    "archive": "backups/recovery-fixture-20261010/database/postgres.dump.age",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "destination_was_empty": true,
+    "plaintext_dump_written_to_disk": false
+  },
+  "isolated_runtime": {
+    "compose_project": "kokonut-kernel-recovery-handler-b2-20261011",
+    "database_container": "kokonut-kernel-recovery-handler-b2-20261011-database-1",
+    "database_volume": "kokonut-kernel-recovery-handler-b2-20261011_fixture-postgres-data",
+    "network": "kokonut-kernel-recovery-handler-b2-20261011_fixture",
+    "network_internal": true,
+    "host_port_bindings": {},
+    "operator_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+    "status_after_probe": "stopped; volume retained",
+    "legacy_stack": "stopped and unchanged"
+  },
+  "probe": {
+    "run_id": "1f194ea4-4d12-40be-abf6-f5ea3b785556",
+    "verified_at": "2026-10-11T14:46:35.153998+00:00",
+    "helper": "scripts/fixtures/kernel-recovery-same-event-claim.py",
+    "event_id": "df1fc8fd-0aa9-536e-8e62-135ace710009",
+    "handler_id": "60c50b41-5d46-46c0-bf7e-044d498b15c9",
+    "handler": "services.cache.events.handle_crisp_scored",
+    "event_type": "crisp_scored",
+    "cache_type": "crisp",
+    "handler_timeout_seconds": {
+      "original": 30,
+      "temporary_isolated_fixture_value": 120,
+      "restored_after_probe": 30
+    },
+    "first_worker_in_flight": {
+      "worker_id": "kernel-b2-same-event-a",
+      "event_status": "processing",
+      "lease_owner": "kernel-b2-same-event-a",
+      "delivery_status": "processing",
+      "delivery_attempt_count": 1,
+      "blocked_cache_update_sessions": 1
+    },
+    "lease_expiration": {
+      "performed_by_guarded_fixture_helper": true,
+      "lease_expires_at": "2026-10-11T14:45:47.071491+00:00",
+      "changed_rows": 1,
+      "scope": "Only the marked synthetic event owned by worker A was changed."
+    },
+    "reclaim_observation_while_worker_a_handler_remained_blocked": {
+      "event_status": "processing",
+      "worker_id": "kernel-b2-same-event-b",
+      "lease_owner": "kernel-b2-same-event-b",
+      "event_retry_count": 0,
+      "delivery_status": "processing",
+      "delivery_attempt_count": 2,
+      "blocked_cache_update_sessions": 2
+    },
+    "workers_after_lock_release": {
+      "worker_a": {"processed": 0, "failed": 1, "skipped": 0},
+      "worker_b": {"processed": 1, "failed": 0, "skipped": 0}
+    },
+    "final_state": {
+      "event_completed": 1,
+      "final_worker_id": "kernel-b2-same-event-b",
+      "event_retry_count": 0,
+      "event_lease_released": true,
+      "delivery_attempt_count": 2,
+      "final_delivery_status": "success",
+      "successful_handler_logs": 2,
+      "target_cache_rows_invalidated": 1,
+      "sentinel_cache_rows_preserved": 1,
+      "invalidation_reason": "crisp_scored:crisp_scored",
+      "handler_cache_invalidation_logs": [0, 1]
+    }
+  },
+  "prior_default_timeout_attempt": {
+    "run_id": "a02f55a2-9cee-45ce-83b3-479fb6f4c987",
+    "event_id": "96946266-fe93-50b7-9b0d-94fdc35bba2d",
+    "handler_timeout_seconds": 30,
+    "final_event_status": "dead_letter",
+    "delivery_attempt_count": 2,
+    "timeout_logs": 2,
+    "cache_rows_changed": 0,
+    "used_as_takeover_evidence": false
+  },
+  "checkpoint_fixture_preservation": {
+    "synthetic_event_id": "f0000000-0000-4000-8000-000000000005",
+    "temporary_lease_expires_at": "2026-10-11T16:41:41.279234+00:00",
+    "restored_lease_expires_at": "2026-10-10T10:01:00+00:00",
+    "other_event_fields_changed": false
+  },
+  "limits": [
+    "Confirms expired-lease reclaim while the original worker’s handler remains blocked for one idempotent cache effect.",
+    "Worker A's handler succeeded but its event completion lost ownership; its CLI reported one failed event while worker B completed the event.",
+    "The two handler calls were cache invalidations; this does not prove safety for non-idempotent or external side effects.",
+    "Does not cover process crash after an external side effect, other handler types, production runtime-role policy, provider recovery or broader CAP-040 parity."
+  ]
+}

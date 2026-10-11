@@ -1,0 +1,160 @@
+{
+  "date": "2026-10-11",
+  "environment_after_run": {
+    "candidate_api_and_database": "healthy",
+    "legacy_kokonut_intelligence_stack": "stopped, unchanged",
+    "original_recovery_volume": "unchanged"
+  },
+  "fixture": {
+    "compose_project": "kokonut-kernel-metabase-reporting-20261011",
+    "database_container_after_run": "stopped and removed",
+    "isolated_clone_role_setup_applied": true,
+    "metabase_metadata_ownership_changed_in_clone": true,
+    "network_after_run": "removed",
+    "published_ports": [],
+    "runner_image": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "scratch_reporting_fixture_rows_rolled_back": true,
+    "source_recovery_volume_mutated": false,
+    "volume": "kokonut-kernel-metabase-reporting-20261011_consumer-role-postgres-data",
+    "volume_retained": true
+  },
+  "limitations": [
+    "Synthetic reporting records were transaction-rolled-back; populated application-row output parity was not evaluated.",
+    "The archived application database restore has migration checksum drift at schema:000_extensions.sql; it remains unmodified.",
+    "Metabase has no Kokonut source connection or Kokonut-specific cards; card output parity and analytics-profile promotion remain open.",
+    "Candidate and legacy database grants/configuration were not changed."
+  ],
+  "migration": {
+    "apply_failures": 0,
+    "archived_application_database": "not migrated; checksum drift reported at schema:000_extensions.sql and was neither repaired nor bypassed",
+    "database": "kokonut_reporting_scratch",
+    "final_schema_migration": "schema:377_kokonut_reporting_contract.sql",
+    "post_apply_plan_pending": 0,
+    "runner": "services.migration",
+    "schema_migrations_applied": 368,
+    "schema_sources_validated": 368
+  },
+  "payloads_or_passwords_printed": false,
+  "result": "passed",
+  "role_fixture": {
+    "analytics_source": {
+      "behavioral_probes": {
+        "celo_attestation_scope_and_lifecycle": "passed",
+        "equal_area_farm_and_plot_aggregation": "passed",
+        "farm_specific_registry_scope": "passed",
+        "metric_period_method_and_review_fields": "passed",
+        "unsupported_area_unit_fail_closed": "passed",
+        "verified_metric_requires_published_allowlist": "passed"
+      },
+      "curated_view_select": "passed",
+      "denials": [
+        "base table SELECT",
+        "metric publication policy SELECT",
+        "CREATE TABLE",
+        "view INSERT"
+      ],
+      "public_extension_metadata_relations": 5,
+      "readable_reporting_views": [
+        "v_attestation_summary",
+        "v_farm_summary",
+        "v_verified_metric_values"
+      ],
+      "role": "kokonut_analytics_ro",
+      "unreviewed_public_relations_readable": 0
+    },
+    "cross_database_connect_denied": {
+      "kokonut_analytics_ro": [
+        "metabase",
+        "postgres"
+      ],
+      "kokonut_directus_runtime": [
+        "metabase",
+        "postgres"
+      ],
+      "kokonut_metabase_app": [
+        "kokonut_reporting_scratch",
+        "postgres"
+      ]
+    },
+    "database_names": [
+      "kokonut_intelligence",
+      "kokonut_reporting_scratch",
+      "metabase",
+      "metabase_startup",
+      "postgres",
+      "template1",
+      "template_postgis"
+    ],
+    "directus_runtime": {
+      "ddl_and_admin_denials": [
+        "CREATE TABLE",
+        "CREATE ROLE",
+        "CREATE DATABASE",
+        "SET ROLE admin"
+      ],
+      "dml_probe": "passed",
+      "ownership": "none",
+      "public_relations_with_dml": 1378,
+      "role": "kokonut_directus_runtime",
+      "schemas": [
+        "public"
+      ]
+    },
+    "isolated_clone_role_setup_applied": true,
+    "metabase_metadata": {
+      "application_relations_owned_by_role": 290,
+      "cluster_admin_denials": [
+        "CREATE ROLE",
+        "CREATE DATABASE"
+      ],
+      "database": "metabase",
+      "database_owned_by_role": true,
+      "role": "kokonut_metabase_app",
+      "synthetic_migration_ddl_and_dml": "passed"
+    },
+    "metabase_metadata_ownership_changed_in_clone": true,
+    "private_payloads_or_passwords_printed": false,
+    "result": "passed",
+    "role_attributes": {
+      "kokonut_analytics_ro": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "kokonut_directus_runtime": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "kokonut_metabase_app": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ]
+    },
+    "scope": "current-schema scratch database in an isolated copy of the populated recovery volume; Metabase metadata remains populated; application probes are synthetic and rolled back",
+    "scratch_reporting_fixture_rows_rolled_back": true,
+    "source_recovery_volume_mutated": false
+  },
+  "run_id": "kokonut-reporting-contract-20261011",
+  "scope": "isolated current-schema scratch database plus populated Metabase metadata clone; not a migration of the populated application database",
+  "source_sha256": {
+    "docker-compose.kernel-recovery-consumer-roles.yml": "99c02fc54bedc690b3720bbca2e869a8841629b23d79aa610160a452a674fe4f",
+    "schemas/postgres/377_kokonut_reporting_contract.sql": "d96f70ed1ce217575380afc29ea102a67ccf37a39568bcc171b70e8961c2a2c7",
+    "scripts/fixtures/kernel-optional-db-roles-check.py": "a0127b20e20f4e1e0a9d91d27bdf4a59393865eba057b4ef221449dc6b3302b9"
+  },
+  "validation": {
+    "fixture_diff_check": "passed",
+    "fixture_python_compile": "passed",
+    "pytest_or_broad_acceptance_suite": "not run"
+  }
+}

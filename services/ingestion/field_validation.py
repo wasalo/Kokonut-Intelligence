@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -35,6 +36,31 @@ def parse_reading_timestamp(reading_date: str, reading_time: str | None = None) 
     date_part = datetime.strptime(reading_date, "%Y-%m-%d").date()
     time_part = datetime.strptime(reading_time or "00:00:00", "%H:%M:%S").time()
     return datetime.combine(date_part, time_part, tzinfo=timezone.utc)
+
+
+def get_transport_timestamp_mode(mode: str | None = None) -> str:
+    """Validate deployment policy independently of individual payloads."""
+    mode = os.environ.get("KOKONUT_SENSOR_TIMESTAMP_MODE", "legacy") if mode is None else mode
+    if mode not in {"legacy", "utc"}:
+        raise ValueError("KOKONUT_SENSOR_TIMESTAMP_MODE must be legacy or utc")
+    return mode
+
+
+def parse_transport_timestamp(value: str | None, mode: str | None = None) -> datetime:
+    """Opt-in UTC identity for HTTP/MQTT without rewriting historical rows."""
+    mode = get_transport_timestamp_mode(mode)
+    if not value:
+        if mode == "utc":
+            raise ValueError("An explicit timestamp is required in UTC mode")
+        return datetime.now(timezone.utc)
+    if not isinstance(value, str):
+        raise ValueError("Timestamp must be an ISO datetime string")
+    timestamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if mode == "utc":
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ValueError("Timestamp must include a timezone in UTC mode")
+        timestamp = timestamp.astimezone(timezone.utc)
+    return timestamp
 
 
 def build_dedupe_key(sensor_id: str, timestamp: datetime) -> str:

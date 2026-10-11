@@ -1,0 +1,69 @@
+{
+  "checks": {
+    "schema_reapplication_passed": true,
+    "one_time_quiesced_backfill_matches_raw": true,
+    "subsequent_separate_insert_blocks_match_raw": true,
+    "merged_output_matches_raw": true
+  },
+  "backfilled": {
+    "daily": [
+      {
+        "day": "2026-10-10",
+        "location_id": "f0000000-0000-4000-8000-000000000021",
+        "sensor_type": "soil_moisture",
+        "avg_value": 20,
+        "min_value": 10,
+        "max_value": 30,
+        "total_readings": 3,
+        "active_sensors": 1,
+        "suspect_readings": 0
+      }
+    ],
+    "rate": [
+      {
+        "hour": "2026-10-10 12:00:00",
+        "sensor_type": "soil_moisture",
+        "total_readings": 3,
+        "active_sensors": 1,
+        "active_locations": 1
+      }
+    ]
+  },
+  "after_inserts_and_merge": {
+    "daily": [
+      {
+        "day": "2026-10-10",
+        "location_id": "f0000000-0000-4000-8000-000000000021",
+        "sensor_type": "soil_moisture",
+        "avg_value": 25,
+        "min_value": 10,
+        "max_value": 40,
+        "total_readings": 4,
+        "active_sensors": 2,
+        "suspect_readings": 1
+      },
+      {
+        "day": "2026-10-10",
+        "location_id": "f0000000-0000-4000-8000-000000000022",
+        "sensor_type": "soil_moisture",
+        "avg_value": 50,
+        "min_value": 50,
+        "max_value": 50,
+        "total_readings": 1,
+        "active_sensors": 1,
+        "suspect_readings": 0
+      }
+    ],
+    "rate": [
+      {
+        "hour": "2026-10-10 12:00:00",
+        "sensor_type": "soil_moisture",
+        "total_readings": 5,
+        "active_sensors": 2,
+        "active_locations": 2
+      }
+    ]
+  },
+  "schema_sha256": "f18f5a6202826d4059c9513c86f13bafabf87391690e8f60ba9ff52bb50c06d4",
+  "scope": "Synthetic isolated ClickHouse aggregate parity for corrected daily/rate views; no PostgreSQL/outbox/dashboard or production acceptance."
+}

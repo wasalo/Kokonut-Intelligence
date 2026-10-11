@@ -21,6 +21,7 @@ from services.common.http import http
 
 from ..common.logging import get_logger
 from .config import (
+    CH_DB,
     CH_HOST,
     CH_PASSWORD,
     CH_PORT,
@@ -60,16 +61,9 @@ def get_db():
 
 def get_clickhouse():
     """Get ClickHouse HTTP connection."""
-    try:
-        import clickhouse_connect
-        return clickhouse_connect.get_client(
-            host=CH_HOST,
-            port=CH_PORT,
-            username=CH_USER,
-            password=CH_PASSWORD,
-        )
-    except ImportError:
-        return None
+    from services.core.adapters.clickhouse import create_client
+
+    return create_client(host=CH_HOST, port=CH_PORT, username=CH_USER, password=CH_PASSWORD, database=CH_DB)
 
 
 def _validate_ch_identifiers(table: str, columns: list[str]) -> None:
@@ -111,7 +105,7 @@ def post_clickhouse_rows(table: str, columns: list[str], rows: list[list]) -> bo
     try:
         response = http.post(
             f"http://{CH_HOST}:{CH_PORT}",
-            params={"query": query},
+            params={"query": query, "database": CH_DB},
             data=payload.encode("utf-8"),
             auth=(CH_USER, CH_PASSWORD),
             headers={"Content-Type": "application/x-ndjson"},
@@ -151,11 +145,13 @@ def log_ingestion(
     validation_errors: Optional[list[str]] = None,
     validation_warnings: Optional[list[str]] = None,
     dedupe_key: Optional[str] = None,
+    db=None,
 ) -> None:
     """Log ingestion event to the ingestion_log table."""
-    db = None
+    owns_db = db is None
     try:
-        db = get_db()
+        if owns_db:
+            db = get_db()
         with db.cursor() as cur:
             cur.execute(
                 """
@@ -176,11 +172,14 @@ def log_ingestion(
                     dedupe_key,
                 ),
             )
-        db.commit()
+        if owns_db:
+            db.commit()
     except Exception as e:
+        if not owns_db:
+            raise
         logger.error("Failed to log ingestion: %s", e)
     finally:
-        if db is not None:
+        if owns_db and db is not None:
             db.close()
 
 

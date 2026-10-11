@@ -1,0 +1,28 @@
+{
+  "directus": {
+    "active_database_sessions": 2,
+    "database": "kokonut_intelligence",
+    "health": "healthy",
+    "image": "directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d",
+    "owner_bootstrap_exit_code": 0,
+    "role": "kokonut_directus_runtime",
+    "runtime_command": "cli.js start"
+  },
+  "legacy_or_candidate_modified": false,
+  "metabase": {
+    "active_database_sessions": 10,
+    "configured_external_sources": false,
+    "first_start_migrations": "completed; health endpoint returned 200",
+    "health": "healthy",
+    "image": "metabase/metabase:v0.62.4@sha256:22ddc782a45f8aecf47c0f039b86a323435565595643e429fb33d29939b41675",
+    "metadata_database": "metabase_startup",
+    "metadata_database_was_empty_before_start": true,
+    "role": "kokonut_metabase_app"
+  },
+  "network_internal": true,
+  "private_payloads_or_passwords_printed": false,
+  "project": "kokonut-kernel-consumer-role-recovery-20261011",
+  "published_ports": false,
+  "scope": "isolated internal-only consumer-role recovery project",
+  "verified_on": "2026-10-11"
+}

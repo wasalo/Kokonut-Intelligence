@@ -1,0 +1,6 @@
+# Existing version constraints retained from requirements.txt.
+grpcio>=1.68.0,<2.0.0
+grpcio-tools>=1.68.0,<2.0.0
+grpcio-reflection>=1.68.0,<2.0.0
+grpcio-health-checking>=1.68.0,<2.0.0
+protobuf>=5.29.0,<7.0.0

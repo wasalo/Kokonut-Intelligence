@@ -1,0 +1,43 @@
+{
+  "check": "Gateway audit spool maintenance CLI in rebuilt Kernel image",
+  "date": "2026-10-11",
+  "image": {
+    "tag": "kokonut-kernel-portability-app:local",
+    "image_id": "sha256:13602e4470f02855320d458c3b229cf6d341a337ea3f7ccb04e4a353f42234f3"
+  },
+  "runtime_probe": {
+    "command": "python3 -m services.cli audit-spool status --path /tmp/nonexistent-audit-spool.sqlite3",
+    "exit_code": 0,
+    "result": {
+      "exists": false,
+      "pending_events": 0
+    },
+    "network": "none",
+    "database_volume_mounted": false,
+    "audit_volume_mounted": false,
+    "temporary_container_removed": true
+  },
+  "checkpoint_restore_probe": {
+    "image_cli": "python3 -m services.cli audit-spool",
+    "network": "none",
+    "mount": "private temporary bind fixture only; no Compose volumes",
+    "source_pending_events": 1,
+    "checkpoint_integrity": "ok",
+    "restored_pending_events": 1,
+    "restore_refused_existing_destination": true,
+    "checkpoint_and_restore_modes": ["0600", "0600"],
+    "temporary_containers_and_fixture_removed": true
+  },
+  "observed_container_state_after_probe": {
+    "candidate_app": "up and healthy; untouched",
+    "candidate_database": "up and healthy; untouched",
+    "portability_app": "exited; still references the prior image",
+    "portability_worker": "exited; still references the prior image",
+    "portability_database": "exited cleanly"
+  },
+  "limits": [
+    "The CLI ran in a disposable container without the Compose database or journal volume.",
+    "A live Compose-volume checkpoint/restore was not attempted.",
+    "No provider selection, candidate service, database or persistent Docker volume changed."
+  ]
+}

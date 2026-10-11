@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 import json
 import multiprocessing
 import uuid
@@ -25,11 +26,14 @@ def resolve_handler(module_path: str, function_name: str):
     return handler
 
 
-def _handler_process(result_queue, module_path, function_name, event_type, payload):
+def _handler_process(result_queue, module_path, function_name, event_type, payload, event_id=None):
     """Invoke a handler in an isolated process so its deadline is enforceable."""
     try:
         handler = resolve_handler(module_path, function_name)
-        handler(event_type, payload)
+        if "event_id" in inspect.signature(handler).parameters:
+            handler(event_type, payload, event_id=event_id)
+        else:
+            handler(event_type, payload)
         result_queue.put((True, None))
     except BaseException as exc:  # Child must report all handler failures.
         result_queue.put((False, f"{type(exc).__name__}: {exc}"))
@@ -54,9 +58,17 @@ class EventBus:
             self._conn.close()
             self._conn = None
 
-    def publish(self, event_type: str, payload: dict[str, Any], *, source_table=None,
-                source_id=None, priority="normal", max_retries=3, metadata=None) -> str:
-        event_id = str(uuid.uuid4())
+    def publish(self, event_type: str, payload: dict[str, Any], *, event_id=None,
+                source_table=None, source_id=None, priority="normal", max_retries=3,
+                metadata=None) -> str:
+        """Persist an event, optionally using an ID allocated by its transaction owner."""
+        if event_id is None:
+            event_id = str(uuid.uuid4())
+        else:
+            try:
+                event_id = str(uuid.UUID(str(event_id)))
+            except (ValueError, TypeError, AttributeError) as exc:
+                raise ValueError("event_id must be a valid UUID") from exc
         conn = self._get_conn()
         try:
             with conn.cursor() as cur:
@@ -98,7 +110,7 @@ class EventBus:
         return events
 
     def process_pending(self, batch_size: int = 100, worker_id: str = "default") -> dict[str, int]:
-        stats = {"processed": 0, "failed": 0, "skipped": 0}
+        stats = {"processed": 0, "failed": 0, "skipped": 0, "lease_lost": 0}
         conn = self._get_conn()
         try:
             events = self._claim(batch_size, worker_id)
@@ -109,6 +121,10 @@ class EventBus:
                     stats["processed"] += 1
                 elif outcome == "skipped":
                     stats["skipped"] += 1
+                elif outcome == "lease_lost":
+                    # Another worker owns this event now. The stale worker must
+                    # neither retry it nor report the handler as failed.
+                    stats["lease_lost"] += 1
                 else:
                     self._retry_or_dead_letter(
                         event_id, retry_count + 1, max_retries, worker_id
@@ -165,7 +181,8 @@ class EventBus:
             conn.commit()
             started = datetime.now(timezone.utc)
             delivery_status, error = self._invoke_handler(
-                module_path, function_name, event_type, payload, timeout_seconds
+                module_path, function_name, event_type, payload, timeout_seconds,
+                event_id=str(event_id),
             )
             duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
             with conn.cursor() as cur:
@@ -186,11 +203,13 @@ class EventBus:
             return "failed"
         return "success" if self._complete(event_id, worker_id) else "lease_lost"
 
-    def _invoke_handler(self, module_path, function_name, event_type, payload, timeout_seconds):
+    def _invoke_handler(
+        self, module_path, function_name, event_type, payload, timeout_seconds, *, event_id=None
+    ):
         ctx = multiprocessing.get_context("spawn")
         result_queue = ctx.Queue(maxsize=1)
         process = ctx.Process(target=_handler_process, args=(
-            result_queue, module_path, function_name, event_type, payload
+            result_queue, module_path, function_name, event_type, payload, event_id
         ))
         process.start()
         process.join(timeout_seconds)

@@ -1,0 +1,57 @@
+{
+  "encrypted_environment_presence": {
+    "PREFECT_API_URL": false,
+    "PREFECT_API_KEY": false,
+    "MOBILE_MEDIA_PROVIDER": false,
+    "MOBILE_MEDIA_LOCAL_DIRECTORY": false,
+    "MOBILE_MEDIA_LOCAL_KEY": false,
+    "MOBILE_MEDIA_S3_ENDPOINT": false,
+    "MOBILE_MEDIA_S3_BUCKET": false,
+    "MOBILE_MEDIA_S3_ACCESS_KEY_ID": false,
+    "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": false,
+    "STORAGE_LOCATIONS": false,
+    "STORAGE_LOCAL_ROOT": false
+  },
+  "container_environment_presence": {
+    "/kokonut-intelligence-gateway-1": {
+      "PREFECT_API_URL": false,
+      "PREFECT_API_KEY": false,
+      "MOBILE_MEDIA_PROVIDER": false,
+      "MOBILE_MEDIA_LOCAL_DIRECTORY": false,
+      "MOBILE_MEDIA_LOCAL_KEY": false,
+      "MOBILE_MEDIA_S3_ENDPOINT": false,
+      "MOBILE_MEDIA_S3_BUCKET": false,
+      "MOBILE_MEDIA_S3_ACCESS_KEY_ID": false,
+      "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": false,
+      "STORAGE_LOCATIONS": false,
+      "STORAGE_LOCAL_ROOT": false
+    },
+    "/kokonut-intelligence-directus-1": {
+      "PREFECT_API_URL": false,
+      "PREFECT_API_KEY": false,
+      "MOBILE_MEDIA_PROVIDER": false,
+      "MOBILE_MEDIA_LOCAL_DIRECTORY": false,
+      "MOBILE_MEDIA_LOCAL_KEY": false,
+      "MOBILE_MEDIA_S3_ENDPOINT": false,
+      "MOBILE_MEDIA_S3_BUCKET": false,
+      "MOBILE_MEDIA_S3_ACCESS_KEY_ID": false,
+      "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": false,
+      "STORAGE_LOCATIONS": false,
+      "STORAGE_LOCAL_ROOT": false
+    },
+    "/kokonut-kernel-portability-app-1": {
+      "PREFECT_API_URL": false,
+      "PREFECT_API_KEY": false,
+      "MOBILE_MEDIA_PROVIDER": false,
+      "MOBILE_MEDIA_LOCAL_DIRECTORY": false,
+      "MOBILE_MEDIA_LOCAL_KEY": false,
+      "MOBILE_MEDIA_S3_ENDPOINT": false,
+      "MOBILE_MEDIA_S3_BUCKET": false,
+      "MOBILE_MEDIA_S3_ACCESS_KEY_ID": false,
+      "MOBILE_MEDIA_S3_SECRET_ACCESS_KEY": false,
+      "STORAGE_LOCATIONS": false,
+      "STORAGE_LOCAL_ROOT": false
+    }
+  },
+  "scope": "Presence only; values/credentials not retained; absence does not exclude separately configured external services."
+}
