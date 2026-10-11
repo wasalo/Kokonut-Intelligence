@@ -13,6 +13,8 @@ try:
     from services.gateway.public_models import (
         PublicCrispAssessment,
         PublicError,
+        PublicLocationListResponse,
+        PublicLocationResponse,
         PublicLocationSummary,
         PublicMetricSummary,
     )
@@ -27,7 +29,8 @@ except ImportError:
 
     Request = None
     JSONResponse = None
-    PublicCrispAssessment = PublicError = PublicLocationSummary = PublicMetricSummary = None
+    PublicCrispAssessment = PublicError = PublicLocationListResponse = None
+    PublicLocationResponse = PublicLocationSummary = PublicMetricSummary = None
 
 router = APIRouter()
 logger = get_logger("gateway.router")
@@ -50,6 +53,7 @@ _ROUTE_POLICIES = (
     # These endpoints perform their own opaque device-token authentication.
     ("POST", re.compile(r"^/api/mobile/sync$"), "offline_collection", "write", True),
     ("GET", re.compile(r"^/api/mobile/sync/status$"), "offline_collection", "read", True),
+    ("GET", re.compile(r"^/api/v1/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
@@ -164,6 +168,53 @@ async def get_location(location_id: str):
     except Exception as exc:
         logger.exception("Directus location request failed", exc_info=exc)
         return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
+
+
+@router.get(
+    "/v1/locations",
+    response_model=PublicLocationListResponse,
+    responses={500: {"model": PublicError}},
+    operation_id="listPublicLocationsV1",
+)
+async def list_public_locations_v1():
+    """List the bounded, governed public location projection using the v1 envelope."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.locations import public_locations
+
+    try:
+        rows = await run_in_threadpool(public_locations)
+        return {"data": rows}
+    except Exception as exc:
+        return _internal_error(exc)
+
+
+@router.get(
+    "/v1/locations/{location_id}",
+    response_model=PublicLocationResponse,
+    responses={400: {"model": PublicError}, 404: {"model": PublicError}, 500: {"model": PublicError}},
+    operation_id="getPublicLocationV1",
+)
+async def get_public_location_v1(location_id: str):
+    """Read one eligible public location using the v1 envelope."""
+    from uuid import UUID
+
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        location_id = str(UUID(location_id))
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
+
+    from services.gateway.locations import public_locations
+
+    try:
+        rows = await run_in_threadpool(public_locations, location_id)
+        if not rows:
+            return JSONResponse(status_code=404, content={"error": "Location not found"})
+        return {"data": rows[0]}
+    except Exception as exc:
+        return _internal_error(exc)
 
 
 @router.get("/metrics/{location_id}", response_model=PublicMetricSummary,

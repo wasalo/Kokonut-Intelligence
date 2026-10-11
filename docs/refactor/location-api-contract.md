@@ -1,7 +1,29 @@
-# First Directus migration slice: public location reads
+# Public location API contract
 
 This bounded contract map covers the two existing gateway routes. It is not a
 full location collection migration or Directus parity certification.
+
+## Versioned native contract
+
+The additive `GET /api/v1/locations` and
+`GET /api/v1/locations/{location_id}` routes define the first versioned native
+contract. FastAPI publishes their request/response schemas in the gateway's
+OpenAPI document. Both return a conventional JSON envelope: the list route
+returns `{ "data": [...] }`; detail returns `{ "data": { ... } }`. The list is
+bounded to 100 eligible records, ordered by name and ID, and currently has no
+filter or pagination parameters. Detail accepts a UUID; malformed identifiers
+return 400 and absent or ineligible locations return the same 404 response.
+
+These routes read only `v_public_farm_summary`, so they do not depend on the
+Directus provider flag and cannot expand fields based on credentials. Public
+visibility remains the view's active-location plus verified/published farm
+registry rule. The existing unversioned `/api/locations` routes remain intact
+for their historical double-encoded wrapper and Directus behavior; they have no
+deprecation date. Consumers should move only after response and authorization
+parity is reviewed. The API version namespace does not certify the other
+unversioned gateway routes. The Python and JavaScript SDKs expose typed clients
+for these two v1 methods; other versioned resources and OpenAPI-based code
+generation remain future work.
 
 | Contract | List | Detail |
 | --- | --- | --- |
@@ -18,10 +40,11 @@ full location collection migration or Directus parity certification.
 
 ## Repository owners and consumers
 
-`services/gateway/router.py` owns route policy and provider selection;
+`services/gateway/router.py` owns route policy and the versioned handlers;
+`services/gateway/public_models.py` defines their strict response envelopes;
 `services/gateway/locations.py` owns the native read and database cleanup.
 `schemas/postgres/018_public_views.sql` owns governed public visibility.
-`services/core/features.py` selects the Directus branch. The branch proxies
+`services/core/features.py` selects the legacy Directus branch. That branch proxies
 `/items/location?limit=100` or `/items/location/{UUID}` through the shared HTTP
 client and retains its serialized response wrapper.
 
@@ -48,11 +71,16 @@ Exercise database timeout/error cleanup and concurrent requests before claiming
 availability or resource budgets. Existing gateway authorization tests are a
 starting point; no tests were added or run here.
 
+The versioned native route implementation has source-level contract coverage
+through explicit response models and generated OpenAPI metadata. Runtime payload,
+role/grant, authorization, and Directus comparison evidence has not yet been
+collected; this slice must not be treated as accepted parity.
+
 Full location access, relations, filters/pagination, exports, writes, audit
 semantics, lifecycle transitions, reviewer identity, consent scopes, and SDK
 generation remain unmigrated. These require explicit domain contracts; do not
 replace them with unrestricted generic table CRUD.
 
-Rollback selects the preceding gateway image or restores the Directus provider
-for its existing branches. No schema change was made in this slice. Retain the
-governed view and Directus metadata/permissions during the transition.
+Rollback selects the preceding gateway image or routes existing consumers back
+to `/api/locations`. No schema change was made in this slice. Retain the governed
+view and Directus metadata/permissions during the transition.

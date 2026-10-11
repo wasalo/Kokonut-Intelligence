@@ -309,7 +309,9 @@ reporting views.
 
 - [ ] Complete HTTP/MQTT sensor, gRPC and proxy deployment contracts in separate slices.
 - [ ] Complete mobile media/offline sync and consent/tenant boundaries.
-- [ ] Publish versioned API contracts/SDK and an operations console slice.
+- [x] Add an OpenAPI-backed, versioned v1 public-location list/detail contract while preserving the legacy location routes.
+- [x] Add typed v1 public-location methods to the existing Python and JavaScript SDK sources.
+- [ ] Generate the remaining versioned SDK surface from OpenAPI, publish a release, and implement an operations console slice.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

@@ -53,6 +53,14 @@ class PublicLocation(PublicModel):
     status: Literal["active"]
 
 
+class PublicLocationListResponse(PublicModel):
+    data: list[PublicLocation]
+
+
+class PublicLocationResponse(PublicModel):
+    data: PublicLocation
+
+
 class PublicMetricCounts(PublicModel):
     metric_count: int = Field(ge=0)
     latest_computed_at: datetime | None

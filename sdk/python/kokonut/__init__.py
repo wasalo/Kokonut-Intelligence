@@ -22,6 +22,7 @@ from .types import (
     NoiSnapshot,
     ListOptions,
 )
+from .public_api import KokonutPublicApiClient, PublicApiError, PublicLocation
 
 __all__ = [
     "KokonutClient",
@@ -44,4 +45,7 @@ __all__ = [
     "ExportLog",
     "NoiSnapshot",
     "ListOptions",
+    "KokonutPublicApiClient",
+    "PublicApiError",
+    "PublicLocation",
 ]

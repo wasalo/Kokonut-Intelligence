@@ -2,7 +2,20 @@
 
 JavaScript/TypeScript SDK for the Kokonut Intelligence Platform. Typed REST client wrapping Directus collections for farm, crop, harvest, sales, expenses, sensors, attestations, and reports.
 
-> This SDK covers Directus REST operations only. For gRPC services (IRI, content hash, ecocredit classes/batches/balances, marketplace, bridge), use `sdk/typescript/`.
+> The existing collection methods cover Directus REST operations. For gRPC services (IRI, content hash, ecocredit classes/batches/balances, marketplace, bridge), use `sdk/typescript/`.
+
+For versioned native Gateway reads, use the separate `KokonutPublicApiClient`:
+
+```typescript
+import { KokonutPublicApiClient } from '@kokonut-intelligence/sdk';
+
+const api = new KokonutPublicApiClient('http://localhost:8098');
+const locations = await api.locations.list(); // first 100 public locations
+const location = await api.locations.get('location-uuid');
+```
+
+The v1 client currently covers public location list/detail only. Writes, filters,
+pagination, and private or authenticated fields are outside this contract.
 
 ## Install
 

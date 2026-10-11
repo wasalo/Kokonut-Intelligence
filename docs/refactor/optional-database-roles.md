@@ -36,8 +36,10 @@ is healthy at a loopback-only port with credential encryption enabled. The
 candidate now has a separate `Kokonut Reporting Views` source using
 `kokonut_analytics_ro` and an inclusion filter for `kokonut_reporting`; schema
 sync lists only its three approved views. Three Kokonut cards and a dashboard
-are saved. Their queries complete but return zero rows on the empty candidate;
-populated report-output parity remains open.
+are saved. Their queries return zero rows on the empty candidate; exact exported
+saved-card SQL passed output parity on a copied populated fixture, and the full
+metadata restore matched its inventory. See the parity and restore evidence
+linked from the Metabase profile.
 [Pre-migration ACL inventory](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration result](builds/2026-10-11-recovery/candidate-migration-apply.json); [active analytics-role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json); [candidate Metabase profile](metabase-kernel-profile.md).
 
 ## Why these are separate identities

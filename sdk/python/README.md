@@ -2,7 +2,23 @@
 
 Python SDK for the Kokonut Intelligence Platform. Typed REST client wrapping Directus collections for farm, crop, harvest, sales, expenses, sensors, attestations, and reports.
 
-> This SDK covers Directus REST operations only. For gRPC services (IRI, content hash, ecocredit classes/batches/balances, marketplace, bridge), use the generated stubs in `sdk/python/generated/`.
+> The existing collection methods cover Directus REST operations. For gRPC services (IRI, content hash, ecocredit classes/batches/balances, marketplace, bridge), use the generated stubs in `sdk/python/generated/`.
+
+For the versioned native Gateway reads, use `KokonutPublicApiClient`. It is a
+separate client because the Gateway and legacy Directus services have different
+base URLs and contracts:
+
+```python
+from kokonut import KokonutPublicApiClient
+
+api = KokonutPublicApiClient("http://localhost:8098")
+locations = api.locations.list()  # bounded to the first 100 public locations
+location = api.locations.get("location-uuid")
+api.close()
+```
+
+The v1 client currently covers public location list/detail only. Writes, filters,
+pagination, and private or authenticated fields are outside this contract.
 
 ## Install
 

@@ -1,5 +1,9 @@
 export { KokonutClient } from './client.js';
 export type { KokonutClientOptions } from './client.js';
+export { KokonutPublicApiClient, PublicApiError } from './public-api.js';
+export type { PublicApiClientOptions, PublicFetch, PublicFetchResponse, PublicLocationV1 } from './public-api.js';
+export { KokonutPublicApiClient, PublicApiError } from './public-api.js';
+export type { PublicApiClientOptions, PublicLocationV1 } from './public-api.js';
 
 export type {
   Location,
