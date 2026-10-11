@@ -1,0 +1,66 @@
+{
+  "run_id": "metabase-card-output-parity-20261011",
+  "date": "2026-10-11",
+  "result": "passed",
+  "scope": "Execute the exact SQL from the three credential-free Kokonut card definitions through the Metabase dataset API against a copied populated reporting database; compare to independent base-table SQL.",
+  "fixture": {
+    "source_volume": "kokonut-kernel-migration-review-20261011_data",
+    "source_volume_mounted_read_only_during_copy": true,
+    "scratch_volume": "kokonut-kernel-metabase-parity-20261011_data",
+    "postgres_image": "postgis/postgis:16-3.4",
+    "network_internal": true,
+    "host_ports_published": [],
+    "candidate_database_changed": false,
+    "legacy_stack_changed": false
+  },
+  "metabase": {
+    "temporary_source_created": true,
+    "temporary_source_schema_filter": "kokonut_reporting",
+    "temporary_source_removed": true,
+    "saved_card_sql_from_credential_free_export": true,
+    "saved_card_objects_modified": false,
+    "query_rows_or_credentials_printed": false
+  },
+  "parity": {
+    "farm_summary": {
+      "metabase_rows": 2,
+      "independent_reference_rows": 2,
+      "difference_rows": 0
+    },
+    "celo_attestation_summary": {
+      "metabase_rows": 1,
+      "independent_reference_rows": 1,
+      "difference_rows": 0
+    },
+    "verified_metric_values": {
+      "rows_with_policy_status_verified": 0,
+      "rows_after_policy_published": 1,
+      "independent_reference_rows": 1,
+      "difference_rows": 0,
+      "unverified_metric_value_excluded": true,
+      "date_window_rows": 1,
+      "date_window_reference_rows": 1,
+      "date_window_difference_rows": 0,
+      "outside_date_window_rows": 0,
+      "outside_date_window_reference_rows": 0,
+      "outside_date_window_difference_rows": 0
+    }
+  },
+  "cleanup": {
+    "temporary_source_removed": true,
+    "temporary_network_removed": true,
+    "temporary_database_container_removed": true,
+    "scratch_volume_removed": true,
+    "candidate_metabase_sources_after_run": 2,
+    "candidate_cards_after_run": 42,
+    "candidate_dashboards_after_run": 2,
+    "candidate_dashboard_placements_after_run": 39,
+    "candidate_users_after_run": 2,
+    "candidate_services_healthy": true
+  },
+  "limitations": [
+    "The active candidate contains no pilot rows; its saved cards still return zero rows there.",
+    "The nonempty metric row and published policy existed only in the disposable copy, whose volume was removed.",
+    "Metabase executed the exact exported saved-card SQL through its dataset API using a temporary source; saved card objects were not changed."
+  ]
+}

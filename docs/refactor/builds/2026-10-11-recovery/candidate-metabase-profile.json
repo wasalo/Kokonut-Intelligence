@@ -194,12 +194,12 @@
     "limitations": [
       "Metabase built-in H2 sample source and its generic e-commerce cards remain separate demo content.",
       "The active candidate contains no pilot rows, so all three Kokonut cards return zero rows.",
-      "Compare card outputs with independent references on an isolated populated fixture before parity promotion."
+      "The active candidate remains empty; exact exported SQL output parity passed on a copied populated fixture."
     ]
   },
   "limitations": [
     "Metabase default sample content is demo data and is not Kokonut reporting.",
-    "The registered source and cards have not passed populated report-output parity.",
-    "The candidate contains no pilot rows, so populated card behavior remains unverified."
+    "The candidate contains no pilot rows; nonempty output parity used a separate disposable copy.",
+    "The active saved cards still return zero rows until pilot data is present."
   ]
 }

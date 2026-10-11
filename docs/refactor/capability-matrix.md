@@ -94,7 +94,7 @@ zero enabled, disabled or running tasks. No numbered seeds or pilot fixture were
 loaded. These are operational checks, not proof of a complete
 farm/metric/reviewer/mobile workflow. Legacy remains stopped with volumes
 retained. The previous app image is preserved under a rollback tag. The active
-candidate app still uses its owner login; the verified read-only analytics login is separate. The opt-in Metabase profile is healthy with credential encryption enabled. It retains the H2 demo separately and adds a read-only PostgreSQL source filtered to the three `kokonut_reporting` views, plus three first-party cards and a dashboard. The candidate is empty, so all cards return zero rows; populated parity remains open. All MAN-CAP acceptance gates remain open.
+candidate app still uses its owner login; the verified read-only analytics login is separate. The opt-in Metabase profile is healthy with credential encryption enabled. It retains the H2 demo separately and adds a read-only PostgreSQL source filtered to the three `kokonut_reporting` views, plus three first-party cards and a dashboard. The candidate is empty, so all cards return zero rows; exact exported card SQL passed independent output parity on a copied populated fixture. All MAN-CAP acceptance gates remain open.
 
 Shared infrastructure changes (provider flags, adapters, requirement groups,
 scheduler/events/cache ports, images and migrations) support many rows but do not
@@ -829,11 +829,19 @@ the default manifest still lists only `database` and `app`, and PostgreSQL has
 no host port. It retains the built-in H2 demo with 39 generic cards and one dashboard, plus
 a separate read-only PostgreSQL source filtered to the three approved
 `kokonut_reporting` views and three Kokonut cards in a dedicated dashboard.
-Populated output parity and CAP-007 acceptance remain open. [ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json); [migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json); [analytics role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json); [profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json); [profile contract](metabase-kernel-profile.md).
+The Metabase card SQL now passes populated output parity on an isolated copy;
+the active candidate remains empty and CAP-007 acceptance remains open. [Card
+parity evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json);
+[ACL evidence](builds/2026-10-11-recovery/candidate-reporting-acl-review.json);
+[migration evidence](builds/2026-10-11-recovery/candidate-migration-apply.json);
+[analytics role evidence](builds/2026-10-11-recovery/candidate-analytics-role.json);
+[profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json);
+[profile contract](metabase-kernel-profile.md).
 
 The encrypted metadata backup also passes a full restore in a matching,
 network-disabled disposable PostGIS 16 target. Source/card/dashboard/user counts
 and all dashboard placements match the live candidate; 14 H2 virtual tiles
 remain alongside 25 saved-card placements. The target was removed and live
-metadata was unchanged. Card-output parity remains open. [Restore
+metadata was unchanged. Card-output parity also passed on an isolated populated
+copy. [Restore
 manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json).

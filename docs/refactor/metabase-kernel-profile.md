@@ -90,10 +90,10 @@ Before treating this as a supported analyst profile:
    three approved views; the analytics login remains denied on application
    relations.
 4. Build first-party cards for farm summary, verified metrics, and Celo
-   attestations. **Cards and dashboard created; saved queries complete.** Each
-   currently returns zero rows. Compare card outputs with independent SQL and a
-   populated fixture, including empty results, date bounds, and eligibility
-   filters, before parity promotion.
+   attestations. **Passed:** all saved queries complete. They return zero rows
+   on the empty candidate. The exact exported SQL matched independent base-table
+   references on a copied populated fixture, including published-policy,
+   unverified-row, and date-window cases ([evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json)).
 5. Keep the generic H2 E-commerce Insights board labeled as demo content; do not
    promote it as Kokonut parity.
 6. Restore an encrypted metadata archive into a separate disposable database

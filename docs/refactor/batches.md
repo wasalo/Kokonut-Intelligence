@@ -293,16 +293,15 @@ plus the [current app image record](builds/2026-10-11-recovery/candidate-app-reb
 - [x] Register `kokonut_intelligence` through `kokonut_analytics_ro` with an inclusion filter for `kokonut_reporting`; verify that Metabase lists only the three approved views.
 - [x] Build first-party farm-summary, verified-metric, and Celo-attestation cards in a Kokonut collection and add them to a reporting dashboard.
 - [x] Execute every saved card and compare empty-candidate row counts with direct PostgreSQL counts; all three return zero because the candidate has no pilot rows.
-- [ ] Compare card outputs bidirectionally with independent SQL and populated/rollback-only fixtures; include nonempty, date-bound, and eligibility cases.
+- [x] Compare exact exported card SQL outputs with independent base-table SQL on a copied populated fixture: farm summary (2 rows), Celo attestations (1 row), and a synthetic verified metric (visible only after its policy was published; unverified value excluded). In-window and out-of-window date checks matched. The temporary Metabase source and all scratch resources were removed ([parity evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json)).
 - [x] Retain sanitized source/card evidence and a credential-free card export ([export](metabase/kokonut-reporting-cards.json); [runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json)).
 - [x] Stream a fresh encrypted metadata backup into the ignored local `backups/` directory and verify decryption plus PostgreSQL archive listing; the Metabase encryption key remains in `.env.sops` ([backup manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json)).
 - [x] Restore the current metadata archive into a separate, network-disabled disposable PostGIS 16 database with `pg_restore --no-owner --no-privileges --exit-on-error`; compare source, card, dashboard, placement, virtual-tile, and user counts against the live candidate, then remove the target. Counts matched exactly and the source metadata database was unchanged ([backup manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json)).
 
 Gate: source access satisfies the reviewed data boundary and every promoted
-card matches independent reference results. Source isolation, card execution,
-and full metadata restore are confirmed, but this batch remains open until
-populated result parity passes. Use an isolated populated fixture; the active
-candidate has no pilot rows. Rollback: remove the source/cards from
+card matches independent reference results. Source isolation, card output
+parity, and full metadata restore are confirmed. The active candidate remains
+empty, so live card results there are zero until pilot data is added. Rollback: remove the source/cards from
 Metabase and stop the optional profile; preserve the canonical database and
 reporting views.
 

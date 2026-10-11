@@ -1447,8 +1447,9 @@ Counts matched the live metadata exactly: two sources, 42 saved cards, two
 dashboards, 25 saved-card placements, 14 virtual tiles, and two users. The
 E-commerce board's virtual tiles are populated heading/text/link/iframe content,
 not empty cards. The disposable target was removed and the live metadata was
-unchanged. Populated card-output parity remains open; the database-view parity
-evidence from Batch 4b does not by itself certify the Metabase card layer.
+unchanged. Populated card-output parity was then completed separately on a
+copied fixture; the database-view parity evidence from Batch 4b alone does not
+certify the Metabase card layer.
 
 Evidence: [candidate runtime and card results](builds/2026-10-11-recovery/candidate-metabase-profile.json),
 [sanitized source inventory](metabase-source-inventory.md),
@@ -1456,3 +1457,29 @@ Evidence: [candidate runtime and card results](builds/2026-10-11-recovery/candid
 [encrypted backup manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json),
 [profile contract](metabase-kernel-profile.md), and [Batch 4e checklist](batches.md).
 Capability counts remain unchanged.
+
+### Kokonut card SQL output parity — 11 October 2026
+
+Copied the retained populated reporting volume read-only into a fresh scratch
+volume. A temporary source used `kokonut_analytics_ro` and the
+`kokonut_reporting` schema filter on a private internal Docker network; there
+were no host ports. Metabase executed the exact SQL from the three
+credential-free card definitions. Farm summary returned two rows and Celo
+attestation summary returned one; both matched independently written
+base-table queries with zero differences.
+
+For the metric card, a synthetic verified value and reviewed policy were added
+only to the disposable copy. The value stayed hidden while the policy was
+`verified`; after publishing the policy, one verified value appeared and an
+unverified value remained excluded. In-window and outside-window queries
+returned one and zero rows respectively. Both outputs matched independent SQL.
+The temporary source, network, container, and scratch volume were removed. The
+retained source volume, candidate metadata, candidate application database, and
+legacy stack were unchanged. No query rows or credential values were printed.
+
+The active candidate still has no pilot rows, so its saved cards return zero
+rows. The populated comparison used the same exported card SQL through the
+Metabase dataset API and did not modify saved card objects. See
+[sanitized parity evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json),
+[card export](metabase/kokonut-reporting-cards.json), and
+[Batch 4e checklist](batches.md). Capability counts remain unchanged.

@@ -37,5 +37,5 @@
     ]
   },
   "credential_values_included": false,
-  "parity_status": "queries execute on the empty candidate; populated output parity remains open"
+  "parity_status": "queries execute on the empty candidate; exact exported SQL matched independent references on a copied populated fixture, including published-policy, unverified-row, and date-window cases"
 }

@@ -24,9 +24,12 @@ table, and DDL on that copy. See [populated parity evidence](builds/2026-10-11-r
 The candidate-only Metabase profile now has a PostgreSQL source using
 `kokonut_analytics_ro`, filtered to `kokonut_reporting`, and exposes only the
 three reviewed views. Three first-party cards and one dashboard are registered;
-all saved queries execute, but the empty candidate returns zero rows. Metabase
-remains optional and belongs only in the analytics profile. Populated card-output
-parity is still open. See the [profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),
+all saved queries execute, but the empty candidate returns zero rows. The exact
+exported card SQL passed independent output comparison on a copied populated
+fixture, including a published metric policy, an excluded unverified value,
+and date-window checks. Metabase remains optional and belongs only in the
+analytics profile. See the [card-output parity evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json),
+[profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),
 [credential-free card export](metabase/kokonut-reporting-cards.json), and
 [source-aligned evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json),
 [transactional replay evidence](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json),
@@ -176,8 +179,9 @@ encryption. The profile contains the generic H2 demo plus the `Kokonut Reporting
 Views` PostgreSQL source, which uses the read-only analytics login and exposes
 only `kokonut_reporting`. Three first-party cards and the reporting dashboard
 are saved. Their queries complete and return zero rows on the empty active
-candidate. Use an isolated populated fixture to compare card outputs with
-independent SQL before calling the reporting capability accepted. The archived clone still has 25 pending migrations; a separate clone
+candidate. The exact exported card SQL now matches independent references on a
+copied populated fixture, including synthetic published-metric and date-window
+checks. The archived clone still has 25 pending migrations; a separate clone
 accepted all 25 without changing fingerprints for 16 populated tables. Source
 checksum correction and migration ordering are recorded in
 [migration-checksum-drift.md](migration-checksum-drift.md).

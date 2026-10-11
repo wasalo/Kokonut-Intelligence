@@ -148,6 +148,8 @@ tiles, for 39 dashboard placements total. A full restore to a network-disabled
 PostGIS 16 target reproduced the live source/card/dashboard/placement/tile/user
 counts exactly; the target was removed without changing the live metadata.
 The cards execute successfully, but each returns zero rows on the empty
-candidate. Populated output parity remains open.
+candidate. The exact exported card SQL passed independent output comparison on a
+copied populated fixture, including published-policy, unverified-value, and
+date-window cases ([evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json)).
 See [current runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json)
 and the [credential-free card export](metabase/kokonut-reporting-cards.json).

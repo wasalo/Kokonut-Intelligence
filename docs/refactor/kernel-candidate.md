@@ -230,8 +230,11 @@ source now uses `kokonut_analytics_ro` with an inclusion filter for
 `kokonut_reporting`; Metabase lists only the three reviewed views. Three
 first-party cards are in a separate Kokonut reporting dashboard. Their queries
 complete with zero rows on the empty candidate. A network-disabled full restore
-reproduced all live metadata aggregates exactly. Populated card-output parity
-remains open. Preserve the H2 content only as a demo, not as parity evidence.
+reproduced all live metadata aggregates exactly. The exact exported card SQL
+also matched independent outputs on a copied populated fixture, including
+published-policy and date-window cases. Preserve the H2 content only as a demo,
+not as parity evidence.
 See the [profile contract](metabase-kernel-profile.md),
 [sanitized runtime evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),
+the [card-output parity evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json),
 and [source inventory](metabase-source-inventory.md).
