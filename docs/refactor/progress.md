@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant; browser/API consent handling, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant, and a real PostgreSQL-backed sync-handler call rejects the same case without writes; Gateway ASGI/HTTP and browser consent handling, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
@@ -2325,3 +2325,25 @@ Rollback: the acceptance transaction was rolled back and left no fixture rows;
 no runtime rollback is needed. See the [Batch 5 checklist](batches.md),
 [capability matrix](capability-matrix.md#cap-053), and
 [mobile access contract](mobile-access-contract.md).
+
+## Batch 5 Field Collector PostgreSQL-backed sync handler — 12 October 2026
+
+Exercised `services.mobile.api.sync_collections` against a disposable restored
+clone of the candidate database. The synthetic record had an active grant at
+collection, then a withdrawal, then a later grant that was current when the
+handler ran. The handler rejected it with status 403 and the expected
+withdrawal detail. The request left zero `offline_collection` rows for the
+client ID and zero upload success logs for the synthetic device.
+
+The source candidate remained unchanged: zero locations, parties, devices,
+participant links, consent events, and collections; its ten seeded form
+revisions remained. The disposable database and its dump were removed. This was
+a direct handler invocation with real PostgreSQL; the Gateway ASGI/HTTP path
+and browser flow remain open. Evidence:
+[PostgreSQL-backed sync acceptance](builds/2026-10-12-recovery/field-collector-postgres-sync-withdrawal.json).
+
+Rollback: the complete synthetic dataset lived in the disposable database,
+which was dropped after the check. No candidate migration or service change is
+needed. CAP-053 and Batch 5 remain partial pending Gateway/HTTP and browser
+consent acceptance, OIDC, airplane-mode recovery, and the remaining human
+disposition, tenant/RLS, media, retention, and semantic-review gates.
