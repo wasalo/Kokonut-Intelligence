@@ -1,6 +1,6 @@
 # Field Collector form authoring and review operations
 
-**Status:** Architecture decision, offline validation/preview, and transactional publication through `mobile_form` are implemented. Source checks and a disposable PostGIS trigger-focused acceptance pass; full migration/runtime coverage and the private review queue remain open.
+**Status:** Manifest validation/publication, the OIDC-scoped Field Collector queue, and append-only reviewer notes are implemented in source. Publication passed trigger-focused disposable PostGIS acceptance; queue/review route and query tests pass; migration 382 and the actual Gateway service functions passed isolated PostGIS checks. Full migration/runtime, configured-provider/browser acceptance, and human disposition remain open.
 
 **Decision date:** 12 October 2026.
 
@@ -73,6 +73,34 @@ locations from the authenticated OIDC session and active grants; a caller
 supplied location is only a filter within those grants, never an authority
 source.
 
+The first read-only source slice is implemented at
+`GET /operator/api/mobile-collection-review-queue` and
+`GET /operator/api/mobile-collection-review-queue/{collection_id}`. List access
+uses the `mobile_collection_review:read` location grant; payload detail requires
+the separate `mobile_collection_review:read_detail` grant. Both the Gateway
+middleware and SQL query check the active grant. List responses omit payload,
+participant linkage, device ID, and collector ID. Detail returns only a synced,
+review-required/ineligible row, caps JSON payloads at 512 KiB, and exposes the
+photo-reference count without bytes, object keys, or download links. The console
+renders the payload as text. It also provides a bounded reviewer-note form
+through `POST /operator/api/mobile-collection-review-queue/{collection_id}/events`.
+That write requires both `mobile_collection_review:review` and
+`mobile_collection_review:read_detail`, a valid OIDC session, and CSRF.
+Migration 382 stores these notes in `mobile_collection_review_event`, with
+authenticated operator, location, collection, decision, reason, evidence, and
+timestamp. The table rejects update/delete, invalid evidence shape, unsynced
+collections, and rows that are currently eligible and do not require review.
+The event never changes collection data, consent eligibility, or lifecycle
+status and cannot publish a record.
+
+Provision these grants separately for each approved location:
+
+```bash
+python3 -m services.cli operator grant --operator-id OPERATOR_UUID --resource mobile_collection_review --action read --location-id LOCATION_UUID --granted-by PROVISIONER
+python3 -m services.cli operator grant --operator-id OPERATOR_UUID --resource mobile_collection_review --action read_detail --location-id LOCATION_UUID --granted-by PROVISIONER
+python3 -m services.cli operator grant --operator-id OPERATOR_UUID --resource mobile_collection_review --action review --location-id LOCATION_UUID --granted-by PROVISIONER
+```
+
 - Queue only server-synced records. Pending transport records stay in the
   transport queue and are not presented as accepted business records.
 - Show the exact form revision, `eligibility_reason`, consent state, collection
@@ -91,10 +119,10 @@ source.
 - Keep private media behind authenticated, scoped access. A review list must
   never return decrypted media bytes or create a public download route.
 
-The first implementation should provide read-only list/detail plus audited
-review events. Any decision that verifies or publishes content must use the
-existing governed lifecycle and independent human boundary. A review event does
-not itself publish a record.
+The current console slice provides list/detail reads and append-only reviewer
+notes with Gateway access audit. Any decision that verifies or publishes
+content must use the existing governed lifecycle and independent human
+boundary. A review event does not itself publish a record.
 
 ## Retention and erasure boundary
 
@@ -121,12 +149,22 @@ approved policy.
    history against a disposable PostGIS fixture. The trigger-focused fixture
    used the migration 381 publication prefix, not the full migration or
    candidate database ([evidence](builds/2026-10-12-recovery/mobile-form-publication-transaction.json)).
-4. [ ] Add OIDC-scoped private queue list/detail routes and UI; verify location
-   isolation, CSRF, audit attribution, payload minimization, and media privacy.
-5. [ ] Add append-only review/disposition events; verify consent-ineligible rows
-   cannot be made eligible and no action publishes without the independent
-   governed lifecycle.
-6. Keep tenant/RLS, legal retention periods, erasure execution, media expiry,
+4. [x] Add OIDC-scoped queue list/detail routes and console UI. List
+   and payload detail use separate `read` / `read_detail` grants; SQL repeats
+   location checks, lists omit identities/payloads, and detail is bounded and
+   omits media bytes/links. Queue and review route/auth checks pass; Ruff and
+   console JavaScript syntax checks pass.
+5. [x] Add append-only review events. The separate `review` grant also requires
+   `read_detail`; the API sets actor identity from the OIDC session. Migration
+   382 validates review eligibility and evidence shape and blocks update/delete.
+   Twenty-two focused route/query/auth tests pass; an isolated PostGIS fixture
+   verified valid insertion, list/detail reads, event append/history, unchanged
+   collection eligibility fields, and rejection of malformed evidence, unsynced
+   collections, updates, and deletes. No candidate database was changed.
+6. [ ] Verify real-provider grant
+   provisioning, location isolation, audit attribution, browser payload
+   minimization, and media privacy before operator rollout.
+7. Keep tenant/RLS, legal retention periods, erasure execution, media expiry,
    and real-provider/browser acceptance open until their own evidence and human
    approvals exist.
 

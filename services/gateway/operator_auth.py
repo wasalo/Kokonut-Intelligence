@@ -386,6 +386,33 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    mobile_review_match = re.fullmatch(
+        r"/operator/api/mobile-collection-review-queue(?:/([0-9a-fA-F-]{36})(?:/(events))?)?",
+        path,
+    )
+    if mobile_review_match and enabled:
+        collection_id, event_suffix = mobile_review_match.groups()
+        if method.upper() == "GET" and collection_id is None:
+            action = "read"
+        elif method.upper() == "GET" and collection_id is not None and event_suffix is None:
+            action = "read_detail"
+        elif method.upper() == "POST" and collection_id is not None and event_suffix == "events":
+            action = "review"
+        else:
+            return None
+        return {
+            "resource": "mobile_collection_review",
+            "action": action,
+            **(
+                {"additional_scopes": [{"resource": "mobile_collection_review", "action": "read_detail"}]}
+                if action == "review"
+                else {}
+            ),
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     routes = {
         ("GET", "/operator/"): ("console", True, False),
         ("GET", "/operator/auth/login"): ("login", True, False),
@@ -445,11 +472,21 @@ def authorize_auth_request(
                 **policy,
             }
         scope_checked = True
-        if not provider.has_scope(
-            operator_session.operator.operator_id,
-            policy["resource"],
-            policy["action"],
-            normalized_location_id,
+        required_scopes = [
+            (policy["resource"], policy["action"]),
+            *[
+                (scope["resource"], scope["action"])
+                for scope in policy.get("additional_scopes", ())
+            ],
+        ]
+        if any(
+            not provider.has_scope(
+                operator_session.operator.operator_id,
+                resource,
+                action,
+                normalized_location_id,
+            )
+            for resource, action in required_scopes
         ):
             return {
                 "authenticated": False,
@@ -673,6 +710,133 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         return JSONResponse(
             {"data": jsonable_encoder(row)},
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/mobile-collection-review-queue")
+    async def mobile_collection_review_queue(request: Request, location_id: str, limit: int = 50):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.operator_mobile_review import list_mobile_collections
+
+        try:
+            rows = await run_in_threadpool(
+                list_mobile_collections,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile collection review service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/mobile-collection-review-queue/{collection_id}")
+    async def mobile_collection_review_detail(
+        request: Request, collection_id: str, location_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.operator_mobile_review import (
+            MobileCollectionPayloadTooLarge,
+            get_mobile_collection,
+        )
+
+        try:
+            row = await run_in_threadpool(
+                get_mobile_collection,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+            )
+        except MobileCollectionPayloadTooLarge:
+            return JSONResponse(
+                status_code=413,
+                content={"error": "Collection exceeds the console read limit"},
+                headers={"Cache-Control": "no-store"},
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile collection review service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        if row is None:
+            return JSONResponse(status_code=404, content={"error": "Mobile collection not found"})
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.post(
+        "/operator/api/mobile-collection-review-queue/{collection_id}/events",
+        status_code=201,
+    )
+    async def mobile_collection_review_event(
+        request: Request,
+        collection_id: str,
+        location_id: str,
+        body: dict,
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.operator_mobile_review import record_mobile_review_event
+
+        try:
+            event = await run_in_threadpool(
+                record_mobile_review_event,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+                body,
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection review event unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile collection review service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        if event is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Reviewable mobile collection not found"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            status_code=201,
+            content={"data": jsonable_encoder(event)},
+            headers={"Cache-Control": "no-store", "Pragma": "no-cache", "Vary": "Cookie"},
         )
 
     @router.post("/operator/api/mobile/locations/{location_id}/enrollments", status_code=201)

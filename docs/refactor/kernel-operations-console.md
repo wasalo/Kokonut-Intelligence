@@ -2,14 +2,13 @@
 
 **Status:** OIDC identity/session foundation and a same-origin operator shell
 are implemented in source. The shell now includes location-scoped Field
-Collector enrollment for operators granted `mobile_device:enroll`. OIDC remains
-disabled because no provider settings have been configured. A source-level,
-read-only queue for submitted
-`report_snapshot` records now checks an explicit operator/location grant.
-Five focused source tests exercise enrollment route policy, session, location
-scope, CSRF denial, and successful one-time issuance. Real provider login,
-database-backed grant checks, report queue scope, and browser behavior remain
-unexercised; this remains a partial implementation, not an accepted console.
+Collector enrollment for operators granted `mobile_device:enroll`, submitted
+report reads, and a private Field Collector review queue with separate list and
+detail grants. OIDC remains disabled because no provider settings have been
+configured. Focused source tests cover the grant boundary and route wiring;
+real-provider login, database-backed grant checks, mobile review browser
+behavior, and live payload acceptance remain open. This remains a partial
+implementation, not an accepted console.
 
 ## Current repository boundary
 
@@ -18,7 +17,8 @@ has no KI API or authentication connection. `services/mobile/field-collector.htm
 is the field collection client, not an operator console. The new
 `apps/operator-console/` shell displays a verified OIDC principal, issues
 single-use Field Collector enrollment codes for explicitly granted locations,
-and can read submitted report snapshots for explicitly granted locations. The local
+can read submitted report snapshots, and can review synced Field Collector rows
+for explicitly granted locations. The local
 [`kernel overview CLI`](kernel-operator-cli.md) is read-only and has no browser
 identity.
 
@@ -74,11 +74,21 @@ role, tenant, location, or permission claim from the browser is trusted.
 Wildcard operator permissions are not accepted by the CLI or schema.
 
 The browser session response includes only the signed-in operator's active
-grant tuples so the page can offer assigned locations. The first review grant
-is `report_snapshot_review:read`. The Gateway checks that grant against the
-requested canonical location UUID before either queue or detail reads. Each
-read-only SQL query rechecks the active grant, binds the report ID and location,
-and includes only rows whose lifecycle status is `submitted`.
+grant tuples so the page can offer assigned locations. The report review grant
+is `report_snapshot_review:read`. Field Collector list/detail grants are
+`mobile_collection_review:read` and `mobile_collection_review:read_detail`.
+The Gateway checks each grant against the requested canonical location UUID;
+the mobile detail grant is intentionally separate from list access. Each
+read-only SQL query rechecks the active grant and binds record ID and location.
+The mobile list includes only synced rows that are review-flagged or fail the
+eligibility view, and it omits participant linkage, collector/device identity,
+and payload. Detail returns a bounded payload only under `read_detail`; it omits
+media bytes and object references. Append-only reviewer notes require both
+`mobile_collection_review:review` and `mobile_collection_review:read_detail`,
+CSRF, and an authenticated OIDC session. Migration 382 binds each event to the
+operator, collection, and location, validates bounded reason/evidence fields,
+and rejects edits/deletes. Notes do not alter consent eligibility or governed
+lifecycle state.
 
 For browser requests, prefer serving the console from the Gateway's own origin
 or an explicitly trusted same-site origin. The server should keep provider
@@ -150,14 +160,17 @@ python3 -m services.cli operator list
 The OIDC login does not auto-provision identities or grants. Disabled identities
 cannot create sessions, and disabling an identity revokes its current sessions.
 The report snapshot was selected as the first review source because its schema
-and workflow specify `draft → submitted → verified → published`. The queue
-returns at most 100 location-specific submitted summaries. A separate detail
-read returns `report_data` only for the selected submitted record at the same
-granted location, with a 512 KiB payload ceiling; it never exposes arbitrary
-SQL or other report states.
+and workflow specify `draft → submitted → verified → published`. The report
+queue returns at most 100 location-specific submitted summaries; its detail
+read returns `report_data` only for the selected submitted record under the
+same grant, with a 512 KiB payload ceiling. The Field Collector queue returns
+at most 100 synced ineligible/review-required summaries. Its separate detail
+read requires `read_detail`, returns payloads up to 512 KiB, and exposes only a
+photo count. Neither queue exposes arbitrary SQL or other location scopes.
 Network-level snapshots with a null `location_id` are excluded until a separate
-network-scope model is designed. The console is read-only: verification,
-rejection, and publication still require their domain-specific human workflow.
+network-scope model is designed. The console does not verify or publish records;
+those actions still require their domain-specific human workflow. Its only
+collection write is an append-only review note.
 
 Grant a console capability explicitly after applying migration 380:
 
@@ -168,15 +181,32 @@ python3 -m services.cli operator grant --operator-id UUID \
 python3 -m services.cli operator grant --operator-id UUID \
   --resource mobile_device --action enroll \
   --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID \
+  --resource mobile_collection_review --action read \
+  --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID \
+  --resource mobile_collection_review --action read_detail \
+  --location-id LOCATION_UUID --granted-by OPERATOR
+```
+
+After migration 382 has been applied, reviewer-note access also needs an
+explicit location grant:
+
+```sh
+python3 -m services.cli operator grant --operator-id UUID --resource mobile_collection_review --action review --location-id LOCATION_UUID --granted-by OPERATOR
 ```
 
 ## First console slice
 
-The first read-only report queue and Field Collector enrollment action are
+The report and Field Collector queues, append-only reviewer-note action, and enrollment action are
 implemented in the Gateway and `apps/operator-console/`. They use same-origin
-cookie requests and explicit per-location grants; no backend key is sent to the
-browser. The enrollment code response is not cached and the code is displayed
-once. Do not expose arbitrary SQL, broad Directus collection CRUD,
+cookie requests and explicit per-location grants; collection detail requires a
+second grant. The mobile list omits identity and payload, detail is bounded, and
+no media download route is exposed. Reviewer notes use `review` plus
+`read_detail` and cannot mutate eligibility or lifecycle state. No backend key
+is sent to the browser. The
+enrollment code response is not cached and the code is displayed once. Do not
+expose arbitrary SQL, broad Directus collection CRUD,
 service-health probes, or administration controls.
 
 Add governed actions later as explicit resource/action routes. Verification,
@@ -193,14 +223,18 @@ grant itself permission or skip the domain service's lifecycle checks.
 - `services/gateway/app.py` (auth routes, opaque sessions, CSRF, stable audit
   caller identity, exact route policy, and location-scope enforcement; existing
   API-key/capability routes stay separate)
-- `services/gateway/operator_review.py` (read-only, bounded report queue and
-  submitted-record detail query using read-only PostgreSQL transactions)
+- `services/gateway/operator_review.py` and
+  `services/gateway/operator_mobile_review.py` (bounded report and Field
+  Collector queries plus append-only reviewer events)
+- `schemas/postgres/382_mobile_collection_review_events.sql` (append-only
+  operator-attributed review notes with collection eligibility guards)
 - `schemas/postgres/380_operator_identity_sessions.sql` (additive identity,
   location-grant, and session storage)
 - `Dockerfile.kernel`, `requirements/oidc.txt`, and
   `docker-compose.kernel-oidc.yml` (optional dependency/image/deployment path)
-- `apps/operator-console/index.html` (same-origin principal shell, read-only
-  submitted-report list/detail, and one-time enrollment-code form)
+- `apps/operator-console/index.html` (same-origin principal shell, report and
+  Field Collector list/detail reads, reviewer-note form, and one-time
+  enrollment-code form)
 - `sdk/javascript/src/client.ts` (possible follow-on typed console methods;
   current same-origin console uses browser `fetch` and the session cookie)
 - `docker-compose.kernel-candidate.yml`, the OIDC and Caddy overlays, and
@@ -213,11 +247,13 @@ Before protected console use, verify discovery/signature/state/PKCE handling,
 login/callback/logout, expired and revoked sessions, upstream provider logout
 behavior, CSRF rejection, unauthorized location access, least-privilege scope
 checks, audit actor attribution, and that no credential appears in browser
-storage. Verify the queue excludes drafts, verified/published rows, null-scope
-network reports, cross-location IDs, and unauthenticated requests; verify the
-detail route returns content only for a submitted record under the same grant.
-Real-provider and live database checks remain open. Confirm the console does
-not bypass Gateway or database policy.
+storage. Verify the report queue excludes drafts, verified/published rows,
+null-scope network reports, cross-location IDs, and unauthenticated requests.
+Verify the mobile queue excludes pending transport rows and only returns synced
+records within the active location grant; verify list/detail grant separation,
+the payload size bound, no participant/collector identity, and no media bytes or
+links. Real-provider and live database checks remain open. Confirm the console
+does not bypass Gateway or database policy.
 
 Roll back by removing the console route/assets and disabling the selected
 identity adapter. Keep the local read-only CLI, Directus admin surface, and
@@ -230,5 +266,5 @@ The identity source is selected: OIDC. No issuer/client configuration has been
 added to SOPS yet, so authentication remains disabled and no live login has
 been attempted. Configure a provider and callback URL through the encrypted
 secret workflow before using the opt-in profile. OIDC readiness, session/CSRF
-acceptance, live grant-denial/audit behavior, report queue/detail runtime
-acceptance, and the full browser workflow remain open.
+acceptance, live grant-denial/audit behavior, report and mobile queue/detail
+runtime acceptance, and the full browser workflow remain open.

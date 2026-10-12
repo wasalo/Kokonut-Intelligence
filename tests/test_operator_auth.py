@@ -94,6 +94,253 @@ def test_operator_mobile_routes_require_location_scoped_actions():
     ) is None
 
 
+def test_mobile_collection_review_routes_use_separate_location_read_actions():
+    queue_policy = operator_auth.auth_route_policy(
+        "GET",
+        "/operator/api/mobile-collection-review-queue",
+        enabled=True,
+    )
+    detail_policy = operator_auth.auth_route_policy(
+        "GET",
+        "/operator/api/mobile-collection-review-queue/22222222-2222-4222-8222-222222222222",
+        enabled=True,
+    )
+
+    assert queue_policy["resource"] == "mobile_collection_review"
+    assert queue_policy["action"] == "read"
+    assert queue_policy["scope_required"] is True
+    assert detail_policy["resource"] == "mobile_collection_review"
+    assert detail_policy["action"] == "read_detail"
+    assert detail_policy["scope_required"] is True
+    assert operator_auth.auth_route_policy(
+        "GET", "/operator/api/mobile-collection-review-queue", enabled=False
+    ) is None
+    event_policy = operator_auth.auth_route_policy(
+        "POST",
+        "/operator/api/mobile-collection-review-queue/22222222-2222-4222-8222-222222222222/events",
+        enabled=True,
+    )
+    assert event_policy["action"] == "review"
+    assert event_policy["additional_scopes"] == [
+        {"resource": "mobile_collection_review", "action": "read_detail"}
+    ]
+
+
+class _ReviewProvider(_FakeProvider):
+    def __init__(self, *, allowed_action=None, allowed_actions=None):
+        super().__init__(allowed=False)
+        self.allowed_actions = set(allowed_actions or ())
+        if allowed_action:
+            self.allowed_actions.add(allowed_action)
+        self.scopes_seen = []
+
+    def has_scope(self, operator_id, resource, action, location_id):
+        self.scopes_seen.append((operator_id, resource, action, location_id))
+        return (
+            operator_id == OPERATOR_ID
+            and resource == "mobile_collection_review"
+            and action in self.allowed_actions
+            and location_id == LOCATION_ID
+        )
+
+
+def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkeypatch):
+    provider = _ReviewProvider(allowed_action="read")
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    audit_records = []
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda _self, **record: audit_records.append(record),
+    )
+    queue_reader = MagicMock(return_value=[{"id": "collection-id", "payload": None}])
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.list_mobile_collections",
+        queue_reader,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue",
+            params={"location_id": LOCATION_ID, "limit": 7},
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["data"] == [{"id": "collection-id", "payload": None}]
+    queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 7)
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "mobile_collection_review", "read", LOCATION_ID)
+    ]
+    assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
+    assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+def test_mobile_collection_detail_does_not_accept_list_read_grant(monkeypatch):
+    provider = _ReviewProvider(allowed_action="read")
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    detail_reader = MagicMock(return_value={"id": "unused"})
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection",
+        detail_reader,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/22222222-2222-4222-8222-222222222222",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 403
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "mobile_collection_review", "read_detail", LOCATION_ID)
+    ]
+    detail_reader.assert_not_called()
+
+
+def test_mobile_collection_detail_uses_separate_grant_and_is_audited(monkeypatch):
+    provider = _ReviewProvider(allowed_action="read_detail")
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    audit_records = []
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda _self, **record: audit_records.append(record),
+    )
+    detail_reader = MagicMock(return_value={"id": "collection-id", "payload": {"note": "private"}})
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection",
+        detail_reader,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/22222222-2222-4222-8222-222222222222",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["data"]["payload"] == {"note": "private"}
+    detail_reader.assert_called_once_with(
+        OPERATOR_ID,
+        "22222222-2222-4222-8222-222222222222",
+        LOCATION_ID,
+    )
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "mobile_collection_review", "read_detail", LOCATION_ID)
+    ]
+    assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
+    assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+def test_mobile_review_event_requires_detail_grant_and_csrf(monkeypatch):
+    provider = _ReviewProvider(allowed_actions={"review"})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    event_writer = MagicMock(return_value={"id": "event-id"})
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.record_mobile_review_event",
+        event_writer,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.post(
+            "/operator/api/mobile-collection-review-queue/22222222-2222-4222-8222-222222222222/events",
+            params={"location_id": LOCATION_ID},
+            json={
+                "decision": "reviewed",
+                "reason": "Checked the evidence.",
+                "evidence": [{"source": "field-review", "basis": "Observed the submitted entry."}],
+            },
+        )
+
+    assert response.status_code == 403
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "mobile_collection_review", "review", LOCATION_ID),
+        (OPERATOR_ID, "mobile_collection_review", "read_detail", LOCATION_ID),
+    ]
+    event_writer.assert_not_called()
+
+
+def test_mobile_review_event_route_requires_csrf_and_returns_no_store(monkeypatch):
+    provider = _ReviewProvider(allowed_actions={"review", "read_detail"})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    audit_records = []
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda _self, **record: audit_records.append(record),
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda _self, _reservation: None,
+    )
+    event_writer = MagicMock(return_value={"id": "event-id", "decision": "reviewed"})
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.record_mobile_review_event",
+        event_writer,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        client.cookies.set(
+            operator_auth.CSRF_COOKIE,
+            "valid-csrf",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.post(
+            "/operator/api/mobile-collection-review-queue/22222222-2222-4222-8222-222222222222/events",
+            params={"location_id": LOCATION_ID},
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json={
+                "decision": "reviewed",
+                "reason": "Checked the evidence.",
+                "evidence": [{"source": "field-review", "basis": "Observed the submitted entry."}],
+            },
+        )
+
+    assert response.status_code == 201, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["data"]["id"] == "event-id"
+    event_writer.assert_called_once()
+    assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
+    assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
 @pytest.mark.parametrize(
     ("session", "scope", "csrf", "status"),
     [

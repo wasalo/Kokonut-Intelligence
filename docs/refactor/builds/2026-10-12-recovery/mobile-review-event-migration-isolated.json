@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-12",
+  "subject": "Migration 382 append-only mobile review events",
+  "scope": "Applied the repository migration 382 to a temporary no-volume PostGIS 16.3 fixture. The fixture supplied minimal prerequisite tables and a stub eligibility view; migration 381 and the candidate database were not replayed or modified.",
+  "assertions": {
+    "valid_event_for_synced_ineligible_collection": "passed",
+    "malformed_evidence_entry_rejected": "passed",
+    "evidence_missing_required_key_rejected": "passed",
+    "unsynced_collection_rejected": "passed",
+    "event_update_rejected": "passed",
+    "event_delete_rejected": "passed",
+    "service_list_detail_insert_and_event_history": "passed against the isolated PostGIS fixture using the actual Gateway service functions",
+    "service_write_does_not_change_collection_eligibility_fields": "passed"
+  },
+  "source_checks": {
+    "pytest": "22 passed: tests/test_operator_mobile_review.py and tests/test_operator_auth.py",
+    "ruff": "passed for operator auth/review modules and focused tests",
+    "console_javascript": "node --check passed",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "candidate_containers": "left running and unchanged",
+    "candidate_database": "not connected",
+    "temporary_container": "removed after checks",
+    "scope_limit": "isolated migration/trigger acceptance only; not full migration-chain, configured OIDC, browser, or candidate acceptance"
+  }
+}

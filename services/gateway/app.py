@@ -33,7 +33,10 @@ async def _request_location(request, policy: dict) -> str | None:
     """Resolve a route's location scope, including data-stream request bodies."""
     if policy.get("location_id"):
         return policy["location_id"]
-    if policy.get("resource") == "report_snapshot_review":
+    if policy.get("resource") in {
+        "report_snapshot_review",
+        "mobile_collection_review",
+    }:
         from uuid import UUID
 
         try:
