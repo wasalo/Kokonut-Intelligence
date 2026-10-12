@@ -2903,5 +2903,9 @@ headers were present. The HTTPS request used curl's local-CA bypass because Cadd
 issued a local development certificate. No browser tab or vault changed, no
 database or schema was written, and the legacy Compose project was untouched.
 This closes the candidate Caddy route smoke only; external Traefik, public ingress,
-trusted-proxy chains, and browser acceptance through Caddy remain open. See
+trusted-proxy chains, and browser acceptance through Caddy remain open. A fresh
+isolated browser tab then stopped before page load with `ERR_CERT_AUTHORITY_INVALID`
+for the local Caddy certificate. The security interstitial was not bypassed and the
+existing user vault tab was not touched. Browser-through-proxy acceptance needs a
+locally trusted development certificate, completed by the repository owner. See
 [proxy route evidence](builds/2026-10-12-recovery/field-collector-proxy-route.json).

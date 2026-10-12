@@ -36,7 +36,9 @@
     "legacy_compose_project_touched": false,
     "live_candidate_caddy_proxy_tested": true,
     "candidate_caddy_tls_test_used_insecure_local_ca_override": true,
-    "external_traefik_or_public_ingress_tested": false
+    "external_traefik_or_public_ingress_tested": false,
+    "browser_through_proxy_tested": false,
+    "browser_tls_warning_bypassed": false
   },
   "rollback": "Stop only the optional candidate proxy service to disable local ingress. To revert the route correction, restore the prior app image/source and retain the existing database; no database rollback is needed.",
   "proxy_service": "proxy",
@@ -84,5 +86,11 @@
         "referrer-policy": "strict-origin-when-cross-origin"
       }
     }
+  },
+  "browser_proxy_attempt": {
+    "url": "https://localhost:8448/mobile",
+    "result": "ERR_CERT_AUTHORITY_INVALID before page load",
+    "security_interstitial_bypassed": false,
+    "existing_user_vault_tab_touched": false
   }
 }
