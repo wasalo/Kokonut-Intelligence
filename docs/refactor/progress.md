@@ -2079,3 +2079,38 @@ media, sync, and eligibility workflow remain open. CAP-053 and Phase 7 remain
 partial. See the [operator console contract](kernel-operations-console.md),
 [mobile access contract](mobile-access-contract.md), [Batch 5 checklist](batches.md),
 and [CAP-053](capability-matrix.md#cap-053).
+
+
+## Batch 5 Field Collector enrollment-to-sync HTTP acceptance — 12 October 2026
+
+Ran the actual Gateway over HTTP using a temporary Uvicorn process bound to
+loopback inside the candidate app container. The process used a synthetic API
+key scoped to `mobile_device:enroll` for one location; setup and cleanup each
+asserted the database name was `kokonut_restore`, the restored recovery clone.
+Enrollment returned 201 and one one-time code; registration returned 200 and
+derived the collector identity and location from that claim. The device then
+retrieved all five active `1.2.0` forms and submitted one valid `field_note_v1`
+record; sync returned 200 with one accepted record.
+
+The stored row was `active` for form validation, `not_required` for consent,
+and not marked for form review. It remained `pending`, so the governed
+eligibility view correctly returned `eligible_for_use = false` with
+`transport_pending`. This confirms transport acceptance without treating it as
+publication or downstream approval. Synthetic location, device, collection,
+and sync-log rows were removed. The temporary Gateway and its private spool
+were removed; the recovery database was detached from the candidate network
+and stopped with its volume retained. Candidate app, database, and Metabase
+remained healthy; the legacy project remains stopped.
+
+One failed harness attempt briefly created and then removed a synthetic
+location in the candidate database because the setup script inherited the
+container's default `PG_DB`. Cleanup verified zero synthetic location, device,
+and collection rows there. The successful run explicitly asserted
+`current_database() = kokonut_restore` for setup and cleanup.
+
+Configured OIDC provider/login/session and browser acceptance, private media,
+offline browser capture, retired-form and consent-required/withdrawal cases,
+semantic review, tenant/RLS, and retention/erasure remain open. See [rollout
+evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json),
+[Batch 5 checklist](batches.md), [mobile access contract](mobile-access-contract.md),
+and [CAP-053](capability-matrix.md#cap-053).

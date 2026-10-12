@@ -1,6 +1,6 @@
 {
   "date": "2026-10-12",
-  "result": "candidate schema, reviewed Field Collector forms, and current-source app deployed; full mobile workflow acceptance remains open; strict 1.2.0 JSON Schema validation rolled out with checkpointed restore rehearsal",
+  "result": "candidate schema, reviewed Field Collector forms, and current-source app deployed; synthetic enrollment-to-valid-sync workflow passed against the restored clone; OIDC-provider, media, retired-form, and human-review acceptance remain open",
   "candidate": {
     "compose_project": "kokonut-kernel-candidate",
     "compose_file": "docker-compose.kernel-candidate.yml",
@@ -207,10 +207,11 @@
       "running_image_validator_import": "passed"
     },
     "remaining_gates": [
-      "Trusted device-enrollment route and OIDC provider/login/session/CSRF and operator-scope acceptance",
-      "Full device enrollment, offline capture, media upload, sync, and eligibility acceptance, including retired revisions",
+      "Configured OIDC provider/login/session/CSRF, operator grant provisioning and browser-console acceptance",
+      "Private media upload/retrieval, offline client capture, and expiry cleanup acceptance",
+      "Retired-form and consent-required participant workflows, including withdrawal between capture and sync",
       "Tenant/RLS policy and human retention/erasure disposition",
-      "Semantic free-text/photo review and expired private-media cleanup"
+      "Semantic free-text/photo review before governed downstream use"
     ],
     "rollback_boundary": "Do not use the previous app image for mobile sync against the 1.2.0 database because it lacks schema validation. Form revisions are immutable; a retired 1.1.0 revision cannot be reactivated by reseeding. Pause mobile intake and restore the pre-rollout checkpoint into a fresh database volume, validate it, then perform a reviewed cutover.",
     "isolated_live_sync_http_check": {
@@ -238,6 +239,66 @@
         "temporary_app_container_removed": true,
         "recovery_database_stopped_volume_retained": true
       }
+    },
+    "isolated_live_enrollment_http_check": {
+      "date": "2026-10-12",
+      "result": "passed against the restored kokonut_restore database clone",
+      "candidate_app_image": "sha256:2e882f01236a3613a5a5f3e6abb103cc16c030fa1036ec99287aab4cefe8d0e3",
+      "gateway": "temporary Uvicorn process bound to 127.0.0.1:18099 inside the candidate app container; no host port published",
+      "database_target": {
+        "host_alias": "mobile-recovery-db",
+        "database": "kokonut_restore",
+        "current_database_asserted_for_setup_and_cleanup": true
+      },
+      "enrollment": {
+        "method": "POST /api/mobile/locations/{location_id}/enrollments",
+        "status": 201,
+        "authorization": "synthetic API key scoped to mobile_device:enroll and the synthetic location",
+        "one_time_code": "returned to the in-process client only; not emitted or logged"
+      },
+      "registration": {
+        "method": "POST /api/mobile/register",
+        "status": 200,
+        "user_and_location": "derived from the enrollment claim",
+        "device_token": "returned to the in-process client only; not emitted or logged"
+      },
+      "form_retrieval": {
+        "method": "GET /api/mobile/forms with X-Device-Token",
+        "status": 200,
+        "active_forms_returned": 5,
+        "field_note_revision": "1.2.0"
+      },
+      "sync": {
+        "method": "POST /api/mobile/sync with X-Device-Token",
+        "status": 200,
+        "accepted": 1,
+        "record": "synthetic field_note_v1 revision 1.2.0, valid against the allowlisted schema"
+      },
+      "stored_policy_state": {
+        "identity_and_location": "derived from the registered device",
+        "sync_status": "pending",
+        "form_validation_status": "active",
+        "consent_validation_status": "not_required",
+        "form_review_required": false
+      },
+      "downstream_eligibility": {
+        "eligible_for_use": false,
+        "reason": "transport_pending",
+        "meaning": "accepted transport does not mark the record synced or eligible for downstream use"
+      },
+      "cleanup": {
+        "synthetic_location_rows": 0,
+        "synthetic_mobile_device_rows": 0,
+        "synthetic_collection_rows": 0,
+        "synthetic_sync_log_rows": 0,
+        "temporary_gateway_stopped": true,
+        "private_test_spool_and_log_removed": true,
+        "recovery_database_disconnected_from_candidate_network": true,
+        "recovery_database_stopped_volume_retained": true,
+        "candidate_app_database_metabase_remained_healthy": true,
+        "legacy_compose_project_remained_stopped": true
+      },
+      "harness_correction": "An earlier failed attempt briefly inserted and then removed one synthetic location in the candidate database because the setup script inherited PG_DB from the app container. Cleanup verified zero synthetic location/device/collection rows there. The successful run asserted current_database() = kokonut_restore for setup and cleanup."
     }
   },
   "historical_record_scope": "Root-level candidate, checkpoint, migration, form-seed, and focused-check details describe the initial 1.1.0 rollout. Current 1.2.0 state and follow-up acceptance are in follow_up_schema_validation_rollout.",
