@@ -2572,3 +2572,55 @@ database checkpoint is the exact pre-migration rollback point. Real OIDC login,
 authorized browser review, reviewer disposition, semantic review, retention/
 erasure, and tenant/RLS remain open.
 [Evidence](builds/2026-10-12-recovery/candidate-mobile-review-rollout.json).
+
+
+### Batch 5 local Docker candidate recovery — 12 October 2026
+
+The Docker daemon responds normally. The earlier app-image commit failed because
+the exact prior image content digest had already been pruned locally. The
+candidate app was rebuilt from source commit `7c69510`; the running image is
+`sha256:4a238b97dd2d6fa68ac68068948857b2cd93c2dbce17267f379991180fc886f8` and
+is now also retained under the dated local tag
+`kokonut-kernel-candidate-app:mobile-review-382-20261012`.
+
+The candidate app, Postgres, and Metabase are all healthy with zero restarts.
+`http://127.0.0.1:8098/health` returns 200. The configured Compose host port is
+8098; 8103 was used by an earlier browser fixture and is not published now. The
+legacy stack remains stopped. No database, Metabase, legacy, or recovery volume
+was modified. Nineteen stopped, successful recovery-helper container records
+were removed without `-v`; all volumes remain. Docker reports 12.68 GB of
+reclaimable local volumes and 20.61 GB of build cache, which were retained; no
+global prune was run. The older
+`pre-form-schema` image is only a fallback, not an exact image snapshot; the
+encrypted database checkpoint remains the exact pre-migration data rollback
+point.
+
+[Docker recovery evidence](builds/2026-10-12-recovery/docker-candidate-runtime-recovery.json).
+
+
+### Batch 5 live Field Collector Gateway outage recovery — 12 October 2026
+
+With user approval, a temporary synthetic device was enrolled against a
+synthetic location in the local candidate. One non-sensitive `field_note_v1`
+1.2.0 record was prepared in the browser. The candidate app container alone was
+stopped while Postgres and Metabase remained up. The browser saved the note to
+its encrypted queue and showed one pending record; the database had no
+collection or sync log for the fixture at that point.
+
+The candidate app restarted and `/health` returned 200. No manual sync was
+triggered. The Field Collector's background retry cleared the pending badge
+after its next interval. The database recorded one accepted transport and one
+collection; the governed eligibility view kept it ineligible with
+`transport_pending`. A guarded cleanup revoked the temporary device and removed
+the synthetic location, enrollment, collection, and sync log; all five
+post-cleanup counts were zero. The browser vault was locked afterward. Its
+encrypted test credential remains locally stored but its server device was
+deleted, so the credential is unusable.
+
+This confirms encrypted queue retention and automatic sync after a local
+Gateway outage. The host stayed online and the browser displayed “Online”; this
+does not satisfy OS airplane-mode or `navigator.onLine=false` acceptance. Real
+OIDC, browser consent withdrawal, tenant/RLS, retention/erasure, media recovery,
+and human disposition remain open.
+
+[Gateway outage recovery evidence](builds/2026-10-12-recovery/field-collector-gateway-outage-recovery.json).

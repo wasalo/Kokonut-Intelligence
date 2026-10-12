@@ -1,0 +1,57 @@
+{
+  "observed_at": "2026-10-12",
+  "issue": "A docker commit of the previous candidate app failed because its image content digest was no longer available locally.",
+  "resolution": {
+    "source_commit": "7c69510",
+    "image_id": "sha256:4a238b97dd2d6fa68ac68068948857b2cd93c2dbce17267f379991180fc886f8",
+    "tags": [
+      "kokonut-kernel-candidate-app:latest",
+      "kokonut-kernel-candidate-app:mobile-review-382-20261012"
+    ],
+    "dated_tag_matches_running_image": true
+  },
+  "docker_daemon": {
+    "server_version": "29.8.2",
+    "storage_driver": "overlayfs",
+    "compose_projects": [
+      {
+        "name": "kokonut-kernel-candidate",
+        "status": "running(3)"
+      }
+    ]
+  },
+  "candidate_services": {
+    "app": "running, healthy, 0 restarts",
+    "database": "running, healthy, 0 restarts",
+    "metabase": "running, healthy, 0 restarts",
+    "health_endpoint": "http://127.0.0.1:8098/health",
+    "health_http_status": 200,
+    "host_binding": "127.0.0.1:8098 -> container:8099"
+  },
+  "rollback": {
+    "exact_previous_app_image_available": false,
+    "older_fallback_tag": "kokonut-kernel-candidate-app:pre-form-schema-20261012",
+    "older_fallback_image_id": "sha256:b2942d4d33d6620e628f8d2f4ca9b0956b1acb055f509d789d8386fa1068bf2c",
+    "database_checkpoint": "backups/kernel-candidate-pre-mobile-review-20261012 (age-encrypted; ignored local backup)"
+  },
+  "cleanup": {
+    "stopped_recovery_helper_containers_removed": 19,
+    "candidate_and_legacy_containers_removed": 0,
+    "volumes_removed": 0,
+    "docker_system_df_after": {
+      "images": "77 total, 22 active, 34GB; 14.17GB reclaimable",
+      "containers": "30 total, 3 active, 1.306GB; 676.9MB reclaimable",
+      "local_volumes": "112 total, 22 active, 16.54GB; 12.68GB reclaimable",
+      "build_cache": "560 entries, 30.25GB; 20.61GB reclaimable"
+    },
+    "unused_volumes_images_and_build_cache_pruned": false
+  },
+  "preserved": {
+    "legacy_stack": "remains stopped; not modified",
+    "candidate_database_container_and_volume": "not recreated or modified during app recovery",
+    "metabase": "not recreated or modified during app recovery",
+    "recovery_volumes": "left untouched",
+    "docker_build_cache": "not pruned"
+  },
+  "port_note": "Port 8103 is not published by the candidate Compose profile. The configured candidate endpoint is 8098; 8103 was a prior browser fixture port."
+}

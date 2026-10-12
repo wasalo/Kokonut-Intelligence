@@ -1,0 +1,41 @@
+{
+  "acceptance": "live-browser-candidate-gateway-outage-recovery",
+  "date": "2026-10-12",
+  "target": "Encrypted Field Collector queue persistence and automatic recovery after candidate Gateway outage",
+  "browser_origin": "http://127.0.0.1:8098/mobile",
+  "test_data": {
+    "type": "one synthetic Field Note",
+    "form": "field_note_v1@1.2.0",
+    "sensitive_content": false,
+    "temporary_location_and_device": "created with a single-use synthetic enrollment fixture after user approval"
+  },
+  "steps": [
+    "Confirmed the browser vault was unlocked by the user and the queue was initially empty.",
+    "Stopped only the candidate app container; PostgreSQL and Metabase remained running.",
+    "Saved one synthetic note. The app showed 'Saved on this device. It will sync when online.' and a pending count of one.",
+    "Confirmed the candidate database had zero collections and zero sync logs for the fixture before Gateway recovery.",
+    "Restarted the candidate app and confirmed /health returned 200.",
+    "Did not press Sync now. After the app's background retry interval, the browser showed a zero pending badge and 'Everything is up to date'.",
+    "Confirmed one successful push in sync_log and one server collection. The collection remained ineligible with reason transport_pending.",
+    "Revoked the temporary device and transactionally deleted the synthetic location, device, enrollment, collection, and sync log; all guarded post-cleanup counts were zero.",
+    "Locked the browser vault. The encrypted device credential remains stored locally but is unusable because its server-side device was deleted."
+  ],
+  "result": {
+    "encrypted_queue_retained_during_gateway_outage": true,
+    "automatic_sync_after_gateway_restart": true,
+    "manual_sync_required": false,
+    "server_collection_eligible_for_use": false,
+    "eligibility_reason": "transport_pending",
+    "synthetic_server_fixture_removed": true,
+    "browser_vault_locked": true,
+    "browser_vault_deleted": false,
+    "candidate_app_database_metabase_healthy_after_test": true
+  },
+  "limitations": [
+    "This simulated candidate Gateway unavailability by stopping the local app container. The host network remained available and the browser still reported Online.",
+    "This did not exercise OS airplane mode or navigator.onLine=false behavior; that acceptance remains open.",
+    "Real OIDC, retired-form consent withdrawal in the browser, tenant/RLS, retention/erasure, durable media recovery, and human disposition remain open.",
+    "A transport receipt does not verify, publish, or authorize use of a collection."
+  ],
+  "capability_status_changed": false
+}
