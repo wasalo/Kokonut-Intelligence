@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Protocol
 from urllib.parse import urlsplit
 
@@ -14,10 +17,43 @@ class MediaStorageNotConfigured(RuntimeError):
     """Raised when private object storage is not configured safely."""
 
 
+@dataclass(frozen=True, slots=True)
+class PrivateMediaObject:
+    """An inventory result whose deletion handle is never exposed in repr/output."""
+
+    object_id: str
+    last_modified: datetime
+    kind: str
+    _delete_handle: str = field(repr=False, compare=False)
+
+
 class PrivateMediaStore(Protocol):
     def put_private(self, key: str, body: bytes, content_type: str) -> None: ...
     def head_private(self, key: str) -> dict: ...
     def delete_private(self, key: str) -> None: ...
+    def object_id_for_key(self, key: str) -> str: ...
+    def list_private_objects(self) -> list[PrivateMediaObject]: ...
+    def delete_orphan(self, item: PrivateMediaObject) -> None: ...
+
+
+def _validated_private_key(key: str) -> str:
+    if not isinstance(key, str) or not key.startswith("private/field-collector/"):
+        raise ValueError("Invalid private media key")
+    if any(part in {"", ".", ".."} for part in key.split("/")):
+        raise ValueError("Invalid private media key")
+    return key
+
+
+def _private_object_id(key: str) -> str:
+    return hashlib.sha256(_validated_private_key(key).encode("utf-8")).hexdigest()
+
+
+def _utc_datetime(value: datetime) -> datetime:
+    if not isinstance(value, datetime):
+        raise MediaStorageNotConfigured("Private media inventory returned invalid timestamps")
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 class S3CompatibleMediaStore:
@@ -44,6 +80,37 @@ class S3CompatibleMediaStore:
 
     def delete_private(self, key: str) -> None:
         self._client.delete_object(Bucket=self._bucket, Key=key)
+
+    def object_id_for_key(self, key: str) -> str:
+        return _private_object_id(key)
+
+    def list_private_objects(self) -> list[PrivateMediaObject]:
+        """List inventory under the Field Collector prefix; requires ListBucket."""
+        objects: list[PrivateMediaObject] = []
+        paginator = self._client.get_paginator("list_objects_v2")
+        pages = paginator.paginate(Bucket=self._bucket, Prefix="private/field-collector/")
+        for page in pages:
+            for item in page.get("Contents", []):
+                key = item.get("Key")
+                if not isinstance(key, str):
+                    raise MediaStorageNotConfigured("Private media inventory returned an invalid object")
+                validated_key = _validated_private_key(key)
+                modified = _utc_datetime(item.get("LastModified"))
+                objects.append(
+                    PrivateMediaObject(
+                        object_id=_private_object_id(validated_key),
+                        last_modified=modified,
+                        kind="object",
+                        _delete_handle=validated_key,
+                    )
+                )
+        return objects
+
+    def delete_orphan(self, item: PrivateMediaObject) -> None:
+        """Delete only an inventory handle that still matches its safe identity."""
+        if item.kind != "object" or self.object_id_for_key(item._delete_handle) != item.object_id:
+            raise ValueError("Invalid private media inventory handle")
+        self._client.delete_object(Bucket=self._bucket, Key=item._delete_handle)
 
 
 def _default_client_factory(**kwargs):
