@@ -2397,7 +2397,7 @@ Rollback: the synthetic fixture was confined to the disposable clone, which was
 dropped after the request; the dump and temporary loopback server were removed.
 No candidate data or migration changed.
 
-## Batch 5 Field Collector focused source rerun and browser consent setup — 12 October 2026
+## Batch 5 Field Collector focused source rerun and synthetic browser consent acceptance — 12 October 2026
 
 Reran the focused Field Collector Python suites for schema validation, offline
 transport, encrypted vault behavior, private media, mobile API policy, and
@@ -2408,21 +2408,27 @@ not create the default audit spool in this sandbox and returned 503 on 25 write
 paths; rerunning with a private mode-0700 spool passed all checks. No source,
 candidate database, or candidate Gateway state changed.
 
-The retired required-consent browser fixture is prepared at
-`http://localhost:8103/mobile`. It serves the checked-in collector UI and a
-synthetic local API that returns one retired required-consent revision, permits
-synthetic enrollment, and rejects sync with 403. The browser is currently at
-the new-vault screen. Creating the local encryption passphrase is a browser
-credential handoff, so the user must enter it directly before the browser form
-and encrypted-queue rejection case can proceed. No consent form or sync request
-has run. The existing locked browser profile and candidate database were not
-touched. This UI case remains open alongside actual OS airplane mode, live
-Gateway recovery, real OIDC, and the existing human disposition, media, tenant,
-and retention gates.
+The retired required-consent browser fixture at `http://localhost:8103/mobile`
+served the checked-in collector UI and a synthetic local API. Native browser
+validation blocked a 19-character participant reference when entered through
+real keyboard input (the field requires 32 characters); that value was not
+queued. A valid synthetic reviewer-issued reference was then saved in the
+encrypted local queue. The mock returned HTTP 403 on sync, and the UI retained
+one pending record after retry. An earlier automation-driven short-reference
+fill bypassed browser validation and was removed from the queue before the
+keyboard check. The fixture observed one form fetch, one device registration,
+and five in-memory sync attempts, all rejected with 403.
 
-Evidence: [focused source checks and browser setup](builds/2026-10-12-recovery/field-collector-consent-source-regressions.json).
+This passes only the client fixture check. The browser did not use the candidate
+Gateway or exercise consent withdrawal. One synthetic encrypted record and its
+device credential remain in the isolated local test vault; the mock server is
+stopped. No candidate database or Gateway data was written. Actual OS airplane
+mode, live Gateway recovery, real OIDC, consent withdrawal in the browser, and
+the existing human disposition, media, tenant, and retention gates remain open.
 
-Rollback: the Python audit spool and temporary test environment are isolated
-under `/private/tmp`. The local synthetic fixture server can be stopped after
-the browser case or if the handoff is deferred; no application rollback is
-needed.
+Evidence: [focused source checks and browser acceptance](builds/2026-10-12-recovery/field-collector-consent-source-regressions.json).
+
+Rollback: the Python audit spool, test environment, and mock server are isolated
+under `/private/tmp`. The encrypted browser test vault remains available for
+inspection; deleting it requires the application’s explicit confirmation
+action. No application rollback is needed.
