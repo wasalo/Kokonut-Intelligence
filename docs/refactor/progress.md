@@ -2114,3 +2114,33 @@ semantic review, tenant/RLS, and retention/erasure remain open. See [rollout
 evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json),
 [Batch 5 checklist](batches.md), [mobile access contract](mobile-access-contract.md),
 and [CAP-053](capability-matrix.md#cap-053).
+
+
+## Batch 5 Field Collector encrypted media upload/sync HTTP acceptance — 12 October 2026
+
+Using the restored `kokonut_restore` clone and a temporary Gateway bound to
+container loopback, repeated scoped enrollment and registration, then uploaded a
+67-byte synthetic JPEG through the Field Collector API with the encrypted local
+provider enabled only in that temporary process. Upload returned 201. The object
+was stored in a private `0700` directory as a `KKM1` AES-256-GCM envelope with
+file mode `0600`; the original byte sequence was absent at rest, the matching key
+and authenticated `head_private` returned the expected JPEG type and length, and
+an incorrect key failed authentication.
+
+Sync verified the uploaded object metadata and attached its `media_id` to one
+valid `field_note_v1` 1.2.0 collection (HTTP 200). The upload metadata transitioned
+to `attached`; form validation was active and consent was not required, but the
+collection stayed pending and the eligibility view returned `transport_pending`.
+No public download route exists under the access contract, so this slice tested
+private object verification/attachment rather than exposing image retrieval.
+
+Cleanup removed the synthetic location, device, enrollment, media metadata,
+collection, sync log, encrypted object, ephemeral key, and spool/log directory.
+The temporary Gateway stopped, its loopback port closed, and the recovery
+container was detached/stopped with its volume retained. Candidate app/database/
+Metabase stayed healthy, and the legacy Compose project remained stopped. Offline
+browser capture/reconnection, key-matched backup/restore, expiry/orphan cleanup,
+OIDC browser acceptance, retired/consent-required withdrawal, semantic review,
+tenant/RLS, and retention/erasure remain open. See [media contract](local-private-media.md),
+[rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json),
+[Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).

@@ -1,6 +1,6 @@
 {
   "date": "2026-10-12",
-  "result": "candidate schema, reviewed Field Collector forms, and current-source app deployed; synthetic enrollment-to-valid-sync workflow passed against the restored clone; OIDC-provider, media, retired-form, and human-review acceptance remain open",
+  "result": "candidate schema and reviewed Field Collector forms deployed; isolated synthetic enrollment, valid sync, and encrypted private-media attachment passed against the restored clone; OIDC-provider, offline-browser, retired-form, backup/recovery, and human-review acceptance remain open",
   "candidate": {
     "compose_project": "kokonut-kernel-candidate",
     "compose_file": "docker-compose.kernel-candidate.yml",
@@ -208,7 +208,7 @@
     },
     "remaining_gates": [
       "Configured OIDC provider/login/session/CSRF, operator grant provisioning and browser-console acceptance",
-      "Private media upload/retrieval, offline client capture, and expiry cleanup acceptance",
+      "Offline browser capture/reconnection, durable local media persistence, expiry/orphan cleanup, and encrypted backup/restore with the matching key",
       "Retired-form and consent-required participant workflows, including withdrawal between capture and sync",
       "Tenant/RLS policy and human retention/erasure disposition",
       "Semantic free-text/photo review before governed downstream use"
@@ -299,6 +299,64 @@
         "legacy_compose_project_remained_stopped": true
       },
       "harness_correction": "An earlier failed attempt briefly inserted and then removed one synthetic location in the candidate database because the setup script inherited PG_DB from the app container. Cleanup verified zero synthetic location/device/collection rows there. The successful run asserted current_database() = kokonut_restore for setup and cleanup."
+    },
+    "isolated_live_private_media_http_check": {
+      "date": "2026-10-12",
+      "result": "passed against the restored kokonut_restore database clone using the current candidate app image",
+      "candidate_app_image": "sha256:2e882f01236a3613a5a5f3e6abb103cc16c030fa1036ec99287aab4cefe8d0e3",
+      "gateway": "temporary Uvicorn process bound to 127.0.0.1:18099 inside the candidate app container; no host port published",
+      "database": "kokonut_restore; every setup, query, and cleanup connection asserted current_database() = kokonut_restore",
+      "provider": "MOBILE_MEDIA_PROVIDER=local in the temporary process only; the running candidate provider configuration was unchanged",
+      "encryption_key": "ephemeral random 32-byte key stored in a private temporary file for this run only; removed after acceptance",
+      "workflow": {
+        "enrollment_status": 201,
+        "registration_status": 200,
+        "device_location": "derived from the single-use enrollment claim",
+        "media_upload": {
+          "method": "POST /api/mobile/media/uploads",
+          "status": 201,
+          "content_type": "image/jpeg",
+          "synthetic_bytes": 67
+        },
+        "sync": {
+          "method": "POST /api/mobile/sync with uploaded media_id in photo_refs",
+          "status": 200,
+          "accepted": 1,
+          "media_metadata_status": "attached",
+          "attachment_collection_match": true
+        }
+      },
+      "private_object_checks": {
+        "envelope": "KKM1 AES-256-GCM authenticated ciphertext",
+        "file_mode": "0600",
+        "plaintext_bytes_present": false,
+        "authenticated_head_matches_original_type_and_length": true,
+        "wrong_key_rejected": true,
+        "public_download_route": "not implemented by the current access contract; no public URL or download route was added"
+      },
+      "stored_policy_state": {
+        "sync_status": "pending",
+        "form_validation_status": "active",
+        "consent_validation_status": "not_required",
+        "form_review_required": false,
+        "eligible_for_use": false,
+        "eligibility_reason": "transport_pending"
+      },
+      "cleanup": {
+        "synthetic_location_rows": 0,
+        "synthetic_mobile_device_rows": 0,
+        "synthetic_enrollment_rows": 0,
+        "synthetic_media_rows": 0,
+        "synthetic_collection_rows": 0,
+        "temporary_encrypted_object_directory_and_key_removed": true,
+        "temporary_gateway_stopped_and_spool_removed": true,
+        "temporary_gateway_port_closed": true,
+        "recovery_database_disconnected_from_candidate_network": true,
+        "recovery_database_stopped_volume_retained": true,
+        "candidate_app_database_metabase_remained_healthy": true,
+        "legacy_compose_project_remained_stopped": true
+      },
+      "limits": "This does not verify durable storage across container replacement, backup/restore with the matching key, expiry/orphan cleanup, browser offline capture, or a public retrieval workflow; the contract deliberately defines no public download route."
     }
   },
   "historical_record_scope": "Root-level candidate, checkpoint, migration, form-seed, and focused-check details describe the initial 1.1.0 rollout. Current 1.2.0 state and follow-up acceptance are in follow_up_schema_validation_rollout.",
