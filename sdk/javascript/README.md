@@ -95,7 +95,7 @@ await client.logout();
 // Page-based
 const page1 = await client.locations.list({ page: 1, limit: 20 });
 
-// Offset-based (automatically converted to page-based)
+// Offset-based (requires a limit; converted to page-based)
 const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 ```
 

@@ -328,6 +328,7 @@ reporting views.
 - [x] Make the TypeScript gRPC npm package self-contained by bundling its proto import closure and resolving service definitions from the installed package ([ledger](progress.md#phase-7-typescript-grpc-package-proto-boundary--11-october-2026)).
 - [x] Build and preflight the TypeScript gRPC npm archive; confirm it includes the five required proto files and excludes test output ([ledger](progress.md#phase-7-typescript-grpc-package-proto-boundary--11-october-2026)).
 - [x] Extract the TypeScript gRPC npm artifact into an isolated consumer and instantiate/close both service clients to verify bundled proto loading without RPC calls ([ledger](progress.md#phase-7-typescript-grpc-isolated-npm-package-import-check--11-october-2026)).
+- [x] Align JavaScript SDK Directus pagination option handling with Python and compile the JavaScript SDK ([ledger](progress.md#phase-7-pythonjavascript-sdk-pagination-parity--11-october-2026)).
 - [ ] Complete JavaScript SDK runtime/import acceptance and Python/JavaScript API parity; publish only after explicit release authorization.
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).

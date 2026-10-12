@@ -108,10 +108,16 @@ export class KokonutClient {
     if (options?.filter) query.filter = options.filter;
     if (options?.sort) query.sort = options.sort;
     if (options?.fields) query.fields = options.fields;
-    if (options?.limit) query.limit = options.limit;
-    if (options?.offset) query.page = Math.floor((options.offset ?? 0) / (options.limit ?? 100)) + 1;
-    if (options?.page) query.page = options.page;
-    if (options?.meta) query.meta = options.meta;
+    if (options?.limit !== undefined) query.limit = options.limit;
+    if (options?.offset !== undefined && options.limit !== undefined) {
+      if (options.limit === 0) {
+        throw new RangeError('offset pagination requires a non-zero limit');
+      }
+      query.page = Math.floor(options.offset / options.limit) + 1;
+    } else if (options?.page !== undefined) {
+      query.page = options.page;
+    }
+    if (options?.meta !== undefined) query.meta = options.meta;
 
     return this.directus.request(readItems(collection, query));
   }

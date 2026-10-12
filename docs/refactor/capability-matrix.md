@@ -87,7 +87,8 @@ minimal image: optional dependencies and full access paths still require assessm
 D/P describe only the named slice, never completion of the whole capability.
 
 The JavaScript SDK package now compiles with TypeScript 5.8.3 after aligning its
-Directus adapter calls with the installed SDK command API. Its ESM package
+Directus adapter calls with the installed SDK command API and matching Python's
+pagination presence/precedence behavior. Its ESM package
 preflight includes the license and excludes test output; npm's dry-run lists 27
 files. The locked Vitest 5.0.3 toolchain now audits with zero vulnerabilities.
 The Python SDK's version 0.1.0 wheel and source archive build and contain the

@@ -272,6 +272,19 @@ server/client API parity or a published registry install. The tarball and
 extracted package remain under the temporary path above. See the [Batch 5
 checklist](batches.md).
 
+## Phase 7 Python/JavaScript SDK pagination parity — 11 October 2026
+
+Static comparison of the generated native v1 path maps found the same five
+OpenAPI operation IDs and route templates in both REST SDKs. The legacy Directus
+SDKs differed in pagination: JavaScript treated `0` as absent, defaulted an
+offset without a limit to 100 rows, and let `page` override offset; Python
+preserves explicit zero values, converts offset only when a limit is supplied,
+and gives offset precedence. JavaScript now follows those rules and rejects a
+zero limit paired with offset before it can emit an infinite page value. The
+TypeScript build passed. No suite, runtime import, HTTP request, or live API
+parity check ran; these remain separate acceptance gates. See the [Batch 5
+checklist](batches.md).
+
 
 ## Phase 7 operations-console identity boundary — 11 October 2026
 
