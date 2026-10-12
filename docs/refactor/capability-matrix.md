@@ -98,6 +98,13 @@ parity was checked, so the 6 D / 4 P / 56 B / 0 accepted counts do not change.
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
 and [Python ledger](progress.md#phase-7-python-sdk-package-preflight--11-october-2026).
 
+No browser operator console is implemented. The Gateway currently supports
+service/API-key and capability-token credentials, but no human browser session;
+the separate Cloudflare preview remains synthetic-only. Operator identity,
+tenant/location scope, session, and audit boundaries are specified in the
+[console contract](kernel-operations-console.md), with identity-provider
+selection and implementation still open. Capability totals remain unchanged.
+
 The active AMD64 Kernel candidate has a private database and healthy app. Its
 rebuilt image matches all 1,294 bundled source hashes in the checkout, and its
 schema-only migration plan reports zero pending across 370 applied migrations

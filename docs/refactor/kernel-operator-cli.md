@@ -21,7 +21,10 @@ PostgreSQL connection and reports bounded categories/counts on failure.
 
 The existing `GET /api/health/services` Gateway route is public and probes
 configured services. It is not the authenticated operator console and is not
-used by `kernel overview`. A browser-based operations console remains pending an
-explicit operator identity/scope, audit, CORS, and action policy. Future console
-write actions must use the governed service APIs and preserve human approval;
-the overview command is intentionally local and read-only.
+used by `kernel overview`. A browser-based operations console remains pending
+the identity-provider choice and implementation described in the
+[operations console contract](kernel-operations-console.md). The current
+Gateway API-key/capability-token path is not a browser login mechanism; never
+embed a service credential in a page. Future console write actions must use the
+governed service APIs and preserve human approval; the overview command is
+intentionally local and read-only.

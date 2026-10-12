@@ -203,6 +203,24 @@ release authorization remain open. Roll back by reverting the Python packaging
 metadata/license changes and discarding these local artifacts. See the
 [Batch 5 checklist](batches.md).
 
+## Phase 7 operations-console identity boundary — 11 October 2026
+
+Repository inspection found no first-party operator web app. The Cloudflare
+edge preview is synthetic-only and disconnected from KI APIs; the mobile
+Field Collector is not an operator surface. The Gateway currently authenticates
+protected routes with API keys or capability tokens, and treats the configured
+Directus admin token as full access. It has no human browser session or
+federated identity adapter. Those credentials must not be embedded in a browser
+bundle. Documented a replaceable operator identity/session port, tenant and
+location scope rules, stable audit actor requirements, same-origin/CSRF
+boundary, a read-only first console slice, likely files, acceptance, and
+rollback in [the console contract](kernel-operations-console.md). Split the
+Batch 5 checklist into completed boundary documentation and pending provider
+selection/implementation. No code, credentials, CORS settings, or runtime state
+changed; no tests or runtime probes ran. The identity source is a product choice
+before implementation; the contract recommends provider-neutral OIDC so
+Directus remains optional.
+
 ## Batch 5 mobile access boundary review — 11 October 2026
 
 Read `services/mobile/api.py`, migrations 139/215/320/322/357/358, and the
