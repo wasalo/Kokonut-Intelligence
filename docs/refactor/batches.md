@@ -321,7 +321,8 @@ reporting views.
 - [x] Install the declared TypeScript compiler and build the JavaScript SDK; fix compile-time Directus SDK API mismatches ([progress](progress.md#phase-7-javascript-sdk-compiler-compatibility--11-october-2026)).
 - [x] Preflight the JavaScript ESM package archive; include its license, exclude test output, and align repository metadata ([progress](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)).
 - [x] Add a local, read-only Kernel CLI overview of build metadata and provider selection ([operator contract](kernel-operator-cli.md)).
-- [ ] Review the npm dependency audit findings and prepare versioned Python/JavaScript SDK release artifacts; publish only after explicit release authorization.
+- [x] Resolve the reported JavaScript development-tool audit findings with a locked Vitest 5.0.3 toolchain; npm reports zero vulnerabilities ([progress](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)).
+- [ ] Prepare versioned Python/JavaScript SDK release artifacts and complete runtime/import acceptance; publish only after explicit release authorization.
 - [ ] Define operator identity/scope and implement a browser operations-console slice.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 

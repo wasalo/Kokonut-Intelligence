@@ -3,6 +3,7 @@
 JavaScript/TypeScript SDK for the Kokonut Intelligence Platform. Typed REST client wrapping Directus collections for farm, crop, harvest, sales, expenses, sensors, attestations, and reports.
 
 The published package uses ECMAScript modules and supports Node.js 18 or newer.
+Running the development test toolchain requires Node.js 22.12 or newer.
 
 > The existing collection methods cover Directus REST operations. For gRPC services (IRI, content hash, ecocredit classes/batches/balances, marketplace, bridge), use `sdk/typescript/`.
 

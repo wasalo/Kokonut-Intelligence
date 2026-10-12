@@ -89,9 +89,9 @@ D/P describe only the named slice, never completion of the whole capability.
 The JavaScript SDK package now compiles with TypeScript 5.8.3 after aligning its
 Directus adapter calls with the installed SDK command API. Its ESM package
 preflight includes the license and excludes test output; npm's dry-run lists 27
-files. No route request, auth behavior, package runtime import, or capability
-parity was checked, so the 6 D / 4 P / 56 B / 0 accepted counts do not change.
-Five npm dependency audit findings remain for release review. See the
+files. The locked Vitest 5.0.3 toolchain now audits with zero vulnerabilities.
+No route request, auth behavior, package runtime import, or capability parity
+was checked, so the 6 D / 4 P / 56 B / 0 accepted counts do not change. See the
 [Phase 7 ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026).
 
 The active AMD64 Kernel candidate has a private database and healthy app. Its
