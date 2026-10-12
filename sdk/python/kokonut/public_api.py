@@ -250,11 +250,22 @@ class KokonutPublicApiClient:
         if not response.ok:
             try:
                 body = response.json()
-                message = body.get("error", response.text) if isinstance(body, dict) else response.text
+                error_message = body.get("error") if isinstance(body, dict) else None
+                if isinstance(error_message, str):
+                    message = error_message
+                else:
+                    message = f"HTTP {response.status_code}"
             except ValueError:
-                message = response.text or f"HTTP {response.status_code}"
+                message = f"HTTP {response.status_code}"
             raise PublicApiError(message, response.status_code, response)
-        body = response.json()
+        try:
+            body = response.json()
+        except ValueError as exc:
+            raise PublicApiError(
+                "Invalid JSON response from Kokonut Gateway",
+                response.status_code,
+                response,
+            ) from exc
         if not isinstance(body, dict) or not isinstance(body.get("data"), (dict, list)):
             raise PublicApiError("Invalid public API response envelope", response.status_code, response)
         return body

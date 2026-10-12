@@ -54,6 +54,12 @@ interface DataEnvelope<T> {
   data: T;
 }
 
+function encodePathSegment(value: string): string {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (character) =>
+    `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
 export class KokonutPublicApiClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: PublicFetch;
@@ -91,7 +97,7 @@ export class KokonutPublicApiClient {
         this.get<PublicLocationV1>(
           publicApiPathsV1.getPublicLocationV1.replace(
             '{location_id}',
-            encodeURIComponent(locationId),
+            encodePathSegment(locationId),
           ),
         ),
     };
@@ -100,7 +106,7 @@ export class KokonutPublicApiClient {
         this.get<PublicMetricSummaryV1>(
           publicApiPathsV1.getPublicMetricSummaryV1.replace(
             '{location_id}',
-            encodeURIComponent(locationId),
+            encodePathSegment(locationId),
           ),
         ),
     };
@@ -109,7 +115,7 @@ export class KokonutPublicApiClient {
         this.get<PublicCrispAssessmentV1>(
           publicApiPathsV1.getPublicCrispAssessmentV1.replace(
             '{location_id}',
-            encodeURIComponent(locationId),
+            encodePathSegment(locationId),
           ),
         ),
     };
@@ -118,7 +124,7 @@ export class KokonutPublicApiClient {
         this.get<PublicLocationSummaryV1>(
           publicApiPathsV1.getPublicLocationSummaryV1.replace(
             '{location_id}',
-            encodeURIComponent(locationId),
+            encodePathSegment(locationId),
           ),
         ),
     };
@@ -133,20 +139,28 @@ export class KokonutPublicApiClient {
     try {
       payload = await response.json();
     } catch {
+      if (!response.ok) {
+        throw new PublicApiError(`HTTP ${response.status}`, response.status);
+      }
       throw new PublicApiError('Invalid JSON response from Kokonut Gateway', response.status);
     }
 
-    if (!payload || typeof payload !== 'object') {
-      throw new PublicApiError('Invalid public API response envelope', response.status);
-    }
     if (!response.ok) {
-      const errorMessage = 'error' in payload ? payload.error : undefined;
+      const errorMessage =
+        payload && typeof payload === 'object' && 'error' in payload
+          ? payload.error
+          : undefined;
       const message = typeof errorMessage === 'string' ? errorMessage : `HTTP ${response.status}`;
       throw new PublicApiError(message, response.status);
     }
-    if (!('data' in payload)) {
+
+    if (!payload || typeof payload !== 'object' || !('data' in payload)) {
       throw new PublicApiError('Invalid public API response envelope', response.status);
     }
-    return (payload as DataEnvelope<T>).data;
+    const data = (payload as DataEnvelope<unknown>).data;
+    if (!data || typeof data !== 'object') {
+      throw new PublicApiError('Invalid public API response envelope', response.status);
+    }
+    return data as T;
   }
 }

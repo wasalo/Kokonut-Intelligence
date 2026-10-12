@@ -25,6 +25,8 @@ class ListOptions:
         if self.limit is not None:
             params["limit"] = self.limit
         if self.offset is not None and self.limit is not None:
+            if self.limit == 0:
+                raise ValueError("offset pagination requires a non-zero limit")
             params["page"] = (self.offset // self.limit) + 1
         elif self.page is not None:
             params["page"] = self.page

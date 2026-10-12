@@ -95,14 +95,18 @@ The Python SDK's version 0.1.0 wheel and source archive build and contain the
 README, Apache license, typed marker, and 16 `.py` files for the optional,
 namespaced generated gRPC package. The wheel and optional gRPC runtime imported
 successfully in a temporary environment, including both REST clients and all
-10 generated modules; no live request or SDK capability parity was checked.
+10 generated modules; no live request was made.
 The TypeScript gRPC package's clean build and npm archive include the five-file
 service proto import closure in `dist/proto` and exclude test output. Both
 service clients loaded from an extracted archive and closed without RPC calls;
 server/client API parity remains unassessed. The separate JavaScript REST SDK
 artifact also imported from an extracted tarball; both clients instantiated and
-the HTTP guard recorded zero calls. Python/JavaScript API behavior parity
-remains unassessed, so the 6 D / 4 P / 56 B / 0 accepted counts do not change.
+the HTTP guard recorded zero calls. An offline fake-adapter parity slice now
+covers the five generated v1 reads and Directus pagination across both SDKs,
+including route encoding, headers, response values and error handling. This
+partial evidence applies to CAP-001, CAP-007, CAP-014 and the adjacent CAP-031
+public summary slice; live route/auth, tenant scope and broader SDK parity remain
+unassessed. The 6 D / 4 P / 56 B / 0 accepted counts do not change.
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
 and [Python import ledger](progress.md#phase-7-python-sdk-isolated-wheel-import-check--11-october-2026).
 
