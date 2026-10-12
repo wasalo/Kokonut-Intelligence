@@ -100,8 +100,9 @@ The TypeScript gRPC package's clean build and npm archive include the five-file
 service proto import closure in `dist/proto` and exclude test output. Both
 service clients loaded from an extracted archive and closed without RPC calls;
 server/client API parity remains unassessed. The separate JavaScript REST SDK
-artifact remains uninstalled/unimported, so the 6 D / 4 P / 56 B / 0 accepted
-counts do not change.
+artifact also imported from an extracted tarball; both clients instantiated and
+the HTTP guard recorded zero calls. Python/JavaScript API behavior parity
+remains unassessed, so the 6 D / 4 P / 56 B / 0 accepted counts do not change.
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
 and [Python import ledger](progress.md#phase-7-python-sdk-isolated-wheel-import-check--11-october-2026).
 

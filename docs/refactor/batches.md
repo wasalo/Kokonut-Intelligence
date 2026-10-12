@@ -329,7 +329,8 @@ reporting views.
 - [x] Build and preflight the TypeScript gRPC npm archive; confirm it includes the five required proto files and excludes test output ([ledger](progress.md#phase-7-typescript-grpc-package-proto-boundary--11-october-2026)).
 - [x] Extract the TypeScript gRPC npm artifact into an isolated consumer and instantiate/close both service clients to verify bundled proto loading without RPC calls ([ledger](progress.md#phase-7-typescript-grpc-isolated-npm-package-import-check--11-october-2026)).
 - [x] Align JavaScript SDK Directus pagination option handling with Python and compile the JavaScript SDK ([ledger](progress.md#phase-7-pythonjavascript-sdk-pagination-parity--11-october-2026)).
-- [ ] Complete JavaScript SDK runtime/import acceptance and Python/JavaScript API parity; publish only after explicit release authorization.
+- [x] Extract the JavaScript REST SDK npm artifact into an isolated consumer, import its ESM entry point, instantiate both clients, and confirm no HTTP calls ([ledger](progress.md#phase-7-javascript-rest-sdk-isolated-package-import-check--11-october-2026)).
+- [ ] Complete Python/JavaScript API behavior parity; publish only after explicit release authorization.
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).
 - [ ] Configure a real OIDC provider, apply migration 380, and verify login/session/CSRF/revocation, scope denials, audit attribution, and browser queue/detail behavior.

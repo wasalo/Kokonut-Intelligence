@@ -285,6 +285,19 @@ TypeScript build passed. No suite, runtime import, HTTP request, or live API
 parity check ran; these remain separate acceptance gates. See the [Batch 5
 checklist](batches.md).
 
+## Phase 7 JavaScript REST SDK isolated package import check — 11 October 2026
+
+Packed the `@kokonut-intelligence/sdk` 0.1.0 artifact (27 files) and extracted
+it to `/private/tmp/kokonut-javascript-sdk-import-check-20261011/consumer/`.
+The isolated consumer resolved `@directus/sdk` from the existing local
+dependency install, imported the package's ESM entry point, and instantiated
+both `KokonutClient` and `KokonutPublicApiClient`. Expected method groups and
+the exported `PublicApiError` were present. A guarded fetch implementation
+recorded zero HTTP calls. No test suite, live request, or API response parity
+check ran. This closes local package import acceptance for this artifact and
+dependency combination; full Python/JavaScript API behavior parity and release
+approval remain open. See the [Batch 5 checklist](batches.md).
+
 
 ## Phase 7 operations-console identity boundary — 11 October 2026
 
