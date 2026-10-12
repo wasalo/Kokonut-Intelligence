@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-12",
+  "acceptance": "candidate-field-collector-proxy-route",
+  "source_commit": "d24b68ee7ca10554956518c4a42d081a5f7d3586",
+  "compose_project": "kokonut-kernel-candidate",
+  "recreated_service": "app",
+  "services_after_recreation": {
+    "app": "healthy",
+    "database": "healthy",
+    "metabase": "healthy"
+  },
+  "http_checks": {
+    "GET /mobile": {
+      "status": 308,
+      "location": "/mobile/"
+    },
+    "GET /mobile/": {
+      "status": 200
+    },
+    "GET /mobile/field-collector-service-worker.js": {
+      "status": 200,
+      "content_type": "application/javascript"
+    },
+    "GET /health": {
+      "status": "ok",
+      "audit_capture": "ok",
+      "version": "0.1.0"
+    }
+  },
+  "scope_and_limitations": {
+    "requests_used_candidate_loopback_gateway_port": true,
+    "live_caddy_or_traefik_proxy_tested": false,
+    "browser_reloaded_or_vault_changed": false,
+    "database_or_schema_changed": false,
+    "metabase_recreated": false,
+    "legacy_compose_project_touched": false
+  },
+  "rollback": "Revert the proxy-route commit and rebuild/recreate only the candidate app. No database rollback is needed."
+}

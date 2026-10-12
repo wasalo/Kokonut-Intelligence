@@ -2882,5 +2882,10 @@ use the slash URL.
 The complete mobile API suite passed (33 tests), as did both dependency-free
 offline-shell Node checks; Ruff and `git diff --check` passed. The suite used a
 private mode-0700 temporary audit-spool directory and that journal was removed.
-This is source-level route acceptance; the candidate Docker app and its browser
-state were not recreated for this correction. See [Batch 5 checklist](batches.md).
+Rebuilt and recreated only the candidate app; PostgreSQL and Metabase remained
+healthy. Direct loopback HTTP confirmed `/mobile` returns 308 to `/mobile/`,
+`/mobile/` returns 200, the worker asset returns 200 JavaScript, and Gateway
+health is `ok`. No browser reload or vault change occurred. Caddy/Traefik was
+not running for this probe, so live proxy ingress is still not certified. See
+[route evidence](builds/2026-10-12-recovery/field-collector-proxy-route.json)
+and the [Batch 5 checklist](batches.md).
