@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-12",
+  "scope": "Field Collector required-consent withdrawal source regressions",
+  "pytest": {
+    "environment": "Repository .venv, pytest 9.1.1",
+    "command": "pytest tests/test_mobile_api.py tests/test_mobile_form_validation.py tests/test_mobile_offline.py tests/test_mobile_media_storage.py -q",
+    "result": "62 passed",
+    "audit_spool": "Private temporary path under /private/tmp with mode 0700; removed after the run"
+  },
+  "new_cases": [
+    {
+      "test": "test_retired_required_media_upload_rejects_withdrawn_consent_before_storage",
+      "scenario": "Known retired required-consent form has a grant at capture and a withdrawal by upload time.",
+      "expected": "HTTP 403, transaction rollback, no commit, and no private object write."
+    },
+    {
+      "test": "test_sync_rejects_retired_required_record_after_withdrawal_even_if_regranted",
+      "scenario": "Known retired required-consent record was captured under a grant, then withdrawn; a later grant is the current decision.",
+      "expected": "HTTP 403 because an intervening withdrawal remains disqualifying; rollback and no collection insert."
+    }
+  ],
+  "limits": [
+    "Database decisions are mocked; this is API source regression evidence, not PostgreSQL-backed or browser acceptance.",
+    "The actual candidate Gateway/database and browser vault were not modified."
+  ],
+  "rollback": "Revert the two test cases and their checklist/evidence updates; no service rebuild or database rollback is required."
+}

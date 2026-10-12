@@ -257,6 +257,68 @@ def test_retired_required_media_upload_needs_participant_reference_before_storag
     )
 
 
+def test_retired_required_media_upload_rejects_withdrawn_consent_before_storage(monkeypatch):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    participant_ref = "opaque-participant-reference-1234567890"
+
+    class Cursor:
+        def __init__(self):
+            self.one = None
+            self.consent_decisions = 0
+            self.executed = []
+
+        def execute(self, sql, params=None):
+            normalized = sql.lower()
+            self.executed.append((sql, params))
+            if "from mobile_form_version" in normalized:
+                self.one = _retired_required_form_revision()
+            elif "from mobile_participant_link" in normalized:
+                self.one = ("participant-link-1", "party-1", None)
+            elif "from stakeholder_consent" in normalized:
+                self.consent_decisions += 1
+                self.one = (
+                    ("consent-grant-at-capture", "grant", None)
+                    if self.consent_decisions == 1
+                    else ("consent-withdrawal", "withdraw", None)
+                )
+
+        def fetchone(self):
+            value, self.one = self.one, None
+            return value
+
+    connection = MagicMock()
+    connection.cursor.return_value = Cursor()
+    store = MagicMock()
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(mobile_api, "get_media_store", lambda: store, raising=False)
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", location_id),
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            "/api/mobile/media/uploads",
+            headers={
+                "x-device-token": "opaque-device-token",
+                "x-collection-client-id": "withdrawn-retired-client-1",
+                "x-collection-type": "field_note",
+                "x-form-id": "field-note",
+                "x-form-version": "v0",
+                "x-participant-ref": participant_ref,
+                "content-type": "image/jpeg",
+            },
+            content=b"\xff\xd8\xff\xdbsynthetic-jpeg",
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Matching consent is not active at sync time"
+    connection.rollback.assert_called_once()
+    connection.commit.assert_not_called()
+    store.put_private.assert_not_called()
+
+
 def test_sync_rejects_inline_photo_data_urls_before_database_write(monkeypatch):
     connection = MagicMock()
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
@@ -631,6 +693,97 @@ def test_sync_accepts_retired_required_revision_only_into_unassessed_review_queu
     assert insert[1][18] == "unassessed"
     assert insert[1][19] is True
     assert connection.committed is True
+
+
+def test_sync_rejects_retired_required_record_after_withdrawal_even_if_regranted(monkeypatch):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    participant_ref = "opaque-participant-reference-1234567890"
+
+    class Cursor:
+        def __init__(self):
+            self.one = None
+            self.consent_decisions = 0
+            self.executed = []
+
+        def execute(self, sql, params=None):
+            normalized = sql.lower()
+            self.executed.append((sql, params))
+            if "from offline_collection where client_id" in normalized:
+                self.one = None
+            elif "from mobile_form_version" in normalized:
+                self.one = _retired_required_form_revision()
+            elif "from mobile_participant_link" in normalized:
+                self.one = ("participant-link-1", "party-1", None)
+            elif "from stakeholder_consent" in normalized:
+                if "select exists" in normalized:
+                    # A withdrawal happened after capture, even though a later
+                    # grant is now the latest exact decision.
+                    self.one = (True,)
+                else:
+                    self.consent_decisions += 1
+                    self.one = (
+                        ("consent-grant-at-capture", "grant", None)
+                        if self.consent_decisions == 1
+                        else ("consent-grant-after-withdrawal", "grant", None)
+                    )
+            elif "insert into offline_collection" in normalized:
+                raise AssertionError("withdrawn retired record must not be stored")
+
+        def fetchone(self):
+            value, self.one = self.one, None
+            return value
+
+        def close(self):
+            pass
+
+    class Connection:
+        def __init__(self):
+            self.cur = Cursor()
+            self.committed = False
+            self.rolled_back = False
+
+        def cursor(self):
+            return self.cur
+
+        def commit(self):
+            self.committed = True
+
+        def rollback(self):
+            self.rolled_back = True
+
+        def close(self):
+            pass
+
+    connection = Connection()
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", location_id),
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            "/api/mobile/sync",
+            headers={"x-device-token": "opaque-device-token"},
+            json={
+                "device_id": "device-1",
+                "collections": [{
+                    "client_id": "retired-withdrawn-client-1",
+                    "collection_type": "field_note",
+                    "form_id": "field-note",
+                    "form_version": "v0",
+                    "participant_ref": participant_ref,
+                    "payload": {"content": "synthetic retired note"},
+                }],
+            },
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Consent was withdrawn or denied after collection"
+    assert connection.rolled_back is True
+    assert connection.committed is False
+    assert not any("insert into offline_collection" in sql.lower() for sql, _ in connection.cur.executed)
 
 
 def test_mobile_device_token_is_not_written_to_gateway_audit(monkeypatch):

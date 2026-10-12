@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked, and the existing encrypted browser data remains locked and intact. These checks do not cover OS airplane mode, real OIDC/provider acceptance, or the remaining consent, media, governance and retention gates. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. These checks do not cover OS airplane mode, real OIDC/provider acceptance, or live PostgreSQL/browser consent handling and the remaining media, governance and retention gates. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
@@ -2272,3 +2272,31 @@ Evidence: [vault reset browser and test record](builds/2026-10-12-recovery/field
 CAP-053 and Batch 5 remain partial. See the [checklist](batches.md),
 [capability matrix](capability-matrix.md#cap-053), [mobile access contract](mobile-access-contract.md),
 and [Field Collector guide](../../services/mobile/README.md).
+
+## Batch 5 Field Collector retired-consent withdrawal source checks — 12 October 2026
+
+Added two API regressions for known retired `required` form revisions. A photo
+upload is denied before private object storage when a grant was active at
+collection but consent has been withdrawn by upload time. Sync is also denied
+when an offline retired-form record was captured under a grant, consent was
+withdrawn, and a later grant is now the newest decision; the intervening
+withdrawal remains disqualifying. Both cases assert rollback and no collection
+or media-object write. The existing valid-retired revision check still confirms
+that an accepted row enters private review as `retired_review` and
+`unassessed`.
+
+The repository `.venv` already contains pytest 9.1.1. All four focused mobile
+suites passed: 62 tests. The first run without an explicit audit spool failed
+closed because the default journal directory was not private; rerunning with a
+mode-0700 temporary spool under `/private/tmp` passed, and that spool was
+removed. The API tests mock database decisions, so they do not prove live
+PostgreSQL view behavior or browser handling. No candidate database, container,
+browser vault, migration, or provider configuration changed. Evidence:
+[withdrawal source tests](builds/2026-10-12-recovery/field-collector-withdrawal-source-tests.json).
+
+Rollback: revert the focused test and documentation changes; no runtime or
+database rollback is required. CAP-053 remains partial pending live consent and
+eligibility-view acceptance, OS airplane mode/Gateway recovery, OIDC, and the
+remaining human disposition, media, tenant/RLS, and retention gates. See the
+[Batch 5 checklist](batches.md), [capability matrix](capability-matrix.md#cap-053),
+and [mobile access contract](mobile-access-contract.md).
