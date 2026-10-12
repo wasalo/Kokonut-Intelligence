@@ -118,19 +118,21 @@ The trusted-device flow uses schema migration `357_field_collector_enrollment_ha
 - `POST /api/mobile/register` requires `device_id` and `enrollment_code`. The server derives `user_id` and `location_id` from the locked enrollment claim. A conflicting `device_id` is rejected with `409`; registration cannot reassign an existing device.
 - `DELETE /api/mobile/locations/{location_id}/enrollments/{enrollment_id}` revokes an unused claim. `POST /api/mobile/locations/{location_id}/devices/{device_id}/revoke` revokes an active device and clears its token hash; both require location-scoped Gateway authorization.
 - `GET /api/mobile/forms` returns only explicitly public global forms to anonymous clients (`location_id IS NULL AND is_public = TRUE`). A device may send `X-Device-Token` for global and its server-assigned location forms; caller-supplied location queries are rejected when they do not match the device.
-- `POST /api/mobile/sync` accepts up to 50 idempotent records per request. Device identity and location are derived from the active device token.
+- `POST /api/mobile/locations/{location_id}/participants` creates a reviewer-approved opaque participant reference; `/participants/revoke` revokes it. With OIDC enabled, both routes require a location grant and CSRF validation. Otherwise they require a location-scoped Gateway capability or API key. The raw reference is returned only once; only its SHA-256 digest is stored.
+- `POST /api/mobile/sync` accepts up to 50 idempotent records per request. Device identity and location are derived from the active device token. New records must match an immutable known form revision and collection type. Active `required` forms also require a matching participant link and exact active consent grant; retired revisions enter private review with no consent status.
+- Private photo uploads carry the collection's form/version/reference/timestamp and check required consent before the Gateway reads or stores JPEG bytes. Sync checks consent again before attaching uploaded objects.
 - `GET /api/mobile/sync/status` returns device queue status.
 
-Private-media upload/reference flow, request-size policy, stricter CORS, and
-route-level security checks are implemented in source. Migrations 357 and 358
-are included in the current local Kernel candidate schema through migration
-379; this did not enable the local media provider or imply a production rollout.
-No legacy, staging, or production database and no Cloudflare resource was
-changed. Expired object-byte cleanup remains open before production use.
+Migration 381 adds immutable form revisions, reviewer-created participant
+links, consent validation metadata, and the downstream
+`v_mobile_collection_use_eligibility` gate. Its source is not yet applied to the
+candidate database. The five seeded forms remain `unclassified` until separately
+reviewed; those records stay private and are not eligible for reporting or
+publication. Existing rows remain unassessed. No tests, migration, local
+container, legacy/staging/production database, or Cloudflare resource changed.
+Expired object-byte cleanup remains open before production use.
 
-The exact present-day location and media guarantees, and the missing form and
-participant-consent checks, are recorded in
-[`docs/refactor/mobile-access-contract.md`](../../docs/refactor/mobile-access-contract.md).
-Do not treat enrollment or location binding as participant consent. The device's
-string `user_id` is not currently linked by the mobile schema to the canonical
-party-based consent ledger.
+See the implemented [`mobile access contract`](../../docs/refactor/mobile-access-contract.md)
+for the full policy, review gates, and rollback. Enrollment and location binding
+do not imply participant consent; the collector's string `user_id` remains
+separate from the canonical participant party.

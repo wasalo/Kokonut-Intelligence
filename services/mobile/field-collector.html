@@ -211,7 +211,16 @@
       const schema = form.form_schema || {};
       const required = schema.required || [];
       const fields = Object.entries(schema.properties || {}).map(([name, definition]) => renderField(name, definition, required.includes(name))).join("");
-      screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to forms</button><p class="eyebrow">${esc(form.collection_type)}</p><h2>${esc(form.name)}</h2><p class="intro">${esc(form.description || "Record a field observation.")}</p><form id="collectionForm">${fields}<div><div class="capture-row"><button type="button" class="button secondary" id="photoButton">Add photo</button><button type="button" class="button ghost" id="gpsButton">Refresh GPS</button></div><input class="hidden" type="file" accept="image/*" capture="environment" id="photoInput"><div class="photo-preview" id="photoPreview"></div></div><div class="location" id="locationValue">GPS not captured yet. Tap Refresh GPS or allow location access.</div><button class="button" type="submit">Save record</button></form>`;
+      const policy = form.consent_policy_status || "unclassified";
+      const policyNotice = policy === "unclassified"
+        ? `<div class="notice" style="background:#fff4dc;color:#76520b;margin:0 0 16px">Consent classification is pending. This record will remain private and is not cleared for reporting or publication.</div>`
+        : policy === "required"
+          ? `<div class="notice" style="background:#e7f3ec;color:#275d3c;margin:0 0 16px">${esc(form.consent_purpose || "Participant consent is required for this form.")} A reviewer must provide a valid participant reference. This field does not record or grant consent.</div>`
+          : "";
+      const participantField = policy === "required"
+        ? `<label class="required">Reviewer-issued participant reference<input name="participant_ref" autocomplete="off" minlength="32" maxlength="128" required></label>`
+        : "";
+      screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to forms</button><p class="eyebrow">${esc(form.collection_type)} · ${esc(form.version || "1.0.0")}</p><h2>${esc(form.name)}</h2><p class="intro">${esc(form.description || "Record a field observation.")}</p>${policyNotice}<form id="collectionForm">${participantField}${fields}<div><div class="capture-row"><button type="button" class="button secondary" id="photoButton">Add photo</button><button type="button" class="button ghost" id="gpsButton">Refresh GPS</button></div><input class="hidden" type="file" accept="image/*" capture="environment" id="photoInput"><div class="photo-preview" id="photoPreview"></div></div><div class="location" id="locationValue">GPS not captured yet. Tap Refresh GPS or allow location access.</div><button class="button" type="submit">Save record</button></form>`;
       document.getElementById("backButton").addEventListener("click", renderHome);
       document.getElementById("gpsButton").addEventListener("click", captureGps);
       document.getElementById("photoButton").addEventListener("click", () => document.getElementById("photoInput").click());
@@ -241,8 +250,12 @@
     const saveRecord = async event => {
       event.preventDefault();
       const formData = new FormData(event.target); const payload = {};
-      for (const [key, value] of formData.entries()) payload[key] = value === "" ? null : (event.target.elements[key].type === "number" ? Number(value) : value);
-      const item = { client_id:uid(), collection_type:currentForm.collection_type, form_id:currentForm.form_id, form_version:currentForm.version || "1.0.0", payload, photo_refs:[], offline_photos:currentPhotos.map(photo => ({name:photo.name,data:photo.data})), ...currentLocation, collected_at:new Date().toISOString(), sync_status:"pending" };
+      let participantRef = null;
+      for (const [key, value] of formData.entries()) {
+        if (key === "participant_ref") { participantRef = String(value).trim(); continue; }
+        payload[key] = value === "" ? null : (event.target.elements[key].type === "number" ? Number(value) : value);
+      }
+      const item = { client_id:uid(), collection_type:currentForm.collection_type, form_id:currentForm.form_id, form_version:currentForm.version || "1.0.0", participant_ref:participantRef, payload, photo_refs:[], offline_photos:currentPhotos.map(photo => ({name:photo.name,data:photo.data})), ...currentLocation, collected_at:new Date().toISOString(), sync_status:"pending" };
       try { await write(STORAGE.queue, items => [...(Array.isArray(items) ? items : []), item]); renderHome(); notify("Saved on this device. It will sync when online."); void syncQueue(false); } catch (_) { notify("Encrypted storage could not save this record. Keep this page open and try again.", true); }
     };
     const ensureDevice = async (oneTimeCode = enrollmentCode) => {
@@ -299,9 +312,11 @@
           let photos = [...existingPhotos];
           while (photos.length) {
             const photo = photos[0];
+            const uploadHeaders = {"Content-Type":"image/jpeg","X-Device-Token":device.device_token,"X-Collection-Client-ID":item.client_id,"X-Collection-Type":item.collection_type,"X-Form-ID":item.form_id,"X-Form-Version":item.form_version,"X-Collected-At":item.collected_at};
+            if (item.participant_ref) uploadHeaders["X-Participant-Ref"] = item.participant_ref;
             const upload = await fetch(`${base}/media/uploads`, {
               method:"POST",
-              headers:{"Content-Type":"image/jpeg","X-Device-Token":device.device_token,"X-Collection-Client-ID":item.client_id},
+              headers:uploadHeaders,
               body:dataURLToBlob(photo.data),
             });
             if (!upload.ok) { const error = new Error(`Photo upload failed (${upload.status})`); error.status = upload.status; throw error; }
@@ -327,7 +342,8 @@
           headers:{"Content-Type":"application/json","X-Device-Token":device.device_token},
           body:JSON.stringify({device_id:device.device_id,collections:syncableItems.map(item => ({
             client_id:item.client_id, collection_type:item.collection_type, form_id:item.form_id,
-            form_version:item.form_version, payload:item.payload, photo_refs:item.photo_refs,
+            form_version:item.form_version, participant_ref:item.participant_ref || null,
+            payload:item.payload, photo_refs:item.photo_refs,
             latitude:item.latitude, longitude:item.longitude, accuracy_m:item.accuracy_m,
             collected_at:item.collected_at,
           }))}),

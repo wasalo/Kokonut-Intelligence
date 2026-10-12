@@ -336,6 +336,19 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    participant_match = re.fullmatch(
+        r"/api/mobile/locations/([0-9a-fA-F-]{36})/participants(?:/(revoke))?",
+        path,
+    )
+    if participant_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "mobile_participant",
+            "action": "revoke" if participant_match.group(2) else "create",
+            "public": False,
+            "location_id": participant_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
     routes = {
         ("GET", "/operator/"): ("console", True, False),
         ("GET", "/operator/auth/login"): ("login", True, False),

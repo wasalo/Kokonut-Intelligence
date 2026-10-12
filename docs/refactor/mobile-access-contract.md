@@ -1,143 +1,154 @@
 # Field Collector access and consent contract
 
-This contract records the current native mobile boundary and the gaps that
-must close before mobile sync/media is accepted as a tenant- or consent-aware
-workflow. It does not authorize a schema migration or change sync behavior.
+This implementation adds an additive consent and immutable-form boundary for
+the Field Collector. It records the approved baseline while keeping the five
+current form revisions `unclassified` until an authorized reviewer evaluates
+each one. It does not imply that the migration has been applied or that mobile
+acceptance has passed.
 
-## Current identity and location boundary
+## Existing identity and location boundary
 
-- `POST /api/mobile/locations/{location_id}/enrollments` is protected by the
-  gateway's `mobile_device:enroll` policy and location scope. An authorized
-  operator supplies the `user_id`; the service stores only the single-use code
-  hash and its assigned location.
-- `POST /api/mobile/register` locks and consumes the enrollment. The resulting
-  device token is opaque; only its SHA-256 hash is stored. Device ID, user ID,
-  and location ID come from the enrollment row, not registration fields.
-- Every private-media upload and sync request resolves the active device token
-  to the stored device/user/location. Sync rejects a mismatching request device
-  ID. Collection location is server-derived. A media reference must match the
-  same device, location, collection client ID, uploaded state, and unexpired
-  window before it can be attached.
-- `GET /api/mobile/forms` exposes only active, explicitly public global forms
-  anonymously. With a device token it returns active global forms plus forms
-  assigned to that device's location. A caller-supplied location must match the
+- `POST /api/mobile/locations/{location_id}/enrollments` issues a short-lived,
+  single-use enrollment code. The enrolling operator supplies the collector's
+  `user_id`; it is never treated as participant identity.
+- `POST /api/mobile/register` locks and consumes the enrollment. The device
+  token is opaque; only its SHA-256 hash is stored. Device ID, user ID, and
+  location ID come from the enrollment row.
+- Private-media upload and sync resolve the active device token to the stored
+  device/user/location. Sync rejects a mismatching device ID and derives the
+  collection location from enrollment. Media references are scoped to that
+  device, location, client ID, uploaded state, and expiry.
+- Anonymous `GET /api/mobile/forms` returns only active, explicitly public
+  global revisions. An enrolled device receives active global revisions and
+  revisions assigned to its location. A requested location must match the
   device assignment.
-- The browser stores its offline queue and credentials in a passphrase-encrypted
-  IndexedDB vault. Server-side media is private and provider-selected; object
-  keys and public URLs are not returned.
+- The browser queue and device credentials remain in the passphrase-encrypted
+  IndexedDB vault. Server-side media remains private and provider-selected.
 
-These controls establish a **device-to-location boundary for the listed mobile
-routes**. The schema has no general `tenant_id`; location is the mobile scope.
-The boundary does not prove isolation for unrelated services, database roles,
-RLS policies, Directus, or external integrations.
+This establishes a device-to-location boundary for these routes. The schema
+does not define a general `tenant_id`; location is the mobile scope only. This
+does not establish RLS or tenant isolation for other services, Directus, or
+external integrations.
 
-## Consent and form-validation gaps
+## Implemented baseline — migration 381 source
 
-`offline_collection` stores `device_id`, `user_id`, and `location_id`, but no
-`party_id`, consent event ID, consent category, or purpose. The canonical
-`stakeholder_consent` stream is party-linked and append-only; the mobile
-`user_id` is a string with no enforced mapping to that party. No consent lookup
-occurs before collection sync, media upload, attachment, or downstream use.
-Therefore the platform must not describe generic Field Collector submissions
-as consent-checked or allow a public/research/reporting consumer to infer consent
-from device enrollment.
+The owner approved separation of collector and participant identity, the
+reviewer-created location link, exact form-revision consent policy, immutable
+form snapshots, and private review handling for known retired revisions.
+Implementation is in source; migration 381 is not applied by this change.
 
-Sync accepts optional `form_id` and `form_version` and persists the submitted
-`collection_type`, but current sync code does not verify that a supplied form is
-active, belongs to the device's location (or is global), or matches the
-collection type/version. Enrollment proves operator authorization to attach a
-device to a location; it does not prove the participant's consent to collect,
-share, retain, or publish a particular data category.
+### Form revisions
 
-## Proposed implementation baseline — review required
+- Migration 381 backfills `mobile_form_version` from `mobile_form`. A trigger
+  snapshots new versions, retires the previous active revision, and prevents
+  changes to revision content or reuse of a `(form_id, version)` pair.
+- Editing the current `mobile_form` content or consent policy requires a new
+  version. The current authoring surface remains the `mobile_form` row; the
+  database trigger publishes its immutable snapshot. A policy decision must
+  include reviewer, time, and non-empty evidence. There is not yet a dedicated
+  form-authoring UI or CLI.
+- `GET /api/mobile/forms` reads only active snapshots. It exposes the
+  participant-required flag and the reviewed data category, purpose, recipient
+  type/name, and consent version needed by the collector UI; it does not expose
+  the canonical recipient party ID.
+- A new sync record must name an exact known form ID/version and matching
+  collection type. Its form must be global or assigned to the device location.
+  Unknown revisions and mismatches fail closed. Inactive revisions reject new
+  records. A known retired revision can sync only to the private pending queue
+  with `retired_review` and `form_review_required`; it is not marked consented
+  or eligible for use.
 
-This proposal is deliberately not enforced yet. It follows the existing
-append-only consent ledger and preserves the offline queue, while leaving
-participant identity and consent decisions under human control.
+### Participant identity and consent
 
-1. Treat `mobile_device.user_id` only as the collector/operator identity. Never
-   infer the participant from enrollment or accept a participant `party_id`
-   directly from the mobile request. Add a location-scoped opaque
-   `participant_ref` mapped to a canonical `party_id` in a restricted
-   `mobile_participant_link` table. An authorized reviewer creates or revokes
-   that mapping and the record retains reviewer, time, scope, and evidence.
-2. Keep consent events in `stakeholder_consent`; the mobile collector must not
-   mint a grant from an operator checkbox. A form revision declares its
-   collection type, data category, purpose, consent version, scope, recipient,
-   and whether a participant grant is required. A required policy fails closed
-   if the participant reference, verified mapping, or exact effective grant is
-   absent. Check both that consent covered `collected_at` and that it has not
-   since been withdrawn, denied, or expired when the server receives the sync.
-3. Keep immutable `mobile_form_version` records keyed by `(form_id, version)`;
-   `/forms` lists only active revisions. Sync requires the exact known form
-   revision and matching collection type and location/global scope. Known
-   retired revisions remain acceptable into the private, pending queue so an
-   offline device does not lose work; mark them for review, and never treat a
-   retired revision as active or consented. Unknown revisions and mismatches
-   fail closed. Legacy rows remain unvalidated and receive no inferred consent.
-4. A withdrawal after server acceptance blocks new use and publication. Do not
-   automatically erase an append-only consent event or collected evidence;
-   require an explicit human disposition for retention or erasure. The
-   governing retention rule for that disposition still needs owner approval.
-5. Implement this as an additive migration and explicit mobile API policy. Keep
-   `sync_status` for delivery state; store form and consent validation separately
-   so domain review state is not overloaded into transport status. Rollback
-   disables the new policy and restores the previous API image without deleting
-   historical forms, collections, consent events, or media.
+- `mobile_device.user_id` remains collector/operator identity. A mobile request
+  cannot submit a canonical `party_id`.
+- `POST /api/mobile/locations/{location_id}/participants` creates a
+  reviewer-approved mapping to a canonical party. The API returns a random
+  participant reference once and stores only its SHA-256 digest in
+  `mobile_participant_link`. The link records location, creator, time, and
+  evidence. `POST /api/mobile/locations/{location_id}/participants/revoke`
+  revokes a reference without deleting the mapping.
+- These routes are protected by location-scoped `mobile_participant:create` or
+  `mobile_participant:revoke`. With OIDC enabled, they require a browser session,
+  matching operator location grant, and CSRF validation. With OIDC disabled,
+  the existing Gateway API key/capability policy applies. Neither route is
+  public, and the collector token cannot manage links.
+- A form revision has one of three consent classifications: `required`,
+  `not_required`, or `unclassified`. The current five forms are deliberately
+  `unclassified`; the approved architectural baseline did not decide their
+  individual data categories, purposes, recipients, scopes, versions, or whether
+  consent is required.
+- An active `required` form asks for the opaque participant reference. Sync
+  resolves it within the device location, requires an unrevoked link, then
+  checks the latest exact `stakeholder_consent` decision at `collected_at` and
+  again at sync. The category, purpose, scope, recipient, and consent version
+  must match the immutable form policy. Any intervening withdrawal, denial,
+  expiry event, or grant expiry rejects the new sync. The mobile operator cannot
+  create a consent grant with a checkbox.
+- Private-media upload carries the same client, form revision, participant
+  reference, and collection timestamp. The Gateway validates the form and any
+  required consent before it reads/stores the JPEG bytes; final sync checks
+  consent again before attaching those objects to a collection.
+- An active `not_required` revision needs reviewer metadata and evidence and
+  rejects participant references. An active `unclassified` revision remains
+  collectable into the private pending queue, but is marked `unassessed` and
+  review-required. It cannot be treated as consent-cleared.
+- Existing collection rows receive `unassessed` defaults; the migration does
+  not infer identity, consent, or form validity for legacy records.
+- `v_mobile_collection_use_eligibility` is the consent/form prerequisite for
+  downstream use. It also requires transport status `synced`; unassessed,
+  retired, and review-required rows are ineligible. A later
+  withdrawal/denial/expiry makes the row ineligible permanently, including if a
+  later grant is added; revoking the referenced participant link also makes the
+  row ineligible. This view does not replace governed review/publication
+  approval. No direct public collection endpoint or consumer was found in this
+  source slice; every downstream consumer must use this view before reporting,
+  publication, or other use.
 
-The first implementation slice would add the version and participant-link
-tables, nullable references/status fields on new collections, and a policy
-lookup in `services/mobile/api.py`. It would preserve the current `mobile_form`
-row as the active-form listing surface during migration. No migration, route,
-form, consent, or sync behavior has changed; approval is required before that
-slice is implemented. The exact retention/erasure disposition after withdrawal
-also needs confirmation.
+### Withdrawal and retention
 
-## Owner decisions before enforcement changes
+A withdrawal blocks new sync for a required form and makes an already accepted
+row ineligible for later use through the eligibility view. The system does not
+delete append-only consent or collection evidence. There is not yet a human
+retention/erasure disposition workflow; that remains a release gate. Do not
+describe these records as erased or resolved after a withdrawal.
 
-1. Approve or revise the separation between collector `user_id` and the
-   participant link, plus who can verify/revoke that location-scoped mapping.
-2. Classify each current form's collection type, data category, purpose,
-   recipient, scope, consent version, expiry, and whether a participant grant is
-   required. Device assignment and form visibility never substitute for consent.
-3. Confirm that grants continue to come from the append-only
-   `stakeholder_consent` process, not a collector checkbox; approve the check at
-   collection and sync time and the human retention/erasure disposition after
-   withdrawal.
-4. Approve immutable form revisions and the proposed handling of unknown,
-   mismatched, retired, and missing form/version references in offline sync.
-5. Specify tenant policy for database and service access. If location is the
-   tenant boundary for a profile, document that mapping; if an organization can
-   span locations, do not treat location IDs as interchangeable tenant IDs.
-6. Authorize an additive migration and guarded runtime checks after the policy
-   is approved. Keep legacy offline records readable and do not silently relabel
-   them with consent or tenant state.
+## Remaining owner decisions and operational work
+
+1. Review and classify each of the five existing forms. Until then they stay
+   `unclassified`, private, and ineligible for downstream use. A classification
+   change must publish a new form version with reviewer, timestamp, and evidence.
+2. Specify organization-wide tenant policy. Location is the scope for this
+   mobile API only; locations must not be treated as interchangeable tenant IDs.
+3. Define the human retention/erasure disposition process after withdrawal.
+4. Decide whether a form-authoring CLI/UI and a private review queue are needed
+   before local or production operators classify forms and review retired rows.
+5. Apply migration 381 only through the ordered, checksummed migration runner.
+   This implementation has not changed the candidate database or any running
+   container.
 
 ## Acceptance and rollback
 
-Acceptance must cover anonymous/public form visibility, enrolled-device
-location filtering, collector/participant mismatch, unauthorized party-link
-creation, form status/version/type/location mismatches, historical revisions,
-missing and withdrawn consent for required collection types, consent that was
-not effective at collection time, device revocation, cross-location
-uploads/references, idempotent offline retries, and recovery of encrypted media
-with the correct key. Compare the effective consent result with the canonical
-append-only ledger and verify that no private fields appear in public output.
-No test suite or runtime probe was run for this source review.
+Still required: anonymous and enrolled form visibility; route policy and OIDC
+scope/CSRF behavior; create/revoke mapping authorization; collector/participant
+separation; exact consent at collection and sync; missing, expired, denied, and
+withdrawn consent; form status/version/type/location mismatch; retired revision
+review; inactive/unknown revision rejection; device revocation; cross-location
+media; idempotent retry after link revocation/consent withdrawal; eligibility
+view behavior; and encrypted media recovery. No mobile test suite, migration,
+or runtime probe ran in this implementation pass.
 
-Until the policy is implemented and verified, retain the current route and schema
-behavior behind the existing candidate/mobile opt-in. Roll back by removing the
-mobile profile or deploying the preceding API image; preserve local encrypted
-objects, their key, and database references. Do not prune media during rollback.
+Migration 381 is additive. Rollback deploys the previous API image or disables
+the mobile profile while retaining the new columns, revision history, link
+audit, collection rows, consent events, encrypted local objects, and their key.
+Do not drop migration 381 or prune media as part of application rollback.
 
 ## Repository owners
 
-- Routes and device binding: `services/mobile/api.py`
-- Gateway resource/action/location policy: `services/gateway/router.py` and
-  `services/gateway/auth.py`
-- Browser queue/vault: `services/mobile/field-collector.html` and
-  `services/mobile/field-collector-vault.js`
-- Device, collection, form and media schema: migrations 139, 357 and 358
-- Canonical stakeholder consent: migrations 215, 320 and 322
-- Existing collection consent/publication caveats:
-  `docs/field-data-collection-guide.md`
+- Mobile routes and sync policy: `services/mobile/api.py`
+- Location-scoped route/auth policy: `services/gateway/router.py`,
+  `services/gateway/operator_auth.py`, and `services/gateway/app.py`
+- Browser queue and participant reference input: `services/mobile/field-collector.html`
+- Additive schema and triggers: `schemas/postgres/381_mobile_consent_form_revisions.sql`
+- Canonical append-only consent: migrations 215, 320, and 322
+- Existing participant privacy/publication guidance: `docs/field-data-collection-guide.md`

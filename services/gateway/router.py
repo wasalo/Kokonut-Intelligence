@@ -53,6 +53,8 @@ _ROUTE_POLICIES = (
     ("POST", re.compile(r"^/api/mobile/media/uploads$"), "mobile_media", "upload", True),
     ("POST", re.compile(r"^/api/mobile/register$"), "mobile_device", "register", True),
     ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/enrollments$"), "mobile_device", "enroll", False),
+    ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/participants$"), "mobile_participant", "create", False),
+    ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/participants/revoke$"), "mobile_participant", "revoke", False),
     ("DELETE", re.compile(r"^/api/mobile/locations/([^/]+)/enrollments/([^/]+)$"), "mobile_device", "revoke", False),
     ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/devices/([^/]+)/revoke$"), "mobile_device", "revoke", False),
     # These endpoints perform their own opaque device-token authentication.
