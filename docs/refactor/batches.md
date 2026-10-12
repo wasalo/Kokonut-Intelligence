@@ -312,7 +312,9 @@ reporting views.
 - [x] Define the private gRPC profile's network, TLS, API-key, database-role, health, sizing, and rollback boundaries ([contract](grpc-overlay.md)).
 - [x] Define the Caddy proxy's default exposure, route ownership, TLS trust, forwarded-header behavior, health boundary, and rollback ([contract](kernel-proxy.md)).
 - [x] Map the existing device/location/media boundary and document the consent, form-validation, and tenant gaps ([contract](mobile-access-contract.md)).
-- [ ] Define participant-to-party consent mapping and form/version enforcement, then implement and verify the approved mobile policy.
+- [x] Inspect mobile enrollment, collection, forms, media, and append-only consent paths; draft the additive participant-link, consent, and immutable-form-version enforcement proposal ([contract](mobile-access-contract.md)).
+- [ ] Approve collector/participant identity and reviewer mapping, per-form consent rules, consent capture and withdrawal disposition, tenant scope, and immutable/stale offline-version handling before changing mobile behavior.
+- [ ] Implement the approved migration and sync/form checks, then run the listed mobile acceptance checks with verification authorization.
 - [x] Add an OpenAPI-backed, versioned v1 public-location list/detail contract while preserving the legacy location routes.
 - [x] Add additive v1 metrics, published-CRISP, and location-summary read aliases with explicit authorization policy and strict response models.
 - [x] Add typed v1 location, metrics, CRISP, and location-summary methods to the Python and JavaScript SDK sources.
