@@ -219,8 +219,7 @@ PostgreSQL, browser payload privacy, and media privacy acceptance remain open.
 ## Acceptance and rollback
 
 Focused mobile/schema checks passed (60 tests); four targeted Gateway CORS
-checks passed in the previous rollout slice. Candidate schema migrations have
-372 applied rows and zero pending; the app, database, and Metabase are healthy.
+checks passed in the previous rollout slice. The candidate now has 373 applied schema migrations through 382 with zero pending; migration 382's review-event table and two triggers are present with no events recorded. The app, database, and Metabase are healthy after an app-only rebuild ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-review-rollout.json)).
 Five `1.2.0` revisions are active with `additionalProperties: false`; five
 immutable `1.1.0` revisions remain retired, and no mobile collection rows were
 present. The live `/api/mobile/app` route returned HTTP 200 and served all five

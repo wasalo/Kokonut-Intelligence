@@ -1,6 +1,6 @@
 # Field Collector form authoring and review operations
 
-**Status:** Manifest validation/publication, the OIDC-scoped Field Collector queue, and append-only reviewer notes are implemented in source. Publication passed trigger-focused disposable PostGIS acceptance; queue/review route and query tests pass; migration 382 and the actual Gateway service functions passed isolated PostGIS checks. Full migration/runtime, configured-provider/browser acceptance, and human disposition remain open.
+**Status:** Manifest validation/publication, the OIDC-scoped Field Collector queue, and append-only reviewer notes are implemented in source. Publication passed trigger-focused disposable PostGIS acceptance; queue/review route and query tests pass; migration 382 and the actual Gateway service functions passed isolated PostGIS checks. The complete 373-file ordered schema replay through migration 382 passed on a clean disposable PostGIS database; migration 382 is applied to the candidate and its app health/auth gates pass; real-provider/browser acceptance and human disposition remain open.
 
 **Decision date:** 12 October 2026.
 
