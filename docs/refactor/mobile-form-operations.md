@@ -1,6 +1,6 @@
 # Field Collector form authoring and review operations
 
-**Status:** Architecture decision, offline validation/preview, and transactional publication through `mobile_form` are implemented and covered by isolated source tests. Disposable-database acceptance and the private review queue remain open.
+**Status:** Architecture decision, offline validation/preview, and transactional publication through `mobile_form` are implemented. Source checks and a disposable PostGIS trigger-focused acceptance pass; full migration/runtime coverage and the private review queue remain open.
 
 **Decision date:** 12 October 2026.
 
@@ -116,9 +116,11 @@ approved policy.
    independent publisher identity, expected-version/absence guards, and offline
    default preview. Twenty-nine focused CLI/schema checks pass using a fake
    transaction adapter.
-3. [ ] Verify trigger-created immutable snapshots, retirement of the prior
-   active revision, rollback, and preserved history against a disposable
-   database before enabling operator use.
+3. [x] Verify trigger-created immutable snapshots, retirement of the prior
+   active revision, rollback, duplicate/stale/location rejection, and preserved
+   history against a disposable PostGIS fixture. The trigger-focused fixture
+   used the migration 381 publication prefix, not the full migration or
+   candidate database ([evidence](builds/2026-10-12-recovery/mobile-form-publication-transaction.json)).
 4. [ ] Add OIDC-scoped private queue list/detail routes and UI; verify location
    isolation, CSRF, audit attribution, payload minimization, and media privacy.
 5. [ ] Add append-only review/disposition events; verify consent-ineligible rows

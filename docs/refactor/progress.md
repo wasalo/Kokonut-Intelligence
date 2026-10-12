@@ -2459,7 +2459,12 @@ version or an assertion that the form is absent. It locks the mutable
 sets transaction-local `kokonut.actor`, and leaves immutable snapshot creation
 and retirement to the migration 381 trigger. It writes no `mobile_form_version`
 rows directly. Twenty-nine focused form/schema checks passed using an isolated
-fake transaction adapter; Ruff and `git diff --check` passed. A disposable
-database trigger/rollback acceptance has not run, so operator use remains
-gated. The private OIDC-scoped queue and append-only review events remain open.
-No candidate database or service configuration changed.
+fake transaction adapter; Ruff and `git diff --check` passed. A separate
+no-volume PostGIS fixture then verified trigger-created snapshots, actor
+attribution, active-to-retired transition, duplicate/stale/location guards,
+database-error rollback, and immutable historical content. The fixture applied
+the migration 381 publication-trigger prefix with minimal prerequisites, not the
+full migration or active candidate. [Acceptance evidence](builds/2026-10-12-recovery/mobile-form-publication-transaction.json).
+The private OIDC-scoped queue and append-only review events remain open. The
+temporary container and files were removed; candidate services and database
+were not changed.
