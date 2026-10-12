@@ -135,3 +135,21 @@ one disposable app container and recovered by a second. Directory/file modes,
 plaintext absence, wrong-key rejection, and synthetic cleanup passed. This did
 not involve PostgreSQL or a live candidate service. See [edge volume recovery
 evidence](builds/2026-10-12-recovery/field-collector-edge-media-volume-recovery.json).
+
+
+## Isolated PostgreSQL/object parity — 12 October 2026
+
+Migration 358 was applied in a disposable PostGIS Compose project after creating
+minimal synthetic prerequisite tables. One synthetic `mobile_media_upload` row
+was registered for a KKM1 object written to the edge profile's named media
+volume. The database object key, content type, byte size, and SHA-256 matched the
+object metadata. A second disposable app container queried the row, authenticated
+the AES-GCM envelope, decrypted it in memory, and confirmed the plaintext
+SHA-256 matched the row; an altered media key was rejected. The row, device,
+location, object, network, and project volumes were removed.
+
+The SOPS-managed local-media key and database password were read only into
+process/container memory for this isolated check. The candidate database and
+running app were untouched. This was not an HTTP upload-route test, a full
+ordered migration replay, or a candidate service recreation. Expiry/orphan
+cleanup and production retention remain open. See [parity evidence](builds/2026-10-12-recovery/field-collector-media-db-object-parity.json).

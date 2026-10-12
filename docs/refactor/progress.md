@@ -2733,3 +2733,23 @@ or compare a `mobile_media_upload` row, recreate the candidate service, or test
 expiry/orphan cleanup and production retention. See [edge volume
 evidence](builds/2026-10-12-recovery/field-collector-edge-media-volume-recovery.json)
 and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 isolated PostgreSQL/private-media parity — 12 October 2026
+
+Applied the real migration 358_mobile_private_media.sql in a disposable
+PostGIS project with minimal synthetic prerequisite tables. A synthetic upload
+row matched the encrypted object written through the edge Compose provider on
+object key, content type, byte size, and SHA-256. A second disposable app
+container queried the row, authenticated/decrypted the AES-GCM object, matched
+the plaintext digest to the row, and rejected an altered key. Synthetic rows,
+object, network, and project volumes were removed. The running candidate app,
+database, and provider selection were untouched.
+
+The first database setup saw an early socket close; after full Compose health
+wait, a diagnostic run passed the setup and migration. One full-check attempt
+then stopped before fixture creation because its command used a Compose flag
+unsupported by the installed version; the corrected run passed. The acceptance
+was not an HTTP upload-route test, full ordered migration replay, or candidate
+service recreation. Expiry/orphan cleanup, retention, and candidate recreation
+remain open. See [parity evidence](builds/2026-10-12-recovery/field-collector-media-db-object-parity.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
