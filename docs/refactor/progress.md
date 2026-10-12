@@ -2889,3 +2889,19 @@ health is `ok`. No browser reload or vault change occurred. Caddy/Traefik was
 not running for this probe, so live proxy ingress is still not certified. See
 [route evidence](builds/2026-10-12-recovery/field-collector-proxy-route.json)
 and the [Batch 5 checklist](batches.md).
+
+
+### Batch 5 candidate Caddy Field Collector proxy acceptance — 12 October 2026
+
+Started only the optional `proxy` service in `kokonut-kernel-candidate` with
+`--no-deps`; the existing app, database, and Metabase stayed healthy. Using the
+loopback-only Caddy ports, HTTP `/mobile` redirected to HTTPS, HTTPS `/mobile`
+redirected to canonical `/mobile/`, the shell returned 200, and the service-worker
+asset returned 200 JavaScript. `/health` returned 200 with `status=ok` and
+`audit_capture=ok`; Caddy's `Via`, `nosniff`, frame-denial, and referrer-policy
+headers were present. The HTTPS request used curl's local-CA bypass because Caddy
+issued a local development certificate. No browser tab or vault changed, no
+database or schema was written, and the legacy Compose project was untouched.
+This closes the candidate Caddy route smoke only; external Traefik, public ingress,
+trusted-proxy chains, and browser acceptance through Caddy remain open. See
+[proxy route evidence](builds/2026-10-12-recovery/field-collector-proxy-route.json).
