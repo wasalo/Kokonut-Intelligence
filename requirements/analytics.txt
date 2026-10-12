@@ -1,0 +1,8 @@
+# Existing version constraints retained from requirements.txt.
+# numpy remains below 2.0 for the existing prophet constraint.
+pandas>=2.0,<4.0
+numpy>=1.26,<2.0
+prophet>=1.3.0,<2.0
+scikit-learn>=1.9,<2.0
+yfinance>=1.0.0,<2.0.0
+gstools>=1.6.0,<2.0.0

@@ -1,0 +1,125 @@
+{
+  "run_id": "sensor-anomaly-crash-retry-20261011",
+  "date": "2026-10-11",
+  "result": "passed",
+  "scope": "synthetic sensor anomaly database idempotency and actual EventBus receipt recovery after worker hard exit",
+  "fixture": {
+    "compose_project": "kokonut-kernel-sensor-recovery",
+    "database_container": "kokonut-kernel-sensor-recovery-database-1",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "database_name": "kokonut_intelligence",
+    "volume": "kokonut-kernel-sensor-recovery_sensor-recovery-postgres-data",
+    "network": "kokonut-kernel-sensor-recovery_sensor-recovery",
+    "network_internal": true,
+    "published_ports": [],
+    "provider_destinations": "synthetic .invalid hostnames and credentials only",
+    "status_after_check": "stopped",
+    "volume_retained": true
+  },
+  "verification": {
+    "migration": "schemas/postgres/376_sensor_anomaly_delivery.sql",
+    "migration_reapplications": 2,
+    "schema_scope": "Focused prerequisite schemas plus direct application of 081_oracle_infrastructure.sql, 116_event_bus.sql, 165_event_bus_durability.sql, 334_ingestion_validation_provenance.sql, 375_notification_outbox.sql, and 376_sensor_anomaly_delivery.sql. The complete repository migration and seed set was not applied.",
+    "checks": [
+      "migration 376 re-applies without errors",
+      "a child process runs the actual EventBus worker and hard-exits with code 86 after the sensor_reading handler transaction commits but before receipt acknowledgement",
+      "the source event lease is expired and a replacement EventBus worker reclaims the event and completes delivery on attempt two",
+      "notification_outbox.source_event_id matches the preallocated sensor_alert platform event ID",
+      "actual worker retry preserves exactly one sensor_alert, draft mrv_claim, sensor_anomaly_effect, ingestion_log row, follow-up platform_event, and actuation_log record",
+      "actual worker retry preserves exactly three notification intents: webhook, Directus, and email",
+      "delivery receipt remains processing at attempt one after crash, then succeeds at attempt two with one success handler log",
+      "critical actuation remains requires_approval with human_approval_required=true and no approver",
+      "persisted notification payloads contain no SMTP host, SMTP credentials, Directus token, or configured email recipient",
+      "fake SMTP send uses an outbox-derived Message-ID and X-Kokonut-Idempotency-Key",
+      "no notification delivery worker, real provider endpoint, or actuator was invoked",
+      "network has internal=true and no published ports"
+    ],
+    "effects_after_crash": {
+      "alerts": 1,
+      "claims": 1,
+      "effects": 1,
+      "outbox": 3,
+      "published_alert_events": 1,
+      "actuations": 1,
+      "ingestion_logs": 1
+    },
+    "effects_after_replay": {
+      "alerts": 1,
+      "claims": 1,
+      "effects": 1,
+      "outbox": 3,
+      "published_alert_events": 1,
+      "actuations": 1,
+      "ingestion_logs": 1
+    },
+    "recovery_worker_stats": {
+      "processed": 1,
+      "failed": 0,
+      "skipped": 1,
+      "lease_lost": 0
+    },
+    "delivery_receipt": {
+      "after_crash": {
+        "status": "processing",
+        "attempt_count": 1,
+        "handler_logs": 0
+      },
+      "after_recovery": {
+        "event_status": "completed",
+        "status": "success",
+        "attempt_count": 2,
+        "handler_logs": 1
+      }
+    },
+    "hard_exit_code": 86,
+    "fake_smtp_calls": 1,
+    "real_webhook_calls": 0,
+    "real_directus_calls": 0,
+    "network_egress": "disabled",
+    "pytest_suite": "not run",
+    "source_validation": {
+      "python_compile": "passed",
+      "migration_source_validation": "passed; 367 source files validated",
+      "compose_config": "passed for candidate, candidate plus standard, portability, and sensor-recovery manifests",
+      "git_diff_check": "passed"
+    }
+  },
+  "source_validation": {
+    "python_compile": "passed",
+    "migration_source_validation": "passed; 367 source files validated",
+    "compose_config": "passed for candidate, standard, portability, and sensor-recovery manifests",
+    "git_diff_check": "passed"
+  },
+  "environment_snapshot": {
+    "candidate_app": "healthy; 127.0.0.1:8098 -> 8099",
+    "candidate_database": "healthy; no host port published",
+    "legacy_kokonut_intelligence_services": "stopped",
+    "isolated_sensor_recovery_database": "stopped; volume retained"
+  },
+  "source_sha256": {
+    "docker-compose.kernel-candidate.yml": "f0d239f45665c50d922b0eb73cd24c8b0b1258a9bcdc14f4d7dda760bfb166b0",
+    "docker-compose.kernel-portability.yml": "a6effb4392cdf2ed8b4c35ed72e9fa63ccf91e9f98fc18582e4d52588dc52066",
+    "docker-compose.kernel-recovery-sensor.yml": "4b1e266da4c906dc276ef08a04c8496c54d501f62606fd4da6e91f46e5b7ce4b",
+    "docker-compose.kernel-standard.yml": "dd247d1ba17552abbe8f18f2cf628a7cc5199e5c2a2c681ca6261583a3a061a0",
+    "docs/refactor/README.md": "81874d7bb09e6ed292132069d59df0cb6265288868194d74f4fba1b8121a255a",
+    "docs/refactor/batches.md": "4b969caf9482a4dfdbd3184a31f75c54181b320916943ecd769f3e1be43ae9b5",
+    "docs/refactor/capability-matrix.md": "0e84a29ca881f6aa5df7bef8e8c6bb383e9f5c62890d987ebdbfc2a744f78156",
+    "docs/refactor/event-handler-concurrency.md": "075cea16010d71e20a3be82b1b88f100ed2c378811a92eb0b4138a03b8a3c939",
+    "docs/refactor/notification-outbox-operations.md": "d638d685767602cd92a045ef8db6c60c844fc3b5978d0cf3fe28255249f08f19",
+    "docs/refactor/progress.md": "4c487fe51d8d6246a6922d439c8015ee1b1d22b86f8cffafc5dfe445873bd6d8",
+    "docs/refactor/sensor-anomaly-delivery.md": "364c67500c6092cba9059887e26bbb990a01f336dd57e0e1855dbb72d5024598",
+    "schemas/postgres/165_event_bus_durability.sql": "20ccbc6394cd3381f31e4647d461f295de02c5a7f9eb6f3d3297befe7fbf0a17",
+    "schemas/postgres/376_sensor_anomaly_delivery.sql": "cc2c0baa06b3996bf9a294b8cd15a2d082bb7b28711231ee54f8d2c7723f5541",
+    "scripts/fixtures/sensor-anomaly-recovery-check.py": "397a8ce0c4dd6cd16ae1b581e81caaaf26795fe4056add739717bff8356ce888",
+    "services/events/bus.py": "fe2e8b98f97b66f485b6c17ce91d77edb044696c78fc00449aed222bdb501d2b",
+    "services/events/notification_outbox.py": "13ea8f37e24bc0586996b0cec661bfcaa369d65bdd278ae5c8695665c37cac04",
+    "services/ingestion/anomaly_detector.py": "52ee4f14f7f360ed505ff8e22ffff3713a5bdf7b3d34fcb72b614bfe8aee50d6",
+    "services/ingestion/base.py": "6ca941ebd668b388317092da3390779bd34f51616cccd31830598b99543b1185",
+    "services/ingestion/mqtt_actuator.py": "c38d5df4e7b0df257efe438ae8cfb9a8a80740abcc3f7beeacde246e8608e30b"
+  },
+  "limitations": [
+    "The fixture used focused schemas and synthetic rows, not the complete repository migration set or a populated farm database.",
+    "SMTP/Directus/webhook provider acceptance, receiver-side deduplication, retention ownership, operator authorization, recovery coverage for additional handlers/runtime conditions, and broader CAP-040 acceptance remain open.",
+    "Migrations 375 and 376 were not applied to the candidate or legacy application databases."
+  ]
+}

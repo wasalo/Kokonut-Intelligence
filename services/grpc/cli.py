@@ -7,32 +7,20 @@ import sys
 
 
 def cmd_serve(args):
-    from services.grpc.server import serve
+    from services.core.adapters.grpc import serve
+
     serve()
 
 
 def cmd_health(args):
-    import grpc
-    from grpc_health.v1 import health_pb2, health_pb2_grpc
+    from services.core.adapters.grpc import check_health
 
     target = args.target or "localhost:50051"
-    channel = grpc.insecure_channel(target)
-    stub = health_pb2_grpc.HealthStub(channel)
     try:
-        response = stub.Check(
-            health_pb2.HealthCheckRequest(),
-            timeout=5,
-            wait_for_ready=True,
-        )
-        if response.status != health_pb2.HealthCheckResponse.SERVING:
-            print(f"Health check returned non-serving status: {response.status}")
-            sys.exit(1)
-        print(f"Status: {response.status}")
-    except grpc.RpcError as e:
-        print(f"Health check failed: {e}")
+        print(f"Status: {check_health(target)}")
+    except RuntimeError as e:
+        print(str(e))
         sys.exit(1)
-    finally:
-        channel.close()
 
 
 def main():

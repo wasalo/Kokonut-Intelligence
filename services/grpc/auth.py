@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import contextvars
 import hashlib
-from concurrent import futures
 from datetime import datetime, timezone
 
 import grpc
@@ -75,11 +74,10 @@ class APIKeyInterceptor(grpc.ServerInterceptor):
             "role_name": result.get("role_name"),
             "scopes": result.get("scopes") or [],
         }
-        token = grpc_auth_context.set(auth_info)
-        try:
-            return continuation(handler_call_details)
-        finally:
-            grpc_auth_context.reset(token)
+        handler = continuation(handler_call_details)
+        if handler is None:
+            return None
+        return _authenticated_handler(handler, auth_info)
 
 
 def get_current_auth() -> dict | None:
@@ -99,15 +97,49 @@ def require_scope(context, resource: str, action: str) -> None:
     if auth is None:
         context.abort(grpc.StatusCode.UNAUTHENTICATED, "Not authenticated")
     scopes = auth.get("scopes") or []
+    if not isinstance(scopes, (list, tuple)):
+        scopes = []
     for scope in scopes:
-        parts = scope.split(":")
-        scope_resource = parts[0] if len(parts) > 0 else "*"
-        scope_action = parts[1] if len(parts) > 1 else "*"
+        if not isinstance(scope, str) or ":" not in scope:
+            continue
+        scope_resource, scope_action = scope.rsplit(":", 1)
+        if not scope_resource or not scope_action:
+            continue
         if scope_resource in ("*", resource) and scope_action in ("*", action):
             return
     context.abort(
         grpc.StatusCode.PERMISSION_DENIED,
         f"Scope '{resource}:{action}' required but not granted",
+    )
+
+
+def _authenticated_handler(handler, auth_info):
+    """Bind identity during actual invocation, retaining wire codecs/cardinality."""
+    if handler.request_streaming:
+        behavior = handler.stream_stream if handler.response_streaming else handler.stream_unary
+        builder = grpc.stream_stream_rpc_method_handler if handler.response_streaming else grpc.stream_unary_rpc_method_handler
+    else:
+        behavior = handler.unary_stream if handler.response_streaming else handler.unary_unary
+        builder = grpc.unary_stream_rpc_method_handler if handler.response_streaming else grpc.unary_unary_rpc_method_handler
+
+    def invoke(request, context):
+        token = grpc_auth_context.set(auth_info)
+        try:
+            return behavior(request, context)
+        finally:
+            grpc_auth_context.reset(token)
+
+    def stream(request, context):
+        token = grpc_auth_context.set(auth_info)
+        try:
+            yield from behavior(request, context)
+        finally:
+            grpc_auth_context.reset(token)
+
+    return builder(
+        stream if handler.response_streaming else invoke,
+        request_deserializer=handler.request_deserializer,
+        response_serializer=handler.response_serializer,
     )
 
 

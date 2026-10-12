@@ -9,10 +9,22 @@ from services.common.logging import get_logger
 try:
     from fastapi import APIRouter, Request
     from fastapi.responses import JSONResponse
+
+    from services.gateway.public_models import (
+        PublicCrispAssessment,
+        PublicError,
+        PublicLocationListResponse,
+        PublicLocationResponse,
+        PublicLocationSummary,
+        PublicLocationSummaryEnvelope,
+        PublicCrispAssessmentEnvelope,
+        PublicMetricSummary,
+        PublicMetricSummaryEnvelope,
+    )
 except ImportError:
     # Stub for environments without FastAPI
     class APIRouter:
-        def get(self, _path):
+        def get(self, _path, **_kwargs):
             return lambda func: func
 
         def post(self, _path):
@@ -20,6 +32,10 @@ except ImportError:
 
     Request = None
     JSONResponse = None
+    PublicCrispAssessment = PublicError = PublicLocationListResponse = None
+    PublicLocationResponse = PublicLocationSummary = PublicMetricSummary = None
+    PublicLocationSummaryEnvelope = PublicCrispAssessmentEnvelope = None
+    PublicMetricSummaryEnvelope = None
 
 router = APIRouter()
 logger = get_logger("gateway.router")
@@ -37,11 +53,17 @@ _ROUTE_POLICIES = (
     ("POST", re.compile(r"^/api/mobile/media/uploads$"), "mobile_media", "upload", True),
     ("POST", re.compile(r"^/api/mobile/register$"), "mobile_device", "register", True),
     ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/enrollments$"), "mobile_device", "enroll", False),
+    ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/participants$"), "mobile_participant", "create", False),
+    ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/participants/revoke$"), "mobile_participant", "revoke", False),
     ("DELETE", re.compile(r"^/api/mobile/locations/([^/]+)/enrollments/([^/]+)$"), "mobile_device", "revoke", False),
     ("POST", re.compile(r"^/api/mobile/locations/([^/]+)/devices/([^/]+)/revoke$"), "mobile_device", "revoke", False),
     # These endpoints perform their own opaque device-token authentication.
     ("POST", re.compile(r"^/api/mobile/sync$"), "offline_collection", "write", True),
     ("GET", re.compile(r"^/api/mobile/sync/status$"), "offline_collection", "read", True),
+    ("GET", re.compile(r"^/api/v1/locations(?:/([^/]+))?$"), "location", "read", True),
+    ("GET", re.compile(r"^/api/v1/metrics/([^/]+)$"), "metric", "read", True),
+    ("GET", re.compile(r"^/api/v1/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
+    ("GET", re.compile(r"^/api/v1/analytics/([^/]+)/summary$"), "analytics", "read", True),
     ("GET", re.compile(r"^/api/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
@@ -78,16 +100,50 @@ def _internal_error(exc: Exception, message: str = "Gateway request failed"):
     return JSONResponse(status_code=500, content={"error": message})
 
 
+def _public_response(model, payload: dict):
+    """Validate even when returning a Response that bypasses FastAPI filtering."""
+    from fastapi.encoders import jsonable_encoder
+
+    validated = model.model_validate(payload)
+    return JSONResponse(content=jsonable_encoder(validated.model_dump(mode="python")))
+
+
+def _versioned_envelope(response):
+    """Wrap a successful legacy read response without changing its old route."""
+    if isinstance(response, JSONResponse):
+        if response.status_code >= 400:
+            return response
+        import json
+
+        return {"data": json.loads(response.body)}
+    return {"data": response}
+
+
 @router.get("/locations")
 async def list_locations():
-    """Proxy to Directus locations endpoint."""
+    """Read public locations through the selected application/provider path."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.core.features import is_enabled
+
+    if not is_enabled("directus"):
+        import json
+
+        from services.gateway.locations import public_locations
+
+        try:
+            rows = await run_in_threadpool(public_locations)
+            return JSONResponse(content={"data": json.dumps({"data": rows})})
+        except Exception as exc:
+            return _internal_error(exc)
+
     import os
 
     from services.common.http import http
 
     directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        resp = http.get(f"{directus_url}/items/location?limit=100")
+        resp = await run_in_threadpool(http.get, f"{directus_url}/items/location?limit=100")
         resp.raise_for_status()
         return JSONResponse(content={"data": resp.text})
     except Exception as exc:
@@ -97,9 +153,11 @@ async def list_locations():
 
 @router.get("/locations/{location_id}")
 async def get_location(location_id: str):
-    """Proxy to Directus single location endpoint."""
+    """Read a public location through the selected application/provider path."""
     import os
     from uuid import UUID
+
+    from starlette.concurrency import run_in_threadpool
 
     from services.common.http import http
 
@@ -108,9 +166,24 @@ async def get_location(location_id: str):
     except ValueError:
         return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
 
+    from services.core.features import is_enabled
+
+    if not is_enabled("directus"):
+        import json
+
+        from services.gateway.locations import public_locations
+
+        try:
+            rows = await run_in_threadpool(public_locations, location_id)
+            if not rows:
+                return JSONResponse(status_code=404, content={"error": "Location not found"})
+            return JSONResponse(content={"data": json.dumps({"data": rows[0]})})
+        except Exception as exc:
+            return _internal_error(exc)
+
     directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        resp = http.get(f"{directus_url}/items/location/{location_id}")
+        resp = await run_in_threadpool(http.get, f"{directus_url}/items/location/{location_id}")
         resp.raise_for_status()
         return JSONResponse(content={"data": resp.text})
     except Exception as exc:
@@ -118,69 +191,165 @@ async def get_location(location_id: str):
         return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
 
 
-@router.get("/metrics/{location_id}")
+@router.get(
+    "/v1/locations",
+    response_model=PublicLocationListResponse,
+    responses={500: {"model": PublicError}},
+    operation_id="listPublicLocationsV1",
+)
+async def list_public_locations_v1():
+    """List the bounded, governed public location projection using the v1 envelope."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.locations import public_locations
+
+    try:
+        rows = await run_in_threadpool(public_locations)
+        return {"data": rows}
+    except Exception as exc:
+        return _internal_error(exc)
+
+
+@router.get(
+    "/v1/locations/{location_id}",
+    response_model=PublicLocationResponse,
+    responses={400: {"model": PublicError}, 404: {"model": PublicError}, 500: {"model": PublicError}},
+    operation_id="getPublicLocationV1",
+)
+async def get_public_location_v1(location_id: str):
+    """Read one eligible public location using the v1 envelope."""
+    from uuid import UUID
+
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        location_id = str(UUID(location_id))
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
+
+    from services.gateway.locations import public_locations
+
+    try:
+        rows = await run_in_threadpool(public_locations, location_id)
+        if not rows:
+            return JSONResponse(status_code=404, content={"error": "Location not found"})
+        return {"data": rows[0]}
+    except Exception as exc:
+        return _internal_error(exc)
+
+
+@router.get("/metrics/{location_id}", response_model=PublicMetricSummary,
+            responses={400: {"model": PublicError}, 500: {"model": PublicError}})
 async def get_metrics(location_id: str):
     """Get verified public metrics for a location without creating records."""
-    from services.common.database import get_db
+    from uuid import UUID
 
-    conn = get_db()
+    from starlette.concurrency import run_in_threadpool
+
+    from services.analytics.backend import get_analytics_backend
+    from services.analytics.queries import AnalyticsContext, MetricSummaryRequest, QueryId
+
     try:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT metric_key, display_name, unit, latest_value, computed_at
-            FROM v_public_metric_summary
-            WHERE location_id = %s
-            ORDER BY metric_key
-            """,
-            (location_id,),
+        UUID(location_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
+
+    try:
+        rows = await run_in_threadpool(
+            get_analytics_backend().execute,
+            QueryId.PUBLIC_METRIC_SUMMARY,
+            MetricSummaryRequest(location_id),
+            AnalyticsContext(location_id),
         )
-        rows = cur.fetchall()
-        cur.close()
-        return JSONResponse(
-            content={
+        return _public_response(
+            PublicMetricSummary, {
                 "location_id": location_id,
-                "computed": [
-                    {
-                        "metric_key": row[0],
-                        "display_name": row[1],
-                        "unit": row[2],
-                        "value": row[3],
-                        "computed_at": row[4].isoformat() if row[4] else None,
-                    }
-                    for row in rows
-                ],
+                "computed": [row.to_dict() for row in rows],
                 "total_computed": len(rows),
             }
         )
     except Exception as exc:
         return _internal_error(exc)
-    finally:
-        conn.close()
 
 
-@router.get("/crisp/{location_id}")
+@router.get("/crisp/{location_id}", response_model=PublicCrispAssessment,
+            responses={400: {"model": PublicError}, 404: {"model": PublicError},
+                       500: {"model": PublicError}})
 async def get_crisp(location_id: str):
-    """Get CRISP risk score for a location."""
+    """Read the latest published CRISP assessment for a public location."""
+    from uuid import UUID
+
+    from starlette.concurrency import run_in_threadpool
+
+    from services.crisp.public_api import latest_published_assessment
+
     try:
-        from services.crisp import CRISPEngine
-        engine = CRISPEngine()
-        result = engine.composite_score(location_id)
-        return JSONResponse(content=result)
+        UUID(location_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
+    try:
+        result = await run_in_threadpool(latest_published_assessment, location_id)
+        if result is None:
+            return JSONResponse(status_code=404, content={"error": "Published assessment not found"})
+        return _public_response(PublicCrispAssessment, result)
     except Exception as exc:
         return _internal_error(exc)
 
 
-@router.get("/analytics/{location_id}/summary")
+@router.get("/analytics/{location_id}/summary", response_model=PublicLocationSummary,
+            responses={400: {"model": PublicError}, 404: {"model": PublicError},
+                       500: {"model": PublicError}})
 async def get_analytics_summary(location_id: str):
-    """Get analytics summary for a location."""
+    """Read a governed public location roll-up without computing outputs."""
+    from uuid import UUID
+
+    from starlette.concurrency import run_in_threadpool
+
+    from services.analytics.public_summary import location_summary
+
     try:
-        from services.analytics.portfolio import PortfolioSummary
-        summary = PortfolioSummary()
-        result = summary.get_location_summary(location_id)
-        return JSONResponse(content=result)
+        UUID(location_id)
+    except ValueError:
+        return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
+    try:
+        result = await run_in_threadpool(location_summary, location_id)
+        if result is None:
+            return JSONResponse(status_code=404, content={"error": "Location not found"})
+        return _public_response(PublicLocationSummary, result)
     except Exception as exc:
         return _internal_error(exc)
+
+
+@router.get(
+    "/v1/metrics/{location_id}",
+    response_model=PublicMetricSummaryEnvelope,
+    responses={400: {"model": PublicError}, 500: {"model": PublicError}},
+    operation_id="getPublicMetricSummaryV1",
+)
+async def get_public_metrics_v1(location_id: str):
+    return _versioned_envelope(await get_metrics(location_id))
+
+
+@router.get(
+    "/v1/crisp/{location_id}",
+    response_model=PublicCrispAssessmentEnvelope,
+    responses={400: {"model": PublicError}, 404: {"model": PublicError},
+               500: {"model": PublicError}},
+    operation_id="getPublicCrispAssessmentV1",
+)
+async def get_public_crisp_v1(location_id: str):
+    return _versioned_envelope(await get_crisp(location_id))
+
+
+@router.get(
+    "/v1/analytics/{location_id}/summary",
+    response_model=PublicLocationSummaryEnvelope,
+    responses={400: {"model": PublicError}, 404: {"model": PublicError},
+               500: {"model": PublicError}},
+    operation_id="getPublicLocationSummaryV1",
+)
+async def get_public_analytics_summary_v1(location_id: str):
+    return _versioned_envelope(await get_analytics_summary(location_id))
 
 
 @router.post("/data-stream/post")

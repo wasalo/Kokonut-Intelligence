@@ -1,0 +1,15 @@
+{
+  "crash": "Real sink insert followed by injected PostgreSQL acknowledgment failure",
+  "raw_count_after_replay": 3,
+  "daily_summary_count_after_replay": 4,
+  "expected_count": 3,
+  "result": "Dependent view parity failed with raw insert deduplication alone; source fixture retained.",
+  "second_attempt": {
+    "dependent_view_deduplication_setting": 1,
+    "raw_count": 3,
+    "summary_count": 4,
+    "summary_average": 17.5,
+    "expected_average": 20
+  },
+  "unsupported_operation": "MODIFY SETTING on MaterializedView rejected; attempted clauses removed from unfinished new bootstrap file. Existing historical schemas untouched."
+}

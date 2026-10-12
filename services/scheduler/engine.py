@@ -32,6 +32,11 @@ class SchedulerEngine:
         self._worker_id = worker_id or f"worker-{uuid.uuid4().hex[:8]}"
         self._resources = ResourcePool(conn)
 
+    @property
+    def worker_id(self) -> str:
+        """Public worker identity for logs and application supervision."""
+        return self._worker_id
+
     def tick(self) -> dict[str, int]:
         """Run one scheduler tick. Returns execution stats."""
         stats = {"launched": 0, "failed": 0, "skipped": 0, "no_resources": 0}
@@ -91,16 +96,30 @@ class SchedulerEngine:
                     """
                     SELECT st.id, st.name, st.module_path, st.command_args,
                            st.cron_expression, st.priority, st.timeout_seconds,
-                           st.retry_attempt, st.retry_at, st.allow_overlap
+                           st.retry_attempt, st.retry_at, st.allow_overlap,
+                           CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
+                                ELSE COALESCE(st.next_run_at, %s) END AS scheduled_for
                     FROM scheduled_task st
                     WHERE st.is_enabled = TRUE
                       AND (st.lease_expires_at IS NULL OR st.lease_expires_at <= %s)
                       AND (st.retry_at <= %s OR
                            (st.retry_at IS NULL AND (st.next_run_at IS NULL OR st.next_run_at <= %s)))
+                      AND (st.dependency_mode <> 'same_window' OR
+                           CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
+                                ELSE st.next_run_at END IS NOT NULL)
                       AND NOT EXISTS (
                           SELECT 1 FROM unnest(st.depends_on) dep
                           LEFT JOIN scheduled_task dependency ON dependency.id = dep
-                          WHERE dependency.last_status IS DISTINCT FROM 'completed'
+                          WHERE (st.dependency_mode = 'last_completed'
+                                 AND dependency.last_status IS DISTINCT FROM 'completed')
+                             OR (st.dependency_mode = 'same_window' AND NOT EXISTS (
+                                 SELECT 1 FROM task_run prerequisite
+                                 WHERE prerequisite.task_id = dep
+                                   AND prerequisite.status = 'completed'
+                                   AND prerequisite.scheduled_for =
+                                       CASE WHEN st.retry_at IS NOT NULL THEN st.run_window_at
+                                            ELSE st.next_run_at END
+                             ))
                       )
                       AND (st.allow_overlap OR NOT EXISTS (
                           SELECT 1 FROM task_run tr
@@ -112,13 +131,13 @@ class SchedulerEngine:
                     FOR UPDATE OF st SKIP LOCKED
                     LIMIT 1
                     """,
-                    (now, now, now),
+                    (now, now, now, now),
                 )
                 row = cur.fetchone()
                 if not row:
                     self._conn.commit()
                     return None
-                task_id, name, module_path, args, cron, priority, timeout, retry_attempt, retry_at, overlap = row
+                task_id, name, module_path, args, cron, priority, timeout, retry_attempt, retry_at, overlap, scheduled_for = row
                 run_id = str(uuid.uuid4())
                 attempt = retry_attempt + 1
                 next_run = next_run_time(cron, after=now) if retry_at is None else None
@@ -126,20 +145,21 @@ class SchedulerEngine:
                     """
                     INSERT INTO task_run
                         (id, task_id, status, worker_id, lease_token, heartbeat_at,
-                         attempt_count, retry_count, allow_overlap)
-                    VALUES (%s, %s, 'running', %s, %s, %s, %s, %s, %s)
+                         attempt_count, retry_count, allow_overlap, scheduled_for)
+                    VALUES (%s, %s, 'running', %s, %s, %s, %s, %s, %s, %s)
                     """,
-                    (run_id, task_id, self._worker_id, run_id, now, attempt, attempt - 1, overlap),
+                    (run_id, task_id, self._worker_id, run_id, now, attempt, attempt - 1, overlap, scheduled_for),
                 )
                 cur.execute(
                     """
                     UPDATE scheduled_task SET
                         last_run_at = %s, last_status = 'running',
                         next_run_at = COALESCE(%s, next_run_at), retry_at = NULL,
+                        run_window_at = %s,
                          lease_owner = %s, lease_token = %s, lease_expires_at = %s, updated_at = %s
                     WHERE id = %s
                     """,
-                    (now, next_run, self._worker_id, run_id, now + timedelta(seconds=timeout + 60), now, task_id),
+                    (now, next_run, scheduled_for, self._worker_id, run_id, now + timedelta(seconds=timeout + 60), now, task_id),
                 )
             self._conn.commit()
             logger.info("Claimed task %s (run %s, attempt %d)", name, run_id[:8], attempt)

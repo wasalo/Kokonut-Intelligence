@@ -1,0 +1,57 @@
+{
+  "run_id": "notification-outbox-check-final-20261011",
+  "date": "2026-10-11",
+  "result": "passed",
+  "scope": "isolated PostgreSQL notification-outbox recovery exercise",
+  "fixture": {
+    "compose_project": "kokonut-kernel-notification-check-final2-20261011",
+    "database_container": "kokonut-kernel-notification-check-final2-20261011-database-1",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "database_name": "notification_check",
+    "volume": "kokonut-kernel-notification-check-final2-20261011_notification-check-data",
+    "network": "kokonut-kernel-notification-check-final2-20261011_private",
+    "network_internal": true,
+    "published_ports": [],
+    "status_after_check": "stopped",
+    "volume_retained": true
+  },
+  "verification": {
+    "migration": "schemas/postgres/375_notification_outbox.sql",
+    "migration_reapplication": "passed",
+    "checks": [
+      "event/channel enqueue is idempotent",
+      "handler execution receives the stable source event id and duplicate handling enqueues once",
+      "changed payload under a reused event/channel identity is rejected",
+      "disabled provider remains unclaimed without consuming an attempt",
+      "crash after fake send is reclaimed; retry reuses the stable idempotency key",
+      "transport failure enters retryable state with backoff; a later retry succeeds",
+      "operator replay after a full retry budget preserves monotonic attempt history",
+      "operator replay and disposal both write audit rows",
+      "notification CLI help exposes the new commands"
+    ],
+    "fake_transport_calls": 6,
+    "real_webhook_or_directus_calls": 0,
+    "network_egress": "disabled",
+    "pytest_suite": "not run"
+  },
+  "source_sha256": {
+    "schemas/postgres/375_notification_outbox.sql": "f780a853ebd2455ccdf18691387625888ee55a923746bde1da763733a0fa6717",
+    "services/events/notification_outbox.py": "aa6f14859b9a5cbc1adcad25f3b6c215fc6976dae9cbc11d40640b745b8ed859",
+    "services/events/handlers.py": "760ba2978a4c23d6c7b90bedb4de5866a7314e3e271a82cf9e6c7ee8f5e25a2c",
+    "services/events/bus.py": "3001036026a6145fbbef28694fbc3255633eeac58cecf2868be7744e59945947",
+    "services/events/cli.py": "ddf7e21090fac51ff9b907a7348eb56c456e03503bc438c5f4c977270309165d",
+    "docker-compose.kernel-standard.yml": "9bf9bff35e0c2dfd477245b6e0221f89d57610024068d0617c108fd07eec176d",
+    "docker-compose.kernel-portability.yml": "21598fb7e9c69222229bae8fbc5f722b579002853876a5c900131895c2b253ea"
+  },
+  "limitations": [
+    "The migration was applied only to this fresh scratch database; candidate and legacy databases were not changed.",
+    "Receiver-side idempotency is not guaranteed; external delivery remains at-least-once if a receiver ignores Idempotency-Key.",
+    "Sensor anomaly alert/claim and actuator effects remain outside this outbox implementation."
+  ],
+  "environment_snapshot": {
+    "candidate_app": "healthy; 127.0.0.1:8098 -> 8099",
+    "candidate_database": "healthy; no host port published",
+    "legacy_kokonut_intelligence_services": "stopped",
+    "isolated_scratch_database": "stopped; evidence volume retained"
+  }
+}

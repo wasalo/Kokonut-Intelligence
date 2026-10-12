@@ -1,6 +1,6 @@
 """Price feed ingestion flow."""
 
-from prefect import flow
+from services.core.adapters.prefect import flow
 
 
 @flow(name="price-feed-ingestion", retries=2, retry_delay_seconds=600)

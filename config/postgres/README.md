@@ -18,6 +18,15 @@ Creates the foundational database objects:
 3. **Search path**: `public, kokonut` (set as database default)
 4. **Metabase DB**: Creates `metabase` database if it doesn't exist
 
+## Migration source immutability
+
+`schemas/postgres/000_extensions.sql` records the originally deployed baseline
+and is checksum-tracked. Later extension additions belong in forward-only
+schema migrations (currently `schemas/postgres/378_optional_extensions.sql`),
+which remain idempotent alongside the first-boot declarations in `init.sql`.
+Do not edit an applied migration to add an extension; add a new ordered
+migration instead.
+
 ## extensions.sql
 
 Optional extensions that require superuser or are not critical:

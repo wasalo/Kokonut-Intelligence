@@ -1,0 +1,827 @@
+{
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PublicAttestationCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "latest_attestation": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Attestation"
+          },
+          "published_count": {
+            "minimum": 0.0,
+            "title": "Published Count",
+            "type": "integer"
+          },
+          "total_attestations": {
+            "minimum": 0.0,
+            "title": "Total Attestations",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total_attestations",
+          "published_count",
+          "latest_attestation"
+        ],
+        "title": "PublicAttestationCounts",
+        "type": "object"
+      },
+      "PublicCrispAssessment": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_id": {
+            "format": "uuid",
+            "title": "Assessment Id",
+            "type": "string"
+          },
+          "composite_score": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Composite Score"
+          },
+          "confidence_level": {
+            "anyOf": [
+              {
+                "enum": [
+                  "high",
+                  "moderate",
+                  "low",
+                  "insufficient_evidence"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Level"
+          },
+          "evidence_maturity_level": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Maturity Level"
+          },
+          "location_id": {
+            "format": "uuid",
+            "title": "Location Id",
+            "type": "string"
+          },
+          "methodology_version": {
+            "title": "Methodology Version",
+            "type": "string"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_start": {
+            "format": "date",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "enum": [
+                  "AAA",
+                  "AA",
+                  "A",
+                  "B",
+                  "C",
+                  "D"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rating"
+          },
+          "score_computed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Computed At"
+          },
+          "status": {
+            "const": "published",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment_id",
+          "location_id",
+          "period_start",
+          "period_end",
+          "methodology_version",
+          "composite_score",
+          "rating",
+          "confidence_level",
+          "evidence_maturity_level",
+          "score_computed_at",
+          "status"
+        ],
+        "title": "PublicCrispAssessment",
+        "type": "object"
+      },
+      "PublicCrispAssessmentEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicCrispAssessment"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PublicCrispAssessmentEnvelope",
+        "type": "object"
+      },
+      "PublicError": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "title": "Error",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "PublicError",
+        "type": "object"
+      },
+      "PublicLocation": {
+        "additionalProperties": false,
+        "properties": {
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Region"
+          },
+          "status": {
+            "const": "active",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "country",
+          "region",
+          "status"
+        ],
+        "title": "PublicLocation",
+        "type": "object"
+      },
+      "PublicLocationListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PublicLocation"
+            },
+            "title": "Data",
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PublicLocationListResponse",
+        "type": "object"
+      },
+      "PublicLocationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicLocation"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PublicLocationResponse",
+        "type": "object"
+      },
+      "PublicLocationSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "attestations": {
+            "$ref": "#/components/schemas/PublicAttestationCounts"
+          },
+          "location": {
+            "$ref": "#/components/schemas/PublicLocation"
+          },
+          "location_id": {
+            "format": "uuid",
+            "title": "Location Id",
+            "type": "string"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/PublicMetricCounts"
+          },
+          "summary_type": {
+            "const": "public_location_summary",
+            "title": "Summary Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary_type",
+          "location_id",
+          "location",
+          "metrics",
+          "attestations"
+        ],
+        "title": "PublicLocationSummary",
+        "type": "object"
+      },
+      "PublicLocationSummaryEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicLocationSummary"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PublicLocationSummaryEnvelope",
+        "type": "object"
+      },
+      "PublicMetric": {
+        "additionalProperties": false,
+        "properties": {
+          "computed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Computed At"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "metric_key": {
+            "title": "Metric Key",
+            "type": "string"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "metric_key",
+          "display_name",
+          "unit",
+          "value",
+          "computed_at"
+        ],
+        "title": "PublicMetric",
+        "type": "object"
+      },
+      "PublicMetricCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "latest_computed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Computed At"
+          },
+          "metric_count": {
+            "minimum": 0.0,
+            "title": "Metric Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "metric_count",
+          "latest_computed_at"
+        ],
+        "title": "PublicMetricCounts",
+        "type": "object"
+      },
+      "PublicMetricSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "computed": {
+            "items": {
+              "$ref": "#/components/schemas/PublicMetric"
+            },
+            "title": "Computed",
+            "type": "array"
+          },
+          "location_id": {
+            "format": "uuid",
+            "title": "Location Id",
+            "type": "string"
+          },
+          "total_computed": {
+            "minimum": 0.0,
+            "title": "Total Computed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "location_id",
+          "computed",
+          "total_computed"
+        ],
+        "title": "PublicMetricSummary",
+        "type": "object"
+      },
+      "PublicMetricSummaryEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PublicMetricSummary"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "title": "PublicMetricSummaryEnvelope",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Versioned public read contract for the Kokonut Gateway.",
+    "title": "Kokonut Intelligence Gateway",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/analytics/{location_id}/summary": {
+      "get": {
+        "operationId": "getPublicLocationSummaryV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "location_id",
+            "required": true,
+            "schema": {
+              "title": "Location Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLocationSummaryEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Public Analytics Summary V1",
+        "x-kokonut-policy": {
+          "action": "read",
+          "location_scoped": true,
+          "public": true,
+          "resource": "analytics"
+        }
+      }
+    },
+    "/api/v1/crisp/{location_id}": {
+      "get": {
+        "operationId": "getPublicCrispAssessmentV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "location_id",
+            "required": true,
+            "schema": {
+              "title": "Location Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicCrispAssessmentEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Public Crisp V1",
+        "x-kokonut-policy": {
+          "action": "read",
+          "location_scoped": true,
+          "public": true,
+          "resource": "crisp_risk_assessment"
+        }
+      }
+    },
+    "/api/v1/locations": {
+      "get": {
+        "description": "List the bounded, governed public location projection using the v1 envelope.",
+        "operationId": "listPublicLocationsV1",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLocationListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Public Locations V1",
+        "x-kokonut-policy": {
+          "action": "read",
+          "location_scoped": false,
+          "public": true,
+          "resource": "location"
+        }
+      }
+    },
+    "/api/v1/locations/{location_id}": {
+      "get": {
+        "description": "Read one eligible public location using the v1 envelope.",
+        "operationId": "getPublicLocationV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "location_id",
+            "required": true,
+            "schema": {
+              "title": "Location Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicLocationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Public Location V1",
+        "x-kokonut-policy": {
+          "action": "read",
+          "location_scoped": true,
+          "public": true,
+          "resource": "location"
+        }
+      }
+    },
+    "/api/v1/metrics/{location_id}": {
+      "get": {
+        "operationId": "getPublicMetricSummaryV1",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "location_id",
+            "required": true,
+            "schema": {
+              "title": "Location Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicMetricSummaryEnvelope"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Public Metrics V1",
+        "x-kokonut-policy": {
+          "action": "read",
+          "location_scoped": true,
+          "public": true,
+          "resource": "metric"
+        }
+      }
+    }
+  }
+}

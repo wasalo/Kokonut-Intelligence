@@ -1,0 +1,109 @@
+{
+  "date": "2026-10-11",
+  "result": "dedicated read-only analytics-source role provisioned and verified on the exact Kernel candidate",
+  "compose": {
+    "project": "kokonut-kernel-candidate",
+    "files": [
+      "docker-compose.kernel-candidate.yml",
+      "docker-compose.kernel-analytics-role.yml"
+    ],
+    "profile": "analytics-admin",
+    "one_shot_image_id": "sha256:006fe5ea737062338484b59bf1afaf515bff66d7e3e6f6b44ead74e10ce6a1cf"
+  },
+  "target": {
+    "database_container_id": "69417747ae35c006364b3d56f6a87d1ae43076b369a5523e897b26294b62e922",
+    "app_container_id": "59cbafc7dab39a34a8435c39fd67a40bbb53ad8875260182f09c943a842ceef3",
+    "app_image_id": "sha256:76467534a977c60bcc5ffaac97a5761aa8b91fbe9f21fab520328d8d4c90a8c0",
+    "app_and_database_recreated": false,
+    "idempotent_login_boundary_reverified_after_final_app_rebuild": true,
+    "app_health": "healthy",
+    "database_health": "healthy",
+    "health_endpoint_status": 200,
+    "schema_migrations_pending": 0,
+    "legacy_stack_changed": false
+  },
+  "role": {
+    "name": "kokonut_analytics_ro",
+    "login_verified": true,
+    "superuser": false,
+    "createdb": false,
+    "createrole": false,
+    "replication": false,
+    "bypassrls": false,
+    "inherit": false,
+    "role_memberships": 0,
+    "credential_storage": ".env.sops (KOKONUT_ANALYTICS_PASSWORD); plaintext value withheld",
+    "database_connect": {
+      "kokonut_intelligence": true,
+      "postgres": false,
+      "template1": false,
+      "template_postgis": false
+    },
+    "public_connect_revoked_from": [
+      "kokonut_intelligence",
+      "postgres",
+      "template1",
+      "template_postgis"
+    ],
+    "public_temporary_revoked_from": ["kokonut_intelligence"]
+  },
+  "reporting_access": {
+    "schema": "kokonut_reporting",
+    "select_grants": [
+      "v_farm_summary",
+      "v_verified_metric_values",
+      "v_attestation_summary"
+    ],
+    "view_row_counts": {
+      "v_farm_summary": 0,
+      "v_verified_metric_values": 0,
+      "v_attestation_summary": 0
+    },
+    "denied": [
+      "public.schema_migration SELECT",
+      "kokonut_reporting.metric_publication_policy SELECT",
+      "CREATE in public schema",
+      "CREATE in kokonut_reporting schema",
+      "temporary table creation",
+      "CONNECT to postgres",
+      "CONNECT to template1",
+      "CONNECT to template_postgis"
+    ],
+    "unreviewed_public_application_relations_readable": 0
+  },
+  "inherited_extension_acl": {
+    "extension_public_select_relations": 16,
+    "extension_relations_accessible_to_analytics_role": 8,
+    "accessible_relations": [
+      "public.pg_stat_statements",
+      "public.pg_stat_statements_info",
+      "public.geography_columns",
+      "public.geometry_columns",
+      "public.spatial_ref_sys",
+      "topology.layer",
+      "topology.topology",
+      "topology.topology_id_seq"
+    ],
+    "extension_functions_with_public_execute": 1217,
+    "extension_functions_executable_by_analytics_role": 1165,
+    "public_executable_extension_security_definer_functions": 0,
+    "policy": "Existing extension grants remain inherited; no application relation outside the three reviewed views is readable."
+  },
+  "other_changes": {
+    "metabase_source_or_cards_configured": false,
+    "application_runtime_credential_changed": false,
+    "database_migrations_applied": false,
+    "temporary_bootstrap_container_removed": true
+  },
+  "rollback": {
+    "disable_login": "ALTER ROLE kokonut_analytics_ro NOLOGIN",
+    "revoke_source_access": "REVOKE CONNECT ON DATABASE kokonut_intelligence FROM kokonut_analytics_ro; REVOKE USAGE ON SCHEMA kokonut_reporting FROM kokonut_analytics_ro; REVOKE SELECT ON ALL TABLES IN SCHEMA kokonut_reporting FROM kokonut_analytics_ro",
+    "restore_public_database_acl": "Restore the pre-bootstrap PUBLIC ACLs only after reviewing the exact ACL for every database. The retained pre-change inventory covers kokonut_intelligence, postgres, and template1 but not template_postgis; keep hardening for that database until its prior ACL is confirmed."
+  },
+  "limitations": [
+    "The candidate has no pilot rows or published metric policies, so all three current view counts are zero.",
+    "The analytics role receives the eight listed extension metadata relations and can execute 1,165 inherited extension functions; zero of the public-executable extension functions are SECURITY DEFINER.",
+    "No Metabase connection or dashboard-card parity was configured or claimed.",
+    "This is local candidate authorization evidence, not production role approval."
+  ]
+}

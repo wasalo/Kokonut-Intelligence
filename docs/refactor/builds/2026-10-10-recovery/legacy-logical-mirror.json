@@ -1,0 +1,32 @@
+[
+  {
+    "file": "globals.sql.age",
+    "bytes": 717,
+    "sha256": "9f18d48729ef04b611c203cc701871c24f9ffd69774d4d143d5eff8ecbb3d820",
+    "mirror_equal": true
+  },
+  {
+    "file": "kokonut_bootstrap_28232.dump.age",
+    "bytes": 8611,
+    "sha256": "e51cb598cc6fe5d3ab8a8b23b7e690f1b56ec3e6465f5d84852dc82b95824d4e",
+    "mirror_equal": true
+  },
+  {
+    "file": "kokonut_intelligence.dump.age",
+    "bytes": 5170459,
+    "sha256": "ec38e3652c58d2aefa2ab2c54675a50d7b3583714bf8af355b335aa5e7803fc4",
+    "mirror_equal": true
+  },
+  {
+    "file": "metabase.dump.age",
+    "bytes": 1099730,
+    "sha256": "6aecd5fbadf449778d2a667d27d89ad00977aaed89184f6d52404b4db31118bb",
+    "mirror_equal": true
+  },
+  {
+    "file": "postgres.dump.age",
+    "bytes": 1280,
+    "sha256": "999557acc9c71e6d54928194dae14db772e6fec5a520e11c377122b92d267526",
+    "mirror_equal": true
+  }
+]

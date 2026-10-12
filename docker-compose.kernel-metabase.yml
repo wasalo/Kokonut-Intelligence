@@ -1,0 +1,57 @@
+# Optional Metabase consumer for the standalone Kernel candidate only.
+# Combine with docker-compose.kernel-candidate.yml; never with legacy Compose.
+services:
+  metabase-role-bootstrap:
+    profiles: [analytics-admin]
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: kernel
+      args:
+        KOKONUT_CLICKHOUSE: "false"
+    restart: "no"
+    command: ["python3", "-m", "services.migration.metabase_role"]
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_APP_DB: kokonut_intelligence
+      KOKONUT_DB_ADMIN_USER: kokonut
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      MB_DB_DBNAME: ${KOKONUT_METABASE_DATABASE:-kokonut_metabase}
+      MB_DB_USER: ${KOKONUT_METABASE_USER:-kokonut_metabase_app}
+      MB_DB_PASS: ${KOKONUT_METABASE_PASSWORD:?KOKONUT_METABASE_PASSWORD must be set}
+      KOKONUT_METABASE_ROLE_DEDICATED_INSTANCE: "true"
+    networks:
+      - kernel
+
+  metabase:
+    profiles: [analytics]
+    image: metabase/metabase:v0.62.4@sha256:22ddc782a45f8aecf47c0f039b86a323435565595643e429fb33d29939b41675
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${KOKONUT_METABASE_PORT:-3001}:3000"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: ${KOKONUT_METABASE_DATABASE:-kokonut_metabase}
+      MB_DB_PORT: "5432"
+      MB_DB_USER: ${KOKONUT_METABASE_USER:-kokonut_metabase_app}
+      MB_DB_PASS: ${KOKONUT_METABASE_PASSWORD:?KOKONUT_METABASE_PASSWORD must be set}
+      MB_DB_HOST: database
+      MB_ENCRYPTION_SECRET_KEY: ${KOKONUT_METABASE_ENCRYPTION_KEY:?KOKONUT_METABASE_ENCRYPTION_KEY must be set}
+      MB_ENABLE_PUBLIC_SHARING: "false"
+      MB_ENABLE_EMBEDDING_STATIC: "false"
+      JAVA_TOOL_OPTIONS: ${KOKONUT_METABASE_JAVA_TOOL_OPTIONS:--Xms128m -Xmx768m}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - kernel
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s

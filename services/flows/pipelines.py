@@ -3,28 +3,31 @@
 Defines the orchestration DAG for all Kokonut Intelligence workflows.
 """
 
-from prefect import flow, task
-from prefect.tasks import task_input_hash
-from datetime import timedelta
+from services.core.adapters.prefect import flow, task
+from services.core.jobs import JOBS, run_job
+
+
+def _submit_job(job_id):
+    """Submit a task with the legacy operation retry policy."""
+    spec = JOBS[job_id]
+    operation = task(
+        name=job_id, retries=spec.retries,
+        retry_delay_seconds=spec.retry_delay_seconds,
+    )(run_job)
+    return operation.submit(job_id)
 
 
 @flow(name="ingestion-pipeline", retries=1)
 def ingestion_pipeline():
     """Run all ingestion tasks in parallel, then dependent tasks."""
-    from .weather import weather_ingestion_flow
-    from .sensors import sensor_ingestion_flow
-    from .market_data import market_data_flow
-    from .eas_indexer import eas_indexing_flow
-    from .rpc_indexer import rpc_indexing_flow
-    from .gnosis_indexer import gnosis_indexing_flow
 
     # Ingestion tasks run in parallel (no dependencies)
-    weather_future = weather_ingestion_flow.submit()
-    sensor_future = sensor_ingestion_flow.submit()
-    market_future = market_data_flow.submit()
-    eas_future = eas_indexing_flow.submit()
-    rpc_future = rpc_indexing_flow.submit()
-    gnosis_future = gnosis_indexing_flow.submit()
+    weather_future = _submit_job("weather")
+    sensor_future = _submit_job("sensors")
+    market_future = _submit_job("market_data")
+    eas_future = _submit_job("eas")
+    rpc_future = _submit_job("rpc")
+    gnosis_future = _submit_job("gnosis")
 
     # Wait for all ingestion
     weather_future.result()
@@ -40,11 +43,9 @@ def ingestion_pipeline():
 @flow(name="monitoring-pipeline", retries=1)
 def monitoring_pipeline():
     """Run anomaly detection and data freshness checks."""
-    from .anomaly_detection import anomaly_detection_flow
-    from .freshness import freshness_check_flow
 
-    anomaly_future = anomaly_detection_flow.submit()
-    freshness_future = freshness_check_flow.submit()
+    anomaly_future = _submit_job("anomaly")
+    freshness_future = _submit_job("freshness")
 
     anomaly_future.result()
     freshness_future.result()
@@ -55,17 +56,14 @@ def monitoring_pipeline():
 @flow(name="analytics-pipeline", retries=1)
 def analytics_pipeline():
     """Run metrics computation, then dashboard refresh."""
-    from .metrics import metrics_computation_flow
-    from .dashboards import dashboard_refresh_flow
-    from .credit_adjustment import credit_adjustment_flow
 
     # Metrics first
-    metrics_future = metrics_computation_flow.submit()
+    metrics_future = _submit_job("metrics")
     metrics_future.result()
 
     # Then dashboards and credit adjustment (parallel)
-    dashboard_future = dashboard_refresh_flow.submit()
-    credit_future = credit_adjustment_flow.submit()
+    dashboard_future = _submit_job("dashboards")
+    credit_future = _submit_job("credit_adjustment")
 
     dashboard_future.result()
     credit_future.result()
@@ -76,9 +74,6 @@ def analytics_pipeline():
 @flow(name="full-pipeline", retries=1)
 def full_pipeline():
     """Full pipeline: ingestion -> monitoring -> analytics."""
-    from .monitoring_pipeline import monitoring_pipeline
-    from .analytics_pipeline import analytics_pipeline
-
     # Ingestion
     ingestion_pipeline()
 
@@ -98,9 +93,9 @@ def full_pipeline():
 @flow(name="scheduled-hourly", retries=1)
 def scheduled_hourly():
     """Hourly tasks: sensor ingestion, anomaly detection, freshness check."""
-    from .sensors import sensor_ingestion_flow
     from .anomaly_detection import anomaly_detection_flow
     from .freshness import freshness_check_flow
+    from .sensors import sensor_ingestion_flow
 
     sensor_ingestion_flow()
     anomaly_detection_flow()
@@ -110,9 +105,9 @@ def scheduled_hourly():
 @flow(name="scheduled-every-6h", retries=1)
 def scheduled_every_6h():
     """Every 6 hours: weather, dashboard refresh, remote sensing."""
-    from .weather import weather_ingestion_flow
     from .dashboards import dashboard_refresh_flow
     from .remote_sensing import remote_sensing_flow
+    from .weather import weather_ingestion_flow
 
     weather_ingestion_flow()
     dashboard_refresh_flow()
@@ -122,9 +117,9 @@ def scheduled_every_6h():
 @flow(name="scheduled-daily", retries=1)
 def scheduled_daily():
     """Daily tasks: market data, metrics computation, credit adjustment."""
+    from .credit_adjustment import credit_adjustment_flow
     from .market_data import market_data_flow
     from .metrics import metrics_computation_flow
-    from .credit_adjustment import credit_adjustment_flow
 
     market_data_flow()
     metrics_computation_flow()

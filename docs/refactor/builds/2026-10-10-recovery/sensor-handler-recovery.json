@@ -1,0 +1,54 @@
+{
+  "date_local": "2026-10-10",
+  "environment": "isolated synthetic recovery fixture",
+  "scope": "one sensor_reading event; no queue-wide processing",
+  "external_effects": {
+    "smtp": "disabled",
+    "directus": "disabled",
+    "actuator": "disabled"
+  },
+  "runtime_fixes": [
+    "Cast the UUID sensor identifier to text for the sensor_device lookup.",
+    "Pass the current reading value to compute_rate_of_change as required by its signature.",
+    "Serialize sensor_id as text in the sensor_alert event payload."
+  ],
+  "targeted_retry": {
+    "outcome": "success",
+    "event_status": "completed",
+    "handler_delivery_status": "success",
+    "handler_attempt_count": 4,
+    "handler_log_count": 4,
+    "handler_log_errors": 3,
+    "handler_log_successes": 1,
+    "sensor_alert_count": 1,
+    "alert_severity": "warning",
+    "reading_value": "10.0000",
+    "mrv_claim_count": 0
+  },
+  "acknowledgement_recovery_simulation": {
+    "method": "After successful handler receipt, return only the same event to processing and invoke it with a new lease owner.",
+    "outcome": "success",
+    "event_status": "completed",
+    "handler_attempt_count_unchanged": true,
+    "handler_log_count_unchanged": true,
+    "sensor_alert_count_unchanged": true,
+    "interpretation": "The durable success receipt skipped the handler on recovery; this was a controlled state simulation, not a process-kill test."
+  },
+  "queue_state_after": {
+    "sibling_sensor_reading_events_pending": 4,
+    "sensor_alert_events_pending": 1
+  },
+  "alert_rules": {
+    "total": 10,
+    "enabled": 10,
+    "auto_create_claim": 2,
+    "actuator_enabled": 0
+  },
+  "limitations": [
+    "Synthetic fixture only; source tree was mounted read-only into the pinned operator image.",
+    "No network SMTP, Directus, or actuator call was made.",
+    "No TCP listener, real process crash, concurrent workers, or full event queue was exercised.",
+    "Three failed handler attempts remain recorded before the successful retry.",
+    "The fixture is not a clean baseline; its encrypted pre-handler checkpoint is retained separately and restore has not been rehearsed."
+  ]
+}

@@ -1,0 +1,371 @@
+{
+  "date": "2026-10-12",
+  "result": "candidate schema and reviewed Field Collector forms deployed; isolated synthetic enrollment, valid sync, and encrypted private-media attachment passed against the restored clone; OIDC-provider, offline-browser, retired-form, backup/recovery, and human-review acceptance remain open",
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_file": "docker-compose.kernel-candidate.yml",
+    "database_container": "kokonut-kernel-candidate-database-1",
+    "database_volume": "kokonut-kernel-candidate_kernel-postgres-data",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "app_container": "kokonut-kernel-candidate-app-1",
+    "app_image": "sha256:b2942d4d33d6620e628f8d2f4ca9b0956b1acb055f509d789d8386fa1068bf2c",
+    "previous_app_image": "sha256:eea7d9d7b30db5c354aa8364c44aec9f297b543bf7c24b6e331794274a71e49c",
+    "previous_app_rollback_tag": "kokonut-kernel-candidate-app:pre-mobile-policy-20261012",
+    "app_database_metabase_health": "healthy",
+    "legacy_project": "kokonut-intelligence",
+    "legacy_project_changed": false
+  },
+  "pre_migration_checkpoint": {
+    "local_path": "backups/kernel-candidate-pre-mobile-20261012",
+    "encrypted_archive": "postgres.dump.age",
+    "archive_bytes": 5150572,
+    "archive_sha256": "efcf35386380827b60f8b230ad4a347c3124b8ce808af6a5c253424822d24db4",
+    "restore_rehearsal": "passed",
+    "restore_project": "kokonut-kernel-mobile-restore-20261012",
+    "restore_database": "kokonut_restore",
+    "restore_network_isolated": true,
+    "restore_host_ports": [],
+    "restore_volume_retained_stopped": true,
+    "scope_limit": "One PostgreSQL database only; roles/grants, other databases, Docker volumes, external media, and provider state are excluded."
+  },
+  "schema_rollout": {
+    "previous_applied_schema_rows": 370,
+    "applied": [
+      {
+        "migration_id": "schema:380_operator_identity_sessions.sql",
+        "sha256": "cb152e1152baeb7677172faf1f7f995771bb76a0f805ab5ab6b1f421825bb2b4"
+      },
+      {
+        "migration_id": "schema:381_mobile_consent_form_revisions.sql",
+        "sha256": "5ec54e878bb9899a399b6ffcc5c980af6970eed62843a6b9b7a18c7850b1d338"
+      }
+    ],
+    "applied_schema_rows": 372,
+    "schema_plan_pending": 0,
+    "migration_failures": 0
+  },
+  "form_seed": {
+    "source": "schemas/seeds/140_mobile_forms.sql",
+    "sha256": "7af3621677cd2d10775fad1dbba65af98ab83d15c7103ba54680751c8e4ce64f",
+    "rows_inserted": 5,
+    "current_form_rows": 5,
+    "active_revision_rows": 5,
+    "all_active_versions": "1.1.0",
+    "all_active_classifications": "not_required",
+    "scope": "location with null scope ID, dynamically resolved from enrolled device",
+    "participant_reference_required": false,
+    "evidence_entries_per_revision": 3,
+    "offline_collection_rows_at_rollout": 0
+  },
+  "app_refresh": {
+    "app_recreated_only": true,
+    "database_and_volume_recreated": false,
+    "metabase_recreated": false,
+    "served_field_collector_route": "http://127.0.0.1:8098/api/mobile/app",
+    "version_1_1_0_fallback_definitions_found": 5
+  },
+  "anonymous_forms_probe": {
+    "date": "2026-10-12T04:28:46Z",
+    "method": "GET",
+    "path": "/api/mobile/forms",
+    "http_status": 200,
+    "response": {
+      "forms": []
+    },
+    "result": "passed",
+    "reason": "All five active forms are location-scoped; anonymous requests receive only explicitly public global forms."
+  },
+  "location_visibility_negative_probes": [
+    {
+      "method": "GET",
+      "path": "/api/mobile/forms?location_id=00000000-0000-4000-8000-000000000001",
+      "device_token": "omitted",
+      "http_status": 401,
+      "result": "passed",
+      "reason": "Location-scoped form listing requires an authenticated device token."
+    },
+    {
+      "method": "GET",
+      "path": "/api/mobile/forms",
+      "device_token": "invalid-probe-token",
+      "http_status": 401,
+      "result": "passed",
+      "reason": "An invalid device token cannot list enrolled forms."
+    }
+  ],
+  "focused_checks": {
+    "command": "pytest tests/test_mobile_api.py tests/test_mobile_offline.py tests/test_mobile_media_storage.py plus four focused Gateway CORS cases",
+    "result": "55 passed",
+    "warnings": 121,
+    "temporary_audit_spool": "private directory under /private/tmp, removed after run"
+  },
+  "follow_up_schema_validation_rollout": {
+    "date": "2026-10-12",
+    "source_revision": "1.2.0",
+    "source_seed": "schemas/seeds/140_mobile_forms.sql",
+    "source_seed_sha256": "67ca61850ed3177fa2d0936221abc42850677749f018d36ede4ba8cca4e3b345",
+    "validator": "services/mobile/form_validation.py",
+    "dependency": "jsonschema==4.26.0 in the built candidate image; declared constraint jsonschema>=4.21.0,<5.0.0",
+    "pre_rollout_checkpoint": {
+      "local_path": "backups/kernel-candidate-pre-form-schema-20261012",
+      "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+      "archive_bytes": 5200131,
+      "archive_sha256": "834c9815b57796ddd492e74053f9ecad4aee148d41ccb14344d9ce677fea0700",
+      "age_authenticated_decryption": "passed directly into pg_restore; no plaintext archive written to disk",
+      "scope_limit": "One PostgreSQL database; excludes roles/grants, other databases, volumes, external media, and provider state."
+    },
+    "restore_rehearsal": {
+      "status": "passed",
+      "project": "kokonut-kernel-form-schema-restore-retry-20261012",
+      "database": "kokonut_restore",
+      "database_created_from": "template0",
+      "network_isolated": true,
+      "host_ports": [],
+      "volume": "kokonut-kernel-form-schema-restore-retry-20261012_recovery-postgres-data",
+      "volume_retained_stopped": true,
+      "migration_rows": 372,
+      "applied_migrations": 372,
+      "migration_fingerprint_md5": "9b33f7553f74430c06dd2ea9aab546f2",
+      "extensions_and_versions": "Exact match with candidate: btree_gist 1.7; fuzzystrmatch 1.2; pg_stat_statements 1.10; pg_trgm 1.6; pgcrypto 1.3; plpgsql 1.0; postgis 3.4.3; postgis_tiger_geocoder 3.4.3; postgis_topology 3.4.3; uuid-ossp 1.1.",
+      "schema_inventory": "Exact match with candidate: kokonut_reporting, public, tiger, tiger_data, topology.",
+      "pre_rollout_mobile_state": {
+        "active_form_revisions": 5,
+        "active_version": "1.1.0",
+        "offline_collection_rows": 0
+      },
+      "seed_rehearsal": {
+        "result": "passed",
+        "retained_retired_1_1_0_revisions": 5,
+        "active_1_2_0_revisions": 5,
+        "all_active_schemas_additionalProperties_false": true
+      }
+    },
+    "initial_restore_attempt": {
+      "project": "kokonut-kernel-form-schema-restore-20261012",
+      "result": "failed safely; PostgreSQL image bootstrap had precreated schema tiger",
+      "restore_transaction": "single transaction rolled back without importing checkpoint objects",
+      "container_and_volume": "retained stopped for diagnosis",
+      "follow_up": "Successful restore used a fresh project and a template0-derived database; procedure documented in docs/refactor/recovery-preparation.md."
+    },
+    "candidate_after_rollout": {
+      "compose_project": "kokonut-kernel-candidate",
+      "app_container": "kokonut-kernel-candidate-app-1",
+      "app_image": "sha256:2e882f01236a3613a5a5f3e6abb103cc16c030fa1036ec99287aab4cefe8d0e3",
+      "previous_app_image": "sha256:b2942d4d33d6620e628f8d2f4ca9b0956b1acb055f509d789d8386fa1068bf2c",
+      "rollback_tag": "kokonut-kernel-candidate-app:pre-form-schema-20261012",
+      "app_recreated_only": true,
+      "database_or_volume_recreated": false,
+      "metabase_recreated": false,
+      "health": {
+        "app": "healthy",
+        "database": "healthy",
+        "metabase": "healthy"
+      },
+      "schema_migrations": {
+        "applied": 372,
+        "pending": 0
+      },
+      "active_revisions": {
+        "count": 5,
+        "version": "1.2.0",
+        "additionalProperties": false
+      },
+      "retained_revisions": {
+        "count": 5,
+        "version": "1.1.0",
+        "status": "retired"
+      },
+      "offline_collection_rows": 0,
+      "legacy_project_changed": false
+    },
+    "http_probes": {
+      "GET /api/mobile/app": {
+        "status": 200,
+        "fallback_definitions_version_1_2_0": 5
+      },
+      "GET /api/mobile/forms": {
+        "status": 200,
+        "response": {
+          "forms": []
+        }
+      },
+      "GET /api/mobile/forms?location_id=<probe> without token": {
+        "status": 401
+      },
+      "GET /api/mobile/forms with invalid X-Device-Token": {
+        "status": 401
+      }
+    },
+    "focused_checks": {
+      "mobile_and_schema_suite": {
+        "result": "60 passed",
+        "warnings": 109
+      },
+      "ruff": "passed",
+      "requirement_group_alignment": "passed (12 groups, 31 requirements)",
+      "field_collector_inline_javascript_syntax": "passed",
+      "running_image_validator_import": "passed"
+    },
+    "remaining_gates": [
+      "Configured OIDC provider/login/session/CSRF, operator grant provisioning and browser-console acceptance",
+      "Offline browser capture/reconnection, durable local media persistence, expiry/orphan cleanup, and encrypted backup/restore with the matching key",
+      "Retired-form and consent-required participant workflows, including withdrawal between capture and sync",
+      "Tenant/RLS policy and human retention/erasure disposition",
+      "Semantic free-text/photo review before governed downstream use"
+    ],
+    "rollback_boundary": "Do not use the previous app image for mobile sync against the 1.2.0 database because it lacks schema validation. Form revisions are immutable; a retired 1.1.0 revision cannot be reactivated by reseeding. Pause mobile intake and restore the pre-rollout checkpoint into a fresh database volume, validate it, then perform a reviewed cutover.",
+    "isolated_live_sync_http_check": {
+      "result": "passed against a disposable database clone using the current candidate app image",
+      "app_image": "sha256:2e882f01236a3613a5a5f3e6abb103cc16c030fa1036ec99287aab4cefe8d0e3",
+      "database": "kokonut_mobile_test, cloned from the restored 1.2.0 database inside the internal-only recovery project",
+      "identity_fixture": "Synthetic active device and location inserted directly into the clone; no real device token or candidate row was used.",
+      "GET /health": 200,
+      "POST /api/mobile/sync invalid undeclared worker_name": {
+        "status": 422,
+        "submitted_value_echoed": false,
+        "offline_collection_row_created": false
+      },
+      "POST /api/mobile/sync valid field_note_v1 1.2.0": {
+        "status": 200,
+        "accepted": 1,
+        "consent_validation_status": "not_required",
+        "form_review_required": false
+      },
+      "cleanup": {
+        "synthetic_location_rows": 0,
+        "synthetic_mobile_device_rows": 0,
+        "synthetic_collection_rows": 0,
+        "synthetic_sync_log_rows": 0,
+        "temporary_app_container_removed": true,
+        "recovery_database_stopped_volume_retained": true
+      }
+    },
+    "isolated_live_enrollment_http_check": {
+      "date": "2026-10-12",
+      "result": "passed against the restored kokonut_restore database clone",
+      "candidate_app_image": "sha256:2e882f01236a3613a5a5f3e6abb103cc16c030fa1036ec99287aab4cefe8d0e3",
+      "gateway": "temporary Uvicorn process bound to 127.0.0.1:18099 inside the candidate app container; no host port published",
+      "database_target": {
+        "host_alias": "mobile-recovery-db",
+        "database": "kokonut_restore",
+        "current_database_asserted_for_setup_and_cleanup": true
+      },
+      "enrollment": {
+        "method": "POST /api/mobile/locations/{location_id}/enrollments",
+        "status": 201,
+        "authorization": "synthetic API key scoped to mobile_device:enroll and the synthetic location",
+        "one_time_code": "returned to the in-process client only; not emitted or logged"
+      },
+      "registration": {
+        "method": "POST /api/mobile/register",
+        "status": 200,
+        "user_and_location": "derived from the enrollment claim",
+        "device_token": "returned to the in-process client only; not emitted or logged"
+      },
+      "form_retrieval": {
+        "method": "GET /api/mobile/forms with X-Device-Token",
+        "status": 200,
+        "active_forms_returned": 5,
+        "field_note_revision": "1.2.0"
+      },
+      "sync": {
+        "method": "POST /api/mobile/sync with X-Device-Token",
+        "status": 200,
+        "accepted": 1,
+        "record": "synthetic field_note_v1 revision 1.2.0, valid against the allowlisted schema"
+      },
+      "stored_policy_state": {
+        "identity_and_location": "derived from the registered device",
+        "sync_status": "pending",
+        "form_validation_status": "active",
+        "consent_validation_status": "not_required",
+        "form_review_required": false
+      },
+      "downstream_eligibility": {
+        "eligible_for_use": false,
+        "reason": "transport_pending",
+        "meaning": "accepted transport does not mark the record synced or eligible for downstream use"
+      },
+      "cleanup": {
+        "synthetic_location_rows": 0,
+        "synthetic_mobile_device_rows": 0,
+        "synthetic_collection_rows": 0,
+        "synthetic_sync_log_rows": 0,
+        "temporary_gateway_stopped": true,
+        "private_test_spool_and_log_removed": true,
+        "recovery_database_disconnected_from_candidate_network": true,
+        "recovery_database_stopped_volume_retained": true,
+        "candidate_app_database_metabase_remained_healthy": true,
+        "legacy_compose_project_remained_stopped": true
+      },
+      "harness_correction": "An earlier failed attempt briefly inserted and then removed one synthetic location in the candidate database because the setup script inherited PG_DB from the app container. Cleanup verified zero synthetic location/device/collection rows there. The successful run asserted current_database() = kokonut_restore for setup and cleanup."
+    },
+    "isolated_live_private_media_http_check": {
+      "date": "2026-10-12",
+      "result": "passed against the restored kokonut_restore database clone using the current candidate app image",
+      "candidate_app_image": "sha256:2e882f01236a3613a5a5f3e6abb103cc16c030fa1036ec99287aab4cefe8d0e3",
+      "gateway": "temporary Uvicorn process bound to 127.0.0.1:18099 inside the candidate app container; no host port published",
+      "database": "kokonut_restore; every setup, query, and cleanup connection asserted current_database() = kokonut_restore",
+      "provider": "MOBILE_MEDIA_PROVIDER=local in the temporary process only; the running candidate provider configuration was unchanged",
+      "encryption_key": "ephemeral random 32-byte key stored in a private temporary file for this run only; removed after acceptance",
+      "workflow": {
+        "enrollment_status": 201,
+        "registration_status": 200,
+        "device_location": "derived from the single-use enrollment claim",
+        "media_upload": {
+          "method": "POST /api/mobile/media/uploads",
+          "status": 201,
+          "content_type": "image/jpeg",
+          "synthetic_bytes": 67
+        },
+        "sync": {
+          "method": "POST /api/mobile/sync with uploaded media_id in photo_refs",
+          "status": 200,
+          "accepted": 1,
+          "media_metadata_status": "attached",
+          "attachment_collection_match": true
+        }
+      },
+      "private_object_checks": {
+        "envelope": "KKM1 AES-256-GCM authenticated ciphertext",
+        "file_mode": "0600",
+        "plaintext_bytes_present": false,
+        "authenticated_head_matches_original_type_and_length": true,
+        "wrong_key_rejected": true,
+        "public_download_route": "not implemented by the current access contract; no public URL or download route was added"
+      },
+      "stored_policy_state": {
+        "sync_status": "pending",
+        "form_validation_status": "active",
+        "consent_validation_status": "not_required",
+        "form_review_required": false,
+        "eligible_for_use": false,
+        "eligibility_reason": "transport_pending"
+      },
+      "cleanup": {
+        "synthetic_location_rows": 0,
+        "synthetic_mobile_device_rows": 0,
+        "synthetic_enrollment_rows": 0,
+        "synthetic_media_rows": 0,
+        "synthetic_collection_rows": 0,
+        "temporary_encrypted_object_directory_and_key_removed": true,
+        "temporary_gateway_stopped_and_spool_removed": true,
+        "temporary_gateway_port_closed": true,
+        "recovery_database_disconnected_from_candidate_network": true,
+        "recovery_database_stopped_volume_retained": true,
+        "candidate_app_database_metabase_remained_healthy": true,
+        "legacy_compose_project_remained_stopped": true
+      },
+      "limits": "This does not verify durable storage across container replacement, backup/restore with the matching key, expiry/orphan cleanup, browser offline capture, or a public retrieval workflow; the contract deliberately defines no public download route."
+    }
+  },
+  "historical_record_scope": "Root-level candidate, checkpoint, migration, form-seed, and focused-check details describe the initial 1.1.0 rollout. Current 1.2.0 state and follow-up acceptance are in follow_up_schema_validation_rollout.",
+  "remaining_gates_after_initial_1_1_0_rollout": [
+    "Live device enrollment, authenticated form listing, offline collection, media upload, sync, and downstream eligibility acceptance",
+    "OIDC provider/login/session/CSRF and operator-scope acceptance",
+    "Tenant/RLS policy",
+    "Human retention and erasure disposition",
+    "Server-side schema/content validation; form descriptions are guidance only",
+    "Expired private-media object cleanup and recovery"
+  ]
+}

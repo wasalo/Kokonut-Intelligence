@@ -1,0 +1,13 @@
+{
+  "checks": {
+    "identity_reason_and_bounds_required": true,
+    "replay_and_both_dispositions_audited_once": true,
+    "attempt_history_preserved_and_payload_retained": true,
+    "audit_failure_rolls_back_transition": true
+  },
+  "scope": "Synthetic real PostgreSQL audited operator transitions; no authenticated gateway, role isolation, concurrency or sink deduplication acceptance.",
+  "source_sha256": "f6a40c7623e41106401f89d21922f76f6c77899dbf2ed9b6dea19c72ef5a00c3",
+  "migration": "schema:374_clickhouse_outbox_operator_audit.sql",
+  "schema_files": 365,
+  "execution": "Pinned fixture operator with read-only changed outbox source; ordered host migration runner explicitly selected fixture Compose project."
+}

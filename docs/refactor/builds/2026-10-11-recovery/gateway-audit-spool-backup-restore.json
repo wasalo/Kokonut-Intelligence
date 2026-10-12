@@ -1,0 +1,30 @@
+{
+  "check": "gateway audit spool abrupt-exit, checkpoint, and restore rehearsal",
+  "date": "2026-10-11",
+  "fixture": "synthetic audit records only; no production or candidate data",
+  "results": {
+    "status_command_left_absent_journal_uncreated": true,
+    "committed_enqueue_recovered_after_writer_process_exit": true,
+    "uncommitted_insert_rolled_back_after_writer_process_exit": true,
+    "checkpoint_pending_events": 1,
+    "source_pending_events_after_later_enqueue": 2,
+    "checkpoint_integrity": "ok",
+    "restored_event_ids_match_checkpoint": true,
+    "restore_refused_existing_destination": true,
+    "backup_and_restore_file_modes": [
+      "0600",
+      "0600"
+    ]
+  },
+  "cleanup": {
+    "temporary_private_fixture_removed": true,
+    "active_candidate_touched": false,
+    "docker_used": false,
+    "pytest_suite_run": false
+  },
+  "limits": [
+    "The rehearsal used a local temporary filesystem, not power-loss or physical-device failure injection.",
+    "Checkpoint files are plaintext SQLite and must be protected by encrypted storage or encrypted before retention/transfer.",
+    "The restore command writes only to a new path; installing it into a live Compose volume requires stopping writers and an operator-controlled file replacement."
+  ]
+}

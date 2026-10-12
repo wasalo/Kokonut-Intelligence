@@ -7,12 +7,11 @@ replacing the static crontab.
 from __future__ import annotations
 
 import signal
-import sys
 import time
 
-from services.common.logging import get_logger
 from services.common.database import get_db
-from services.scheduler.engine import SchedulerEngine
+from services.common.logging import get_logger
+from services.scheduler.backend import get_scheduler
 
 logger = get_logger("scheduler.worker")
 
@@ -31,11 +30,10 @@ def run_worker(tick_interval: int = 30, worker_id: str | None = None):
     signal.signal(signal.SIGINT, _shutdown)
 
     conn = get_db()
-    engine = SchedulerEngine(conn, worker_id=worker_id)
-
-    logger.info("Scheduler worker started (tick=%ds, worker=%s)", tick_interval, engine._worker_id)
-
     try:
+        engine = get_scheduler(conn, worker_id=worker_id)
+        logger.info("Scheduler worker started (tick=%ds, worker=%s)", tick_interval, engine.worker_id)
+
         while _running:
             try:
                 stats = engine.tick()

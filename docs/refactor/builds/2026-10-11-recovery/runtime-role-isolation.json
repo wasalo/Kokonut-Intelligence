@@ -1,0 +1,82 @@
+{
+  "run_id": "runtime-role-isolation-20261011",
+  "date": "2026-10-11",
+  "result": "passed",
+  "scope": "isolated synthetic PostgreSQL application-role privilege boundary",
+  "fixture": {
+    "compose_project": "kokonut-kernel-runtime-role-recovery",
+    "database_container": "kokonut-kernel-runtime-role-recovery-database-1",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "runner_image": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "database_name": "kokonut_intelligence",
+    "volume": "kokonut-kernel-runtime-role-recovery_runtime-role-postgres-data",
+    "network": "kokonut-kernel-runtime-role-recovery_runtime-role-recovery",
+    "network_internal": true,
+    "network_egress": "disabled",
+    "published_ports": [],
+    "credentials": "synthetic only; values intentionally omitted",
+    "status_after_check": "stopped",
+    "volume_retained": true
+  },
+  "verification": {
+    "runner_exit_code": 0,
+    "provisioning_runs": [
+      "provisioned",
+      "provisioned"
+    ],
+    "runtime_user": "kokonut_runtime",
+    "runtime_password_distinct_from_admin": true,
+    "runtime_database_access": {
+      "kokonut_intelligence": true,
+      "postgres": false,
+      "template1": false,
+      "runtime_role_unrelated": false
+    },
+    "existing_and_future_admin_owned_table_dml": [
+      "SELECT",
+      "INSERT",
+      "UPDATE",
+      "DELETE"
+    ],
+    "sequence_privileges": [
+      "USAGE",
+      "SELECT",
+      "UPDATE"
+    ],
+    "denied_actions": [
+      "persistent table DDL",
+      "CREATE ROLE",
+      "CREATE DATABASE",
+      "SET ROLE to admin"
+    ],
+    "role_attributes": {
+      "superuser": false,
+      "createdb": false,
+      "createrole": false,
+      "replication": false,
+      "bypassrls": false,
+      "inherit": false,
+      "public_schema_create": false,
+      "role_memberships": false,
+      "owns_probe_relations": false
+    },
+    "application_database_changed": false,
+    "candidate_state": "healthy, current owner-backed credential unchanged",
+    "legacy_stack_state": "stopped",
+    "pytest_suite_run": false
+  },
+  "source_sha256": {
+    "services/common/db.py": "c56fdd32100e888aa0aaa696f114d9d7f39cd223c02fc64af2be0c643d952dbe",
+    "services/migration/runtime_role.py": "097d89535e4c5d58b635cad1ae9b8eec143036103a03846d64b761faa927dbf3",
+    "docker-compose.kernel-runtime-role.yml": "94526bf60ad4f9601c3f6a9f776728ff2b2829b87db78c12560e461e8cde53b0",
+    "docker-compose.kernel-recovery-db-role.yml": "145b75243b4e6ee986873f7f3368ffb49e96822a0c594c8bbd8669b9dc7d3f98",
+    "scripts/fixtures/kernel-db-runtime-role-check.py": "6ee6e4f3ed4950eb30dec05b154a97ecd4f8d1e2c0f808eebbbac18446c0c9ea",
+    "docs/refactor/runtime-role-policy.md": "a0a4de5bd6a2639a598463f8f5d3a903fd0e89e5c6730361e5e6573636ee7edb"
+  },
+  "limitations": [
+    "Synthetic probe schema only; full Kokonut migration/schema compatibility was not exercised by this fixture.",
+    "The separate populated-restore check passed native public-read and PostGIS queries plus synthetic DML, but did not run every domain workflow.",
+    "Directus/Metabase service-role separation and shared-consumer grants remain open before optional adoption.",
+    "Runtime DML is granted across public-schema tables and is not row-level authorization."
+  ]
+}

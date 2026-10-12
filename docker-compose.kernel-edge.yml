@@ -1,0 +1,29 @@
+# Edge candidate overlay; combine only with docker-compose.kernel-candidate.yml.
+# ARM64 and hardware recovery acceptance remain pending.
+services:
+  database:
+    mem_limit: 1g
+    cpus: 2.0
+    command:
+      - postgres
+      - -c
+      - max_connections=40
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+
+  app:
+    mem_limit: 1g
+    cpus: 2.0
+    environment:
+      MOBILE_MEDIA_PROVIDER: local
+      MOBILE_MEDIA_LOCAL_DIRECTORY: /app/private-media
+      MOBILE_MEDIA_LOCAL_KEY: ${MOBILE_MEDIA_LOCAL_KEY:?MOBILE_MEDIA_LOCAL_KEY must be supplied from encrypted secrets for edge storage}
+    volumes:
+      - kernel-private-media:/app/private-media
+
+volumes:
+  kernel-private-media:

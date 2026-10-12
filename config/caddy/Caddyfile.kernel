@@ -1,0 +1,14 @@
+# Kernel-only ingress. Gateway owns routes, authorization, and CORS policy.
+http://{$KOKONUT_KERNEL_DOMAIN:localhost} {
+	redir https://{$KOKONUT_KERNEL_DOMAIN:localhost}:{$KOKONUT_KERNEL_HTTPS_PORT:8448}{uri} 308
+}
+
+https://{$KOKONUT_KERNEL_DOMAIN:localhost} {
+	encode gzip
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	reverse_proxy app:8099
+}

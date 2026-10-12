@@ -1,0 +1,45 @@
+{
+  "check": "kernel-gateway-local-rate-limit-process-reset",
+  "date_local": "2026-10-11",
+  "time_utc": "2026-10-11T04:17:28Z",
+  "phases": [5, 6],
+  "image": {
+    "tag": "kokonut-kernel-candidate-app:latest",
+    "image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10"
+  },
+  "harness": {
+    "container": "single disposable docker run --rm",
+    "network": "none",
+    "mounts": [],
+    "provider_setting": "KOKONUT_RATE_LIMIT_PROVIDER=local",
+    "backend_selection": "get_rate_limiter() from each Python process",
+    "database_access": false,
+    "active_candidate_changed": false
+  },
+  "first_process": {
+    "identity": "kernel-process-reset-20261011",
+    "requests": 101,
+    "allowed": 100,
+    "denied": 1,
+    "result": "default bucket exhausted"
+  },
+  "second_process": {
+    "identity": "kernel-process-reset-20261011",
+    "requests": 1,
+    "allowed": 1,
+    "result": "fresh local bucket after first Python process exited"
+  },
+  "result": "pass",
+  "limits": [
+    "This verifies local provider state does not survive a Python OS process boundary in the same container.",
+    "This does not restart or probe the active gateway service/container and does not certify supervisor or Compose restart behavior.",
+    "No PostgreSQL shared-provider, multi-process simultaneous budget, or multi-replica behavior was exercised."
+  ],
+  "side_effects": {
+    "domain_data_writes": false,
+    "schema_migrations": false,
+    "gateway_audit_rows_written": false,
+    "candidate_containers_changed": false,
+    "pytest_suite": false
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "check": "Real gateway audit write failure during PostgreSQL limiter outage",
+  "date": "2026-10-11",
+  "execution": {
+    "active_candidate_stack_touched": false,
+    "container": "disposable; removed automatically",
+    "database_target": "127.0.0.1:1 (closed loopback port)",
+    "durable_data_written": false,
+    "harness": "Python in-process ASGI invocation with real GatewayAudit.log and an in-memory log capture",
+    "host_mounts": false,
+    "network_mode": "none",
+    "pytest_suite_run": false,
+    "schema_migrations_run": false
+  },
+  "image": {
+    "image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "tag": "kokonut-kernel-candidate-app:latest"
+  },
+  "limitations": [
+    "No durable denial record exists because the database was unreachable; this confirms visible failure handling, not durable audit availability.",
+    "No sustained outage, audit replay after database recovery, or API traffic across separate containers/replicas was exercised."
+  ],
+  "provider": {
+    "local_fallback": false,
+    "selected_backend": "PostgresRateLimiter",
+    "setting": "postgres"
+  },
+  "request": {
+    "identity": "synthetic loopback IP identity; no credential supplied",
+    "method": "GET",
+    "path": "/health"
+  },
+  "result": {
+    "audit_connection_attempts": 1,
+    "audit_failure_exception_type": "OperationalError",
+    "audit_failure_logged": true,
+    "durable_audit_persisted": false,
+    "http_status": 503,
+    "passed": true,
+    "response_completed": true,
+    "retry_after_seconds": 30
+  },
+  "rollback": "Disposable network-disabled container only; no configuration, service, database, or durable state changed."
+}

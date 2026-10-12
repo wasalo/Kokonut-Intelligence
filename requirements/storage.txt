@@ -1,0 +1,2 @@
+# Explicit dependency for authenticated encryption of local private media.
+pycryptodome>=3.24.0,<4.0.0

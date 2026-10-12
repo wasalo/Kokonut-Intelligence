@@ -1,0 +1,92 @@
+{
+  "analytics_source": {
+    "curated_view_select": "passed",
+    "denials": [
+      "base table SELECT",
+      "CREATE TABLE",
+      "view INSERT"
+    ],
+    "public_extension_metadata_relations": 5,
+    "role": "kokonut_analytics_ro",
+    "unreviewed_public_relations_readable": 0
+  },
+  "cross_database_connect_denied": {
+    "kokonut_analytics_ro": [
+      "metabase",
+      "postgres"
+    ],
+    "kokonut_directus_runtime": [
+      "metabase",
+      "postgres"
+    ],
+    "kokonut_metabase_app": [
+      "kokonut_intelligence",
+      "postgres"
+    ]
+  },
+  "database_names": [
+    "kokonut_intelligence",
+    "metabase",
+    "postgres",
+    "template1",
+    "template_postgis"
+  ],
+  "directus_runtime": {
+    "ddl_and_admin_denials": [
+      "CREATE TABLE",
+      "CREATE ROLE",
+      "CREATE DATABASE",
+      "SET ROLE admin"
+    ],
+    "dml_probe": "passed",
+    "ownership": "none",
+    "public_relations_with_dml": 1386,
+    "role": "kokonut_directus_runtime",
+    "schemas": [
+      "public",
+      "kokonut"
+    ]
+  },
+  "metabase_metadata": {
+    "application_relations_owned_by_role": 290,
+    "cluster_admin_denials": [
+      "CREATE ROLE",
+      "CREATE DATABASE"
+    ],
+    "database": "metabase",
+    "database_owned_by_role": true,
+    "role": "kokonut_metabase_app",
+    "synthetic_migration_ddl_and_dml": "passed"
+  },
+  "private_payloads_or_passwords_printed": false,
+  "restored_rows_changed": false,
+  "result": "passed",
+  "role_attributes": {
+    "kokonut_analytics_ro": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "kokonut_directus_runtime": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "kokonut_metabase_app": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "scope": "fresh isolated populated logical restore; synthetic probes only",
+  "verified_on": "2026-10-11"
+}

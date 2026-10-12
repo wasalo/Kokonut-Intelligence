@@ -1,0 +1,74 @@
+{
+  "checked_on": "2026-10-11",
+  "result": "passed",
+  "recovery_project": "kokonut-kernel-metabase-populated-20261011",
+  "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "metabase_image": "metabase/metabase:v0.62.4@sha256:22ddc782a45f8aecf47c0f039b86a323435565595643e429fb33d29939b41675",
+  "encrypted_inputs": {
+    "kokonut_intelligence.dump.age": "ec38e3652c58d2aefa2ab2c54675a50d7b3583714bf8af355b335aa5e7803fc4",
+    "metabase.dump.age": "6aecd5fbadf449778d2a667d27d89ad00977aaed89184f6d52404b4db31118bb"
+  },
+  "network": "internal_only",
+  "published_ports": false,
+  "role_boundary_fixture": {
+    "result": "passed",
+    "metabase_runtime_role": "kokonut_metabase_app",
+    "metabase_database_owned_by_runtime_role": true,
+    "metabase_application_relations_owned": 290,
+    "all_optional_roles_non_superuser_without_memberships": true,
+    "analytics_curated_view_select_passed": true,
+    "analytics_base_table_and_metadata_select_denied": true,
+    "cross_database_connections_denied": true,
+    "restored_domain_rows_changed": false
+  },
+  "runtime": {
+    "docker_health": "healthy",
+    "health_endpoint_http_status": 200,
+    "metadata_database": "metabase",
+    "saved_content_counts_from_archive_inventory_baseline": {
+      "cards": 39,
+      "dashboards": 1,
+      "dashboard_card_placements": 22,
+      "users": 1
+    },
+    "saved_content_counts_after_startup": {
+      "cards": 39,
+      "dashboards": 1,
+      "dashboard_card_placements": 22,
+      "users": 1
+    },
+    "archive_baseline_matches_post_startup_counts": true,
+    "card_sources_after": [
+      {
+        "engine": "h2",
+        "is_sample": true,
+        "query_type": "query",
+        "count": 39
+      }
+    ],
+    "dashboard_card_sources_after": [
+      {
+        "engine": "h2",
+        "count": 22
+      }
+    ],
+    "source_detail_keys": ["db"],
+    "source_values_or_card_names_printed": false,
+    "saved_query_definitions_or_sql_read": false,
+    "saved_cards_executed": false
+  },
+  "cleanup": {
+    "recovery_containers_removed": true,
+    "recovery_network_removed": true,
+    "named_volume_retained": "kokonut-kernel-metabase-populated-20261011_consumer-role-postgres-data",
+    "synthetic_environment_file_removed": true,
+    "candidate_api_and_database_healthy": true,
+    "legacy_stack_stopped": true
+  },
+  "limitations": [
+    "HTTP health and saved-content counts do not prove that the sample H2 database is reachable.",
+    "No saved card was rendered or executed; result-value and semantic parity remain unverified.",
+    "The sample H2 connection's db value was not inspected or printed.",
+    "This is a startup rehearsal, not authorization to promote Metabase into a Kernel profile."
+  ]
+}

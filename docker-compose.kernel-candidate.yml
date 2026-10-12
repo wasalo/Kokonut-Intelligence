@@ -1,0 +1,69 @@
+# Standalone candidate; do not combine with legacy Compose files or reuse its data.
+# Incomplete capability parity: see docs/refactor/kernel-candidate.md.
+services:
+  database:
+    image: postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+    volumes:
+      - kernel-postgres-data:/var/lib/postgresql/data
+    networks:
+      - kernel
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    init: true
+    stop_grace_period: 40s
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${KOKONUT_KERNEL_PORT:-8098}:8099"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut}
+      KOKONUT_ENV: production
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}}
+      KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      KOKONUT_FEATURE_GRPC: "false"
+      KOKONUT_FEATURE_METABASE: "false"
+      KOKONUT_FEATURE_MQTT: "false"
+      KOKONUT_FEATURE_PREFECT: "false"
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      KOKONUT_RATE_LIMIT_PROVIDER: ${KOKONUT_RATE_LIMIT_PROVIDER:-local}
+      KOKONUT_GATEWAY_AUDIT_SPOOL_PATH: /var/lib/kokonut/gateway-audit/gateway-audit.sqlite3
+      KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS: ${KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS:-10000}
+      KOKONUT_GATEWAY_AUDIT_SPOOL_ALERT_THRESHOLD: ${KOKONUT_GATEWAY_AUDIT_SPOOL_ALERT_THRESHOLD:-0}
+      KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}
+      KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES:-536870912}
+    volumes:
+      - kernel-gateway-audit-spool:/var/lib/kokonut/gateway-audit
+    networks:
+      - kernel
+
+networks:
+  kernel:
+
+volumes:
+  kernel-postgres-data:
+  kernel-gateway-audit-spool:

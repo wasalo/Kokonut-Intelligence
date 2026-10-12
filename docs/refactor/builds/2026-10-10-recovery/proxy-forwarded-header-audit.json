@@ -1,0 +1,41 @@
+{
+  "check": "caddy-forwarded-header-audit-identity",
+  "date_local": "2026-10-10",
+  "phase": 6,
+  "compose_project": "kokonut-kernel-xff-check-20261011",
+  "proxy_published_host_ports": [],
+  "verification_network_internal": true,
+  "upstream": "existing healthy Kernel candidate app on kokonut-kernel-candidate_kernel",
+  "probe": {
+    "method": "GET",
+    "unique_path": "/__codex_proxy_xff_probe_20261011T0310Z_a91f3c",
+    "spoofed_headers": {
+      "X-Forwarded-For": "198.51.100.77, 10.0.0.8",
+      "X-Real-IP": "203.0.113.44",
+      "Forwarded": "for=192.0.2.99;proto=https;host=spoof.invalid"
+    },
+    "response_status": 401
+  },
+  "audit_result": {
+    "query_scope": "read-only query filtered to the exact unique request path",
+    "matching_rows": 1,
+    "status": "denied",
+    "http_method": "GET",
+    "recorded_ip_matches_caddy_network_peer": true,
+    "recorded_ip_matches_any_spoofed_value": false
+  },
+  "side_effects": {
+    "persisted_candidate_access_audit_row": true,
+    "domain_data_writes": false,
+    "schema_migrations": false,
+    "candidate_app_or_database_restarted": false,
+    "legacy_stack_started": false
+  },
+  "limitations": [
+    "single-hop Caddy path only",
+    "does not define client IP trust across multiple proxies or other ingress providers",
+    "does not test rate-limit identity behavior",
+    "does not validate host-published or public ingress"
+  ],
+  "cleanup": "Removed the temporary Caddy container, internal verification network, and project volumes. The expected denied audit record remains in the candidate database."
+}

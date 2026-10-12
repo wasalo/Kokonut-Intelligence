@@ -2,6 +2,7 @@
   "name": "@kokonut-intelligence/sdk",
   "version": "0.1.0",
   "description": "JavaScript/TypeScript SDK for Kokonut Intelligence Platform",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -19,11 +20,12 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "vitest": "^1.6.0"
+    "vitest": "^5.0.3"
   },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/kokonut-intelligence/sdk-javascript"
+    "url": "https://github.com/wasalo/Kokonut-Intelligence.git",
+    "directory": "sdk/javascript"
   }
 }

@@ -26,7 +26,6 @@ from datetime import datetime, timezone
 
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, insert_clickhouse_rows, log_ingestion
-from .clickhouse_outbox import enqueue
 from .field_validation import parse_reading_timestamp, validate_sensor_reading
 
 # Lazy event bus — initialized on first publish to avoid import-time side effects
@@ -80,8 +79,8 @@ def _ch_str(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
-def get_sensor_type_ranges(db) -> dict:
-    """Load sensor type ranges from database."""
+def get_sensor_type_ranges(db, *, strict: bool = False) -> dict:
+    """Load ranges; strict callers propagate query failures to their transaction."""
     ranges = dict(SENSOR_TYPE_RANGES)
     try:
         with db.cursor() as cur:
@@ -90,7 +89,8 @@ def get_sensor_type_ranges(db) -> dict:
                 if min_val is not None and max_val is not None:
                     ranges[name] = (float(min_val), float(max_val))
     except Exception:
-        pass
+        if strict:
+            raise
     return ranges
 
 
@@ -152,16 +152,41 @@ def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
         if row:
             return str(row[0])
         cur.execute(
-            "SELECT id FROM sensor_reading WHERE sensor_id = %s AND reading_date = %s AND reading_time = %s",
+            "SELECT id, value, quality FROM sensor_reading WHERE sensor_id = %s AND reading_date = %s AND reading_time = %s",
             (str(sensor_id), reading_date, reading_time),
         )
-        return str(cur.fetchone()[0])
+        existing = cur.fetchone()
+        from decimal import ROUND_HALF_UP, Decimal
+
+        canonical_value = Decimal(str(value)).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+        if existing[1] != canonical_value or existing[2] != quality:
+            raise ValueError("Sensor timestamp conflicts with an existing reading")
+        return str(existing[0])
 
 
 def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time: str,
                                value: float, quality: str = "good", conn=None) -> None:
     """Queue canonical sensor rows; direct writes are demo-only when conn is absent."""
     sensor_id, name, slug, sensor_type_id, sensor_type, location_id, plot_id, status, protocol = sensor_info
+
+    if conn is not None:
+        # Project the stored source, including its numeric precision and unit.
+        # Failure must propagate so the caller can roll back source and outbox.
+        from .sensor_projection import project_sensor_reading
+
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id,location_id,plot_id,sensor_id,sensor_type,value,unit,
+                       reading_date,reading_time,quality
+                FROM sensor_reading
+                WHERE sensor_id=%s AND reading_date=%s AND reading_time=%s
+            """, (str(sensor_id), reading_date, reading_time or "00:00:00"))
+            reading = cur.fetchone()
+        if reading is None:
+            raise ValueError("Canonical sensor reading must exist before projection")
+        timestamp = datetime.combine(reading[7], reading[8], tzinfo=timezone.utc)
+        project_sensor_reading(*reading[:7], timestamp, quality=reading[9], conn=conn)
+        return
 
     # Build timestamp
     ts_str = f"{reading_date} {reading_time}" if reading_time else f"{reading_date} 00:00:00"
@@ -181,14 +206,6 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
             ts, str(sensor_id), sensor_type, str(location_id), str(plot_id) if plot_id else "",
             float(value), unit, quality, {},
         ]]
-        if conn is not None:
-            payload_hash = hash_payload({"sensor_id": str(sensor_id), "reading_date": reading_date,
-                                         "reading_time": reading_time, "value": value})
-            enqueue(conn, event_key=f"sensor_reading:sensor_readings:{payload_hash}",
-                    source_table="sensor_reading", source_id=payload_hash,
-                    target_table="sensor_readings", columns=columns, rows=rows,
-                    payload_hash=payload_hash)
-            return
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         insert_clickhouse_rows(
             "sensor_readings",

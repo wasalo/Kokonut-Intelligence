@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
-Mobile / Offline Data Collection
+Legacy transport/admin CLI for the older mobile offline queue.
+
+This module does not validate Field Collector form revisions, participant
+links, or consent. After migration 381, rows staged here remain unassessed and
+cannot pass ``v_mobile_collection_use_eligibility``. Use ``services.mobile.api``
+for consent-aware Field Collector admission; this CLI's sync status describes
+transport only and is not an authorization to report or publish a collection.
 
 Device registration, offline queue management, sync coordination,
 and conflict resolution for field workers.
@@ -371,7 +377,7 @@ def get_sync_status(conn) -> dict:
 # CLI
 # ============================================================
 
-cli = CommandLine("mobile_offline", "Mobile/offline data collection")
+cli = CommandLine("mobile_offline", "Legacy mobile transport queue (no consent eligibility checks)")
 
 
 def _render(result, args, human):

@@ -1,0 +1,48 @@
+{
+  "date": "2026-10-11",
+  "review_stage": "before active-candidate migrations 371-379 were applied",
+  "target": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_file": "docker-compose.kernel-candidate.yml",
+    "database_container": "kokonut-kernel-candidate-database-1",
+    "database": "kokonut_intelligence",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "app_status": "healthy",
+    "database_status": "healthy"
+  },
+  "method": "Read-only psql session inside the candidate database container; BEGIN READ ONLY followed by ROLLBACK.",
+  "result": {
+    "database_owner": "kokonut",
+    "database_owner_is_superuser": true,
+    "login_and_superuser_roles": ["kokonut"],
+    "runtime_role_present": false,
+    "analytics_source_role_present": false,
+    "metabase_metadata_role_present": false,
+    "reporting_schema_present": false,
+    "reporting_view_present": false,
+    "database_acl": {
+      "kokonut_intelligence": ["PUBLIC: CONNECT", "PUBLIC: TEMPORARY", "kokonut: CONNECT", "kokonut: CREATE", "kokonut: TEMPORARY"],
+      "postgres": ["PUBLIC: CONNECT", "PUBLIC: TEMPORARY", "kokonut: CONNECT", "kokonut: CREATE", "kokonut: TEMPORARY"],
+      "template1": ["PUBLIC: CONNECT", "kokonut: CONNECT", "kokonut: CREATE", "kokonut: TEMPORARY"]
+    },
+    "public_schema_acl": ["PUBLIC: USAGE", "pg_database_owner: CREATE", "pg_database_owner: USAGE"],
+    "installed_extensions": [
+      {"name": "pg_stat_statements", "version": "1.10", "schema": "public"},
+      {"name": "pg_trgm", "version": "1.6", "schema": "public"},
+      {"name": "pgcrypto", "version": "1.3", "schema": "public"},
+      {"name": "postgis", "version": "3.4.3", "schema": "public"},
+      {"name": "postgis_topology", "version": "3.4.3", "schema": "topology"},
+      {"name": "uuid-ossp", "version": "1.1", "schema": "public"}
+    ],
+    "candidate_mutated": false,
+    "legacy_stack_mutated": false
+  },
+  "reporting_source_readiness": "not_ready",
+  "decision_at_review": "Do not create the analytics login or configure a Metabase source on this target. First resolve the exact-target migration checksum history, apply and review the reporting migration through the tracked runner, then provision a dedicated read-only source role after reviewing all instance database and inherited extension ACLs. The candidate's only login/superuser role is kokonut; the application database grants PUBLIC CONNECT and TEMPORARY.",
+  "limitations": [
+    "This is an ACL inventory, not an authorization test.",
+    "No database, role, schema, grant, source, or application data was changed.",
+    "The candidate has nine pending migrations and one applied-source checksum mismatch; schema 377 reporting objects are therefore not present.",
+    "The migration's explicit PUBLIC revokes apply to kokonut_reporting only and do not by themselves restrict database CONNECT privileges or inherited extension metadata grants."
+  ]
+}

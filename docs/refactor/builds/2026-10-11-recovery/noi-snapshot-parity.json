@@ -1,0 +1,74 @@
+{
+  "record_type": "kokonut-kernel-noi-snapshot-parity-v1",
+  "observed_at_utc": "2026-10-11T20:21:27Z",
+  "safe_seed_review": {
+    "network": "Gnosis Chain",
+    "chain_id": 100,
+    "rpc_source": "https://rpc.gnosischain.com",
+    "core_team_safe": {
+      "address": "0x03779b674cbcbfc0b801c4cac9dfac8aacbbd5c5",
+      "runtime_code_nonempty": true,
+      "version_getter": "1.4.1",
+      "seed_version_label": "1.4.1+L2",
+      "nonce": 7,
+      "threshold": 2,
+      "owners": [
+        "0xf7e75e58dfa8ce8f278444523d8564992f5e5322",
+        "0x535d64eb74a24883944c9a44c02a2733f929bfff",
+        "0x0ea26051f7657d59418da186137141cea90d0652"
+      ],
+      "matches_seed_owners_threshold_nonce": true
+    },
+    "dao_treasury_safe": {
+      "address": "0xeb55b75328a8dffd45bbf34b7e7efc431a179085",
+      "runtime_code_nonempty": true,
+      "version_getter": "1.3.0",
+      "seed_version_label": "1.3.0",
+      "nonce": 0,
+      "threshold": 1,
+      "owners": [
+        "0x8977c56e979f0d8b76afb5ad85549acd2e96422d"
+      ],
+      "matches_seed_owners_threshold_nonce": true,
+      "owner_contract_runtime_code_nonempty": true,
+      "owner_contract_role": "Baal"
+    }
+  },
+  "noi_review": {
+    "source_volume": "kokonut-kernel-migration-review-20261011_data",
+    "source_schema_through": 378,
+    "source_read_only_query": true,
+    "crop_cycles": 6,
+    "view_rows": 6,
+    "sales_events": 15,
+    "expense_events": 43,
+    "cost_allocations": 126,
+    "harvest_events": 12,
+    "snapshots_before": 6,
+    "snapshots_last_calculated_at": "2026-07-19T09:13:36Z",
+    "independent_source_recomputation": {
+      "noi_rows_compared": 6,
+      "noi_mismatches": 0,
+      "loss_rate_mismatches": 0,
+      "allocations_on_unverified_or_rejected_expenses": 0
+    },
+    "snapshot_view_mismatches_before": 6,
+    "duplicate_snapshot_crop_cycle_keys_before": 0,
+    "unique_crop_cycle_index_before": false,
+    "scratch_volume": "kokonut-kernel-noi-parity-20261011_data",
+    "scratch_network": "none",
+    "migration_379_applied_with_repository_runner": true,
+    "rows_reconciled": 6,
+    "snapshots_after": 6,
+    "snapshot_view_mismatches_after": 0,
+    "duplicate_snapshot_crop_cycle_keys_after": 0,
+    "scratch_volume_removed_after_verification": true,
+    "source_clone_candidate_and_legacy_stack_modified": false,
+    "environment_note": "PostgreSQL logged a collation-version mismatch warning inherited from the copied cluster; queries and migration succeeded."
+  },
+  "limitations": [
+    "Active-target duplicate-key preflight and backup verification remain required.",
+    "The native schedule is planned but remains disabled.",
+    "This does not close Metabase source/card or populated report-output parity."
+  ]
+}

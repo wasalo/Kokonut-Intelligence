@@ -1,0 +1,18 @@
+[
+  {
+    "platform": "linux/amd64",
+    "tag": "kokonut-kernel-candidate:local",
+    "image_id": "sha256:287fcfb9aa05990220dd1bd67a4aff524c99f24f1723f2485e5590bd29341166",
+    "reported_size_bytes": 475296892,
+    "user": "appuser",
+    "packages": 68
+  },
+  {
+    "platform": "linux/arm64",
+    "tag": "kokonut-kernel-candidate-arm64:local",
+    "image_id": "sha256:a335b9d370575363d5fc80e7970511e9150d5f4a23353d8827af749ffbd5ef80",
+    "reported_size_bytes": 112224575,
+    "user": "appuser",
+    "packages": 68
+  }
+]

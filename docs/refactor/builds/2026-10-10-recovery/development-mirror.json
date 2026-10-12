@@ -1,0 +1,47 @@
+{
+  "files": [
+    {
+      "checkpoint": "kernel-batch2-20261010",
+      "file": "database-image.txt",
+      "bytes": 72,
+      "sha256": "d3747ab38650011cfca3f86114419c60bd8c2231805e1f2c88fd1f7fbc15c7f8",
+      "mirror_equal": true
+    },
+    {
+      "checkpoint": "kernel-batch2-20261010",
+      "file": "legacy-redis-broker.tar.age",
+      "bytes": 10440,
+      "sha256": "5f37118a89f74b0ae69952222b8748b133ce28ab1ff0003fbdfc8e8788a23440",
+      "mirror_equal": true
+    },
+    {
+      "checkpoint": "kernel-batch2-20261010",
+      "file": "manifest.json",
+      "bytes": 553,
+      "sha256": "546af0b1407ed9f48aeddcd20fc42cb10e32d95502be4a9f8ec956f32ccb18bc",
+      "mirror_equal": true
+    },
+    {
+      "checkpoint": "kernel-batch2-20261010",
+      "file": "postgres.dump.age",
+      "bytes": 4921331,
+      "sha256": "047baca477766567627179a9e03d3600c69b7a7a5f12faa0ebda95875871815a",
+      "mirror_equal": true
+    },
+    {
+      "checkpoint": "legacy-storage-batch2-20261010",
+      "file": "legacy-storage.tar.age",
+      "bytes": 2887514584,
+      "sha256": "53402249c4a575bafccfc380d293ff46a964b83f98e2998e33d9dcdedf269b77",
+      "mirror_equal": true
+    },
+    {
+      "checkpoint": "legacy-storage-batch2-20261010",
+      "file": "manifest.json",
+      "bytes": 2736,
+      "sha256": "75a5add001787f113e3b95a30551936a2b91fa040ad15384ac41b734c65ec1dd",
+      "mirror_equal": true
+    }
+  ],
+  "scope": "Same-disk local development copy; independent R2 production backup deferred by user."
+}

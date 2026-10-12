@@ -62,6 +62,21 @@ The browser loads `field-collector-vault.js` from the same origin as its entry
 point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
 `/api/mobile/field-collector-vault.js`, or the Caddy static `/field/` route).
 
+The built-in `1.2.0` farm activity, harvest, expense, field note, and soil
+sample forms are classified `not_required` for participant-linked consent
+because their defined purpose is location-scoped farm operations and ecological
+data. This is a form-purpose decision, not a legal determination or permission
+to collect personal data. Sync validates payload structure against the exact
+immutable form schema; the built-in `1.2.0` schemas reject undeclared fields
+and invalid values. This does not detect sensitive content inside free text or
+inspect photos. Do not enter worker
+identifiers, personal receipts/account details, or person-centered/sensitive
+notes; use a separate consent-required workflow for participant-focused data.
+The local candidate now serves the five `1.2.0` revisions and matching app.
+Other environments must follow the same checksummed migration and seed
+workflow. See the [policy decision record](../../docs/refactor/mobile-form-classification-review.md)
+and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
+
 ### Private media and request protections
 
 - `POST /api/mobile/media/uploads` requires an active `X-Device-Token` and a
@@ -89,8 +104,11 @@ point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
   other write requests. CORS is closed by default: set `CORS_ORIGIN` to an
   explicit comma-separated list of trusted browser origins; wildcard origins
   are ignored. Same-origin `/mobile` deployments need no CORS entry. Gateway
-  rate-limit denials and handler outcomes use the existing audit service; the
-  device token itself is not logged.
+  preflight allows the Field Collector's device, collection, form, participant,
+  and timestamp headers, plus API-key/capability and CSRF headers. Credentialed
+  browser requests are enabled only when the optional OIDC provider is active.
+  Gateway rate-limit denials and handler outcomes use the existing audit
+  service; the device token itself is not logged.
 
 ## Browser vault
 
@@ -112,18 +130,40 @@ point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
   encryption against a compromised active session. Avoid shared/untrusted
   devices and lock the vault before handing the device to someone else.
 
-The trusted-device flow uses schema migration `357_field_collector_enrollment_hardening.sql` (not applied to any live database in this work):
+The trusted-device flow uses schema migration `357_field_collector_enrollment_hardening.sql`:
 
-- `POST /api/mobile/locations/{location_id}/enrollments` issues a short-lived, single-use enrollment code. It requires a Gateway capability or API key scoped to `mobile_device:enroll` and that location. The plaintext code is returned once; only its SHA-256 hash is stored.
+- `POST /api/mobile/locations/{location_id}/enrollments` issues a short-lived, single-use enrollment code. It requires a Gateway capability or API key scoped to `mobile_device:enroll` and that location. With OIDC enabled, the same-origin operator console provides `/operator/api/mobile/locations/{location_id}/enrollments`, which requires an OIDC session, the same location grant, and CSRF validation. The plaintext code is returned once with `Cache-Control: no-store`; only its SHA-256 hash is stored.
 - `POST /api/mobile/register` requires `device_id` and `enrollment_code`. The server derives `user_id` and `location_id` from the locked enrollment claim. A conflicting `device_id` is rejected with `409`; registration cannot reassign an existing device.
-- `DELETE /api/mobile/locations/{location_id}/enrollments/{enrollment_id}` revokes an unused claim. `POST /api/mobile/locations/{location_id}/devices/{device_id}/revoke` revokes an active device and clears its token hash; both require location-scoped Gateway authorization.
+- `DELETE /api/mobile/locations/{location_id}/enrollments/{enrollment_id}` revokes an unused claim. `POST /api/mobile/locations/{location_id}/devices/{device_id}/revoke` revokes an active device and clears its token hash; both require location-scoped Gateway authorization. OIDC operators use matching same-origin `/operator/api/mobile/...` routes with `mobile_device:revoke` and CSRF.
 - `GET /api/mobile/forms` returns only explicitly public global forms to anonymous clients (`location_id IS NULL AND is_public = TRUE`). A device may send `X-Device-Token` for global and its server-assigned location forms; caller-supplied location queries are rejected when they do not match the device.
-- `POST /api/mobile/sync` accepts up to 50 idempotent records per request. Device identity and location are derived from the active device token.
+- `POST /api/mobile/locations/{location_id}/participants` creates a reviewer-approved opaque participant reference; `/participants/revoke` revokes it. With OIDC enabled, both routes require a location grant and CSRF validation. Otherwise they require a location-scoped Gateway capability or API key. The raw reference is returned only once; only its SHA-256 digest is stored.
+- `POST /api/mobile/sync` accepts up to 50 idempotent records per request. Device identity and location are derived from the active device token. New records must match an immutable known form revision and collection type. Every `required` revision, active or known-retired, needs a matching unrevoked participant link and exact consent grant at collection and sync. Retired revisions enter private review and remain unassessed/ineligible even when consent checks pass.
+- Private photo uploads carry the collection's form/version/reference/timestamp and check required consent before the Gateway reads or stores JPEG bytes. Sync checks consent again before attaching uploaded objects, including for known retired revisions.
 - `GET /api/mobile/sync/status` returns device queue status.
 
-Private-media upload/reference flow, request-size policy, stricter CORS, and
-route-level security acceptance tests are implemented in source and locally
-tested. Migrations `357_field_collector_enrollment_hardening.sql` and
-`358_mobile_private_media.sql` are not applied to any live database. No live
-database, Staging environment, or Cloudflare resource was changed; expired
-object-byte cleanup remains open before production use.
+Migration 381 adds immutable form revisions, reviewer-created participant
+links, consent validation metadata, and the downstream
+`v_mobile_collection_use_eligibility` gate. Migration 381 and the curated form
+seed are applied to the local candidate; it has 372 applied schemas, zero
+pending migrations, five active `1.2.0` forms, five retired `1.1.0` revisions,
+and no mobile collection rows. The new validator is deployed in the candidate
+app. A fresh encrypted checkpoint restored successfully into an isolated
+template0-derived database before the seed and app rollout.
+Other populated deployments must apply 381 and the curated seed in order;
+legacy rows remain unassessed. The older
+`services.analytics.mobile_offline` CLI stages transport rows without consent
+validation; after migration 381 those rows remain unassessed and cannot pass the
+eligibility view. Sixty focused mobile/schema tests passed; four targeted CORS
+checks passed in the previous rollout slice. An isolated current-image HTTP
+sync check returned 422 without echoing or storing an undeclared field and
+accepted a valid `1.2.0` payload; its synthetic fixture was removed from the
+database clone. The test bypassed the enrollment route, so the trusted
+enrollment/OIDC and full mobile workflow acceptance remain open. The legacy project,
+staging/production databases, and Cloudflare resources were not changed.
+Expired object-byte cleanup and full live mobile workflow acceptance remain open
+before production use.
+
+See the implemented [`mobile access contract`](../../docs/refactor/mobile-access-contract.md)
+for the full policy, review gates, and rollback. Enrollment and location binding
+do not imply participant consent; the collector's string `user_id` remains
+separate from the canonical participant party.

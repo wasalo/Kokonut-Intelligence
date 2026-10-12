@@ -1,0 +1,42 @@
+{
+  "check": "PostgreSQL shared rate-limit consumption across separate OS processes",
+  "database": {
+    "bucket_rows_after": 0,
+    "bucket_rows_before": 0,
+    "compose_project": "kokonut-kernel-portability",
+    "migration": 373,
+    "returned_to_prior_stopped_state": true,
+    "service": "database"
+  },
+  "date": "2026-10-11",
+  "image": {
+    "image_id": "sha256:af60cbcb698dec288b3064dfa0b1bf4ee1891d25665ee0f56198a5b465cd2130",
+    "tag": "kokonut-kernel-portability-app:local"
+  },
+  "isolation": {
+    "audit_rows_written": false,
+    "candidate_stack_touched": false,
+    "domain_rows_written": false,
+    "one_off_app_container_removed": true,
+    "pytest_suite_run": false,
+    "schema_migrations_run": false
+  },
+  "limitations": [
+    "The calls exercised the shared limiter directly from four Python OS processes inside one app container, not HTTP requests through separate API containers or deployed replicas.",
+    "Durable audit behavior during database outages remains unverified.",
+    "PostgreSQL provider remains opt-in and the active candidate continues using the local provider."
+  ],
+  "probe": {
+    "allowed": 114,
+    "denied": 46,
+    "elapsed_seconds": 1.653,
+    "os_processes": 4,
+    "passed": true,
+    "provider": "PostgresRateLimiter",
+    "refill_aware_upper_bound": 121,
+    "remaining_bucket_rows": 0,
+    "requests": 160,
+    "synthetic_rows_deleted": 1
+  },
+  "rollback": "Deleted the one synthetic caller bucket and stopped the portability database, restoring its prior stopped state; no configuration changed."
+}

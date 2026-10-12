@@ -183,11 +183,47 @@ def test_apply_batch_locks_and_rechecks_before_applying(tmp_path, monkeypatch):
     assert "pg_advisory_lock(777204681)" in apply_sql
     assert "migration_applied" in apply_sql
     assert "\\if :check_migration_applied" in apply_sql
+    assert apply_sql.count("BEGIN;") == 1
     assert "CREATE TABLE example" in apply_sql
     assert "INSERT INTO schema_migration" in apply_sql
+    assert apply_sql.count("COMMIT;") == 1
+    assert apply_sql.index("INSERT INTO schema_migration") < apply_sql.index("COMMIT;")
     assert "ON CONFLICT" in apply_sql
     assert "o'hare" not in apply_sql
     assert calls[0]["variables"]["migration_id"] == "schema:001_o'hare.sql"
+
+
+def test_apply_batch_folds_explicit_transaction_into_atomic_ledger_write(tmp_path, monkeypatch):
+    migration = _sql_file(
+        tmp_path / "001_wrapped.sql",
+        "-- explicit wrapper\nBEGIN;\nCREATE TABLE example (id int);\n"
+        "COMMIT;\nCREATE INDEX extra_idx ON example(id);\n",
+    )
+    calls = []
+    monkeypatch.setattr(
+        cli,
+        "_psql",
+        lambda sql, variables=None: calls.append({"sql": sql, "variables": variables}),
+    )
+
+    cli._apply_files([{
+        "id": "schema:001_wrapped.sql",
+        "name": "001_wrapped",
+        "path": migration,
+        "checksum": "abc",
+    }])
+
+    apply_sql = calls[0]["sql"]
+    assert apply_sql.count("BEGIN;") == 1
+    assert apply_sql.count("COMMIT;") == 1
+    assert apply_sql.index("CREATE TABLE example") < apply_sql.index("INSERT INTO schema_migration")
+    assert apply_sql.index("CREATE INDEX extra_idx") < apply_sql.index("INSERT INTO schema_migration")
+    assert apply_sql.index("INSERT INTO schema_migration") < apply_sql.index("COMMIT;")
+
+
+def test_transaction_wrapper_rejects_unmatched_boundary():
+    with pytest.raises(cli.MigrationError, match="unsupported transaction boundaries"):
+        cli._migration_body_without_transaction("schema:001_bad.sql", "BEGIN;\nSELECT 1;\n")
 
 
 def test_plan_does_not_initialize_or_reconcile_tracking(monkeypatch):
@@ -258,3 +294,100 @@ def test_checksum_repair_validates_state_and_records_audit(monkeypatch):
         if isinstance(entry, tuple) and "schema_migration_repair" in entry[0]
     )
     assert "UPDATE schema_migration" in repair_sql
+
+
+def test_candidate_initial_extension_history_repair_is_explicit_and_audited(monkeypatch):
+    migration_id = "schema:000_extensions.sql"
+    old = cli.APPROVED_CHECKSUM_REPAIRS[migration_id]
+    new = cli.APPROVED_CHECKSUM_REPAIR_TARGETS[migration_id]
+    calls = []
+    monkeypatch.setattr(
+        cli, "_discover_files", lambda: [{"id": migration_id, "checksum": new}]
+    )
+    monkeypatch.setattr(cli, "_ensure_tracking_table", lambda: calls.append("ensure"))
+    monkeypatch.setattr(
+        cli, "_validate_repair_schema", lambda value: calls.append(("validate", value))
+    )
+
+    def fake_psql(sql, variables=None):
+        calls.append((sql, variables))
+        if sql.lstrip().startswith("SELECT checksum"):
+            return subprocess.CompletedProcess([], 0, f"{old}\tapplied\n", "")
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+    repair_id = cli.repair_checksum(
+        migration_id,
+        old,
+        "candidate source history matches verified repository-base migration",
+        "operator",
+    )
+
+    assert repair_id
+    assert calls[0:2] == ["ensure", ("validate", migration_id)]
+    repair_call = next(
+        entry for entry in calls
+        if isinstance(entry, tuple) and "schema_migration_repair" in entry[0]
+    )
+    assert repair_call[1]["old_checksum"] == old
+    assert repair_call[1]["new_checksum"] == new
+    assert "UPDATE schema_migration" in repair_call[0]
+
+
+def test_candidate_initial_extension_history_repair_requires_all_six_extensions(monkeypatch):
+    migration_id = "schema:000_extensions.sql"
+    sql_calls = []
+
+    def fake_psql(sql):
+        sql_calls.append(sql)
+        return subprocess.CompletedProcess([], 0, "f\n", "")
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+    with pytest.raises(cli.MigrationError, match="all six extensions"):
+        cli._validate_repair_schema(migration_id)
+
+    assert "pg_extension" in sql_calls[0]
+    for extension in (
+        "uuid-ossp", "pgcrypto", "postgis", "postgis_topology", "pg_trgm",
+        "pg_stat_statements",
+    ):
+        assert extension in sql_calls[0]
+
+
+def test_candidate_initial_extension_history_repair_accepts_complete_effect(monkeypatch):
+    sql_calls = []
+
+    def fake_psql(sql):
+        sql_calls.append(sql)
+        return subprocess.CompletedProcess([], 0, "t\n", "")
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+
+    cli._validate_repair_schema("schema:000_extensions.sql")
+
+    assert len(sql_calls) == 1
+
+
+def test_candidate_initial_extension_history_repair_rejects_another_checksum(monkeypatch):
+    migration_id = "schema:000_extensions.sql"
+    monkeypatch.setattr(
+        cli, "_discover_files", lambda: [{"id": migration_id, "checksum": "b" * 64}]
+    )
+
+    with pytest.raises(cli.MigrationError, match="not approved"):
+        cli.repair_checksum(migration_id, "a" * 64, "unapproved drift", "operator")
+
+
+def test_candidate_initial_extension_history_repair_rejects_changed_current_source(monkeypatch):
+    migration_id = "schema:000_extensions.sql"
+    monkeypatch.setattr(
+        cli, "_discover_files", lambda: [{"id": migration_id, "checksum": "b" * 64}]
+    )
+
+    with pytest.raises(cli.MigrationError, match="current source checksum is not approved"):
+        cli.repair_checksum(
+            migration_id,
+            cli.APPROVED_CHECKSUM_REPAIRS[migration_id],
+            "unreviewed current source",
+            "operator",
+        )

@@ -8,15 +8,12 @@ TypeScript gRPC client for the Kokonut Intelligence Platform.
 npm install @kokonut/intelligence-client
 ```
 
-## Generate protobuf types
+## Protocol definitions
 
-The `generated/` directory is gitignored. Regenerate after cloning:
-
-```bash
-npm run generate
-```
-
-Requires [Buf](https://buf.build) (`npx @bufbuild/buf`).
+The build copies the Data and Ecocredit service definitions and their imported
+pagination/types files into `dist/proto`. Published clients load these bundled
+files at runtime, so they work after installation without access to the
+repository checkout or a separate Buf generation step.
 
 ## Build
 
@@ -218,7 +215,6 @@ try {
 
 ```bash
 npm install        # install deps
-npm run generate   # generate protobuf types
 npm run build      # compile TypeScript
 npm test           # run tests
 npm run lint       # type-check

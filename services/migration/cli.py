@@ -23,11 +23,38 @@ SEED_DIR = PROJECT_DIR / "schemas" / "seeds"
 # Canonical KI tables and migration tracking live in public; exclude "$user" so
 # a role-named schema cannot shadow public objects during migrations.
 MIGRATION_SEARCH_PATH = "public, topology, tiger"
+COMPOSE_COMMAND = ("docker", "compose")
+
+
+def configure_compose(project: str | None, files: list[str] | None) -> None:
+    """Select an explicit deployment, or preserve the legacy ambient default."""
+    global COMPOSE_COMMAND
+    if project is None and not files:
+        COMPOSE_COMMAND = ("docker", "compose")
+        return
+    if not project or not files:
+        raise MigrationError("explicit Compose selection requires both --compose-project and --compose-file")
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", project):
+        raise MigrationError("Compose project must start with a lowercase letter/digit and use lowercase letters, digits, _ or -")
+    command = ["docker", "compose", "--project-directory", str(PROJECT_DIR.resolve()),
+               "--env-file", "/dev/null", "-p", project]
+    for filename in files:
+        path = Path(filename).expanduser().resolve()
+        if not path.is_file():
+            raise MigrationError(f"Compose manifest is unavailable: {path}")
+        command.extend(["-f", str(path)])
+    COMPOSE_COMMAND = tuple(command)
 
 # Historical post-apply edits that were merged before checksum enforcement was
 # consistently used. Repairs are only permitted for this explicit inventory;
 # new drift must be fixed with a new migration.
 APPROVED_CHECKSUM_REPAIRS = {
+    # The Kernel candidate was bootstrapped from the repository-base version
+    # of 000_extensions.sql, which installed these same six extensions before
+    # the three optional declarations were split into migration 378. Permit an
+    # audited ledger repair only when the exact known checksum is recorded and
+    # the complete extension effect is present on the target.
+    "schema:000_extensions.sql": "6e5850e52423ffe8cea241f7f5764bb6c074d55813de33c601c9e8b1495723ff",
     "schema:046_ecological_modeling.sql": "01dfc20ab0b3c2ae9c74faa3763866aa5c250deccef377f13f4128cd9c16c5ab",
     "schema:051_gap_closures.sql": "dcf5faf820dd4803119d418bbdbfa65edbfc61497d8417848d7fa99bb2d7c5f4",
     "schema:057_tree_tracking.sql": "e87318464ba890f4da3ab19a8ffbfe939bf03943993817213f7bfc7f412a016b",
@@ -44,6 +71,13 @@ APPROVED_CHECKSUM_REPAIRS = {
     # The live database contains the historical checksum from the original
     # pilot seed; repair it explicitly before applying the UID correction seed.
     "seed:014_pilot_celo_eas.sql": "2b7f95344a6453cb77fafc591255cb81e3c298553ea227241362d0c12183e9c8",
+}
+
+# This two-history repair is bound to both exact files: the candidate's
+# repository-base checksum and the current source checksum. If 000_extensions
+# changes again, the explicit compatibility review must be updated first.
+APPROVED_CHECKSUM_REPAIR_TARGETS = {
+    "schema:000_extensions.sql": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
 }
 
 
@@ -79,9 +113,10 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
         # ``cat file | psql`` pattern (which reintroduced SIGPIPE via cat).
         escaped_tmp = tmp_name.replace("'", "'\\''")
         quoted_args = " ".join(shlex.quote(argument) for argument in psql_args)
+        compose = shlex.join(COMPOSE_COMMAND)
         shell_cmd = [
             "sh", "-c",
-            f"docker compose exec -T database {quoted_args} < '{escaped_tmp}'",
+            f"{compose} exec -T database {quoted_args} < '{escaped_tmp}'",
         ]
         try:
             result = subprocess.run(
@@ -252,6 +287,19 @@ def _validate_repair_schema(migration_id: str) -> None:
     """Validate the live schema before repairing the known historical drift."""
     if migration_id not in APPROVED_CHECKSUM_REPAIRS:
         raise MigrationError(f"no approved checksum repair exists for {migration_id}")
+    if migration_id == "schema:000_extensions.sql":
+        result = _psql("""
+SELECT count(*) = 6
+FROM pg_extension
+WHERE extname = ANY(ARRAY[
+    'uuid-ossp', 'pgcrypto', 'postgis', 'postgis_topology', 'pg_trgm', 'pg_stat_statements'
+]);
+""")
+        if result.stdout.strip().lower() != "t":
+            raise MigrationError(
+                "schema validation failed: all six extensions from the historical source must exist"
+            )
+        return
     if migration_id == "seed:046_ecological_modeling.sql":
         result = _psql("""
 SELECT EXISTS (
@@ -300,6 +348,11 @@ def repair_checksum(
         raise MigrationError("old and current checksums are identical; no repair is needed")
     if APPROVED_CHECKSUM_REPAIRS.get(migration_id) != expected_old_checksum:
         raise MigrationError(f"checksum repair is not approved for {migration_id}")
+    expected_new_checksum = APPROVED_CHECKSUM_REPAIR_TARGETS.get(migration_id)
+    if expected_new_checksum and file_info["checksum"] != expected_new_checksum:
+        raise MigrationError(
+            f"current source checksum is not approved for repair of {migration_id}"
+        )
     if not reason.strip() or not repaired_by.strip():
         raise MigrationError("repair reason and operator are required")
 
@@ -347,6 +400,47 @@ COMMIT;
     return repair_id
 
 
+_TRANSACTION_CONTROL_LINE = re.compile(
+    r"^\s*(BEGIN|START\s+TRANSACTION|COMMIT)\s*;\s*$", re.IGNORECASE
+)
+
+
+def _migration_body_without_transaction(migration_id: str, sql_content: str) -> str:
+    """Remove balanced transaction markers so runner and ledger share one."""
+    lines = sql_content.splitlines()
+    boundary_lines: set[int] = set()
+    transaction_open = False
+    for index, line in enumerate(lines):
+        match = _TRANSACTION_CONTROL_LINE.match(line)
+        if not match:
+            continue
+        command = match.group(1).upper()
+        if command == "COMMIT":
+            if not transaction_open:
+                raise MigrationError(
+                    f"migration has unsupported transaction boundaries: {migration_id}"
+                )
+            transaction_open = False
+        else:
+            if transaction_open:
+                raise MigrationError(
+                    f"migration has nested transaction boundaries: {migration_id}"
+                )
+            transaction_open = True
+        boundary_lines.add(index)
+
+    if not boundary_lines:
+        return sql_content
+    if transaction_open:
+        raise MigrationError(
+            f"migration has unsupported transaction boundaries: {migration_id}"
+        )
+    return "\n".join(
+        line for index, line in enumerate(lines)
+        if index not in boundary_lines
+    ) + "\n"
+
+
 def _apply_files(files: list[dict]) -> None:
     """Apply migrations one at a time, each in its own psql session.
 
@@ -363,7 +457,9 @@ def _apply_files(files: list[dict]) -> None:
     for file_info in files:
         migration_id = file_info["id"]
         logger.info("Applying migration %s...", migration_id)
-        sql_content = file_info["path"].read_text()
+        sql_content = _migration_body_without_transaction(
+            migration_id, file_info["path"].read_text()
+        )
         sql_track = """
 INSERT INTO schema_migration
     (migration_id, version, name, sql_up, checksum, status, execution_time_ms, applied_by)
@@ -388,8 +484,10 @@ SELECT EXISTS (
 \\if :check_migration_applied
     SELECT pg_advisory_unlock(777204681);
 \\else
+BEGIN;
 {sql_content}
 {sql_track}
+COMMIT;
     SELECT pg_advisory_unlock(777204681);
 \\endif
 """
@@ -485,6 +583,9 @@ def main() -> None:
     parser.add_argument("--reason", help="Reason for the exceptional repair")
     parser.add_argument("--repaired-by", help="Operator performing the repair")
     parser.add_argument("--confirm", action="store_true", help="Confirm the audited checksum repair")
+    parser.add_argument("--compose-project", help="Explicit Compose project; requires --compose-file")
+    parser.add_argument("--compose-file", action="append",
+                        help="Explicit Compose manifest (repeat for overlays); requires --compose-project")
     parser.add_argument(
         "--schemas-only",
         action="store_true",
@@ -492,6 +593,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     try:
+        configure_compose(args.compose_project, args.compose_file)
         if args.command == "status":
             cmd_status()
         elif args.command == "validate":

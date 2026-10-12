@@ -1,0 +1,58 @@
+{
+  "check": "kernel-caddy-localhost-tls",
+  "date_local": "2026-10-10",
+  "phase": 6,
+  "compose_project": "kokonut-kernel-proxy-check-20261011",
+  "caddy_image": "caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+  "candidate_app": {
+    "container": "kokonut-kernel-candidate-app-1",
+    "image_id": "sha256:287fcfb9aa05990220dd1bd67a4aff524c99f24f1723f2485e5590bd29341166",
+    "reused_existing_healthy_container": true,
+    "rebuilt_or_restarted": false
+  },
+  "isolation": {
+    "proxy_published_host_ports": [],
+    "preexisting_candidate_app_loopback_binding_unchanged": "127.0.0.1:8098->8099/tcp",
+    "verification_network_internal": true,
+    "upstream_network": "kokonut-kernel-candidate_kernel",
+    "legacy_stack_started": false
+  },
+  "checks": {
+    "compose_model": "valid; resolved app and proxy published ports are empty",
+    "caddy_validate": "passed; Caddy reported a nonfatal source-format warning",
+    "tls_health": {
+      "url": "https://localhost/health",
+      "status": 200,
+      "local_ca_explicitly_trusted": true,
+      "certificate_hostname_verified": true
+    },
+    "http_redirect": {
+      "status": 308,
+      "location": "https://localhost/health"
+    },
+    "security_headers": {
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin"
+    },
+    "unauthenticated_unknown_route_status": 401,
+    "local_certificate_usable_after_container_recreation": true
+  },
+  "side_effects": {
+    "gateway_audit": "HTTPS requests traversed normal gateway access-audit middleware; audit persistence was not separately queried",
+    "farm_or_sensor_domain_writes": false,
+    "schema_migrations": false,
+    "pytest_suite": false
+  },
+  "transient_compose_issue": "The first disposable override used ports: [], which merged with loopback port mappings. That container was stopped before any probe traffic. The corrected override used !reset [] and was verified to have no host bindings before probes ran.",
+  "not_covered": [
+    "host-published or public ingress",
+    "public DNS, ACME, or external certificates",
+    "host/browser trust-store installation",
+    "mobile, upload, or full authorization parity",
+    "forwarded-header spoofing and audited client identity",
+    "CORS and rate-limit behavior",
+    "production origin, secure-cookie, or certificate recovery behavior"
+  ],
+  "cleanup": "Removed the disposable proxy container, verification network, and project volumes. The pre-existing candidate app/database remain running; legacy containers remain stopped."
+}

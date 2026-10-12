@@ -11,6 +11,16 @@ python3 -m services.metrics
 python3 -m services.metrics.cli --help
 ```
 
+Reconcile the current crop-cycle NOI snapshots from PostgreSQL's shared view
+(requires migration 379):
+
+```bash
+python3 -m services.metrics --reconcile-noi-snapshots
+```
+
+The corresponding `noi_snapshots` scheduler job is planned as a daily task and
+remains disabled until its schedule owner approves activation.
+
 ## Modules
 
 - `cli` — Metric Computation Engine

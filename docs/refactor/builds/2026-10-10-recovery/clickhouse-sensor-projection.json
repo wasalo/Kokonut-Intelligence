@@ -1,0 +1,15 @@
+{
+  "raw": {
+    "readings": 3,
+    "avg_value": 20,
+    "min_value": 10,
+    "max_value": 30
+  },
+  "daily_sensor_rollup": {
+    "readings": 3,
+    "summed_block_average": 45
+  },
+  "count_projection_passed": true,
+  "average_projection_matches": false,
+  "scope": "Three synthetic readings across two insert blocks in isolated clone; illustrates unsafe sum of per-block averages. No PostgreSQL/outbox/exporter parity exercised."
+}

@@ -27,6 +27,7 @@ import argparse
 import json
 import os
 import smtplib
+import uuid
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -52,12 +53,18 @@ def _get_event_bus(conn=None):
     return _event_bus
 
 
-def handle_sensor_reading(event_type: str, payload: dict) -> None:
+def handle_sensor_reading(
+    event_type: str, payload: dict, *, event_id: str | None = None
+) -> None:
     """Run anomaly checks for a sensor-reading event."""
+    if event_type != "sensor_reading":
+        raise ValueError("anomaly handler only accepts sensor_reading events")
     sensor_id = payload.get("sensor_id") or payload.get("sensor_device_id")
     if not sensor_id:
         raise ValueError("sensor-reading events require sensor_id")
-    run_check(sensor_id=str(sensor_id))
+    if not event_id:
+        raise ValueError("sensor-reading event ID is required for idempotent processing")
+    run_check(sensor_id=str(sensor_id), event_id=str(event_id))
 
 logger = get_logger("ingestion.anomaly")
 
@@ -333,7 +340,7 @@ def evaluate_metric(metric: str, value: float, rule: dict, db, sensor_id: str,
         return evaluate_rule(value, rule["operator"], rule["threshold_value"], rule.get("threshold_value_max"))
 
     elif metric == "rate_of_change":
-        rate = compute_rate_of_change(db, sensor_id, sensor_type)
+        rate = compute_rate_of_change(db, sensor_id, sensor_type, value)
         if rate is None:
             return False
         return evaluate_rule(rate, rule["operator"], rule["threshold_value"], rule.get("threshold_value_max"))
@@ -404,9 +411,12 @@ def create_alert(db, sensor_device_id: str, alert_rule_id: str, reading_id: str,
             cur.execute(
                 """
                 INSERT INTO mrv_claim
-                    (location_id, claim_type, claim_data, status, sensor_device_id, sensor_alert_id)
-                SELECT sd.location_id, %s, %s, 'draft', %s, %s
-                FROM sensor_device sd WHERE sd.id = %s
+                    (location_id, claim_type, claim_date, claim_data, status,
+                     sensor_device_id, sensor_alert_id)
+                SELECT sd.location_id, %s, sr.reading_date, %s, 'draft', %s, %s
+                FROM sensor_device sd
+                JOIN sensor_reading sr ON sr.id = %s
+                WHERE sd.id = %s
                 RETURNING id
                 """,
                 (
@@ -418,7 +428,7 @@ def create_alert(db, sensor_device_id: str, alert_rule_id: str, reading_id: str,
                         "threshold_value": threshold_value,
                         "severity": severity,
                     }),
-                    sensor_device_id, alert_id, sensor_device_id,
+                    sensor_device_id, alert_id, reading_id, sensor_device_id,
                 ),
             )
             claim_row = cur.fetchone()
@@ -528,62 +538,67 @@ def send_notifications(alert_data: dict) -> None:
     send_actuation_commands(alert_data)
 
 
-def send_actuation_commands(alert_data: dict) -> None:
+def send_actuation_commands(alert_data: dict, db=None) -> None:
     """Dispatch actuation commands if configured on the alert rule.
 
     Safety: Only dispatches for info/warning severity without approval.
     Critical severity requires human approval (logged as 'requires_approval').
     """
+    owns_db = db is None
     try:
         from .mqtt_actuator import send_actuation_command
 
-        db = get_db()
-        try:
-            alert_rule_id = alert_data.get("alert_rule_id")
-            if not alert_rule_id:
-                return
+        if owns_db:
+            db = get_db()
+        alert_rule_id = alert_data.get("alert_rule_id")
+        if not alert_rule_id:
+            return
 
-            cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-            cur.execute("""
-                SELECT actuator_enabled, actuator_type, actuator_command, actuator_topic,
-                       human_approval_required
-                FROM alert_rule WHERE id = %s
-            """, (alert_rule_id,))
-            rule = cur.fetchone()
-            cur.close()
+        cur = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            SELECT actuator_enabled, actuator_type, actuator_command, actuator_topic,
+                   human_approval_required
+            FROM alert_rule WHERE id = %s
+        """, (alert_rule_id,))
+        rule = cur.fetchone()
+        cur.close()
 
-            if not rule or not rule.get("actuator_enabled"):
-                return
+        if not rule or not rule.get("actuator_enabled"):
+            return
 
-            severity = alert_data.get("severity", "info")
-            approval_required = rule.get("human_approval_required", True)
+        severity = alert_data.get("severity", "info")
+        approval_required = rule.get("human_approval_required", True)
 
-            # Critical always requires approval
-            if severity == "critical":
-                approval_required = True
+        # Critical always requires a human approval record before any execution.
+        if severity == "critical":
+            approval_required = True
 
-            command = {
-                "device_id": alert_data.get("sensor_device_id"),
-                "actuator_type": rule["actuator_type"],
-                "command": rule["actuator_command"],
-                "parameters": {"alert_id": alert_data.get("alert_id")},
-                "trigger_source": "anomaly_detector",
-                "alert_id": alert_data.get("alert_id"),
-                "alert_severity": severity,
-            }
+        command = {
+            "device_id": alert_data.get("sensor_device_id"),
+            "actuator_type": rule["actuator_type"],
+            "command": rule["actuator_command"],
+            "parameters": {"alert_id": alert_data.get("alert_id")},
+            "trigger_source": "anomaly_detector",
+            "alert_id": alert_data.get("alert_id"),
+            "alert_severity": severity,
+        }
 
-            location_id = alert_data.get("location_id", "")
-            result = send_actuation_command(
-                db, location_id, command,
-                human_approval_required=approval_required,
-                alert_id=alert_data.get("alert_id"),
-            )
+        location_id = alert_data.get("location_id", "")
+        result = send_actuation_command(
+            db, location_id, command,
+            human_approval_required=approval_required,
+            alert_id=alert_data.get("alert_id"),
+            commit=owns_db,
+        )
 
-            logger.info("Actuation dispatched: %s (status=%s)", rule["actuator_type"], result.get("status"))
-        finally:
-            db.close()
+        logger.info("Actuation logged: %s (status=%s)", rule["actuator_type"], result.get("status"))
     except Exception as e:
+        if not owns_db:
+            raise
         logger.warning("Actuation dispatch failed: %s", e)
+    finally:
+        if owns_db and db is not None:
+            db.close()
 
 
 def get_sensor_device_info(db, sensor_device_id: str) -> dict:
@@ -591,7 +606,8 @@ def get_sensor_device_info(db, sensor_device_id: str) -> dict:
     with db.cursor() as cur:
         cur.execute(
             """
-            SELECT sd.name, st.name as sensor_type, l.name as location_name
+            SELECT sd.name, st.name as sensor_type, l.name as location_name,
+                   sd.location_id
             FROM sensor_device sd
             JOIN sensor_type st ON sd.sensor_type_id = st.id
             LEFT JOIN location l ON sd.location_id = l.id
@@ -605,14 +621,40 @@ def get_sensor_device_info(db, sensor_device_id: str) -> dict:
                 "sensor_name": row[0],
                 "sensor_type": row[1],
                 "location_name": row[2] or "Unknown",
+                "location_id": str(row[3]) if row[3] else None,
             }
-    return {"sensor_name": "Unknown", "sensor_type": "unknown", "location_name": "Unknown"}
+    return {
+        "sensor_name": "Unknown", "sensor_type": "unknown",
+        "location_name": "Unknown", "location_id": None,
+    }
 
 
-def run_check(sensor_id: str = None, since: str = None):
+def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None):
     """Check recent readings against alert rules."""
     db = get_db()
     try:
+        event_reading = None
+        stable_event_id = None
+        if event_id is not None:
+            stable_event_id = str(uuid.UUID(str(event_id)))
+            with db.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT sr.id, sr.sensor_id, sr.sensor_type, sr.value, sr.reading_date,
+                           sr.reading_time, sr.location_id, sr.plot_id
+                    FROM platform_event e
+                    JOIN sensor_reading sr ON sr.id = e.source_id
+                    WHERE e.id = %s AND e.event_type = 'sensor_reading'
+                      AND e.source_table = 'sensor_reading'
+                    """,
+                    (stable_event_id,),
+                )
+                event_reading = cur.fetchone()
+            if event_reading is None:
+                raise ValueError("sensor-reading event has no matching source reading")
+            if sensor_id and str(event_reading[1]) != str(sensor_id):
+                raise ValueError("sensor-reading payload does not match its source reading")
+
         ensure_alert_rules(db)
 
         rules = []
@@ -639,33 +681,37 @@ def run_check(sensor_id: str = None, since: str = None):
             logger.info("No alert rules configured.")
             return
 
-        since_dt = datetime.fromisoformat(since) if since else datetime.now(timezone.utc) - timedelta(hours=1)
-        since_str = since_dt.strftime("%Y-%m-%d %H:%M:%S")
+        if event_reading is not None:
+            readings = [event_reading]
+            since_str = "the source reading for the event"
+        else:
+            since_dt = datetime.fromisoformat(since) if since else datetime.now(timezone.utc) - timedelta(hours=1)
+            since_str = since_dt.strftime("%Y-%m-%d %H:%M:%S")
 
-        with db.cursor() as cur:
-            if sensor_id:
-                cur.execute(
-                    """
-                    SELECT sr.id, sr.sensor_id, sr.sensor_type, sr.value, sr.reading_date,
-                           sr.reading_time, sr.location_id, sr.plot_id
-                    FROM sensor_reading sr
-                    WHERE sr.sensor_id = %s AND sr.created_at >= %s
-                    ORDER BY sr.created_at DESC
-                    """,
-                    (sensor_id, since_str),
-                )
-            else:
-                cur.execute(
-                    """
-                    SELECT sr.id, sr.sensor_id, sr.sensor_type, sr.value, sr.reading_date,
-                           sr.reading_time, sr.location_id, sr.plot_id
-                    FROM sensor_reading sr
-                    WHERE sr.created_at >= %s
-                    ORDER BY sr.created_at DESC
-                    """,
-                    (since_str,),
-                )
-            readings = cur.fetchall()
+            with db.cursor() as cur:
+                if sensor_id:
+                    cur.execute(
+                        """
+                        SELECT sr.id, sr.sensor_id, sr.sensor_type, sr.value, sr.reading_date,
+                               sr.reading_time, sr.location_id, sr.plot_id
+                        FROM sensor_reading sr
+                        WHERE sr.sensor_id = %s AND sr.created_at >= %s
+                        ORDER BY sr.created_at DESC
+                        """,
+                        (sensor_id, since_str),
+                    )
+                else:
+                    cur.execute(
+                        """
+                        SELECT sr.id, sr.sensor_id, sr.sensor_type, sr.value, sr.reading_date,
+                               sr.reading_time, sr.location_id, sr.plot_id
+                        FROM sensor_reading sr
+                        WHERE sr.created_at >= %s
+                        ORDER BY sr.created_at DESC
+                        """,
+                        (since_str,),
+                    )
+                readings = cur.fetchall()
 
         if not readings:
             logger.info("No readings since %s", since_str)
@@ -675,6 +721,8 @@ def run_check(sensor_id: str = None, since: str = None):
 
         alerts_triggered = 0
         sensor_device_cache = {}
+        from services.events.bus import EventBus
+        event_bus = EventBus(conn=db)
 
         for reading in readings:
             reading_id = str(reading[0])
@@ -683,20 +731,48 @@ def run_check(sensor_id: str = None, since: str = None):
             value = float(reading[3])
 
             for rule in rules:
+                if stable_event_id is not None:
+                    with db.cursor() as cur:
+                        cur.execute(
+                            """
+                            INSERT INTO sensor_anomaly_effect
+                                (source_reading_id, alert_rule_id, source_event_id, outcome)
+                            VALUES (%s, %s, %s, 'no_match')
+                            ON CONFLICT (source_reading_id, alert_rule_id) DO NOTHING
+                            RETURNING source_reading_id
+                            """,
+                            (reading_id, rule["id"], stable_event_id),
+                        )
+                        reserved = cur.fetchone() is not None
+                    if not reserved:
+                        continue
+
                 if rule["sensor_type"] != sensor_type:
                     continue
 
                 if sensor_id_val not in sensor_device_cache:
                     with db.cursor() as cur:
-                        cur.execute("SELECT id FROM sensor_device WHERE id::text = %s", (sensor_id_val,))
+                        cur.execute("SELECT id FROM sensor_device WHERE id::text = %s", (str(sensor_id_val),))
                         row = cur.fetchone()
                         sensor_device_cache[sensor_id_val] = str(row[0]) if row else None
 
                 sensor_device_id = sensor_device_cache.get(sensor_id_val)
                 if not sensor_device_id:
+                    if stable_event_id is not None:
+                        raise ValueError("sensor-reading source device is no longer registered")
                     continue
 
                 if check_cooldown(db, rule["id"], sensor_device_id, rule["cooldown_minutes"]):
+                    if stable_event_id is not None:
+                        with db.cursor() as cur:
+                            cur.execute(
+                                """
+                                UPDATE sensor_anomaly_effect
+                                SET outcome = 'cooldown', updated_at = NOW()
+                                WHERE source_reading_id = %s AND alert_rule_id = %s
+                                """,
+                                (reading_id, rule["id"]),
+                            )
                     continue
 
                 if evaluate_metric(rule["metric"], value, rule, db, sensor_id_val, sensor_type):
@@ -718,36 +794,67 @@ def run_check(sensor_id: str = None, since: str = None):
                         payload_hash=hash_payload({"reading_id": reading_id, "rule": rule["name"]}),
                         status="success",
                         rows_affected=1,
+                        db=db if stable_event_id is not None else None,
                     )
 
                     device_info = get_sensor_device_info(db, sensor_device_id)
+                    with db.cursor() as cur:
+                        cur.execute(
+                            "SELECT claim_id, triggered_at FROM sensor_alert WHERE id = %s",
+                            (alert_id,),
+                        )
+                        claim_id, triggered_at = cur.fetchone()
                     alert_data = {
                         "alert_id": alert_id,
+                        "alert_rule_id": rule["id"],
+                        "sensor_device_id": sensor_device_id,
                         "severity": rule["severity"],
                         "message": message,
                         "reading_value": value,
                         "threshold_value": rule["threshold_value"],
-                        "triggered_at": datetime.now(timezone.utc).isoformat(),
-                        "claim_id": None,
+                        "triggered_at": triggered_at.isoformat(),
+                        "claim_id": str(claim_id) if claim_id else None,
                         **device_info,
                     }
-                    send_notifications(alert_data)
+                    alert_event_id = str(uuid.uuid4())
+                    if stable_event_id is None:
+                        send_notifications(alert_data)
+                    else:
+                        with db.cursor() as cur:
+                            cur.execute(
+                                """
+                                UPDATE sensor_anomaly_effect
+                                SET outcome = 'alert_created', sensor_alert_id = %s,
+                                    updated_at = NOW()
+                                WHERE source_reading_id = %s AND alert_rule_id = %s
+                                """,
+                                (alert_id, reading_id, rule["id"]),
+                            )
+                        from services.events.notification_outbox import enqueue_event_notification
 
-                    bus = _get_event_bus(conn=db)
+                        enqueue_event_notification(
+                            db,
+                            event_id=alert_event_id,
+                            event_type="sensor_alert",
+                            payload=alert_data,
+                        )
+                        send_actuation_commands(alert_data, db=db)
+
                     priority = "high" if rule["severity"] == "critical" else "normal"
-                    bus.publish(
+                    event_bus.publish(
                         "sensor_alert",
                         {
                             "alert_id": alert_id,
                             "sensor_device_id": sensor_device_id,
-                            "sensor_id": sensor_id_val,
+                            "sensor_id": str(sensor_id_val),
                             "severity": rule["severity"],
                             "rule_name": rule["name"],
                             "reading_value": value,
                             "threshold_value": rule["threshold_value"],
                             "message": message,
-                            "location_id": str(device_info.get("location_name")),
+                            "location_id": device_info.get("location_id"),
                         },
+                        event_id=alert_event_id,
                         source_table="sensor_alert",
                         source_id=alert_id,
                         priority=priority,
@@ -756,6 +863,7 @@ def run_check(sensor_id: str = None, since: str = None):
                     alerts_triggered += 1
                     logger.info("  %s: %s", rule["severity"].upper(), message)
 
+        db.commit()
         logger.info("Done: %d alerts triggered", alerts_triggered)
     finally:
         db.close()
@@ -789,9 +897,7 @@ def run_baseline_check():
         DEVIATION_THRESHOLD = 0.30  # 30% deviation triggers alert
 
         for baseline in baselines:
-            baseline_id = str(baseline[0])
             location_id = str(baseline[1])
-            plot_id = str(baseline[2]) if baseline[2] else None
             metric_name = baseline[3]
             baseline_value = float(baseline[4])
             unit = baseline[5]
@@ -924,7 +1030,6 @@ def list_rules():
 
         logger.info("%d alert rules:", len(rules))
         for r in rules:
-            status = "enabled" if r[7] else "disabled"
             claim = " [auto-claim]" if r[8] else ""
             logger.info(
                 "  %s | %s | %s %s %s | cooldown:%dm | %s%s",

@@ -1,0 +1,43 @@
+{
+  "date_local": "2026-10-10",
+  "scope": "Follow-up delivery of only the three synthetic HTTP listener projections in the private recovery fixture.",
+  "pre_delivery_checkpoint": {
+    "path": "backups/recovery-fixture-pre-http-outbox-20261011T025910Z",
+    "created_at_utc": "2026-10-11T02:59:21.734238+00:00",
+    "encrypted": true,
+    "decryption_verified_to_dev_null": true,
+    "restore_rehearsed": false
+  },
+  "preflight": {
+    "source_rows_created_after_pre_listener_checkpoint": 3,
+    "source_created_at_utc_window": [
+      "2026-10-11T02:50:18.343539+00:00",
+      "2026-10-11T02:50:18.542288+00:00"
+    ],
+    "pre_listener_checkpoint_created_at_utc": "2026-10-11T02:48:04.650941+00:00",
+    "canonical_target_projections": 3,
+    "target_status": "pending",
+    "canonical_uuid_event_keys": true,
+    "preexisting_sink_rows_at_target_timestamps": 0,
+    "expired_unrelated_processing_leases": 0
+  },
+  "delivery": {
+    "worker": "existing PostgreSQL-to-ClickHouse outbox delivery function",
+    "claimed": 3,
+    "delivered": 3,
+    "failed": 0,
+    "target_attempt_counts": [1, 1, 1],
+    "target_statuses": ["succeeded", "succeeded", "succeeded"]
+  },
+  "post_delivery": {
+    "sink_rows_per_source_timestamp": [1, 1, 1],
+    "exact_numeric_value_parity": [true, true, true],
+    "target_platform_events_pending": 3,
+    "target_handler_deliveries": 0,
+    "target_handler_logs": 0,
+    "unrelated_ready_rows_temporarily_held_and_restored": 3,
+    "other_ready_outbox_rows_after": 3
+  },
+  "verification_note": "An initial broad per-device pending-event count included older synthetic fixture events (7 total) and was not a valid target-slice assertion. A read-only follow-up keyed by the three source reading UUIDs confirmed those three events remain pending and have no handler delivery or log rows.",
+  "limits": "No latency guarantee is inferred. No event handler, public listener, TLS/proxy, legacy service, or production target was started. Only the isolated PostgreSQL and ClickHouse recovery containers were used; both were stopped with volumes retained."
+}

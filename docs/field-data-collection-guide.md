@@ -82,12 +82,39 @@ skip or overwrite existing zone keys according to import options.
 
 ### Mobile Offline Queue
 
-The mobile/offline subsystem supports device registration, GPS/photo references,
-form payloads, queueing, duplicate `client_id` detection, conflict handling,
-and sync logs. Its queue stores arbitrary payloads in `offline_collection` and
-marks them synced; it does **not** transform payloads into
-`soil_sample`, `tree_record`, `pest_observation`, or other canonical field rows.
-There is no documented production mobile application in this repository.
+The repository includes a documented offline-first Field Collector at
+`services/mobile/field-collector.html`. The Gateway provides enrollment,
+location-bound device tokens, immutable form revisions, private photo upload,
+and idempotent sync. Collections remain in `offline_collection`; this path does
+**not** transform them into `soil_sample`, `tree_record`, `pest_observation`, or
+other canonical field rows.
+
+The older `python3 -m services.analytics.mobile_offline` command is a
+transport/admin utility. It does not validate form revisions, participant
+links, or consent, and its sync status alone never permits reporting or
+publication. After migration 381, rows created through that CLI are unassessed
+and fail `v_mobile_collection_use_eligibility`. Any downstream use of mobile
+collections must read that eligibility view and still follow the governed
+review/publication lifecycle.
+
+The local candidate received migrations 380 and 381 and the curated form seed
+on 12 October 2026. It currently has five active version `1.2.0` policies
+classified `not_required` for participant-linked consent; the immutable `1.1.0`
+revisions are retired. Their intended scope is farm operations, production,
+business expenses, ecological/operational observations, and soil measurement.
+This is a Kokonut form-purpose decision, not a legal determination or permission
+to collect personal records. The API checks payloads against the exact revision
+schema; the built-in `1.2.0` schemas reject undeclared keys and invalid values.
+It cannot detect sensitive information inside free text and does not inspect
+photo contents. Use a separate consent-required workflow for participant-focused
+data. Sixty focused mobile/schema tests passed; four targeted CORS checks passed
+in the prior rollout slice. Live device workflow acceptance remains open. Other
+environments must apply migrations and seed in order; existing populated
+databases retain unassessed legacy rows. See the [Field Collector access
+contract](refactor/mobile-access-contract.md) and [policy decision
+record](refactor/mobile-form-classification-review.md) before operating or
+integrating this path; local candidate rollout alone does not certify
+production readiness.
 
 ### Data Stream
 

@@ -1,0 +1,14 @@
+# Optional human browser login. Combine with docker-compose.kernel-candidate.yml
+# and docker-compose.kernel-proxy.yml so Secure cookies travel over HTTPS.
+services:
+  app:
+    build:
+      target: oidc
+    environment:
+      KOKONUT_OPERATOR_OIDC_ENABLED: "true"
+      KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:?OIDC issuer must be configured}
+      KOKONUT_OPERATOR_OIDC_CLIENT_ID: ${KOKONUT_OPERATOR_OIDC_CLIENT_ID:?OIDC client ID must be configured}
+      KOKONUT_OPERATOR_OIDC_CLIENT_SECRET: ${KOKONUT_OPERATOR_OIDC_CLIENT_SECRET:?OIDC client secret must be loaded from the secret store}
+      KOKONUT_OPERATOR_OIDC_REDIRECT_URI: ${KOKONUT_OPERATOR_OIDC_REDIRECT_URI:?HTTPS OIDC callback URL must be configured}
+      KOKONUT_OPERATOR_OIDC_STATE_SECRET: ${KOKONUT_OPERATOR_OIDC_STATE_SECRET:?OIDC state signing secret must be loaded from the secret store}
+      KOKONUT_OPERATOR_SESSION_TTL_SECONDS: ${KOKONUT_OPERATOR_SESSION_TTL_SECONDS:-1800}

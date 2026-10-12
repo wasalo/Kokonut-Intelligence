@@ -1,0 +1,59 @@
+{
+  "check": "kernel-caddy-loopback-published-ingress",
+  "date_local": "2026-10-10",
+  "phase": 6,
+  "compose_project": "kokonut-kernel-loopback-check-20261011",
+  "caddy_image": "caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+  "candidate_app": {
+    "container": "kokonut-kernel-candidate-app-1",
+    "reused_existing_healthy_container": true,
+    "rebuilt_or_restarted": false
+  },
+  "isolation": {
+    "proxy_host_bindings": [
+      "127.0.0.1:8088->80/tcp",
+      "127.0.0.1:8448->443/tcp"
+    ],
+    "upstream_network": "kokonut-kernel-candidate_kernel",
+    "candidate_database_rebuilt_or_restarted": false,
+    "legacy_stack_started": false
+  },
+  "checks": {
+    "compose_model": "valid; proxy publishes HTTP and HTTPS only on 127.0.0.1",
+    "caddy_validate": "passed",
+    "http_redirect": {
+      "url": "http://localhost:8088/health",
+      "status": 308,
+      "location": "https://localhost:8448/health"
+    },
+    "followed_tls_health": {
+      "final_status": 200,
+      "redirect_count": 1,
+      "local_ca_explicitly_trusted": true,
+      "certificate_hostname_verified": true
+    },
+    "security_headers": {
+      "x-content-type-options": "nosniff",
+      "x-frame-options": "DENY",
+      "referrer-policy": "strict-origin-when-cross-origin"
+    }
+  },
+  "configuration_change": "Caddy now redirects to KOKONUT_KERNEL_HTTPS_PORT (default 8448), and the Compose overlay passes the configured value into the proxy.",
+  "initial_issue": "The previous automatic redirect omitted the mapped HTTPS port. The host check caught it before accepting the loopback ingress profile.",
+  "side_effects": {
+    "gateway_audit": "Health request traversed normal gateway middleware; audit persistence was not queried",
+    "farm_or_sensor_domain_writes": false,
+    "schema_migrations": false,
+    "pytest_suite": false
+  },
+  "not_covered": [
+    "non-loopback or public ingress",
+    "public DNS, ACME, or external certificates",
+    "OS/browser trust-store installation",
+    "mobile, upload, or full authorization parity",
+    "CORS and rate-limit behavior",
+    "multiple trusted proxy hops",
+    "production origin, secure-cookie, or certificate recovery behavior"
+  ],
+  "cleanup": "Removed the temporary proxy container, its two Caddy volumes, and temporary override/CA files. The existing candidate app/database remain running; legacy containers were not started."
+}

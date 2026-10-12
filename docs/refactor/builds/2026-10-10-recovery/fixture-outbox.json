@@ -1,0 +1,16 @@
+{
+  "checks": {
+    "enqueue_rollback_atomicity": true,
+    "same_key_idempotency_and_conflicting_payload_rejection": true,
+    "disabled_provider_preserves_retry_budget": true,
+    "expired_lease_and_stale_completion_rejected": true,
+    "unavailable_transport_reaches_bounded_dead_letter": true,
+    "replay_and_duplicate_rejection": true,
+    "successful_delivery_not_reclaimed": true
+  },
+  "scope": "Real PostgreSQL, controlled unavailable/successful transport. No live ClickHouse driver, cross-store crash deduplication or operator replay audit acceptance.",
+  "operator_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+  "source_override": "Read-only host clickhouse_outbox.py mount; running deployment images not rebuilt.",
+  "source_sha256": "2d7a78f61fc36d34d8b3186a6eb6f642f2bd74142a704aed9529e69fae8806ef",
+  "fixture_script_sha256": "387320b2b8a35c423be2537063a73845efbddc48f718076952f706b95c6f7617"
+}

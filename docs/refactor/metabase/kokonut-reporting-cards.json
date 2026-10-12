@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "source": {
+    "name": "Kokonut Reporting Views",
+    "engine": "postgres",
+    "database": "kokonut_intelligence",
+    "login": "kokonut_analytics_ro",
+    "schema_filter_type": "inclusion",
+    "schema_filter_patterns": "kokonut_reporting"
+  },
+  "questions": [
+    {
+      "name": "Kokonut | Farm summary",
+      "display": "table",
+      "description": "Active eligible locations, farm and plot counts, and unit-normalized area. Area completeness is explicit.",
+      "query": "SELECT location_name, country, region, farm_count, plot_count, total_area_ha, area_data_complete FROM kokonut_reporting.v_farm_summary ORDER BY location_name"
+    },
+    {
+      "name": "Kokonut | Verified metric values",
+      "display": "table",
+      "description": "Only human-verified values for explicitly published metric definitions. Period and computation method are retained.",
+      "query": "SELECT location_name, metric_key, display_name, unit, value, period_start, period_end, computation_method, computed_at, verified_at FROM kokonut_reporting.v_verified_metric_values ORDER BY location_name, metric_key, period_start, period_end, computation_method"
+    },
+    {
+      "name": "Kokonut | Celo attestation summary",
+      "display": "table",
+      "description": "Aggregate Celo attestation counts for eligible locations; excludes payloads, evidence, attester identities, and transaction details.",
+      "query": "SELECT location_name, claim_type, chain, total_attestations, published_count, first_attestation, latest_attestation FROM kokonut_reporting.v_attestation_summary WHERE chain = 'celo' ORDER BY location_name, claim_type"
+    }
+  ],
+  "dashboard": {
+    "name": "Kokonut Intelligence | Reporting Overview",
+    "questions": [
+      "Kokonut | Farm summary",
+      "Kokonut | Verified metric values",
+      "Kokonut | Celo attestation summary"
+    ]
+  },
+  "credential_values_included": false,
+  "parity_status": "queries execute on the empty candidate; exact exported SQL matched independent references on a copied populated fixture, including published-policy, unverified-row, and date-window cases"
+}

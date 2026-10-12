@@ -1,0 +1,35 @@
+# One-shot check attached to an already-running isolated populated recovery DB.
+# No database service, host port, or egress is defined by this runner manifest.
+name: kokonut-kernel-runtime-role-populated-check
+services:
+  runtime-role-check:
+    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    entrypoint: ["python3"]
+    command: ["/workspace/scripts/fixtures/kernel-db-runtime-role-populated-check.py"]
+    working_dir: /workspace
+    environment:
+      PYTHONPATH: /workspace
+      KOKONUT_ENV: production
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      PG_HOST: ${KOKONUT_RUNTIME_CHECK_HOST:-database}
+      PG_PORT: ${KOKONUT_RUNTIME_CHECK_PORT:-5432}
+      PG_DB: ${KOKONUT_RUNTIME_CHECK_DATABASE:-kokonut_intelligence_restore}
+      PG_USER: ${KOKONUT_RUNTIME_USER:?Supply the synthetic runtime user}
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?Supply the synthetic runtime password}
+      KOKONUT_DB_ADMIN_USER: ${KOKONUT_DB_ADMIN_USER:-kokonut}
+      KOKONUT_DB_ADMIN_PASSWORD: ${KOKONUT_DB_ADMIN_PASSWORD:?Supply the synthetic restore admin password}
+      KOKONUT_RUNTIME_USER: ${KOKONUT_RUNTIME_USER:?Supply the synthetic runtime user}
+      KOKONUT_RUNTIME_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?Supply the synthetic runtime password}
+    volumes:
+      - ./VERSION:/workspace/VERSION:ro
+      - ./services:/workspace/services:ro
+      - ./scripts/fixtures/kernel-db-runtime-role-populated-check.py:/workspace/scripts/fixtures/kernel-db-runtime-role-populated-check.py:ro
+    networks: [recovery]
+
+networks:
+  recovery:
+    external: true
+    name: ${KOKONUT_RECOVERY_NETWORK:?Set the isolated populated recovery network}

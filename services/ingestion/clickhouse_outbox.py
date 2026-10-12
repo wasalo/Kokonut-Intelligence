@@ -6,14 +6,16 @@ delivers, retries, and dead-letters those rows without losing the source event.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from services.common.cli import get_connection, print_json, run
 from services.common.logging import get_logger
-from services.ingestion.base import get_clickhouse
-from services.common.cli import print_json
+from services.ingestion.base import _validate_ch_identifiers, get_clickhouse
+
 logger = get_logger("ingestion.clickhouse_outbox")
 
 MAX_ATTEMPTS = 8
@@ -39,6 +41,12 @@ def enqueue(
                 (event_key, source_table, source_id, target_table, columns, rows, payload_hash)
             VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s)
             ON CONFLICT (event_key) DO UPDATE SET updated_at = NOW()
+            WHERE clickhouse_outbox.payload_hash = EXCLUDED.payload_hash
+              AND clickhouse_outbox.source_table = EXCLUDED.source_table
+              AND clickhouse_outbox.source_id = EXCLUDED.source_id
+              AND clickhouse_outbox.target_table = EXCLUDED.target_table
+              AND clickhouse_outbox.columns = EXCLUDED.columns
+              AND clickhouse_outbox.rows = EXCLUDED.rows
             RETURNING id
             """,
             (
@@ -51,7 +59,10 @@ def enqueue(
                 payload_hash,
             ),
         )
-        return str(cur.fetchone()[0])
+        row = cur.fetchone()
+        if row is None:
+            raise ValueError("Outbox event key conflicts with an existing projection")
+        return str(row[0])
 
 
 def _recover_expired(conn) -> None:
@@ -110,6 +121,7 @@ def _finish(conn, row_id: str, worker_id: str, lease_token: str, *, success: boo
                 lease_expires_at = NULL, updated_at = NOW()
             WHERE id = %s AND status = 'processing'
               AND lease_owner = %s AND lease_token = %s
+              AND lease_expires_at > NOW()
             """,
             (success, MAX_ATTEMPTS, success, success, error, row_id, worker_id, lease_token),
         )
@@ -120,27 +132,59 @@ def _finish(conn, row_id: str, worker_id: str, lease_token: str, *, success: boo
 
 def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
     """Deliver one claimed batch; each row has independent failure handling."""
+    from services.core.providers import ProviderSettings
+
+    if not ProviderSettings.from_environment().clickhouse:
+        # Keep pending projections and retry budgets intact while paused.
+        return {"claimed": 0, "delivered": 0, "failed": 0}
+
     rows = claim_batch(conn, worker_id, limit)
     if not rows:
         return {"claimed": 0, "delivered": 0, "failed": 0}
     delivered = failed = 0
     client = None
     try:
-        client = get_clickhouse()
-        if client is None:
-            raise RuntimeError("ClickHouse client unavailable")
+        try:
+            client = get_clickhouse()
+            if client is None:
+                raise RuntimeError("ClickHouse client unavailable")
+        except Exception as exc:
+            logger.warning("ClickHouse client setup failed (%s)", type(exc).__name__)
+            for row in rows:
+                _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]),
+                        success=False, error=f"client setup failed: {type(exc).__name__}")
+            return {"claimed": len(rows), "delivered": 0, "failed": len(rows)}
         for row in rows:
+            error = None
+            inserted = False
             try:
-                client.insert(
-                    row["target_table"],
-                    row["rows"],
-                    column_names=row["columns"],
-                )
-                ok = _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]), success=True)
-                delivered += int(ok)
+                _validate_ch_identifiers(row["target_table"], row["columns"])
+                if any(len(values) != len(row["columns"]) for values in row["rows"]):
+                    raise ValueError("Outbox projection row width differs from columns")
+                documents = []
+                for values in row["rows"]:
+                    document = dict(zip(row["columns"], values))
+                    # Older sensor producers stored an empty nullable UUID.
+                    if row["target_table"] == "sensor_readings" and document.get("plot_id") == "":
+                        document["plot_id"] = None
+                    documents.append(json.dumps(document, default=str))
+                token = hashlib.sha256(row["event_key"].encode()).hexdigest()
+                client.raw_insert(row["target_table"], column_names=row["columns"],
+                                  insert_block="\n".join(documents).encode(), fmt="JSONEachRow",
+                                  settings={"date_time_input_format": "best_effort",
+                                            "insert_deduplicate": 1,
+                                            "insert_deduplication_token": token})
+                inserted = True
             except Exception as exc:
                 logger.warning("ClickHouse outbox delivery failed for %s: %s", row["event_key"], exc)
-                _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]), success=False, error=str(exc))
+                error = str(exc)
+            # Database failure is not a transport failure. Let it propagate;
+            # durable leases recover unfinished rows after expiry.
+            ok = _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]),
+                         success=inserted, error=error)
+            if inserted and ok:
+                delivered += 1
+            else:
                 failed += 1
     finally:
         if client is not None and hasattr(client, "close"):
@@ -163,29 +207,57 @@ def reconcile_pending(conn, limit: int = 1000) -> dict[str, int]:
     return {"pending": pending or 0, "dead_letter": dead or 0, "succeeded": succeeded or 0, "limit": limit}
 
 
-def replay_dead_letter(conn, row_id: str) -> dict[str, Any]:
-    """Re-enqueue a dead-lettered row for retry.
+def _operator_transition(conn, row_id: str, action: str, actor: str, reason: str) -> dict[str, Any]:
+    if action not in {"replayed", "resolved", "discarded"}:
+        raise ValueError("Unsupported outbox disposition")
+    if not isinstance(actor, str) or not actor.strip() or len(actor.strip()) > 255:
+        raise ValueError("Operator actor must contain 1 to 255 characters")
+    if not isinstance(reason, str) or not reason.strip() or len(reason.strip()) > 2000:
+        raise ValueError("Operator reason must contain 1 to 2000 characters")
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                WITH eligible AS (
+                    SELECT id, attempt_count FROM clickhouse_outbox
+                    WHERE id = %s AND status = 'dead_letter' FOR UPDATE
+                ), transitioned AS (
+                    UPDATE clickhouse_outbox o
+                    SET status = %s, attempt_count = CASE WHEN %s THEN 0 ELSE o.attempt_count END,
+                        available_at = NOW(), updated_at = NOW(),
+                        last_error = CASE WHEN %s THEN NULL ELSE o.last_error END,
+                        lease_owner = NULL, lease_token = NULL, lease_expires_at = NULL
+                    FROM eligible e WHERE o.id = e.id AND o.status = 'dead_letter'
+                    RETURNING o.id, o.event_key, o.payload_hash, e.attempt_count
+                )
+                INSERT INTO clickhouse_outbox_operator_audit
+                    (outbox_id, event_key, action, actor, reason, prior_attempt_count, payload_hash)
+                SELECT id, event_key, %s, %s, %s, attempt_count, payload_hash FROM transitioned
+                RETURNING outbox_id, event_key
+                """,
+                (row_id, "pending" if action == "replayed" else action,
+                 action == "replayed", action == "replayed", action, actor.strip(), reason.strip()),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    if row is None:
+        return {"status": "error", "message": "Outbox row is not dead-lettered"}
+    return {"status": action, "id": str(row[0]), "event_key": row[1]}
 
-    Resets attempt_count to 0 and status to 'pending' so the next worker
-    cycle picks it up. Only works on rows with status='dead_letter'.
-    """
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            UPDATE clickhouse_outbox
-            SET status = 'pending', attempt_count = 0,
-                available_at = NOW(), updated_at = NOW(),
-                last_error = NULL
-            WHERE id = %s AND status = 'dead_letter'
-            RETURNING id, event_key
-            """,
-            (row_id,),
-        )
-        row = cur.fetchone()
-    conn.commit()
-    if not row:
-        return {"status": "error", "message": f"Row {row_id} not found or not dead-lettered"}
-    return {"status": "replayed", "id": str(row[0]), "event_key": row[1]}
+
+def replay_dead_letter(conn, row_id: str, actor: str, reason: str) -> dict[str, Any]:
+    """Re-enqueue once, retaining an audited operator identity and reason."""
+    return _operator_transition(conn, row_id, "replayed", actor, reason)
+
+
+def dispose_dead_letter(conn, row_id: str, disposition: str, actor: str, reason: str) -> dict[str, Any]:
+    """Close a dead letter without deleting its source or projection payload."""
+    if disposition not in {"resolved", "discarded"}:
+        raise ValueError("Disposition must be resolved or discarded")
+    return _operator_transition(conn, row_id, disposition, actor, reason)
 
 
 def list_dead_letters(conn, limit: int = 50) -> list[dict[str, Any]]:
@@ -205,33 +277,44 @@ def list_dead_letters(conn, limit: int = 50) -> list[dict[str, Any]]:
         return [dict(zip([desc[0] for desc in cur.description], row)) for row in cur.fetchall()]
 
 
-if __name__ == "__main__":
-    import argparse
-    import json
-
-    from services.ingestion.base import get_db
-
-    parser = argparse.ArgumentParser(description="Deliver PostgreSQL-to-ClickHouse outbox rows")
-    parser.add_argument("--run-once", action="store_true")
-    parser.add_argument("--reconcile", action="store_true")
-    parser.add_argument("--list-dead-letter", action="store_true", help="List dead-lettered rows")
-    parser.add_argument("--replay-dead-letter", metavar="ROW_ID", help="Re-enqueue a dead-lettered row for retry")
-    parser.add_argument("--worker-id", default=f"clickhouse-{uuid.uuid4().hex[:8]}")
-    parser.add_argument("--limit", type=int, default=100)
-    args = parser.parse_args()
-    conn = get_db()
-    try:
+def command(args):
+    if not 1 <= args.limit <= 1000:
+        raise ValueError("Limit must be between 1 and 1000")
+    with get_connection() as conn:
         if args.replay_dead_letter:
-            result = replay_dead_letter(conn, args.replay_dead_letter)
+            result = replay_dead_letter(conn, args.replay_dead_letter, args.actor, args.reason)
+        elif args.dispose_dead_letter:
+            result = dispose_dead_letter(conn, args.dispose_dead_letter, args.disposition, args.actor, args.reason)
         elif args.list_dead_letter:
             result = list_dead_letters(conn, args.limit)
         elif args.reconcile:
             result = reconcile_pending(conn, args.limit)
-        elif args.run_once:
-            result = deliver_batch(conn, args.worker_id, args.limit)
         else:
-            parser.print_help()
-            result = {}
-        print_json(result)
-    finally:
-        conn.close()
+            result = deliver_batch(conn, args.worker_id, args.limit)
+    print_json(result)
+    if args.run_once and result.get("failed", 0):
+        raise SystemExit(1)
+    if (args.replay_dead_letter or args.dispose_dead_letter) and result.get("status") == "error":
+        raise SystemExit(1)
+
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Deliver PostgreSQL-to-ClickHouse outbox rows")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--run-once", action="store_true")
+    group.add_argument("--reconcile", action="store_true")
+    group.add_argument("--list-dead-letter", action="store_true", help="List dead-lettered rows")
+    group.add_argument("--replay-dead-letter", metavar="ROW_ID", help="Re-enqueue a dead-lettered row for retry")
+    group.add_argument("--dispose-dead-letter", metavar="ROW_ID")
+    parser.add_argument("--disposition", choices=["resolved", "discarded"])
+    parser.add_argument("--actor", help="Required operator identity for replay/disposal")
+    parser.add_argument("--reason", help="Required review reason for replay/disposal")
+    parser.add_argument("--worker-id", default=f"clickhouse-{uuid.uuid4().hex[:8]}")
+    parser.add_argument("--limit", type=int, default=100)
+    run(command, parser.parse_args())
+
+
+if __name__ == "__main__":
+    main()

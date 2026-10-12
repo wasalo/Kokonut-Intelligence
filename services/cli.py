@@ -24,6 +24,7 @@ from typing import Any, Callable
 import typer
 
 from services.common.cli import mount_argparse
+from services.core.cli import app as kernel_app
 
 app = typer.Typer(
     name="kokonut",
@@ -31,6 +32,7 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+app.add_typer(kernel_app, name="kernel", help="Read-only Kernel preparation commands")
 
 
 def _legacy(module_path: str, attr: str = "main") -> Callable:
@@ -62,6 +64,8 @@ _MOUNTED = [
     ("delphi", "services.delphi.cli", "Real-time Delphi consultations"),
     ("threatcasting", "services.threatcasting.cli", "Threatcasting & backcasting"),
     ("migration", "services.migration.cli", "Schema migration runner"),
+    ("audit-spool", "services.gateway.audit_spool_cli", "Gateway audit journal maintenance"),
+    ("operator", "services.gateway.operator_cli", "OIDC operator identity and scope provisioning"),
     ("crisp", "services.crisp.cli", "CRISP risk scoring"),
     ("analytics", "services.analytics.cli", "General analytics commands"),
     ("ingestion", "services.ingestion.cli", "Ingestion pipelines"),

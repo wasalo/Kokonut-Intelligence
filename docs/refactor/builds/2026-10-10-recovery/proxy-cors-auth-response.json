@@ -1,0 +1,43 @@
+{
+  "check": "kernel-gateway-cors-auth-denial-response",
+  "date_local": "2026-10-10",
+  "phase": 6,
+  "candidate_app": "kokonut-kernel-candidate-app-1",
+  "gateway_url": "http://127.0.0.1:8098/__codex_kernel_cors_response_probe_20261011T033300Z",
+  "user_agent": "kernel-cors-response-check/2026-10-10",
+  "checks": {
+    "configured_origin": {
+      "origin": "http://localhost:3000",
+      "status": 401,
+      "access_control_allow_origin": "http://localhost:3000"
+    },
+    "untrusted_origin": {
+      "origin": "https://untrusted.invalid",
+      "status": 401,
+      "access_control_allow_origin_present": false
+    }
+  },
+  "audit_result": {
+    "query_scope": "read-only query filtered to the exact unique path and user agent",
+    "matching_rows": 2,
+    "statuses": ["denied", "denied"],
+    "http_methods": ["GET", "GET"],
+    "reason": "credentials_required",
+    "rows_intentionally_retained_in_candidate_database": true
+  },
+  "side_effects": {
+    "farm_or_sensor_domain_writes": false,
+    "schema_migrations": false,
+    "candidate_app_or_database_restarted": false,
+    "legacy_stack_started": false,
+    "pytest_suite": false
+  },
+  "not_covered": [
+    "successful authenticated responses",
+    "mutation responses and CORS behavior",
+    "credentialed browser requests and cookie policy",
+    "mobile/private-media routes",
+    "Caddy or multi-proxy CORS deployment",
+    "public origins and rate limits"
+  ]
+}

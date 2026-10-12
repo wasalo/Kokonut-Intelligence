@@ -1,0 +1,35 @@
+{
+  "checks": {
+    "restored_media_authentication": true,
+    "wrong_aes_key_rejected": true,
+    "changed_associated_data_rejected": true,
+    "duplicate_work_seed_rejected": true,
+    "duplicate_media_seed_rejected": true,
+    "existing_restore_destination_rejected": true,
+    "capture_without_quiescence_rejected": true,
+    "database_snapshot_fingerprints_match": true
+  },
+  "tables": {
+    "schema_migration": "364|5c560e2da9a3da9b54414ff4b14553c8",
+    "scheduled_task": "1|9487d30f119b1a7bb0ab8958b705bb0c",
+    "task_run": "2|bffa548999b94ded81c1d70808b5b135",
+    "platform_event": "1|033de7fc914a760b1437ca27db56ef76",
+    "event_handler": "7|279e79529392003be7094d4679c46e34",
+    "event_handler_delivery": "2|34b2023408b2d87abb8922e8459afcab",
+    "event_handler_log": "2|92978517623f31a503e0510a33a9be96",
+    "event_dead_letter": "1|27a22487ff46b2caaede551fbbdcccec",
+    "location": "1|bedfffff05fb15c75250a6a5213c6f6a",
+    "mobile_device": "1|afb27026be0e489753adf4f0fcd5b9f9",
+    "offline_collection": "1|ab4a3d6567100a63adb7563781ba86e9",
+    "mobile_media_upload": "2|31b2dbc431b8c19cc7705b7a8623b761"
+  },
+  "scope": "Synthetic paired snapshot round trip; no live device authority, event effects, external providers, roles/grants or production acceptance.",
+  "scheduler_checks": {
+    "expired_lease_recovered": true,
+    "retry_attempt": 2,
+    "original_window_preserved": true,
+    "stale_completion_rejected": true,
+    "jobs_dispatched": 0,
+    "image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6"
+  }
+}

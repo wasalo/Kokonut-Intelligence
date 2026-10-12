@@ -54,7 +54,10 @@ export async function calculateNoi(cropCycleId: string): Promise<NoiCalculation>
     noi: 0,
     operatingMarginPct: 0,
     lossRatePct: 0,
-    inputs: {},
+    inputs: {
+      source_view: 'v_crop_cycle_noi',
+      formula_version: '1.0',
+    },
   };
 
   const row = await db('v_crop_cycle_noi')
@@ -95,6 +98,7 @@ export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
     period_start: calc.periodStart,
     period_end: calc.periodEnd,
     gross_revenue: calc.grossRevenue,
+    returns_and_discounts: calc.returnsAndDiscounts,
     net_revenue: calc.netRevenue,
     direct_crop_costs: calc.directCropCosts,
     allocated_shared_costs: calc.allocatedSharedCosts,
@@ -112,7 +116,11 @@ export async function storeNoiSnapshot(calc: NoiCalculation): Promise<void> {
     .insert(snapshotData)
     .onConflict('crop_cycle_id')
     .merge({
+      location_id: snapshotData.location_id,
+      period_start: snapshotData.period_start,
+      period_end: snapshotData.period_end,
       gross_revenue: snapshotData.gross_revenue,
+      returns_and_discounts: snapshotData.returns_and_discounts,
       net_revenue: snapshotData.net_revenue,
       direct_crop_costs: snapshotData.direct_crop_costs,
       allocated_shared_costs: snapshotData.allocated_shared_costs,

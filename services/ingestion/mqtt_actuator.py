@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ..common.logging import get_logger
 
@@ -71,6 +71,7 @@ def send_actuation_command(
     command: Dict[str, Any],
     human_approval_required: bool = True,
     alert_id: str = None,
+    commit: bool = True,
 ) -> Dict[str, Any]:
     """Send an actuation command and log it.
 
@@ -83,6 +84,8 @@ def send_actuation_command(
         command: Command payload from build_actuation_command.
         human_approval_required: Whether human approval is needed.
         alert_id: Related sensor_alert ID.
+        commit: Commit the insert immediately when true. Transactional callers can
+            pass false to keep the approval record in their enclosing transaction.
 
     Returns:
         Actuation log entry details.
@@ -112,7 +115,8 @@ def send_actuation_command(
         alert_severity, human_approval_required, initial_status,
     ))
     log_id = str(cur.fetchone()[0])
-    conn.commit()
+    if commit:
+        conn.commit()
     cur.close()
 
     logger.info(
@@ -174,17 +178,25 @@ def publish_to_mqtt(
 
     Returns True if published successfully.
     """
+    from services.core.adapters.mqtt import create_client
+
     try:
-        import paho.mqtt.client as mqtt
+        client = create_client()
     except ImportError:
         logger.error("paho-mqtt not installed")
+        return False
+    except Exception as e:
+        logger.error("MQTT client creation error: %s", e)
+        return False
+
+    if client is None:
+        logger.info("MQTT provider disabled; command was not published")
         return False
 
     topic = ACTUATOR_TOPIC.format(location_id=location_id, actuator_type=actuator_type)
     payload = json.dumps(command)
 
     try:
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
         if not DEFAULT_USERNAME or not DEFAULT_PASSWORD:
             logger.error("MQTT_USERNAME and MQTT_PASSWORD are required")
             return False

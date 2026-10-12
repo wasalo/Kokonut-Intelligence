@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 from services.common.database import get_db
+from services.mobile.form_validation import FormPayloadInvalid, FormSchemaUnavailable, validate_form_payload
 
 try:
     from fastapi import APIRouter, Header, HTTPException, Request  # type: ignore[reportAssignmentType]
@@ -59,6 +60,7 @@ class CollectionRequest(BaseModel):
     collection_type: str = Field(min_length=1, max_length=100)
     form_id: str | None = Field(default=None, max_length=200)
     form_version: str | None = Field(default=None, max_length=50)
+    participant_ref: str | None = Field(default=None, min_length=32, max_length=128)
     payload: dict[str, Any] = Field(default_factory=dict)
     photo_refs: list[str] = Field(default_factory=list, max_length=5)
     latitude: float | None = Field(default=None, ge=-90, le=90)
@@ -72,8 +74,217 @@ class SyncRequest(BaseModel):
     collections: list[CollectionRequest] = Field(min_length=1, max_length=50)
 
 
+class ParticipantLinkCreateRequest(BaseModel):
+    party_id: UUID
+    evidence: dict[str, Any] = Field(default_factory=dict)
+
+
+class ParticipantLinkRevokeRequest(BaseModel):
+    participant_ref: str = Field(min_length=32, max_length=128)
+
+
 def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _consent_decision_at(cur, *, party_id, policy: dict, location_id: str, at: datetime):
+    """Return the latest exact policy decision effective by ``at``."""
+    scope_id = location_id if policy["consent_scope_type"] == "location" else policy["consent_scope_id"]
+    cur.execute(
+        """
+        SELECT id::text, event_type, expires_at
+          FROM stakeholder_consent
+         WHERE party_id = %s
+           AND data_category = %s
+           AND purpose = %s
+           AND scope_type = %s
+           AND scope_id IS NOT DISTINCT FROM %s::uuid
+           AND recipient_party_id IS NOT DISTINCT FROM %s::uuid
+           AND recipient_type = %s
+           AND consent_version = %s
+           AND effective_at <= %s
+         ORDER BY effective_at DESC, created_at DESC, id DESC
+         LIMIT 1
+        """,
+        (
+            party_id,
+            policy["consent_data_category"],
+            policy["consent_purpose"],
+            policy["consent_scope_type"],
+            scope_id,
+            policy["consent_recipient_party_id"],
+            policy["consent_recipient_type"],
+            policy["consent_version"],
+            at,
+        ),
+    )
+    return cur.fetchone()
+
+
+def _validate_required_consent(cur, *, party_id, policy: dict, location_id: str, collected_at: datetime):
+    """Require an exact grant at collection and a still-current grant at sync."""
+    now = datetime.now(timezone.utc)
+    at_collection = _consent_decision_at(
+        cur, party_id=party_id, policy=policy, location_id=location_id, at=collected_at
+    )
+    current = _consent_decision_at(
+        cur, party_id=party_id, policy=policy, location_id=location_id, at=now
+    )
+    if (
+        not at_collection
+        or at_collection[1] != "grant"
+        or (at_collection[2] is not None and _normalise_datetime(at_collection[2]) <= collected_at)
+    ):
+        raise HTTPException(status_code=403, detail="No matching consent grant was effective when the record was collected")
+    if at_collection[2] is not None and _normalise_datetime(at_collection[2]) <= now:
+        raise HTTPException(status_code=403, detail="The collection-time consent grant expired before sync")
+    if (
+        not current
+        or current[1] != "grant"
+        or (current[2] is not None and _normalise_datetime(current[2]) <= now)
+    ):
+        raise HTTPException(status_code=403, detail="Matching consent is not active at sync time")
+
+    scope_id = location_id if policy["consent_scope_type"] == "location" else policy["consent_scope_id"]
+    cur.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1
+              FROM stakeholder_consent
+             WHERE party_id = %s
+               AND data_category = %s
+               AND purpose = %s
+               AND scope_type = %s
+               AND scope_id IS NOT DISTINCT FROM %s::uuid
+               AND recipient_party_id IS NOT DISTINCT FROM %s::uuid
+               AND recipient_type = %s
+               AND consent_version = %s
+               AND event_type IN ('withdraw', 'deny', 'expire')
+               AND effective_at > %s
+               AND effective_at <= %s
+        )
+        """,
+        (
+            party_id,
+            policy["consent_data_category"],
+            policy["consent_purpose"],
+            policy["consent_scope_type"],
+            scope_id,
+            policy["consent_recipient_party_id"],
+            policy["consent_recipient_type"],
+            policy["consent_version"],
+            collected_at,
+            now,
+        ),
+    )
+    if cur.fetchone()[0]:
+        raise HTTPException(status_code=403, detail="Consent was withdrawn or denied after collection")
+    return at_collection[0], current[0], now
+
+
+def _participant_link_for_ref(cur, participant_ref: str, location_id: str):
+    cur.execute(
+        """
+        SELECT id::text, party_id::text, revoked_at
+          FROM mobile_participant_link
+         WHERE participant_ref_hash = %s AND location_id = %s::uuid
+         FOR SHARE
+        """,
+        (_token_hash(participant_ref), location_id),
+    )
+    return cur.fetchone()
+
+
+def _form_revision_for_sync(cur, item: CollectionRequest, location_id: str) -> dict:
+    if not item.form_id or not item.form_version:
+        raise HTTPException(status_code=422, detail="New collections require a known form ID and version")
+    cur.execute(
+        """
+        SELECT id::text, form_id, version, collection_type, location_id::text,
+               status, consent_policy_status, consent_data_category, consent_purpose,
+               consent_scope_type, consent_scope_id::text, consent_recipient_type,
+               consent_recipient_party_id::text, consent_version, created_at, form_schema
+          FROM mobile_form_version
+         WHERE form_id = %s AND version = %s
+         FOR SHARE
+        """,
+        (item.form_id, item.form_version),
+    )
+    row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=422, detail="Unknown form revision")
+    revision = {
+        "id": row[0],
+        "form_id": row[1],
+        "version": row[2],
+        "collection_type": row[3],
+        "location_id": row[4],
+        "status": row[5],
+        "consent_policy_status": row[6],
+        "consent_data_category": row[7],
+        "consent_purpose": row[8],
+        "consent_scope_type": row[9],
+        "consent_scope_id": row[10],
+        "consent_recipient_type": row[11],
+        "consent_recipient_party_id": row[12],
+        "consent_version": row[13],
+        "created_at": _normalise_datetime(row[14]),
+        "form_schema": row[15],
+    }
+    if revision["collection_type"] != item.collection_type:
+        raise HTTPException(status_code=422, detail="Collection type does not match the form revision")
+    if revision["location_id"] and revision["location_id"] != location_id:
+        raise HTTPException(status_code=403, detail="Form revision is assigned to another location")
+    return revision
+
+
+def _validate_media_upload_policy(
+    cur,
+    *,
+    collection_client_id: str,
+    collection_type: str,
+    form_id: str,
+    form_version: str,
+    participant_ref: str | None,
+    location_id: str,
+    collected_at: datetime,
+) -> None:
+    """Check form and required consent before accepting private image bytes."""
+    item = CollectionRequest(
+        client_id=collection_client_id,
+        collection_type=collection_type,
+        form_id=form_id,
+        form_version=form_version,
+        participant_ref=participant_ref,
+        collected_at=collected_at,
+    )
+    revision = _form_revision_for_sync(cur, item, location_id)
+    collected = _normalise_datetime(collected_at)
+    if collected < revision["created_at"]:
+        raise HTTPException(status_code=422, detail="Collection predates the referenced form revision")
+    if revision["status"] not in {"active", "retired"}:
+        raise HTTPException(status_code=409, detail="Form revision is no longer accepted")
+
+    link = _participant_link_for_ref(cur, participant_ref, location_id) if participant_ref else None
+    if participant_ref and not link:
+        raise HTTPException(status_code=403, detail="Participant reference is not assigned to this location")
+    if revision["consent_policy_status"] in {"unclassified", "not_required"} and participant_ref:
+        raise HTTPException(status_code=422, detail="This form revision does not accept a participant reference")
+    # A known retired revision is review-only, but it is still subject to the
+    # consent policy that governed collection. Do not let staleness bypass a
+    # required participant link or a withdrawal that happened before upload.
+    if revision["consent_policy_status"] == "required":
+        if not participant_ref:
+            raise HTTPException(status_code=422, detail="This form revision requires a participant reference")
+        if link[2] is not None:
+            raise HTTPException(status_code=403, detail="Participant reference has been revoked")
+        _validate_required_consent(
+            cur,
+            party_id=link[1],
+            policy=revision,
+            location_id=location_id,
+            collected_at=collected,
+        )
 
 
 def _normalise_datetime(value: datetime | None) -> datetime:
@@ -118,7 +329,7 @@ async def mobile_vault_script():
 
 
 def get_media_store():
-    """Return the configured private S3-compatible object-store adapter."""
+    """Return the explicitly configured private media storage adapter."""
     from services.mobile.media_storage import create_media_store
 
     return create_media_store()
@@ -129,6 +340,11 @@ async def upload_private_media(
     request: Request,
     x_device_token: str | None = Header(default=None),
     x_collection_client_id: str = Header(default="", min_length=1, max_length=200),  # type: ignore[reportArgumentType]
+    x_collection_type: str | None = Header(default=None, min_length=1, max_length=100),
+    x_form_id: str | None = Header(default=None, min_length=1, max_length=200),
+    x_form_version: str | None = Header(default=None, min_length=1, max_length=50),
+    x_participant_ref: str | None = Header(default=None, min_length=32, max_length=128),
+    x_collected_at: datetime | None = Header(default=None),
 ):
     """Store a size-limited JPEG under a random, device-scoped private key."""
     from services.mobile.media_storage import MAX_MEDIA_BYTES, MediaStorageNotConfigured
@@ -139,6 +355,26 @@ async def upload_private_media(
     content_type = request.headers.get("content-type", "").split(";", 1)[0].strip().lower()
     if content_type != "image/jpeg":
         raise HTTPException(status_code=415, detail="Only JPEG images are accepted")
+    policy_conn = get_db()
+    try:
+        policy_cur = policy_conn.cursor()
+        _validate_media_upload_policy(
+            policy_cur,
+            collection_client_id=x_collection_client_id,
+            collection_type=x_collection_type or "",
+            form_id=x_form_id or "",
+            form_version=x_form_version or "",
+            participant_ref=x_participant_ref,
+            location_id=location_id,
+            collected_at=_normalise_datetime(x_collected_at),
+        )
+        policy_conn.commit()
+        policy_cur.close()
+    except HTTPException:
+        policy_conn.rollback()
+        raise
+    finally:
+        policy_conn.close()
     body = await request.body()
     if len(body) > MAX_MEDIA_BYTES:
         raise HTTPException(status_code=413, detail="Image exceeds the 2 MB upload limit")
@@ -245,8 +481,12 @@ async def list_forms(
             cur.execute(
                 """
                 SELECT form_id, name, description, form_schema, ui_schema,
-                       version, collection_type, min_app_version
-                FROM mobile_form
+                       version, collection_type, min_app_version,
+                       consent_policy_status, consent_data_category,
+                       consent_purpose, consent_version, consent_recipient_type,
+                       consent_recipient_name,
+                       (consent_policy_status = 'required') AS participant_required
+                FROM mobile_form_version
                 WHERE status = 'active'
                   AND (location_id IS NULL OR location_id::text = %s)
                 ORDER BY name
@@ -257,8 +497,12 @@ async def list_forms(
             cur.execute(
                 """
                 SELECT form_id, name, description, form_schema, ui_schema,
-                       version, collection_type, min_app_version
-                FROM mobile_form
+                       version, collection_type, min_app_version,
+                       consent_policy_status, consent_data_category,
+                       consent_purpose, consent_version, consent_recipient_type,
+                       consent_recipient_name,
+                       (consent_policy_status = 'required') AS participant_required
+                FROM mobile_form_version
                 WHERE status = 'active'
                   AND location_id IS NULL
                   AND is_public IS TRUE
@@ -271,6 +515,101 @@ async def list_forms(
     finally:
         conn.close()
     return {"forms": rows}
+
+
+@router.post("/locations/{location_id}/participants", status_code=201)
+async def create_participant_link(
+    location_id: UUID,
+    request: Request,
+    body: ParticipantLinkCreateRequest,
+):
+    """Create a reviewer-approved, location-scoped opaque participant reference."""
+    if not body.evidence:
+        raise HTTPException(status_code=422, detail="Reviewer evidence is required")
+    evidence_bytes = json.dumps(body.evidence, separators=(",", ":")).encode("utf-8")
+    if len(evidence_bytes) > 16_384:
+        raise HTTPException(status_code=413, detail="Participant link evidence is too large")
+    participant_ref = secrets.token_urlsafe(32)
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM party WHERE id = %s", (str(body.party_id),))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="Participant party was not found")
+        cur.execute(
+            """
+            INSERT INTO mobile_participant_link
+                (participant_ref_hash, party_id, location_id, created_by, evidence)
+            VALUES (%s, %s, %s, %s, %s::jsonb)
+            RETURNING id::text, created_at
+            """,
+            (
+                _token_hash(participant_ref),
+                str(body.party_id),
+                str(location_id),
+                request.state.caller,
+                json.dumps(body.evidence),
+            ),
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+    except HTTPException:
+        conn.rollback()
+        raise
+    except Exception as exc:
+        conn.rollback()
+        if getattr(exc, "pgcode", None) == "23505":
+            raise HTTPException(status_code=409, detail="An active participant link already exists for this location") from exc
+        logger.warning("Participant link creation failed (%s)", type(exc).__name__)
+        raise HTTPException(status_code=500, detail="Participant link could not be created") from exc
+    finally:
+        conn.close()
+    return {
+        "link_id": row[0],
+        "location_id": str(location_id),
+        "participant_ref": participant_ref,
+        "created_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
+    }
+
+
+@router.post("/locations/{location_id}/participants/revoke")
+async def revoke_participant_link(
+    location_id: UUID,
+    request: Request,
+    body: ParticipantLinkRevokeRequest,
+):
+    """Revoke a participant reference without deleting its identity history."""
+    conn = get_db()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            UPDATE mobile_participant_link
+               SET revoked_by = %s, revoked_at = NOW()
+             WHERE participant_ref_hash = %s
+               AND location_id = %s
+               AND revoked_at IS NULL
+            RETURNING id::text, revoked_at
+            """,
+            (request.state.caller, _token_hash(body.participant_ref), str(location_id)),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Active participant link was not found")
+        conn.commit()
+        cur.close()
+    except HTTPException:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+    return {
+        "link_id": row[0],
+        "location_id": str(location_id),
+        "status": "revoked",
+        "revoked_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
+    }
 
 
 @router.post("/locations/{location_id}/enrollments", status_code=201)
@@ -445,9 +784,12 @@ async def revoke_device(location_id: UUID, device_id: str):
     return {"device_id": row[0], "status": "revoked"}
 
 
-def _same_sync_record(existing, device_id, user_id, location_id, item, photo_refs) -> bool:
+def _same_sync_record(
+    existing, device_id, user_id, location_id, item, photo_refs,
+    form_revision_id, participant_link_id,
+) -> bool:
     """Match an idempotency key only when its full caller-controlled record matches."""
-    if not existing or len(existing) < 12:
+    if not existing or len(existing) < 14:
         return False
     existing_location_id = str(existing[2]) if existing[2] is not None else None
     if (
@@ -467,8 +809,17 @@ def _same_sync_record(existing, device_id, user_id, location_id, item, photo_ref
     if item.collected_at is not None:
         if existing[11] is None:
             return False
-        return _normalise_datetime(existing[11]) == _normalise_datetime(item.collected_at)
-    return True
+        if _normalise_datetime(existing[11]) != _normalise_datetime(item.collected_at):
+            return False
+    if existing[12] is None:
+        # Preserve idempotent acknowledgement for pre-migration rows without
+        # retroactively assigning a revision or participant identity.
+        return existing[13] is None and participant_link_id is None and item.participant_ref is None
+    return (
+        str(existing[12]) == str(form_revision_id)
+        and (str(existing[13]) if existing[13] is not None else None)
+        == (str(participant_link_id) if participant_link_id is not None else None)
+    )
 
 
 @router.post("/sync")
@@ -501,23 +852,107 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
             if len(set(media_ids)) != len(media_ids):
                 raise HTTPException(status_code=422, detail="photo_refs cannot contain duplicates")
             photo_refs = [str(media_id) for media_id in media_ids]
+            if not registered_location_id:
+                raise HTTPException(status_code=403, detail="Device has no server-assigned location")
+
+            # A byte-for-byte retry of a pre-migration row can be acknowledged
+            # without assigning it a new validation status or identity link.
+            cur.execute(
+                """
+                SELECT device_id, user_id, location_id::text, collection_type, form_id,
+                       form_version, payload, photo_refs, latitude, longitude, accuracy_m,
+                       collected_at, form_revision_id::text, participant_link_id::text
+                  FROM offline_collection WHERE client_id = %s FOR UPDATE
+                """,
+                (item.client_id,),
+            )
+            legacy_existing = cur.fetchone()
+            if legacy_existing and legacy_existing[12] is None:
+                if not _same_sync_record(
+                    legacy_existing, device_id, user_id, registered_location_id,
+                    item, photo_refs, None, None,
+                ):
+                    raise HTTPException(status_code=409, detail="Client ID already belongs to another record")
+                duplicate_client_ids.append(item.client_id)
+                continue
+
+            revision = _form_revision_for_sync(cur, item, registered_location_id)
+            form_revision_id = revision["id"]
+            try:
+                validate_form_payload(revision["form_schema"], item.payload)
+            except FormSchemaUnavailable as exc:
+                logger.error("Invalid stored form schema for revision %s", revision["id"])
+                raise HTTPException(status_code=503, detail="Form schema is unavailable") from exc
+            except FormPayloadInvalid as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Collection payload does not match the selected form revision",
+                ) from exc
+            collected_at = _normalise_datetime(item.collected_at)
+            if collected_at < revision["created_at"]:
+                raise HTTPException(status_code=422, detail="Collection predates the referenced form revision")
+            link = None
+            if item.participant_ref:
+                link = _participant_link_for_ref(cur, item.participant_ref, registered_location_id)
+                if not link:
+                    raise HTTPException(status_code=403, detail="Participant reference is not assigned to this location")
+
+            active_revision = revision["status"] == "active"
+            policy_status = revision["consent_policy_status"]
+            if policy_status in {"unclassified", "not_required"} and item.participant_ref:
+                raise HTTPException(status_code=422, detail="This form revision does not accept a participant reference")
+            if policy_status == "required" and not item.participant_ref:
+                raise HTTPException(status_code=422, detail="This form revision requires a participant reference")
+
+            # Retired revisions are accepted only into the private review queue.
+            # They never inherit an active consent result during sync.
+            participant_link_id = link[0] if (link and (active_revision or policy_status == "required")) else None
+            consent_status = "unassessed"
+            consent_event_id_at_collection = None
+            consent_event_id_at_sync = None
+            consent_validated_at = None
+            if active_revision and policy_status == "not_required":
+                consent_status = "not_required"
+            form_validation_status = "active" if active_revision else "retired_review"
+            form_review_required = (
+                not active_revision or policy_status == "unclassified"
+            )
 
             # Check idempotency before requiring media to remain in the uploaded state.
             cur.execute(
                 """
                 SELECT device_id, user_id, location_id::text, collection_type, form_id,
                        form_version, payload, photo_refs, latitude, longitude, accuracy_m,
-                       collected_at
+                       collected_at, form_revision_id::text, participant_link_id::text
                 FROM offline_collection WHERE client_id = %s FOR UPDATE
                 """,
                 (item.client_id,),
             )
             existing = cur.fetchone()
             if existing:
-                if not _same_sync_record(existing, device_id, user_id, registered_location_id, item, photo_refs):
+                if not _same_sync_record(
+                    existing, device_id, user_id, registered_location_id, item, photo_refs,
+                    form_revision_id, participant_link_id,
+                ):
                     raise HTTPException(status_code=409, detail="Client ID already belongs to another record")
                 duplicate_client_ids.append(item.client_id)
                 continue
+
+            if revision["status"] not in {"active", "retired"}:
+                raise HTTPException(status_code=409, detail="Form revision is no longer accepted")
+
+            if policy_status == "required":
+                if link[2] is not None:
+                    raise HTTPException(status_code=403, detail="Participant reference has been revoked")
+                consent_event_id_at_collection, consent_event_id_at_sync, consent_validated_at = _validate_required_consent(
+                    cur,
+                    party_id=link[1],
+                    policy=revision,
+                    location_id=registered_location_id,
+                    collected_at=collected_at,
+                )
+                if active_revision:
+                    consent_status = "granted"
 
             media_rows = []
             if media_ids:
@@ -541,13 +976,16 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
                         """
                         SELECT device_id, user_id, location_id::text, collection_type, form_id,
                                form_version, payload, photo_refs, latitude, longitude, accuracy_m,
-                               collected_at
+                               collected_at, form_revision_id::text, participant_link_id::text
                         FROM offline_collection WHERE client_id = %s
                         """,
                         (item.client_id,),
                     )
                     existing = cur.fetchone()
-                    if existing and _same_sync_record(existing, device_id, user_id, registered_location_id, item, photo_refs):
+                    if existing and _same_sync_record(
+                        existing, device_id, user_id, registered_location_id, item, photo_refs,
+                        form_revision_id, participant_link_id,
+                    ):
                         duplicate_client_ids.append(item.client_id)
                         continue
                     raise HTTPException(status_code=403, detail="One or more media references are not available to this device")
@@ -564,16 +1002,21 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
                     if head.get("ContentLength") != media_row[3] or head.get("ContentType") != media_row[2]:
                         raise HTTPException(status_code=409, detail="Private media does not match its upload record")
 
-            collected_at = _normalise_datetime(item.collected_at)
             location_id = registered_location_id
             cur.execute(
                 """
                 INSERT INTO offline_collection
                     (device_id, user_id, location_id, collection_type,
                      form_id, form_version, payload, photo_refs, latitude,
-                     longitude, accuracy_m, collected_at, client_id, sync_status)
+                     longitude, accuracy_m, collected_at, client_id, sync_status,
+                     form_revision_id, participant_link_id,
+                     consent_event_id_at_collection, consent_event_id_at_sync,
+                     form_validation_status, consent_validation_status,
+                     form_review_required, consent_validated_at)
                 VALUES (%s, %s, NULLIF(%s, '')::uuid, %s, %s, %s, %s::jsonb,
-                        %s::jsonb, %s, %s, %s, %s, %s, 'pending')
+                        %s::jsonb, %s, %s, %s, %s, %s, 'pending',
+                        %s::uuid, %s::uuid, %s::uuid, %s::uuid,
+                        %s, %s, %s, %s)
                 ON CONFLICT (client_id) WHERE client_id IS NOT NULL DO NOTHING
                 RETURNING id
                 """,
@@ -591,6 +1034,14 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
                     item.accuracy_m,
                     collected_at,
                     item.client_id,
+                    form_revision_id,
+                    participant_link_id,
+                    consent_event_id_at_collection,
+                    consent_event_id_at_sync,
+                    form_validation_status,
+                    consent_status,
+                    form_review_required,
+                    consent_validated_at,
                 ),
             )
             inserted = cur.fetchone()
@@ -614,13 +1065,16 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
                     """
                     SELECT device_id, user_id, location_id::text, collection_type, form_id,
                            form_version, payload, photo_refs, latitude, longitude, accuracy_m,
-                           collected_at
+                           collected_at, form_revision_id::text, participant_link_id::text
                     FROM offline_collection WHERE client_id = %s
                     """,
                     (item.client_id,),
                 )
                 existing = cur.fetchone()
-                if not existing or not _same_sync_record(existing, device_id, user_id, registered_location_id, item, photo_refs):
+                if not existing or not _same_sync_record(
+                    existing, device_id, user_id, registered_location_id, item, photo_refs,
+                    form_revision_id, participant_link_id,
+                ):
                     raise HTTPException(status_code=409, detail="Client ID already belongs to another record")
                 duplicate_client_ids.append(item.client_id)
 

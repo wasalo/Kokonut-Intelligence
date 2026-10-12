@@ -1,8 +1,7 @@
 """Feature flags — controls which optional services are enabled.
 
-Feature flags are environment-variable driven. Critical features
-(database, directus) are always enabled. Optional features can be
-toggled via KOKONUT_FEATURE_* env vars.
+Feature flags are environment-variable driven. PostgreSQL is always enabled.
+Directus remains critical when selected until native API parity is implemented.
 """
 
 from __future__ import annotations
@@ -10,6 +9,9 @@ from __future__ import annotations
 import os
 from typing import Any, Optional
 
+from services.core.providers import ProviderSettings
+
+_providers = ProviderSettings.from_environment()
 
 FEATURES: dict[str, dict[str, Any]] = {
     # ── Core (always enabled) ──────────────────────────────────────
@@ -21,44 +23,43 @@ FEATURES: dict[str, dict[str, Any]] = {
         "description": "PostgreSQL database",
     },
     "directus": {
-        "enabled": True,
-        "critical": True,
+        "enabled": _providers.directus,
+        "critical": _providers.directus,
         "category": "core",
         "health_check": "curl localhost:8055/server/ping",
         "description": "Directus API and admin UI",
     },
     "clickhouse": {
-        "enabled": True,
+        "enabled": _providers.clickhouse,
         "critical": False,
         "category": "core",
         "health_check": "clickhouse-client query 'SELECT 1'",
         "description": "ClickHouse analytical store",
     },
-
     # ── Optional services ──────────────────────────────────────────
     "grpc": {
-        "enabled": os.getenv("KOKONUT_FEATURE_GRPC", "true").lower() == "true",
+        "enabled": _providers.grpc,
         "critical": False,
         "category": "api",
         "port": 50051,
         "description": "gRPC API server",
     },
     "metabase": {
-        "enabled": os.getenv("KOKONUT_FEATURE_METABASE", "true").lower() == "true",
+        "enabled": _providers.metabase,
         "critical": False,
         "category": "analytics",
         "port": 3000,
         "description": "Metabase analytics dashboards",
     },
     "mqtt": {
-        "enabled": os.getenv("KOKONUT_FEATURE_MQTT", "true").lower() == "true",
+        "enabled": _providers.mqtt,
         "critical": False,
         "category": "iot",
         "port": 1883,
         "description": "MQTT broker for IoT sensors",
     },
     "prefect": {
-        "enabled": os.getenv("KOKONUT_FEATURE_PREFECT", "false").lower() == "true",
+        "enabled": _providers.prefect,
         "critical": False,
         "category": "orchestration",
         "description": "Prefect workflow orchestration",

@@ -1,4 +1,14 @@
-import { createDirectus, rest, authentication } from '@directus/sdk';
+import {
+  createDirectus,
+  rest,
+  authentication,
+  readItems,
+  readItem,
+  createItem,
+  createItems,
+  updateItem,
+  deleteItem,
+} from '@directus/sdk';
 import type {
   ListOptions,
 } from './types.js';
@@ -39,6 +49,7 @@ export interface KokonutClientOptions {
 
 export class KokonutClient {
   private directus;
+  private ready: Promise<void>;
 
   locations: LocationMethods;
   farms: FarmMethods;
@@ -56,10 +67,9 @@ export class KokonutClient {
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
-
-    if (options?.token) {
-      this.directus.setToken(options.token);
-    }
+    this.ready = options?.token
+      ? this.directus.setToken(options.token).then(() => undefined)
+      : Promise.resolve();
 
     this.locations = buildLocationMethods(this);
     this.farms = buildFarmMethods(this);
@@ -77,52 +87,66 @@ export class KokonutClient {
   }
 
   async login(email: string, password: string): Promise<{ token: string; refreshToken: string }> {
+    await this.ready;
     const result = await this.directus.login(email, password);
-    const token = result.access_token ?? result.token ?? '';
+    const token = result.access_token ?? '';
     const refreshToken = result.refresh_token ?? '';
-    this.directus.setToken(token);
+    await this.directus.setToken(token);
     return { token, refreshToken };
   }
 
   async logout(): Promise<void> {
+    await this.ready;
     await this.directus.logout();
-    this.directus.setToken(null);
+    await this.directus.setToken(null);
   }
 
   async listItems(collection: string, options?: ListOptions): Promise<any[]> {
+    await this.ready;
     const query: Record<string, any> = {};
 
     if (options?.filter) query.filter = options.filter;
     if (options?.sort) query.sort = options.sort;
     if (options?.fields) query.fields = options.fields;
-    if (options?.limit) query.limit = options.limit;
-    if (options?.offset) query.page = Math.floor((options.offset ?? 0) / (options.limit ?? 100)) + 1;
-    if (options?.page) query.page = options.page;
-    if (options?.meta) query.meta = options.meta;
+    if (options?.limit !== undefined) query.limit = options.limit;
+    if (options?.offset !== undefined && options.limit !== undefined) {
+      if (options.limit === 0) {
+        throw new RangeError('offset pagination requires a non-zero limit');
+      }
+      query.page = Math.floor(options.offset / options.limit) + 1;
+    } else if (options?.page !== undefined) {
+      query.page = options.page;
+    }
+    if (options?.meta !== undefined) query.meta = options.meta;
 
-    return this.directus.request(this.directus.readItems(collection, query));
+    return this.directus.request(readItems(collection, query));
   }
 
   async getItem(collection: string, id: string, fields?: string[]): Promise<any> {
+    await this.ready;
     const query: Record<string, any> = {};
     if (fields) query.fields = fields;
 
-    return this.directus.request(this.directus.readItem(collection, id, query));
+    return this.directus.request(readItem(collection, id, query));
   }
 
   async createItem(collection: string, data: Record<string, any>): Promise<any> {
-    return this.directus.request(this.directus.createItem(collection, data));
+    await this.ready;
+    return this.directus.request(createItem(collection, data));
   }
 
   async createItems(collection: string, data: Record<string, any>[]): Promise<any[]> {
-    return this.directus.request(this.directus.createItems(collection, data));
+    await this.ready;
+    return this.directus.request(createItems(collection, data));
   }
 
   async updateItem(collection: string, id: string, data: Record<string, any>): Promise<any> {
-    return this.directus.request(this.directus.updateItem(collection, id, data));
+    await this.ready;
+    return this.directus.request(updateItem(collection, id, data));
   }
 
   async deleteItem(collection: string, id: string): Promise<void> {
-    await this.directus.request(this.directus.deleteItem(collection, id));
+    await this.ready;
+    await this.directus.request(deleteItem(collection, id));
   }
 }

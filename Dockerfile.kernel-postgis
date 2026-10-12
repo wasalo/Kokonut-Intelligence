@@ -1,0 +1,26 @@
+# Additive multi-platform database build; not selected by current Compose.
+# Package versions must be verified for each target architecture before build.
+FROM postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4 AS postgres-base
+
+# Build-only package discovery. No PostgreSQL process or data volume is started.
+FROM postgres-base AS package-catalog
+RUN apt-get update \
+    && apt-cache policy postgresql-16-postgis-3 postgresql-16-postgis-3-scripts
+
+FROM postgres-base AS kernel-postgis
+
+ARG POSTGIS_PACKAGE_VERSION
+ARG POSTGIS_SCRIPTS_VERSION
+RUN test -n "$POSTGIS_PACKAGE_VERSION" \
+    && test -n "$POSTGIS_SCRIPTS_VERSION" \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+       ca-certificates \
+       "postgresql-16-postgis-3=$POSTGIS_PACKAGE_VERSION" \
+       "postgresql-16-postgis-3-scripts=$POSTGIS_SCRIPTS_VERSION" \
+    && mkdir -p /usr/local/share/kokonut \
+    && dpkg-query -W > /usr/local/share/kokonut/database-packages.txt \
+    && rm -rf /var/lib/apt/lists/*
+
+# Schema extension creation remains owned by the checksummed migration runner.
+# No application seeds or automatic extension upgrades are installed here.

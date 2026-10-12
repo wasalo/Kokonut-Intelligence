@@ -119,6 +119,19 @@ def test_process_event_does_not_report_success_after_lease_loss():
         assert bus._process_event("event", "kind", {}, "worker") == "lease_lost"
 
 
+def test_process_pending_reports_lease_loss_separately_from_handler_failure():
+    conn, _ = _connection(fetchall=[("event", "kind", {}, 0, 3)])
+    bus = EventBus(conn=conn)
+
+    with patch.object(bus, "_process_event", return_value="lease_lost"), patch.object(
+        bus, "_retry_or_dead_letter"
+    ) as retry:
+        stats = bus.process_pending(worker_id="stale-worker")
+
+    assert stats == {"processed": 0, "failed": 0, "skipped": 0, "lease_lost": 1}
+    retry.assert_not_called()
+
+
 def test_orphaned_dead_letter_cannot_report_successful_replay():
     conn, _ = _connection(fetchone=None)
     bus = EventBus(conn=conn)

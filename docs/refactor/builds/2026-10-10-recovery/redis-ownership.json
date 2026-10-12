@@ -1,0 +1,55 @@
+{
+  "records": [
+    {
+      "key_sha256": "bbe3d25e5857ea4f53adcd9ba9abe527dbd9ee403804718e673f4d92f8e2cffc",
+      "classification": "Directus collaboration instance registry",
+      "key_bytes": 25,
+      "type": "string",
+      "ttl_seconds": -1,
+      "value_bytes": 66,
+      "value_format": "JSON",
+      "source": "websocket/collab/messenger.js; websocket/collab/store.js; utils/store.js",
+      "instance_count": 1,
+      "client_count": 0,
+      "room_count": 0,
+      "recovery_policy": "Preserve encrypted archive; recreate runtime presence, do not import stale instance identities into Kernel."
+    },
+    {
+      "key_sha256": "bdbe113ed97d397a7dfbbd86ec4402a402e45cc3be1b2b42b4dc3781fcc96026",
+      "classification": "Directus API request telemetry counter",
+      "key_bytes": 35,
+      "type": "string",
+      "ttl_seconds": -1,
+      "value_bytes": 1,
+      "value_format": "opaque",
+      "source": "middleware/request-counter.js; telemetry/counter/use-counters.js",
+      "recovery_policy": "Preserve archived telemetry; do not use as rate-limit, financial or governed state."
+    },
+    {
+      "key_sha256": "c4c91e1077f95ac6062c9140a3de3eb963b8120ff08ecba19a545b4b08046af2",
+      "classification": "Directus API request telemetry counter",
+      "key_bytes": 34,
+      "type": "string",
+      "ttl_seconds": -1,
+      "value_bytes": 1,
+      "value_format": "opaque",
+      "source": "middleware/request-counter.js; telemetry/counter/use-counters.js",
+      "recovery_policy": "Preserve archived telemetry; do not use as rate-limit, financial or governed state."
+    },
+    {
+      "key_sha256": "792afd043efb44463e7ceb171e5a7cfe47e24a2e1ed7da70f77332bb5de90961",
+      "classification": "Directus per-user failed-login limiter",
+      "key_bytes": 42,
+      "type": "string",
+      "ttl_seconds": -1,
+      "value_bytes": 1,
+      "value_format": "opaque",
+      "recovery_policy": "Security state: preserve Redis archive and user failure counter with optional Directus. Never silently reset or reinterpret as native gateway token bucket; reviewed reset or explicit compatible transfer required before Redis retirement.",
+      "source": "services/authentication.js; rate-limiter.js; rate-limiter-flexible/lib/RateLimiterAbstract.js",
+      "directus_user_identity_match": true,
+      "duration_override_seconds": 0
+    }
+  ],
+  "scope": "All four db0 keys source-mapped; failed-login UUID privately matched to legacy directus_users. No raw UUID, key or value retained. State transfer and Redis retirement acceptance remain open.",
+  "directus_image": "sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d"
+}

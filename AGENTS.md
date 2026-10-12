@@ -75,13 +75,16 @@ Commands:
 - `compute-metrics.sh` runs metrics once and exits. With the Compose database running it uses an ephemeral `kokonut-worker` via `docker compose run --rm`; it is not a persistent metrics service.
 - Migrations are ordered and checksummed. Do not edit an applied migration or bypass drift detection; add a new migration and preserve transactional failure behavior.
 - Gateway public access is explicit opt-in. Unknown routes remain protected, and new routes require deliberate resource/action/public policy plus authorization tests.
-- Scheduler claims, run state, event delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
+- Scheduler claims, run state, event delivery, notification delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
 - Credit writes must preserve batch/account custody and supply invariants. Retirement reserves quantity atomically and requires an independent human confirmation before final balance mutation or certificate use.
 - Threatcasting/backcasting outputs and Delphi facilitator recommendations are advisory. Preserve governed lifecycle, evidence links, and human approval boundaries.
 - Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
 
 ## Local Commands
 
+- Check Kernel dependency group alignment: `python3 scripts/check-requirement-groups.py`
+- Check optional provider import boundaries: `python3 scripts/check-provider-boundaries.py`
+- Capture static Kernel inventory: `python3 scripts/kernel-inventory.py --output docs/refactor/repository-inventory.json`
 - Start services with encrypted secrets: `source scripts/load-secrets.sh && docker compose up -d`
 - Start services (plaintext .env fallback): `docker compose up -d`
 - Decrypt secrets to stdout: `sops -d --input-type dotenv --output-type dotenv .env.sops`
@@ -113,6 +116,11 @@ Commands:
 - Event bus dead letter: `python3 -m services.events --list-dead-letter`
 - Event bus replay dead letter: `python3 -m services.events --replay-dead-letter --event-id UUID --actor OPERATOR`
 - Event bus dispose dead letter: `python3 -m services.events --dispose-dead-letter --event-id UUID --disposition resolved --actor OPERATOR --reason "Fixed upstream"`
+- Notification delivery batch: `python3 -m services.events --notification-process --batch-size 50`
+- Notification status: `python3 -m services.events --notification-stats`
+- Notification dead letters: `python3 -m services.events --notification-list-dead-letter`
+- Notification replay: `python3 -m services.events --notification-replay-dead-letter --notification-id UUID --notification-actor OPERATOR --reason "Endpoint restored"`
+- Notification disposal: `python3 -m services.events --notification-dispose-dead-letter --notification-id UUID --disposition resolved --notification-actor OPERATOR --reason "Reviewed with provider"`
 - Scheduler worker: `python3 -m services.scheduler.worker --tick-interval 30`
 - Scheduler status: `python3 -m services.scheduler.cli --status`
 - Scheduler list runs: `python3 -m services.scheduler.cli --list-runs`
@@ -377,6 +385,7 @@ Commands:
 - Mobile sync: `python3 -m services.analytics.mobile_offline sync --device-id sensor-phone-001`
 - Mobile status: `python3 -m services.analytics.mobile_offline status`
 - Mobile devices: `python3 -m services.analytics.mobile_offline devices`
+- `services.analytics.mobile_offline` is a legacy transport/admin CLI: it does not validate form revisions, participant links, or consent. Use the consent-aware Field Collector API for intake; after migration 381, legacy CLI rows remain unassessed and cannot pass `v_mobile_collection_use_eligibility`.
 - LLM chat session: `python3 -m services.analytics.llm_chat session --create --location-id UUID --user admin`
 - LLM chat send: `python3 -m services.analytics.llm_chat chat --session-id UUID --message "What was the maize yield?"`
 - LLM chat intents: `python3 -m services.analytics.llm_chat intents`

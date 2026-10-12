@@ -1,0 +1,26 @@
+{
+  "observed_date": "2026-10-10",
+  "base_image": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+  "repository_suite": "bookworm-pgdg",
+  "verified_package_catalog_architectures": ["amd64", "arm64"],
+  "build_arguments": {
+    "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
+    "POSTGIS_SCRIPTS_VERSION": "3.6.4+dfsg-2.pgdg12+1"
+  },
+  "database_build_verified": true,
+  "completed_builds": {
+    "linux/amd64": {
+      "tag": "kokonut-kernel-postgis-amd64:local",
+      "image_identity": "sha256:10d2101d4d0abee25a6b5217ae5fa43f5c912eb75d3b34f17f206e1fcfcff789",
+      "docker_reported_size_bytes": 911774311
+    },
+    "linux/arm64": {
+      "tag": "kokonut-kernel-postgis-arm64:local",
+      "image_identity": "sha256:a0ff166b0949fb1a0224c9f9115e1eb211a3b2e3d3dbb2cd3f927c5901794296",
+      "docker_reported_size_bytes": 217385115
+    }
+  },
+  "runtime_certified": false,
+  "legacy_postgis_line": "3.4",
+  "requires_extension_and_restore_compatibility_review": true
+}

@@ -35,6 +35,8 @@ check() {
 # 1. Python runtime and imports
 echo "[1/3] Python import validation..."
 check "Supported Python runtime" "python3 $SCRIPT_DIR/check-python-runtime.py"
+check "Optional provider import boundaries" "python3 $SCRIPT_DIR/check-provider-boundaries.py"
+check "Kernel dependency group alignment" "python3 $SCRIPT_DIR/check-requirement-groups.py"
 check "FastAPI dependencies" "python3 -c 'import fastapi; from fastapi.testclient import TestClient; print(fastapi.__version__)'"
 check "Import services.ingestion.base" "python3 -c 'import services.ingestion.base'"
 check "Import services.forecast.engine" "python3 -c 'import services.forecast.engine'"

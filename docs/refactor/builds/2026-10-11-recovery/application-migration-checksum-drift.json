@@ -1,0 +1,171 @@
+{
+  "date": "2026-10-11",
+  "environment_after_inspection": {
+    "candidate_api_and_database": "healthy",
+    "legacy_kokonut_intelligence_stack": "stopped, unchanged"
+  },
+  "historical_source_recovery": {
+    "conclusion": "exact historical migration source recovered from the stopped legacy worker image and verified against the archived ledger checksum",
+    "current_migration_file_added_by_commit": "68ced6b0df469091651462f9538066f15591d838",
+    "current_migration_file_exists_in_parent_commit": false,
+    "legacy_image": "kokonut-intelligence-kokonut-worker:latest",
+    "legacy_image_id": "sha256:88f9a69b3c3b938f3878b00ff5502127e6938495920294619db43d22d90f2ed0",
+    "legacy_image_created_at": "2026-07-23T18:00:54.461412418Z",
+    "legacy_image_source_path": "/app/schemas/postgres/000_extensions.sql",
+    "historical_source_evidence_path": "docs/refactor/builds/2026-10-11-recovery/provenance/legacy-image-000_extensions.sql",
+    "historical_source_sha256": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
+    "historical_source_matches_stored_checksum": true,
+    "historical_source_diff_summary": "current source adds a synchronization comment and CREATE EXTENSION IF NOT EXISTS declarations for postgis_topology, pg_trgm, and pg_stat_statements",
+    "ledger_sql_up_bytes": 24,
+    "ledger_sql_up_matches_recorded_checksum": false,
+    "ledger_sql_up_sha256": "56b82c038d9ce83fa741f747119f8e4c735594baebb2d203ad9a9d1264ff6c2b",
+    "repository_is_shallow": false,
+    "inspection_container_removed": true
+  },
+  "ledger": {
+    "applied_schema_rows": 344,
+    "checksum_mismatches": [
+      {
+        "applied_by": "migration-cli",
+        "current_source_checksum": "6e5850e52423ffe8cea241f7f5764bb6c074d55813de33c601c9e8b1495723ff",
+        "migration_id": "schema:000_extensions.sql",
+        "name": "000_extensions",
+        "status": "applied",
+        "stored_checksum": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
+        "version": "schema:000_extensions.sql"
+      }
+    ],
+    "current_schema_sources": 368,
+    "current_sources_not_in_ledger": [
+      "schema:353_crop_cycle_noi_view.sql",
+      "schema:354_safe_treasury_accounts.sql",
+      "schema:355_safe_attestation_flow.sql",
+      "schema:356_safe_settlement.sql",
+      "schema:357_field_collector_enrollment_hardening.sql",
+      "schema:358_mobile_private_media.sql",
+      "schema:359_activity_scope_and_outputs.sql",
+      "schema:360_job_role_department_relationships.sql",
+      "schema:361_farm_task_relationships.sql",
+      "schema:362_farm_staff_membership.sql",
+      "schema:363_expense_farm_weekly_plan_scope.sql",
+      "schema:364_reported_activity_output_metrics.sql",
+      "schema:365_expense_weekly_plan_scope_exception.sql",
+      "schema:366_crop_category_extensions.sql",
+      "schema:367_external_grant_tranche.sql",
+      "schema:369_baserow_activity_source_options.sql",
+      "schema:370_baserow_expense_fields.sql",
+      "schema:371_scheduler_run_windows.sql",
+      "schema:372_mqtt_delivery_records.sql",
+      "schema:373_gateway_rate_buckets.sql",
+      "schema:374_clickhouse_outbox_operator_audit.sql",
+      "schema:375_notification_outbox.sql",
+      "schema:376_sensor_anomaly_delivery.sql",
+      "schema:377_kokonut_reporting_contract.sql"
+    ],
+    "ledger_ids_without_current_source": [],
+    "unapplied_current_source_count": 24
+  },
+  "private_domain_rows_or_secrets_emitted": false,
+  "repair_policy": {
+    "action_taken": "no ledger repair; restored exact historical source and moved later additions into new migration 378",
+    "approved_exact_repair_entry_exists": false,
+    "migration_runner_repair_is_allowlisted_and_audited": true,
+    "next_gate": "run read-only plan on retained archived clone; rebuild current-source reporting scratch and rerun role fixture before migration application or parity claims"
+  },
+  "required_extensions_present": {
+    "pg_stat_statements": "1.10",
+    "pg_trgm": "1.6",
+    "pgcrypto": "1.3",
+    "postgis": "3.4.3",
+    "postgis_topology": "3.4.3",
+    "uuid-ossp": "1.1"
+  },
+  "result": "historical_checksum_restored_in_source; zero_checksum_drift_verified; 25_archived_schema_migrations_pending; no_archived_migrations_applied",
+  "run_id": "application-migration-checksum-drift-20261011",
+  "scope": "read-only ledger and extension catalog on retained isolated recovery clone plus local legacy-image migration source extraction; no application rows inspected",
+  "source_archive": {
+    "decrypted_or_modified": false,
+    "path": "backups/legacy-logical-batch2-20261010/kokonut_intelligence.dump.age",
+    "present": true
+  },
+  "target": {
+    "compose_project": "kokonut-kernel-metabase-reporting-20261011",
+    "container": "kokonut-kernel-metabase-reporting-20261011-database-1",
+    "database": "kokonut_intelligence",
+    "database_container_after_inspection": "stopped and removed",
+    "database_or_ledger_mutated_by_triage": false,
+    "network_after_inspection": "removed",
+    "volume_retained": true
+  },
+  "source_sha256_at_initial_triage": {
+    "schemas/postgres/000_extensions.sql": "6e5850e52423ffe8cea241f7f5764bb6c074d55813de33c601c9e8b1495723ff",
+    "services/migration/cli.py": "a5101f0c37a4450ecf2dacfec79d1e3de8e3724b43cd1c93e776c0e91c24a1e4",
+    "docs/refactor/builds/2026-10-11-recovery/provenance/legacy-image-000_extensions.sql": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245"
+  },
+  "source_reconciliation": {
+    "historical_000_extensions_source_sha256": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
+    "active_000_extensions_source_sha256": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
+    "active_000_extensions_matches_archived_ledger": true,
+    "migration_378": "schemas/postgres/378_optional_extensions.sql",
+    "migration_378_sha256": "b1ecb9c574a6cede27fd791bdd6017f0671339021bff7f6c7e390c1cc02b7940",
+    "current_schema_source_count": 369,
+    "applied_schema_rows_in_archived_clone": 344,
+    "pending_schema_source_count_by_count": 25,
+    "pending_count_verified_by_post_alignment_plan": true,
+    "source_change_policy_timeline": {
+      "checksum_enforcement_commit": "b1a28db",
+      "checksum_enforcement_date": "2026-07-15",
+      "migration_000_reintroduced_commit": "68ced6b0df469091651462f9538066f15591d838",
+      "migration_000_reintroduced_date": "2026-10-09"
+    },
+    "correction": "restored active 000_extensions.sql to exact deployed bytes and moved three later extension declarations to migration 378",
+    "database_or_ledger_mutated": false,
+    "validation": {
+      "command": "python3 -m services.migration.cli validate --schemas-only",
+      "migration_sources_validated": 369,
+      "test_command": ".venv/bin/python -m pytest tests/test_migration.py -q",
+      "tests_passed": 15
+    },
+    "reporting_scratch_pre_alignment_is_current": false
+  },
+  "post_alignment_archived_clone_plan": {
+    "compose_project": "kokonut-kernel-archive-plan-20261011",
+    "volume": "kokonut-kernel-metabase-reporting-20261011_consumer-role-postgres-data",
+    "command": "python3 -m services.migration.cli plan --schemas-only",
+    "result": "passed; no applied migration checksum mismatch",
+    "applied_schema_rows": 344,
+    "current_schema_sources": 369,
+    "pending_schema_migrations": 25,
+    "pending_migrations": [
+      "schema:353_crop_cycle_noi_view.sql",
+      "schema:354_safe_treasury_accounts.sql",
+      "schema:355_safe_attestation_flow.sql",
+      "schema:356_safe_settlement.sql",
+      "schema:357_field_collector_enrollment_hardening.sql",
+      "schema:358_mobile_private_media.sql",
+      "schema:359_activity_scope_and_outputs.sql",
+      "schema:360_job_role_department_relationships.sql",
+      "schema:361_farm_task_relationships.sql",
+      "schema:362_farm_staff_membership.sql",
+      "schema:363_expense_farm_weekly_plan_scope.sql",
+      "schema:364_reported_activity_output_metrics.sql",
+      "schema:365_expense_weekly_plan_scope_exception.sql",
+      "schema:366_crop_category_extensions.sql",
+      "schema:367_external_grant_tranche.sql",
+      "schema:369_baserow_activity_source_options.sql",
+      "schema:370_baserow_expense_fields.sql",
+      "schema:371_scheduler_run_windows.sql",
+      "schema:372_mqtt_delivery_records.sql",
+      "schema:373_gateway_rate_buckets.sql",
+      "schema:374_clickhouse_outbox_operator_audit.sql",
+      "schema:375_notification_outbox.sql",
+      "schema:376_sensor_anomaly_delivery.sql",
+      "schema:377_kokonut_reporting_contract.sql",
+      "schema:378_optional_extensions.sql"
+    ],
+    "migrations_applied": 0,
+    "database_or_ledger_mutated": false,
+    "temporary_container_and_network_removed": true,
+    "volume_retained": true
+  }
+}

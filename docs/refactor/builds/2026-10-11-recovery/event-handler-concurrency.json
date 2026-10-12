@@ -1,0 +1,96 @@
+{
+  "format": 1,
+  "recorded_at": "2026-10-11T14:02:54.132752+00:00",
+  "batch": "2",
+  "phase": "3 recovery evidence supporting the future Phase 7 governed workflow",
+  "capability": "CAP-040",
+  "repository": {
+    "branch": "chore/kernel-plan-ignore",
+    "head": "ad806f5",
+    "working_tree_changes_present": true,
+    "source_mounted_read_only": true,
+    "source_hashes": {
+      "services/events/bus.py": "f04359795fa429634a784059d9f6f5963206bd13f0c0fe13077ca0e7fa4d3e78",
+      "services/cache/events.py": "3d281b3dc322b94091587f49e523c98142a2be1f607975ec9358b8aa234ebc1d",
+      "services/cache/cache.py": "196e7d26014cc6a1a9b6c35490f3101044094937ae50dd47bf87fdfeb3de90ee",
+      "services/common/database.py": "3515dca6f5cedd4c48f3219d5c6033ac9160e259eb8640fe3e64044247a1de3b",
+      "services/common/db.py": "a98c93704206264c63867f35b864dd583f39df17ee609d309cfccc5dde858584"
+    }
+  },
+  "checkpoint_restore": {
+    "archive": "backups/recovery-fixture-20261010/database/postgres.dump.age",
+    "archive_sha256": "608ba807fe98ffcaefca2b917f3939cb20ebadaeeb3b205233d7ab441612233e",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "applied_schema_migration_count": 364,
+    "destination_was_empty": true,
+    "plaintext_dump_written_to_disk": false
+  },
+  "isolated_runtime": {
+    "compose_project": "kokonut-kernel-recovery-handler-b2-20261011",
+    "database_container": "kokonut-kernel-recovery-handler-b2-20261011-database-1",
+    "database_image": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "database_volume": "kokonut-kernel-recovery-handler-b2-20261011_fixture-postgres-data",
+    "network": "kokonut-kernel-recovery-handler-b2-20261011_fixture",
+    "network_internal": true,
+    "host_port_bindings": {},
+    "operator_image": "sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6",
+    "status_after_probe": "stopped; volume retained",
+    "candidate_app_and_database": "healthy and unchanged",
+    "legacy_stack": "stopped and unchanged"
+  },
+  "probe": {
+    "run_id": "36a5a46e-40db-4e93-aea1-c2a6757de202",
+    "probe_helper": {
+      "path": "scripts/fixtures/kernel-recovery-handler-concurrency.py",
+      "current_sha256": "0a46f31c23ea150d021a5ec0d9fd22216bf7f1e399cd6058630acbb263d70c6d",
+      "final_project_and_claimable-event_refusal_guards_added_after_database_exercise": true,
+      "handler_and_verification_logic_changed_after_exercise": false
+    },
+    "handler": "services.cache.events.handle_metric_computed",
+    "handler_id": "1341f57a-fc3d-457c-a83c-17efe04c8018",
+    "event_type": "metric_computed",
+    "worker_count": 4,
+    "batch_size_per_worker": 4,
+    "worker_ids": [
+      "kernel-b2-handler-1",
+      "kernel-b2-handler-2",
+      "kernel-b2-handler-3",
+      "kernel-b2-handler-4"
+    ],
+    "in_flight_observation": {
+      "completed_events": 6,
+      "processing_events": 10,
+      "distinct_processing_workers": 4
+    },
+    "worker_results": [
+      {"worker_id": "kernel-b2-handler-1", "processed": 4, "failed": 0, "skipped": 0},
+      {"worker_id": "kernel-b2-handler-2", "processed": 4, "failed": 0, "skipped": 0},
+      {"worker_id": "kernel-b2-handler-3", "processed": 4, "failed": 0, "skipped": 0},
+      {"worker_id": "kernel-b2-handler-4", "processed": 4, "failed": 0, "skipped": 0}
+    ],
+    "events_created": 16,
+    "events_completed": 16,
+    "leases_released": 16,
+    "successful_delivery_receipts": 16,
+    "attempt_count_min_max": [1, 1],
+    "successful_handler_logs": 16,
+    "cache_effect": {
+      "target_location_id": "a12310e1-8083-5a2f-b1f2-4c0d60b977f9",
+      "target_analytics_entries_invalidated": 16,
+      "sentinel_location_id": "2a0830af-3bcf-59ac-9f46-778163cf3110",
+      "sentinel_entries_preserved": 3,
+      "invalidation_reason": "metric_computed:metric_computed"
+    }
+  },
+  "checkpoint_fixture_preservation": {
+    "synthetic_event_id": "f0000000-0000-4000-8000-000000000005",
+    "temporary_lease_deferral": "45 minutes to prevent the global worker from claiming unrelated checkpoint fixture work",
+    "restored_lease_expires_at": "2026-10-10T10:01:00+00:00",
+    "other_event_fields_changed": false
+  },
+  "limits": [
+    "One allowlisted cache invalidation handler only; no farm/domain writes or external effects.",
+    "Workers claimed separate event rows; same-event duplicate claim, process crash/retry, runtime database role policy and other handler types remain unassessed.",
+    "Does not establish full event-bus, sensor, analytics, dashboard, provider-recovery or CAP-040 parity."
+  ]
+}

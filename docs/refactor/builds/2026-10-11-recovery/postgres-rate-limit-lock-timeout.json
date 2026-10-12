@@ -1,0 +1,45 @@
+{
+  "check": "PostgreSQL shared rate-limiter row-lock timeout",
+  "database": {
+    "bucket_rows_after": 0,
+    "bucket_rows_before": 0,
+    "compose_project": "kokonut-kernel-portability",
+    "migration": 373,
+    "returned_to_prior_stopped_state": true,
+    "service": "database"
+  },
+  "date": "2026-10-11",
+  "image": {
+    "image_id": "sha256:af60cbcb698dec288b3064dfa0b1bf4ee1891d25665ee0f56198a5b465cd2130",
+    "tag": "kokonut-kernel-portability-app:local"
+  },
+  "isolation": {
+    "audit_rows_written": false,
+    "candidate_stack_touched": false,
+    "domain_rows_written": false,
+    "one_off_app_container_removed": true,
+    "pytest_suite_run": false,
+    "schema_migrations_run": false
+  },
+  "limitations": [
+    "This exercises the adapter's PostgreSQL lock-timeout exception directly; it does not exercise HTTP middleware mapping for a lock timeout.",
+    "It does not verify durable audit behavior during database outages or actual API process/replica concurrency.",
+    "PostgreSQL provider remains opt-in and the active candidate continues using the local provider."
+  ],
+  "probe": {
+    "configured_lock_timeout_seconds": 2,
+    "configured_statement_timeout_seconds": 3,
+    "elapsed_seconds": 2.124,
+    "exception_type": "LockNotAvailable",
+    "held_lock": "SELECT FOR UPDATE on the synthetic gateway_rate_bucket row",
+    "local_fallback": false,
+    "lock_holder": "separate PostgreSQL connection",
+    "passed": true,
+    "provider": "PostgresRateLimiter",
+    "remaining_bucket_rows": 0,
+    "sqlstate": "55P03",
+    "synthetic_caller": true,
+    "synthetic_rows_deleted": 1
+  },
+  "rollback": "Deleted the only synthetic bucket row and stopped the portability database, restoring its prior stopped state; no configuration changed."
+}

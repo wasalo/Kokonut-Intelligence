@@ -1,0 +1,54 @@
+{
+  "check": "PostgreSQL rate-limit outage boundary through gateway ASGI middleware",
+  "date": "2026-10-11",
+  "execution": {
+    "active_candidate_stack_touched": false,
+    "container": "disposable; removed automatically",
+    "database_target": "127.0.0.1:1 (closed loopback port)",
+    "durable_data_written": false,
+    "harness": "Python in-process ASGI invocation; no HTTP client dependency",
+    "host_mounts": false,
+    "network_mode": "none",
+    "pytest_suite_run": false,
+    "schema_migrations_run": false
+  },
+  "image": {
+    "image_id": "sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10",
+    "tag": "kokonut-kernel-candidate-app:latest"
+  },
+  "limitations": [
+    "This verifies the middleware outage response and attempted audit callback, not durable audit persistence.",
+    "No PostgreSQL lock-timeout or sustained database outage was exercised.",
+    "No API worker process or replica concurrency was exercised.",
+    "Provider remains opt-in; the active candidate still uses the local provider.",
+    "The first harness attempt could not import httpx; the successful probe used a dependency-free ASGI driver."
+  ],
+  "provider": {
+    "connection_failure_type_logged": "OperationalError",
+    "fallback_to_local": false,
+    "selected_backend": "PostgresRateLimiter",
+    "setting": "postgres"
+  },
+  "request": {
+    "identity": "synthetic loopback IP identity; no credential supplied",
+    "method": "GET",
+    "path": "/health"
+  },
+  "result": {
+    "audit": {
+      "reason": "rate_limit_unavailable",
+      "resource": "gateway",
+      "status": "denied",
+      "status_code": 503
+    },
+    "audit_callback_count": 1,
+    "audit_capture": "in-memory monkeypatch",
+    "http_status": 503,
+    "passed": true,
+    "response_body": {
+      "error": "Request limit service unavailable"
+    },
+    "retry_after_seconds": 30
+  },
+  "rollback": "No configuration or running service changed; no rollback action is needed."
+}

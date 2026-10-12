@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-11",
+  "result": "fresh encrypted local backup of the configured candidate Metabase metadata database",
+  "compose_project": "kokonut-kernel-candidate",
+  "metadata_database": "kokonut_metabase",
+  "metadata_owner": "kokonut_metabase_app",
+  "archive": {
+    "path": "backups/kernel-metabase-20261011/candidate-metabase.dump.age",
+    "format": "PostgreSQL custom archive",
+    "age_encrypted": true,
+    "recipient": "age1ql43n065tcfs7tcwkt7s9c54np5phu9rgez4agw0chf08wapns2scjtppx",
+    "bytes": 910364,
+    "sha256": "dccf832f359d726a851cb5f55b6f69ea4be185b8a309deed47c1652028259ef4",
+    "plaintext_dump_written": false,
+    "git_ignored_local_artifact": true
+  },
+  "credential_recovery": {
+    "metabase_encryption_key": "KOKONUT_METABASE_ENCRYPTION_KEY in .env.sops",
+    "admin_password": "KOKONUT_METABASE_ADMIN_PASSWORD in .env.sops",
+    "source_password": "KOKONUT_ANALYTICS_PASSWORD in .env.sops",
+    "secrets_plaintext_printed": false
+  },
+  "verification": {
+    "age_decrypt_with_supplied_identity": true,
+    "pg_restore_list_exit_code": 0,
+    "archive_entries": 2177,
+    "plaintext_dump_written_during_verification": false,
+    "full_restore_rehearsal": {
+      "attempted": true,
+      "passed": true,
+      "accepted": true,
+      "restore_command_options": ["--no-owner", "--no-privileges", "--exit-on-error"],
+      "target_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+      "target_network": "none",
+      "target_host_ports": [],
+      "restored_inventory": {
+        "sources": 2,
+        "saved_cards": 42,
+        "dashboards": 2,
+        "dashboard_placements_including_virtual_tiles": 39,
+        "saved_card_placements": 25,
+        "virtual_tiles": 14,
+        "users": 2
+      },
+      "live_candidate_inventory_matched": true,
+      "disposable_target_removed": true,
+      "source_metadata_database_changed": false,
+      "notes": [
+        "The E-commerce Insights board's 14 card_id-null placements are populated virtual heading, text, link, and iframe tiles, not empty cards; all were retained.",
+        "The live candidate aggregate inventory matched the restored database exactly."
+      ]
+    }
+  },
+  "limitations": [
+    "This local backup remains on the development disk; production R2 backup configuration is deferred.",
+    "Metabase card output parity against populated independent fixtures remains open."
+  ]
+}

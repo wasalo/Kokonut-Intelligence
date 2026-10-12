@@ -1,0 +1,73 @@
+{
+  "checked_on": "2026-10-11",
+  "result": "passed",
+  "recovery_project": "kokonut-kernel-metabase-inventory-20261011",
+  "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "encrypted_inputs": {
+    "kokonut_intelligence.dump.age": "ec38e3652c58d2aefa2ab2c54675a50d7b3583714bf8af355b335aa5e7803fc4",
+    "metabase.dump.age": "6aecd5fbadf449778d2a667d27d89ad00977aaed89184f6d52404b4db31118bb"
+  },
+  "network": "internal_only",
+  "published_ports": false,
+  "product_runtime_started": false,
+  "inventory": {
+    "source_count": 1,
+    "source_engines": {
+      "h2": 1
+    },
+    "registered_source_flags": [
+      {
+        "count": 1,
+        "engine": "h2",
+        "is_sample": true,
+        "is_stub": false
+      }
+    ],
+    "host_categories": {
+      "unset": 1
+    },
+    "database_categories": {
+      "unset": 1
+    },
+    "source_entries_with_password_field": 0,
+    "saved_content_counts": {
+      "saved_cards": 39,
+      "dashboards": 1,
+      "users": 1
+    },
+    "saved_card_source_query_categories": [
+      {
+        "source_engine": "h2",
+        "query_type": "query",
+        "count": 39
+      }
+    ],
+    "dashboard_card_source_categories": [
+      {
+        "source_engine": "h2",
+        "count": 22
+      }
+    ]
+  },
+  "exposure_controls": {
+    "connection_details_examined_in_memory": true,
+    "connection_values_printed": false,
+    "saved_query_sql_read": false,
+    "saved_content_definitions_read": false,
+    "card_names_read": false
+  },
+  "cleanup": {
+    "containers_removed": true,
+    "network_removed": true,
+    "named_volume_retained": "kokonut-kernel-metabase-inventory-20261011_consumer-role-postgres-data",
+    "candidate_containers_remained_healthy": true,
+    "legacy_stack_remained_stopped": true,
+    "temporary_synthetic_env_removed": true
+  },
+  "limitations": [
+    "Metabase was not started against the populated metadata copy.",
+    "No saved card was executed and no result values were compared.",
+    "Saved-query definitions and SQL were not read.",
+    "Availability of the sample H2 dataset in the selected Metabase image was not tested."
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "scope": "private synthetic SQLite fixtures on local filesystem",
+  "initial_probe": {
+    "writer_processes": 8,
+    "events_per_process": 12,
+    "failures": 3,
+    "failure": "sqlite3.OperationalError: database is locked",
+    "committed_events": 60,
+    "integrity": "ok"
+  },
+  "source_change": {
+    "file": "services/gateway/audit_spool.py",
+    "behavior": "retry transient SQLite busy/locked errors while setting WAL mode and creating the journal table",
+    "attempts": 8,
+    "backoff": "exponential, capped at 250 ms"
+  },
+  "cold_start_after_change": {
+    "runs": 3,
+    "writer_processes_per_run": 12,
+    "events_per_process": 12,
+    "expected_and_committed_per_run": 144,
+    "writer_failures": 0,
+    "writer_exit_codes": "all zero",
+    "integrity": "ok"
+  },
+  "warm_write_and_checkpoint": {
+    "writer_processes": 10,
+    "events_per_process": 20,
+    "seed_events": 1,
+    "expected_and_committed_events": 201,
+    "writer_failures": 0,
+    "checkpoint_verify": "passed",
+    "checkpoint_integrity": "ok"
+  },
+  "online_checkpoint_during_active_writes": {
+    "writer_processes": 8,
+    "events_per_process": 60,
+    "seed_events": 1,
+    "final_source_events": 481,
+    "checkpoint_events": 166,
+    "writers_still_active_when_checkpoint_returned": 8,
+    "checkpoint_integrity": "ok",
+    "source_integrity": "ok",
+    "checkpoint_cli_exit_code": 0,
+    "writer_failures": 0
+  },
+  "cleanup_and_scope": {
+    "temporary_fixtures_removed": true,
+    "candidate_compose_stack_touched": false,
+    "portability_stack_touched": false,
+    "schema_migrations_or_domain_writes": false,
+    "pytest_suite_run": false,
+    "physical_device_or_power_loss_tested": false
+  },
+  "remaining_gaps": [
+    "journal saturation alerts and enforceable response",
+    "volume/host/device loss and power-loss durability",
+    "encrypted checkpoint retention and live Compose-volume restore",
+    "multi-replica ownership and failover"
+  ]
+}

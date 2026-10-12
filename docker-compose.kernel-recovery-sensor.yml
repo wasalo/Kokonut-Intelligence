@@ -1,0 +1,68 @@
+# Disposable anomaly-delivery fixture. Internal-only, no published ports.
+name: kokonut-kernel-sensor-recovery
+services:
+  database:
+    image: sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b
+    platform: linux/amd64
+    restart: "no"
+    stop_grace_period: 40s
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Load encrypted secrets}
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    volumes:
+      - sensor-recovery-postgres-data:/var/lib/postgresql/data
+    networks: [sensor-recovery]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  runner:
+    profiles: [tools]
+    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    entrypoint: ["python3"]
+    working_dir: /workspace
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: kokonut
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?Load encrypted secrets}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Load encrypted secrets}
+      KOKONUT_ENV: production
+      KOKONUT_FEATURE_DIRECTUS: "true"
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      KOKONUT_FEATURE_MQTT: "false"
+      KOKONUT_FEATURE_PREFECT: "false"
+      ALERT_WEBHOOK_URL: http://webhook.invalid/synthetic
+      ALERT_SMTP_HOST: smtp.invalid
+      ALERT_SMTP_PORT: "587"
+      ALERT_SMTP_USER: synthetic-user
+      ALERT_SMTP_PASSWORD: synthetic-password
+      ALERT_EMAIL_FROM: synthetic-alerts@example.invalid
+      ALERT_EMAIL_TO: synthetic-ops@example.invalid
+      DIRECTUS_URL: http://directus.invalid
+      DIRECTUS_ADMIN_TOKEN: synthetic-token
+      PYTHONPATH: /workspace
+    volumes:
+      - ./VERSION:/workspace/VERSION:ro
+      - ./services:/workspace/services:ro
+      - ./schemas:/workspace/schemas:ro
+      - ./scripts:/workspace/scripts:ro
+    networks: [sensor-recovery]
+
+networks:
+  sensor-recovery:
+    internal: true
+
+volumes:
+  sensor-recovery-postgres-data:

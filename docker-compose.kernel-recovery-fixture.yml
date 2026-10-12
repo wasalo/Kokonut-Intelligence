@@ -1,0 +1,59 @@
+# Standalone synthetic recovery fixture. No API, schedules or worker auto-start.
+name: kokonut-kernel-recovery-fixture
+services:
+  database:
+    image: sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b
+    platform: linux/amd64
+    restart: "no"
+    stop_grace_period: 40s
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Load encrypted secrets}
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    volumes: [fixture-postgres-data:/var/lib/postgresql/data]
+    networks: [fixture]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  operator:
+    profiles: [tools]
+    image: sha256:bf51ddd5679c92a6c804a8be0a5cfeccd90df534b9f0b5efe60ca583940c2db6
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    command: ["python3", "-m", "services.cli", "kernel", "schema-readiness"]
+    healthcheck:
+      disable: true
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: kokonut
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?Load encrypted secrets}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Load encrypted secrets}
+      KOKONUT_ENV: production
+      KOKONUT_FEATURE_DIRECTUS: "false"
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      KOKONUT_FEATURE_GRPC: "false"
+      KOKONUT_FEATURE_METABASE: "false"
+      KOKONUT_FEATURE_MQTT: "false"
+      KOKONUT_FEATURE_PREFECT: "false"
+      KOKONUT_FEATURE_SCHEDULER: "false"
+      KOKONUT_FEATURE_EVENT_BUS: "false"
+      MOBILE_MEDIA_PROVIDER: local
+      MOBILE_MEDIA_LOCAL_DIRECTORY: /app/private-media
+      MOBILE_MEDIA_LOCAL_KEY: ${MOBILE_MEDIA_LOCAL_KEY:-}
+    volumes: [fixture-private-media:/app/private-media]
+    networks: [fixture]
+networks:
+  fixture:
+    internal: true
+volumes:
+  fixture-postgres-data:
+  fixture-private-media:

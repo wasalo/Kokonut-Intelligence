@@ -1,0 +1,59 @@
+# Split roles; combine only with the standalone Kernel candidate.
+# Explicit environment duplication keeps both roles on the same provider policy.
+services:
+  app:
+    command: ["python3", "-m", "services.core.runtime", "--port", "8099"]
+    environment:
+      KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
+      DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}
+      KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES:-536870912}
+
+  worker:
+    init: true
+    stop_grace_period: 40s
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+    restart: unless-stopped
+    command: ["python3", "-m", "services.core.runtime", "--workers-only"]
+    # The inherited HTTP probe applies only to an API role.
+    # Worker progress must be observed through durable run/delivery records.
+    healthcheck:
+      disable: true
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut}
+      KOKONUT_ENV: production
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}}
+      KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      KOKONUT_FEATURE_GRPC: "false"
+      KOKONUT_FEATURE_METABASE: "false"
+      KOKONUT_FEATURE_MQTT: "false"
+      KOKONUT_FEATURE_PREFECT: "false"
+      DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+      KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES:-268435456}
+      KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES:-536870912}
+    networks:
+      - kernel

@@ -1,0 +1,8 @@
+{
+  "postgres": 280614319,
+  "clickhouse": 1305414640,
+  "clickhouse_logs": 1045332035,
+  "caddy_data": 1904,
+  "caddy_config": 3123,
+  "scope": "du apparent directory bytes, including directory metadata; not table rows or allocated disk blocks."
+}

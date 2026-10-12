@@ -1,0 +1,198 @@
+# Internal-only populated-copy fixture for optional database consumer roles.
+# Never overlay this project onto candidate, standard, portability, or legacy.
+name: kokonut-kernel-consumer-role-recovery-20261011
+services:
+  database:
+    image: ${KOKONUT_RECOVERY_DATABASE_IMAGE:?Set the recorded PostgreSQL/PostGIS image digest}
+    platform: linux/amd64
+    restart: "no"
+    stop_grace_period: 40s
+    environment:
+      POSTGRES_USER: kokonut
+      POSTGRES_DB: kokonut_intelligence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    volumes:
+      - consumer-role-postgres-data:/var/lib/postgresql/data
+    networks: [consumer-role-recovery]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  runner:
+    profiles: [tools]
+    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    entrypoint: ["python3"]
+    command: ["/workspace/scripts/fixtures/kernel-optional-db-roles-check.py"]
+    working_dir: /workspace
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      KOKONUT_DB_ADMIN_USER: kokonut
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
+      DIRECTUS_ROLE_PASSWORD: ${DIRECTUS_ROLE_PASSWORD:?Supply a synthetic Directus-role password}
+      METABASE_ROLE_PASSWORD: ${METABASE_ROLE_PASSWORD:?Supply a synthetic Metabase-role password}
+      ANALYTICS_ROLE_PASSWORD: ${ANALYTICS_ROLE_PASSWORD:?Supply a synthetic analytics-role password}
+    volumes:
+      - ./scripts/fixtures/kernel-optional-db-roles-check.py:/workspace/scripts/fixtures/kernel-optional-db-roles-check.py:ro
+    networks: [consumer-role-recovery]
+
+  source-inventory:
+    profiles: [inventory-check]
+    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    entrypoint: ["python3"]
+    command: ["/workspace/scripts/fixtures/kernel-metabase-source-inventory.py"]
+    working_dir: /workspace
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: metabase
+      KOKONUT_DB_ADMIN_USER: kokonut
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
+    volumes:
+      - ./scripts/fixtures/kernel-metabase-source-inventory.py:/workspace/scripts/fixtures/kernel-metabase-source-inventory.py:ro
+    networks: [consumer-role-recovery]
+
+  content-inventory:
+    profiles: [content-inventory]
+    image: sha256:65827b0ffbb2b30d8a979006a81216660ba2915922118adb8d0aa0a877c20b10
+    platform: linux/amd64
+    init: true
+    restart: "no"
+    entrypoint: ["python3"]
+    command: ["/workspace/scripts/fixtures/kernel-metabase-content-inventory.py"]
+    working_dir: /workspace
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: metabase
+      KOKONUT_DB_ADMIN_USER: kokonut
+      KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
+    volumes:
+      - ./scripts/fixtures/kernel-metabase-content-inventory.py:/workspace/scripts/fixtures/kernel-metabase-content-inventory.py:ro
+    networks: [consumer-role-recovery]
+
+  directus-bootstrap:
+    profiles: [product-check]
+    image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
+    platform: linux/amd64
+    restart: "no"
+    command: ["cli.js", "bootstrap"]
+    environment:
+      SECRET: ${DIRECTUS_SECRET:?Supply a synthetic Directus secret}
+      DB_CLIENT: pg
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_DATABASE: kokonut_intelligence
+      DB_USER: kokonut
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Supply the fixture admin password}
+      DB_SEARCH_PATH: public,kokonut
+      CACHE_ENABLED: "false"
+      LOG_LEVEL: error
+    depends_on:
+      database:
+        condition: service_healthy
+    networks: [consumer-role-recovery]
+
+  directus-runtime:
+    profiles: [product-check]
+    image: directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d
+    platform: linux/amd64
+    restart: "no"
+    command: ["cli.js", "start"]
+    environment:
+      SECRET: ${DIRECTUS_SECRET:?Supply a synthetic Directus secret}
+      DB_CLIENT: pg
+      DB_HOST: database
+      DB_PORT: "5432"
+      DB_DATABASE: kokonut_intelligence
+      DB_USER: kokonut_directus_runtime
+      DB_PASSWORD: ${DIRECTUS_ROLE_PASSWORD:?Supply the Directus runtime password}
+      DB_SEARCH_PATH: public,kokonut
+      CACHE_ENABLED: "false"
+      LOG_LEVEL: error
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:8055/server/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks: [consumer-role-recovery]
+
+  metabase-runtime:
+    profiles: [product-check]
+    image: metabase/metabase:v0.62.4@sha256:22ddc782a45f8aecf47c0f039b86a323435565595643e429fb33d29939b41675
+    platform: linux/amd64
+    restart: "no"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase_startup
+      MB_DB_PORT: "5432"
+      MB_DB_USER: kokonut_metabase_app
+      MB_DB_PASS: ${METABASE_ROLE_PASSWORD:?Supply the Metabase metadata password}
+      MB_DB_HOST: database
+      MB_ENABLE_PUBLIC_SHARING: "false"
+      MB_ENABLE_EMBEDDING_STATIC: "false"
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    networks: [consumer-role-recovery]
+
+  metabase-populated-runtime:
+    profiles: [populated-product-check]
+    image: metabase/metabase:v0.62.4@sha256:22ddc782a45f8aecf47c0f039b86a323435565595643e429fb33d29939b41675
+    platform: linux/amd64
+    restart: "no"
+    environment:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: metabase
+      MB_DB_PORT: "5432"
+      MB_DB_USER: kokonut_metabase_app
+      MB_DB_PASS: ${METABASE_ROLE_PASSWORD:?Supply the Metabase metadata password}
+      MB_DB_HOST: database
+      MB_ENABLE_PUBLIC_SHARING: "false"
+      MB_ENABLE_EMBEDDING_STATIC: "false"
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+    networks: [consumer-role-recovery]
+
+networks:
+  consumer-role-recovery:
+    internal: true
+
+volumes:
+  consumer-role-postgres-data:

@@ -30,7 +30,11 @@ def test_mobile_upload_cors_requires_allowlisted_origin_and_allows_device_header
     headers = {
         "Origin": "https://collector.example",
         "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "content-type,x-device-token,x-collection-client-id",
+        "Access-Control-Request-Headers": (
+            "content-type,authorization,api-key,x-api-key,capability-token,x-capability-token,"
+            "x-csrf-token,x-device-token,x-collection-client-id,x-collection-type,x-form-id,"
+            "x-form-version,x-participant-ref,x-collected-at"
+        ),
     }
     with TestClient(create_app()) as client:
         allowed = client.options("/api/mobile/media/uploads", headers=headers)
@@ -41,6 +45,11 @@ def test_mobile_upload_cors_requires_allowlisted_origin_and_allows_device_header
 
     assert allowed.status_code == 200
     assert allowed.headers["access-control-allow-origin"] == "https://collector.example"
+    allowed_headers = {
+        value.strip().lower()
+        for value in allowed.headers["access-control-allow-headers"].split(",")
+    }
+    assert set(headers["Access-Control-Request-Headers"].split(",")) <= allowed_headers
     assert "access-control-allow-origin" not in denied.headers
 
 

@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-11",
+  "result": "all 370 current schema migrations applied on the active Kernel candidate",
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_file": "docker-compose.kernel-candidate.yml",
+    "database_container": "kokonut-kernel-candidate-database-1",
+    "database_volume": "kokonut-kernel-candidate_kernel-postgres-data",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "database": "kokonut_intelligence",
+    "app_status": "healthy",
+    "database_status": "healthy",
+    "database_host_ports": []
+  },
+  "pre_migration_checkpoint": {
+    "path": "backups/kernel-candidate-preflight-20261011",
+    "archive_sha256": "dc34c341ea0ad34367d68a2bac827b84e982e89b7ef8abe06459ae4e6ef3a784",
+    "age_authentication_and_restore": "passed before checksum repair",
+    "scope_limit": "Single application database; roles/grants and other volumes excluded"
+  },
+  "checksum_repair": {
+    "migration_id": "schema:000_extensions.sql",
+    "repair_audit_id": "a4ad2844-e7b1-4371-8436-8b6bc3ea1408",
+    "old_checksum": "6e5850e52423ffe8cea241f7f5764bb6c074d55813de33c601c9e8b1495723ff",
+    "new_checksum": "cf493b739f31cb2a9fb215dd5c7ccbc1ed2c8a2584ce156857416360a741a245",
+    "six_extension_effects_present_before_repair": true,
+    "audit_recorded": true
+  },
+  "migrations": {
+    "previously_applied": 361,
+    "applied_in_this_run": [
+      "schema:371_scheduler_run_windows.sql",
+      "schema:372_mqtt_delivery_records.sql",
+      "schema:373_gateway_rate_buckets.sql",
+      "schema:374_clickhouse_outbox_operator_audit.sql",
+      "schema:375_notification_outbox.sql",
+      "schema:376_sensor_anomaly_delivery.sql",
+      "schema:377_kokonut_reporting_contract.sql",
+      "schema:378_optional_extensions.sql",
+      "schema:379_noi_snapshot_crop_cycle_key.sql"
+    ],
+    "applied_count": 9,
+    "failures": 0,
+    "final_applied_schema_rows": 370,
+    "latest_applied": "schema:379_noi_snapshot_crop_cycle_key.sql",
+    "post_run_pending": 0
+  },
+  "read_only_postchecks": {
+    "all_three_reporting_views_exist": true,
+    "reporting_public_table_grants": 0,
+    "analytics_source_role_count": 0,
+    "noi_snapshot_rows": 0,
+    "duplicate_crop_cycle_groups": 0,
+    "null_crop_cycle_keys": 0,
+    "noi_unique_index": "uq_noi_snapshot_crop_cycle_id",
+    "candidate_app_and_database_healthy": true,
+    "scheduler_and_event_workers_running_inside_app_container": true,
+    "scheduler_tasks_enabled": 0,
+    "scheduler_tasks_disabled": 0,
+    "scheduler_tasks_running": 0,
+    "noi_daily_task_registered": false
+  },
+  "scope_and_rollback": {
+    "active_candidate_mutated": true,
+    "legacy_stack_mutated": false,
+    "legacy_stack_remains_stopped": true,
+    "metabase_source_or_cards_configured": false,
+    "runtime_or_analytics_roles_created": false,
+    "rollback_checkpoint_restores_pre_repair_schema_state": true,
+    "reapply_requires_the_audited_checksum_repair_before_migration": true
+  }
+}

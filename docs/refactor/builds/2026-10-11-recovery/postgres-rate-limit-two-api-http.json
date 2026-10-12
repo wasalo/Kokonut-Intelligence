@@ -1,0 +1,60 @@
+{
+  "audit": {
+    "durable_audit_rows_written": false,
+    "writer": "GatewayAudit.log replaced with no-op in both temporary API processes"
+  },
+  "check": "Network HTTP rate limiting across two API containers sharing PostgreSQL",
+  "cleanup": {
+    "api_containers_removed": true,
+    "database_returned_to_prior_stopped_state": true,
+    "healthcheck_bucket_removed_after_probe": 0,
+    "healthcheck_bucket_removed_before_probe": 1,
+    "initial_bucket_rows": 1,
+    "initial_row_scope": "known Docker loopback healthcheck identity only",
+    "remaining_bucket_rows": 0,
+    "synthetic_request_bucket_removed_after_probe": 1
+  },
+  "date": "2026-10-11",
+  "deployment": {
+    "api_containers": [
+      "kokonut-network-rate-api-a",
+      "kokonut-network-rate-api-b"
+    ],
+    "compose_project": "kokonut-kernel-portability",
+    "database_migration": 373,
+    "database_service": "database",
+    "network": "private Compose portability bridge; no host ports published",
+    "probe_container": "ephemeral portability app container",
+    "provider": "PostgresRateLimiter",
+    "provider_setting": "KOKONUT_RATE_LIMIT_PROVIDER=postgres"
+  },
+  "image": {
+    "image_id": "sha256:af60cbcb698dec288b3064dfa0b1bf4ee1891d25665ee0f56198a5b465cd2130",
+    "tag": "kokonut-kernel-portability-app:local"
+  },
+  "isolation": {
+    "active_candidate_stack_touched": false,
+    "domain_rows_written": false,
+    "pytest_suite_run": false,
+    "schema_migrations_run": false
+  },
+  "limitations": [
+    "This exercises private-network HTTP between two temporary API containers and one shared PostgreSQL database; it does not exercise public ingress, multi-host networking, replica failure/restart, or production scale.",
+    "Audit writes were suppressed for this limiter-specific probe; real audit outage behavior is recorded separately.",
+    "The active candidate remains configured for the local provider."
+  ],
+  "probe": {
+    "elapsed_seconds": 2.142,
+    "method": "GET",
+    "path": "/health",
+    "refill_aware_upper_bound": 126,
+    "requests": 160,
+    "requests_per_api_container": 80,
+    "retry_after_min_seconds": 1,
+    "same_synthetic_client_identity_reached_both_containers": true,
+    "status_200": 119,
+    "status_429": 41,
+    "unexpected_statuses": []
+  },
+  "rollback": "Removed both API containers, removed the only known synthetic healthcheck/request buckets, verified the bucket table was empty, and stopped the portability database."
+}

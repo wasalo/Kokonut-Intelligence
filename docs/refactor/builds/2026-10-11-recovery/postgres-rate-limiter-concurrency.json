@@ -1,0 +1,62 @@
+{
+  "check": "kernel-postgres-rate-limiter-shared-consumption",
+  "date_local": "2026-10-11",
+  "verified_at_utc": "2026-10-11T04:28:08Z",
+  "phase": 5,
+  "database_target": {
+    "project": "kokonut-kernel-portability",
+    "container_name": "kokonut-kernel-portability-database-1",
+    "container_id": "35802483c4b194a69785ddf0e6ece1b026e07063284556d3a746e01bbe9a22fd",
+    "image_id": "sha256:b573e82124b3530c454ea6d5ae8aefce1fb7ee137467f66f75a5079f8569ee6b",
+    "named_volume": "kokonut-kernel-portability_portability-postgres-data",
+    "migration_373_table_present": true,
+    "rate_bucket_rows_before": 0,
+    "host_ports_published": false,
+    "state_after_check": "stopped; existing container and volume preserved"
+  },
+  "runner": {
+    "image_tag": "kokonut-kernel-portability-app:local",
+    "image_id": "sha256:78389fb6cf1f05291e89b35ce4f0271e533bbe5403be97a8d77a29cdfc5825f5",
+    "provider": "PostgresRateLimiter",
+    "mode": "one-off app container on the private portability network; two backend instances; 16 threads",
+    "secret_loading": "scripts/load-secrets.sh sourced under Bash; no secret values printed"
+  },
+  "serial_checks": {
+    "caller_a_consume_100_tokens": true,
+    "caller_a_second_100_token_request": false,
+    "caller_a_retry_after_seconds": 10,
+    "different_caller_consume_100_tokens": true
+  },
+  "concurrent_shared_budget": {
+    "backend_instances": 2,
+    "threads": 16,
+    "attempts": 140,
+    "capacity_tokens": 100,
+    "refill_tokens_per_second": 10,
+    "elapsed_seconds": 2.193,
+    "allowed": 121,
+    "denied": 19,
+    "conservative_max_allowance_including_five_token_tolerance": 126,
+    "result": "pass"
+  },
+  "cleanup": {
+    "synthetic_bucket_rows_deleted": 3,
+    "rate_bucket_rows_after": 0,
+    "one_off_app_container_removed": true,
+    "portability_database_stopped_after_check": true
+  },
+  "limits": [
+    "This exercises concurrent connections through two backend instances against one PostgreSQL database; it is not a multi-process API or multi-replica deployment test.",
+    "PostgreSQL outage, lock/statement timeout and gateway 503/audit behavior were not exercised.",
+    "The candidate database/app and legacy project were not used."
+  ],
+  "side_effects": {
+    "schema_migrations": false,
+    "gateway_audit_rows_written": false,
+    "domain_data_writes": false,
+    "synthetic_rate_bucket_rows_left": 0,
+    "candidate_containers_changed": false,
+    "legacy_project_started": false,
+    "pytest_suite": false
+  }
+}

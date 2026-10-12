@@ -127,15 +127,12 @@ def get_pg():
 
 
 def get_ch():
-    try:
-        import clickhouse_connect
+    from services.core.adapters.clickhouse import create_client
 
-        return clickhouse_connect.get_client(
-            host=CH_HOST, port=CH_PORT, username=CH_USER, password=CH_PASSWORD, database=CH_DB
-        )
-    except ImportError:
-        print("WARNING: clickhouse_connect not installed. ClickHouse exports unavailable.")
-        return None
+    client = create_client(host=CH_HOST, port=CH_PORT, username=CH_USER, password=CH_PASSWORD, database=CH_DB)
+    if client is None:
+        print("WARNING: ClickHouse disabled or driver unavailable. ClickHouse exports unavailable.")
+    return client
 
 
 # ---------------------------------------------------------------------------

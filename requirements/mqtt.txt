@@ -1,0 +1,2 @@
+# Existing version constraints retained from requirements.txt.
+paho-mqtt>=2.0.0,<3.0.0

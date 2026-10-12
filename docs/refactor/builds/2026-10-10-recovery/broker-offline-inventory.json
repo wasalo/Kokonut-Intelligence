@@ -1,0 +1,14 @@
+{
+  "format_version": 6,
+  "bytes": 47,
+  "sha256": "393b549e0aa8d2a08b266c8309a291af6db817d99a8978980dd2e67130995598",
+  "chunk_counts": {
+    "configuration": 1,
+    "message_store": 0,
+    "client_message": 0,
+    "retained_reference": 0,
+    "subscription": 0,
+    "client": 0
+  },
+  "scope": "Persisted chunk framing only; no semantic payload/reference validation or in-memory backlog claim."
+}

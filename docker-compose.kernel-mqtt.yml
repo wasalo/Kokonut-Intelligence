@@ -1,0 +1,85 @@
+# Opt-in mTLS broker/subscriber. Provision credentials before selecting overlay.
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2@sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797
+    restart: unless-stopped
+    volumes:
+      - ./config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./config/mosquitto/acl:/mosquitto/config/acl:ro
+      - type: bind
+        source: ${KOKONUT_MQTT_CERTS_DIR:?Provision KOKONUT_MQTT_CERTS_DIR before selecting MQTT}
+        target: /mosquitto/certs
+        read_only: true
+        bind:
+          create_host_path: false
+      - kernel-mqtt-data:/mosquitto/data
+      - type: bind
+        source: ${KOKONUT_MQTT_PASSWORD_FILE:?Provision KOKONUT_MQTT_PASSWORD_FILE before selecting MQTT}
+        target: /mosquitto/data/passwd
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - kernel
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "localhost", "-p", "8883", "--cafile", "/mosquitto/certs/ca.crt", "--cert", "/mosquitto/certs/healthcheck.crt", "--key", "/mosquitto/certs/healthcheck.key", "-t", "$$SYS/broker/uptime", "-C", "1", "-i", "healthcheck", "-W", "12"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 20s
+
+  mqtt-subscriber:
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel
+      target: mqtt
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      database:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: kokonut_intelligence
+      PG_USER: ${KOKONUT_RUNTIME_USER:-kokonut}
+      KOKONUT_ENV: production
+      PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}}
+      KOKONUT_FEATURE_DIRECTUS: "false"
+      KOKONUT_FEATURE_CLICKHOUSE: "false"
+      KOKONUT_FEATURE_GRPC: "false"
+      KOKONUT_FEATURE_METABASE: "false"
+      KOKONUT_FEATURE_MQTT: "true"
+      KOKONUT_FEATURE_PREFECT: "false"
+      MQTT_BROKER_HOST: mosquitto
+      MQTT_BROKER_PORT: "8883"
+      MQTT_USERNAME: ${MQTT_USERNAME:?MQTT_USERNAME must be set for the subscriber}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:?MQTT_PASSWORD must be set for the subscriber}
+      MQTT_DELIVERY_MODE: qos1
+      KOKONUT_SENSOR_TIMESTAMP_MODE: ${KOKONUT_SENSOR_TIMESTAMP_MODE:-legacy}
+      MQTT_CLIENT_ID: ${MQTT_CLIENT_ID:?Select a stable unique MQTT_CLIENT_ID before enabling ingestion}
+      MQTT_STATE_FILE: /tmp/kokonut-mqtt-state.json
+      MQTT_CA_CERT: /mosquitto/certs/ca.crt
+      MQTT_CLIENT_CERT: /mosquitto/certs/subscriber.crt
+      MQTT_CLIENT_KEY: /mosquitto/certs/subscriber.key
+    volumes:
+      - type: bind
+        source: ${KOKONUT_MQTT_SUBSCRIBER_CERTS_DIR:?Provision KOKONUT_MQTT_SUBSCRIBER_CERTS_DIR before selecting MQTT}
+        target: /mosquitto/certs
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "python3", "-m", "services.core.mqtt_state", "--file", "/tmp/kokonut-mqtt-state.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - kernel
+
+volumes:
+  kernel-mqtt-data:

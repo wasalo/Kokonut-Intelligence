@@ -1,0 +1,24 @@
+{
+  "observed_at_utc": "2026-10-11T02:56:38Z",
+  "scope": "Read-only aggregate inspection of the isolated no-network PostgreSQL recovery clone, paired with the retained legacy ClickHouse application inventory. No sensor values or personal data were queried.",
+  "postgresql": {
+    "database": "kokonut_intelligence",
+    "sensor_reading_rows": 15,
+    "distinct_reading_ids": 15,
+    "clickhouse_outbox_rows": 0
+  },
+  "clickhouse": {
+    "inventory_artifact": "clickhouse-application-inventory.jsonl",
+    "raw_sensor_table": "default.sensor_readings",
+    "raw_sensor_rows": 0,
+    "application_objects_in_inventory": 34,
+    "row_counts_for_inventoried_tables": 0
+  },
+  "clone": {
+    "container": "kokonut-kernel-recovery-legacy-postgres",
+    "network_mode": "none",
+    "state_after_inspection": "stopped"
+  },
+  "result": "No queued legacy sensor projections or locally retained ClickHouse sensor rows exist in the captured local snapshot. There are no local hash-keyed projections to re-key, drain, or replay alongside the canonical UUID-keyed producer.",
+  "limits": "This resolves lineage only for the retained local legacy snapshots. It does not establish whether an external, remote, or otherwise unarchived ClickHouse target contains sensor rows. Do not promote a populated external target without its own source/sink reconciliation. No code, source records, outbox records, original legacy container, or backup archive was changed."
+}
