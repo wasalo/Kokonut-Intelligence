@@ -1887,3 +1887,19 @@ compilation and `git diff --check` passed. No test suite, migration, database,
 or container was run or changed. Per-form classification, tenant/RLS policy,
 retention/erasure disposition, and the migration/mobile acceptance gates remain
 open.
+
+## Batch 5 Field Collector CORS header parity — 11 October 2026
+
+Compared the browser's private-media request headers with the Gateway's
+explicit-origin CORS allowlist. The allowlist omitted collection type, form ID,
+form version, collection timestamp, and participant reference, so a separately
+hosted Field Collector would fail browser preflight before the consent-aware
+upload route ran. Added those headers and both API-key/capability header aliases.
+Same-origin deployment is unchanged; wildcard origins remain rejected, and
+credentialed cookies remain conditional on OIDC.
+
+Updated the mobile deployment README and Batch 5 checklist. Python syntax
+compilation and `git diff --check` passed; no test suite, live preflight, API
+request, migration, or container change was run. Successful authenticated and
+credentialed CORS runtime acceptance remains open, along with mobile migration
+and owner-policy gates.

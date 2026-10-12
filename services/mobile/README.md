@@ -89,8 +89,11 @@ point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
   other write requests. CORS is closed by default: set `CORS_ORIGIN` to an
   explicit comma-separated list of trusted browser origins; wildcard origins
   are ignored. Same-origin `/mobile` deployments need no CORS entry. Gateway
-  rate-limit denials and handler outcomes use the existing audit service; the
-  device token itself is not logged.
+  preflight allows the Field Collector's device, collection, form, participant,
+  and timestamp headers, plus API-key/capability and CSRF headers. Credentialed
+  browser requests are enabled only when the optional OIDC provider is active.
+  Gateway rate-limit denials and handler outcomes use the existing audit
+  service; the device token itself is not logged.
 
 ## Browser vault
 

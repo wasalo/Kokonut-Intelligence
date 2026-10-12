@@ -435,8 +435,10 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
         allow_origins=cors_origins,
         allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=[
-            "Content-Type", "Authorization", "x-api-key", "x-capability-token",
-            "x-device-token", "x-collection-client-id", "x-csrf-token",
+            "Content-Type", "Authorization", "api-key", "x-api-key",
+            "capability-token", "x-capability-token", "x-csrf-token",
+            "x-device-token", "x-collection-client-id", "x-collection-type",
+            "x-form-id", "x-form-version", "x-participant-ref", "x-collected-at",
         ],
         allow_credentials=operator_provider is not None,
     )
