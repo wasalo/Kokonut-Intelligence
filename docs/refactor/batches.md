@@ -353,6 +353,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 
 ## Batch 6 — Certification and release (Phase 8)
 
+- [x] Refresh ARM64 Kernel application and PostGIS build artifacts from the current checkout under unique local tags; retain image identities and build/runtime limitations ([record](arm64-image-pair-refresh.md)).
 - [ ] Lock release inputs and add architecture CI gates.
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
