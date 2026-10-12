@@ -2450,7 +2450,12 @@ consent or publishing records. Legal retention periods, erasure authority, and
 organization-wide tenant/RLS policy remain open human/governance gates.
 
 The decision and interface requirements are recorded in the
-[form operations contract](mobile-form-operations.md). This closes only the
-architecture-choice question; CLI, queue routes/UI, audit events, and their
-acceptance checks remain unimplemented. No source code, candidate database, or
-service configuration changed in this slice.
+[form operations contract](mobile-form-operations.md). The first implementation
+step now provides offline manifest validation and version-aware preview through
+`python3 -m services.cli mobile-forms`; 21 focused form/CLI checks and 10
+governance checks pass, and Ruff is clean. Shared CLI connection setup and the
+optional Baal adapter now load lazily, so a synthetic unified-CLI invocation
+validated the manifest without SOPS credentials or a database connection and
+returned `database_write=false`. Transactional publication, queue routes/UI,
+audit events, and their acceptance checks remain open. No candidate database
+or service configuration changed.

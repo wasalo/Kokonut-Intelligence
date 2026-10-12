@@ -54,9 +54,10 @@ Other deployments must use the ordered, checksummed migration workflow.
 - Editing the current `mobile_form` content or consent policy requires a new
   version. The current authoring surface remains the `mobile_form` row; the
   database trigger publishes its immutable snapshot. A policy decision must
-  include reviewer, time, and non-empty evidence. The chosen authoring path is a
-  Directus-independent, reviewed JSON-manifest CLI; a private location-scoped
-  review queue is also required. See the [form operations decision](mobile-form-operations.md).
+  include reviewer, time, and non-empty evidence. The Directus-independent
+  JSON-manifest CLI now validates and previews revisions offline; transactional
+  publication and the private location-scoped review queue remain open. See the
+  [form operations contract](mobile-form-operations.md).
 - `GET /api/mobile/forms` reads only active snapshots. It exposes the
   participant-required flag and the reviewed data category, purpose, recipient
   type/name, and consent version needed by the collector UI; it does not expose

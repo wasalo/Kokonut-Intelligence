@@ -1,6 +1,7 @@
 # Field Collector form authoring and review operations
 
-**Status:** Architecture decision recorded; implementation remains open.  
+**Status:** Architecture decision and offline manifest validation/preview are implemented; transactional publication and the private review queue remain open.
+
 **Decision date:** 12 October 2026.
 
 ## Decision
@@ -24,16 +25,19 @@ to `mobile_form_version` directly.
 
 ## Authoring CLI contract
 
-The initial interface is local and manifest-based:
+The available read-only interface is local and manifest-based:
 
 ```text
 python3 -m services.cli mobile-forms validate --manifest form.json
-python3 -m services.cli mobile-forms preview --manifest form.json
-python3 -m services.cli mobile-forms publish --manifest form.json --actor OPERATOR --apply
+python3 -m services.cli mobile-forms preview --manifest form.json --current prior.json
 ```
 
-`validate` and `preview` are read-only. `publish` must default to preview and
-require an explicit `--apply`. The implementation must:
+Both commands are read-only and make no database connection. The unified CLI
+can register its command groups without decrypting database credentials; the
+optional Baal adapter is loaded only when a governance query runs. Preview can
+compare two manifests and rejects content or review-metadata changes that reuse
+a version. Transactional `publish` is not available yet; when added, it must
+default to preview and require an explicit `--apply`. The implementation must:
 
 - require an immutable `form_id` and a new, unused semantic `version` for every
   content or policy change;
@@ -99,15 +103,15 @@ approved policy.
 
 ## Implementation sequence and acceptance
 
-1. Add manifest validation and preview commands with offline tests; verify
+1. [x] Add manifest validation and preview commands with offline tests; verify
    malformed schemas, external references, policy completeness, and duplicate
-   field/version handling.
-2. Add transactional publication via `mobile_form`; verify a new immutable
+   version handling. Keep database and optional-chain imports lazy for offline CLI use.
+2. [ ] Add transactional publication via `mobile_form`; verify a new immutable
    snapshot, retirement of the prior active revision, rollback on invalid
    input, and no historical-content mutation against a disposable database.
-3. Add OIDC-scoped private queue list/detail routes and UI; verify location
+3. [ ] Add OIDC-scoped private queue list/detail routes and UI; verify location
    isolation, CSRF, audit attribution, payload minimization, and media privacy.
-4. Add append-only review/disposition events; verify consent-ineligible rows
+4. [ ] Add append-only review/disposition events; verify consent-ineligible rows
    cannot be made eligible and no action publishes without the independent
    governed lifecycle.
 5. Keep tenant/RLS, legal retention periods, erasure execution, media expiry,

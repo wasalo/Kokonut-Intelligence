@@ -96,6 +96,22 @@ Other environments must follow the same checksummed migration and seed
 workflow. See the [policy decision record](../../docs/refactor/mobile-form-classification-review.md)
 and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
 
+### Custom form manifest validation
+
+Directus is optional. Validate a reviewed custom JSON manifest and preview its
+version against a prior manifest without connecting to PostgreSQL:
+
+```bash
+python3 -m services.cli mobile-forms validate --manifest form.json
+python3 -m services.cli mobile-forms preview --manifest form.json --current prior.json
+```
+
+The commands reject incomplete consent review metadata, external schema
+references, root schemas that accept undeclared properties, and edits that reuse
+a version. They never publish or write to the database or require database credentials. Transactional
+publication through the immutable revision trigger and an OIDC-scoped private
+review queue are still in progress; see the [form operations contract](../../docs/refactor/mobile-form-operations.md).
+
 ### Private media and request protections
 
 - `POST /api/mobile/media/uploads` requires an active `X-Device-Token` and a

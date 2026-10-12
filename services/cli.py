@@ -66,6 +66,7 @@ _MOUNTED = [
     ("migration", "services.migration.cli", "Schema migration runner"),
     ("audit-spool", "services.gateway.audit_spool_cli", "Gateway audit journal maintenance"),
     ("operator", "services.gateway.operator_cli", "OIDC operator identity and scope provisioning"),
+    ("mobile-forms", "services.mobile.forms_cli", "Field Collector form manifest validation and preview"),
     ("crisp", "services.crisp.cli", "CRISP risk scoring"),
     ("analytics", "services.analytics.cli", "General analytics commands"),
     ("ingestion", "services.ingestion.cli", "Ingestion pipelines"),
