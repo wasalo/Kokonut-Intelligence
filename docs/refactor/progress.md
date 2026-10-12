@@ -1,10 +1,11 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves the Field Collector `1.2.0` schemas, and Phase 7 now includes source-level OIDC enrollment controls in the operator console. The new route/auth checks passed (5 tests); real provider configuration and the live authenticated device workflow remain open.** Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+**Updated:** 12 October 2026. **Current implementation focus: the candidate serves the Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and the browser-client offline capture/reconnect path has been exercised against an isolated mock origin.** The browser reopened its cached shell and encrypted queue after an origin outage, then cleared one record after a mock sync response. This was not OS airplane mode or a candidate Gateway run; real OIDC/provider and live browser/API acceptance remain open. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
 
-Implementation work has local commits on `feat/kernel-architecture-refactor`, based on
-`ad806f504bfef15cba41446d777cb22f6bd8fe6a`. No implementation PR/merge or passing
-release CI is recorded. The root implementation plan remains intentionally
+Implementation began on `feat/kernel-architecture-refactor`; current Field
+Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
+based on the updated main branch. No merge or passing release CI is recorded. The
+root implementation plan remains intentionally
 ignored; this ledger and the [capability matrix](capability-matrix.md) provide
 repository-visible progress alongside it.
 
@@ -2178,3 +2179,28 @@ flows, durable media backup/restore and cleanup, semantic review, tenant/RLS,
 and retention/erasure. See the [mobile access contract](mobile-access-contract.md),
 [Field Collector guide](../../services/mobile/README.md), [Batch 5 checklist](batches.md),
 and [CAP-053](capability-matrix.md#cap-053).
+
+## Batch 5 Field Collector browser offline and reconnect acceptance — 12 October 2026
+
+Exercised the real Field Collector page in an isolated Codex in-app browser
+against a temporary same-origin loopback mock. The secure-origin service worker
+cached exactly `/mobile` and `/field-collector-vault.js`. After stopping the
+mock server, the browser reopened the app shell from cache, unlocked the
+encrypted IndexedDB vault, and saved one synthetic field note. The pending count
+remained one after a second reload and vault unlock while the origin was still
+unavailable. Restarting the mock returned one accepted client ID; the app showed
+one record uploaded and cleared the queue. This exercised the browser UI, service
+worker, encrypted queue persistence and reconnect client together.
+
+This was an origin outage rather than OS airplane mode: the browser network
+interface remained up and `navigator.onLine` continued to say Online. The API
+was a temporary mock, not the candidate Gateway/PostgreSQL path. No Docker
+container or database was touched. The temporary test service stopped, its
+browser tabs closed, and its service-worker registration, cache and encrypted
+IndexedDB vault were removed. Machine summary: [browser recovery evidence](builds/2026-10-12-recovery/field-collector-browser-offline-reconnect.json).
+
+CAP-053 stays partial. Actual airplane-mode/device behavior, live Gateway
+reconnect in the browser, real OIDC login, media upload while disconnected,
+retired/consent-withdrawal paths, durable media backup/cleanup, semantic review,
+tenant/RLS and retention/erasure remain open. See the [mobile access contract](mobile-access-contract.md),
+[Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
