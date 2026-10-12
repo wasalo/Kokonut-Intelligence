@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant, and a real PostgreSQL-backed sync-handler call rejects the same case without writes; Gateway ASGI/HTTP and browser consent handling, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant, and the real sync handler plus Gateway ASGI/HTTP route reject the same case without writes; browser consent handling, live retired-form coverage, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
@@ -2338,12 +2338,33 @@ client ID and zero upload success logs for the synthetic device.
 The source candidate remained unchanged: zero locations, parties, devices,
 participant links, consent events, and collections; its ten seeded form
 revisions remained. The disposable database and its dump were removed. This was
-a direct handler invocation with real PostgreSQL; the Gateway ASGI/HTTP path
-and browser flow remain open. Evidence:
+a direct handler invocation with real PostgreSQL; the Gateway ASGI/HTTP check
+is recorded in the following section, and browser consent flow remains open. Evidence:
 [PostgreSQL-backed sync acceptance](builds/2026-10-12-recovery/field-collector-postgres-sync-withdrawal.json).
 
 Rollback: the complete synthetic dataset lived in the disposable database,
 which was dropped after the check. No candidate migration or service change is
-needed. CAP-053 and Batch 5 remain partial pending Gateway/HTTP and browser
+needed. CAP-053 and Batch 5 remain partial pending live retired-form and browser
 consent acceptance, OIDC, airplane-mode recovery, and the remaining human
 disposition, tenant/RLS, media, retention, and semantic-review gates.
+
+## Batch 5 Field Collector Gateway ASGI/HTTP consent withdrawal — 12 October 2026
+
+Sent a real HTTP request through the Gateway ASGI app and `/api/mobile/sync`
+using a temporary Uvicorn server bound only to an ephemeral loopback port in the
+candidate app container. The request used an active required-consent form with
+a collection-time grant, a later withdrawal, and a still-later current grant.
+The API returned HTTP 403 with the expected withdrawal detail and persisted no
+collection or upload success log. Gateway audit logging was stubbed in the
+temporary process so the shared audit spool stayed untouched.
+
+The PostgreSQL clone and dump were removed, the temporary server exited, and
+the candidate app/database stayed healthy. Source candidate counts remain zero
+for locations, parties, devices, links, consent events, and collections. This
+closes the active required-consent sync path through Gateway HTTP. The retired
+form variant and browser consent flow remain open, as do OS airplane mode, real
+OIDC, human disposition, media recovery, tenant/RLS, and retention/erasure.
+Evidence: [Gateway HTTP acceptance](builds/2026-10-12-recovery/field-collector-gateway-http-consent-withdrawal.json).
+
+Rollback: the clone, dump, and loopback server were removed; no candidate
+rollback is needed.
