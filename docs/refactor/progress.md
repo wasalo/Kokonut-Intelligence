@@ -2711,3 +2711,25 @@ Database/upload-row parity, persistent-volume/container replacement,
 expiry/orphan cleanup, and retention remain open. See
 [provisioning and recovery evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-provisioning.json),
 [media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+
+### Batch 5 isolated edge media-volume recovery — 12 October 2026
+
+Ran the candidate and edge Compose overlays under a unique temporary project,
+with only the targeted SOPS media key and database password read into process
+memory. Using `docker compose run --rm --no-deps`, the first disposable app
+container wrote one synthetic KKM1 object to the edge `kernel-private-media`
+named volume. A second disposable app container found the same object, verified
+its AES-GCM tag and plaintext digest, rejected a wrong media key, and deleted the
+object. The private directory and object modes were 0700 and 0600, and the
+plaintext was absent from the stored envelope.
+
+The isolated Compose network and synthetic volumes were removed. The database
+service and candidate project were not started or changed. A first verifier
+invocation had a Python syntax error before checking recovery; its temporary
+project was also torn down, and the corrected full run passed. This validates
+named-volume persistence across disposable app containers, but it did not create
+or compare a `mobile_media_upload` row, recreate the candidate service, or test
+expiry/orphan cleanup and production retention. See [edge volume
+evidence](builds/2026-10-12-recovery/field-collector-edge-media-volume-recovery.json)
+and [CAP-053](capability-matrix.md#cap-053).

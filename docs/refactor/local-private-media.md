@@ -128,3 +128,10 @@ The key-matched rehearsal used a synthetic database-checkpoint binding fixture.
 It did not restore PostgreSQL or compare `mobile_media_upload` rows with object
 inventory, exercise a persistent Compose volume/container replacement, or test
 expiry/orphan cleanup and production retention. Those remain adoption gates.
+
+An isolated `kernel-edge` Compose check subsequently confirmed that the
+SOPS-managed key can authenticate an object written to the named media volume by
+one disposable app container and recovered by a second. Directory/file modes,
+plaintext absence, wrong-key rejection, and synthetic cleanup passed. This did
+not involve PostgreSQL or a live candidate service. See [edge volume recovery
+evidence](builds/2026-10-12-recovery/field-collector-edge-media-volume-recovery.json).
