@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. These checks do not cover OS airplane mode, real OIDC/provider acceptance, or live PostgreSQL/browser consent handling and the remaining media, governance and retention gates. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant; browser/API consent handling, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
@@ -2289,14 +2289,39 @@ The repository `.venv` already contains pytest 9.1.1. All four focused mobile
 suites passed: 62 tests. The first run without an explicit audit spool failed
 closed because the default journal directory was not private; rerunning with a
 mode-0700 temporary spool under `/private/tmp` passed, and that spool was
-removed. The API tests mock database decisions, so they do not prove live
-PostgreSQL view behavior or browser handling. No candidate database, container,
-browser vault, migration, or provider configuration changed. Evidence:
+removed. The API tests mock database decisions and do not cover browser consent
+handling; the separate live PostgreSQL view acceptance is recorded below. No
+committed database, container, browser vault, migration, or provider configuration
+changed. Evidence:
 [withdrawal source tests](builds/2026-10-12-recovery/field-collector-withdrawal-source-tests.json).
 
 Rollback: revert the focused test and documentation changes; no runtime or
-database rollback is required. CAP-053 remains partial pending live consent and
-eligibility-view acceptance, OS airplane mode/Gateway recovery, OIDC, and the
-remaining human disposition, media, tenant/RLS, and retention gates. See the
+database rollback is required. CAP-053 remains partial pending browser/API
+consent acceptance, OS airplane mode/Gateway recovery, OIDC, and the remaining
+human disposition, media, tenant/RLS, and retention gates. See the
 [Batch 5 checklist](batches.md), [capability matrix](capability-matrix.md#cap-053),
 and [mobile access contract](mobile-access-contract.md).
+
+## Batch 5 Field Collector PostgreSQL consent eligibility — 12 October 2026
+
+Ran the real `v_mobile_collection_use_eligibility` view against the active
+candidate PostgreSQL database with synthetic location, participant, form,
+consent, and collection rows inside one explicit transaction. The view first
+returned `eligible=true` / `eligible` for a synchronized collection covered by
+an active grant. After a withdrawal effective after collection and a later
+grant, it returned `eligible=false` / `withdrawn_after_collection`, preserving
+the intervening withdrawal. Both assertions passed; the transaction ended in
+`ROLLBACK`. A follow-up aggregate query found zero locations, parties,
+participant links, consent events, or collections, confirming no fixture rows
+remain. No migration, provider configuration, or browser vault changed.
+
+This closes the live database-view portion of the consent eligibility check.
+It does not exercise the API or browser consent flow, or establish human
+retention/erasure disposition, tenant/RLS, OIDC, or OS airplane-mode behavior.
+CAP-053 and Batch 5 remain partial. Evidence:
+[PostgreSQL acceptance record](builds/2026-10-12-recovery/field-collector-postgres-consent-eligibility.json).
+
+Rollback: the acceptance transaction was rolled back and left no fixture rows;
+no runtime rollback is needed. See the [Batch 5 checklist](batches.md),
+[capability matrix](capability-matrix.md#cap-053), and
+[mobile access contract](mobile-access-contract.md).
