@@ -2624,3 +2624,19 @@ OIDC, browser consent withdrawal, tenant/RLS, retention/erasure, media recovery,
 and human disposition remain open.
 
 [Gateway outage recovery evidence](builds/2026-10-12-recovery/field-collector-gateway-outage-recovery.json).
+
+
+### Batch 5 macOS Wi-Fi-off Field Collector probe — 12 October 2026
+
+With the user's approval, Wi-Fi interface en1 was briefly switched off and then
+restored; its final reported power state was On. The existing browser remained
+on `http://127.0.0.1:8098/mobile`, continued to display Online, and showed an
+empty queue with no enrolled device. No test note or credential was created.
+
+This is inconclusive rather than offline acceptance: the candidate app and
+Gateway are on localhost, which stays reachable when Wi-Fi is off, and the
+browser did not report Offline. The capability matrix and OS-offline checklist
+remain open for capture/reconnect against a path that is actually severed; no
+LAN binding or other network exposure was added.
+
+[Probe evidence](builds/2026-10-12-recovery/field-collector-wifi-off-probe.json).
