@@ -161,9 +161,11 @@ describe these records as erased or resolved after a withdrawal.
 ## Acceptance and rollback
 
 Focused source checks passed (55 targeted checks: 51 mobile tests and four
-Gateway CORS checks), the candidate migration plan reports zero pending schemas, the app and
-database are healthy, and its browser fallback serves all five `1.1.0` forms.
-Still required: live anonymous and enrolled form visibility; route policy and OIDC
+Gateway CORS checks), the candidate migration plan reports zero pending schemas,
+the app and database are healthy, and its browser fallback serves all five
+`1.1.0` forms. The live anonymous `GET /api/mobile/forms` returned HTTP 200 with
+an empty list, as expected because no forms are global and explicitly public.
+Still required: enrolled form visibility; route policy and OIDC
 scope/CSRF behavior; create/revoke mapping authorization; collector/participant
 separation; exact consent at collection and sync for active and known-retired
 required revisions; missing, expired, denied, and withdrawn consent; form
