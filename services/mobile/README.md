@@ -62,6 +62,17 @@ The browser loads `field-collector-vault.js` from the same origin as its entry
 point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
 `/api/mobile/field-collector-vault.js`, or the Caddy static `/field/` route).
 
+The built-in `1.1.0` farm activity, harvest, expense, field note, and soil
+sample forms are classified `not_required` for participant-linked consent
+because their defined purpose is location-scoped farm operations and ecological
+data. This is a form-purpose decision, not a legal determination or permission
+to collect personal data. Form descriptions give collector guidance, but the
+API does not filter arbitrary text or photo contents. Do not enter worker
+identifiers, personal receipts/account details, or person-centered/sensitive
+notes; use a separate consent-required workflow for participant-focused data.
+The revision is only deployed after migration 381 and `140_mobile_forms.sql`
+run in order. See the [policy decision record](../../docs/refactor/mobile-form-classification-review.md).
+
 ### Private media and request protections
 
 - `POST /api/mobile/media/uploads` requires an active `X-Device-Token` and a
@@ -129,9 +140,9 @@ The trusted-device flow uses schema migration `357_field_collector_enrollment_ha
 Migration 381 adds immutable form revisions, reviewer-created participant
 links, consent validation metadata, and the downstream
 `v_mobile_collection_use_eligibility` gate. Its source is not yet applied to the
-candidate database. The five seeded forms remain `unclassified` until separately
-reviewed; those records stay private and are not eligible for reporting or
-publication. Existing rows remain unassessed. The older
+candidate database. Source form revisions are classified in the policy
+decision record, but deployed forms remain at their pre-migration state until
+381 and the curated seed run in order. Existing rows remain unassessed. The older
 `services.analytics.mobile_offline` CLI stages transport rows without consent
 validation; after migration 381 those rows remain unassessed and cannot pass the
 eligibility view. No tests, migration, local

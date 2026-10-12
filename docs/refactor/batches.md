@@ -320,9 +320,10 @@ reporting views.
 - [x] Audit every `offline_collection` source reference; document the legacy CLI as transport-only and require future business/reporting consumers to read the eligibility view ([contract](mobile-access-contract.md), [field data guide](../field-data-collection-guide.md), [mobile README](../../services/mobile/README.md)).
 - [x] Run source-level mobile API, media/storage, offline transport, and Gateway CORS checks (51 mobile tests and 4 CORS tests passed); cover all 14 browser request headers and retired required-form upload/sync behavior ([progress](progress.md#batch-5-field-collector-mobile-and-cors-source-acceptance--11-october-2026)).
 - [x] Prepare a source-grounded reviewer worksheet for all five current form revisions; record source fields and leave policy decisions pending ([worksheet](mobile-form-classification-review.md)).
-- [ ] Classify each current form with reviewed category, purpose, recipient, scope, version, and required/not-required decision. All five remain `unclassified` until that work is complete.
+- [x] Record owner-delegated policy decisions for all five built-in operational forms as `not_required`, with explicit location scope, category, purpose, recipient, evidence, minimization guidance, and immutable `1.1.0` source revisions ([decision record](mobile-form-classification-review.md)).
+- [x] Add the `140_mobile_forms.sql` seed after the ordered migration step and align the offline browser fallback with the same policy and form revisions.
 - [ ] Define the human retention/erasure disposition and tenant/RLS policy; use the eligibility view in every downstream consumer before reporting or publication.
-- [ ] Apply the migration through the checksummed runner and run live candidate mobile acceptance with verification authorization.
+- [ ] Apply migration 381 and the revised seed through the ordered migration/seed workflow, then run live candidate mobile acceptance with verification authorization. Existing `1.0.0` rows remain unclassified until rollout.
 - [x] Add an OpenAPI-backed, versioned v1 public-location list/detail contract while preserving the legacy location routes.
 - [x] Add additive v1 metrics, published-CRISP, and location-summary read aliases with explicit authorization policy and strict response models.
 - [x] Add typed v1 location, metrics, CRISP, and location-summary methods to the Python and JavaScript SDK sources.

@@ -1,10 +1,12 @@
 # Field Collector access and consent contract
 
 This implementation adds an additive consent and immutable-form boundary for
-the Field Collector. It records the approved baseline while keeping the five
-current form revisions `unclassified` until an authorized reviewer evaluates
-each one. It does not imply that the migration has been applied or that mobile
-acceptance has passed.
+the Field Collector. The repository owner delegated form-policy decisions to
+the implementation agent; all five built-in operational forms now have source
+definitions at version `1.1.0` classified `not_required`, with rationale and
+collection limits in the [policy decision record](mobile-form-classification-review.md).
+Migration 381 and its seed have not been applied to the candidate database, and
+mobile acceptance has not passed.
 
 ## Existing identity and location boundary
 
@@ -74,10 +76,13 @@ Implementation is in source; migration 381 is not applied by this change.
   the existing Gateway API key/capability policy applies. Neither route is
   public, and the collector token cannot manage links.
 - A form revision has one of three consent classifications: `required`,
-  `not_required`, or `unclassified`. The current five forms are deliberately
-  `unclassified`; the approved architectural baseline did not decide their
-  individual data categories, purposes, recipients, scopes, versions, or whether
-  consent is required.
+  `not_required`, or `unclassified`. The five built-in operational forms are
+  classified `not_required` at source version `1.1.0`: each has an explicit
+  operational category, purpose, dynamic location scope, intended operator
+  recipient, owner-delegated review evidence, and no participant reference.
+  This decision is limited to farm operations, production, business expenses,
+  ecological/operational observations, and soil measurements. It is not a legal
+  determination or a general exemption for personal data.
 - A `required` form revision asks for the opaque participant reference. Sync
   resolves it within the device location, requires an unrevoked link, then
   checks the latest exact `stakeholder_consent` decision at `collected_at` and
@@ -96,6 +101,10 @@ Implementation is in source; migration 381 is not applied by this change.
   rejects participant references. An active `unclassified` revision remains
   collectable into the private pending queue, but is marked `unassessed` and
   review-required. It cannot be treated as consent-cleared.
+- Migration 381 does not validate arbitrary form payloads or photo contents
+  against `form_schema`. The revised form descriptions communicate data
+  minimization rules, but do not filter text or images. Person-centered or
+  sensitive records require a separate consent-required form and workflow.
 - Existing collection rows receive `unassessed` defaults; the migration does
   not infer identity, consent, or form validity for legacy records.
 - The legacy `services.analytics.mobile_offline` CLI is a transport/admin path,
@@ -126,19 +135,21 @@ describe these records as erased or resolved after a withdrawal.
 
 ## Remaining owner decisions and operational work
 
-1. Review and classify each of the five existing forms using the
-   [source-grounded worksheet](mobile-form-classification-review.md). Until then
-   they stay `unclassified`, private, and ineligible for downstream use. A
-   classification change must publish a new form version with reviewer,
-   timestamp, and evidence.
+1. Apply migration 381 through the ordered, checksummed migration runner, then
+   apply the curated seed. On existing databases this retires the backfilled
+   unclassified `1.0.0` forms and publishes the reviewed `1.1.0` revisions;
+   legacy rows remain unassessed and known retired revisions remain private for
+   review. Complete the separately authorized live mobile acceptance gate.
 2. Specify organization-wide tenant policy. Location is the scope for this
    mobile API only; locations must not be treated as interchangeable tenant IDs.
-3. Define the human retention/erasure disposition process after withdrawal.
+3. Define the human retention/erasure disposition process for participant-linked
+   records after withdrawal and for operational records generally.
 4. Decide whether a form-authoring CLI/UI and a private review queue are needed
    before local or production operators classify forms and review retired rows.
-5. Apply migration 381 only through the ordered, checksummed migration runner.
-   This implementation has not changed the candidate database or any running
-   container.
+5. Add server-side schema/content validation before treating the collection
+   instructions as enforceable privacy controls. Current descriptions are
+   guidance only. This implementation has not changed the candidate database
+   or any running container.
 
 ## Acceptance and rollback
 

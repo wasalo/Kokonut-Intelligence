@@ -118,6 +118,12 @@ CURATED_SEEDS=(
     "schemas/seeds/115_strategic_reserve.sql"
 )
 
+# The reference-only mode skips migrations. Keep this seed out of that path;
+# mobile_form's reviewed policy columns are introduced by migration 381 above.
+if [ "$REFERENCE_ONLY" = "false" ]; then
+    CURATED_SEEDS+=("schemas/seeds/140_mobile_forms.sql")
+fi
+
 for seed_file in "${CURATED_SEEDS[@]}"; do
     echo ""
     echo "Seeding ${seed_file##*/}..."
