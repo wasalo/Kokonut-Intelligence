@@ -113,9 +113,18 @@ candidate DB and provider configuration were untouched. See
 [SOPS age restore evidence](builds/2026-10-12-recovery/field-collector-media-sops-age-restore.json).
 
 
-The tracked `.env.sops` has no `MOBILE_MEDIA_LOCAL_KEY` or explicit
-`MOBILE_MEDIA_PROVIDER` entry. The source therefore defaults to S3 when unset,
-and `docker-compose.kernel-edge.yml` requires the local key. The supplied age
-identity successfully restored a synthetic archive, but local media cannot be
-enabled in the edge profile until an operator provisions a SOPS-managed key. No
-encrypted environment values were changed. See [availability evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-availability.json).
+The tracked `.env.sops` now contains a user-approved random
+`MOBILE_MEDIA_LOCAL_KEY`. Targeted SOPS readback matched the generated key, and
+an isolated one-object checkpoint/restore using that exact key and the supplied
+age identity passed AES-GCM authentication, plaintext digest, and wrong-key
+checks. `MOBILE_MEDIA_PROVIDER` remains unset, so the source and base Compose
+profile still default to S3; the candidate was not reconfigured. The edge profile
+has the encrypted key available when local media is deliberately selected.
+Historical key-availability evidence records the state before provisioning; see
+[current provisioning and recovery evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-provisioning.json)
+and [historical availability evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-availability.json).
+
+The key-matched rehearsal used a synthetic database-checkpoint binding fixture.
+It did not restore PostgreSQL or compare `mobile_media_upload` rows with object
+inventory, exercise a persistent Compose volume/container replacement, or test
+expiry/orphan cleanup and production retention. Those remain adoption gates.

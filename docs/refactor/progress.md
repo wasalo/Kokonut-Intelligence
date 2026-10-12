@@ -2681,9 +2681,33 @@ were removed, and candidate database/provider configuration stayed untouched.
 
 ### Batch 5 local media key configuration check — 12 October 2026
 
-A targeted SOPS lookup found no `MOBILE_MEDIA_LOCAL_KEY` or explicit
-`MOBILE_MEDIA_PROVIDER` entry in the tracked `.env.sops`. The source defaults to
-S3 when no provider is set; `docker-compose.kernel-edge.yml` requires the local
-media key. The provided age identity restored the synthetic archive in the prior
-check, but the local edge media configuration remains unprovisioned. No encrypted
-values or candidate settings were changed. See [availability evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-availability.json).
+At the time of this check, a targeted SOPS lookup found no
+`MOBILE_MEDIA_LOCAL_KEY` or explicit `MOBILE_MEDIA_PROVIDER` entry in the tracked
+`.env.sops`. The source defaults to S3 when no provider is set, and
+`docker-compose.kernel-edge.yml` requires the local media key. The result was
+historical; the next batch provisions the key with owner approval. See
+[availability evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-availability.json).
+
+
+### Batch 5 SOPS media-key provisioning and recovery — 12 October 2026
+
+With the repository owner's approval, generated a random 32-byte
+`MOBILE_MEDIA_LOCAL_KEY` in process memory and added it to the tracked encrypted
+`.env.sops` through `sops set --value-stdin`. A targeted SOPS extraction using
+the supplied age identity matched the generated value; the key was not printed
+or stored in plaintext. `MOBILE_MEDIA_PROVIDER` remains unset, so the source and
+base profile still default to S3; the candidate runtime was not reconfigured.
+
+Then used that exact SOPS-managed key in an isolated one-object KKM1 checkpoint
+and restore. The archive was encrypted and restored using the supplied age
+identity. The restored AES-GCM object authenticated, its plaintext digest
+matched the synthetic fixture, and a wrong media key was rejected. The
+database-checkpoint binding was a synthetic fixture only; no database, upload
+row, Compose volume, or candidate container was touched. All temporary media,
+archives, and dependency files were removed.
+
+This closes the SOPS key availability and one-object key-matched recovery check.
+Database/upload-row parity, persistent-volume/container replacement,
+expiry/orphan cleanup, and retention remain open. See
+[provisioning and recovery evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-provisioning.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
