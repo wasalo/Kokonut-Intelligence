@@ -268,8 +268,9 @@ def _validate_media_upload_policy(
         raise HTTPException(status_code=403, detail="Participant reference is not assigned to this location")
     if revision["consent_policy_status"] in {"unclassified", "not_required"} and participant_ref:
         raise HTTPException(status_code=422, detail="This form revision does not accept a participant reference")
-    if revision["status"] == "retired":
-        return
+    # A known retired revision is review-only, but it is still subject to the
+    # consent policy that governed collection. Do not let staleness bypass a
+    # required participant link or a withdrawal that happened before upload.
     if revision["consent_policy_status"] == "required":
         if not participant_ref:
             raise HTTPException(status_code=422, detail="This form revision requires a participant reference")
@@ -888,7 +889,7 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
             policy_status = revision["consent_policy_status"]
             if policy_status in {"unclassified", "not_required"} and item.participant_ref:
                 raise HTTPException(status_code=422, detail="This form revision does not accept a participant reference")
-            if active_revision and policy_status == "required" and not item.participant_ref:
+            if policy_status == "required" and not item.participant_ref:
                 raise HTTPException(status_code=422, detail="This form revision requires a participant reference")
 
             # Retired revisions are accepted only into the private review queue.
@@ -928,7 +929,7 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
             if revision["status"] not in {"active", "retired"}:
                 raise HTTPException(status_code=409, detail="Form revision is no longer accepted")
 
-            if active_revision and policy_status == "required":
+            if policy_status == "required":
                 if link[2] is not None:
                     raise HTTPException(status_code=403, detail="Participant reference has been revoked")
                 consent_event_id_at_collection, consent_event_id_at_sync, consent_validated_at = _validate_required_consent(
@@ -938,7 +939,8 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
                     location_id=registered_location_id,
                     collected_at=collected_at,
                 )
-                consent_status = "granted"
+                if active_revision:
+                    consent_status = "granted"
 
             media_rows = []
             if media_ids:

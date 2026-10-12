@@ -78,31 +78,42 @@ Implementation is in source; migration 381 is not applied by this change.
   `unclassified`; the approved architectural baseline did not decide their
   individual data categories, purposes, recipients, scopes, versions, or whether
   consent is required.
-- An active `required` form asks for the opaque participant reference. Sync
+- A `required` form revision asks for the opaque participant reference. Sync
   resolves it within the device location, requires an unrevoked link, then
   checks the latest exact `stakeholder_consent` decision at `collected_at` and
   again at sync. The category, purpose, scope, recipient, and consent version
   must match the immutable form policy. Any intervening withdrawal, denial,
-  expiry event, or grant expiry rejects the new sync. The mobile operator cannot
-  create a consent grant with a checkbox.
+  expiry event, or grant expiry rejects the new sync, including for a known
+  retired revision. The mobile operator cannot create a consent grant with a
+  checkbox.
 - Private-media upload carries the same client, form revision, participant
   reference, and collection timestamp. The Gateway validates the form and any
   required consent before it reads/stores the JPEG bytes; final sync checks
-  consent again before attaching those objects to a collection.
+  consent again before attaching those objects to a collection. A retired
+  revision with a required-consent policy remains review-only, but must still
+  pass the same link and consent checks before its private upload or sync.
 - An active `not_required` revision needs reviewer metadata and evidence and
   rejects participant references. An active `unclassified` revision remains
   collectable into the private pending queue, but is marked `unassessed` and
   review-required. It cannot be treated as consent-cleared.
 - Existing collection rows receive `unassessed` defaults; the migration does
   not infer identity, consent, or form validity for legacy records.
+- The legacy `services.analytics.mobile_offline` CLI is a transport/admin path,
+  not a consent-aware admission path. It can stage rows and mark transport as
+  synced, but after migration 381 its rows remain unassessed and fail the
+  eligibility view. Do not use that transport status as permission to report
+  or publish the row.
 - `v_mobile_collection_use_eligibility` is the consent/form prerequisite for
   downstream use. It also requires transport status `synced`; unassessed,
   retired, and review-required rows are ineligible. A later
   withdrawal/denial/expiry makes the row ineligible permanently, including if a
   later grant is added; revoking the referenced participant link also makes the
   row ineligible. This view does not replace governed review/publication
-  approval. No direct public collection endpoint or consumer was found in this
-  source slice; every downstream consumer must use this view before reporting,
+  approval. `/api/mobile/sync` is an externally reachable, device-token
+  authenticated intake route; it writes only to the private collection queue.
+  The source scan found no business, reporting, or publication consumer of
+  `offline_collection` outside the Field Collector API and the transport-only
+  CLI. Every future downstream consumer must use this view before reporting,
   publication, or other use.
 
 ### Withdrawal and retention
@@ -131,12 +142,13 @@ describe these records as erased or resolved after a withdrawal.
 
 Still required: anonymous and enrolled form visibility; route policy and OIDC
 scope/CSRF behavior; create/revoke mapping authorization; collector/participant
-separation; exact consent at collection and sync; missing, expired, denied, and
-withdrawn consent; form status/version/type/location mismatch; retired revision
-review; inactive/unknown revision rejection; device revocation; cross-location
-media; idempotent retry after link revocation/consent withdrawal; eligibility
-view behavior; and encrypted media recovery. No mobile test suite, migration,
-or runtime probe ran in this implementation pass.
+separation; exact consent at collection and sync for active and known-retired
+required revisions; missing, expired, denied, and withdrawn consent; form
+status/version/type/location mismatch; retired revision review; inactive/unknown
+revision rejection; device revocation; cross-location media; idempotent retry
+after link revocation/consent withdrawal; eligibility view behavior; and
+encrypted media recovery. No mobile test suite, migration, or runtime probe ran
+in this implementation pass.
 
 Migration 381 is additive. Rollback deploys the previous API image or disables
 the mobile profile while retaining the new columns, revision history, link

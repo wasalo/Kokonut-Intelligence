@@ -1867,3 +1867,22 @@ login, queue and detail acceptance remain open.
 Capability counts do not change. See
 [`kernel-operations-console.md`](kernel-operations-console.md)
 and [Batch 5](batches.md).
+
+## Batch 5 retired-form consent parity and collection-reader audit — 11 October 2026
+
+A source review found that a known retired revision with `required` consent
+could enter private media storage and sync without repeating participant-link
+and consent checks. The mobile API now applies the immutable required policy to
+active and retired revisions before reading media bytes and again at sync.
+Retired rows remain `retired_review` and unassessed for eligibility; valid
+consent does not promote them into normal use. The review also traced every
+`offline_collection` reference: the legacy analytics CLI is a transport/admin
+producer and sync marker, not a consent-aware admission path; its rows default
+to unassessed and fail the migration 381 eligibility view. No business,
+reporting, or publication consumer was found in the source tree.
+
+Updated the access contract, Batch 5 checklist, and CAP-053 status. Python
+syntax compilation and `git diff --check` passed. No test suite, migration,
+database, or container was run or changed. Per-form classification, tenant/RLS policy,
+retention/erasure disposition, and the migration/mobile acceptance gates remain
+open.
