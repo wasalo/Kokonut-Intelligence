@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import os
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from services.common.logging import get_logger
@@ -76,11 +77,6 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     from services.gateway.router import get_route_policy, router
     from services.mobile.api import router as mobile_router
 
-    app = FastAPI(
-        title="Kokonut Intelligence Gateway",
-        version="1.0.0",
-        description="Unified API gateway for the Kokonut Intelligence platform",
-    )
     cors_origins = [
         origin.strip()
         for origin in os.environ.get("CORS_ORIGIN", "").split(",")
@@ -110,21 +106,27 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                 logger.warning("Gateway audit replay unavailable (%s)", type(exc).__name__)
             await asyncio.sleep(15)
 
-    @app.on_event("startup")
-    async def start_audit_replay():
+    @asynccontextmanager
+    async def lifespan(_app):
         nonlocal audit_replay_task
         audit_replay_task = asyncio.create_task(audit_replay_loop())
+        try:
+            yield
+        finally:
+            if audit_replay_task is not None:
+                audit_replay_task.cancel()
+                try:
+                    await audit_replay_task
+                except asyncio.CancelledError:
+                    pass
+                audit_replay_task = None
 
-    @app.on_event("shutdown")
-    async def stop_audit_replay():
-        nonlocal audit_replay_task
-        if audit_replay_task is not None:
-            audit_replay_task.cancel()
-            try:
-                await audit_replay_task
-            except asyncio.CancelledError:
-                pass
-            audit_replay_task = None
+    app = FastAPI(
+        title="Kokonut Intelligence Gateway",
+        version="1.0.0",
+        description="Unified API gateway for the Kokonut Intelligence platform",
+        lifespan=lifespan,
+    )
 
     @app.middleware("http")
     async def gateway_middleware(request: Request, call_next):

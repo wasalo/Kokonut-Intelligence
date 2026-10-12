@@ -13,10 +13,11 @@ complete manifest. No default installation changes in this step.
 | clickhouse.txt | Optional ClickHouse client only |
 | analytics.txt | Tabular analytics, forecasting, ML, market data |
 | geospatial.txt | Earth Engine and GIS file access |
+| oidc.txt | Optional operator OIDC integration |
 | orchestration.txt | Prefect |
 | mqtt.txt | Paho sensor/actuator transport |
 | grpc.txt | gRPC, generated bindings tooling, protobuf |
-| dev.txt | Python test runner |
+| dev.txt | Python test runner and Starlette ASGI test client |
 
 Install selected groups with repeated `-r` arguments. For example:
 
@@ -36,7 +37,7 @@ builds, runtime imports, compatibility suites, and ARM64 wheel availability are
 pending. Do not remove packages from the existing images until capability checks
 pass. Keep constraints synchronized with `requirements.txt` during transition.
 
-`python3 scripts/check-requirement-groups.py` checks that the union of these eleven
+`python3 scripts/check-requirement-groups.py` checks that the union of these twelve
 groups exactly matches the legacy constraints, including duplicate counts.
 It runs in the fast-fail CI gate and uses no external packages.
 

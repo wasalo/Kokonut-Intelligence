@@ -2796,3 +2796,23 @@ This verifies a full runtime start/replacement with the edge media volume on the
 candidate network, but does not certify replacing or reconfiguring the primary
 candidate app service. See [runtime volume evidence](builds/2026-10-12-recovery/field-collector-media-runtime-volume-recreation.json),
 [media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 Gateway lifespan deprecation cleanup — 12 October 2026
+
+The prior focused run reported 117 Starlette/FastAPI deprecation warnings. All
+application lifecycle warnings traced to the Gateway's deprecated
+`@app.on_event("startup")` and `@app.on_event("shutdown")` registrations,
+repeated as test apps were created. Replaced those hooks with FastAPI's lifespan
+context manager while preserving the 15-second audit replay loop and cancelling
+and awaiting its task on shutdown. Added a lifecycle test that verifies the
+worker is created and cancelled. The service tree now has no application
+`on_event` registrations.
+
+The updated Starlette TestClient also warned when falling back to legacy
+`httpx`; declared `httpx2` in the development dependency group and legacy full
+requirements, then installed version 2.13.1 in the local environment. Updated
+the stale public-metrics tests to use valid UUID paths and mock the current
+analytics backend contract. The Gateway lifecycle, public metrics, Gateway auth,
+mobile API, media cleanup/storage, and CLI suites passed: 68 tests, zero
+warnings. Ruff, `git diff --check`, and dependency-group alignment passed. See
+[the Batch 5 checklist](batches.md).
