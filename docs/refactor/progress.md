@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant, and the real sync handler plus Gateway ASGI/HTTP route reject the same case without writes; browser consent handling, live retired-form coverage, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant, and real Gateway HTTP checks reject both active and synthetic retired required-consent records after withdrawal/regrant without writes; browser consent handling, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. The seeded retired `1.1.0` forms are `not_required`, so a reviewed synthetic retired revision was used for the latter policy branch. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
@@ -2361,10 +2361,38 @@ temporary process so the shared audit spool stayed untouched.
 The PostgreSQL clone and dump were removed, the temporary server exited, and
 the candidate app/database stayed healthy. Source candidate counts remain zero
 for locations, parties, devices, links, consent events, and collections. This
-closes the active required-consent sync path through Gateway HTTP. The retired
-form variant and browser consent flow remain open, as do OS airplane mode, real
-OIDC, human disposition, media recovery, tenant/RLS, and retention/erasure.
+closes the active required-consent sync path through Gateway HTTP. The
+retired-form HTTP case is recorded in the following section. Browser consent
+flow remains open, as do OS airplane mode, real OIDC, human disposition, media
+recovery, tenant/RLS, and retention/erasure.
 Evidence: [Gateway HTTP acceptance](builds/2026-10-12-recovery/field-collector-gateway-http-consent-withdrawal.json).
 
 Rollback: the clone, dump, and loopback server were removed; no candidate
 rollback is needed.
+
+
+## Batch 5 Field Collector retired-form Gateway ASGI/HTTP consent withdrawal — 12 October 2026
+
+Sent a real loopback HTTP request through the Gateway ASGI middleware and
+`/api/mobile/sync` using a disposable clone of the candidate PostgreSQL database.
+The fixture was a synthetic, reviewed `retired` form revision with a required
+consent policy, because all five seeded retired `1.1.0` revisions are
+`not_required`. The synthetic participant had a grant effective at collection,
+a later withdrawal, and a still-later grant current at sync.
+
+The route returned HTTP 403 with `Consent was withdrawn or denied after
+collection`; it wrote neither an `offline_collection` row nor an upload-success
+`sync_log` row. The Gateway audit method was stubbed in the temporary process.
+The temporary server stopped, the clone was dropped, and its dump was removed.
+The candidate remained healthy and its source counts remained zero for locations,
+parties, devices, links, consent events, collections, and sync logs; its ten
+seeded form revisions remained. This closes the retired required-consent sync
+policy path through Gateway HTTP for a synthetic reviewed revision. Browser
+consent, OS airplane mode and reconnect, real OIDC, and human disposition,
+media, tenant/RLS, retention, and semantic-review gates remain open.
+
+Evidence: [retired-form Gateway HTTP acceptance](builds/2026-10-12-recovery/field-collector-retired-form-gateway-http-consent-withdrawal.json).
+
+Rollback: the synthetic fixture was confined to the disposable clone, which was
+dropped after the request; the dump and temporary loopback server were removed.
+No candidate data or migration changed.
