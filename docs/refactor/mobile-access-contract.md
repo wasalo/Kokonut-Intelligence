@@ -54,8 +54,9 @@ Other deployments must use the ordered, checksummed migration workflow.
 - Editing the current `mobile_form` content or consent policy requires a new
   version. The current authoring surface remains the `mobile_form` row; the
   database trigger publishes its immutable snapshot. A policy decision must
-  include reviewer, time, and non-empty evidence. There is not yet a dedicated
-  form-authoring UI or CLI.
+  include reviewer, time, and non-empty evidence. The chosen authoring path is a
+  Directus-independent, reviewed JSON-manifest CLI; a private location-scoped
+  review queue is also required. See the [form operations decision](mobile-form-operations.md).
 - `GET /api/mobile/forms` reads only active snapshots. It exposes the
   participant-required flag and the reviewed data category, purpose, recipient
   type/name, and consent version needed by the collector UI; it does not expose
@@ -160,8 +161,10 @@ describe these records as erased or resolved after a withdrawal.
    mobile API only; locations must not be treated as interchangeable tenant IDs.
 3. Define the human retention/erasure disposition process for participant-linked
    records after withdrawal and for operational records generally.
-4. Decide whether a form-authoring CLI/UI and a private review queue are needed
-   before local or production operators classify forms and review retired rows.
+4. Implement the reviewed manifest CLI and private location-scoped review
+   queue under the [form operations contract](mobile-form-operations.md). The
+   architecture choice is settled; direct production use remains gated on
+   authorization, audit, and isolation acceptance.
 5. Schema validation is implemented, focused-tested, and deployed on the local
    candidate. The rollout changed five form revisions and recreated only the
    app container after a fresh encrypted checkpoint and isolated restore

@@ -2432,3 +2432,25 @@ Rollback: the Python audit spool, test environment, and mock server are isolated
 under `/private/tmp`. The encrypted browser test vault remains available for
 inspection; deleting it requires the application’s explicit confirmation
 action. No application rollback is needed.
+
+
+## Batch 5 Field Collector form operations decision — 12 October 2026
+
+Decided that form customization must remain available when Directus is absent.
+The initial authoring surface will be a reviewed JSON-manifest CLI that
+validates and previews offline, then explicitly publishes through the existing
+`mobile_form` row and migration 381 immutable-snapshot trigger. Direct writes to
+`mobile_form_version` and edits to applied migrations remain prohibited.
+
+A private location-scoped review queue is also required before retired or
+review-required records are used operationally. It must derive location scope
+from OIDC grants, minimize payload visibility, keep consent eligibility as a
+hard prerequisite, and append review/disposition events without changing
+consent or publishing records. Legal retention periods, erasure authority, and
+organization-wide tenant/RLS policy remain open human/governance gates.
+
+The decision and interface requirements are recorded in the
+[form operations contract](mobile-form-operations.md). This closes only the
+architecture-choice question; CLI, queue routes/UI, audit events, and their
+acceptance checks remain unimplemented. No source code, candidate database, or
+service configuration changed in this slice.
