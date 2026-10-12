@@ -62,16 +62,18 @@ The browser loads `field-collector-vault.js` from the same origin as its entry
 point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
 `/api/mobile/field-collector-vault.js`, or the Caddy static `/field/` route).
 
-The built-in `1.1.0` farm activity, harvest, expense, field note, and soil
+The built-in `1.2.0` farm activity, harvest, expense, field note, and soil
 sample forms are classified `not_required` for participant-linked consent
 because their defined purpose is location-scoped farm operations and ecological
 data. This is a form-purpose decision, not a legal determination or permission
-to collect personal data. Form descriptions give collector guidance, but the
-API does not filter arbitrary text or photo contents. Do not enter worker
+to collect personal data. Sync validates payload structure against the exact
+immutable form schema; the built-in `1.2.0` schemas reject undeclared fields
+and invalid values. This does not detect sensitive content inside free text or
+inspect photos. Do not enter worker
 identifiers, personal receipts/account details, or person-centered/sensitive
 notes; use a separate consent-required workflow for participant-focused data.
-The local candidate has received migrations 380 and 381 plus
-`140_mobile_forms.sql` in order; other environments must follow the same checksummed migration and seed
+The local candidate now serves the five `1.2.0` revisions and matching app.
+Other environments must follow the same checksummed migration and seed
 workflow. See the [policy decision record](../../docs/refactor/mobile-form-classification-review.md)
 and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
 
@@ -141,15 +143,18 @@ The trusted-device flow uses schema migration `357_field_collector_enrollment_ha
 
 Migration 381 adds immutable form revisions, reviewer-created participant
 links, consent validation metadata, and the downstream
-`v_mobile_collection_use_eligibility` gate. It and the curated form seed are
-applied to the local candidate; the candidate has five active `1.1.0` forms,
-zero pending schema migrations, and no pre-existing mobile collection rows.
+`v_mobile_collection_use_eligibility` gate. Migration 381 and the curated form
+seed are applied to the local candidate; it has 372 applied schemas, zero
+pending migrations, five active `1.2.0` forms, five retired `1.1.0` revisions,
+and no mobile collection rows. The new validator is deployed in the candidate
+app. A fresh encrypted checkpoint restored successfully into an isolated
+template0-derived database before the seed and app rollout.
 Other populated deployments must apply 381 and the curated seed in order;
 legacy rows remain unassessed. The older
 `services.analytics.mobile_offline` CLI stages transport rows without consent
 validation; after migration 381 those rows remain unassessed and cannot pass the
-eligibility view. Focused checks passed (55 total: 51 mobile tests and four targeted CORS
-checks). The current-source candidate app was rebuilt; the legacy project,
+eligibility view. Sixty focused mobile/schema tests passed; four targeted CORS
+checks passed in the previous rollout slice. The legacy project,
 staging/production databases, and Cloudflare resources were not changed.
 Expired object-byte cleanup and full live mobile workflow acceptance remain open
 before production use.

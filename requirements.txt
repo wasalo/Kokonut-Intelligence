@@ -10,6 +10,7 @@ openpyxl>=3.1.5,<4.0
 earthengine-api>=1.7.0,<2.0.0
 paho-mqtt>=2.0.0,<3.0.0
 fastapi>=0.139.0,<1.0.0
+jsonschema>=4.21.0,<5.0.0
 uvicorn>=0.51.0,<1.0.0
 pandas>=2.0,<4.0
 # Capped below 2.0 so prophet (<2.0) can resolve numpy; raise once prophet>=2.0 supports numpy 2.x.

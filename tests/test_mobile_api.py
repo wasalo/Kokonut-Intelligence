@@ -34,6 +34,12 @@ def _active_not_required_form_revision():
         None,
         None,
         datetime(2000, 1, 1, tzinfo=timezone.utc),
+        {
+            "type": "object",
+            "required": ["content"],
+            "properties": {"content": {"type": "string"}},
+            "additionalProperties": False,
+        },
     )
 
 
@@ -54,6 +60,7 @@ def _retired_required_form_revision():
         None,
         "consent-v1",
         datetime(2000, 1, 1, tzinfo=timezone.utc),
+        {"type": "object", "properties": {"content": {"type": "string"}}},
     )
 
 
@@ -373,6 +380,71 @@ def test_sync_rejects_unowned_photo_reference(monkeypatch):
 
     assert response.status_code == 403
     assert connection.commit.called is False
+
+
+def test_sync_rejects_payload_fields_not_declared_by_form_schema(monkeypatch):
+    class Cursor:
+        def __init__(self):
+            self.one = None
+
+        def execute(self, sql, params=None):
+            normalized = sql.lower()
+            if "from offline_collection where client_id" in normalized:
+                self.one = None
+            elif "from mobile_form_version" in normalized:
+                self.one = _active_not_required_form_revision()
+
+        def fetchone(self):
+            result, self.one = self.one, None
+            return result
+
+        def close(self):
+            pass
+
+    class Connection:
+        def __init__(self):
+            self.cur = Cursor()
+            self.committed = False
+
+        def cursor(self):
+            return self.cur
+
+        def commit(self):
+            self.committed = True
+
+        def rollback(self):
+            pass
+
+        def close(self):
+            pass
+
+    connection = Connection()
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", "11111111-1111-4111-8111-111111111111"),
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            "/api/mobile/sync",
+            headers={"x-device-token": "opaque-device-token"},
+            json={
+                "device_id": "device-1",
+                "collections": [{
+                    "client_id": "client-private-field",
+                    "collection_type": "field_note",
+                    "form_id": "field-note",
+                    "form_version": "v1",
+                    "payload": {"content": "valid note", "worker_name": "private value"},
+                }],
+            },
+        )
+
+    assert response.status_code == 422
+    assert "private value" not in response.text
+    assert connection.committed is False
 
 
 def test_sync_attaches_device_owned_media_after_storage_head_check(monkeypatch):

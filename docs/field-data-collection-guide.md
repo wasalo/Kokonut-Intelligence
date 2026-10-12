@@ -98,21 +98,23 @@ collections must read that eligibility view and still follow the governed
 review/publication lifecycle.
 
 The local candidate received migrations 380 and 381 and the curated form seed
-on 12 October 2026. It now has five active version
-`1.1.0` policies classified `not_required` for participant-linked consent:
-their intended scope is farm operations, production, business expenses,
-ecological/operational observations, and soil measurement. This is a Kokonut
-form-purpose decision, not a legal determination or permission to collect
-personal records. The descriptions tell collectors to exclude worker
-identifiers and sensitive person-centered content, but the API does not validate
-arbitrary text or photo contents. Use a separate consent-required workflow for
-participant-focused data. Focused mobile API/media/offline and CORS checks
-passed; live device workflow acceptance remains open. Other deployments must
-apply migrations and seed in order; existing populated databases retain
-unassessed legacy rows. See the [Field Collector access contract](refactor/mobile-access-contract.md)
-and [policy decision record](refactor/mobile-form-classification-review.md)
-before operating or integrating this path; local candidate rollout alone does
-not certify production readiness.
+on 12 October 2026. It currently has five active version `1.2.0` policies
+classified `not_required` for participant-linked consent; the immutable `1.1.0`
+revisions are retired. Their intended scope is farm operations, production,
+business expenses, ecological/operational observations, and soil measurement.
+This is a Kokonut form-purpose decision, not a legal determination or permission
+to collect personal records. The API checks payloads against the exact revision
+schema; the built-in `1.2.0` schemas reject undeclared keys and invalid values.
+It cannot detect sensitive information inside free text and does not inspect
+photo contents. Use a separate consent-required workflow for participant-focused
+data. Sixty focused mobile/schema tests passed; four targeted CORS checks passed
+in the prior rollout slice. Live device workflow acceptance remains open. Other
+environments must apply migrations and seed in order; existing populated
+databases retain unassessed legacy rows. See the [Field Collector access
+contract](refactor/mobile-access-contract.md) and [policy decision
+record](refactor/mobile-form-classification-review.md) before operating or
+integrating this path; local candidate rollout alone does not certify
+production readiness.
 
 ### Data Stream
 

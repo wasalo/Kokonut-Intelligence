@@ -46,7 +46,7 @@ Source configuration and external bucket manifests need separate encrypted archi
 Retain originals and two independently accessible encrypted copies until isolated
 restore and capability acceptance pass; no automatic pruning is provided.
 
-## Isolated restore procedure (prepared, not executed)
+## Isolated restore procedure
 
 docker-compose.kernel-recovery.yml defines a dedicated internal network and new
 volume with no API, workers, host ports or vendor services. Its database image must
@@ -66,10 +66,27 @@ corruption evidence; age authentication supplies ciphertext integrity.
      -f docker-compose.kernel-recovery.yml up -d database
    ```
 
-4. Wait for DB health. Confirm there are no user relations in public and no custom
-   schemas. Do not apply migrations/seeds before restoring; the dump contains them.
+4. Wait for DB health. The PostGIS image installs extension objects into its
+   configured `POSTGRES_DB`; do not restore into that initialized database because
+   `pg_restore` will correctly reject the pre-existing PostGIS schemas. Create a
+   separate empty database from PostgreSQL's `template0` and verify that it has
+   no user tables before restoring:
+
+   ```bash
+   docker compose --env-file /dev/null -p kokonut-kernel-recovery \
+     -f docker-compose.kernel-recovery.yml exec -T database \
+     createdb -U kokonut -T template0 kokonut_restore
+   docker compose --env-file /dev/null -p kokonut-kernel-recovery \
+     -f docker-compose.kernel-recovery.yml exec -T database \
+     psql -U kokonut -d kokonut_restore -Atc \
+     "SELECT count(*) FROM pg_tables WHERE schemaname='public'"
+   ```
+
+   Do not apply migrations/seeds before restoring; the dump contains them.
 5. In a shell with pipefail enabled, decrypt directly into pg_restore. No --clean
-   is used: an unexpected occupied database must fail, not be overwritten.
+   is used: an unexpected occupied database must fail, not be overwritten. The
+   restore target may have a different database name because this dump excludes
+   database creation metadata.
 
    ```bash
    set -o pipefail
@@ -77,7 +94,7 @@ corruption evidence; age authentication supplies ciphertext integrity.
      backups/CHECKPOINT/postgres.dump.age |
      docker compose --env-file /dev/null -p kokonut-kernel-recovery \
        -f docker-compose.kernel-recovery.yml exec -T database \
-       pg_restore -U kokonut -d kokonut_intelligence --exit-on-error \
+       pg_restore -U kokonut -d kokonut_restore --exit-on-error \
          --single-transaction --no-owner --no-privileges
    ```
 
@@ -87,7 +104,9 @@ corruption evidence; age authentication supplies ciphertext integrity.
    reviewed restart/replay handling; no worker starts automatically. A restored
    superuser-owned DB does not prove production least-privilege/grant parity.
 7. Stop the recovery project without removing its volume; retain failure logs
-   privately. Existing deployments and volumes are the rollback path.
+   privately. Existing deployments and volumes are the rollback path. The
+   template0 target avoids collisions from extensions preinstalled by the
+   PostGIS image; a failed transactional restore leaves its target unchanged.
 
 ## Pilot fixture plan
 

@@ -2,14 +2,13 @@
 
 This implementation adds an additive consent and immutable-form boundary for
 the Field Collector. The repository owner delegated form-policy decisions to
-the implementation agent; all five built-in operational forms now have source
-definitions at version `1.1.0` classified `not_required`, with rationale and
-collection limits in the [policy decision record](mobile-form-classification-review.md).
-Migrations 380 and 381 and the curated form seed were applied to the local
-candidate on 12 October 2026. The candidate currently
-has five active `1.1.0` operational form revisions; focused mobile and CORS
-checks passed, while full device and authenticated mobile acceptance remains
-open. See the [rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
+the implementation agent; all five built-in operational forms have source
+definitions at version `1.2.0` classified `not_required`, with strict schema
+allowlists. The local candidate now serves five active `1.2.0` revisions; the
+immutable `1.1.0` revisions remain retired for review of known offline records.
+See the
+[policy decision record](mobile-form-classification-review.md) and
+[candidate rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
 
 ## Existing identity and location boundary
 
@@ -81,7 +80,8 @@ Other deployments must use the ordered, checksummed migration workflow.
   public, and the collector token cannot manage links.
 - A form revision has one of three consent classifications: `required`,
   `not_required`, or `unclassified`. The five built-in operational forms are
-  classified `not_required` at source version `1.1.0`: each has an explicit
+  classified `not_required` at source version `1.2.0` (candidate currently
+  deployed at `1.1.0`): each has an explicit
   operational category, purpose, dynamic location scope, intended operator
   recipient, owner-delegated review evidence, and no participant reference.
   This decision is limited to farm operations, production, business expenses,
@@ -105,10 +105,13 @@ Other deployments must use the ordered, checksummed migration workflow.
   rejects participant references. An active `unclassified` revision remains
   collectable into the private pending queue, but is marked `unassessed` and
   review-required. It cannot be treated as consent-cleared.
-- Migration 381 does not validate arbitrary form payloads or photo contents
-  against `form_schema`. The revised form descriptions communicate data
-  minimization rules, but do not filter text or images. Person-centered or
-  sensitive records require a separate consent-required form and workflow.
+- `/api/mobile/sync` validates new payloads against the exact immutable form
+  revision's JSON Schema. Built-in `1.2.0` schemas reject undeclared fields and
+  validate required fields, types, enums, numeric bounds, and date formats;
+  error responses do not echo submitted values. Structural validation cannot
+  detect sensitive content inside free text and does not inspect photo contents.
+  Person-centered or sensitive records require a separate consent-required
+  form and workflow.
 - Existing collection rows receive `unassessed` defaults; the migration does
   not infer identity, consent, or form validity for legacy records.
 - The legacy `services.analytics.mobile_offline` CLI is a transport/admin path,
@@ -139,34 +142,37 @@ describe these records as erased or resolved after a withdrawal.
 
 ## Remaining policy and operational gates
 
-1. Candidate rollout is complete: migrations 380 and 381 were applied through
-   the ordered, checksummed runner, followed by the curated form seed. The
-   candidate now has five active `1.1.0` revisions. The pre-rollout candidate
-   had no form or collection rows; on other populated databases, backfilled
-   `1.0.0` revisions remain unclassified and legacy collection rows remain
-   unassessed. Complete live device enrollment, form listing, offline capture,
-   media upload, sync, and eligibility acceptance.
+1. Candidate migrations 380 and 381 and the curated form seed are applied; five
+   active `1.2.0` revisions now reject undeclared fields. The immutable `1.1.0`
+   revisions remain retired. The pre-rollout candidate had no form or
+   collection rows; on other populated databases, backfilled `1.0.0` revisions
+   remain unclassified and legacy collection rows remain unassessed. Complete
+   live device enrollment, form listing, offline capture, media upload, sync,
+   and eligibility acceptance.
 2. Specify organization-wide tenant policy. Location is the scope for this
    mobile API only; locations must not be treated as interchangeable tenant IDs.
 3. Define the human retention/erasure disposition process for participant-linked
    records after withdrawal and for operational records generally.
 4. Decide whether a form-authoring CLI/UI and a private review queue are needed
    before local or production operators classify forms and review retired rows.
-5. Add server-side schema/content validation before treating the collection
-   instructions as enforceable privacy controls. Current descriptions are
-   guidance only. The local candidate rollout changed only its database schema,
-   five form rows, and app container; the legacy project remains stopped and
-   unchanged.
+5. Schema validation is implemented, focused-tested, and deployed on the local
+   candidate. The rollout changed five form revisions and recreated only the
+   app container after a fresh encrypted checkpoint and isolated restore
+   rehearsal. The legacy project remains stopped and unchanged.
 
 ## Acceptance and rollback
 
-Focused source checks passed (55 targeted checks: 51 mobile tests and four
-Gateway CORS checks), the candidate migration plan reports zero pending schemas,
-the app and database are healthy, and its browser fallback serves all five
-`1.1.0` forms. The live anonymous `GET /api/mobile/forms` returned HTTP 200 with
-an empty list, as expected because no forms are global and explicitly public.
-The location-query request without a token and the invalid-token request both
-returned HTTP 401. Still required: successful enrolled form visibility; route policy and OIDC
+Focused mobile/schema checks passed (60 tests); four targeted Gateway CORS
+checks passed in the previous rollout slice. Candidate schema migrations have
+372 applied rows and zero pending; the app, database, and Metabase are healthy.
+Five `1.2.0` revisions are active with `additionalProperties: false`; five
+immutable `1.1.0` revisions remain retired, and no mobile collection rows were
+present. The live `/api/mobile/app` route returned HTTP 200 and served all five
+`1.2.0` fallback definitions. Anonymous `GET /api/mobile/forms` returned HTTP
+200 with an empty list; a location query without a token and an invalid-token
+request both returned HTTP 401. Payload rejection is covered by focused API
+tests, but a live authenticated sync probe remains open until an enrolled test
+device is available. Still required: successful enrolled form visibility; route policy and OIDC
 scope/CSRF behavior; create/revoke mapping authorization; collector/participant
 separation; exact consent at collection and sync for active and known-retired
 required revisions; missing, expired, denied, and withdrawn consent; form
@@ -175,15 +181,17 @@ revision rejection; device revocation; cross-location media; idempotent retry
 after link revocation/consent withdrawal; eligibility view behavior; and
 encrypted media recovery.
 
-Migration 381 is additive. Rollback can redeploy
-`kokonut-kernel-candidate-app:pre-mobile-policy-20261012` or disable the mobile
-profile while retaining the new columns, revision history, link audit,
-collection rows, consent events, encrypted local objects, and their key. The
-pre-migration encrypted checkpoint is
-`backups/kernel-candidate-pre-mobile-20261012`; it covers one PostgreSQL
+The prior app image is retained as
+`kokonut-kernel-candidate-app:pre-form-schema-20261012`. Do not point that older
+app at the 1.2.0 database while accepting mobile sync: it predates payload
+validation. Form revisions are immutable, and a retired revision cannot simply
+be reactivated by reseeding. If rollback is required, pause mobile intake and
+restore the encrypted pre-rollout checkpoint into a fresh database volume;
+verify it before any reviewed cutover. The checkpoint is
+`backups/kernel-candidate-pre-form-schema-20261012`; it covers one PostgreSQL
 database only and excludes roles/grants, other databases, volumes, external
-media, and provider state. Do not drop migration 381 or prune media as part of
-application rollback. See the [rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
+media, and provider state. Do not drop migration 381 or delete form revisions.
+See the [rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
 
 ## Repository owners
 

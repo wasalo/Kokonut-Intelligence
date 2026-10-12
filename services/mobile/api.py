@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 from services.common.database import get_db
+from services.mobile.form_validation import FormPayloadInvalid, FormSchemaUnavailable, validate_form_payload
 
 try:
     from fastapi import APIRouter, Header, HTTPException, Request  # type: ignore[reportAssignmentType]
@@ -202,7 +203,7 @@ def _form_revision_for_sync(cur, item: CollectionRequest, location_id: str) -> d
         SELECT id::text, form_id, version, collection_type, location_id::text,
                status, consent_policy_status, consent_data_category, consent_purpose,
                consent_scope_type, consent_scope_id::text, consent_recipient_type,
-               consent_recipient_party_id::text, consent_version, created_at
+               consent_recipient_party_id::text, consent_version, created_at, form_schema
           FROM mobile_form_version
          WHERE form_id = %s AND version = %s
          FOR SHARE
@@ -228,6 +229,7 @@ def _form_revision_for_sync(cur, item: CollectionRequest, location_id: str) -> d
         "consent_recipient_party_id": row[12],
         "consent_version": row[13],
         "created_at": _normalise_datetime(row[14]),
+        "form_schema": row[15],
     }
     if revision["collection_type"] != item.collection_type:
         raise HTTPException(status_code=422, detail="Collection type does not match the form revision")
@@ -876,6 +878,16 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
 
             revision = _form_revision_for_sync(cur, item, registered_location_id)
             form_revision_id = revision["id"]
+            try:
+                validate_form_payload(revision["form_schema"], item.payload)
+            except FormSchemaUnavailable as exc:
+                logger.error("Invalid stored form schema for revision %s", revision["id"])
+                raise HTTPException(status_code=503, detail="Form schema is unavailable") from exc
+            except FormPayloadInvalid as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Collection payload does not match the selected form revision",
+                ) from exc
             collected_at = _normalise_datetime(item.collected_at)
             if collected_at < revision["created_at"]:
                 raise HTTPException(status_code=422, detail="Collection predates the referenced form revision")

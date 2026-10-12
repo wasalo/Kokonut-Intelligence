@@ -1,6 +1,6 @@
 {
   "date": "2026-10-12",
-  "result": "candidate schema, reviewed Field Collector forms, and current-source app deployed; full mobile workflow acceptance remains open",
+  "result": "candidate schema, reviewed Field Collector forms, and current-source app deployed; full mobile workflow acceptance remains open; strict 1.2.0 JSON Schema validation rolled out with checkpointed restore rehearsal",
   "candidate": {
     "compose_project": "kokonut-kernel-candidate",
     "compose_file": "docker-compose.kernel-candidate.yml",
@@ -106,5 +106,121 @@
     "Human retention and erasure disposition",
     "Server-side schema/content validation; form descriptions are guidance only",
     "Expired private-media object cleanup and recovery"
-  ]
+  ],
+  "follow_up_schema_validation_rollout": {
+    "date": "2026-10-12",
+    "source_revision": "1.2.0",
+    "source_seed": "schemas/seeds/140_mobile_forms.sql",
+    "source_seed_sha256": "67ca61850ed3177fa2d0936221abc42850677749f018d36ede4ba8cca4e3b345",
+    "validator": "services/mobile/form_validation.py",
+    "dependency": "jsonschema==4.26.0 in the built candidate image; declared constraint jsonschema>=4.21.0,<5.0.0",
+    "pre_rollout_checkpoint": {
+      "local_path": "backups/kernel-candidate-pre-form-schema-20261012",
+      "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+      "archive_bytes": 5200131,
+      "archive_sha256": "834c9815b57796ddd492e74053f9ecad4aee148d41ccb14344d9ce677fea0700",
+      "age_authenticated_decryption": "passed directly into pg_restore; no plaintext archive written to disk",
+      "scope_limit": "One PostgreSQL database; excludes roles/grants, other databases, volumes, external media, and provider state."
+    },
+    "restore_rehearsal": {
+      "status": "passed",
+      "project": "kokonut-kernel-form-schema-restore-retry-20261012",
+      "database": "kokonut_restore",
+      "database_created_from": "template0",
+      "network_isolated": true,
+      "host_ports": [],
+      "volume": "kokonut-kernel-form-schema-restore-retry-20261012_recovery-postgres-data",
+      "volume_retained_stopped": true,
+      "migration_rows": 372,
+      "applied_migrations": 372,
+      "migration_fingerprint_md5": "9b33f7553f74430c06dd2ea9aab546f2",
+      "extensions_and_versions": "Exact match with candidate: btree_gist 1.7; fuzzystrmatch 1.2; pg_stat_statements 1.10; pg_trgm 1.6; pgcrypto 1.3; plpgsql 1.0; postgis 3.4.3; postgis_tiger_geocoder 3.4.3; postgis_topology 3.4.3; uuid-ossp 1.1.",
+      "schema_inventory": "Exact match with candidate: kokonut_reporting, public, tiger, tiger_data, topology.",
+      "pre_rollout_mobile_state": {
+        "active_form_revisions": 5,
+        "active_version": "1.1.0",
+        "offline_collection_rows": 0
+      },
+      "seed_rehearsal": {
+        "result": "passed",
+        "retained_retired_1_1_0_revisions": 5,
+        "active_1_2_0_revisions": 5,
+        "all_active_schemas_additionalProperties_false": true
+      }
+    },
+    "initial_restore_attempt": {
+      "project": "kokonut-kernel-form-schema-restore-20261012",
+      "result": "failed safely; PostgreSQL image bootstrap had precreated schema tiger",
+      "restore_transaction": "single transaction rolled back without importing checkpoint objects",
+      "container_and_volume": "retained stopped for diagnosis",
+      "follow_up": "Successful restore used a fresh project and a template0-derived database; procedure documented in docs/refactor/recovery-preparation.md."
+    },
+    "candidate_after_rollout": {
+      "compose_project": "kokonut-kernel-candidate",
+      "app_container": "kokonut-kernel-candidate-app-1",
+      "app_image": "sha256:2e882f01236a3613a5a5f3e6abb103cc16c030fa1036ec99287aab4cefe8d0e3",
+      "previous_app_image": "sha256:b2942d4d33d6620e628f8d2f4ca9b0956b1acb055f509d789d8386fa1068bf2c",
+      "rollback_tag": "kokonut-kernel-candidate-app:pre-form-schema-20261012",
+      "app_recreated_only": true,
+      "database_or_volume_recreated": false,
+      "metabase_recreated": false,
+      "health": {
+        "app": "healthy",
+        "database": "healthy",
+        "metabase": "healthy"
+      },
+      "schema_migrations": {
+        "applied": 372,
+        "pending": 0
+      },
+      "active_revisions": {
+        "count": 5,
+        "version": "1.2.0",
+        "additionalProperties": false
+      },
+      "retained_revisions": {
+        "count": 5,
+        "version": "1.1.0",
+        "status": "retired"
+      },
+      "offline_collection_rows": 0,
+      "legacy_project_changed": false
+    },
+    "http_probes": {
+      "GET /api/mobile/app": {
+        "status": 200,
+        "fallback_definitions_version_1_2_0": 5
+      },
+      "GET /api/mobile/forms": {
+        "status": 200,
+        "response": {
+          "forms": []
+        }
+      },
+      "GET /api/mobile/forms?location_id=<probe> without token": {
+        "status": 401
+      },
+      "GET /api/mobile/forms with invalid X-Device-Token": {
+        "status": 401
+      }
+    },
+    "focused_checks": {
+      "mobile_and_schema_suite": {
+        "result": "60 passed",
+        "warnings": 109
+      },
+      "ruff": "passed",
+      "requirement_group_alignment": "passed (12 groups, 31 requirements)",
+      "field_collector_inline_javascript_syntax": "passed",
+      "running_image_validator_import": "passed"
+    },
+    "remaining_gates": [
+      "Live authenticated sync rejection probe with an enrolled test device",
+      "Device enrollment, offline capture, media upload, sync, and eligibility acceptance",
+      "OIDC provider/login/session/CSRF and operator-scope acceptance",
+      "Tenant/RLS policy and human retention/erasure disposition",
+      "Semantic free-text/photo review and expired private-media cleanup"
+    ],
+    "rollback_boundary": "Do not use the previous app image for mobile sync against the 1.2.0 database because it lacks schema validation. Form revisions are immutable; a retired 1.1.0 revision cannot be reactivated by reseeding. Pause mobile intake and restore the pre-rollout checkpoint into a fresh database volume, validate it, then perform a reviewed cutover."
+  }
 }
