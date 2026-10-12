@@ -9,7 +9,7 @@
     <style>
       :root { font-family: system-ui, sans-serif; color: #18332b; background: #f4f7f3; }
       body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
-      main { box-sizing: border-box; width: min(38rem, calc(100% - 2rem)); padding: 2rem;
+      main { box-sizing: border-box; width: min(62rem, calc(100% - 2rem)); padding: 2rem;
         border: 1px solid #d9e4dc; border-radius: 1rem; background: white; }
       h1 { margin-top: 0; font-size: 1.5rem; }
       .muted { color: #52665d; }
@@ -19,6 +19,15 @@
         text-decoration: none; cursor: pointer; }
       button.secondary { background: #e8efea; color: #18332b; }
       .notice { margin: 1.25rem 0; padding: 1rem; border-radius: .5rem; background: #f4f7f3; }
+      .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin: 1.5rem 0 1rem; }
+      label { display: grid; gap: .35rem; font-size: .9rem; }
+      select { max-width: 100%; padding: .6rem; border: 1px solid #b8c8bd; border-radius: .4rem; font: inherit; }
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; text-align: left; }
+      th, td { padding: .65rem .5rem; border-bottom: 1px solid #e3ebe5; vertical-align: top; }
+      th { font-size: .85rem; }
+      td { overflow-wrap: anywhere; }
+      pre { max-height: 28rem; overflow: auto; padding: 1rem; border-radius: .5rem; background: #f4f7f3; white-space: pre-wrap; overflow-wrap: anywhere; }
       [hidden] { display: none !important; }
     </style>
   </head>
@@ -33,7 +42,27 @@
       <section id="signed-in" hidden>
         <h2>Signed in</h2>
         <dl id="identity"></dl>
-        <div class="notice">The scoped review queue will appear here when its governed read endpoint is available.</div>
+        <section id="review" hidden aria-labelledby="review-heading">
+          <h2 id="review-heading">Submitted report review</h2>
+          <p class="muted">Read submitted report snapshots for locations explicitly granted to your account. This console does not verify, reject, or publish reports.</p>
+          <div class="toolbar">
+            <label for="location">Granted location</label>
+            <select id="location"></select>
+            <button id="refresh" type="button">Refresh queue</button>
+          </div>
+          <p id="queue-status" class="muted" role="status"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Report</th><th>Period</th><th>Submitted</th><th>Snapshot hash</th><th></th></tr></thead>
+              <tbody id="queue"></tbody>
+            </table>
+          </div>
+          <section id="report-detail" hidden aria-labelledby="detail-heading">
+            <h3 id="detail-heading">Report content</h3>
+            <pre id="report-data"></pre>
+          </section>
+        </section>
+        <div id="no-grants" class="notice" hidden>No report review locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -43,6 +72,12 @@
       const signedIn = document.querySelector("#signed-in");
       const status = document.querySelector("#status");
       const identity = document.querySelector("#identity");
+      const review = document.querySelector("#review");
+      const locationSelect = document.querySelector("#location");
+      const queue = document.querySelector("#queue");
+      const queueStatus = document.querySelector("#queue-status");
+      const detail = document.querySelector("#report-detail");
+      const reportData = document.querySelector("#report-data");
       const fields = [["Name", "display_name"], ["Subject", "subject"], ["Issuer", "issuer"]];
 
       function renderIdentity(operator) {
@@ -72,10 +107,87 @@
           renderIdentity(data.operator);
           signedIn.hidden = false;
           status.hidden = true;
+          const reviewLocations = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "report_snapshot_review" && scope.action === "read")
+            .map((scope) => scope.location_id))];
+          if (!reviewLocations.length) {
+            document.querySelector("#no-grants").hidden = false;
+            return;
+          }
+          for (const locationId of reviewLocations) {
+            const option = document.createElement("option");
+            option.value = locationId;
+            option.textContent = locationId;
+            locationSelect.append(option);
+          }
+          review.hidden = false;
+          await loadQueue();
         } catch {
           status.textContent = "Operator session could not be checked. Retry after the service is available.";
         }
       }
+
+      async function loadQueue() {
+        queue.replaceChildren();
+        detail.hidden = true;
+        queueStatus.textContent = "Loading submitted reports…";
+        const params = new URLSearchParams({ location_id: locationSelect.value, limit: "50" });
+        try {
+          const response = await fetch(`/operator/api/report-review-queue?${params}`, {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 403) throw new Error("Your account is not authorized for this location.");
+          if (!response.ok) throw new Error("The report review queue is unavailable.");
+          const result = await response.json();
+          for (const report of result.data || []) {
+            const row = document.createElement("tr");
+            const title = document.createElement("td");
+            title.textContent = `${report.report_name} (${report.report_type || "report"})`;
+            const period = document.createElement("td");
+            period.textContent = [report.period_start, report.period_end].filter(Boolean).join(" – ") || "—";
+            const created = document.createElement("td");
+            created.textContent = report.created_at ? new Date(report.created_at).toLocaleString() : "—";
+            const hash = document.createElement("td");
+            hash.textContent = report.snapshot_hash || "—";
+            const action = document.createElement("td");
+            const open = document.createElement("button");
+            open.type = "button";
+            open.className = "secondary";
+            open.textContent = "Read report";
+            open.addEventListener("click", () => loadReport(report.id));
+            action.append(open);
+            row.append(title, period, created, hash, action);
+            queue.append(row);
+          }
+          queueStatus.textContent = result.data?.length ? `${result.data.length} submitted report(s).` : "No submitted reports for this location.";
+        } catch (error) {
+          queueStatus.textContent = error.message;
+        }
+      }
+
+      async function loadReport(reportId) {
+        detail.hidden = true;
+        queueStatus.textContent = "Loading report…";
+        const params = new URLSearchParams({ location_id: locationSelect.value });
+        try {
+          const response = await fetch(`/operator/api/report-review-queue/${encodeURIComponent(reportId)}?${params}`, {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 403) throw new Error("Your account is not authorized for this location.");
+          if (!response.ok) throw new Error("The submitted report could not be loaded.");
+          const result = await response.json();
+          reportData.textContent = JSON.stringify(result.data.report_data, null, 2);
+          detail.hidden = false;
+          queueStatus.textContent = "Report loaded in read-only mode.";
+        } catch (error) {
+          queueStatus.textContent = error.message;
+        }
+      }
+
+      document.querySelector("#refresh").addEventListener("click", loadQueue);
+      locationSelect.addEventListener("change", loadQueue);
 
       document.querySelector("#logout").addEventListener("click", async () => {
         const csrf = document.cookie.split("; ")

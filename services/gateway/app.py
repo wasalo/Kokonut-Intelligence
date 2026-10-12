@@ -33,6 +33,13 @@ async def _request_location(request, policy: dict) -> str | None:
     """Resolve a route's location scope, including data-stream request bodies."""
     if policy.get("location_id"):
         return policy["location_id"]
+    if policy.get("resource") == "report_snapshot_review":
+        from uuid import UUID
+
+        try:
+            return str(UUID(request.query_params.get("location_id", "")))
+        except ValueError:
+            return None
     if policy.get("resource") != "data_stream_post":
         return None
     try:
@@ -222,7 +229,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
         location_id = await _request_location(request, policy)
         try:
             if operator_policy is not None:
-                auth_result = authorize_auth_request(request, operator_provider, policy)
+                auth_result = authorize_auth_request(
+                    request,
+                    operator_provider,
+                    policy,
+                    location_id=location_id,
+                )
             elif policy["public"]:
                 auth_result = {
                     "authenticated": True,
@@ -260,7 +272,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             )
         if not auth_result.get("authenticated"):
             denial_status = 403 if auth_result.get("reason") in {
-                "api_key_scope_denied", "csrf_validation_failed",
+                "api_key_scope_denied", "csrf_validation_failed", "operator_scope_denied",
             } else 401
             await run_in_threadpool(
                 audit.log,

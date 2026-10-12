@@ -2,16 +2,18 @@
 
 **Status:** OIDC identity/session foundation and a same-origin principal shell
 are implemented in source. OIDC remains disabled because no provider settings
-have been configured. The scoped review queue and its governed read endpoint
-are still pending; this shell is not yet an operational review console.
+have been configured. A source-level, read-only queue for submitted
+`report_snapshot` records now checks an explicit operator/location grant. The
+provider login, migration, queue authorization, and browser behavior have not
+been exercised; this remains an implementation slice, not an accepted console.
 
 ## Current repository boundary
 
 The existing `prototypes/cloudflare-edge-preview/` remains synthetic-only and
 has no KI API or authentication connection. `services/mobile/field-collector.html`
 is the field collection client, not an operator console. The new
-`apps/operator-console/` shell displays a verified OIDC principal but does not
-yet expose a review queue. The local
+`apps/operator-console/` shell displays a verified OIDC principal and can read
+submitted report snapshots for explicitly granted locations. The local
 [`kernel overview CLI`](kernel-operator-cli.md) is read-only and has no browser
 identity.
 
@@ -51,6 +53,7 @@ class OperatorIdentityProvider(Protocol):
     def authenticate_request(self, request) -> OperatorSession | None: ...
     def csrf_valid(self, request, session) -> bool: ...
     def has_scope(self, operator_id, resource, action, location_id) -> bool: ...
+    def list_scopes(self, operator_id) -> list[dict]: ...
     def revoke_session(self, session_id) -> None: ...
 ```
 
@@ -65,6 +68,13 @@ issuer/subject and grants one resource/action for one existing location. No
 role, tenant, location, or permission claim from the browser is trusted.
 Wildcard operator permissions are not accepted by the CLI or schema.
 
+The browser session response includes only the signed-in operator's active
+grant tuples so the page can offer assigned locations. The first review grant
+is `report_snapshot_review:read`. The Gateway checks that grant against the
+requested canonical location UUID before either queue or detail reads. Each
+read-only SQL query rechecks the active grant, binds the report ID and location,
+and includes only rows whose lifecycle status is `submitted`.
+
 For browser requests, prefer serving the console from the Gateway's own origin
 or an explicitly trusted same-site origin. The server should keep provider
 tokens out of JavaScript and use a short-lived, `HttpOnly`, `Secure`,
@@ -75,10 +85,11 @@ deployment uses a separate origin, require a specific CORS origin and
 credential policy; wildcard origins are forbidden.
 
 The existing access-audit path records route/action, caller, outcome, IP/user
-agent, and bounded request metadata. This slice uses the stable internal
-operator UUID as caller and does not add request IDs or affected-record fields.
-Add those fields with the review-queue endpoint if its audit contract needs
-them. Never record raw cookies, bearer tokens, API keys, or submitted evidence.
+agent, and bounded request metadata. The queue uses the stable internal
+operator UUID as caller and records the canonical location in the audit event.
+It does not add request IDs or affected-record fields; a future decision route
+may need those. Never record raw cookies, bearer tokens, API keys, or submitted
+evidence.
 
 ## OIDC implementation and deployment
 
@@ -127,18 +138,31 @@ python3 -m services.cli operator list
 
 The OIDC login does not auto-provision identities or grants. Disabled identities
 cannot create sessions, and disabling an identity revokes its current sessions.
-The first browser page currently proves only sign-in, principal display, and
-sign-out. The scoped review queue is deliberately not populated until its
-canonical submitted-record source, filters, and read contract are selected.
+The report snapshot was selected as the first review source because its schema
+and workflow specify `draft → submitted → verified → published`. The queue
+returns at most 100 location-specific submitted summaries. A separate detail
+read returns `report_data` only for the selected submitted record at the same
+granted location, with a 512 KiB payload ceiling; it never exposes arbitrary
+SQL or other report states.
+Network-level snapshots with a null `location_id` are excluded until a separate
+network-scope model is designed. The console is read-only: verification,
+rejection, and publication still require their domain-specific human workflow.
+
+Grant the first console slice explicitly after applying migration 380:
+
+```sh
+python3 -m services.cli operator grant --operator-id UUID \
+  --resource report_snapshot_review --action read \
+  --location-id LOCATION_UUID --granted-by OPERATOR
+```
 
 ## First console slice
 
-Extend `apps/operator-console/` with a read-only queue after its canonical
-submitted-record source and policy are chosen. Use the JavaScript SDK's typed
-HTTP client only after it has a browser-safe session transport; never inject a
-backend key. Queue reads must use the principal's explicit location grant. Do
-not expose arbitrary SQL, broad Directus collection CRUD, service-health probes,
-or administration controls.
+The first read-only report queue is implemented in the Gateway and
+`apps/operator-console/`. It uses same-origin cookie requests and the explicit
+location grant; no backend key is sent to the browser. Do not expose arbitrary
+SQL, broad Directus collection CRUD, service-health probes, or administration
+controls.
 
 Add governed actions later as explicit resource/action routes. Verification,
 rejection, publication, credit retirement, and agent execution must retain the
@@ -151,16 +175,19 @@ grant itself permission or skip the domain service's lifecycle checks.
   principal-to-scope port)
 - `services/gateway/operator_cli.py` and `services/cli.py` (local identity,
   grant, and revocation administration)
-- `services/gateway/app.py` (auth routes, opaque sessions, CSRF, and stable
-  audit caller identity; existing API-key/capability routes stay separate)
+- `services/gateway/app.py` (auth routes, opaque sessions, CSRF, stable audit
+  caller identity, exact route policy, and location-scope enforcement; existing
+  API-key/capability routes stay separate)
+- `services/gateway/operator_review.py` (read-only, bounded report queue and
+  submitted-record detail query using read-only PostgreSQL transactions)
 - `schemas/postgres/380_operator_identity_sessions.sql` (additive identity,
   location-grant, and session storage)
 - `Dockerfile.kernel`, `requirements/oidc.txt`, and
   `docker-compose.kernel-oidc.yml` (optional dependency/image/deployment path)
-- `apps/operator-console/index.html` (same-origin principal shell; no review
-  queue yet)
-- `sdk/javascript/src/client.ts` (browser cookie transport when the queue
-  endpoint is implemented)
+- `apps/operator-console/index.html` (same-origin principal shell and read-only
+  submitted-report list/detail view)
+- `sdk/javascript/src/client.ts` (possible follow-on typed console methods;
+  current same-origin console uses browser `fetch` and the session cookie)
 - `docker-compose.kernel-candidate.yml`, the OIDC and Caddy overlays, and
   console docs (same-origin deployment, exact origin policy, secure headers,
   rollback)
@@ -169,11 +196,13 @@ grant itself permission or skip the domain service's lifecycle checks.
 
 Before protected console use, verify discovery/signature/state/PKCE handling,
 login/callback/logout, expired and revoked sessions, upstream provider logout
-behavior, CSRF rejection,
-unauthorized location access, least-privilege scope checks, audit actor
-attribution, and that no credential appears in browser storage. Add review
-queue authorization and unauthenticated-data checks when the read endpoint is
-implemented. Confirm the console does not bypass Gateway or database policy.
+behavior, CSRF rejection, unauthorized location access, least-privilege scope
+checks, audit actor attribution, and that no credential appears in browser
+storage. Verify the queue excludes drafts, verified/published rows, null-scope
+network reports, cross-location IDs, and unauthenticated requests; verify the
+detail route returns content only for a submitted record under the same grant.
+These checks remain open. Confirm the console does not bypass Gateway or
+database policy.
 
 Roll back by removing the console route/assets and disabling the selected
 identity adapter. Keep the local read-only CLI, Directus admin surface, and
@@ -186,4 +215,5 @@ The identity source is selected: OIDC. No issuer/client configuration has been
 added to SOPS yet, so authentication remains disabled and no live login has
 been attempted. Configure a provider and callback URL through the encrypted
 secret workflow before using the opt-in profile. OIDC readiness, session/CSRF
-acceptance, the scoped review queue, and the full browser workflow remain open.
+acceptance, scope-denial/audit behavior, report queue/detail runtime acceptance,
+and the full browser workflow remain open.

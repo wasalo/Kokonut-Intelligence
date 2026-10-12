@@ -73,7 +73,7 @@ All named MAN-CAP acceptance checks below remain **not run**; implementation and
 | CAP-063 | GeoNode parity | services/csw/; services/geostory/; services/maps/; services/thesaurus/ | MAN-CAP-063: GIS/KML/raster import, metadata, CSW, map and geostory access match fixture | tests/test_gis_import.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-064 | gRPC API | services/grpc/; proto/; sdk/ | MAN-CAP-064: Generated protocol, API-key scope and streaming behavior match REST policy | tests/test_grpc.py | P — optional target, scoped auth, pooled DB and bounded shutdown prepared; private-only/insecure-network, API-key, runtime-role and health limits documented. Service has not been rebuilt from current checkout or started; RPC/REST parity and runtime authorization remain unassessed. [gRPC contract](grpc-overlay.md) |
 | CAP-065 | Business Model Canvas | services/analytics/business_model_canvas.py | MAN-CAP-065: One-click canvas and thirteen-section status retain evidence and scope | tests/test_bmc_oneclick.py; tests/test_comprehensive_status.py | B — baseline code retained; Kernel capability path and parity unassessed. |
-| CAP-066 | State of Kokonut | services/export/ | MAN-CAP-066: Network report, funding rollup and timelines match baseline exports | tests/test_state_of_kokonut.py; tests/test_state_of_kokonut_graphs.py | P — exporter ClickHouse construction moved behind optional adapter; State of Kokonut report outputs unassessed. [Providers](provider-configuration.md); legacy CH objects inventoried and encrypted, report parity open: [Inventory](analytics-broker-recovery.md) |
+| CAP-066 | State of Kokonut | services/export/ | MAN-CAP-066: Network report, funding rollup and timelines match baseline exports | tests/test_state_of_kokonut.py; tests/test_state_of_kokonut_graphs.py | P — exporter ClickHouse construction moved behind optional adapter; a separate OIDC-scoped read-only console lists location-specific submitted `report_snapshot` records and can read their detail in source. Login, scope denial, payload, and report parity remain unverified; this does not certify State of Kokonut outputs. [Providers](provider-configuration.md); [console contract](kernel-operations-console.md); legacy CH objects inventoried and encrypted, report parity open: [Inventory](analytics-broker-recovery.md) |
 
 ## Progress snapshot — 11 October 2026
 
@@ -98,12 +98,13 @@ parity was checked, so the 6 D / 4 P / 56 B / 0 accepted counts do not change.
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
 and [Python ledger](progress.md#phase-7-python-sdk-package-preflight--11-october-2026).
 
-An optional OIDC identity/session adapter and a same-origin principal-only page
-are implemented in source. OIDC is disabled pending provider settings and
-migration 380; login, CSRF, session revocation, and audit behavior are
-unverified. The scoped submitted-record review queue and its browser view remain
-open. The Cloudflare preview remains synthetic-only. This infrastructure slice
-does not certify any capability or change the totals. See the
+An optional OIDC identity/session adapter and a same-origin principal/report
+review page are implemented in source. The queue reads only submitted
+`report_snapshot` records under an explicit per-location grant; details remain
+read-only. OIDC is disabled pending provider settings and migration 380; login,
+CSRF, session revocation, scope denials, and audit behavior are unverified. The
+Cloudflare preview remains synthetic-only. This infrastructure slice does not
+certify any capability or change the totals. See the
 [console contract](kernel-operations-console.md).
 
 The active AMD64 Kernel candidate has a private database and healthy app. Its

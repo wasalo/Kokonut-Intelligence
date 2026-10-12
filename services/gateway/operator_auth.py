@@ -115,6 +115,8 @@ class OperatorIdentityProvider(Protocol):
 
     def has_scope(self, operator_id: str, resource: str, action: str, location_id: str) -> bool: ...
 
+    def list_scopes(self, operator_id: str) -> list[dict]: ...
+
     def revoke_session(self, session_id: str) -> None: ...
 
 
@@ -287,6 +289,32 @@ class OIDCOperatorProvider:
             conn.close()
 
     @staticmethod
+    def list_scopes(operator_id: str) -> list[dict]:
+        try:
+            operator_id = str(UUID(operator_id))
+        except ValueError:
+            return []
+        conn = _get_db()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute("SET LOCAL lock_timeout = '2s'")
+                cur.execute(
+                    """SELECT resource, action, location_id
+                         FROM operator_scope_grant
+                        WHERE operator_id = %s AND revoked_at IS NULL
+                        ORDER BY resource, action, location_id""",
+                    (operator_id,),
+                )
+                return [
+                    {"resource": row[0], "action": row[1], "location_id": str(row[2])}
+                    for row in cur.fetchall()
+                ]
+        finally:
+            conn.close()
+
+    @staticmethod
     def revoke_session(session_id: str) -> None:
         conn = _get_db()
         try:
@@ -309,34 +337,77 @@ def create_provider() -> OIDCOperatorProvider | None:
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
     routes = {
-        ("GET", "/operator/"): ("console", True),
-        ("GET", "/operator/auth/login"): ("login", True),
-        ("GET", "/operator/auth/callback"): ("callback", True),
-        ("GET", "/operator/auth/session"): ("read", False),
-        ("POST", "/operator/auth/logout"): ("logout", False),
+        ("GET", "/operator/"): ("console", True, False),
+        ("GET", "/operator/auth/login"): ("login", True, False),
+        ("GET", "/operator/auth/callback"): ("callback", True, False),
+        ("GET", "/operator/auth/session"): ("read", False, False),
+        ("POST", "/operator/auth/logout"): ("logout", False, False),
+        ("GET", "/operator/api/report-review-queue"): ("read", False, True),
     }
     item = routes.get((method.upper(), path))
+    if item is None and method.upper() == "GET" and re.fullmatch(
+        r"/operator/api/report-review-queue/[0-9a-fA-F-]{36}", path
+    ):
+        item = ("read", False, True)
     if item is None:
         return None
-    action, public = item
+    action, public, scope_required = item
     return {
-        "resource": "operator_auth",
+        "resource": "report_snapshot_review" if scope_required else "operator_auth",
         "action": action,
         "public": public or not enabled,
         "location_id": None,
+        "scope_required": scope_required,
         "operator_auth": True,
     }
 
 
-def authorize_auth_request(request, provider: OIDCOperatorProvider | None, policy: dict) -> dict:
+def authorize_auth_request(
+    request,
+    provider: OIDCOperatorProvider | None,
+    policy: dict,
+    *,
+    location_id: str | None = None,
+) -> dict:
     if provider is None:
-        return {"authenticated": True, "caller": "oidc-disabled", **policy}
+        return {
+            "authenticated": bool(policy["public"]),
+            "caller": "oidc-disabled",
+            "reason": "operator_identity_disabled",
+            **policy,
+        }
     if policy["public"]:
         return {"authenticated": True, "caller": "anonymous", **policy}
     operator_session = provider.authenticate_request(request)
     if operator_session is None:
         return {"authenticated": False, "reason": "operator_session_required", **policy}
     request.state.operator_session = operator_session
+    scope_checked = False
+    if policy.get("scope_required"):
+        try:
+            normalized_location_id = str(UUID(location_id or ""))
+        except ValueError:
+            return {
+                "authenticated": False,
+                "caller": f"operator:{operator_session.operator.operator_id}",
+                "reason": "operator_scope_denied",
+                "scope_checked": False,
+                **policy,
+            }
+        scope_checked = True
+        if not provider.has_scope(
+            operator_session.operator.operator_id,
+            policy["resource"],
+            policy["action"],
+            normalized_location_id,
+        ):
+            return {
+                "authenticated": False,
+                "caller": f"operator:{operator_session.operator.operator_id}",
+                "reason": "operator_scope_denied",
+                "scope_checked": True,
+                **policy,
+            }
     if request.method.upper() not in {"GET", "HEAD", "OPTIONS"} and not provider.csrf_valid(
         request, operator_session
     ):
@@ -344,11 +415,13 @@ def authorize_auth_request(request, provider: OIDCOperatorProvider | None, polic
             "authenticated": False,
             "caller": f"operator:{operator_session.operator.operator_id}",
             "reason": "csrf_validation_failed",
+            "scope_checked": scope_checked,
             **policy,
         }
     return {
         "authenticated": True,
         "caller": f"operator:{operator_session.operator.operator_id}",
+        "scope_checked": scope_checked,
         **policy,
     }
 
@@ -358,6 +431,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from fastapi import APIRouter, Request
     from fastapi.responses import JSONResponse, RedirectResponse
     import psycopg2
+    from starlette.concurrency import run_in_threadpool
 
     router = APIRouter()
 
@@ -449,8 +523,101 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         from dataclasses import asdict
 
         session = request.state.operator_session
+        try:
+            scopes = await run_in_threadpool(provider.list_scopes, session.operator.operator_id)
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_auth").warning(
+                "Operator grant list unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Operator session service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
         return JSONResponse(
-            {"operator": asdict(session.operator)},
+            {
+                "operator": asdict(session.operator),
+                "scopes": scopes,
+            },
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/report-review-queue")
+    async def report_review_queue(request: Request, location_id: str, limit: int = 50):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.operator_review import list_submitted_reports
+
+        try:
+            rows = await run_in_threadpool(
+                list_submitted_reports,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_review").warning(
+                "Report review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report review service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/report-review-queue/{report_id}")
+    async def submitted_report_detail(request: Request, report_id: str, location_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.operator_review import (
+            ReportPayloadTooLarge,
+            get_submitted_report,
+        )
+
+        try:
+            row = await run_in_threadpool(
+                get_submitted_report,
+                request.state.operator_session.operator.operator_id,
+                report_id,
+                location_id,
+            )
+        except ReportPayloadTooLarge:
+            return JSONResponse(
+                status_code=413,
+                content={"error": "Report exceeds the console read limit"},
+                headers={"Cache-Control": "no-store"},
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_review").warning(
+                "Submitted report unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Report review service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        if row is None:
+            return JSONResponse(status_code=404, content={"error": "Submitted report not found"})
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 

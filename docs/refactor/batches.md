@@ -326,8 +326,8 @@ reporting views.
 - [ ] Complete Python/JavaScript SDK runtime/import acceptance and resolve the generated-protobuf distribution boundary; publish only after explicit release authorization.
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).
-- [ ] Configure a real OIDC provider, apply migration 380, and complete login/session/CSRF/revocation/audit acceptance.
-- [ ] Select the canonical submitted-record review queue and implement its location-scoped read endpoint and browser view.
+- [ ] Configure a real OIDC provider, apply migration 380, and verify login/session/CSRF/revocation, scope denials, audit attribution, and browser queue/detail behavior.
+- [x] Select `report_snapshot` as the first location-scoped submitted-record source; implement its bounded read-only queue/detail routes, explicit OIDC location-scope enforcement, and same-origin browser view ([contract and acceptance gates](kernel-operations-console.md)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented
