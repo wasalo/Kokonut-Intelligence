@@ -2510,9 +2510,11 @@ history with text-only DOM APIs and shows the form only when both grants exist.
 The focused queue/event/auth suites passed **22 tests**; Ruff, console
 JavaScript syntax, and `git diff --check` passed. Migration 382 was applied to a
 separate no-volume PostGIS fixture with minimal prerequisite tables and an
-eligibility-view stub. Actual service list/detail and append/history calls passed, collection eligibility
-fields remained unchanged, and migration 382 rejected malformed evidence, an
-unsynced collection, update, and delete. This did not replay
+eligibility-view stub. Actual service list/detail and append/history calls passed; collection eligibility
+fields remained unchanged. Cross-location, ungranted-operator, and revoked-grant
+list/detail/write attempts were denied and persisted no unauthorized events.
+Migration 382 rejected malformed/missing evidence keys, unsynced collections,
+updates, and deletes. This did not replay
 migration 381 or connect to the active candidate; the candidate remains at its
 previous schema level. [Isolated migration evidence](builds/2026-10-12-recovery/mobile-review-event-migration-isolated.json).
 

@@ -10,7 +10,11 @@
     "event_update_rejected": "passed",
     "event_delete_rejected": "passed",
     "service_list_detail_insert_and_event_history": "passed against the isolated PostGIS fixture using the actual Gateway service functions",
-    "service_write_does_not_change_collection_eligibility_fields": "passed"
+    "service_write_does_not_change_collection_eligibility_fields": "passed",
+    "cross_location_list_detail_and_event_write_denied": "passed",
+    "ungranted_operator_list_denied": "passed",
+    "revoked_grant_list_detail_and_event_write_denied": "passed",
+    "unauthorized_review_events_persisted": 0
   },
   "source_checks": {
     "pytest": "22 passed: tests/test_operator_mobile_review.py and tests/test_operator_auth.py",

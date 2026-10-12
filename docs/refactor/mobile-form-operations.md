@@ -159,8 +159,10 @@ approved policy.
    382 validates review eligibility and evidence shape and blocks update/delete.
    Twenty-two focused route/query/auth tests pass; an isolated PostGIS fixture
    verified valid insertion, list/detail reads, event append/history, unchanged
-   collection eligibility fields, and rejection of malformed evidence, unsynced
-   collections, updates, and deletes. No candidate database was changed.
+   collection eligibility fields, cross-location denial, and revoked/ungranted
+   operator denial for list/detail/write. No unauthorized events persisted. The
+   fixture also rejected malformed evidence, unsynced collections, updates, and
+   deletes. No candidate database was changed.
 6. [ ] Verify real-provider grant
    provisioning, location isolation, audit attribution, browser payload
    minimization, and media privacy before operator rollout.
