@@ -126,9 +126,11 @@ describe these records as erased or resolved after a withdrawal.
 
 ## Remaining owner decisions and operational work
 
-1. Review and classify each of the five existing forms. Until then they stay
-   `unclassified`, private, and ineligible for downstream use. A classification
-   change must publish a new form version with reviewer, timestamp, and evidence.
+1. Review and classify each of the five existing forms using the
+   [source-grounded worksheet](mobile-form-classification-review.md). Until then
+   they stay `unclassified`, private, and ineligible for downstream use. A
+   classification change must publish a new form version with reviewer,
+   timestamp, and evidence.
 2. Specify organization-wide tenant policy. Location is the scope for this
    mobile API only; locations must not be treated as interchangeable tenant IDs.
 3. Define the human retention/erasure disposition process after withdrawal.

@@ -1924,3 +1924,20 @@ acceptance, five per-form consent decisions, tenant/RLS, retention/erasure, and
 successful authenticated/credentialed CORS remain open. CAP-053 stays partial.
 See [Batch 5 checklist](batches.md), [mobile access contract](mobile-access-contract.md),
 and [capability matrix](capability-matrix.md).
+
+## Batch 5 Field Collector form classification worksheet — 11 October 2026
+
+Added a reviewer worksheet grounded in `schemas/seeds/140_mobile_forms.sql` for
+the five active version 1.0.0 forms. It records each source schema's required
+and optional fields and provides one decision record per exact form revision
+for consent classification, category, purpose, recipient, scope, consent
+version, participant-reference need, retention/disposition, reviewer, and
+evidence. Every policy decision remains pending; the worksheet is not approval
+and does not change seeds, migration 381, form policy, or database state. It
+also keeps tenant/RLS and retention/erasure system design as separate gates.
+No test suite or runtime probe was needed or run for this documentation-only
+slice. The next policy gate requires authorized reviewer decisions; until then
+the five forms remain unclassified and CAP-053 remains partial. See the
+[classification worksheet](mobile-form-classification-review.md), [access
+contract](mobile-access-contract.md), [capability matrix](capability-matrix.md),
+and [Batch 5 checklist](batches.md).
