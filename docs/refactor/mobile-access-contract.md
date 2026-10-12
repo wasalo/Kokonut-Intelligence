@@ -170,9 +170,13 @@ immutable `1.1.0` revisions remain retired, and no mobile collection rows were
 present. The live `/api/mobile/app` route returned HTTP 200 and served all five
 `1.2.0` fallback definitions. Anonymous `GET /api/mobile/forms` returned HTTP
 200 with an empty list; a location query without a token and an invalid-token
-request both returned HTTP 401. Payload rejection is covered by focused API
-tests, but a live authenticated sync probe remains open until an enrolled test
-device is available. Still required: successful enrolled form visibility; route policy and OIDC
+request both returned HTTP 401. A separate current-image HTTP check on an
+isolated database clone used a synthetic active device: an undeclared field
+returned HTTP 422 without echoing its value or creating a row, and a valid
+`1.2.0` field note returned HTTP 200. The fixture was deleted afterward. The
+test inserted its device directly into the clone, so trusted enrollment and
+OIDC remain untested. Still required: successful enrollment-created form
+visibility; route policy and OIDC
 scope/CSRF behavior; create/revoke mapping authorization; collector/participant
 separation; exact consent at collection and sync for active and known-retired
 required revisions; missing, expired, denied, and withdrawn consent; form

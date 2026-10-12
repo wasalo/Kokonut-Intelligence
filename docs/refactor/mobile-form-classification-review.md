@@ -93,9 +93,10 @@ rows until migration and seed are applied in order.
 
 These classifications do not settle the human retention/erasure disposition,
 organization-wide tenant/RLS policy, or media cleanup/expiry policy. Those
-remain release gates. Separately authorized mobile acceptance must still verify
-live authenticated active/retired form behavior, rejection of undeclared
-payload fields, no participant-reference requirement for these five forms, and
-ineligibility of legacy unassessed rows.
+remain release gates. An isolated live HTTP check verified active `1.2.0`
+unknown-field rejection and a valid sync without a participant reference.
+Separately authorized mobile acceptance must still verify the trusted
+enrollment-created device path, retired-form behavior, and ineligibility of
+legacy unassessed rows.
 The existing governed verification/publication boundary remains required after
 collection eligibility.

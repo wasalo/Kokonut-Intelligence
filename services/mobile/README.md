@@ -154,7 +154,11 @@ legacy rows remain unassessed. The older
 `services.analytics.mobile_offline` CLI stages transport rows without consent
 validation; after migration 381 those rows remain unassessed and cannot pass the
 eligibility view. Sixty focused mobile/schema tests passed; four targeted CORS
-checks passed in the previous rollout slice. The legacy project,
+checks passed in the previous rollout slice. An isolated current-image HTTP
+sync check returned 422 without echoing or storing an undeclared field and
+accepted a valid `1.2.0` payload; its synthetic fixture was removed from the
+database clone. The test bypassed the enrollment route, so the trusted
+enrollment/OIDC and full mobile workflow acceptance remain open. The legacy project,
 staging/production databases, and Cloudflare resources were not changed.
 Expired object-byte cleanup and full live mobile workflow acceptance remain open
 before production use.
