@@ -2909,3 +2909,27 @@ for the local Caddy certificate. The security interstitial was not bypassed and 
 existing user vault tab was not touched. Browser-through-proxy acceptance needs a
 locally trusted development certificate, completed by the repository owner. See
 [proxy route evidence](builds/2026-10-12-recovery/field-collector-proxy-route.json).
+
+
+### Batch 5 private-media orphan reconciliation — 12 October 2026
+
+Added a provider-neutral inventory and operator command in
+`services/mobile/media_storage.py`, `services/mobile/local_media.py`, and
+`services/mobile/media_reconcile.py`, mounted as `mobile-media-reconcile` in the
+unified CLI. It is dry-run by default, requires objects to be at least 24 hours
+old, and caps each apply run at 500 objects (default 100). Apply rechecks both
+registered upload keys and current provider inventory before deletion, sanitizes
+provider/database errors, and never modifies upload rows. Local inventory fails
+closed on symlinks, unknown entries, and non-regular files. S3-compatible
+inventory uses pagination and needs prefix-scoped ListBucket permission; apply
+also needs DeleteObject permission.
+
+The focused storage, reconciliation, and expiry-cleanup suites passed: 31 tests.
+Standard Ruff and security Ruff passed, and the standalone command help rendered.
+A dry-run against the local edge provider in `kokonut-kernel-candidate` found
+zero provider objects and zero registered upload keys; it deleted nothing and
+made no database changes. The one-off app container used read-only mounts of the
+current `services/` tree and `VERSION`; candidate services were not rebuilt or
+recreated. Live S3/R2 listing/deletion, populated-bucket lineage, and production
+retention ownership remain open. See [run evidence](builds/2026-10-12-recovery/field-collector-media-orphan-reconcile.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).

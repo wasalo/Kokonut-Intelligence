@@ -12,7 +12,9 @@ values.
 Selected photos are resized to JPEG and kept only inside the encrypted local
 queue while offline. Before collection sync, the browser uploads each photo
 with its active device token and collection client ID; the server stores the
-object in a private S3-compatible bucket and returns an opaque media UUID.
+object through its configured private media provider (S3-compatible by default,
+with a local encrypted provider available in the edge profile) and returns an
+opaque media UUID.
 `offline_collection.payload` contains form data only, while `photo_refs` stores
 those UUIDs. Legacy data URLs are moved out of the payload during encrypted
 queue migration. Legacy filename-only references with no image bytes remain
@@ -144,10 +146,18 @@ progress. See the [form operations contract](../../docs/refactor/mobile-form-ope
   sync rejects expired references. Operators can preview eligible rows with
   `python3 -m services.cli mobile-media-cleanup`; deleting bytes and marking
   expired rows requires explicit `--apply` and is limited to unattached uploads.
-  Attached media remains for governed retention/erasure review. Automatic
-  listing and cleanup of unregistered crash-orphans, production retention, and
-  provider rollout remain open gates. No bucket or other Cloudflare resource
-  was created in this repository-only work.
+  Attached media remains for governed retention/erasure review. Operators can
+  also inventory aged, unregistered objects with
+  `python3 -m services.cli mobile-media-reconcile`; this command is dry-run by
+  default, has a 24-hour minimum age and a 500-object maximum batch, and reports
+  counts without object keys. Add `--apply` to delete eligible objects after a
+  fresh database/provider recheck. S3-compatible apply requires scoped
+  `s3:ListBucket` and prefix-scoped `s3:DeleteObject`; local storage needs no
+  external credentials. Apply creates no per-object restore journal, so
+  configure provider versioning/backups when recovery is required. The CLI never
+  mutates upload rows. Live S3/R2 inventory/deletion acceptance and production retention
+  ownership remain open. No bucket or other Cloudflare resource was created in
+  this repository-only work.
 - Gateway request bodies are capped at 2 MB for media uploads and 8 MB for
   other write requests. CORS is closed by default: set `CORS_ORIGIN` to an
   explicit comma-separated list of trusted browser origins; wildcard origins
@@ -217,10 +227,10 @@ accepted a valid `1.2.0` payload; its synthetic fixture was removed from the
 database clone. The test bypassed the enrollment route, so the trusted
 enrollment/OIDC and full mobile workflow acceptance remain open. The legacy project,
 staging/production databases, and Cloudflare resources were not changed.
-Registered-upload expiry cleanup is implemented and passed an isolated
-PostgreSQL/local-media acceptance. Automatic orphan reconciliation, production
-retention, and full live mobile workflow acceptance remain open before
-production use.
+Registered-upload expiry cleanup passed an isolated PostgreSQL/local-media
+acceptance. Provider-neutral orphan reconciliation is implemented with a
+dry-run default; live S3/R2 acceptance and production retention remain open, as
+does full live mobile workflow acceptance before production use.
 
 See the implemented [`mobile access contract`](../../docs/refactor/mobile-access-contract.md)
 for the full policy, review gates, and rollback. Enrollment and location binding

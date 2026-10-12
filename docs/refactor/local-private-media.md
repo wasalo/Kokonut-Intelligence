@@ -1,7 +1,8 @@
 # Encrypted local private field media
 
 `PrivateMediaStore` in `services/mobile/media_storage.py` describes the existing
-upload, metadata-check, and cleanup contract. S3 remains the default provider.
+upload, metadata-check, cleanup, and private-object inventory contract. S3
+remains the default provider.
 Explicit `MOBILE_MEDIA_PROVIDER=local` selects `services/mobile/local_media.py`;
 unknown providers fail configuration. Local selection requires no S3 settings.
 
@@ -172,10 +173,9 @@ eligible. Apply locks one row with `FOR UPDATE SKIP LOCKED`, deletes its private
 object, then marks the row `expired` in the same database transaction. If
 provider deletion or the database commit fails, the upload row remains eligible
 for retry; provider errors are reported by type without exposing object keys.
-Attached photos remain for governed retention/erasure review. The command does
-not list or delete unregistered objects: neither provider currently has a
-listing method in `PrivateMediaStore`, so crash-orphan cleanup requires a
-separate reviewed reconciliation capability.
+Attached photos remain for governed retention/erasure review. This command
+does not delete unregistered objects; use the separate reconciliation command
+below for aged crash-orphans.
 
 An isolated run applied migration 358 in disposable PostGIS, then exercised a
 dry-run, two bounded applies, and a repeat no-op against two expired unattached
@@ -185,6 +185,41 @@ eight cleanup unit tests and the broader 44-case mobile/media/API/CLI regression
 set passed; standard and security Ruff passed. Synthetic rows, objects, and
 project resources were removed. The running candidate was untouched. See
 [cleanup evidence](builds/2026-10-12-recovery/field-collector-media-expiry-cleanup.json).
+
+
+## Reconcile aged unregistered objects
+
+`services/mobile/media_reconcile.py` inventories the provider's private Field
+Collector prefix and compares opaque object identities with registered upload
+keys from `mobile_media_upload`. Local storage inventories immutable hashed
+`.bin` objects and temporary `.upload-*` files; S3-compatible storage uses
+paginated ListObjectsV2. Symlinks, unknown local entries, and non-regular files
+fail closed. Raw keys and provider handles never appear in command output.
+
+The unified CLI is dry-run by default. Only objects at least 24 hours old can
+be selected, and each apply run is bounded to at most 500 deletions (default
+100). Apply re-reads database registrations and the provider inventory just
+before each deletion to reduce races with an upload that completed after the
+initial snapshot. It never changes database rows; normal expiry cleanup remains
+responsible for registered unattached uploads. Temporary upload files receive
+the same minimum-age protection.
+
+```bash
+python3 -m services.cli mobile-media-reconcile
+python3 -m services.cli mobile-media-reconcile --older-than-hours 48 --limit 100
+python3 -m services.cli mobile-media-reconcile --apply --older-than-hours 48 --limit 100
+```
+
+S3-compatible inventory requires `s3:ListBucket` scoped to the
+`private/field-collector/` prefix; explicit apply also requires `s3:DeleteObject`
+for that prefix. Local storage requires no external permission. Apply creates
+no per-object restore journal; configure provider versioning/backups when
+recovery of deleted bytes is required. The code has focused
+storage/reconciliation/cleanup coverage, and a dry-run against the local
+candidate provider reported zero provider objects and zero registered
+upload keys without writes. No S3/R2 bucket was listed, and no apply was run.
+Production retention ownership and populated external-provider acceptance
+remain open. See [dry-run evidence](builds/2026-10-12-recovery/field-collector-media-orphan-reconcile.json).
 
 
 ## Full runtime volume replacement check — 12 October 2026
