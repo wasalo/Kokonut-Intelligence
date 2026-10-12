@@ -178,6 +178,31 @@ upgrading Vitest; npm now reports zero vulnerabilities. No tarball was created
 or published. No test suite or package runtime import was run; runtime parity
 and versioned release remain open. See the [Batch 5 checklist](batches.md).
 
+## Phase 7 Python SDK package preflight — 11 October 2026
+
+Added the repository README, Apache license, and `py.typed` marker to the
+`kokonut-intelligence` 0.1.0 distribution metadata. The repository URL now
+matches this checkout's GitHub origin. Built a wheel and source distribution
+with the installed setuptools backend, then inspected their archive contents and
+metadata without installing or importing them. The wheel contains the typed
+HTTP/Directus and native public API client modules, license, and package
+metadata; the source distribution also contains the README and project source.
+Artifacts were retained outside the repository in
+`/private/tmp/kokonut-python-sdk-artifacts/`:
+
+- `kokonut_intelligence-0.1.0-py3-none-any.whl` — 16,976 bytes;
+  SHA-256 `3b99e5e9358794a804ef32283508839f460ccfcc1b13565e9342fff7b8e3a2fd`.
+- `kokonut_intelligence-0.1.0.tar.gz` — 16,787 bytes;
+  SHA-256 `208380cba97d05cc418b8d68b77bc805e44909f2a4b875158c51d4ebe9762ab5`.
+
+The current distribution contains only the `kokonut` HTTP SDK package; generated
+protobuf/gRPC modules remain repository artifacts and are not included in this
+wheel or sdist. No SDK import, API request, test suite, or publish ran. Runtime
+import/API parity, generated-protobuf distribution strategy, and explicit
+release authorization remain open. Roll back by reverting the Python packaging
+metadata/license changes and discarding these local artifacts. See the
+[Batch 5 checklist](batches.md).
+
 ## Batch 5 mobile access boundary review — 11 October 2026
 
 Read `services/mobile/api.py`, migrations 139/215/320/322/357/358, and the

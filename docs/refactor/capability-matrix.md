@@ -90,9 +90,13 @@ The JavaScript SDK package now compiles with TypeScript 5.8.3 after aligning its
 Directus adapter calls with the installed SDK command API. Its ESM package
 preflight includes the license and excludes test output; npm's dry-run lists 27
 files. The locked Vitest 5.0.3 toolchain now audits with zero vulnerabilities.
-No route request, auth behavior, package runtime import, or capability parity
-was checked, so the 6 D / 4 P / 56 B / 0 accepted counts do not change. See the
-[Phase 7 ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026).
+The Python SDK's version 0.1.0 wheel and source archive also build and contain
+the README, Apache license, and typed marker. Neither SDK artifact was installed
+or imported, and the Python package currently excludes the generated gRPC
+modules. No route request, auth behavior, SDK runtime import, or capability
+parity was checked, so the 6 D / 4 P / 56 B / 0 accepted counts do not change.
+See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
+and [Python ledger](progress.md#phase-7-python-sdk-package-preflight--11-october-2026).
 
 The active AMD64 Kernel candidate has a private database and healthy app. Its
 rebuilt image matches all 1,294 bundled source hashes in the checkout, and its

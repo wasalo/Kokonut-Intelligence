@@ -322,7 +322,8 @@ reporting views.
 - [x] Preflight the JavaScript ESM package archive; include its license, exclude test output, and align repository metadata ([progress](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)).
 - [x] Add a local, read-only Kernel CLI overview of build metadata and provider selection ([operator contract](kernel-operator-cli.md)).
 - [x] Resolve the reported JavaScript development-tool audit findings with a locked Vitest 5.0.3 toolchain; npm reports zero vulnerabilities ([progress](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)).
-- [ ] Prepare versioned Python/JavaScript SDK release artifacts and complete runtime/import acceptance; publish only after explicit release authorization.
+- [x] Prepare and inspect Python SDK 0.1.0 wheel/source artifacts with README, Apache license, typed marker, and distribution metadata ([progress](progress.md#phase-7-python-sdk-package-preflight--11-october-2026)).
+- [ ] Complete Python/JavaScript SDK runtime/import acceptance and resolve the generated-protobuf distribution boundary; publish only after explicit release authorization.
 - [ ] Define operator identity/scope and implement a browser operations-console slice.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
