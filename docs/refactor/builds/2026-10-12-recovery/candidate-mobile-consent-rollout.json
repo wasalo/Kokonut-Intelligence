@@ -75,6 +75,24 @@
     "result": "passed",
     "reason": "All five active forms are location-scoped; anonymous requests receive only explicitly public global forms."
   },
+  "location_visibility_negative_probes": [
+    {
+      "method": "GET",
+      "path": "/api/mobile/forms?location_id=00000000-0000-4000-8000-000000000001",
+      "device_token": "omitted",
+      "http_status": 401,
+      "result": "passed",
+      "reason": "Location-scoped form listing requires an authenticated device token."
+    },
+    {
+      "method": "GET",
+      "path": "/api/mobile/forms",
+      "device_token": "invalid-probe-token",
+      "http_status": 401,
+      "result": "passed",
+      "reason": "An invalid device token cannot list enrolled forms."
+    }
+  ],
   "focused_checks": {
     "command": "pytest tests/test_mobile_api.py tests/test_mobile_offline.py tests/test_mobile_media_storage.py plus four focused Gateway CORS cases",
     "result": "55 passed",

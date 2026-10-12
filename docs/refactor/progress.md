@@ -1990,7 +1990,8 @@ now reports 372 applied schema files and zero pending. Rebuilt and recreated
 only the candidate app; the app, database, and optional Metabase are healthy,
 and the served browser fallback contains all five current form definitions.
 The anonymous forms endpoint returned HTTP 200 with an empty list, as expected
-for the location-scoped forms.
+for the location-scoped forms. Location query without a token and invalid token
+each returned HTTP 401.
 The legacy `kokonut-intelligence` project remains stopped and unchanged.
 
 Focused mobile API, offline transport, media, and CORS checks passed: **55

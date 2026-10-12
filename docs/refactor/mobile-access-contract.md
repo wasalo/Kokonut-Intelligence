@@ -165,7 +165,8 @@ Gateway CORS checks), the candidate migration plan reports zero pending schemas,
 the app and database are healthy, and its browser fallback serves all five
 `1.1.0` forms. The live anonymous `GET /api/mobile/forms` returned HTTP 200 with
 an empty list, as expected because no forms are global and explicitly public.
-Still required: enrolled form visibility; route policy and OIDC
+The location-query request without a token and the invalid-token request both
+returned HTTP 401. Still required: successful enrolled form visibility; route policy and OIDC
 scope/CSRF behavior; create/revoke mapping authorization; collector/participant
 separation; exact consent at collection and sync for active and known-retired
 required revisions; missing, expired, denied, and withdrawn consent; form
