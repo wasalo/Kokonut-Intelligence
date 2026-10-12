@@ -281,7 +281,8 @@
       let participantRef = null;
       for (const [key, value] of formData.entries()) {
         if (key === "participant_ref") { participantRef = String(value).trim(); continue; }
-        payload[key] = value === "" ? null : (event.target.elements[key].type === "number" ? Number(value) : value);
+        if (value === "") continue;
+        payload[key] = event.target.elements[key].type === "number" ? Number(value) : value;
       }
       const item = { client_id:uid(), collection_type:currentForm.collection_type, form_id:currentForm.form_id, form_version:currentForm.version || "1.0.0", participant_ref:participantRef, payload, photo_refs:[], offline_photos:currentPhotos.map(photo => ({name:photo.name,data:photo.data})), ...currentLocation, collected_at:new Date().toISOString(), sync_status:"pending" };
       try { await write(STORAGE.queue, items => [...(Array.isArray(items) ? items : []), item]); renderHome(); notify("Saved on this device. It will sync when online."); void syncQueue(false); } catch (_) { notify("Encrypted storage could not save this record. Keep this page open and try again.", true); }

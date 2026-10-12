@@ -2837,3 +2837,34 @@ limits on PostgreSQL, authenticated HTTP upload/sync, ARM64, production backup
 retention, and orphan reconciliation remain open. See [candidate activation
 evidence](builds/2026-10-12-recovery/field-collector-candidate-edge-media-activation.json)
 and the [media contract](local-private-media.md).
+
+
+### Batch 5 candidate Gateway browser outage/reconnect and form payload correction — 12 October 2026
+
+Repeated the approved live browser outage check against the candidate. The first
+retry returned HTTP 422 because the form serialized empty optional fields as
+JSON `null`, while immutable schemas accept the field only when omitted or a
+string. The failed item stayed encrypted locally and created no server row; it
+was removed through the queue UI. Updated `saveRecord` to omit empty fields.
+
+Rebuilt with the explicit Compose project `kokonut-kernel-candidate` and
+recreated only the app. Pausing the candidate app left PostgreSQL and Metabase
+healthy. While paused, one synthetic note remained in the encrypted browser
+queue and database collection/sync-log counts stayed zero. After app recovery,
+the browser's background retry returned HTTP 200 and the home badge cleared
+without manual sync or navigation. One active `field_note_v1@1.2.0` row and one
+sync receipt were observed; the row remained `eligible_for_use=false` with
+`transport_pending`. A guarded transaction revoked and removed the synthetic
+location, enrollment, device, collection and sync log. All guarded counts were
+zero afterward, the browser vault was locked, and its stored token is invalid.
+
+An initial rebuild attempt omitted the candidate Compose project selector and
+created a stopped app container plus empty resources under the legacy project
+name; it failed to bind the candidate's already-used port. Only those exact
+newly-created resources were removed. Pre-existing legacy containers/volumes
+were left untouched and remain stopped; the three candidate services are
+healthy. This outage test keeps host Wi-Fi online and the browser reports
+“Online”; per-browser offline indication/OS airplane mode remains open. Real
+OIDC, browser consent-withdrawal, retention/erasure, tenant/RLS, and human
+disposition remain open. See [browser outage evidence](builds/2026-10-12-recovery/field-collector-gateway-outage-recovery.json),
+[Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).

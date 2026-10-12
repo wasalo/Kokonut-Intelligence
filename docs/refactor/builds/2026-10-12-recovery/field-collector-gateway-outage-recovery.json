@@ -29,13 +29,70 @@
     "synthetic_server_fixture_removed": true,
     "browser_vault_locked": true,
     "browser_vault_deleted": false,
-    "candidate_app_database_metabase_healthy_after_test": true
+    "candidate_app_database_metabase_healthy_after_test": true,
+    "corrected_blank_optional_fields_sync": true,
+    "candidate_gateway_outage_reconnect": true
   },
   "limitations": [
-    "This simulated candidate Gateway unavailability by stopping the local app container. The host network remained available and the browser still reported Online.",
-    "This did not exercise OS airplane mode or navigator.onLine=false behavior; that acceptance remains open.",
+    "The host network stayed available and the browser continued to report Online; this tests candidate Gateway service unavailability, not navigator.onLine=false or OS airplane mode.",
     "Real OIDC, retired-form consent withdrawal in the browser, tenant/RLS, retention/erasure, durable media recovery, and human disposition remain open.",
-    "A transport receipt does not verify, publish, or authorize use of a collection."
+    "The accepted transport receipt does not verify, publish, or authorize use of the collection."
   ],
-  "capability_status_changed": false
+  "capability_status_changed": false,
+  "latest_browser_retest": {
+    "scope": "Candidate Gateway app outage and automatic browser reconnect; no OS network change",
+    "synthetic_location_id": "0ecc952f-4674-4264-95fc-272eee8c09b7",
+    "host_wifi": "remained online",
+    "browser_online_indicator_during_outage": "Online",
+    "first_attempt": {
+      "sync_response": 422,
+      "cause": "Empty optional form fields were serialized as JSON null, which does not match their immutable string schema.",
+      "server_collection_rows": 0,
+      "local_rejected_item": "removed through the Field Collector queue UI before retry"
+    },
+    "implementation_correction": "The browser now omits empty form fields. The app image was rebuilt and only kokonut-kernel-candidate-app-1 was recreated; the candidate database and Metabase were left running.",
+    "corrected_attempt": {
+      "outage_simulation": "Paused only the candidate app container while the database and Metabase remained healthy.",
+      "pending_records_while_app_paused": 1,
+      "server_collections_while_paused": 0,
+      "sync_logs_while_paused": 0,
+      "automatic_retry_after_app_return": true,
+      "manual_sync_or_navigation_required": false,
+      "sync_http_status": 200,
+      "browser_pending_records_after_sync": 0,
+      "accepted_collections": 1,
+      "sync_receipts": 1,
+      "form_revision": "field_note_v1@1.2.0",
+      "form_validation_status": "active",
+      "consent_validation_status": "not_required",
+      "eligible_for_use": false,
+      "eligibility_reason": "transport_pending"
+    },
+    "cleanup": {
+      "device_revoked_before_removal": true,
+      "synthetic_location_enrollment_device_collection_and_sync_log_removed": true,
+      "guarded_post_cleanup_counts": {
+        "locations": 0,
+        "enrollments": 0,
+        "devices": 0,
+        "collections": 0,
+        "sync_logs": 0
+      },
+      "browser_vault_locked": true,
+      "browser_vault_deleted": false,
+      "stored_device_credential_invalidated_by_server_revocation": true
+    },
+    "docker_project_mismatch_recovery": {
+      "incident": "An initial rebuild command omitted -p kokonut-kernel-candidate and attempted a separate kokonut-intelligence Compose project; app startup failed because 127.0.0.1:8098 was already bound by the candidate.",
+      "cleanup": "Removed only the failed app container and the three newly-created empty volumes plus network. Pre-existing legacy containers and volumes were not removed or restarted.",
+      "final_state": "All three kokonut-kernel-candidate services healthy; legacy kokonut-intelligence containers remain exited."
+    }
+  },
+  "verification": {
+    "browser_acceptance": "passed: one encrypted local record remained queued while the candidate app was paused, then background retry received HTTP 200 and cleared the queue after app restoration",
+    "database_acceptance": "one successful receipt and one transport-pending/ineligible collection before guarded cleanup; all fixture counts zero afterward",
+    "candidate_services": "app, database, and Metabase healthy after recovery",
+    "source_diff_check": "passed"
+  },
+  "rollback": "Revert the empty-field omission in services/mobile/field-collector.html and rebuild/recreate only the candidate app with the explicit -p kokonut-kernel-candidate project selector and the candidate edge overlays. No migration, seed, or lasting candidate data changed."
 }
