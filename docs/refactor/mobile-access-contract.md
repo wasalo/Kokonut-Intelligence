@@ -5,8 +5,11 @@ the Field Collector. The repository owner delegated form-policy decisions to
 the implementation agent; all five built-in operational forms now have source
 definitions at version `1.1.0` classified `not_required`, with rationale and
 collection limits in the [policy decision record](mobile-form-classification-review.md).
-Migration 381 and its seed have not been applied to the candidate database, and
-mobile acceptance has not passed.
+Migrations 380 and 381 and the curated form seed were applied to the local
+candidate on 12 October 2026. The candidate currently
+has five active `1.1.0` operational form revisions; focused mobile and CORS
+checks passed, while full device and authenticated mobile acceptance remains
+open. See the [rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
 
 ## Existing identity and location boundary
 
@@ -37,7 +40,8 @@ external integrations.
 The owner approved separation of collector and participant identity, the
 reviewer-created location link, exact form-revision consent policy, immutable
 form snapshots, and private review handling for known retired revisions.
-Implementation is in source; migration 381 is not applied by this change.
+Implementation is in source and migration 381 is applied to the local candidate.
+Other deployments must use the ordered, checksummed migration workflow.
 
 ### Form revisions
 
@@ -133,13 +137,15 @@ delete append-only consent or collection evidence. There is not yet a human
 retention/erasure disposition workflow; that remains a release gate. Do not
 describe these records as erased or resolved after a withdrawal.
 
-## Remaining owner decisions and operational work
+## Remaining policy and operational gates
 
-1. Apply migration 381 through the ordered, checksummed migration runner, then
-   apply the curated seed. On existing databases this retires the backfilled
-   unclassified `1.0.0` forms and publishes the reviewed `1.1.0` revisions;
-   legacy rows remain unassessed and known retired revisions remain private for
-   review. Complete the separately authorized live mobile acceptance gate.
+1. Candidate rollout is complete: migrations 380 and 381 were applied through
+   the ordered, checksummed runner, followed by the curated form seed. The
+   candidate now has five active `1.1.0` revisions. The pre-rollout candidate
+   had no form or collection rows; on other populated databases, backfilled
+   `1.0.0` revisions remain unclassified and legacy collection rows remain
+   unassessed. Complete live device enrollment, form listing, offline capture,
+   media upload, sync, and eligibility acceptance.
 2. Specify organization-wide tenant policy. Location is the scope for this
    mobile API only; locations must not be treated as interchangeable tenant IDs.
 3. Define the human retention/erasure disposition process for participant-linked
@@ -148,25 +154,33 @@ describe these records as erased or resolved after a withdrawal.
    before local or production operators classify forms and review retired rows.
 5. Add server-side schema/content validation before treating the collection
    instructions as enforceable privacy controls. Current descriptions are
-   guidance only. This implementation has not changed the candidate database
-   or any running container.
+   guidance only. The local candidate rollout changed only its database schema,
+   five form rows, and app container; the legacy project remains stopped and
+   unchanged.
 
 ## Acceptance and rollback
 
-Still required: anonymous and enrolled form visibility; route policy and OIDC
+Focused source checks passed (55 targeted checks: 51 mobile tests and four
+Gateway CORS checks), the candidate migration plan reports zero pending schemas, the app and
+database are healthy, and its browser fallback serves all five `1.1.0` forms.
+Still required: live anonymous and enrolled form visibility; route policy and OIDC
 scope/CSRF behavior; create/revoke mapping authorization; collector/participant
 separation; exact consent at collection and sync for active and known-retired
 required revisions; missing, expired, denied, and withdrawn consent; form
 status/version/type/location mismatch; retired revision review; inactive/unknown
 revision rejection; device revocation; cross-location media; idempotent retry
 after link revocation/consent withdrawal; eligibility view behavior; and
-encrypted media recovery. No mobile test suite, migration, or runtime probe ran
-in this implementation pass.
+encrypted media recovery.
 
-Migration 381 is additive. Rollback deploys the previous API image or disables
-the mobile profile while retaining the new columns, revision history, link
-audit, collection rows, consent events, encrypted local objects, and their key.
-Do not drop migration 381 or prune media as part of application rollback.
+Migration 381 is additive. Rollback can redeploy
+`kokonut-kernel-candidate-app:pre-mobile-policy-20261012` or disable the mobile
+profile while retaining the new columns, revision history, link audit,
+collection rows, consent events, encrypted local objects, and their key. The
+pre-migration encrypted checkpoint is
+`backups/kernel-candidate-pre-mobile-20261012`; it covers one PostgreSQL
+database only and excludes roles/grants, other databases, volumes, external
+media, and provider state. Do not drop migration 381 or prune media as part of
+application rollback. See the [rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
 
 ## Repository owners
 

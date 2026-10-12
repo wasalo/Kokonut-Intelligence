@@ -323,7 +323,8 @@ reporting views.
 - [x] Record owner-delegated policy decisions for all five built-in operational forms as `not_required`, with explicit location scope, category, purpose, recipient, evidence, minimization guidance, and immutable `1.1.0` source revisions ([decision record](mobile-form-classification-review.md)).
 - [x] Add the `140_mobile_forms.sql` seed after the ordered migration step and align the offline browser fallback with the same policy and form revisions.
 - [ ] Define the human retention/erasure disposition and tenant/RLS policy; use the eligibility view in every downstream consumer before reporting or publication.
-- [ ] Apply migration 381 and the revised seed through the ordered migration/seed workflow, then run live candidate mobile acceptance with verification authorization. Existing `1.0.0` rows remain unclassified until rollout.
+- [x] Apply migrations 380 and 381 through the ordered, checksummed runner, seed five reviewed `1.1.0` forms, rebuild only the candidate app, and rehearse the encrypted pre-migration checkpoint restore; the exact-target candidate plan has zero pending schemas ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)). The candidate had no pre-existing form or collection rows; populated external databases still need their own reviewed rollout.
+- [ ] Complete live device enrollment, anonymous/enrolled form visibility, offline capture, private media upload, sync, eligibility, and OIDC route/scope acceptance. Retention/erasure, tenant/RLS, content validation, and expired-media cleanup remain separate gates.
 - [x] Add an OpenAPI-backed, versioned v1 public-location list/detail contract while preserving the legacy location routes.
 - [x] Add additive v1 metrics, published-CRISP, and location-summary read aliases with explicit authorization policy and strict response models.
 - [x] Add typed v1 location, metrics, CRISP, and location-summary methods to the Python and JavaScript SDK sources.
@@ -345,7 +346,7 @@ reporting views.
 - [ ] Complete remaining live route, authorization, tenant-scope and broader SDK parity; publish only after explicit release authorization.
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).
-- [ ] Configure a real OIDC provider, apply migration 380, and verify login/session/CSRF/revocation, scope denials, audit attribution, and browser queue/detail behavior.
+- [ ] Configure a real OIDC provider and verify login/session/CSRF/revocation, scope denials, audit attribution, and browser queue/detail behavior. Migration 380 is applied on the local candidate; any other environment must run the ordered migration plan first.
 - [x] Select `report_snapshot` as the first location-scoped submitted-record source; implement its bounded read-only queue/detail routes, explicit OIDC location-scope enforcement, and same-origin browser view ([contract and acceptance gates](kernel-operations-console.md)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 

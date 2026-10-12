@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-12",
+  "result": "candidate schema, reviewed Field Collector forms, and current-source app deployed; full mobile workflow acceptance remains open",
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_file": "docker-compose.kernel-candidate.yml",
+    "database_container": "kokonut-kernel-candidate-database-1",
+    "database_volume": "kokonut-kernel-candidate_kernel-postgres-data",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "app_container": "kokonut-kernel-candidate-app-1",
+    "app_image": "sha256:b2942d4d33d6620e628f8d2f4ca9b0956b1acb055f509d789d8386fa1068bf2c",
+    "previous_app_image": "sha256:eea7d9d7b30db5c354aa8364c44aec9f297b543bf7c24b6e331794274a71e49c",
+    "previous_app_rollback_tag": "kokonut-kernel-candidate-app:pre-mobile-policy-20261012",
+    "app_database_metabase_health": "healthy",
+    "legacy_project": "kokonut-intelligence",
+    "legacy_project_changed": false
+  },
+  "pre_migration_checkpoint": {
+    "local_path": "backups/kernel-candidate-pre-mobile-20261012",
+    "encrypted_archive": "postgres.dump.age",
+    "archive_bytes": 5150572,
+    "archive_sha256": "efcf35386380827b60f8b230ad4a347c3124b8ce808af6a5c253424822d24db4",
+    "restore_rehearsal": "passed",
+    "restore_project": "kokonut-kernel-mobile-restore-20261012",
+    "restore_database": "kokonut_restore",
+    "restore_network_isolated": true,
+    "restore_host_ports": [],
+    "restore_volume_retained_stopped": true,
+    "scope_limit": "One PostgreSQL database only; roles/grants, other databases, Docker volumes, external media, and provider state are excluded."
+  },
+  "schema_rollout": {
+    "previous_applied_schema_rows": 370,
+    "applied": [
+      {
+        "migration_id": "schema:380_operator_identity_sessions.sql",
+        "sha256": "cb152e1152baeb7677172faf1f7f995771bb76a0f805ab5ab6b1f421825bb2b4"
+      },
+      {
+        "migration_id": "schema:381_mobile_consent_form_revisions.sql",
+        "sha256": "5ec54e878bb9899a399b6ffcc5c980af6970eed62843a6b9b7a18c7850b1d338"
+      }
+    ],
+    "applied_schema_rows": 372,
+    "schema_plan_pending": 0,
+    "migration_failures": 0
+  },
+  "form_seed": {
+    "source": "schemas/seeds/140_mobile_forms.sql",
+    "sha256": "7af3621677cd2d10775fad1dbba65af98ab83d15c7103ba54680751c8e4ce64f",
+    "rows_inserted": 5,
+    "current_form_rows": 5,
+    "active_revision_rows": 5,
+    "all_active_versions": "1.1.0",
+    "all_active_classifications": "not_required",
+    "scope": "location with null scope ID, dynamically resolved from enrolled device",
+    "participant_reference_required": false,
+    "evidence_entries_per_revision": 3,
+    "offline_collection_rows_at_rollout": 0
+  },
+  "app_refresh": {
+    "app_recreated_only": true,
+    "database_and_volume_recreated": false,
+    "metabase_recreated": false,
+    "served_field_collector_route": "http://127.0.0.1:8098/api/mobile/app",
+    "version_1_1_0_fallback_definitions_found": 5
+  },
+  "focused_checks": {
+    "command": "pytest tests/test_mobile_api.py tests/test_mobile_offline.py tests/test_mobile_media_storage.py plus four focused Gateway CORS cases",
+    "result": "55 passed",
+    "warnings": 121,
+    "temporary_audit_spool": "private directory under /private/tmp, removed after run"
+  },
+  "remaining_gates": [
+    "Live device enrollment, authenticated form listing, offline collection, media upload, sync, and downstream eligibility acceptance",
+    "OIDC provider/login/session/CSRF and operator-scope acceptance",
+    "Tenant/RLS policy",
+    "Human retention and erasure disposition",
+    "Server-side schema/content validation; form descriptions are guidance only",
+    "Expired private-media object cleanup and recovery"
+  ]
+}

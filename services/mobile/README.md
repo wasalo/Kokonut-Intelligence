@@ -70,8 +70,10 @@ to collect personal data. Form descriptions give collector guidance, but the
 API does not filter arbitrary text or photo contents. Do not enter worker
 identifiers, personal receipts/account details, or person-centered/sensitive
 notes; use a separate consent-required workflow for participant-focused data.
-The revision is only deployed after migration 381 and `140_mobile_forms.sql`
-run in order. See the [policy decision record](../../docs/refactor/mobile-form-classification-review.md).
+The local candidate has received migrations 380 and 381 plus
+`140_mobile_forms.sql` in order; other environments must follow the same checksummed migration and seed
+workflow. See the [policy decision record](../../docs/refactor/mobile-form-classification-review.md)
+and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
 
 ### Private media and request protections
 
@@ -139,15 +141,18 @@ The trusted-device flow uses schema migration `357_field_collector_enrollment_ha
 
 Migration 381 adds immutable form revisions, reviewer-created participant
 links, consent validation metadata, and the downstream
-`v_mobile_collection_use_eligibility` gate. Its source is not yet applied to the
-candidate database. Source form revisions are classified in the policy
-decision record, but deployed forms remain at their pre-migration state until
-381 and the curated seed run in order. Existing rows remain unassessed. The older
+`v_mobile_collection_use_eligibility` gate. It and the curated form seed are
+applied to the local candidate; the candidate has five active `1.1.0` forms,
+zero pending schema migrations, and no pre-existing mobile collection rows.
+Other populated deployments must apply 381 and the curated seed in order;
+legacy rows remain unassessed. The older
 `services.analytics.mobile_offline` CLI stages transport rows without consent
 validation; after migration 381 those rows remain unassessed and cannot pass the
-eligibility view. No tests, migration, local
-container, legacy/staging/production database, or Cloudflare resource changed.
-Expired object-byte cleanup remains open before production use.
+eligibility view. Focused checks passed (55 total: 51 mobile tests and four targeted CORS
+checks). The current-source candidate app was rebuilt; the legacy project,
+staging/production databases, and Cloudflare resources were not changed.
+Expired object-byte cleanup and full live mobile workflow acceptance remain open
+before production use.
 
 See the implemented [`mobile access contract`](../../docs/refactor/mobile-access-contract.md)
 for the full policy, review gates, and rollback. Enrollment and location binding

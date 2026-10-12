@@ -97,8 +97,8 @@ and fail `v_mobile_collection_use_eligibility`. Any downstream use of mobile
 collections must read that eligibility view and still follow the governed
 review/publication lifecycle.
 
-Migration 381 and end-to-end mobile acceptance remain open for the candidate
-deployment. At source, the five built-in operational forms now use version
+The local candidate received migrations 380 and 381 and the curated form seed
+on 12 October 2026. It now has five active version
 `1.1.0` policies classified `not_required` for participant-linked consent:
 their intended scope is farm operations, production, business expenses,
 ecological/operational observations, and soil measurement. This is a Kokonut
@@ -106,12 +106,13 @@ form-purpose decision, not a legal determination or permission to collect
 personal records. The descriptions tell collectors to exclude worker
 identifiers and sensitive person-centered content, but the API does not validate
 arbitrary text or photo contents. Use a separate consent-required workflow for
-participant-focused data. The candidate database still has not received
-migration 381 or the revised curated seed, so its deployed forms are not yet at
-this source state. See the [Field Collector access contract](refactor/mobile-access-contract.md)
+participant-focused data. Focused mobile API/media/offline and CORS checks
+passed; live device workflow acceptance remains open. Other deployments must
+apply migrations and seed in order; existing populated databases retain
+unassessed legacy rows. See the [Field Collector access contract](refactor/mobile-access-contract.md)
 and [policy decision record](refactor/mobile-form-classification-review.md)
-before operating or integrating this path; source presence alone does not
-certify production readiness.
+before operating or integrating this path; local candidate rollout alone does
+not certify production readiness.
 
 ### Data Stream
 
