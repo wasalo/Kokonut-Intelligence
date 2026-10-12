@@ -30,8 +30,9 @@ class MemoryStorage {
 
 const makeVault = adapter => new EncryptedVault(adapter, webcrypto, { iterations: 1000 });
 
-function immediateCompletionIndexedDb() {
+function immediateCompletionIndexedDb({ blockedDelete = false } = {}) {
   const values = new Map();
+  let closed = false;
   const database = {
     objectStoreNames: { contains: () => true },
     transaction() {
@@ -62,7 +63,7 @@ function immediateCompletionIndexedDb() {
       };
       return transaction;
     },
-    close() {},
+    close() { closed = true; },
   };
   return {
     open() {
@@ -70,6 +71,17 @@ function immediateCompletionIndexedDb() {
       queueMicrotask(() => request.onsuccess?.());
       return request;
     },
+    deleteDatabase() {
+      const request = {};
+      queueMicrotask(() => {
+        if (blockedDelete) request.onblocked?.();
+        values.clear();
+        request.onsuccess?.();
+      });
+      return request;
+    },
+    triggerVersionChange() { database.onversionchange?.(); },
+    get closed() { return closed; },
   };
 }
 
@@ -78,6 +90,35 @@ test("IndexedDB adapter observes completion even when it follows request success
   const envelope = { version: 1, ciphertext: "opaque" };
   await adapter.put(envelope);
   assert.deepEqual(await adapter.get(), envelope);
+});
+
+test("IndexedDB adapter deletes the vault and can reopen an empty database", async () => {
+  const indexedDb = immediateCompletionIndexedDb();
+  const adapter = createIndexedDbAdapter(indexedDb);
+  const envelope = { version: 1, ciphertext: "opaque" };
+  await adapter.put(envelope);
+  await adapter.deleteDatabase();
+  assert.equal(indexedDb.closed, true);
+  assert.equal(await adapter.get(), null);
+});
+
+test("IndexedDB adapter reports a blocked vault deletion", async () => {
+  const indexedDb = immediateCompletionIndexedDb({ blockedDelete: true });
+  const adapter = createIndexedDbAdapter(indexedDb);
+  let notified = 0;
+  await adapter.deleteDatabase(() => { notified += 1; });
+  assert.equal(notified, 1);
+  assert.equal(await adapter.get(), null);
+});
+
+test("IndexedDB version changes close storage and notify the application", async () => {
+  const indexedDb = immediateCompletionIndexedDb();
+  let notified = 0;
+  const adapter = createIndexedDbAdapter(indexedDb, () => { notified += 1; });
+  await adapter.get();
+  indexedDb.triggerVersionChange();
+  assert.equal(indexedDb.closed, true);
+  assert.equal(notified, 1);
 });
 
 test("vault encrypts state, locks in memory, rejects a wrong passphrase, and unlocks", async () => {

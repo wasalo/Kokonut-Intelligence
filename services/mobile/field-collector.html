@@ -98,8 +98,10 @@
     let vaultError = "";
     let stateWrite = null;
     let vaultLocking = false;
+    let vaultResetting = false;
+    let onVaultVersionChange = () => {};
     try {
-      vaultAdapter = window.FieldCollectorVault.createIndexedDbAdapter();
+      vaultAdapter = window.FieldCollectorVault.createIndexedDbAdapter(window.indexedDB, () => onVaultVersionChange());
       vault = new window.FieldCollectorVault.EncryptedVault(vaultAdapter);
     } catch (error) {
       vaultError = error.message || "Encrypted browser storage is unavailable.";
@@ -412,9 +414,39 @@
       const intro = existing
         ? "Unlock the encrypted records and device credential stored in this browser."
         : "Create a passphrase to encrypt records and credentials in this browser. Existing localStorage data will be removed only after encrypted migration is verified.";
-      screen.innerHTML = `<section class="panel"><p class="eyebrow">${existing ? "Offline vault locked" : "Protect this browser"}</p><h2>${existing ? "Unlock Field Collector" : "Create your offline vault"}</h2><p class="intro">${esc(message || intro)}</p><form id="vaultForm">${fields}<button class="button" type="submit">${existing ? "Unlock" : "Create encrypted vault"}</button></form></section>`;
+      const deleteVault = existing
+        ? `<div class="notice error">Deleting the local vault permanently erases this browser's encrypted queue, photos, forms, device credential, and legacy field data. It does not revoke the server-side device enrollment.</div><button class="button danger" id="deleteVaultButton" type="button">Delete local vault</button><small id="deleteVaultStatus" aria-live="polite"></small>`
+        : "";
+      screen.innerHTML = `<section class="panel"><p class="eyebrow">${existing ? "Offline vault locked" : "Protect this browser"}</p><h2>${existing ? "Unlock Field Collector" : "Create your offline vault"}</h2><p class="intro">${esc(message || intro)}</p><form id="vaultForm">${fields}<button class="button" type="submit">${existing ? "Unlock" : "Create encrypted vault"}</button></form>${deleteVault}</section>`;
+      const deleteVaultButton = document.getElementById("deleteVaultButton");
+      if (deleteVaultButton) deleteVaultButton.addEventListener("click", async () => {
+        if (!window.confirm("Permanently delete this browser's encrypted Field Collector data? This cannot be undone. Server-side device enrollment will not be revoked.")) return;
+        const status = document.getElementById("deleteVaultStatus");
+        screen.querySelectorAll("button, input").forEach(control => { control.disabled = true; });
+        if (status) status.textContent = "Deleting local vault…";
+        vaultResetting = true;
+        if (stateWrite) await stateWrite.flush();
+        vault?.lock(); vaultState = null; stateWrite = null; enrollmentCode = ""; currentPhotos = []; currentLocation = null; currentForm = null;
+        try {
+          await vaultAdapter.deleteDatabase(() => {
+            if (status) status.textContent = "Other tabs are being locked so deletion can finish. If this remains blocked, close any stale Field Collector tabs.";
+          });
+          const storage = legacyStorage();
+          if (storage) {
+            for (const key of Object.values(window.FieldCollectorVault.LEGACY_STORAGE_KEYS)) {
+              storage.removeItem(key);
+            }
+          }
+          vaultResetting = false;
+          await renderVaultGate("The local vault was deleted. Revoke any server-side device enrollment separately.");
+        } catch (error) {
+          vaultResetting = false;
+          await renderVaultGate(error.message || "Could not delete encrypted offline storage.");
+        }
+      });
       document.getElementById("vaultForm").addEventListener("submit", async event => {
         event.preventDefault();
+        if (vaultResetting) return;
         const values = Object.fromEntries(new FormData(event.target).entries());
         if (!existing && values.passphrase !== values.confirmation) { await renderVaultGate("Passphrases do not match."); return; }
         try {
@@ -436,6 +468,12 @@
       vault.lock(); vaultState = null; stateWrite = null; enrollmentCode = ""; currentPhotos = []; currentLocation = null; currentForm = null;
       vaultLocking = false;
       await renderVaultGate();
+    };
+    onVaultVersionChange = () => {
+      if (vault?.isUnlocked()) {
+        vault.lock(); vaultState = null; stateWrite = null; enrollmentCode = ""; currentPhotos = []; currentLocation = null; currentForm = null;
+      }
+      screen.innerHTML = `<section class="panel"><p class="eyebrow">Offline vault locked</p><h2>Vault changed in another tab</h2><p class="intro">This tab has been locked because local vault storage changed. Reload after the other tab finishes its action.</p></section>`;
     };
     document.getElementById("homeButton").addEventListener("click", renderHome);
     document.getElementById("lockButton").addEventListener("click", () => { void lockVault(); });

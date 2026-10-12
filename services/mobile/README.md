@@ -145,6 +145,15 @@ and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/
 - Locking clears the app's decrypted state, key references, enrollment code,
   and current unsaved photo/location state. Unlocking again requires the
   passphrase. There is no server-side passphrase recovery.
+- When an existing vault is locked, **Delete local vault** offers a browser
+  confirmation before deleting the encrypted IndexedDB database and known
+  legacy keys. If another Field Collector tab still holds the database, open
+  app tabs are asked to lock and release it; close a stale tab if the browser
+  continues to report deletion as blocked. This
+  erases only this browser's local data and does not revoke its server-side
+  device enrollment, which must be revoked separately by an authorized
+  operator. Do not use local deletion as a retention or erasure decision for
+  already-synced server records.
 - Browser encryption is not a substitute for request authorization or
   encryption against a compromised active session. Avoid shared/untrusted
   devices and lock the vault before handing the device to someone else.

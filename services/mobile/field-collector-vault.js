@@ -245,7 +245,7 @@
     return write;
   }
 
-  function createIndexedDbAdapter(indexedDb = globalThis.indexedDB) {
+  function createIndexedDbAdapter(indexedDb = globalThis.indexedDB, onVersionChange = () => {}) {
     if (!indexedDb) throw new Error("IndexedDB is unavailable in this browser");
     let databasePromise;
     const open = () => {
@@ -257,7 +257,11 @@
             if (!database.objectStoreNames.contains(OBJECT_STORE)) database.createObjectStore(OBJECT_STORE);
           };
           request.onsuccess = () => {
-            request.result.onversionchange = () => request.result.close();
+            request.result.onversionchange = () => {
+              request.result.close();
+              databasePromise = undefined;
+              onVersionChange();
+            };
             resolve(request.result);
           };
           request.onerror = () => reject(request.error || new Error("Could not open encrypted offline storage"));
@@ -290,6 +294,19 @@
    const completion = transactionDone(transaction);
    transaction.objectStore(OBJECT_STORE).put(value, RECORD_KEY);
    await completion;
+ },
+ async deleteDatabase(onBlocked = () => {}) {
+   const database = await open();
+   database.close();
+   databasePromise = undefined;
+   await new Promise((resolve, reject) => {
+     const request = indexedDb.deleteDatabase(DATABASE_NAME);
+     request.onsuccess = () => resolve();
+     request.onerror = () => reject(request.error || new Error("Could not delete encrypted offline storage"));
+     request.onblocked = () => {
+       try { onBlocked(); } catch (_) {}
+     };
+   });
  },
     };
   }

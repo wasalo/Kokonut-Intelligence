@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves the Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and the browser-client offline capture/reconnect path has been exercised against an isolated mock origin.** The browser reopened its cached shell and encrypted queue after an origin outage, then cleared one record after a mock sync response. This was not OS airplane mode or a candidate Gateway run; real OIDC/provider and live browser/API acceptance remain open. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas, Phase 7 includes source-level OIDC enrollment controls, and browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked, and the existing encrypted browser data remains locked and intact. These checks do not cover OS airplane mode, real OIDC/provider acceptance, or the remaining consent, media, governance and retention gates. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
@@ -2240,3 +2240,35 @@ candidate app; the database fixture is already removed. Evidence:
 
 CAP-053 and Batch 5 remain partial. See the [checklist](batches.md),
 [capability matrix](capability-matrix.md#cap-053), and [mobile access contract](mobile-access-contract.md).
+
+## Batch 5 Field Collector local vault reset control — 12 October 2026
+
+Added a **Delete local vault** action to the locked Field Collector gate. The
+action requires a browser confirmation, closes the app's own IndexedDB handle,
+deletes the encrypted local database, and clears known legacy localStorage keys
+after database deletion succeeds. If another Field Collector tab blocks the
+delete request, open app tabs close their handles and lock their in-memory state
+on IndexedDB's version-change event; the deleting tab asks the user to close a
+stale tab if the block persists. The warning says this action does not revoke
+server-side device enrollment or erase records already synced to the server.
+
+Nine focused Node vault checks passed, covering database deletion/reopen,
+blocked-delete notification, and cross-tab version-change behavior. Two offline
+shell checks also passed. Inline Field Collector JavaScript syntax and
+`git diff --check` passed. The Python pytest wrapper could not run because
+pytest is not installed; its underlying Node test command passed directly.
+Rebuilt only the `app` service in
+`kokonut-kernel-candidate`; Docker reports it healthy. The existing browser
+showed the locked vault, deletion warning, and button. The delete action was not
+invoked, so the encrypted browser vault remains locked and intact. No schema,
+database, provider configuration, or synthetic rows changed.
+
+Rollback: revert the Field Collector source/tests/docs and rebuild only the
+candidate app; no database rollback is needed. This does not close real OIDC,
+OS airplane-mode/Gateway recovery, retired/withdrawal, downstream disposition,
+media recovery/cleanup, tenant/RLS, retention/erasure, or semantic review.
+Evidence: [vault reset browser and test record](builds/2026-10-12-recovery/field-collector-vault-reset-control.json).
+
+CAP-053 and Batch 5 remain partial. See the [checklist](batches.md),
+[capability matrix](capability-matrix.md#cap-053), [mobile access contract](mobile-access-contract.md),
+and [Field Collector guide](../../services/mobile/README.md).
