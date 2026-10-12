@@ -13,8 +13,12 @@ See the
 ## Existing identity and location boundary
 
 - `POST /api/mobile/locations/{location_id}/enrollments` issues a short-lived,
-  single-use enrollment code. The enrolling operator supplies the collector's
-  `user_id`; it is never treated as participant identity.
+  single-use enrollment code. With OIDC enabled, authorized operators issue it
+  through the same-origin `/operator/api/mobile/locations/{location_id}/enrollments`
+  action, which requires `mobile_device:enroll` for that location and CSRF.
+  The operator supplies the collector attribution `user_id`; it is never
+  treated as participant identity. The original `/api/mobile` route remains
+  available to location-scoped Gateway capabilities and API keys.
 - `POST /api/mobile/register` locks and consumes the enrollment. The device
   token is opaque; only its SHA-256 hash is stored. Device ID, user ID, and
   location ID come from the enrollment row.
@@ -80,8 +84,8 @@ Other deployments must use the ordered, checksummed migration workflow.
   public, and the collector token cannot manage links.
 - A form revision has one of three consent classifications: `required`,
   `not_required`, or `unclassified`. The five built-in operational forms are
-  classified `not_required` at source version `1.2.0` (candidate currently
-  deployed at `1.1.0`): each has an explicit
+  classified `not_required` at source and local candidate version `1.2.0`,
+  with immutable `1.1.0` revisions retained retired; each has an explicit
   operational category, purpose, dynamic location scope, intended operator
   recipient, owner-delegated review evidence, and no participant reference.
   This decision is limited to farm operations, production, business expenses,
@@ -159,6 +163,24 @@ describe these records as erased or resolved after a withdrawal.
    candidate. The rollout changed five form revisions and recreated only the
    app container after a fresh encrypted checkpoint and isolated restore
    rehearsal. The legacy project remains stopped and unchanged.
+
+## OIDC operator enrollment surface
+
+The OIDC operator console includes a source-level enrollment form for operators
+with a location-specific `mobile_device:enroll` grant. It asks for a collector
+attribution ID and a bounded code lifetime, then calls the same enrollment
+handler through `/operator/api/mobile/locations/{location_id}/enrollments`.
+The response is `no-store`; the plaintext code is displayed once for handoff.
+The handler records the authenticated operator as `created_by`. The existing
+`/api/mobile` endpoint remains available to scoped Gateway capabilities and
+API keys.
+
+The session and CSRF cookies remain scoped to `/operator`, so these browser
+routes are under that path and retain same-origin double-submit CSRF checks.
+Equivalent location-scoped OIDC wrappers exist for revoking unused codes and
+active devices. The routes and console are source implementation only; no real
+OIDC provider has been configured and no live operator-to-device workflow has
+been accepted.
 
 ## Acceptance and rollback
 

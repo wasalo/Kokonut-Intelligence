@@ -1,19 +1,24 @@
 # Kernel operations console boundary
 
-**Status:** OIDC identity/session foundation and a same-origin principal shell
-are implemented in source. OIDC remains disabled because no provider settings
-have been configured. A source-level, read-only queue for submitted
-`report_snapshot` records now checks an explicit operator/location grant. The
-provider login, migration, queue authorization, and browser behavior have not
-been exercised; this remains an implementation slice, not an accepted console.
+**Status:** OIDC identity/session foundation and a same-origin operator shell
+are implemented in source. The shell now includes location-scoped Field
+Collector enrollment for operators granted `mobile_device:enroll`. OIDC remains
+disabled because no provider settings have been configured. A source-level,
+read-only queue for submitted
+`report_snapshot` records now checks an explicit operator/location grant.
+Five focused source tests exercise enrollment route policy, session, location
+scope, CSRF denial, and successful one-time issuance. Real provider login,
+database-backed grant checks, report queue scope, and browser behavior remain
+unexercised; this remains a partial implementation, not an accepted console.
 
 ## Current repository boundary
 
 The existing `prototypes/cloudflare-edge-preview/` remains synthetic-only and
 has no KI API or authentication connection. `services/mobile/field-collector.html`
 is the field collection client, not an operator console. The new
-`apps/operator-console/` shell displays a verified OIDC principal and can read
-submitted report snapshots for explicitly granted locations. The local
+`apps/operator-console/` shell displays a verified OIDC principal, issues
+single-use Field Collector enrollment codes for explicitly granted locations,
+and can read submitted report snapshots for explicitly granted locations. The local
 [`kernel overview CLI`](kernel-operator-cli.md) is read-only and has no browser
 identity.
 
@@ -93,12 +98,18 @@ evidence.
 
 ## OIDC implementation and deployment
 
-The opt-in endpoints are `GET /operator/auth/login`,
+The opt-in identity endpoints are `GET /operator/auth/login`,
 `GET /operator/auth/callback`, `GET /operator/auth/session`, and
-`POST /operator/auth/logout`. The small page at `/operator/` displays the
-verified principal and signs out with a double-submit CSRF token. The page
-uses same-origin requests, does not put credentials in local storage, and
-renders claims with `textContent`.
+`POST /operator/auth/logout`. The page at `/operator/` displays the verified
+principal and provides Field Collector enrollment to authorized operators.
+Enrollment uses `/operator/api/mobile/locations/{location_id}/enrollments`,
+with matching routes to revoke an unused enrollment or active device. These
+routes require `mobile_device:enroll` or `mobile_device:revoke` for the path's
+location. The form accepts a collector attribution ID separate from participant
+identity, limits code lifetime to 15 minutes through 24 hours, and shows the
+plaintext code once in a `no-store` response. The page signs out with a
+double-submit CSRF token, uses same-origin requests, does not put credentials in
+local storage, and renders claims with `textContent`.
 
 The callback validates OIDC through Authlib discovery, authorization-code
 flow, state/nonce handling, and S256 PKCE. Provider access/ID tokens are not
@@ -148,21 +159,25 @@ Network-level snapshots with a null `location_id` are excluded until a separate
 network-scope model is designed. The console is read-only: verification,
 rejection, and publication still require their domain-specific human workflow.
 
-Grant the first console slice explicitly after applying migration 380:
+Grant a console capability explicitly after applying migration 380:
 
 ```sh
 python3 -m services.cli operator grant --operator-id UUID \
   --resource report_snapshot_review --action read \
   --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID \
+  --resource mobile_device --action enroll \
+  --location-id LOCATION_UUID --granted-by OPERATOR
 ```
 
 ## First console slice
 
-The first read-only report queue is implemented in the Gateway and
-`apps/operator-console/`. It uses same-origin cookie requests and the explicit
-location grant; no backend key is sent to the browser. Do not expose arbitrary
-SQL, broad Directus collection CRUD, service-health probes, or administration
-controls.
+The first read-only report queue and Field Collector enrollment action are
+implemented in the Gateway and `apps/operator-console/`. They use same-origin
+cookie requests and explicit per-location grants; no backend key is sent to the
+browser. The enrollment code response is not cached and the code is displayed
+once. Do not expose arbitrary SQL, broad Directus collection CRUD,
+service-health probes, or administration controls.
 
 Add governed actions later as explicit resource/action routes. Verification,
 rejection, publication, credit retirement, and agent execution must retain the
@@ -172,7 +187,7 @@ grant itself permission or skip the domain service's lifecycle checks.
 ## Likely implementation touchpoints
 
 - `services/gateway/operator_auth.py` (OIDC adapter, session and CSRF handling,
-  principal-to-scope port)
+  principal-to-scope port, location-scoped enrollment/revocation routes)
 - `services/gateway/operator_cli.py` and `services/cli.py` (local identity,
   grant, and revocation administration)
 - `services/gateway/app.py` (auth routes, opaque sessions, CSRF, stable audit
@@ -184,8 +199,8 @@ grant itself permission or skip the domain service's lifecycle checks.
   location-grant, and session storage)
 - `Dockerfile.kernel`, `requirements/oidc.txt`, and
   `docker-compose.kernel-oidc.yml` (optional dependency/image/deployment path)
-- `apps/operator-console/index.html` (same-origin principal shell and read-only
-  submitted-report list/detail view)
+- `apps/operator-console/index.html` (same-origin principal shell, read-only
+  submitted-report list/detail, and one-time enrollment-code form)
 - `sdk/javascript/src/client.ts` (possible follow-on typed console methods;
   current same-origin console uses browser `fetch` and the session cookie)
 - `docker-compose.kernel-candidate.yml`, the OIDC and Caddy overlays, and
@@ -201,8 +216,8 @@ checks, audit actor attribution, and that no credential appears in browser
 storage. Verify the queue excludes drafts, verified/published rows, null-scope
 network reports, cross-location IDs, and unauthenticated requests; verify the
 detail route returns content only for a submitted record under the same grant.
-These checks remain open. Confirm the console does not bypass Gateway or
-database policy.
+Real-provider and live database checks remain open. Confirm the console does
+not bypass Gateway or database policy.
 
 Roll back by removing the console route/assets and disabling the selected
 identity adapter. Keep the local read-only CLI, Directus admin surface, and
@@ -215,5 +230,5 @@ The identity source is selected: OIDC. No issuer/client configuration has been
 added to SOPS yet, so authentication remains disabled and no live login has
 been attempted. Configure a provider and callback URL through the encrypted
 secret workflow before using the opt-in profile. OIDC readiness, session/CSRF
-acceptance, scope-denial/audit behavior, report queue/detail runtime acceptance,
-and the full browser workflow remain open.
+acceptance, live grant-denial/audit behavior, report queue/detail runtime
+acceptance, and the full browser workflow remain open.

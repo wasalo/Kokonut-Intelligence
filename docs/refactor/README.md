@@ -2,7 +2,7 @@
 
 Phase 0 inventory, captured 9 October 2026.
 
-**Current status (11 October): Phase 7 public API reads active.** See
+**Current status (12 October): Phase 7 native API and OIDC operator access active.** The local candidate serves Field Collector form schemas at `1.2.0`; live enrollment acceptance remains open. See
 [the phase ledger](progress.md) and [capability progress](capability-matrix.md).
 The baseline sections below preserve historical observations, not current
 phase-completion claims.
@@ -10,7 +10,7 @@ phase-completion claims.
 ## Source and repeatability
 
 Baseline commit: ad806f504bfef15cba41446d777cb22f6bd8fe6a.
-Implementation branch: chore/kernel-plan-ignore, created from main.
+Implementation branch: feat/kernel-architecture-refactor, created from main.
 The initial worktree change was the requested root plan ignore rule.
 The root implementation plan remains a local, ignored file; these smaller
 execution records are kept in the repository for review. Implementation changes

@@ -18,10 +18,12 @@
         padding: .7rem 1rem; background: #176b50; color: white; font: inherit;
         text-decoration: none; cursor: pointer; }
       button.secondary { background: #e8efea; color: #18332b; }
+      input, select { box-sizing: border-box; max-width: 100%; padding: .6rem;
+        border: 1px solid #b8c8bd; border-radius: .4rem; font: inherit; }
       .notice { margin: 1.25rem 0; padding: 1rem; border-radius: .5rem; background: #f4f7f3; }
       .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin: 1.5rem 0 1rem; }
       label { display: grid; gap: .35rem; font-size: .9rem; }
-      select { max-width: 100%; padding: .6rem; border: 1px solid #b8c8bd; border-radius: .4rem; font: inherit; }
+      .form-grid { display: grid; gap: 1rem; max-width: 34rem; margin: 1rem 0; }
       .table-wrap { overflow-x: auto; }
       table { width: 100%; border-collapse: collapse; text-align: left; }
       th, td { padding: .65rem .5rem; border-bottom: 1px solid #e3ebe5; vertical-align: top; }
@@ -42,6 +44,34 @@
       <section id="signed-in" hidden>
         <h2>Signed in</h2>
         <dl id="identity"></dl>
+        <section id="mobile-enrollment" hidden aria-labelledby="mobile-enrollment-heading">
+          <h2 id="mobile-enrollment-heading">Field Collector enrollment</h2>
+          <p class="muted">Issue a short-lived code for one device at a location you are authorized to manage. The collector attribution ID is operational metadata; it does not identify a participant or grant consent. The code is shown once.</p>
+          <form id="mobile-enrollment-form" class="form-grid">
+            <label for="mobile-location">Granted location</label>
+            <select id="mobile-location" required></select>
+            <label for="collector-id">Collector attribution ID</label>
+            <input id="collector-id" name="user_id" maxlength="200" required autocomplete="off">
+            <p class="muted">Use a non-sensitive staff code, not a name or email. This is collector attribution, never participant identity.</p>
+            <label for="enrollment-expiry">Code lifetime</label>
+            <select id="enrollment-expiry" name="expires_in_minutes">
+              <option value="15">15 minutes</option>
+              <option value="60" selected>1 hour</option>
+              <option value="240">4 hours</option>
+              <option value="1440">24 hours</option>
+            </select>
+            <button id="issue-enrollment" type="submit">Issue one-time code</button>
+          </form>
+          <p id="mobile-enrollment-status" class="muted" role="status"></p>
+          <section id="mobile-enrollment-result" class="notice" hidden aria-live="polite">
+            <p>Copy this code to the assigned collector now. It will not be shown again.</p>
+            <div class="toolbar">
+              <input id="enrollment-code" aria-label="One-time enrollment code" readonly>
+              <button id="copy-enrollment-code" class="secondary" type="button">Copy code</button>
+            </div>
+            <p id="enrollment-expiration" class="muted"></p>
+          </section>
+        </section>
         <section id="review" hidden aria-labelledby="review-heading">
           <h2 id="review-heading">Submitted report review</h2>
           <p class="muted">Read submitted report snapshots for locations explicitly granted to your account. This console does not verify, reject, or publish reports.</p>
@@ -79,6 +109,19 @@
       const detail = document.querySelector("#report-detail");
       const reportData = document.querySelector("#report-data");
       const fields = [["Name", "display_name"], ["Subject", "subject"], ["Issuer", "issuer"]];
+      const mobileEnrollment = document.querySelector("#mobile-enrollment");
+      const mobileLocation = document.querySelector("#mobile-location");
+      const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
+      const mobileEnrollmentStatus = document.querySelector("#mobile-enrollment-status");
+      const mobileEnrollmentResult = document.querySelector("#mobile-enrollment-result");
+      const enrollmentCode = document.querySelector("#enrollment-code");
+      const enrollmentExpiration = document.querySelector("#enrollment-expiration");
+
+      function csrfToken() {
+        const item = document.cookie.split("; ")
+          .find((value) => value.startsWith("kokonut_operator_csrf="));
+        return item ? decodeURIComponent(item.split("=").slice(1).join("=")) : "";
+      }
 
       function renderIdentity(operator) {
         identity.replaceChildren();
@@ -110,18 +153,30 @@
           const reviewLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "report_snapshot_review" && scope.action === "read")
             .map((scope) => scope.location_id))];
-          if (!reviewLocations.length) {
+          const mobileLocations = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_device" && scope.action === "enroll")
+            .map((scope) => scope.location_id))];
+          if (mobileLocations.length) {
+            for (const locationId of mobileLocations) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              mobileLocation.append(option);
+            }
+            mobileEnrollment.hidden = false;
+          }
+          if (reviewLocations.length) {
+            for (const locationId of reviewLocations) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              locationSelect.append(option);
+            }
+            review.hidden = false;
+            await loadQueue();
+          } else {
             document.querySelector("#no-grants").hidden = false;
-            return;
           }
-          for (const locationId of reviewLocations) {
-            const option = document.createElement("option");
-            option.value = locationId;
-            option.textContent = locationId;
-            locationSelect.append(option);
-          }
-          review.hidden = false;
-          await loadQueue();
         } catch {
           status.textContent = "Operator session could not be checked. Retry after the service is available.";
         }
@@ -188,6 +243,59 @@
 
       document.querySelector("#refresh").addEventListener("click", loadQueue);
       locationSelect.addEventListener("change", loadQueue);
+
+      mobileEnrollmentForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        mobileEnrollmentStatus.textContent = "Issuing a one-time enrollment code…";
+        mobileEnrollmentResult.hidden = true;
+        enrollmentCode.value = "";
+        const csrf = csrfToken();
+        if (!csrf) {
+          mobileEnrollmentStatus.textContent = "The security token is unavailable. Reload the console and try again.";
+          return;
+        }
+        const body = {
+          user_id: document.querySelector("#collector-id").value.trim(),
+          expires_in_minutes: Number(document.querySelector("#enrollment-expiry").value)
+        };
+        try {
+          const response = await fetch(
+            `/operator/api/mobile/locations/${encodeURIComponent(mobileLocation.value)}/enrollments`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf
+              },
+              body: JSON.stringify(body)
+            }
+          );
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your operator session or location enrollment grant is not valid.");
+          }
+          if (!response.ok) throw new Error("Enrollment service is unavailable. Try again later.");
+          const result = await response.json();
+          enrollmentCode.value = result.enrollment_code;
+          enrollmentExpiration.textContent = `Expires ${new Date(result.expires_at).toLocaleString()}.`;
+          mobileEnrollmentResult.hidden = false;
+          mobileEnrollmentStatus.textContent = "Code issued. It can enroll one device once.";
+        } catch (error) {
+          mobileEnrollmentStatus.textContent = error.message;
+        }
+      });
+
+      document.querySelector("#copy-enrollment-code").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(enrollmentCode.value);
+          mobileEnrollmentStatus.textContent = "Code copied. Share it only with the assigned collector.";
+        } catch {
+          enrollmentCode.select();
+          mobileEnrollmentStatus.textContent = "Select and copy the code. Share it only with the assigned collector.";
+        }
+      });
 
       document.querySelector("#logout").addEventListener("click", async () => {
         const csrf = document.cookie.split("; ")

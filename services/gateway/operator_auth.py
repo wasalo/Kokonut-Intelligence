@@ -18,6 +18,10 @@ from typing import Protocol
 from urllib.parse import urlsplit
 from uuid import UUID
 
+from starlette.requests import Request
+
+from services.mobile.api import EnrollmentCreateRequest
+
 SESSION_COOKIE = "kokonut_operator_session"
 CSRF_COOKIE = "kokonut_operator_csrf"
 SESSION_COOKIE_PATH = "/operator"
@@ -336,6 +340,39 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    mobile_enrollment_match = re.fullmatch(
+        r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/enrollments(?:/([0-9a-fA-F-]{36}))?",
+        path,
+    )
+    if mobile_enrollment_match and enabled:
+        location_id, enrollment_id = mobile_enrollment_match.groups()
+        if method.upper() == "POST" and enrollment_id is None:
+            action = "enroll"
+        elif method.upper() == "DELETE" and enrollment_id is not None:
+            action = "revoke"
+        else:
+            return None
+        return {
+            "resource": "mobile_device",
+            "action": action,
+            "public": False,
+            "location_id": location_id,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    mobile_device_match = re.fullmatch(
+        r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/devices/([^/]+)/revoke",
+        path,
+    )
+    if mobile_device_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "mobile_device",
+            "action": "revoke",
+            "public": False,
+            "location_id": mobile_device_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
     participant_match = re.fullmatch(
         r"/api/mobile/locations/([0-9a-fA-F-]{36})/participants(?:/(revoke))?",
         path,
@@ -443,9 +480,11 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from collections.abc import Mapping
 
     import psycopg2
-    from fastapi import APIRouter, Request
+    from fastapi import APIRouter
     from fastapi.responses import JSONResponse, RedirectResponse
     from starlette.concurrency import run_in_threadpool
+
+    from services.mobile.api import create_enrollment, revoke_device, revoke_enrollment
 
     router = APIRouter()
 
@@ -634,6 +673,48 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         return JSONResponse(
             {"data": jsonable_encoder(row)},
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.post("/operator/api/mobile/locations/{location_id}/enrollments", status_code=201)
+    async def operator_create_mobile_enrollment(
+        location_id: UUID,
+        request: Request,
+        body: EnrollmentCreateRequest,
+    ):
+        """Issue a one-time collector code to an authorized OIDC operator."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        result = await create_enrollment(location_id, request, body)
+        return JSONResponse(
+            status_code=201,
+            content=result,
+            headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+        )
+
+    @router.delete(
+        "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}"
+    )
+    async def operator_revoke_mobile_enrollment(location_id: UUID, enrollment_id: UUID):
+        """Revoke an unused collector code within an authorized location."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        result = await revoke_enrollment(location_id, enrollment_id)
+        return JSONResponse(
+            content=result,
+            headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+        )
+
+    @router.post(
+        "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke"
+    )
+    async def operator_revoke_mobile_device(location_id: UUID, device_id: str):
+        """Revoke an active collector device within an authorized location."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        result = await revoke_device(location_id, device_id)
+        return JSONResponse(
+            content=result,
+            headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
         )
 
     @router.post("/operator/auth/logout")
