@@ -104,13 +104,21 @@ version against a prior manifest without connecting to PostgreSQL:
 ```bash
 python3 -m services.cli mobile-forms validate --manifest form.json
 python3 -m services.cli mobile-forms preview --manifest form.json --current prior.json
+python3 -m services.cli mobile-forms publish --manifest form.json
+python3 -m services.cli mobile-forms publish --manifest form.json --actor operator-id --expected-current-version 1.0.0 --apply
+python3 -m services.cli mobile-forms publish --manifest form.json --actor operator-id --expect-absent --apply
 ```
 
 The commands reject incomplete consent review metadata, external schema
 references, root schemas that accept undeclared properties, and edits that reuse
-a version. They never publish or write to the database or require database credentials. Transactional
-publication through the immutable revision trigger and an OIDC-scoped private
-review queue are still in progress; see the [form operations contract](../../docs/refactor/mobile-form-operations.md).
+a version. Validation, preview, and `publish` without `--apply` do not connect to
+PostgreSQL. Publication requires an explicit independent operator and either an
+expected current version or `--expect-absent`; it updates only the mutable
+`mobile_form` row so migration 381 creates the immutable snapshot and retires
+the prior active revision in the same transaction. The publisher must differ
+from the manifest reviewer. The CLI is a privileged local maintenance tool;
+browser self-service and the OIDC-scoped private review queue remain in
+progress. See the [form operations contract](../../docs/refactor/mobile-form-operations.md).
 
 ### Private media and request protections
 

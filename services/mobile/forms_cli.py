@@ -262,6 +262,190 @@ def preview_command(args: argparse.Namespace) -> None:
     print_json(result)
 
 
+def _location_key(value: Any) -> str | None:
+    if value is None:
+        return None
+    try:
+        return str(UUID(str(value)))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise FormManifestInvalid("stored form location is invalid; refusing publication") from exc
+
+
+def publish_manifest(
+    manifest: dict[str, Any],
+    *,
+    actor: str,
+    expected_current_version: str | None,
+    expect_absent: bool,
+    connection_factory=None,
+) -> dict[str, Any]:
+    """Publish one reviewed revision through ``mobile_form`` in one transaction.
+
+    The database trigger on ``mobile_form`` owns immutable snapshot creation and
+    retirement of the previous revision. The CLI never writes
+    ``mobile_form_version`` directly.
+    """
+    summary = validate_manifest(manifest)
+    actor = _text(actor, "actor", maximum=200)
+    if any(ord(character) < 32 or ord(character) == 127 for character in actor):
+        raise FormManifestInvalid("actor contains unsupported control characters")
+    if actor.casefold() == summary["reviewed_by"].casefold():
+        raise FormManifestInvalid("publisher must be different from the manifest reviewer")
+    if expect_absent == (expected_current_version is not None):
+        raise FormManifestInvalid("specify exactly one expected-current-version or expect-absent condition")
+    if expected_current_version is not None and not _VERSION.fullmatch(expected_current_version):
+        raise FormManifestInvalid("expected current version must use numeric semantic versioning")
+
+    if connection_factory is None:
+        from services.common.cli import get_connection
+
+        connection_factory = get_connection
+
+    policy = manifest["consent_policy"]
+    review = manifest["review"]
+    params = {
+        "form_id": summary["form_id"],
+        "name": manifest["name"],
+        "description": manifest.get("description"),
+        "form_schema": json.dumps(manifest["form_schema"]),
+        "ui_schema": json.dumps(manifest.get("ui_schema", {})),
+        "version": summary["version"],
+        "collection_type": manifest["collection_type"],
+        "status": manifest.get("status", "active"),
+        "location_id": summary["location_id"],
+        "is_public": manifest.get("is_public", False),
+        "min_app_version": manifest.get("min_app_version"),
+        "consent_policy_status": policy["status"],
+        "consent_data_category": policy["data_category"],
+        "consent_purpose": policy["purpose"],
+        "consent_scope_type": policy["scope_type"],
+        "consent_scope_id": policy["scope_id"],
+        "consent_recipient_type": policy["recipient_type"],
+        "consent_recipient_party_id": policy.get("recipient_party_id"),
+        "consent_recipient_name": policy.get("recipient_name"),
+        "consent_version": policy.get("version"),
+        "consent_policy_reviewed_by": review["reviewed_by"],
+        "consent_policy_reviewed_at": review["reviewed_at"],
+        "consent_policy_evidence": json.dumps(review["evidence"]),
+    }
+    insert_sql = """
+        INSERT INTO mobile_form (
+            form_id, name, description, form_schema, ui_schema, version,
+            collection_type, status, location_id, is_public, min_app_version,
+            consent_policy_status, consent_data_category, consent_purpose,
+            consent_scope_type, consent_scope_id, consent_recipient_type,
+            consent_recipient_party_id, consent_recipient_name, consent_version,
+            consent_policy_reviewed_by, consent_policy_reviewed_at,
+            consent_policy_evidence
+        ) VALUES (
+            :form_id, :name, :description, :form_schema::jsonb,
+            :ui_schema::jsonb, :version, :collection_type, :status,
+            :location_id, :is_public, :min_app_version,
+            :consent_policy_status, :consent_data_category, :consent_purpose,
+            :consent_scope_type, :consent_scope_id, :consent_recipient_type,
+            :consent_recipient_party_id, :consent_recipient_name, :consent_version,
+            :consent_policy_reviewed_by, :consent_policy_reviewed_at,
+            :consent_policy_evidence::jsonb
+        )
+    """
+    update_sql = """
+        UPDATE mobile_form SET
+            name = :name, description = :description,
+            form_schema = :form_schema::jsonb, ui_schema = :ui_schema::jsonb,
+            version = :version, collection_type = :collection_type,
+            status = :status, is_public = :is_public,
+            min_app_version = :min_app_version,
+            consent_policy_status = :consent_policy_status,
+            consent_data_category = :consent_data_category,
+            consent_purpose = :consent_purpose,
+            consent_scope_type = :consent_scope_type,
+            consent_scope_id = :consent_scope_id,
+            consent_recipient_type = :consent_recipient_type,
+            consent_recipient_party_id = :consent_recipient_party_id,
+            consent_recipient_name = :consent_recipient_name,
+            consent_version = :consent_version,
+            consent_policy_reviewed_by = :consent_policy_reviewed_by,
+            consent_policy_reviewed_at = :consent_policy_reviewed_at,
+            consent_policy_evidence = :consent_policy_evidence::jsonb,
+            updated_at = NOW()
+        WHERE form_id = :form_id
+    """
+
+    with connection_factory() as conn:
+        conn.execute(
+            "SELECT set_config('kokonut.actor', :actor, true) AS actor",
+            {"actor": actor},
+        )
+        current_rows = conn.execute(
+            """SELECT form_id, version, location_id
+                 FROM mobile_form WHERE form_id = :form_id FOR UPDATE""",
+            {"form_id": summary["form_id"]},
+        ).all()
+        current = current_rows[0] if current_rows else None
+
+        if expect_absent:
+            if current is not None:
+                raise FormManifestInvalid("form already exists; refresh the preview before publishing")
+        elif current is None or current["version"] != expected_current_version:
+            raise FormManifestInvalid("current form version changed; refresh the preview before publishing")
+
+        historical = conn.execute(
+            """SELECT version FROM mobile_form_version
+                 WHERE form_id = :form_id AND version = :version LIMIT 1""",
+            {"form_id": summary["form_id"], "version": summary["version"]},
+        ).first()
+        if historical:
+            raise FormManifestInvalid("proposed version already exists in immutable form history")
+
+        proposed_version = tuple(int(part) for part in summary["version"].split("."))
+        if current is not None:
+            current_version = current["version"]
+            if not isinstance(current_version, str) or not _VERSION.fullmatch(current_version):
+                raise FormManifestInvalid("current form version is invalid; refusing publication")
+            if proposed_version <= tuple(int(part) for part in current_version.split(".")):
+                raise FormManifestInvalid("proposed version must be greater than the current version")
+            if _location_key(current["location_id"]) != summary["location_id"]:
+                raise FormManifestInvalid("a published form cannot be reassigned to another location")
+            conn.execute(update_sql, params)
+            operation = "revision_published"
+        else:
+            conn.execute(insert_sql, params)
+            operation = "form_created"
+
+    return {
+        "published": True,
+        "operation": operation,
+        "form_id": summary["form_id"],
+        "version": summary["version"],
+        "status": summary["status"],
+        "actor": actor,
+        "snapshot": "created_by_mobile_form_trigger",
+    }
+
+
+def publish_command(args: argparse.Namespace) -> None:
+    proposed = _load_manifest(args.manifest)
+    current = _load_manifest(args.current) if args.current else None
+    preview = preview_manifests(proposed, current)
+    if not args.apply:
+        preview["mode"] = "preview"
+        print_json(preview)
+        return
+    if not args.actor:
+        raise FormManifestInvalid("--actor is required with --apply")
+    if args.expect_absent == (args.expected_current_version is not None):
+        raise FormManifestInvalid(
+            "--apply requires exactly one of --expected-current-version or --expect-absent"
+        )
+    result = publish_manifest(
+        proposed,
+        actor=args.actor,
+        expected_current_version=args.expected_current_version,
+        expect_absent=args.expect_absent,
+    )
+    print_json(result)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -272,6 +456,15 @@ def main() -> None:
     preview.add_argument("--manifest", required=True)
     preview.add_argument("--current", help="Optional prior manifest used for version comparison")
     preview.set_defaults(func=preview_command)
+    publish = commands.add_parser("publish", help="Preview a publication or apply a reviewed revision transactionally")
+    publish.add_argument("--manifest", required=True)
+    publish.add_argument("--current", help="Optional prior manifest for an offline preview comparison")
+    publish.add_argument("--actor", help="Operator identity recorded by the revision snapshot trigger")
+    publish.add_argument("--apply", action="store_true", help="Apply the publication in one database transaction")
+    expected = publish.add_mutually_exclusive_group()
+    expected.add_argument("--expected-current-version", help="Current database revision reviewed for this update")
+    expected.add_argument("--expect-absent", action="store_true", help="Assert that this form_id is not yet published")
+    publish.set_defaults(func=publish_command)
     args = parser.parse_args()
     run(args.func, args)
 

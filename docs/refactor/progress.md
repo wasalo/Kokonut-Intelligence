@@ -2450,12 +2450,16 @@ consent or publishing records. Legal retention periods, erasure authority, and
 organization-wide tenant/RLS policy remain open human/governance gates.
 
 The decision and interface requirements are recorded in the
-[form operations contract](mobile-form-operations.md). The first implementation
-step now provides offline manifest validation and version-aware preview through
-`python3 -m services.cli mobile-forms`; 21 focused form/CLI checks and 10
-governance checks pass, and Ruff is clean. Shared CLI connection setup and the
-optional Baal adapter now load lazily, so a synthetic unified-CLI invocation
-validated the manifest without SOPS credentials or a database connection and
-returned `database_write=false`. Transactional publication, queue routes/UI,
-audit events, and their acceptance checks remain open. No candidate database
-or service configuration changed.
+[form operations contract](mobile-form-operations.md). Offline validation and
+preview remain available without database credentials. The new `publish`
+command also defaults to an offline preview; applying requires `--apply`, a
+publisher distinct from the manifest reviewer, and an explicit expected current
+version or an assertion that the form is absent. It locks the mutable
+`mobile_form` row, rejects historical version reuse and location reassignment,
+sets transaction-local `kokonut.actor`, and leaves immutable snapshot creation
+and retirement to the migration 381 trigger. It writes no `mobile_form_version`
+rows directly. Twenty-nine focused form/schema checks passed using an isolated
+fake transaction adapter; Ruff and `git diff --check` passed. A disposable
+database trigger/rollback acceptance has not run, so operator use remains
+gated. The private OIDC-scoped queue and append-only review events remain open.
+No candidate database or service configuration changed.

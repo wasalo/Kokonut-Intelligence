@@ -1,6 +1,6 @@
 # Field Collector form authoring and review operations
 
-**Status:** Architecture decision and offline manifest validation/preview are implemented; transactional publication and the private review queue remain open.
+**Status:** Architecture decision, offline validation/preview, and transactional publication through `mobile_form` are implemented and covered by isolated source tests. Disposable-database acceptance and the private review queue remain open.
 
 **Decision date:** 12 October 2026.
 
@@ -25,22 +25,27 @@ to `mobile_form_version` directly.
 
 ## Authoring CLI contract
 
-The available read-only interface is local and manifest-based:
+The local, manifest-based interface is:
 
 ```text
 python3 -m services.cli mobile-forms validate --manifest form.json
 python3 -m services.cli mobile-forms preview --manifest form.json --current prior.json
+python3 -m services.cli mobile-forms publish --manifest form.json
+python3 -m services.cli mobile-forms publish --manifest form.json --actor operator-id --expected-current-version 1.0.0 --apply
+python3 -m services.cli mobile-forms publish --manifest form.json --actor operator-id --expect-absent --apply
 ```
 
-Both commands are read-only and make no database connection. The unified CLI
-can register its command groups without decrypting database credentials; the
-optional Baal adapter is loaded only when a governance query runs. Preview can
-compare two manifests and rejects content or review-metadata changes that reuse
-a version. Transactional `publish` is not available yet; when added, it must
-default to preview and require an explicit `--apply`. The implementation must:
+`validate`, `preview`, and `publish` without `--apply` are read-only and make no
+database connection. The unified CLI can register its command groups without
+decrypting database credentials; the optional Baal adapter is loaded only when
+a governance query runs. Preview can compare two manifests and rejects content
+or review-metadata changes that reuse a version. Apply requires an independent
+`--actor` and an optimistic concurrency assertion: `--expected-current-version
+VERSION` for an update or `--expect-absent` for a new form. The implementation
+must:
 
 - require an immutable `form_id` and a new, unused semantic `version` for every
-  content or policy change;
+  content or policy change, and reject a stale expected version;
 - validate the exact JSON Schema locally, reject remote `$ref` values, require
   the root schema to reject undeclared properties, and report errors without
   echoing submitted or personal data;
@@ -48,8 +53,9 @@ default to preview and require an explicit `--apply`. The implementation must:
   non-empty evidence for every publishable revision; `unclassified` revisions
   cannot become active;
 - run publication as one transaction through `mobile_form`, set
-  `kokonut.actor` for the snapshot trigger, and fail closed on duplicate
-  versions, location mismatch, invalid policy, or a stale preview;
+  transaction-local `kokonut.actor` for the snapshot trigger, require the
+  publisher to differ from the manifest reviewer, and fail closed on duplicate
+  versions, location reassignment, invalid policy, or a stale preview;
 - retain prior snapshots and let the database trigger retire them; no CLI
   command may edit or delete historical revision content;
 - document that the local CLI is a privileged maintenance tool. Operator
@@ -106,15 +112,19 @@ approved policy.
 1. [x] Add manifest validation and preview commands with offline tests; verify
    malformed schemas, external references, policy completeness, and duplicate
    version handling. Keep database and optional-chain imports lazy for offline CLI use.
-2. [ ] Add transactional publication via `mobile_form`; verify a new immutable
-   snapshot, retirement of the prior active revision, rollback on invalid
-   input, and no historical-content mutation against a disposable database.
-3. [ ] Add OIDC-scoped private queue list/detail routes and UI; verify location
+2. [x] Add explicit transactional publication via `mobile_form`, with
+   independent publisher identity, expected-version/absence guards, and offline
+   default preview. Twenty-nine focused CLI/schema checks pass using a fake
+   transaction adapter.
+3. [ ] Verify trigger-created immutable snapshots, retirement of the prior
+   active revision, rollback, and preserved history against a disposable
+   database before enabling operator use.
+4. [ ] Add OIDC-scoped private queue list/detail routes and UI; verify location
    isolation, CSRF, audit attribution, payload minimization, and media privacy.
-4. [ ] Add append-only review/disposition events; verify consent-ineligible rows
+5. [ ] Add append-only review/disposition events; verify consent-ineligible rows
    cannot be made eligible and no action publishes without the independent
    governed lifecycle.
-5. Keep tenant/RLS, legal retention periods, erasure execution, media expiry,
+6. Keep tenant/RLS, legal retention periods, erasure execution, media expiry,
    and real-provider/browser acceptance open until their own evidence and human
    approvals exist.
 
