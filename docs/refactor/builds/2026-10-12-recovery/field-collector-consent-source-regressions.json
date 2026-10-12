@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-12",
+  "scope": "Focused Field Collector consent, offline-shell, vault, media, API, and Gateway CORS regressions",
+  "python": {
+    "command": "KOKONUT_GATEWAY_AUDIT_SPOOL_PATH=<private-temporary-directory>/gateway-audit.sqlite3 uv run --no-project --with pytest --python 3.11 python -m pytest tests/test_mobile_form_validation.py tests/test_mobile_offline.py tests/test_mobile_vault.py tests/test_mobile_media_storage.py tests/test_mobile_api.py tests/test_gateway_auth.py -q",
+    "result": "83 passed",
+    "duration_seconds": 6.14,
+    "audit_spool": "Private temporary directory with mode 0700; no candidate Gateway or database writes"
+  },
+  "node": {
+    "command": "node --test tests/test_mobile_offline_shell.mjs tests/test_mobile_vault.mjs",
+    "result": "11 passed, 0 failed",
+    "duration_seconds": 0.713
+  },
+  "environment_notes": [
+    "The host Python lacked pytest; the authorized isolated uv environment supplied pytest without changing repository dependency files.",
+    "The first Python attempt used the default audit spool path, which the sandbox could not create; write-path cases returned 503. The successful rerun used a private temporary spool path."
+  ],
+  "browser_consent_setup": {
+    "url": "http://localhost:8103/mobile",
+    "fixture": "Local-only synthetic API serves a retired field_note revision with required consent, returns a synthetic device enrollment, and rejects sync with HTTP 403.",
+    "state": "The page is waiting at Create your offline vault. The user must enter a new local test passphrase directly in the browser before the consent UI can be exercised.",
+    "acceptance_status": "pending",
+    "writes": "No forms or sync calls have been sent; the candidate database and locked existing browser profile were not touched."
+  },
+  "limits": [
+    "These source-level checks do not replace real-device airplane-mode testing, a real OIDC provider, or browser consent acceptance.",
+    "The browser fixture is not the candidate Gateway and creates no persistent application data."
+  ],
+  "rollback": "No source changes or application-data writes were made by the test run; the temporary audit spool and isolated pytest cache can be removed independently."
+}

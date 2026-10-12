@@ -2396,3 +2396,33 @@ Evidence: [retired-form Gateway HTTP acceptance](builds/2026-10-12-recovery/fiel
 Rollback: the synthetic fixture was confined to the disposable clone, which was
 dropped after the request; the dump and temporary loopback server were removed.
 No candidate data or migration changed.
+
+## Batch 5 Field Collector focused source rerun and browser consent setup — 12 October 2026
+
+Reran the focused Field Collector Python suites for schema validation, offline
+transport, encrypted vault behavior, private media, mobile API policy, and
+Gateway authentication/CORS: **83 passed**. The Node offline-shell and vault
+suites also passed: **11 passed**. The host interpreter lacked pytest, so the
+authorized isolated `uv` environment supplied it. The first Python run could
+not create the default audit spool in this sandbox and returned 503 on 25 write
+paths; rerunning with a private mode-0700 spool passed all checks. No source,
+candidate database, or candidate Gateway state changed.
+
+The retired required-consent browser fixture is prepared at
+`http://localhost:8103/mobile`. It serves the checked-in collector UI and a
+synthetic local API that returns one retired required-consent revision, permits
+synthetic enrollment, and rejects sync with 403. The browser is currently at
+the new-vault screen. Creating the local encryption passphrase is a browser
+credential handoff, so the user must enter it directly before the browser form
+and encrypted-queue rejection case can proceed. No consent form or sync request
+has run. The existing locked browser profile and candidate database were not
+touched. This UI case remains open alongside actual OS airplane mode, live
+Gateway recovery, real OIDC, and the existing human disposition, media, tenant,
+and retention gates.
+
+Evidence: [focused source checks and browser setup](builds/2026-10-12-recovery/field-collector-consent-source-regressions.json).
+
+Rollback: the Python audit spool and temporary test environment are isolated
+under `/private/tmp`. The local synthetic fixture server can be stopped after
+the browser case or if the handoff is deferred; no application rollback is
+needed.
