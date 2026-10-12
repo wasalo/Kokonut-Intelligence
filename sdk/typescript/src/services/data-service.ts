@@ -1,8 +1,7 @@
 /**
  * Typed wrapper for the gRPC DataService.
  *
- * Uses @grpc/proto-loader for runtime proto loading with generated
- * @bufbuild/protobuf types for compile-time type safety.
+ * Loads the package-bundled proto source with @grpc/proto-loader.
  */
 
 import {
@@ -29,15 +28,15 @@ export class DataServiceClient {
   private readonly defaultMetadata: Metadata;
 
   constructor(address: string, options: DataServiceClientOptions = {}) {
-    const repoRoot = path.resolve(__dirname, "../../../../");
-    const protoPath = path.resolve(repoRoot, "proto/data/v1/service.proto");
+    const protoRoot = path.resolve(__dirname, "../proto");
+    const protoPath = path.resolve(protoRoot, "data/v1/service.proto");
     const packageDefinition = protoLoader.loadSync(protoPath, {
       keepCase: true,
       longs: Number,
       enums: String,
       defaults: true,
       oneofs: true,
-      includeDirs: [path.resolve(repoRoot, "proto")],
+      includeDirs: [protoRoot],
     });
     const grpc = require("@grpc/grpc-js");
     const ServiceDefinition = grpc.loadPackageDefinition(packageDefinition)

@@ -237,6 +237,22 @@ authorization and release approval remain open. The wheel used is retained
 under `/private/tmp/kokonut-sdk-proto-artifacts/`. See the [Batch 5
 checklist](batches.md).
 
+## Phase 7 TypeScript gRPC package proto boundary — 11 October 2026
+
+Source inspection found that the TypeScript gRPC clients searched for proto
+files relative to a repository checkout, while the npm package published only
+`dist/`; an installed package therefore could not load either service
+definition. The package now copies the Data/Ecocredit proto files and their
+pagination/type imports into `dist/proto` during build, and both clients resolve
+definitions relative to that package-owned directory. `prepack` performs a
+clean build so npm archives include those assets. Removed the unused
+`@bufbuild/protobuf` runtime dependency and Buf generation step; this client
+uses `@grpc/proto-loader` directly. The build, npm archive contents, and
+installed-package import have not been checked, and no test suite ran. Runtime
+acceptance and Python/TypeScript API parity remain open. Roll back the package
+copy script, client paths, lifecycle/dependency edits, and this documentation
+together. See the [Batch 5 checklist](batches.md).
+
 
 ## Phase 7 operations-console identity boundary — 11 October 2026
 
