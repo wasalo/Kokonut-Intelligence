@@ -153,3 +153,51 @@ process/container memory for this isolated check. The candidate database and
 running app were untouched. This was not an HTTP upload-route test, a full
 ordered migration replay, or a candidate service recreation. Expiry/orphan
 cleanup and production retention remain open. See [parity evidence](builds/2026-10-12-recovery/field-collector-media-db-object-parity.json).
+
+
+## Expire unattached uploads
+
+The bounded operator command in `services/mobile/media_cleanup.py` uses the
+existing 30-day `expires_at` default from migration 358. It is dry-run by
+default and reports only the number of eligible rows. Apply mode is explicit
+and accepts a limit from 1 to 500:
+
+```bash
+python3 -m services.cli mobile-media-cleanup --limit 100
+python3 -m services.cli mobile-media-cleanup --apply --limit 100
+```
+
+Only rows still `uploaded`, past expiry, and without an attached collection are
+eligible. Apply locks one row with `FOR UPDATE SKIP LOCKED`, deletes its private
+object, then marks the row `expired` in the same database transaction. If
+provider deletion or the database commit fails, the upload row remains eligible
+for retry; provider errors are reported by type without exposing object keys.
+Attached photos remain for governed retention/erasure review. The command does
+not list or delete unregistered objects: neither provider currently has a
+listing method in `PrivateMediaStore`, so crash-orphan cleanup requires a
+separate reviewed reconciliation capability.
+
+An isolated run applied migration 358 in disposable PostGIS, then exercised a
+dry-run, two bounded applies, and a repeat no-op against two expired unattached
+objects, one expired attached object, and one live upload. The expired uploads
+were deleted and marked expired; the attached and live objects remained. The
+eight cleanup unit tests and the broader 44-case mobile/media/API/CLI regression
+set passed; standard and security Ruff passed. Synthetic rows, objects, and
+project resources were removed. The running candidate was untouched. See
+[cleanup evidence](builds/2026-10-12-recovery/field-collector-media-expiry-cleanup.json).
+
+
+## Full runtime volume replacement check — 12 October 2026
+
+Two disposable full Kernel runtime containers using the candidate app image
+started on the candidate Docker network with local media selected and a unique
+named volume. Each reached the health endpoint against the existing candidate
+database. A synthetic encrypted object written before startup authenticated and
+matched its plaintext digest after each runtime start. The object, containers,
+and named volume were removed; the existing candidate services and configuration
+were untouched.
+
+This confirms recovery across full runtime container replacement on the
+candidate network. It did not restart or reconfigure the primary candidate app,
+run background workers, or exercise the upload/sync flow. See [runtime volume
+evidence](builds/2026-10-12-recovery/field-collector-media-runtime-volume-recreation.json).

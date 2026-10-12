@@ -2753,3 +2753,46 @@ was not an HTTP upload-route test, full ordered migration replay, or candidate
 service recreation. Expiry/orphan cleanup, retention, and candidate recreation
 remain open. See [parity evidence](builds/2026-10-12-recovery/field-collector-media-db-object-parity.json),
 [media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 bounded Field Collector media expiry cleanup — 12 October 2026
+
+Implemented the dry-run-default operator CLI at services/mobile/media_cleanup.py
+and mounted it as mobile-media-cleanup in the unified CLI. Apply mode is
+explicit, limits a run to 1–500 rows (default 100), and selects only uploads
+whose 30-day expires_at has passed, which remain in uploaded status, and which
+have no attached collection. It locks rows with FOR UPDATE SKIP LOCKED, deletes
+the object before marking the row expired, and keeps attached media for governed
+retention/erasure review. Provider exceptions are sanitized. No object-listing
+interface exists, so unregistered crash-orphans are not automatically removed.
+
+Eight cleanup unit tests passed. The broader cleanup/media/API/CLI regression
+set passed all 44 tests using a private temporary audit spool; standard and
+security Ruff passed. The run emitted 117 existing Starlette/FastAPI
+deprecation warnings. An isolated PostGIS acceptance applied migration 358,
+created two expired unattached objects, one expired
+attached object, and one unexpired object, and verified dry-run count, a
+one-row apply limit, the next bounded apply, and an idempotent repeat no-op.
+Both eligible objects were removed and marked expired; attached and live rows
+and objects remained. All synthetic rows, objects, temporary directory, Compose
+network, and project volumes were removed. The candidate project was untouched.
+The first integration harness stopped before fixture creation due to an invalid
+Compose port argument; the corrected run passed. Candidate service recreation,
+orphan reconciliation, and production retention remain open. See [cleanup
+evidence](builds/2026-10-12-recovery/field-collector-media-expiry-cleanup.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 full edge runtime media-volume replacement check — 12 October 2026
+
+Started two disposable full Kernel runtime containers from the existing
+candidate app image on the candidate Docker network. Both reached the health
+endpoint while using the existing database for health connectivity only. A
+synthetic encrypted object in a unique named volume authenticated and matched
+its plaintext digest after each runtime start. The object, both containers, and
+volume were removed. The primary candidate app, database, Metabase, and their
+configuration were not stopped or changed; background workers and upload/sync
+were not exercised.
+
+This verifies a full runtime start/replacement with the edge media volume on the
+candidate network, but does not certify replacing or reconfiguring the primary
+candidate app service. See [runtime volume evidence](builds/2026-10-12-recovery/field-collector-media-runtime-volume-recreation.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).

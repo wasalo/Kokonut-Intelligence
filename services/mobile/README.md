@@ -139,10 +139,13 @@ progress. See the [form operations contract](../../docs/refactor/mobile-form-ope
   uploads. For R2, use its S3 API endpoint and the `auto` region. Do not enable
   public bucket access or expose object keys.
 - The media metadata migration gives unattached uploads a 30-day expiry, and
-  sync rejects expired references. Automated deletion of expired object bytes
-  is not yet implemented; storage cleanup/retention verification is a
-  production gate. No bucket or other Cloudflare resource was created in this
-  repository-only work.
+  sync rejects expired references. Operators can preview eligible rows with
+  `python3 -m services.cli mobile-media-cleanup`; deleting bytes and marking
+  expired rows requires explicit `--apply` and is limited to unattached uploads.
+  Attached media remains for governed retention/erasure review. Automatic
+  listing and cleanup of unregistered crash-orphans, production retention, and
+  provider rollout remain open gates. No bucket or other Cloudflare resource
+  was created in this repository-only work.
 - Gateway request bodies are capped at 2 MB for media uploads and 8 MB for
   other write requests. CORS is closed by default: set `CORS_ORIGIN` to an
   explicit comma-separated list of trusted browser origins; wildcard origins
@@ -212,8 +215,10 @@ accepted a valid `1.2.0` payload; its synthetic fixture was removed from the
 database clone. The test bypassed the enrollment route, so the trusted
 enrollment/OIDC and full mobile workflow acceptance remain open. The legacy project,
 staging/production databases, and Cloudflare resources were not changed.
-Expired object-byte cleanup and full live mobile workflow acceptance remain open
-before production use.
+Registered-upload expiry cleanup is implemented and passed an isolated
+PostgreSQL/local-media acceptance. Automatic orphan reconciliation, production
+retention, and full live mobile workflow acceptance remain open before
+production use.
 
 See the implemented [`mobile access contract`](../../docs/refactor/mobile-access-contract.md)
 for the full policy, review gates, and rollback. Enrollment and location binding

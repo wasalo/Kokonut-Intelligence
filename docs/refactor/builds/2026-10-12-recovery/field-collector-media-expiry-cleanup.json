@@ -1,0 +1,56 @@
+{
+  "acceptance": "field-collector-expired-unattached-media-cleanup",
+  "date": "2026-10-12",
+  "implementation": "services/mobile/media_cleanup.py",
+  "compose_files": [
+    "docker-compose.kernel-candidate.yml",
+    "docker-compose.kernel-edge.yml"
+  ],
+  "scope": {
+    "project": "unique temporary Compose project",
+    "database": "disposable PostGIS 16 with a new project-scoped volume",
+    "migration": "schemas/postgres/358_mobile_private_media.sql",
+    "media_provider": "local media adapter in a private temporary directory",
+    "sops_fields_read_in_process_memory": [
+      "MOBILE_MEDIA_LOCAL_KEY",
+      "POSTGRES_PASSWORD"
+    ],
+    "candidate_project_touched": false
+  },
+  "synthetic_records": {
+    "expired_unattached": 2,
+    "expired_attached": 1,
+    "unexpired_unattached": 1
+  },
+  "checks": {
+    "dry_run_reported_two_eligible_rows_without_deleting": true,
+    "apply_respected_limit_one": true,
+    "second_apply_expired_remaining_upload": true,
+    "repeat_apply_was_noop": true,
+    "expired_unattached_objects_deleted_and_rows_marked_expired": true,
+    "attached_expired_row_and_object_preserved": true,
+    "unexpired_row_and_object_preserved": true,
+    "unit_tests_passed": 8,
+    "ruff_passed": true,
+    "standalone_and_unified_cli_help_passed": true,
+    "focused_mobile_storage_api_cli_tests_passed": 44,
+    "ruff_security_passed": true
+  },
+  "result": "passed for bounded dry-run and apply against disposable PostgreSQL and encrypted local media",
+  "limitations": [
+    "The upload HTTP route and the live candidate database were not exercised.",
+    "Provider object listing and automatic cleanup of unregistered crash-orphans are not implemented.",
+    "Attached media is intentionally preserved for governed retention or erasure review."
+  ],
+  "rollback": "Removed all synthetic upload rows, offline collection, device, location, local media objects, temporary media directory, unique Compose network, and project-scoped volumes.",
+  "harness_notes": [
+    "An initial invocation used an invalid docker compose port argument and stopped before creating the schema or fixtures; the disposable project was removed, and the corrected end-to-end run passed.",
+    "The first broader API test run used a protected default audit-spool path and failed before the API assertions; rerunning with a private temporary audit spool passed all 44 tests."
+  ],
+  "validation": {
+    "test_command": "pytest tests/test_mobile_media_cleanup.py tests/test_mobile_media_storage.py tests/test_mobile_api.py tests/test_cli.py",
+    "passed": 44,
+    "deprecation_warnings": 117,
+    "audit_spool": "private temporary SQLite file; removed after the run"
+  }
+}
