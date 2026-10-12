@@ -402,6 +402,15 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
         return FileResponse(VAULT_SCRIPT_PATH, media_type="application/javascript")
 
+    @app.get("/field-collector-service-worker.js")
+    async def field_collector_service_worker():
+        """Serve the offline shell worker relative to the /mobile entry point."""
+        from fastapi.responses import FileResponse
+
+        from services.mobile.api import SERVICE_WORKER_PATH
+
+        return FileResponse(SERVICE_WORKER_PATH, media_type="application/javascript")
+
     @app.get("/mobile/field-collector-vault.js")
     async def mobile_vault_script_alias():
         """Serve the encryption helper when the app is opened with a trailing slash."""
@@ -410,6 +419,15 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
         from services.mobile.api import VAULT_SCRIPT_PATH
 
         return FileResponse(VAULT_SCRIPT_PATH, media_type="application/javascript")
+
+    @app.get("/mobile/field-collector-service-worker.js")
+    async def mobile_service_worker_alias():
+        """Serve the offline shell worker when the app URL has a trailing slash."""
+        from fastapi.responses import FileResponse
+
+        from services.mobile.api import SERVICE_WORKER_PATH
+
+        return FileResponse(SERVICE_WORKER_PATH, media_type="application/javascript")
 
     app.include_router(router, prefix="/api")
     app.include_router(mobile_router, prefix="/api")

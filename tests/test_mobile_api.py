@@ -666,11 +666,19 @@ def test_gateway_serves_field_collector():
         api_response = client.get("/api/mobile/app")
         root_vault_script = client.get("/field-collector-vault.js")
         slash_vault_script = client.get("/mobile/field-collector-vault.js")
+        root_worker = client.get("/field-collector-service-worker.js")
+        slash_worker = client.get("/mobile/field-collector-service-worker.js")
+        api_worker = client.get("/api/mobile/field-collector-service-worker.js")
 
     assert response.status_code == 200
     assert api_response.status_code == 200
     assert root_vault_script.status_code == 200
     assert slash_vault_script.status_code == 200
+    assert root_worker.status_code == 200
+    assert slash_worker.status_code == 200
+    assert api_worker.status_code == 200
+    assert "CACHE_FIELD_COLLECTOR_SHELL" in root_worker.text
+    assert 'registerOfflineAppShell' in response.text
     assert "Kokonut Field Collector" in response.text
     assert "localStorage" in response.text
 

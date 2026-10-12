@@ -12,12 +12,12 @@ try:
 
     from services.gateway.public_models import (
         PublicCrispAssessment,
+        PublicCrispAssessmentEnvelope,
         PublicError,
         PublicLocationListResponse,
         PublicLocationResponse,
         PublicLocationSummary,
         PublicLocationSummaryEnvelope,
-        PublicCrispAssessmentEnvelope,
         PublicMetricSummary,
         PublicMetricSummaryEnvelope,
     )
@@ -47,8 +47,11 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/mobile/?$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/field-collector-vault\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/mobile/field-collector-service-worker\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/field-collector-service-worker\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/app$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/api/mobile/field-collector-service-worker\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/forms$"), "mobile_form", "read", True),
     ("POST", re.compile(r"^/api/mobile/media/uploads$"), "mobile_media", "upload", True),
     ("POST", re.compile(r"^/api/mobile/register$"), "mobile_device", "register", True),

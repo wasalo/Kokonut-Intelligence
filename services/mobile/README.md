@@ -56,11 +56,30 @@ fallback: `python3 -m services.gateway.cli --serve --port 8099`.
 When opened directly as a file, configure the API origin in Settings before
 syncing. The app does not require a connection to record data.
 
+### Reopen the app offline
+
+On HTTPS or localhost, the Field Collector registers a small service worker and
+caches only the static HTML shell and its encryption helper for the exact app
+URL. Visit the app once while online to seed that shell; the same URL can then
+reopen while offline. The encrypted IndexedDB vault still requires its
+passphrase after a browser restart.
+
+The worker never caches forms, enrollment responses, sync responses, media, or
+any write request. Forms remain in the encrypted vault after an online fetch,
+with the built-in form definitions as a fallback. Collection records and local
+photos remain encrypted in IndexedDB until sync succeeds. When connectivity
+returns, the app refreshes forms and retries the queue. Browsers that cannot use
+service workers (including direct `file://` use) can continue collecting while
+the page stays open, but cannot use the cached app shell to reopen it offline.
+
 ## API
 
 The browser loads `field-collector-vault.js` from the same origin as its entry
 point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
 `/api/mobile/field-collector-vault.js`, or the Caddy static `/field/` route).
+The matching `field-collector-service-worker.js` aliases are served from the
+same routes. The worker caches the app shell only; all `/api/mobile/*` data
+requests remain network-only.
 
 The built-in `1.2.0` farm activity, harvest, expense, field note, and soil
 sample forms are classified `not_required` for participant-linked consent

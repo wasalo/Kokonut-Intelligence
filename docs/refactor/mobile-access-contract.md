@@ -150,9 +150,12 @@ describe these records as erased or resolved after a withdrawal.
    active `1.2.0` revisions now reject undeclared fields. The immutable `1.1.0`
    revisions remain retired. The pre-rollout candidate had no form or
    collection rows; on other populated databases, backfilled `1.0.0` revisions
-   remain unclassified and legacy collection rows remain unassessed. Complete
-   live device enrollment, form listing, offline capture, media upload, sync,
-   and eligibility acceptance.
+   remain unclassified and legacy collection rows remain unassessed. Isolated
+   HTTP checks now cover trusted enrollment, form listing, private media upload,
+   and sync. A service worker adds an offline app shell while keeping form/API
+   responses and writes network-only. Still complete real-browser offline
+   capture/reconnection, retired and consent-required withdrawal cases, and
+   downstream human disposition before treating CAP-053 as accepted.
 2. Specify organization-wide tenant policy. Location is the scope for this
    mobile API only; locations must not be treated as interchangeable tenant IDs.
 3. Define the human retention/erasure disposition process for participant-linked
@@ -195,17 +198,30 @@ present. The live `/api/mobile/app` route returned HTTP 200 and served all five
 request both returned HTTP 401. A separate current-image HTTP check on an
 isolated database clone used a synthetic active device: an undeclared field
 returned HTTP 422 without echoing its value or creating a row, and a valid
-`1.2.0` field note returned HTTP 200. The fixture was deleted afterward. The
-test inserted its device directly into the clone, so trusted enrollment and
-OIDC remain untested. Still required: successful enrollment-created form
-visibility; route policy and OIDC
-scope/CSRF behavior; create/revoke mapping authorization; collector/participant
-separation; exact consent at collection and sync for active and known-retired
-required revisions; missing, expired, denied, and withdrawn consent; form
-status/version/type/location mismatch; retired revision review; inactive/unknown
-revision rejection; device revocation; cross-location media; idempotent retry
-after link revocation/consent withdrawal; eligibility view behavior; and
+`1.2.0` field note returned HTTP 200. Follow-up checks used a scoped enrollment
+route to create the device, retrieved all five forms, and synced a valid field
+note; the stored record remained `transport_pending` and ineligible. A synthetic
+JPEG was then uploaded through the encrypted local adapter and attached during
+sync. These fixtures were removed. Source route/auth checks cover OIDC console
+route policy, but no real provider or operator browser session is configured.
+Still required: real-browser offline capture/reconnect, live OIDC
+scope/CSRF and enrollment/revocation; exact consent at collection and sync for
+active and known-retired required revisions; missing, expired, denied, and
+withdrawn consent; form status/version/type/location mismatch; retired revision
+review; inactive/unknown revision rejection; cross-location media; idempotent
+retry after link revocation/consent withdrawal; eligibility view behavior; and
 encrypted media recovery.
+
+The offline app-shell implementation adds explicit public Gateway routes for
+the worker alongside each supported mobile entry point. On secure origins, the
+worker stores only the static app HTML and vault helper, updates those resources
+network-first, and falls back to the cached shell for offline navigation. A
+dependency-free Node worker harness verifies offline navigation, valid paired
+shell caching, and rejection of unpaired/cross-origin cache requests; it also
+confirms that forms and sync requests are not intercepted. The focused mobile
+API and Gateway authorization suites passed 51 tests with a private temporary
+audit spool. These checks do not replace an actual browser airplane-mode
+capture and reconnection sync run, which remains open.
 
 The prior app image is retained as
 `kokonut-kernel-candidate-app:pre-form-schema-20261012`. Do not point that older

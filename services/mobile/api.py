@@ -36,6 +36,7 @@ except ImportError:  # pragma: no cover - gateway requires FastAPI at runtime
 
 APP_PATH = Path(__file__).with_name("field-collector.html")
 VAULT_SCRIPT_PATH = Path(__file__).with_name("field-collector-vault.js")
+SERVICE_WORKER_PATH = Path(__file__).with_name("field-collector-service-worker.js")
 router = APIRouter(prefix="/mobile", tags=["mobile"]) if APIRouter else None
 logger = logging.getLogger(__name__)
 
@@ -326,6 +327,12 @@ async def mobile_app():
 async def mobile_vault_script():
     """Serve the local encryption helper used by the companion page."""
     return FileResponse(VAULT_SCRIPT_PATH, media_type="application/javascript")
+
+
+@router.get("/field-collector-service-worker.js")
+async def mobile_service_worker():
+    """Serve the offline shell worker from the mobile API namespace."""
+    return FileResponse(SERVICE_WORKER_PATH, media_type="application/javascript")
 
 
 def get_media_store():

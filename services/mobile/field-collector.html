@@ -139,6 +139,23 @@
       document.getElementById("connectionDot").classList.toggle("online", online);
       document.getElementById("connectionText").textContent = online ? "Online" : "Offline ready";
     };
+    const registerOfflineAppShell = async () => {
+      if (!isSecure() || !("serviceWorker" in navigator)) return;
+      try {
+        const scriptUrl = new URL("field-collector-service-worker.js", location.href);
+        const registration = await navigator.serviceWorker.register(scriptUrl.href, { updateViaCache:"none" });
+        await navigator.serviceWorker.ready;
+        const worker = registration.active || registration.waiting || registration.installing;
+        if (!worker) return;
+        const appUrl = new URL(location.href);
+        appUrl.search = "";
+        appUrl.hash = "";
+        const vaultUrl = new URL("field-collector-vault.js", location.href);
+        worker.postMessage({ type:"CACHE_FIELD_COLLECTOR_SHELL", appUrl:appUrl.href, vaultUrl:vaultUrl.href });
+      } catch (_) {
+        // Offline capture still works in the open page if this browser cannot install a service worker.
+      }
+    };
     const notify = (message, error = false) => {
       const existing = document.querySelector(".notice");
       if (existing) existing.remove();
@@ -415,7 +432,7 @@
     document.getElementById("lockButton").addEventListener("click", () => { void lockVault(); });
     window.addEventListener("online", () => { setConnection(); loadForms().then(() => syncQueue(false)); });
     window.addEventListener("offline", setConnection);
-    setConnection(); void renderVaultGate();
+    setConnection(); void renderVaultGate(); void registerOfflineAppShell();
     window.setInterval(() => { void syncQueue(false); }, 30000);
   </script>
 </body>

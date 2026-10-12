@@ -2144,3 +2144,37 @@ OIDC browser acceptance, retired/consent-required withdrawal, semantic review,
 tenant/RLS, and retention/erasure remain open. See [media contract](local-private-media.md),
 [rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json),
 [Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
+
+
+## Batch 5 Field Collector offline app shell — 12 October 2026
+
+Added a service worker for the Field Collector's supported `/mobile`,
+`/api/mobile/app`, and Caddy `/field/` entry points. The page registers the
+worker on secure origins and asks it to cache the exact static HTML and vault
+helper pair, so a previously opened URL can launch offline. Worker updates use
+network-first requests for these shell assets and fall back to their cached
+copies when offline. API forms, enrollment, media, sync responses, and all
+write requests remain network-only; the encrypted IndexedDB vault remains the
+only local store for forms, device credentials, records, and photos.
+
+Added explicit public Gateway policies and served worker aliases for each
+Gateway entry route. The Caddy `/field/` static route already serves files from
+`services/mobile/`, so it needs no route change. Direct `file://` use can still
+capture while its page is open but cannot register a service worker or reopen
+the app from the offline shell.
+
+The dependency-free Node worker harness passed 2 checks: paired same-origin
+shell caching and offline navigation fallback; it rejected a cross-origin
+helper and confirmed `/api/mobile/forms` and sync POSTs are not intercepted.
+The focused mobile API and Gateway authorization suites passed 51 tests with a
+private temporary audit spool. Ruff passed on the changed Python files. An
+initial test attempt used the world-writable temp root directly, which the
+audit journal correctly rejected; rerunning with a private spool directory
+passed. No candidate service was rebuilt or restarted.
+
+Actual browser airplane-mode capture and reconnect/sync remains open, along
+with live OIDC provider acceptance, retired and consent-required withdrawal
+flows, durable media backup/restore and cleanup, semantic review, tenant/RLS,
+and retention/erasure. See the [mobile access contract](mobile-access-contract.md),
+[Field Collector guide](../../services/mobile/README.md), [Batch 5 checklist](batches.md),
+and [CAP-053](capability-matrix.md#cap-053).
