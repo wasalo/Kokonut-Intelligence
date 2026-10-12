@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'">
+    <title>Kokonut Intelligence · Operator</title>
+    <style>
+      :root { font-family: system-ui, sans-serif; color: #18332b; background: #f4f7f3; }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; }
+      main { box-sizing: border-box; width: min(38rem, calc(100% - 2rem)); padding: 2rem;
+        border: 1px solid #d9e4dc; border-radius: 1rem; background: white; }
+      h1 { margin-top: 0; font-size: 1.5rem; }
+      .muted { color: #52665d; }
+      #identity { overflow-wrap: anywhere; }
+      button, a.button { display: inline-block; border: 0; border-radius: .5rem;
+        padding: .7rem 1rem; background: #176b50; color: white; font: inherit;
+        text-decoration: none; cursor: pointer; }
+      button.secondary { background: #e8efea; color: #18332b; }
+      .notice { margin: 1.25rem 0; padding: 1rem; border-radius: .5rem; background: #f4f7f3; }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Kokonut Intelligence</h1>
+      <p class="muted">Operator access</p>
+      <section id="signed-out" hidden>
+        <p>Sign in with your organization’s identity provider.</p>
+        <a class="button" href="/operator/auth/login">Sign in</a>
+      </section>
+      <section id="signed-in" hidden>
+        <h2>Signed in</h2>
+        <dl id="identity"></dl>
+        <div class="notice">The scoped review queue will appear here when its governed read endpoint is available.</div>
+        <button id="logout" class="secondary" type="button">Sign out</button>
+      </section>
+      <p id="status" class="muted" role="status">Checking operator session…</p>
+    </main>
+    <script>
+      const signedOut = document.querySelector("#signed-out");
+      const signedIn = document.querySelector("#signed-in");
+      const status = document.querySelector("#status");
+      const identity = document.querySelector("#identity");
+      const fields = [["Name", "display_name"], ["Subject", "subject"], ["Issuer", "issuer"]];
+
+      function renderIdentity(operator) {
+        identity.replaceChildren();
+        for (const [label, key] of fields) {
+          const term = document.createElement("dt");
+          const value = document.createElement("dd");
+          term.textContent = label;
+          value.textContent = operator[key] || "—";
+          identity.append(term, value);
+        }
+      }
+
+      async function loadSession() {
+        try {
+          const response = await fetch("/operator/auth/session", {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 401) {
+            signedOut.hidden = false;
+            status.hidden = true;
+            return;
+          }
+          if (!response.ok) throw new Error("session unavailable");
+          const data = await response.json();
+          renderIdentity(data.operator);
+          signedIn.hidden = false;
+          status.hidden = true;
+        } catch {
+          status.textContent = "Operator session could not be checked. Retry after the service is available.";
+        }
+      }
+
+      document.querySelector("#logout").addEventListener("click", async () => {
+        const csrf = document.cookie.split("; ")
+          .find((item) => item.startsWith("kokonut_operator_csrf="))?.split("=").slice(1).join("=");
+        if (!csrf) {
+          status.hidden = false;
+          status.textContent = "Sign out could not be verified. Reload the page and try again.";
+          return;
+        }
+        const response = await fetch("/operator/auth/logout", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "X-CSRF-Token": decodeURIComponent(csrf) }
+        });
+        if (response.ok) window.location.reload();
+        else {
+          status.hidden = false;
+          status.textContent = "Sign out failed. Retry after the service is available.";
+        }
+      });
+
+      loadSession();
+    </script>
+  </body>
+</html>

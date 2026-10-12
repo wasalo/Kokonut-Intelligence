@@ -26,4 +26,6 @@ protobuf>=5.29.0,<7.0.0
 fiona>=1.10.0,<2.0.0
 gstools>=1.6.0,<2.0.0
 defusedxml>=0.7.1,<2.0.0
+authlib>=1.8.0,<2.0.0
+itsdangerous>=2.2.0,<3.0.0
 pycryptodome>=3.24.0,<4.0.0

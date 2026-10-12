@@ -21,6 +21,7 @@ def _request_identity(request, client_ip: str) -> str:
         or request.headers.get("api-key")
         or request.headers.get("x-capability-token")
         or request.headers.get("capability-token")
+        or request.cookies.get("kokonut_operator_session")
     )
     if credential:
         digest = hashlib.sha256(credential.encode("utf-8")).hexdigest()[:16]
@@ -55,6 +56,13 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     from services.gateway.audit import GatewayAudit
     from services.gateway.auth import verify_request
+    from services.gateway.operator_auth import (
+        OperatorAuthConfigurationError,
+        auth_route_policy,
+        authorize_auth_request,
+        create_auth_router,
+        create_provider,
+    )
     from services.gateway.router import get_route_policy, router
     from services.mobile.api import router as mobile_router
 
@@ -71,6 +79,13 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     if "*" in cors_origins:
         logger.warning("Ignoring wildcard CORS origin; configure explicit trusted origins")
         cors_origins = [origin for origin in cors_origins if origin != "*"]
+
+    try:
+        operator_provider = create_provider()
+    except OperatorAuthConfigurationError:
+        # Configuration errors must fail startup without echoing secret values.
+        logger.error("Operator OIDC configuration is invalid")
+        raise
 
     rate_limiter = get_rate_limiter() if rate_limiter is None else rate_limiter
     audit = GatewayAudit()
@@ -148,7 +163,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                 headers={"Retry-After": str(retry_after)},
             )
 
-        policy = get_route_policy(request.method, request.url.path)
+        operator_policy = auth_route_policy(
+            request.method,
+            request.url.path,
+            enabled=operator_provider is not None,
+        )
+        policy = operator_policy or get_route_policy(request.method, request.url.path)
         max_body_bytes = 2_000_000 if request.url.path == "/api/mobile/media/uploads" else 8_000_000
         if request.method in {"POST", "PUT", "PATCH"}:
             async def reject_body(status_code: int, reason: str, message: str):
@@ -200,18 +220,51 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             request._receive = replay_body
 
         location_id = await _request_location(request, policy)
-        auth_result = {"authenticated": True, "caller": "anonymous", **policy, "location_id": location_id} \
-            if policy["public"] else verify_request(
-                request,
+        try:
+            if operator_policy is not None:
+                auth_result = authorize_auth_request(request, operator_provider, policy)
+            elif policy["public"]:
+                auth_result = {
+                    "authenticated": True,
+                    "caller": "anonymous",
+                    **policy,
+                    "location_id": location_id,
+                }
+            else:
+                auth_result = verify_request(
+                    request,
+                    resource=policy["resource"],
+                    action=policy["action"],
+                    location_id=location_id,
+                )
+        except Exception as exc:
+            logger.warning("Gateway authentication backend unavailable (%s)", type(exc).__name__)
+            await run_in_threadpool(
+                audit.log,
+                caller=caller,
+                path=request.url.path,
+                method=request.method,
+                status="error",
+                ip=client_ip,
+                user_agent=user_agent,
+                status_code=503,
+                reason="authentication_backend_unavailable",
                 resource=policy["resource"],
                 action=policy["action"],
                 location_id=location_id,
             )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Authentication service unavailable"},
+                headers={"Retry-After": "30"},
+            )
         if not auth_result.get("authenticated"):
-            denial_status = 403 if auth_result.get("reason") == "api_key_scope_denied" else 401
+            denial_status = 403 if auth_result.get("reason") in {
+                "api_key_scope_denied", "csrf_validation_failed",
+            } else 401
             await run_in_threadpool(
                 audit.log,
-                caller=caller,
+                caller=auth_result.get("caller", caller),
                 path=request.url.path,
                 method=request.method,
                 status="denied",
@@ -247,9 +300,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             try:
                 response = await call_next(request)
             except Exception as exc:
+                audit_caller = getattr(
+                    request.state, "operator_audit_caller", auth_result.get("caller", caller)
+                )
                 await run_in_threadpool(
                     audit.log,
-                    caller=auth_result.get("caller", caller),
+                    caller=audit_caller,
                     path=request.url.path,
                     method=request.method,
                     status="error",
@@ -266,9 +322,12 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
             # Audit logging
             duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
+            audit_caller = getattr(
+                request.state, "operator_audit_caller", auth_result.get("caller", caller)
+            )
             await run_in_threadpool(
                 audit.log,
-                caller=auth_result.get("caller", caller),
+                caller=audit_caller,
                 path=request.url.path,
                 method=request.method,
                 status="allowed" if response.status_code < 400 else "denied",
@@ -342,6 +401,20 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     app.include_router(router, prefix="/api")
     app.include_router(mobile_router, prefix="/api")
+    app.include_router(create_auth_router(operator_provider))
+
+    if operator_provider is not None:
+        from starlette.middleware.sessions import SessionMiddleware
+
+        app.add_middleware(
+            SessionMiddleware,
+            secret_key=operator_provider.settings.state_secret,
+            session_cookie="kokonut_operator_oidc_state",
+            max_age=600,
+            same_site="lax",
+            https_only=True,
+            path="/operator/auth",
+        )
 
     # Add CORS last so it wraps the gateway and also decorates auth, rate-limit,
     # and request-size responses. No origins are trusted unless explicitly set.
@@ -351,8 +424,9 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
         allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
         allow_headers=[
             "Content-Type", "Authorization", "x-api-key", "x-capability-token",
-            "x-device-token", "x-collection-client-id",
+            "x-device-token", "x-collection-client-id", "x-csrf-token",
         ],
+        allow_credentials=operator_provider is not None,
     )
 
     logger.info("Gateway application created")

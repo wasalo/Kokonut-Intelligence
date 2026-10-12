@@ -9,13 +9,13 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("/app"))
-    parser.add_argument("--target", required=True, choices=("kernel", "grpc", "mqtt"))
+    parser.add_argument("--target", required=True, choices=("kernel", "grpc", "mqtt", "oidc"))
     args = parser.parse_args()
     root = args.root.resolve()
     paths = []
     for directory, suffix in (("services", ".py"), ("schemas", ".sql"),
                               ("requirements", ".txt"), ("proto", ".proto"),
-                              ("generated", ".py")):
+                              ("generated", ".py"), ("apps", ".html")):
         paths.extend((root / directory).rglob(f"*{suffix}"))
     paths.extend(root / name for name in ("VERSION", "pyproject.toml", "Dockerfile.kernel"))
     files = {}

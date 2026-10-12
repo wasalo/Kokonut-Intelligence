@@ -325,7 +325,9 @@ reporting views.
 - [x] Prepare and inspect Python SDK 0.1.0 wheel/source artifacts with README, Apache license, typed marker, and distribution metadata ([progress](progress.md#phase-7-python-sdk-package-preflight--11-october-2026)).
 - [ ] Complete Python/JavaScript SDK runtime/import acceptance and resolve the generated-protobuf distribution boundary; publish only after explicit release authorization.
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
-- [ ] Select an operator identity provider and implement its session adapter plus the first scoped, read-only browser-console slice.
+- [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).
+- [ ] Configure a real OIDC provider, apply migration 380, and complete login/session/CSRF/revocation/audit acceptance.
+- [ ] Select the canonical submitted-record review queue and implement its location-scoped read endpoint and browser view.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

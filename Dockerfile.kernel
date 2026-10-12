@@ -88,5 +88,18 @@ HEALTHCHECK NONE
 RUN python3 -m services.core.image_manifest --target mqtt
 CMD ["python3", "-m", "services.ingestion.mqtt_subscriber"]
 
+# Optional browser operator identity. The default Kernel target remains free of
+# Authlib and itsdangerous; select this target only with the OIDC Compose overlay.
+FROM kernel-base AS oidc
+USER root
+COPY requirements/oidc.txt ./requirements/oidc.txt
+RUN pip install --no-cache-dir -r requirements/oidc.txt \
+    && pip list --disable-pip-version-check --format=json > /app/python-packages.json \
+    && chown appuser:appuser /app/python-packages.json
+COPY apps/operator-console/ ./apps/operator-console/
+USER appuser
+RUN python3 -m services.core.image_manifest --target oidc
+CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers"]
+
 # Default builds remain the minimal API/worker image.
 FROM kernel-base AS kernel

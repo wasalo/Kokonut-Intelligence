@@ -65,6 +65,7 @@ _MOUNTED = [
     ("threatcasting", "services.threatcasting.cli", "Threatcasting & backcasting"),
     ("migration", "services.migration.cli", "Schema migration runner"),
     ("audit-spool", "services.gateway.audit_spool_cli", "Gateway audit journal maintenance"),
+    ("operator", "services.gateway.operator_cli", "OIDC operator identity and scope provisioning"),
     ("crisp", "services.crisp.cli", "CRISP risk scoring"),
     ("analytics", "services.analytics.cli", "General analytics commands"),
     ("ingestion", "services.ingestion.cli", "Ingestion pipelines"),
