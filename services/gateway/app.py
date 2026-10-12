@@ -388,7 +388,13 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             "health": "/health",
         }
 
-    @app.get("/mobile")
+    @app.get("/mobile", include_in_schema=False)
+    async def mobile_companion_canonical_redirect():
+        """Normalize the proxy entry URL so relative shell assets stay routed."""
+        from fastapi.responses import RedirectResponse
+
+        return RedirectResponse(url="/mobile/", status_code=308)
+
     @app.get("/mobile/")
     async def mobile_companion():
         """Serve the standalone field collector companion app."""

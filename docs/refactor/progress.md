@@ -2868,3 +2868,19 @@ healthy. This outage test keeps host Wi-Fi online and the browser reports
 OIDC, browser consent-withdrawal, retention/erasure, tenant/RLS, and human
 disposition remain open. See [browser outage evidence](builds/2026-10-12-recovery/field-collector-gateway-outage-recovery.json),
 [Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 Field Collector proxy route correction — 12 October 2026
+
+Addressed the PR #68 review finding that `/mobile` resolves its relative
+service-worker URL at the origin root, outside Caddy's `/mobile*` proxy route.
+The Gateway now redirects `/mobile` to canonical `/mobile/`; relative vault and
+service-worker URLs therefore remain under `/mobile/`, which the existing
+Caddy and Traefik Gateway routes forward. The `/mobile/` route remains an
+explicitly public Field Collector route. Updated operator/deployment docs to
+use the slash URL.
+
+The complete mobile API suite passed (33 tests), as did both dependency-free
+offline-shell Node checks; Ruff and `git diff --check` passed. The suite used a
+private mode-0700 temporary audit-spool directory and that journal was removed.
+This is source-level route acceptance; the candidate Docker app and its browser
+state were not recreated for this correction. See [Batch 5 checklist](batches.md).

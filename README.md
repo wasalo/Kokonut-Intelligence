@@ -96,7 +96,7 @@ Base `docker-compose.yml` exposes Caddy and gRPC on the host, binds Directus, ga
 | Service | Base URL | Notes |
 |---------|----------|-------|
 | Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
-| Field Collector | `https://localhost/mobile` | Offline-first companion; LAN phones use `https://<lan-ip>/mobile` |
+| Field Collector | `https://localhost/mobile/` | Offline-first companion; LAN phones use `https://<lan-ip>/mobile/` |
 | Directus API | `https://localhost/directus` | Canonical API and data access |
 | Directus admin | `https://localhost/admin` | Admin UI and data entry |
 | Directus direct | `http://127.0.0.1:8055` | Loopback-only API/admin access in base Compose |
@@ -115,10 +115,12 @@ The local override maps Metabase to `http://localhost:3001` only when the `metab
 ```bash
 docker compose up -d --build gateway caddy
 # Phone on the same Wi‑Fi:
-#   https://<host-lan-ip>/mobile
+#   https://<host-lan-ip>/mobile/
 ```
 
-Caddy terminates TLS and proxies `/mobile` and `/api/mobile/*` to the gateway.
+Caddy terminates TLS and proxies `/mobile*` and `/api/mobile/*` to the gateway.
+Use `/mobile/` as the canonical Field Collector URL; `/mobile` redirects to it
+so relative shell assets stay within the Gateway route.
 Full deploy steps (local, production Caddy, Traefik) are in
 [Deployment — Field Collector](docs/deployment.md#field-collector-mobile-lan-access).
 

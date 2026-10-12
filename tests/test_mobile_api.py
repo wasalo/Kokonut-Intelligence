@@ -74,6 +74,7 @@ def _client(monkeypatch):
 
 def test_mobile_routes_are_explicitly_public_for_device_auth():
     assert get_route_policy("GET", "/mobile")["public"] is True
+    assert get_route_policy("GET", "/mobile/")["public"] is True
     assert get_route_policy("GET", "/api/mobile/forms")["public"] is True
     assert get_route_policy("POST", "/api/mobile/sync")["public"] is True
 
@@ -815,7 +816,8 @@ def test_mobile_device_token_is_not_written_to_gateway_audit(monkeypatch):
 
 def test_gateway_serves_field_collector():
     with TestClient(create_app()) as client:
-        response = client.get("/mobile")
+        redirect = client.get("/mobile", follow_redirects=False)
+        response = client.get("/mobile/")
         api_response = client.get("/api/mobile/app")
         root_vault_script = client.get("/field-collector-vault.js")
         slash_vault_script = client.get("/mobile/field-collector-vault.js")
@@ -823,6 +825,8 @@ def test_gateway_serves_field_collector():
         slash_worker = client.get("/mobile/field-collector-service-worker.js")
         api_worker = client.get("/api/mobile/field-collector-service-worker.js")
 
+    assert redirect.status_code == 308
+    assert redirect.headers["location"] == "/mobile/"
     assert response.status_code == 200
     assert api_response.status_code == 200
     assert root_vault_script.status_code == 200
@@ -831,6 +835,7 @@ def test_gateway_serves_field_collector():
     assert slash_worker.status_code == 200
     assert api_worker.status_code == 200
     assert "CACHE_FIELD_COLLECTOR_SHELL" in root_worker.text
+    assert 'src="field-collector-vault.js"' in response.text
     assert 'registerOfflineAppShell' in response.text
     assert "Kokonut Field Collector" in response.text
     assert "localStorage" in response.text

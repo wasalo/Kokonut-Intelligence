@@ -37,7 +37,7 @@ docker compose ps
 | Service | Base Compose URL | Purpose |
 |---------|------------------|---------|
 | Caddy | `https://localhost` | TLS termination, reverse proxy, security headers |
-| Field Collector | `https://localhost/mobile` or `https://localhost/field/field-collector.html` | Offline-first mobile companion (LAN: `https://<lan-ip>/mobile`) |
+| Field Collector | `https://localhost/mobile/` or `https://localhost/field/field-collector.html` | Offline-first mobile companion (LAN: `https://<lan-ip>/mobile/`) |
 | Directus | `https://localhost` or `https://localhost/directus` | Schema management, API, admin |
 | Directus admin | `https://localhost/admin` | Admin UI route through Caddy |
 | Metabase (opt-in) | `http://localhost:3001` when enabled | BI dashboards; not routed through default Caddy |
@@ -67,10 +67,10 @@ docker compose up -d --build gateway caddy
 # 2. Confirm health
 docker compose ps gateway caddy
 curl -fsS http://127.0.0.1:8099/health
-curl -kfsS https://localhost/mobile | head -c 200
+curl -kfsS https://localhost/mobile/ | head -c 200
 
 # 3. Open on a phone (same Wi‑Fi as the host)
-#    https://<host-lan-ip>/mobile
+#    https://<host-lan-ip>/mobile/
 ```
 
 Find the host LAN IP on macOS with `ipconfig getifaddr en0` (or `en1`). Dev
@@ -79,7 +79,7 @@ warning on the device the first time.
 
 | URL | Use |
 |-----|-----|
-| `https://<lan-ip>/mobile` | Preferred — HTML + `/api/mobile/*` same origin |
+| `https://<lan-ip>/mobile/` | Preferred — HTML + `/api/mobile/*` same origin; `/mobile` redirects here so relative shell assets stay on the Gateway route |
 | `https://<lan-ip>/field/field-collector.html` | Static HTML; API still via Caddy `/api/mobile/*` |
 | `http://127.0.0.1:8099/mobile` | Host loopback only (not for phones) |
 
@@ -95,14 +95,14 @@ warning on the device the first time.
 ```bash
 # .env: CADDY_DOMAIN, PUBLIC_URL, KOKONUT_ENV=production, strong secrets
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-# Field Collector: https://$CADDY_DOMAIN/mobile
+# Field Collector: https://$CADDY_DOMAIN/mobile/
 ```
 
 **Production (Traefik)**
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d --build
-# Field Collector: https://$KOKONUT_DOMAIN/mobile
+# Field Collector: https://$KOKONUT_DOMAIN/mobile/
 ```
 
 Traefik labels route `PathPrefix(/mobile)` and `PathPrefix(/api/mobile)` to the
@@ -254,7 +254,7 @@ Before deploying to production:
 - [ ] `CADDY_DOMAIN` or `KOKONUT_DOMAIN` set to your domain
 - [ ] TLS configured (Caddy auto-provisions or Traefik with cert resolver)
 - [ ] `docker-compose.prod.yml` applied (no direct port exposure to host)
-- [ ] Gateway healthy and Field Collector reachable at `https://$CADDY_DOMAIN/mobile` (or Traefik host)
+- [ ] Gateway healthy and Field Collector reachable at `https://$CADDY_DOMAIN/mobile/` (or Traefik host)
 - [ ] Exactly one scheduling owner selected for each recurring job (worker cron, host cron, or database scheduler)
 - [ ] `event-worker` running if queued events must be processed continuously
 - [ ] Health-check cron with alerting configured

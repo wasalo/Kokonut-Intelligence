@@ -13,7 +13,7 @@ python3 -m services.gateway.cli --serve --port 8099
 python3 -m services.gateway.cli --help
 ```
 
-Field Collector: `https://localhost/mobile` (or `https://<lan-ip>/mobile` on the LAN).
+Field Collector: `https://localhost/mobile/` (or `https://<lan-ip>/mobile/` on the LAN).
 
 ## Modules
 

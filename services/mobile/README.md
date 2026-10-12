@@ -28,7 +28,9 @@ browser profile and synced records sensitive.
 
 ## Entry points
 
-- Gateway (preferred): `/mobile` or `/api/mobile/app`
+- Gateway (preferred): `/mobile/` or `/api/mobile/app`; `/mobile` redirects to
+  `/mobile/` so relative HTML, vault, and service-worker assets stay under the
+  configured proxy route.
 - Caddy static route: `/field/field-collector.html`
 - Directus endpoint: `/field-collector/` (redirects to the Caddy route)
 - Direct file: open `field-collector.html` directly in a browser
@@ -45,7 +47,7 @@ self-signed certificate warning for HTTPS.
 
 | Path | URL | Notes |
 |------|-----|-------|
-| Preferred (gateway via Caddy) | `https://<lan-ip>/mobile` | HTML + `/api/mobile` same origin |
+| Preferred (gateway via Caddy) | `https://<lan-ip>/mobile/` | HTML + `/api/mobile` same origin |
 | Static HTML via Caddy | `https://<lan-ip>/field/field-collector.html` | API also same-origin via `/api/mobile/*` proxy |
 | Loopback gateway | `http://127.0.0.1:8099/mobile` | Host-only; not reachable from phones |
 | Direct file | `file://.../field-collector.html` | Set Settings → API URL to `https://<lan-ip>` or `http://<lan-ip>:8099` |

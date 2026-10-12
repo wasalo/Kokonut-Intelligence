@@ -31,7 +31,7 @@ unknown method/path → protected fallback policy → usually 401 before 404
 # Compose (preferred)
 docker compose up -d gateway
 curl http://127.0.0.1:8099/health
-curl -k https://localhost/mobile
+curl -k https://localhost/mobile/
 
 # Host process fallback
 python3 -m services.gateway.cli --serve --port 8099
@@ -40,7 +40,7 @@ python3 -m services.gateway.cli --health
 ```
 
 `--serve` starts Uvicorn on `0.0.0.0`; the default port is `8099`. Compose binds
-that port to loopback only; LAN devices should use Caddy (`/mobile`,
+that port to loopback only; LAN devices should use Caddy (`/mobile/`,
 `/api/mobile/*`). The CLI `--health` command runs
 `services.core.health.overall_health()` locally. It does not make an HTTP request
 to `http://localhost:8099/health`.
