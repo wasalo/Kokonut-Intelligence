@@ -71,7 +71,7 @@ All named MAN-CAP acceptance checks below remain **not run**; implementation and
 | CAP-061 | Regen Network parity | services/credit_class/; services/data_module/ | MAN-CAP-061: Regen-compatible enums/project/claim/credit representations remain compatible | tests/test_data_module_all.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-062 | ARKIV parity | services/data_module/; services/credit_class/ | MAN-CAP-062: Expiry, transaction origin and fee distribution preserve documented representations | tests/test_credit_fees.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-063 | GeoNode parity | services/csw/; services/geostory/; services/maps/; services/thesaurus/ | MAN-CAP-063: GIS/KML/raster import, metadata, CSW, map and geostory access match fixture | tests/test_gis_import.py | B — baseline code retained; Kernel capability path and parity unassessed. |
-| CAP-064 | gRPC API | services/grpc/; proto/; sdk/ | MAN-CAP-064: Generated protocol, API-key scope and streaming behavior match REST policy | tests/test_grpc.py | P — optional target, scoped auth, pooled DB and bounded shutdown prepared; private-only/insecure-network, API-key, runtime-role and health limits documented. Service has not been rebuilt from current checkout or started; RPC/REST parity and runtime authorization remain unassessed. [gRPC contract](grpc-overlay.md) |
+| CAP-064 | gRPC API | services/grpc/; proto/; sdk/ | MAN-CAP-064: Generated protocol, API-key scope and streaming behavior match REST policy | tests/test_grpc.py | P — optional target, scoped auth, pooled DB and bounded shutdown prepared; private-only/insecure-network, API-key, runtime-role and health limits documented. The Python SDK now includes optional namespaced generated stubs in its wheel/sdist; the gRPC service has not been rebuilt from current checkout or started, and stub imports, RPC/REST parity, and runtime authorization remain unassessed. [gRPC contract](grpc-overlay.md) |
 | CAP-065 | Business Model Canvas | services/analytics/business_model_canvas.py | MAN-CAP-065: One-click canvas and thirteen-section status retain evidence and scope | tests/test_bmc_oneclick.py; tests/test_comprehensive_status.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-066 | State of Kokonut | services/export/ | MAN-CAP-066: Network report, funding rollup and timelines match baseline exports | tests/test_state_of_kokonut.py; tests/test_state_of_kokonut_graphs.py | P — exporter ClickHouse construction moved behind optional adapter; a separate OIDC-scoped read-only console lists location-specific submitted `report_snapshot` records and can read their detail in source. Login, scope denial, payload, and report parity remain unverified; this does not certify State of Kokonut outputs. [Providers](provider-configuration.md); [console contract](kernel-operations-console.md); legacy CH objects inventoried and encrypted, report parity open: [Inventory](analytics-broker-recovery.md) |
 
@@ -90,13 +90,13 @@ The JavaScript SDK package now compiles with TypeScript 5.8.3 after aligning its
 Directus adapter calls with the installed SDK command API. Its ESM package
 preflight includes the license and excludes test output; npm's dry-run lists 27
 files. The locked Vitest 5.0.3 toolchain now audits with zero vulnerabilities.
-The Python SDK's version 0.1.0 wheel and source archive also build and contain
-the README, Apache license, and typed marker. Neither SDK artifact was installed
-or imported, and the Python package currently excludes the generated gRPC
-modules. No route request, auth behavior, SDK runtime import, or capability
+The Python SDK's version 0.1.0 wheel and source archive build and contain the
+README, Apache license, typed marker, and 16 `.py` files for the optional,
+namespaced generated gRPC package. Neither SDK artifact was installed or
+imported. No route request, auth behavior, SDK runtime import, or capability
 parity was checked, so the 6 D / 4 P / 56 B / 0 accepted counts do not change.
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
-and [Python ledger](progress.md#phase-7-python-sdk-package-preflight--11-october-2026).
+and [Python package ledger](progress.md#phase-7-python-sdk-optional-grpc-distribution--11-october-2026).
 
 An optional OIDC identity/session adapter and a same-origin principal/report
 review page are implemented in source. The queue reads only submitted

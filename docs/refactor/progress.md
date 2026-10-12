@@ -195,12 +195,31 @@ Artifacts were retained outside the repository in
 - `kokonut_intelligence-0.1.0.tar.gz` — 16,787 bytes;
   SHA-256 `208380cba97d05cc418b8d68b77bc805e44909f2a4b875158c51d4ebe9762ab5`.
 
-The current distribution contains only the `kokonut` HTTP SDK package; generated
-protobuf/gRPC modules remain repository artifacts and are not included in this
-wheel or sdist. No SDK import, API request, test suite, or publish ran. Runtime
-import/API parity, generated-protobuf distribution strategy, and explicit
-release authorization remain open. Roll back by reverting the Python packaging
-metadata/license changes and discarding these local artifacts. See the
+The initial distribution contained only the `kokonut` HTTP SDK package;
+generated protobuf/gRPC modules were excluded. That boundary is resolved in the
+following entry. No SDK import, API request, test suite, or publish ran. Runtime
+import/API parity and explicit release authorization remain open. See the
+[Batch 5 checklist](batches.md).
+
+## Phase 7 Python SDK optional gRPC distribution — 11 October 2026
+
+Resolved the generated-protobuf packaging boundary without adding gRPC to the
+base SDK. Added a pinned `grpc-codegen` extra and a `grpc` runtime extra, plus a
+reproducible generator that puts source-generated modules under `kokonut.grpc`
+and rewrites Python imports and generated class module metadata; protobuf
+package/service names and descriptors remain derived from the unchanged
+`proto/` files. The generated
+code requires `grpcio>=1.68.1` and `protobuf>=5.28.1`; the SDK extra declares
+compatible runtime bounds. Ruff passes, and regeneration reports all 10
+generated Python modules up to date. The 0.1.0 wheel and sdist build and each
+contain the 16 package `.py` files (10 generated modules plus six package
+initializers); artifacts are under
+`/private/tmp/kokonut-sdk-proto-artifacts/`. The standard isolated build first
+could not reach PyPI, so the archive build used the already-installed setuptools
+in the isolated code-generator environment. No SDK install/import, gRPC call,
+test suite, publish, or release occurred. Runtime import/API parity remains
+open. Roll back the generator, generated package and SDK extras together; the
+legacy repository-level generated stubs and gRPC server are unchanged. See the
 [Batch 5 checklist](batches.md).
 
 ## Phase 7 operations-console identity boundary — 11 October 2026

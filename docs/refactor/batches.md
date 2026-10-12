@@ -323,7 +323,8 @@ reporting views.
 - [x] Add a local, read-only Kernel CLI overview of build metadata and provider selection ([operator contract](kernel-operator-cli.md)).
 - [x] Resolve the reported JavaScript development-tool audit findings with a locked Vitest 5.0.3 toolchain; npm reports zero vulnerabilities ([progress](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)).
 - [x] Prepare and inspect Python SDK 0.1.0 wheel/source artifacts with README, Apache license, typed marker, and distribution metadata ([progress](progress.md#phase-7-python-sdk-package-preflight--11-october-2026)).
-- [ ] Complete Python/JavaScript SDK runtime/import acceptance and resolve the generated-protobuf distribution boundary; publish only after explicit release authorization.
+- [x] Resolve the Python SDK generated-protobuf boundary with namespaced optional `kokonut.grpc` modules; generated stubs are included in the wheel and sdist ([ledger](progress.md#phase-7-python-sdk-optional-grpc-distribution--11-october-2026)).
+- [ ] Complete Python/JavaScript SDK runtime/import acceptance and API parity; publish only after explicit release authorization.
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).
 - [ ] Configure a real OIDC provider, apply migration 380, and verify login/session/CSRF/revocation, scope denials, audit attribution, and browser queue/detail behavior.

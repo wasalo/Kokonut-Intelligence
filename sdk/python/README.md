@@ -2,7 +2,9 @@
 
 Python SDK for the Kokonut Intelligence Platform. Typed REST client wrapping Directus collections for farm, crop, harvest, sales, expenses, sensors, attestations, and reports.
 
-> The existing collection methods cover Directus REST operations. For gRPC services (IRI, content hash, ecocredit classes/batches/balances, marketplace, bridge), use the generated stubs in `sdk/python/generated/`.
+> The collection methods cover the Directus REST API. Optional generated gRPC
+> stubs for the IRI, content hash, ecocredit, marketplace, and bridge services
+> are packaged under `kokonut.grpc` and can be installed separately.
 
 For the versioned native Gateway reads, use `KokonutPublicApiClient`. It is a
 separate client because the Gateway and legacy Directus services have different
@@ -38,8 +40,24 @@ With optional dependencies:
 ```bash
 pip install kokonut-intelligence[clickhouse]  # ClickHouse support
 pip install kokonut-intelligence[web3]        # Web3 support
-pip install kokonut-intelligence[all]         # Everything
+pip install kokonut-intelligence[grpc]        # Generated gRPC stub runtime
+pip install kokonut-intelligence[all]         # All optional runtime integrations
 ```
+
+The base installation does not install gRPC or Protocol Buffers. The `grpc`
+extra adds only the runtime libraries needed to import and use the generated
+stubs. To regenerate those stubs from the repository's authoritative `proto/`
+sources, run these commands from a repository checkout:
+
+```bash
+python3 -m pip install -e 'sdk/python[grpc,grpc-codegen]'
+python3 scripts/generate-python-sdk-protos.py
+python3 scripts/generate-python-sdk-protos.py --check
+```
+
+Generated modules are available as `kokonut.grpc.common.pagination_pb2`,
+`kokonut.grpc.data.v1`, and `kokonut.grpc.ecocredit.v1`. The protocol package
+names, service names, and field definitions remain those declared in `proto/`.
 
 ## Usage
 

@@ -428,9 +428,10 @@ def authorize_auth_request(
 
 def create_auth_router(provider: OIDCOperatorProvider | None):
     from collections.abc import Mapping
+
+    import psycopg2
     from fastapi import APIRouter, Request
     from fastapi.responses import JSONResponse, RedirectResponse
-    import psycopg2
     from starlette.concurrency import run_in_threadpool
 
     router = APIRouter()
@@ -440,6 +441,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
         from pathlib import Path
+
         from fastapi.responses import FileResponse
 
         console_file = Path(__file__).resolve().parents[2] / "apps/operator-console/index.html"
