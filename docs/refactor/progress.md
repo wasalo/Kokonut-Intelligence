@@ -258,6 +258,20 @@ Python/TypeScript API parity remain open. Roll back the package copy script,
 client paths, build exclusions, lifecycle/dependency edits, and this
 documentation together. See the [Batch 5 checklist](batches.md).
 
+## Phase 7 TypeScript gRPC isolated npm package import check — 11 October 2026
+
+Created the 1.0.0 npm tarball with its clean `prepack` build, extracted it into
+`/private/tmp/kokonut-typescript-sdk-import-check-20261011/`, and resolved
+`@grpc/grpc-js` and `@grpc/proto-loader` from the existing local dependency
+installation. Constructing both `DataServiceClient` and
+`EcocreditServiceClient` loaded their package-bundled proto definitions and
+exposed the expected `generateIRI` and `classes` methods; both clients closed
+successfully. No RPC/API call or test suite ran. This validates package import
+and proto loading for this local artifact/dependency combination, not
+server/client API parity or a published registry install. The tarball and
+extracted package remain under the temporary path above. See the [Batch 5
+checklist](batches.md).
+
 
 ## Phase 7 operations-console identity boundary — 11 October 2026
 
