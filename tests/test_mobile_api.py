@@ -1,7 +1,8 @@
 """Focused tests for the field collector companion app and API surface."""
 
-from pathlib import Path
 import json
+from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,8 +13,48 @@ from starlette.testclient import TestClient  # noqa: E402
 
 from services.gateway.app import create_app  # noqa: E402
 from services.gateway.router import get_route_policy  # noqa: E402
-from services.mobile.api import APP_PATH, CollectionRequest  # noqa: E402
 from services.mobile import api as mobile_api  # noqa: E402
+from services.mobile.api import APP_PATH, CollectionRequest  # noqa: E402
+
+
+def _active_not_required_form_revision():
+    return (
+        "revision-1",
+        "field-note",
+        "v1",
+        "field_note",
+        None,
+        "active",
+        "not_required",
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        datetime(2000, 1, 1, tzinfo=timezone.utc),
+    )
+
+
+def _retired_required_form_revision():
+    return (
+        "retired-revision-1",
+        "field-note",
+        "v0",
+        "field_note",
+        None,
+        "retired",
+        "required",
+        "field_observation",
+        "regenerative_research",
+        "location",
+        None,
+        "kokonut_operations",
+        None,
+        "consent-v1",
+        datetime(2000, 1, 1, tzinfo=timezone.utc),
+    )
 
 
 def _client(monkeypatch):
@@ -40,6 +81,7 @@ def test_media_upload_route_is_public_for_its_own_device_token_auth():
 
 def test_media_upload_is_device_authenticated_and_stores_private_jpeg(monkeypatch):
     connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = _active_not_required_form_revision()
     store = MagicMock()
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
     monkeypatch.setattr(
@@ -55,6 +97,9 @@ def test_media_upload_is_device_authenticated_and_stores_private_jpeg(monkeypatc
             headers={
                 "x-device-token": "opaque-device-token",
                 "x-collection-client-id": "client-1",
+                "x-collection-type": "field_note",
+                "x-form-id": "field-note",
+                "x-form-version": "v1",
                 "content-type": "image/jpeg",
             },
             content=b"\xff\xd8\xff\xdbjpeg-data",
@@ -78,6 +123,7 @@ def test_media_upload_is_device_authenticated_and_stores_private_jpeg(monkeypatc
 def test_media_upload_rejects_invalid_jpeg_signature_before_storage(monkeypatch):
     store = MagicMock()
     database = MagicMock()
+    database.cursor.return_value.fetchone.return_value = _active_not_required_form_revision()
     monkeypatch.setattr(mobile_api, "get_db", lambda: database)
     monkeypatch.setattr(mobile_api, "get_media_store", lambda: store, raising=False)
     monkeypatch.setattr(
@@ -92,6 +138,9 @@ def test_media_upload_rejects_invalid_jpeg_signature_before_storage(monkeypatch)
             headers={
                 "x-device-token": "opaque-device-token",
                 "x-collection-client-id": "client-1",
+                "x-collection-type": "field_note",
+                "x-form-id": "field-note",
+                "x-form-version": "v1",
                 "content-type": "image/jpeg",
             },
             content=b"not-a-jpeg",
@@ -99,7 +148,10 @@ def test_media_upload_rejects_invalid_jpeg_signature_before_storage(monkeypatch)
 
     assert response.status_code == 415
     store.put_private.assert_not_called()
-    database.cursor.assert_not_called()
+    assert not any(
+        "insert into mobile_media_upload" in call.args[0].lower()
+        for call in database.cursor.return_value.execute.call_args_list
+    )
 
 
 def test_media_upload_keeps_committed_object_when_cursor_close_fails(monkeypatch):
@@ -107,14 +159,23 @@ def test_media_upload_keeps_committed_object_when_cursor_close_fails(monkeypatch
         def execute(self, sql, params=None):
             pass
 
+        def __init__(self, *, fail_close=False):
+            self.fail_close = fail_close
+
+        def fetchone(self):
+            return _active_not_required_form_revision()
+
         def close(self):
-            raise RuntimeError("cursor close failed")
+            if self.fail_close:
+                raise RuntimeError("cursor close failed")
 
     class Connection:
         committed = False
+        cursor_count = 0
 
         def cursor(self):
-            return Cursor()
+            self.cursor_count += 1
+            return Cursor(fail_close=self.cursor_count == 2)
 
         def commit(self):
             self.committed = True
@@ -141,6 +202,9 @@ def test_media_upload_keeps_committed_object_when_cursor_close_fails(monkeypatch
             headers={
                 "x-device-token": "opaque-device-token",
                 "x-collection-client-id": "client-1",
+                "x-collection-type": "field_note",
+                "x-form-id": "field-note",
+                "x-form-version": "v1",
                 "content-type": "image/jpeg",
             },
             content=b"\xff\xd8\xff\xdbjpeg-data",
@@ -149,6 +213,41 @@ def test_media_upload_keeps_committed_object_when_cursor_close_fails(monkeypatch
     assert response.status_code == 201
     assert connection.committed is True
     store.delete_private.assert_not_called()
+
+
+def test_retired_required_media_upload_needs_participant_reference_before_storage(monkeypatch):
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = _retired_required_form_revision()
+    store = MagicMock()
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(mobile_api, "get_media_store", lambda: store, raising=False)
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", "11111111-1111-4111-8111-111111111111"),
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            "/api/mobile/media/uploads",
+            headers={
+                "x-device-token": "opaque-device-token",
+                "x-collection-client-id": "client-1",
+                "x-collection-type": "field_note",
+                "x-form-id": "field-note",
+                "x-form-version": "v0",
+                "content-type": "image/jpeg",
+            },
+            content=b"\xff\xd8\xff\xdbjpeg-data",
+        )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "This form revision requires a participant reference"
+    store.put_private.assert_not_called()
+    assert not any(
+        "insert into mobile_media_upload" in call.args[0].lower()
+        for call in connection.cursor.return_value.execute.call_args_list
+    )
 
 
 def test_sync_rejects_inline_photo_data_urls_before_database_write(monkeypatch):
@@ -183,7 +282,7 @@ def test_sync_rejects_reused_client_id_when_payload_differs(monkeypatch):
     cursor = connection.cursor.return_value
     cursor.fetchone.return_value = (
         "device-1", "worker-1", "11111111-1111-4111-8111-111111111111",
-        "field_note", None, None, {"content": "original"}, [], None, None, None, None,
+        "field_note", None, None, {"content": "original"}, [], None, None, None, None, None, None,
     )
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
     monkeypatch.setattr(
@@ -214,7 +313,7 @@ def test_sync_accepts_an_identical_retry_for_an_existing_client_id(monkeypatch):
     cursor = connection.cursor.return_value
     cursor.fetchone.return_value = (
         "device-1", "worker-1", "11111111-1111-4111-8111-111111111111",
-        "field_note", None, None, {"content": "same"}, [], None, None, None, None,
+        "field_note", None, None, {"content": "same"}, [], None, None, None, None, None, None,
     )
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
     monkeypatch.setattr(
@@ -246,6 +345,7 @@ def test_sync_rejects_unowned_photo_reference(monkeypatch):
     connection = MagicMock()
     cursor = connection.cursor.return_value
     cursor.fetchone.return_value = None
+    cursor.fetchone.side_effect = [None, _active_not_required_form_revision(), None, None]
     cursor.fetchall.return_value = []
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
     monkeypatch.setattr(
@@ -263,6 +363,8 @@ def test_sync_rejects_unowned_photo_reference(monkeypatch):
                 "collections": [{
                     "client_id": "client-1",
                     "collection_type": "field_note",
+                    "form_id": "field-note",
+                    "form_version": "v1",
                     "payload": {"content": "note"},
                     "photo_refs": ["44444444-4444-4444-8444-444444444444"],
                 }],
@@ -289,6 +391,8 @@ def test_sync_attaches_device_owned_media_after_storage_head_check(monkeypatch):
             normalized = sql.lower()
             if "from offline_collection where client_id" in normalized:
                 self.one = None
+            elif "from mobile_form_version" in normalized:
+                self.one = _active_not_required_form_revision()
             elif "select media_id::text, object_key" in normalized:
                 self.many = [(media_id, media_key, "image/jpeg", 12)]
             elif "insert into offline_collection" in normalized:
@@ -346,6 +450,8 @@ def test_sync_attaches_device_owned_media_after_storage_head_check(monkeypatch):
                 "collections": [{
                     "client_id": "client-1",
                     "collection_type": "field_note",
+                    "form_id": "field-note",
+                    "form_version": "v1",
                     "payload": {"content": "note"},
                     "photo_refs": [media_id],
                 }],
@@ -359,6 +465,99 @@ def test_sync_attaches_device_owned_media_after_storage_head_check(monkeypatch):
     assert json.loads(insert[1][7]) == [media_id]
     attachment = next(call for call in connection.cur.executed if "update mobile_media_upload" in call[0].lower())
     assert "status = 'attached'" in attachment[0].lower()
+    assert connection.committed is True
+
+
+def test_sync_accepts_retired_required_revision_only_into_unassessed_review_queue(monkeypatch):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    participant_ref = "opaque-participant-reference-1234567890"
+
+    class Cursor:
+        def __init__(self):
+            self.one = None
+            self.consent_decisions = 0
+            self.executed = []
+
+        def execute(self, sql, params=None):
+            normalized = sql.lower()
+            self.executed.append((sql, params))
+            if "from offline_collection where client_id" in normalized:
+                self.one = None
+            elif "from mobile_form_version" in normalized:
+                self.one = _retired_required_form_revision()
+            elif "from mobile_participant_link" in normalized:
+                self.one = ("participant-link-1", "party-1", None)
+            elif "from stakeholder_consent" in normalized:
+                if "select exists" in normalized:
+                    self.one = (False,)
+                else:
+                    self.consent_decisions += 1
+                    self.one = (f"consent-grant-{self.consent_decisions}", "grant", None)
+            elif "insert into offline_collection" in normalized:
+                self.one = ("collection-1",)
+
+        def fetchone(self):
+            value, self.one = self.one, None
+            return value
+
+        def close(self):
+            pass
+
+    class Connection:
+        def __init__(self):
+            self.cur = Cursor()
+            self.committed = False
+
+        def cursor(self):
+            return self.cur
+
+        def commit(self):
+            self.committed = True
+
+        def rollback(self):
+            raise AssertionError("valid retired review record must commit")
+
+        def close(self):
+            pass
+
+    connection = Connection()
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", location_id),
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            "/api/mobile/sync",
+            headers={"x-device-token": "opaque-device-token"},
+            json={
+                "device_id": "device-1",
+                "collections": [{
+                    "client_id": "retired-client-1",
+                    "collection_type": "field_note",
+                    "form_id": "field-note",
+                    "form_version": "v0",
+                    "participant_ref": participant_ref,
+                    "payload": {"content": "field note"},
+                }],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["accepted_client_ids"] == ["retired-client-1"]
+    insert = next(
+        call for call in connection.cur.executed
+        if "insert into offline_collection" in call[0].lower()
+    )
+    assert insert[1][13] == "retired-revision-1"
+    assert insert[1][14] == "participant-link-1"
+    assert insert[1][15] == "consent-grant-1"
+    assert insert[1][16] == "consent-grant-2"
+    assert insert[1][17] == "retired_review"
+    assert insert[1][18] == "unassessed"
+    assert insert[1][19] is True
     assert connection.committed is True
 
 

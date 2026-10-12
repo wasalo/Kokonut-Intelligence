@@ -1,10 +1,10 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 11 October 2026. **Current implementation focus: Phase 7 — native
-application API, with an additive versioned public-location read slice in source.**
-Preparatory Phase 8 image work
-has also occurred. This is not a sequential completion claim: earlier phases
-have implementation evidence but unresolved acceptance criteria.
+**Updated:** 11 October 2026. **Current implementation focus: Batch 5 Field
+Collector consent/form source acceptance and Gateway CORS, alongside Phase 7's
+native API/SDK work.** Preparatory Phase 8 image work has also occurred. This
+is not a sequential completion claim: earlier phases have implementation
+evidence but unresolved acceptance criteria.
 
 Implementation work has local commits on `chore/kernel-plan-ignore`, based on
 `ad806f504bfef15cba41446d777cb22f6bd8fe6a`. No implementation PR/merge or passing
@@ -1903,3 +1903,24 @@ compilation and `git diff --check` passed; no test suite, live preflight, API
 request, migration, or container change was run. Successful authenticated and
 credentialed CORS runtime acceptance remains open, along with mobile migration
 and owner-policy gates.
+
+## Batch 5 Field Collector mobile and CORS source acceptance — 11 October 2026
+
+Ran the mocked Field Collector API, private-media adapter, and legacy offline
+transport modules: **51 passed**. The run exposed fixtures that still used the
+pre-revision request shape and 12-column collection rows; aligned those fixtures
+with the immutable form-revision contract and added regression coverage for a
+retired `required` revision. The upload test confirms a missing participant
+reference is rejected before private storage; the sync test confirms a matching
+grant remains `retired_review`/`unassessed` rather than becoming eligible.
+
+Ran the four focused Gateway CORS cases: **4 passed**. Expanded the CORS test to
+request all 14 current browser headers (including form metadata, participant
+reference, and auth aliases), and separately confirmed a configured-origin
+preflight accepts the full list. No migration, database, container, authenticated
+browser request, or credentialed-cookie flow was exercised. Existing Starlette,
+httpx, and FastAPI lifecycle deprecation warnings remain. Mobile migration
+acceptance, five per-form consent decisions, tenant/RLS, retention/erasure, and
+successful authenticated/credentialed CORS remain open. CAP-053 stays partial.
+See [Batch 5 checklist](batches.md), [mobile access contract](mobile-access-contract.md),
+and [capability matrix](capability-matrix.md).
