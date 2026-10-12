@@ -2816,3 +2816,24 @@ analytics backend contract. The Gateway lifecycle, public metrics, Gateway auth,
 mobile API, media cleanup/storage, and CLI suites passed: 68 tests, zero
 warnings. Ruff, `git diff --check`, and dependency-group alignment passed. See
 [the Batch 5 checklist](batches.md).
+
+### Batch 5 candidate edge-media provider activation — 12 October 2026
+
+The current candidate had no `mobile_media_upload` rows. After validating the
+edge Compose configuration against SOPS, the app image was rebuilt and the
+candidate app alone was recreated with the edge overlay; the old image was
+retained under `kokonut-kernel-candidate-app:pre-edge-media-6ce3c3f`. The
+running app selected the local provider and mounted the named private-media
+volume with directory mode 0700 and ownership 10001:10001.
+
+A synthetic encrypted KKM1 JPEG passed write/head/delete with plaintext absent
+and file mode 0600. A second object remained on the volume across an app
+restart, authenticated with the configured key, and matched its expected
+plaintext SHA-256; it was then removed. Upload-row counts remained zero, the
+database and Metabase containers were not recreated, and all three candidate
+services remained healthy. The source and base Compose profile still default
+to S3; the running candidate now uses the edge overlay. Full edge resource
+limits on PostgreSQL, authenticated HTTP upload/sync, ARM64, production backup
+retention, and orphan reconciliation remain open. See [candidate activation
+evidence](builds/2026-10-12-recovery/field-collector-candidate-edge-media-activation.json)
+and the [media contract](local-private-media.md).

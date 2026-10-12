@@ -201,3 +201,31 @@ This confirms recovery across full runtime container replacement on the
 candidate network. It did not restart or reconfigure the primary candidate app,
 run background workers, or exercise the upload/sync flow. See [runtime volume
 evidence](builds/2026-10-12-recovery/field-collector-media-runtime-volume-recreation.json).
+
+
+## Candidate edge-provider activation and restart — 12 October 2026
+
+The candidate app was rebuilt from the current checkout and recreated with the
+`docker-compose.kernel-edge.yml` overlay alongside its candidate and Metabase
+manifests. The encrypted SOPS key was loaded into process/container memory and
+was not printed. The old app image is retained as
+`kokonut-kernel-candidate-app:pre-edge-media-6ce3c3f`. Only the app was
+recreated; the existing PostgreSQL and Metabase containers remained healthy.
+
+The running app reported provider `local`, mounted
+`kokonut-kernel-candidate_kernel-private-media` at `/app/private-media`, and
+owned the directory as UID/GID 10001 with mode 0700. A synthetic encrypted JPEG
+passed write/head/delete; its KKM1 envelope excluded plaintext and used mode
+0600. A second synthetic object survived an app restart, authenticated and
+decrypted to the expected SHA-256, then was removed. `mobile_media_upload` held
+zero rows before and after; no HTTP upload, database row, or S3 migration was
+performed. All three candidate services remained healthy.
+
+This confirms local provider activation and app restart persistence on the
+linux/amd64 localhost candidate. It does not certify the ARM64 device, full edge
+resource limits on PostgreSQL, end-to-end authenticated upload/sync, production
+retention, or R2 recovery. The source and base Compose profile still default to
+S3; the running candidate currently uses the edge overlay. To roll back, retag
+the preserved image as `latest` and recreate only the app with the base and
+Metabase manifests. Preserve the private-media volume and key if real objects
+are later written. See [activation evidence](builds/2026-10-12-recovery/field-collector-candidate-edge-media-activation.json).
