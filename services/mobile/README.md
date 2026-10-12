@@ -119,8 +119,8 @@ The trusted-device flow uses schema migration `357_field_collector_enrollment_ha
 - `DELETE /api/mobile/locations/{location_id}/enrollments/{enrollment_id}` revokes an unused claim. `POST /api/mobile/locations/{location_id}/devices/{device_id}/revoke` revokes an active device and clears its token hash; both require location-scoped Gateway authorization.
 - `GET /api/mobile/forms` returns only explicitly public global forms to anonymous clients (`location_id IS NULL AND is_public = TRUE`). A device may send `X-Device-Token` for global and its server-assigned location forms; caller-supplied location queries are rejected when they do not match the device.
 - `POST /api/mobile/locations/{location_id}/participants` creates a reviewer-approved opaque participant reference; `/participants/revoke` revokes it. With OIDC enabled, both routes require a location grant and CSRF validation. Otherwise they require a location-scoped Gateway capability or API key. The raw reference is returned only once; only its SHA-256 digest is stored.
-- `POST /api/mobile/sync` accepts up to 50 idempotent records per request. Device identity and location are derived from the active device token. New records must match an immutable known form revision and collection type. Active `required` forms also require a matching participant link and exact active consent grant; retired revisions enter private review with no consent status.
-- Private photo uploads carry the collection's form/version/reference/timestamp and check required consent before the Gateway reads or stores JPEG bytes. Sync checks consent again before attaching uploaded objects.
+- `POST /api/mobile/sync` accepts up to 50 idempotent records per request. Device identity and location are derived from the active device token. New records must match an immutable known form revision and collection type. Every `required` revision, active or known-retired, needs a matching unrevoked participant link and exact consent grant at collection and sync. Retired revisions enter private review and remain unassessed/ineligible even when consent checks pass.
+- Private photo uploads carry the collection's form/version/reference/timestamp and check required consent before the Gateway reads or stores JPEG bytes. Sync checks consent again before attaching uploaded objects, including for known retired revisions.
 - `GET /api/mobile/sync/status` returns device queue status.
 
 Migration 381 adds immutable form revisions, reviewer-created participant
@@ -128,7 +128,10 @@ links, consent validation metadata, and the downstream
 `v_mobile_collection_use_eligibility` gate. Its source is not yet applied to the
 candidate database. The five seeded forms remain `unclassified` until separately
 reviewed; those records stay private and are not eligible for reporting or
-publication. Existing rows remain unassessed. No tests, migration, local
+publication. Existing rows remain unassessed. The older
+`services.analytics.mobile_offline` CLI stages transport rows without consent
+validation; after migration 381 those rows remain unassessed and cannot pass the
+eligibility view. No tests, migration, local
 container, legacy/staging/production database, or Cloudflare resource changed.
 Expired object-byte cleanup remains open before production use.
 

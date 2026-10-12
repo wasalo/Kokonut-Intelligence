@@ -316,7 +316,7 @@ reporting views.
 - [x] Approve the collector/participant identity boundary, reviewer-controlled location link, consent source/check timing, withdrawal gate, and immutable/stale form handling baseline.
 - [x] Implement migration 381 source, versioned form reads/sync validation, reviewer link create/revoke routes, opaque-ref UI capture, and the downstream eligibility view ([contract](mobile-access-contract.md)).
 - [x] Close the stale required-form consent bypass: retired revisions remain private-review-only and now require the same unrevoked participant link and exact consent checks before media upload and sync ([contract](mobile-access-contract.md)).
-- [x] Audit every `offline_collection` source reference; document the legacy CLI as transport-only and require future business/reporting consumers to read the eligibility view ([contract](mobile-access-contract.md)).
+- [x] Audit every `offline_collection` source reference; document the legacy CLI as transport-only and require future business/reporting consumers to read the eligibility view ([contract](mobile-access-contract.md), [field data guide](../field-data-collection-guide.md), [mobile README](../../services/mobile/README.md)).
 - [ ] Classify each current form with reviewed category, purpose, recipient, scope, version, and required/not-required decision. All five remain `unclassified` until that work is complete.
 - [ ] Define the human retention/erasure disposition and tenant/RLS policy; use the eligibility view in every downstream consumer before reporting or publication.
 - [ ] Apply the migration through the checksummed runner and run the listed mobile acceptance checks with verification authorization.

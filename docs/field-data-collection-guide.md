@@ -82,12 +82,27 @@ skip or overwrite existing zone keys according to import options.
 
 ### Mobile Offline Queue
 
-The mobile/offline subsystem supports device registration, GPS/photo references,
-form payloads, queueing, duplicate `client_id` detection, conflict handling,
-and sync logs. Its queue stores arbitrary payloads in `offline_collection` and
-marks them synced; it does **not** transform payloads into
-`soil_sample`, `tree_record`, `pest_observation`, or other canonical field rows.
-There is no documented production mobile application in this repository.
+The repository includes a documented offline-first Field Collector at
+`services/mobile/field-collector.html`. The Gateway provides enrollment,
+location-bound device tokens, immutable form revisions, private photo upload,
+and idempotent sync. Collections remain in `offline_collection`; this path does
+**not** transform them into `soil_sample`, `tree_record`, `pest_observation`, or
+other canonical field rows.
+
+The older `python3 -m services.analytics.mobile_offline` command is a
+transport/admin utility. It does not validate form revisions, participant
+links, or consent, and its sync status alone never permits reporting or
+publication. After migration 381, rows created through that CLI are unassessed
+and fail `v_mobile_collection_use_eligibility`. Any downstream use of mobile
+collections must read that eligibility view and still follow the governed
+review/publication lifecycle.
+
+Migration 381 and end-to-end mobile acceptance remain open for the candidate
+deployment. The five seeded forms remain unclassified until an authorized
+reviewer assigns their data purpose, recipient, scope, and consent requirement.
+See the [Field Collector access contract](refactor/mobile-access-contract.md)
+before operating or integrating this path; source presence alone does not
+certify production readiness.
 
 ### Data Stream
 

@@ -1881,8 +1881,9 @@ producer and sync marker, not a consent-aware admission path; its rows default
 to unassessed and fail the migration 381 eligibility view. No business,
 reporting, or publication consumer was found in the source tree.
 
-Updated the access contract, Batch 5 checklist, and CAP-053 status. Python
-syntax compilation and `git diff --check` passed. No test suite, migration,
-database, or container was run or changed. Per-form classification, tenant/RLS policy,
+Updated the access contract, operator-facing mobile and field-collection guides,
+repository CLI guidance, Batch 5 checklist, and CAP-053 status. Python syntax
+compilation and `git diff --check` passed. No test suite, migration, database,
+or container was run or changed. Per-form classification, tenant/RLS policy,
 retention/erasure disposition, and the migration/mobile acceptance gates remain
 open.

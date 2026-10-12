@@ -385,6 +385,7 @@ Commands:
 - Mobile sync: `python3 -m services.analytics.mobile_offline sync --device-id sensor-phone-001`
 - Mobile status: `python3 -m services.analytics.mobile_offline status`
 - Mobile devices: `python3 -m services.analytics.mobile_offline devices`
+- `services.analytics.mobile_offline` is a legacy transport/admin CLI: it does not validate form revisions, participant links, or consent. Use the consent-aware Field Collector API for intake; after migration 381, legacy CLI rows remain unassessed and cannot pass `v_mobile_collection_use_eligibility`.
 - LLM chat session: `python3 -m services.analytics.llm_chat session --create --location-id UUID --user admin`
 - LLM chat send: `python3 -m services.analytics.llm_chat chat --session-id UUID --message "What was the maize yield?"`
 - LLM chat intents: `python3 -m services.analytics.llm_chat intents`
