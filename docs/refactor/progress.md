@@ -2659,3 +2659,31 @@ not touched. Production SOPS custody, database/object parity, persistent-volume
 recovery, expiry/orphan cleanup and retention remain open.
 
 [Evidence](builds/2026-10-12-recovery/field-collector-media-backup-restore.json).
+
+
+### Batch 5 media archive restore with supplied SOPS age identity — 12 October 2026
+
+The age recipient was derived from the user-provided identity file. The local
+media checkpoint script encrypted one synthetic `KKM1` object; after deleting
+the source, the restore script used that identity to restore into a new private
+directory. Inventory and ciphertext SHA-256 matched, `head_private` authenticated
+the envelope with a separate temporary media key, and the wrong media key was
+rejected.
+
+This validates access to the supplied age identity for archive encryption and
+restore. It did not decrypt `.env.sops` or recover the production media key. The
+DB checkpoint fixture was synthetic; there was no real DB restore, upload-row
+parity check, or persistent-volume/container replacement. Temporary data and keys
+were removed, and candidate database/provider configuration stayed untouched.
+
+[Evidence](builds/2026-10-12-recovery/field-collector-media-sops-age-restore.json).
+
+
+### Batch 5 local media key configuration check — 12 October 2026
+
+A targeted SOPS lookup found no `MOBILE_MEDIA_LOCAL_KEY` or explicit
+`MOBILE_MEDIA_PROVIDER` entry in the tracked `.env.sops`. The source defaults to
+S3 when no provider is set; `docker-compose.kernel-edge.yml` requires the local
+media key. The provided age identity restored the synthetic archive in the prior
+check, but the local edge media configuration remains unprovisioned. No encrypted
+values or candidate settings were changed. See [availability evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-availability.json).

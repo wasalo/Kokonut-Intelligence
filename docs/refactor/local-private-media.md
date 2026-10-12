@@ -66,8 +66,8 @@ remained pending and ineligible for downstream use.
 All synthetic database rows, encrypted bytes, the ephemeral key, and the
 Gateway spool were removed. The candidate's running provider configuration was
 unchanged. This does not verify persistence across container replacement,
-production SOPS-key recovery, database upload-record parity, expiry/orphan
-cleanup, or browser offline capture. An isolated one-object archive/restore
+production media-key recovery through SOPS, database upload-record parity,
+expiry/orphan cleanup, or browser offline capture. An isolated one-object archive/restore
 rehearsal is documented below. The access contract intentionally defines no
 public download endpoint; the client keeps its local photo preview and the
 server verifies private objects internally. See
@@ -93,3 +93,29 @@ volume recovery, container replacement, expiry/orphan cleanup, or backup
 retention. All fixture files and temporary keys were removed; the candidate DB
 and media-provider configuration were untouched. See
 [recovery evidence](builds/2026-10-12-recovery/field-collector-media-backup-restore.json).
+
+
+## Restore using the supplied SOPS age identity — 12 October 2026
+
+The archive recipient was derived from the user-provided age identity file. The
+checkpoint script encrypted one synthetic `KKM1` object; after removing the
+source directory, the restore script decrypted the archive with that identity
+into a new private directory. The restored ciphertext digest and inventory
+matched, `head_private` authenticated the object with a separate temporary media
+key, and an incorrect media key failed.
+
+This confirms that the supplied age identity can decrypt an age archive. The
+media key and database-checkpoint binding were still synthetic. No `.env.sops`
+value or application secret was decrypted, and production media-key custody,
+database upload-row parity, persistent-volume/container recovery, and
+expiry/orphan cleanup remain open. All temporary files were removed; the
+candidate DB and provider configuration were untouched. See
+[SOPS age restore evidence](builds/2026-10-12-recovery/field-collector-media-sops-age-restore.json).
+
+
+The tracked `.env.sops` has no `MOBILE_MEDIA_LOCAL_KEY` or explicit
+`MOBILE_MEDIA_PROVIDER` entry. The source therefore defaults to S3 when unset,
+and `docker-compose.kernel-edge.yml` requires the local key. The supplied age
+identity successfully restored a synthetic archive, but local media cannot be
+enabled in the edge profile until an operator provisions a SOPS-managed key. No
+encrypted environment values were changed. See [availability evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-availability.json).

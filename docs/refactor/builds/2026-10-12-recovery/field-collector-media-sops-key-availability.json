@@ -1,0 +1,22 @@
+{
+  "acceptance": "sops-local-media-key-availability",
+  "date": "2026-10-12",
+  "checks": {
+    "provided_age_identity_restored_synthetic_archive": true,
+    "targeted_sops_extract_for_mobile_media_local_key": "field_not_found",
+    "targeted_sops_extract_for_mobile_media_provider": "field_not_found",
+    "source_default_provider_when_unset": "s3",
+    "edge_compose_profile_requires_mobile_media_local_key": true,
+    "secret_values_emitted": false,
+    "env_sops_modified": false,
+    "candidate_database_or_provider_touched": false
+  },
+  "result": "local media key is not configured in the tracked SOPS dotenv; age identity works for synthetic archive recovery",
+  "limitations": [
+    "No local media key could be recovered from .env.sops because the targeted entry is absent.",
+    "The candidate container environment was not inspected; only the tracked SOPS dotenv and repository configuration were checked.",
+    "The edge profile cannot use local media until an operator provisions the required encrypted key.",
+    "This did not verify production database/object parity, persistent-volume recovery, expiry/orphan cleanup, or retention."
+  ],
+  "rollback": "Read-only configuration inspection; no secret files, candidate settings, containers, or database state were changed."
+}
