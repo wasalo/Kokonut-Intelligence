@@ -66,7 +66,30 @@ remained pending and ineligible for downstream use.
 All synthetic database rows, encrypted bytes, the ephemeral key, and the
 Gateway spool were removed. The candidate's running provider configuration was
 unchanged. This does not verify persistence across container replacement,
-key-matched backup/restore, expiry/orphan cleanup, or browser offline capture.
-The access contract intentionally defines no public download endpoint; the
-client keeps its local photo preview and the server verifies private objects
-internally. See [runtime evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
+production SOPS-key recovery, database upload-record parity, expiry/orphan
+cleanup, or browser offline capture. An isolated one-object archive/restore
+rehearsal is documented below. The access contract intentionally defines no
+public download endpoint; the client keeps its local photo preview and the
+server verifies private objects internally. See
+[runtime evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
+
+
+## Isolated age-encrypted backup and restore rehearsal — 12 October 2026
+
+The repository checkpoint and restore scripts were exercised with one synthetic
+`KKM1` object from `LocalMediaStore`. The checkpoint tool created an age-encrypted
+archive and manifest, bound to the SHA-256 of a synthetic database-checkpoint
+file. The restore tool wrote into a new private directory, authenticated the age
+archive and verified the ciphertext inventory. `head_private` then authenticated
+the restored object with the separate media key; direct test-only decryption
+confirmed the synthetic plaintext SHA-256, and a wrong media key was rejected.
+
+The media key was generated in memory and was not placed in the archive or
+manifest. The `sops:MOBILE_MEDIA_LOCAL_KEY` value was only a custody label; no
+SOPS secret was read. The database file was a synthetic hash-binding fixture,
+not a database backup, and no `mobile_media_upload` row was compared. This does
+not certify SOPS key recovery, production database/object parity, persistent
+volume recovery, container replacement, expiry/orphan cleanup, or backup
+retention. All fixture files and temporary keys were removed; the candidate DB
+and media-provider configuration were untouched. See
+[recovery evidence](builds/2026-10-12-recovery/field-collector-media-backup-restore.json).

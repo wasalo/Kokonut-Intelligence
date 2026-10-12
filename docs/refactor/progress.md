@@ -2640,3 +2640,22 @@ remain open for capture/reconnect against a path that is actually severed; no
 LAN binding or other network exposure was added.
 
 [Probe evidence](builds/2026-10-12-recovery/field-collector-wifi-off-probe.json).
+
+
+### Batch 5 isolated private-media checkpoint/restore rehearsal — 12 October 2026
+
+The repository media checkpoint/restore scripts passed with one synthetic local
+`KKM1` object. The age-encrypted archive did not contain the separate media key;
+the manifest bound the SHA-256 of a synthetic DB-checkpoint fixture. Restore to a
+new 0700 directory verified the object inventory. `head_private` authenticated
+the restored envelope with the temporary media key; direct test-only decryption
+matched the synthetic plaintext SHA-256, and a wrong media key failed.
+
+The database fixture only exercised manifest binding; no database was restored
+and no upload-row hash/size parity was checked. The temporary media key remained
+in process memory and no SOPS secret was read. All synthetic files, keys and
+archives were removed. The candidate database and provider configuration were
+not touched. Production SOPS custody, database/object parity, persistent-volume
+recovery, expiry/orphan cleanup and retention remain open.
+
+[Evidence](builds/2026-10-12-recovery/field-collector-media-backup-restore.json).
