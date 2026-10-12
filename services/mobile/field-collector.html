@@ -208,10 +208,19 @@
       const enrolledDevice = read(STORAGE.device, null);
       const deviceSummary = enrolledDevice?.location_id ? `Enrolled for location ${enrolledDevice.location_id}` : "Enter a single-use enrollment code";
       const insecureBanner = isSecure() ? "" : `<div class="notice" style="background:#fde8e5;color:#842c25;margin-bottom:16px"><strong>HTTPS required for GPS on iOS.</strong><br>Switch to <a href="${httpsUrl()}" style="color:#842c25">${httpsUrl()}</a> and accept the certificate warning.</div>`;
-      screen.innerHTML = `${insecureBanner}<p class="eyebrow">Offline-first field records</p><h2>Collect what the field knows.</h2><p class="intro">Save observations now. The app will upload them when a connection returns.</p><div class="forms">${items}</div><section class="panel"><div class="panel-row"><strong>Pending records<small>${count ? "Waiting to sync" : "Everything is up to date"}</small></strong><span class="badge ${count ? "" : "empty"}">${count}</span></div><div class="panel-row"><strong>Device setup<small>${esc(deviceSummary)}</small></strong><button class="button secondary" style="width:auto" id="settingsButton">Open</button></div><div class="panel-row"><strong>Sync queue<small>Upload saved records when online</small></strong><button class="button" style="width:auto" id="syncButton">Sync now</button></div></section><p class="footer-note">Kokonut Intelligence Field Collector v1.0.0</p>`;
+      screen.innerHTML = `${insecureBanner}<p class="eyebrow">Offline-first field records</p><h2>Collect what the field knows.</h2><p class="intro">Save observations now. The app will upload them when a connection returns.</p><div class="forms">${items}</div><section class="panel"><div class="panel-row"><strong>Pending records<small id="pendingSummary">${count ? "Waiting to sync" : "Everything is up to date"}</small></strong><span id="pendingCount" class="badge ${count ? "" : "empty"}">${count}</span></div><div class="panel-row"><strong>Device setup<small>${esc(deviceSummary)}</small></strong><button class="button secondary" style="width:auto" id="settingsButton">Open</button></div><div class="panel-row"><strong>Sync queue<small>Upload saved records when online</small></strong><button class="button" style="width:auto" id="syncButton">Sync now</button></div></section><p class="footer-note">Kokonut Intelligence Field Collector v1.0.0</p>`;
       document.querySelectorAll("[data-form]").forEach(button => button.addEventListener("click", () => renderForm(forms().find(form => form.form_id === button.dataset.form))));
       document.getElementById("settingsButton").addEventListener("click", renderSettings);
       document.getElementById("syncButton").addEventListener("click", () => syncQueue(true));
+    };
+    const refreshPendingSummary = () => {
+      const count = queue().length;
+      const badge = document.getElementById("pendingCount");
+      const summary = document.getElementById("pendingSummary");
+      if (!badge || !summary) return;
+      badge.textContent = String(count);
+      badge.classList.toggle("empty", count === 0);
+      summary.textContent = count ? "Waiting to sync" : "Everything is up to date";
     };
     const renderField = (name, definition, required) => {
       const label = `${esc(definition.title || name.replaceAll("_", " "))}`;
@@ -375,7 +384,7 @@
           if (unrecoverable) warnings.push(`${unrecoverable} record(s) with legacy photo names remain queued for recovery.`);
           if (mediaReview) warnings.push(`${mediaReview} record(s) exceed the five-photo limit; their encrypted local images were not uploaded.`);
           notify(`${accepted} record${accepted === 1 ? "" : "s"} uploaded.${warnings.length ? ` ${warnings.join(" ")}` : ""}`, warnings.length > 0);
-        }
+        } else refreshPendingSummary();
       } catch (error) {
         if (error.status === 401 && vault?.isUnlocked() && vaultState) {
           await write(STORAGE.device, null); await write(STORAGE.forms, []); renderSettings();

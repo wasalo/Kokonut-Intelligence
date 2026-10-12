@@ -2018,7 +2018,6 @@ Focused mobile/schema suites passed: **60 passed**, with 109 deprecation
 warnings. Ruff, dependency-group alignment, and the browser fallback syntax check passed. At that source-only checkpoint the candidate remained on `1.1.0`; the subsequent candidate rollout is recorded below. See the
 [policy record](mobile-form-classification-review.md), [access contract](mobile-access-contract.md),
 [Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
-
 ## Batch 5 Field Collector schema-validation candidate rollout — 12 October 2026
 
 Created the fresh encrypted PostgreSQL checkpoint at
@@ -2204,3 +2203,40 @@ reconnect in the browser, real OIDC login, media upload while disconnected,
 retired/consent-withdrawal paths, durable media backup/cleanup, semantic review,
 tenant/RLS and retention/erasure remain open. See the [mobile access contract](mobile-access-contract.md),
 [Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
+
+## Batch 5 Field Collector candidate-Gateway browser sync and badge refresh — 12 October 2026
+
+Rebuilt only the candidate `app` service after adding an in-place pending-queue
+summary refresh in `services/mobile/field-collector.html`. Using the unlocked
+encrypted test vault in the Codex in-app browser, saved a second clearly
+synthetic Field Note and let the app's normal online sync run. Without pressing
+Sync or navigating away, the home screen updated to “Everything is up to date”
+with a zero badge. The two browser notes generated two successful candidate
+Gateway upload receipts. Aggregate database inspection confirmed both rows
+used active Field Note revision `1.2.0`, had no form-review requirement, and
+remained `sync_status=pending`, `eligible_for_use=false`,
+`eligibility_reason=transport_pending`; transport acceptance did not verify or
+publish them.
+
+The candidate had no configured OIDC provider/API-key enrollment credentials,
+so this run used a one-time synthetic enrollment fixture in the isolated
+candidate database. After the browser check, a guarded transaction removed the
+synthetic location, device, enrollment, two offline collections, and two sync
+logs; final counts for all fixture relations were zero. The browser vault was
+locked. Its encrypted IndexedDB record remains on the local browser because the
+Field Collector currently has no supported vault-destroy/reset action; deleting
+the candidate device makes the stored test credential unusable. No secrets,
+passphrase, token, note payload, or enrollment code are recorded in evidence.
+
+Static verification: inline JavaScript syntax check with `node --check -` and
+`git diff --check` passed. Real-browser candidate acceptance verified online
+sync and the UI refresh only; it did not simulate airplane mode or Gateway
+outage/reconnect, use real OIDC, or cover retired forms, consent withdrawal,
+media, retention, erasure, tenant/RLS, or downstream human disposition. No
+schema, migration, seed, or canonical provider configuration changed. Rollback
+is to revert the `field-collector.html` summary-refresh change and rebuild the
+candidate app; the database fixture is already removed. Evidence:
+[candidate Gateway browser check](builds/2026-10-12-recovery/field-collector-browser-candidate-gateway.json).
+
+CAP-053 and Batch 5 remain partial. See the [checklist](batches.md),
+[capability matrix](capability-matrix.md#cap-053), and [mobile access contract](mobile-access-contract.md).
