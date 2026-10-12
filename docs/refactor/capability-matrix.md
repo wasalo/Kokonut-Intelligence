@@ -71,7 +71,7 @@ All named MAN-CAP acceptance checks below remain **not run**; implementation and
 | CAP-061 | Regen Network parity | services/credit_class/; services/data_module/ | MAN-CAP-061: Regen-compatible enums/project/claim/credit representations remain compatible | tests/test_data_module_all.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-062 | ARKIV parity | services/data_module/; services/credit_class/ | MAN-CAP-062: Expiry, transaction origin and fee distribution preserve documented representations | tests/test_credit_fees.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-063 | GeoNode parity | services/csw/; services/geostory/; services/maps/; services/thesaurus/ | MAN-CAP-063: GIS/KML/raster import, metadata, CSW, map and geostory access match fixture | tests/test_gis_import.py | B — baseline code retained; Kernel capability path and parity unassessed. |
-| CAP-064 | gRPC API | services/grpc/; proto/; sdk/ | MAN-CAP-064: Generated protocol, API-key scope and streaming behavior match REST policy | tests/test_grpc.py | P — optional target, scoped auth, pooled DB and bounded shutdown prepared; private-only/insecure-network, API-key, runtime-role and health limits documented. The Python SDK includes optional namespaced generated stubs that passed an isolated wheel import. The TypeScript gRPC SDK now bundles its proto import closure in the package build, but build/archive/import acceptance is pending. The gRPC service has not been rebuilt from current checkout or started; RPC/REST parity and runtime authorization remain unassessed. [gRPC contract](grpc-overlay.md) |
+| CAP-064 | gRPC API | services/grpc/; proto/; sdk/ | MAN-CAP-064: Generated protocol, API-key scope and streaming behavior match REST policy | tests/test_grpc.py | P — optional target, scoped auth, pooled DB and bounded shutdown prepared; private-only/insecure-network, API-key, runtime-role and health limits documented. The Python SDK includes optional namespaced generated stubs that passed an isolated wheel import. The TypeScript gRPC SDK's clean build and npm dry-run archive include the five required proto files and exclude tests; installed-package import remains pending. The gRPC service has not been rebuilt from current checkout or started; RPC/REST parity and runtime authorization remain unassessed. [gRPC contract](grpc-overlay.md) |
 | CAP-065 | Business Model Canvas | services/analytics/business_model_canvas.py | MAN-CAP-065: One-click canvas and thirteen-section status retain evidence and scope | tests/test_bmc_oneclick.py; tests/test_comprehensive_status.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-066 | State of Kokonut | services/export/ | MAN-CAP-066: Network report, funding rollup and timelines match baseline exports | tests/test_state_of_kokonut.py; tests/test_state_of_kokonut_graphs.py | P — exporter ClickHouse construction moved behind optional adapter; a separate OIDC-scoped read-only console lists location-specific submitted `report_snapshot` records and can read their detail in source. Login, scope denial, payload, and report parity remain unverified; this does not certify State of Kokonut outputs. [Providers](provider-configuration.md); [console contract](kernel-operations-console.md); legacy CH objects inventoried and encrypted, report parity open: [Inventory](analytics-broker-recovery.md) |
 
@@ -95,11 +95,11 @@ README, Apache license, typed marker, and 16 `.py` files for the optional,
 namespaced generated gRPC package. The wheel and optional gRPC runtime imported
 successfully in a temporary environment, including both REST clients and all
 10 generated modules; no live request or SDK capability parity was checked.
-The TypeScript gRPC package now copies the service proto import closure into
-`dist/proto` and resolves it relative to its installed package; no npm build,
-archive inspection, or import was run for this source change. The JavaScript
-artifact remains uninstalled/unimported, so the 6 D / 4 P / 56 B / 0 accepted
-counts do not change.
+The TypeScript gRPC package's clean build and npm dry-run archive now include
+the five-file service proto import closure in `dist/proto` and exclude test
+output. Its installed-package import remains unassessed. The JavaScript artifact
+remains uninstalled/unimported, so the 6 D / 4 P / 56 B / 0 accepted counts do
+not change.
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
 and [Python import ledger](progress.md#phase-7-python-sdk-isolated-wheel-import-check--11-october-2026).
 

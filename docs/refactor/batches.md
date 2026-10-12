@@ -326,6 +326,7 @@ reporting views.
 - [x] Resolve the Python SDK generated-protobuf boundary with namespaced optional `kokonut.grpc` modules; generated stubs are included in the wheel and sdist ([ledger](progress.md#phase-7-python-sdk-optional-grpc-distribution--11-october-2026)).
 - [x] Install the Python wheel and optional gRPC runtime into an isolated environment; import both REST clients and all 10 generated modules, and verify class-module and service identities ([ledger](progress.md#phase-7-python-sdk-isolated-wheel-import-check--11-october-2026)).
 - [x] Make the TypeScript gRPC npm package self-contained by bundling its proto import closure and resolving service definitions from the installed package ([ledger](progress.md#phase-7-typescript-grpc-package-proto-boundary--11-october-2026)).
+- [x] Build and preflight the TypeScript gRPC npm archive; confirm it includes the five required proto files and excludes test output ([ledger](progress.md#phase-7-typescript-grpc-package-proto-boundary--11-october-2026)).
 - [ ] Complete JavaScript SDK runtime/import acceptance and Python/JavaScript API parity; publish only after explicit release authorization.
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).

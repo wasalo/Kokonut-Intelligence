@@ -247,11 +247,16 @@ pagination/type imports into `dist/proto` during build, and both clients resolve
 definitions relative to that package-owned directory. `prepack` performs a
 clean build so npm archives include those assets. Removed the unused
 `@bufbuild/protobuf` runtime dependency and Buf generation step; this client
-uses `@grpc/proto-loader` directly. The build, npm archive contents, and
-installed-package import have not been checked, and no test suite ran. Runtime
-acceptance and Python/TypeScript API parity remain open. Roll back the package
-copy script, client paths, lifecycle/dependency edits, and this documentation
-together. See the [Batch 5 checklist](batches.md).
+uses `@grpc/proto-loader` directly. The first npm archive listing included
+Vitest output under `dist/__tests__`, so the TypeScript build now excludes test
+sources. `npm pack --dry-run --json` then completed its clean build and listed
+23 files, including all five proto files and no test output. The default npm
+cache is root-owned on this machine, so the archive preflight used a temporary
+cache under `/private/tmp/kokonut-typescript-npm-cache/`. No test suite,
+installed-package import, API/RPC call, or publish ran. Runtime acceptance and
+Python/TypeScript API parity remain open. Roll back the package copy script,
+client paths, build exclusions, lifecycle/dependency edits, and this
+documentation together. See the [Batch 5 checklist](batches.md).
 
 
 ## Phase 7 operations-console identity boundary — 11 October 2026
