@@ -48,6 +48,13 @@ Compose-profile tests pass. No real provider credentials or browser session
 were configured, so login, grant provisioning, CSRF, and console acceptance
 remain open.
 
+**13 October 2026 platform-integrity source check (CAP-047):** the focused
+migration, Gateway authorization, scheduler durability, event-bus durability,
+carbon-credit, threatcasting, backcasting, and Delphi suites pass 279 tests.
+Host-run Gateway app tests now use a private temporary audit journal, matching
+the container's writable-spool contract. Ruff passes. This source-level run does
+not close live provider state, external delivery, or broader recovery gates.
+
 **13 October 2026 Phase 8 update:** the minimal app/PostGIS build inputs now
 have a SHA-256 lock, and GitHub Actions is configured to build AMD64/ARM64 OCI
 archives and compare resolved Python/PostGIS package versions. The current

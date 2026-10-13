@@ -10,6 +10,17 @@ from starlette.testclient import TestClient  # noqa: E402
 from services.gateway.app import create_app  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def isolated_gateway_audit_spool(tmp_path, monkeypatch):
+    """Give host-run app tests a private writable journal like the container has."""
+    monkeypatch.setenv(
+        "KOKONUT_GATEWAY_AUDIT_SPOOL_PATH",
+        str(tmp_path / "gateway-audit.sqlite3"),
+    )
+    monkeypatch.setenv("KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS", "1000")
+    monkeypatch.setenv("KOKONUT_GATEWAY_AUDIT_SPOOL_ALERT_THRESHOLD", "0")
+
+
 def test_anonymous_public_read_is_allowed():
     with TestClient(create_app()) as client:
         response = client.get("/api/iri/resolve", params={"iri": "missing"})

@@ -3815,3 +3815,15 @@ OIDC overlay fails configuration when the issuer is missing, and explicit test
 settings reach the app environment. The focused Compose-profile suite passes 12
 tests and Ruff is clean. No real provider, credential, browser, or service was
 used; OIDC login/session and console acceptance remain open.
+
+
+## Batch 2 focused platform-integrity source run — 13 October 2026
+
+Ran the repository's eight focused platform-integrity suites: **279 passed**.
+The first host run exposed five Gateway mutation tests failing closed because
+the container-default audit-spool path was not writable by the host process.
+Added an autouse test fixture that gives each Gateway test a private journal in
+pytest's temporary directory; the complete suite then passed. Ruff is clean.
+No candidate or Docker service changed. This is source test evidence only;
+external delivery, provider state, physical failure, and broader runtime
+recovery remain open.
