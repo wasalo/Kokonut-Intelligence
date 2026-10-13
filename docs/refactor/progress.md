@@ -3945,7 +3945,13 @@ predicate for farm activity. The source inventory is in
 
 This closes only the repository-source audit. External or operator-edited
 dashboard SQL, populated output parity, and direct-database isolation remain
-open. Focused tests and migration 388 replay remain unrun pending explicit
+open. Focused tests and migrations 388–389 replay remain unrun pending explicit
 verification authorization; Ruff, Python compilation, and whitespace checks
 are the static checks for this change. CI run 291 is green on the earlier PR
 head and does not cover this local batch.
+
+Migration 389 now adds database-trigger checks for tenant-aware grants on
+Field Collector draft creation, content edits, and lifecycle events, using the
+shared predicate from migration 388. The checks retain NULL-tenant grant
+compatibility. The migration is not replayed or tested; both migrations 388
+and 389 remain behind the focused acceptance and rollout gates.

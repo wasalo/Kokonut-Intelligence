@@ -35,7 +35,9 @@ still expose an ineligible record with its disposition reason.
 ## Remaining boundary
 
 This audit covers source-controlled consumers only. Migration 386 deliberately
-does not rewrite unknown or operator-edited dashboard SQL. The archive review
+does not rewrite unknown or operator-edited dashboard SQL. Migration 389 adds
+tenant-aware checks to the database write triggers, but has not been replayed
+or accepted. The archive review
 found no direct location lineage for 38 dashboards and three report snapshots;
 their business ownership, audience, and output parity remain open. Direct SQL
 roles also do not receive universal row-level isolation from this predicate;

@@ -514,9 +514,12 @@ reporting views.
   location sharing, and tenant-qualified resource/action grants. CLI and
   application/query authorization paths enforce the shared predicate. Legacy
   NULL-tenant location grants remain compatible and are not backfilled.
+- [x] Add migration 389 trigger guards so Field Collector draft creation,
+  edits, and lifecycle events also recheck the shared tenant-aware predicate;
+  legacy NULL-tenant grants retain their compatibility path.
 - [ ] Run focused migration, membership/share lifecycle, grant conversion,
-  cross-tenant denial, and ordered-replay acceptance for migration 388 before
-  considering any candidate rollout.
+  cross-tenant denial, trigger-guard, and ordered-replay acceptance for
+  migrations 388–389 before considering any candidate rollout.
 - [ ] Define and implement audited owner-transfer controls, reconcile other
   locations and legacy operator grants, add transaction-local context, and
   establish least-privilege worker/direct-database boundaries before RLS.
@@ -610,7 +613,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Rerun the snapshot-aware PostGIS build and locked inventory comparison on both architectures and retain the passing result ([CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973): 229 AMD64 and 228 ARM64 packages, with the single documented architecture-specific difference).
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
-- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current local head. CI run 291 and Security run 15 passed on PR #68 remote head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; 15 local commits beyond that remote head, including tenant ownership, lineage, grant-foundation, and downstream eligibility work, still need CI after the next batch push. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
+- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current local head. CI run 291 and Security run 15 passed on PR #68 remote head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; 16 local commits will be ahead of that remote head after this batch commit, including tenant ownership, lineage, grant-foundation, database-trigger, and downstream eligibility work. Those local changes still need CI after the next batch push. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
 - [ ] Execute a reviewed cutover and retire dependencies only after their gates close.
 
 Gate: all required deployment profiles and selected capability acceptance criteria

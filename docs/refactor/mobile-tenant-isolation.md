@@ -210,3 +210,14 @@ location-scoped contract until each identity is reconciled. Tenant grants are
 not a claim of row-level isolation: transaction-local context, worker scoping,
 transfer workflow, direct database privilege boundaries, focused acceptance,
 full ordered replay, and candidate rollout remain open. RLS remains disabled.
+
+### Field Collector write-trigger follow-up — 13 October 2026
+
+Migration 389 adds tenant-aware grant checks to the Field Collector draft
+insert, content-edit, and lifecycle-event trigger paths created by migrations
+384–385. The new guards call the migration-388 shared authorization predicate,
+which preserves the explicit compatibility behavior for existing NULL-tenant
+location grants. Earlier applied migrations remain unchanged. Migration 389 is
+source-only: no ordered replay, trigger acceptance, or candidate rollout has
+been run. It does not provide tenant isolation for arbitrary direct SQL, set
+transaction-local tenant context, or enable RLS.
