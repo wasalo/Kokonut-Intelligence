@@ -609,6 +609,7 @@ def test_farm_activity_draft_edit_route_denies_missing_authority_or_invalid_body
 
 
 def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
     provider = _ReviewProvider(allowed_action="read")
     monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
     audit_records = []
@@ -622,7 +623,7 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
         queue_reader,
     )
 
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(), base_url="https://operator.example") as client:
         client.cookies.set(
             operator_auth.SESSION_COOKIE,
             "valid-session",
@@ -631,9 +632,12 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
         response = client.get(
             "/operator/api/mobile-collection-review-queue",
             params={"location_id": LOCATION_ID, "limit": 7},
+            headers={"Origin": "https://operator.example"},
         )
 
     assert response.status_code == 200, response.text
+    assert response.headers["access-control-allow-origin"] == "https://operator.example"
+    assert response.headers["access-control-allow-credentials"] == "true"
     assert response.headers["cache-control"] == "no-store"
     assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
     assert response.json()["data"] == [{"id": "collection-id", "payload": None}]

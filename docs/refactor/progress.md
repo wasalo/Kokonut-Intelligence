@@ -3722,3 +3722,15 @@ and parity steps complete in the reporting contract. Production credentials,
 live populated candidate results, broader report/dashboard parity, and
 MAN-CAP-007 remain open. This reconciles existing evidence; no runtime state
 or services changed.
+
+
+## Batch 5 authenticated CORS success response — 13 October 2026
+
+Extended the cookie-backed mobile review queue test with an explicit allowed
+browser origin. The authenticated 200 response now asserts the exact
+`Access-Control-Allow-Origin`, `Access-Control-Allow-Credentials: true`,
+`Cache-Control: no-store`, and `Vary` behavior using the existing fake OIDC
+provider; no identity-provider call or live service was involved. The new
+focused test passed, and the four Gateway CORS preflight tests passed. This
+closes the in-process source regression gap only; browser/certificate, real
+OIDC, and deployed credentialed-CORS acceptance remain open.
