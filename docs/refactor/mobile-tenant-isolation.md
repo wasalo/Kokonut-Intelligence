@@ -90,10 +90,17 @@ verification:
    command checks required schema columns first. Older/partial schemas return
    `schema_incomplete` with missing columns and latest migration context when
    available, without querying inventory rows; use an isolated migrated copy
-   before interpreting row counts. The
-   local candidate run found zero locations and zero inventoried rows; it is
-   empty and cannot establish ownership for a populated deployment ([sanitized
-   evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json)).
+   before interpreting row counts. This gate passed against a fresh populated
+   restore: it reported two locations and 376 migration-history rows in a
+   separate aggregate check, listed 11 missing columns, and returned no
+   ownership/lineage counts
+   ([incomplete-schema evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-gate.json)).
+   The complete-schema branch also returned all 27 required columns and
+   migration 385 on the empty candidate
+   ([complete-schema evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json));
+   that candidate does not establish populated ownership. The earlier local
+   candidate inventory found zero locations and zero rows
+   ([candidate evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json)).
 2. Have accountable data owners resolve the ownership map and define audited
    organization-transfer and explicit-sharing semantics. Unresolved records
    remain outside tenant-protected APIs until resolved.

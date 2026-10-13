@@ -78,8 +78,12 @@ All named MAN-CAP acceptance checks below remain **not run**; implementation and
 ## Progress snapshot — 13 October 2026
 
 Current focus: **Phase 7, native public API reads**. CAP-053's tenant preflight
-now gates counts on schema completeness and reports missing inventory columns
-before it queries an older/partial database. See [phase progress](progress.md)
+now gates counts on schema completeness; the guard passed against a populated
+archived restore, reported 11 missing columns, and skipped lineage counts; its
+complete-schema path also passed against the empty candidate at migration 385.
+See the [incomplete](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-gate.json)
+and [complete](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json)
+evidence, and [phase progress](progress.md)
 for the implementation ledger and the [runtime record](portability-runtime.md) for
 exact deployed images. Seven capabilities have a deployed partial/adjacent integration
 (D), three have prepared partial integration (P), and 56 retain their baseline code

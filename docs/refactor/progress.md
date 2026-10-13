@@ -3371,7 +3371,31 @@ the latest applied migration when migration history exists. It does not issue
 the inventory queries in that case. Complete schemas retain the existing
 repeatable-read, read-only behavior and include the schema-coverage summary.
 
-This is a source/documentation change only. No older populated snapshot was
-queried, no database was changed, and no tests were run. The populated-copy
-schema-gate exercise and accountable owner review remain open; no backfill or
-RLS migration is authorized by this preflight.
+At the source-only checkpoint, no older populated snapshot had been queried;
+the subsequent populated-restore check is recorded below. No test suite ran.
+The CLI does not infer or write ownership, and no backfill or RLS migration is
+authorized by this preflight.
+
+### Populated archived restore check — 13 October 2026
+
+Restored the checksum-verified encrypted `kokonut_intelligence` archive into a
+new template0-derived database using the pinned PostGIS image. The isolated
+internal network had no published ports or application services; synthetic
+credentials were used. A separate read-only aggregate confirmed two locations
+and 376 migration-history rows. The unified CLI returned
+`inventory_status: schema_incomplete`, found 16 of 27 required columns, listed
+the 11 missing columns, and did not query or emit ownership/lineage counts.
+Migration history was correctly ordered by `migration_id`, reporting
+`schema:352_attestation_request_anchor_fields.sql`. The disposable container
+and network were removed; the recovery volume was retained. The candidate and
+legacy services were not connected to or changed.
+
+Evidence: [schema gate restore](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-gate.json).
+The restore and read-only query are not a test suite; no test suite was run.
+Ownership reconciliation remains open. A fully migrated populated copy and
+accountable owner review are still required before any tenant backfill or RLS.
+
+The complete-schema path was also run against the current candidate. It returned
+27/27 required columns and migration 385, with zero locations and zero known
+lineage rows. This confirms only the empty-candidate path; see the separate
+[complete-schema evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json).

@@ -152,7 +152,11 @@ exists. An older or partial schema returns `inventory_status: schema_incomplete`
 lists the missing `relation.column` requirements and latest applied migration
 when migration history is available, and skips ownership/lineage queries. Bring
 an isolated copy through the ordered migrations before treating its inventory as
-complete.
+complete. This guard was exercised against a fresh populated archived restore:
+it listed 11 missing inventory columns and skipped all ownership/lineage counts
+([sanitized evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-gate.json)).
+The complete-schema path also returned 27/27 required columns and migration 385
+against the empty local candidate ([evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json)).
 
 ### Private media and request protections
 

@@ -475,8 +475,15 @@ reporting views.
   It returned zero locations and zero inventoried rows; the candidate is empty.
 - [x] Gate inventory SQL on required relation/column availability and report
   incomplete schema plus latest applied migration without running row counts.
-- [ ] Exercise the schema-incomplete response against an isolated older
-  populated restore before interpreting that restore's ownership data.
+- [x] Exercise the schema-incomplete response against a fresh isolated restore
+  of the populated archived snapshot. It reported two locations and 376
+  migration-history rows in a separate aggregate check, identified 11 missing
+  inventory columns, and skipped ownership/lineage counts ([evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-gate.json)).
+- [x] Run the same source against the current candidate's complete schema. It
+  reported all 27 required columns, migration 385, and zero rows; the candidate
+  is empty ([evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json)).
+- [ ] Apply and verify ordered migrations on a separate isolated populated copy
+  before requesting a complete ownership/lineage inventory.
 - [ ] Run the preflight on a populated deployment and review
   unassigned/mismatched/shared ownership and unlocated-row counts with
   accountable data owners before any backfill or RLS work.
