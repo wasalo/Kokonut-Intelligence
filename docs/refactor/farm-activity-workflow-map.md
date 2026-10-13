@@ -259,17 +259,24 @@ person-specific evaluations; future text review must retain that restriction.
    focused report/metric tests and Ruff pass, covering synthetic published-only
    aggregates, private-field exclusion, period bounds, report hash/draft state,
    source/rework provenance, array-literal normalization, and the existing
-   unverified metric insert rule. A disposable PostGIS 16 run with minimal
-   synthetic schema and rows also verified the real report query, report hash /
-   draft insert, metric result, both source IDs, reworked source, and unverified
-   metric insert. This does not establish parity against the full migration
-   chain. The scratch database is removed and the candidate remains unchanged
+   unverified metric insert rule. A disposable PostGIS 16 replay applied all
+   375 ordered schema migrations (excluding seeds), then ran the actual report,
+   snapshot, and metric service functions against those tables. It confirmed
+   the published aggregate, draft/private exclusions, matching hash and draft
+   state, 50% rework rate, two source records, and unverified metric state.
+   The expanded Batch 3 suite passes 91 tests and Ruff. Unit checks bind detail
+   and promotion to the requested location, ensure a wrong-location promotion
+   writes nothing, and verify rollback after an injected workflow-event insert
+   failure using a database double. The scratch volume/network were removed;
+   candidate state is unchanged
    ([lifecycle evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json),
-   [report/metric evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)). Remaining checks include
-   duplicate promotion, stale/ineligible source, wrong-location read/write,
-   route-level OIDC against a configured provider, rollback under injected DB
-   failure, full-schema report/metric parity, and candidate rollout. These
-   migrations and routes are not deployed to the candidate.
+   [report/metric evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
+   The combined suite covers duplicate retry, stale/ineligible collections,
+   wrong-location read/write query guards, and rollback on an injected event
+   write failure. Real PostgreSQL duplicate-promotion and failed-trigger
+   rollback acceptance remain open, along with configured-provider OIDC and
+   candidate rollout. These migrations and routes are not deployed to the
+   candidate.
 
 Rollback uses additive migrations, the existing OIDC session and default-deny
 location grants, and preservation of `offline_collection` as the source record.

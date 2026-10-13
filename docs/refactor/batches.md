@@ -166,11 +166,18 @@ The separate report/metric slice passes 11 focused tests and Ruff, including
 published-only aggregation, private-field exclusion, period boundaries,
 snapshot hashing/draft state, metric provenance, and unverified metric storage
 ([evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
-An additional disposable PostGIS 16 check passed the report projection, snapshot
-hash/draft insert, metric calculation, source IDs, and unverified metric insert
-against a minimal synthetic schema. Full ordered-schema parity and candidate
-rollout remain open.
-The candidate database and app have not been migrated or rebuilt.
+The report/metric integration also passed against the full repository schema:
+the migration runner applied all 375 ordered schema migrations (schema-only, no
+seeds) to a disposable PostGIS 16 database. Real service functions produced two
+published activities and 5.25 hours, excluded a draft and private source marker,
+stored a hash-matching unfrozen draft snapshot, and persisted a 50% rework metric
+with two source records and `verified=false`. The disposable volume/network were
+removed. The expanded focused Batch 3 suite passes 91 tests and Ruff,
+including wrong-location query binding/no-write checks and rollback after an
+injected workflow-event insert failure. That injected failure used a database
+double; real PostgreSQL failed-trigger rollback, configured OIDC, and candidate
+rollout remain open. The candidate database and app have not been migrated or
+rebuilt.
 Rollback: the API release can be reverted, but migration 384's native form
 guards intentionally remain active and the legacy provider must not be used to
 bypass lifecycle decisions for native 1.2.0 rows. Pause intake and use a

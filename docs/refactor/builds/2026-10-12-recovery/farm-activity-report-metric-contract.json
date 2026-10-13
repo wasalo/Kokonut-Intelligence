@@ -1,7 +1,7 @@
 {
   "date": "2026-10-12",
   "scope": "Batch 3 published farm activity report and rework metric source contract",
-  "source_commit_base": "d6c6ae5678939a39d97054927c66f29e8f5ff307",
+  "source_commit_base": "d379765e0cc8b40452c9549d1906c300e7a20613",
   "report": {
     "entrypoint": "services/export/reports/core.py::generate_farm_summary",
     "source_filter": "farm_activity.location_id, status = published, inclusive activity_date period",
@@ -58,14 +58,47 @@
         "rework_rate_pct": 50.0,
         "metric_verified": false,
         "metric_source_count": 2,
-        "reworked_source_ids": ["10101010-1010-4010-8010-101010101010"]
+        "reworked_source_ids": [
+          "10101010-1010-4010-8010-101010101010"
+        ]
       },
       "cleanup": "temporary database container removed; candidate app/database and volumes unchanged"
     },
     "limitations": [
-      "The PostgreSQL check used a minimal synthetic schema rather than the repository's full ordered migration chain",
+      "The full-schema replay applied schema migrations only; seed data was excluded and the metric definition was an ephemeral synthetic fixture",
+      "The database-error injection case uses a unit fake; real PostgreSQL failed-trigger rollback remains open",
       "The candidate database and app were not migrated, rebuilt, or written",
-      "MAN-CAP-001 remains open"
-    ]
+      "Configured-provider acceptance and MAN-CAP-001 remain open"
+    ],
+    "full_schema_parity": {
+      "result": "passed",
+      "runtime": "PostGIS 16 disposable Compose project; repository candidate remained unchanged",
+      "schema_scope": "All 375 ordered PostgreSQL schema migrations applied by services.migration.cli with --schemas-only; no seed migrations",
+      "fixture_results": {
+        "published_activity_count": 2,
+        "reported_labor_hours": 5.25,
+        "draft_activity_excluded": true,
+        "private_source_marker_excluded": true,
+        "snapshot_status": "draft",
+        "snapshot_frozen": false,
+        "snapshot_hash_matches": true,
+        "rework_rate_pct": 50.0,
+        "metric_verified": false,
+        "metric_source_count": 2,
+        "reworked_source_count": 1
+      },
+      "cleanup": "Disposable database volume and Compose network removed; candidate app, database, and volumes unchanged"
+    },
+    "focused_batch_3_acceptance": {
+      "result": "91 passed",
+      "ruff": "All checks passed",
+      "additional_cases": [
+        "wrong-location detail query binds the requested location and returns no row",
+        "wrong-location draft promotion performs no canonical write",
+        "injected workflow-event insert failure after the draft insert triggers rollback and closes the connection"
+      ],
+      "limitation": "The injected failure uses a unit database double; failed-trigger rollback has not yet been repeated on disposable PostgreSQL.",
+      "command": "PYTHONPATH=. uv run --no-project --cache-dir /private/tmp/kokonut-kernel-uv-cache --with 'pytest>=9.1.1,<10.0' --with 'psycopg2-binary>=2.9.9' pytest tests/test_migration.py tests/test_workflow_specs.py tests/test_farm_activity_workflow.py tests/test_farm_activity_lifecycle.py tests/test_operator_auth.py tests/test_farm_activity_metrics.py tests/test_farm_activity_summary_report.py tests/test_report_governance.py tests/test_metrics.py::test_metric_computation_always_creates_draft_value -q"
+    }
   }
 }

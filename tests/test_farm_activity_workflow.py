@@ -156,6 +156,26 @@ def test_intake_detail_requires_two_location_grants_and_bounds_private_payload()
     assert too_large.rolled_back and too_large.closed
 
 
+def test_intake_detail_binds_requested_location_and_hides_nonmatching_rows():
+    other_location = "99999999-9999-4999-8999-999999999999"
+    connection = ReadConnection([])
+
+    result = get_farm_activity_intake(
+        OPERATOR_ID,
+        COLLECTION_ID,
+        other_location,
+        connection_factory=lambda: connection,
+    )
+
+    query, params = connection.cursor_instance.statements[-1]
+    assert result is None
+    assert "oc.id = %s::uuid" in query
+    assert "AND oc.location_id = %s::uuid" in query
+    assert "grant_row.location_id = oc.location_id" in query
+    assert params == (COLLECTION_ID, other_location, OPERATOR_ID, OPERATOR_ID)
+    assert connection.rolled_back and connection.closed
+
+
 class WriteCursor:
     def __init__(
         self,
@@ -374,6 +394,33 @@ def test_draft_promotion_returns_no_row_when_scope_or_eligibility_disappears():
     assert connection.rolled_back and connection.closed and not connection.committed
 
 
+def test_draft_promotion_does_not_write_outside_requested_location():
+    other_location = "99999999-9999-4999-8999-999999999999"
+    connection = WriteConnection(intake=None)
+
+    result = create_farm_activity_draft(
+        OPERATOR_ID,
+        COLLECTION_ID,
+        other_location,
+        content_reviewed=True,
+        connection_factory=lambda: connection,
+    )
+
+    query, params = next(
+        (sql, params)
+        for sql, params in connection.cursor_instance.statements
+        if "FROM offline_collection AS oc" in sql
+    )
+    assert result is None
+    assert "AND oc.location_id = %s::uuid" in query
+    assert params == (COLLECTION_ID, other_location, OPERATOR_ID, OPERATOR_ID)
+    assert not any(
+        "INSERT INTO farm_activity (" in sql
+        for sql, _params in connection.cursor_instance.statements
+    )
+    assert connection.rolled_back and connection.closed and not connection.committed
+
+
 def test_draft_promotion_holds_both_grants_and_rejects_revoked_participant_link():
     missing_detail_grant = WriteConnection(
         intake=_intake_tuple(),
@@ -432,3 +479,32 @@ def test_draft_promotion_retry_returns_existing_matching_source_without_new_even
         for sql, _params in connection.cursor_instance.statements
     )
     assert connection.committed and connection.closed
+
+
+def test_draft_promotion_rolls_back_when_workflow_event_insert_fails(monkeypatch):
+    connection = WriteConnection(intake=_intake_tuple(), activity=_activity_tuple())
+    execute = connection.cursor_instance.execute
+
+    def fail_event_insert(sql, params=()):
+        if "INSERT INTO farm_activity_workflow_event" in sql:
+            raise RuntimeError("injected workflow event write failure")
+        execute(sql, params)
+
+    monkeypatch.setattr(connection.cursor_instance, "execute", fail_event_insert)
+
+    with pytest.raises(RuntimeError, match="injected workflow event write failure"):
+        create_farm_activity_draft(
+            OPERATOR_ID,
+            COLLECTION_ID,
+            LOCATION_ID,
+            content_reviewed=True,
+            connection_factory=lambda: connection,
+        )
+
+    assert any(
+        "INSERT INTO farm_activity (" in sql
+        for sql, _params in connection.cursor_instance.statements
+    )
+    assert connection.rolled_back is True
+    assert connection.committed is False
+    assert connection.closed is True

@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas; Phase 7 source includes OIDC enrollment controls, a separate-grant Field Collector review queue, and append-only reviewer notes; the full clean replay passed and migration 382 is now applied to the candidate; its app health and protected anonymous-access gates pass, while real OIDC remains unconfigured; browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. The latest Batch 3 slice also adds a published-only farm-activity aggregate to the governed farm summary and extends `rework_rate_pct` with bounded source/rework provenance; 11 focused tests and a minimal-schema disposable PostgreSQL run pass. Full migration-chain parity and candidate rollout remain open. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant, and real Gateway HTTP checks reject both active and synthetic retired required-consent records after withdrawal/regrant without writes; browser consent handling, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. The seeded retired `1.1.0` forms are `not_required`, so a reviewed synthetic retired revision was used for the latter policy branch. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+**Updated:** 12 October 2026. **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas; Phase 7 source includes OIDC enrollment controls, a separate-grant Field Collector review queue, and append-only reviewer notes; the full clean replay passed and migration 382 is now applied to the candidate; its app health and protected anonymous-access gates pass, while real OIDC remains unconfigured; browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. The latest Batch 3 slice also adds a published-only farm-activity aggregate to the governed farm summary and extends `rework_rate_pct` with bounded source/rework provenance; actual report/snapshot/metric integration after all 375 ordered schema migrations replayed into disposable PostGIS 16 passes; the expanded Batch 3 suite passes 91 tests and Ruff, including location-scope and injected-event-failure unit checks. Candidate rollout and real PostgreSQL failure acceptance remain open. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant, and real Gateway HTTP checks reject both active and synthetic retired required-consent records after withdrawal/regrant without writes; browser consent handling, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. The seeded retired `1.1.0` forms are `not_required`, so a reviewed synthetic retired revision was used for the latter policy branch. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
@@ -3102,3 +3102,24 @@ Batch 3's report/metric source item and synthetic PostgreSQL check are complete;
 full-schema parity, route and grant acceptance, candidate rollout, and
 MAN-CAP-001 remain open. CAP-001 is still partial. See the [workflow map](farm-activity-workflow-map.md),
 [checklist](batches.md), and [capability matrix](capability-matrix.md).
+
+
+### Batch 3 full-schema report/metric parity — 12 October 2026
+
+Replayed all 375 ordered PostgreSQL schema migrations (excluding seeds) through
+the repository migration runner into an isolated PostGIS 16 database. The actual
+farm-summary, snapshot, and metric service functions passed against the migrated
+schema: two published activities produced 5.25 reported hours; a draft activity
+and private source marker were excluded; snapshot hash matched with
+`status=draft` and `frozen=false`; and `rework_rate_pct` persisted 50% with two
+source IDs and `verified=false`. The expanded Batch 3 suite passes 91 tests
+and Ruff, including wrong-location query guards and rollback after an injected
+workflow-event insert failure using a unit database double. The scratch volume
+and network were removed. Candidate app/database state is unchanged.
+
+This closes full-schema parity for the selected report/metric slice. Unit
+coverage exists for duplicate retry and stale eligibility; real PostgreSQL
+duplicate-promotion and failed-trigger rollback, configured-provider OIDC,
+candidate rollout, and MAN-CAP-001 remain open.
+Evidence: [report/metric acceptance](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json);
+[Batch 3 checklist](batches.md); [workflow map](farm-activity-workflow-map.md).
