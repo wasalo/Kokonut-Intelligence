@@ -668,3 +668,27 @@ BEGIN
       AND action = 'create'
       AND collection IN ('farm_activity', 'harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal');
 END $$;
+
+-- Directus cannot express Field Collector's cross-table source, revision, and
+-- consent eligibility in its permission DSL. Preserve the existing row scopes
+-- for legacy farm activity while requiring Field Collector reads to use the
+-- location-scoped Gateway review/use endpoints. Keep nullable legacy sources
+-- readable, and make the repair idempotent for already-seeded installations.
+DO $$
+DECLARE
+    field_collector_read_gate JSON :=
+        '{"_or":[{"source_system":{"_null":true}},{"source_system":{"_neq":"field_collector"}}]}'::JSON;
+BEGIN
+    UPDATE directus_permissions
+       SET permissions = json_build_object(
+           '_and', json_build_array(
+               COALESCE(permissions, '{}'::JSON), field_collector_read_gate
+           )
+       )
+     WHERE collection = 'farm_activity'
+       AND action = 'read'
+       AND NOT jsonb_path_exists(
+           COALESCE(permissions, '{}'::JSON)::jsonb,
+           '$.** ? (@._or[0].source_system._null == true && @._or[1].source_system._neq == "field_collector")'::jsonpath
+       );
+END $$;

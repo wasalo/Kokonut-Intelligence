@@ -31,10 +31,11 @@ TRANSITIONS = [
 
 
 class TransitionCursor:
-    def __init__(self, *, current_status, grant=True, event=True):
+    def __init__(self, *, current_status, grant=True, event=True, eligible=True):
         self.current_status = current_status
         self.grant = grant
         self.event = event
+        self.eligible = eligible
         self.result = None
         self.statements = []
 
@@ -49,7 +50,13 @@ class TransitionCursor:
         self.statements.append((statement, params))
         lowered = statement.lower()
         if "from farm_activity" in lowered and "for update" in lowered:
-            self.result = (ACTIVITY_ID, LOCATION_ID, self.current_status, "field_collector")
+            self.result = (
+                ACTIVITY_ID,
+                LOCATION_ID,
+                self.current_status,
+                "field_collector",
+                self.eligible,
+            )
         elif "from operator_scope_grant" in lowered:
             self.result = ("grant-id",) if self.grant else None
         elif lowered.startswith("update farm_activity set status"):
@@ -106,7 +113,9 @@ FORM_SCHEMA = {
 
 
 class DraftEditCursor:
-    def __init__(self, *, grants=None, activity=None, schema=FORM_SCHEMA, event=True):
+    def __init__(
+        self, *, grants=None, activity=None, schema=FORM_SCHEMA, event=True, eligible=True
+    ):
         self.grants = grants if grants is not None else [
             ("farm_activity", "edit_draft"),
             ("farm_activity", "read_detail"),
@@ -125,6 +134,7 @@ class DraftEditCursor:
             "Initial description",
             Decimal("1.00"),
             "Initial notes",
+            eligible,
         )
         self.schema = schema
         self.event = event
@@ -315,6 +325,25 @@ def test_draft_edit_rejects_non_draft_rows_without_writing():
     assert connection.committed is False
 
 
+def test_draft_edit_is_blocked_when_source_is_not_currently_eligible():
+    cursor = DraftEditCursor(eligible=False)
+    connection = DraftEditConnection(cursor)
+
+    with pytest.raises(FarmActivityDraftEditConflict, match="blocks further use"):
+        edit_farm_activity_draft(
+            OPERATOR_ID,
+            ACTIVITY_ID,
+            LOCATION_ID,
+            {"activity_type": "planting"},
+            "Corrected the activity details",
+            connection_factory=lambda: connection,
+        )
+
+    assert cursor.update_params is None
+    assert connection.rolled_back is True
+    assert connection.committed is False
+
+
 @pytest.mark.parametrize(
     ("content_patch", "reason", "message"),
     [
@@ -426,6 +455,51 @@ def test_transition_conflicts_when_activity_is_not_in_expected_state():
     assert connection.rolled_back is True
     assert connection.committed is False
     assert not any(sql.startswith("UPDATE farm_activity SET status") for sql, _ in cursor.statements)
+
+
+@pytest.mark.parametrize(
+    ("action", "status"),
+    [("submit", "draft"), ("verify", "submitted"), ("request-rework", "rejected"), ("publish", "verified")],
+)
+def test_productive_transition_is_blocked_when_source_is_not_currently_eligible(action, status):
+    cursor = TransitionCursor(current_status=status, eligible=False)
+    connection = TransitionConnection(cursor)
+
+    with pytest.raises(FarmActivityTransitionConflict, match="blocks further use"):
+        transition_farm_activity(
+            OPERATOR_ID,
+            ACTIVITY_ID,
+            LOCATION_ID,
+            action,
+            "Review the source evidence",
+            connection_factory=lambda: connection,
+        )
+
+    assert connection.rolled_back is True
+    assert connection.committed is False
+    assert not any(sql.startswith("UPDATE farm_activity SET status") for sql, _ in cursor.statements)
+
+
+@pytest.mark.parametrize(
+    ("action", "status"),
+    [("reject", "submitted"), ("close-exception", "rejected")],
+)
+def test_disposition_transition_remains_available_when_source_is_ineligible(action, status):
+    cursor = TransitionCursor(current_status=status, eligible=False)
+    connection = TransitionConnection(cursor)
+
+    result = transition_farm_activity(
+        OPERATOR_ID,
+        ACTIVITY_ID,
+        LOCATION_ID,
+        action,
+        "Source is no longer eligible for use",
+        connection_factory=lambda: connection,
+    )
+
+    assert result["action"] in {"rejected", "exception_closed"}
+    assert connection.committed is True
+    assert connection.rolled_back is False
 
 
 def test_transition_returns_not_found_when_action_grant_is_missing():

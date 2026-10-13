@@ -43,7 +43,39 @@ Evidence: [clone replay](builds/2026-10-11-recovery/application-migration-popula
 [transaction failure probe](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json),
 [archived clone plan](builds/2026-10-11-recovery/application-migration-checksum-drift.json).
 
+## Extended populated replay through migration 385 — 13 October 2026
+
+A fresh restore of the encrypted populated archive began with 344 applied
+schema migrations and 32 seed migrations. The current source planner found 32
+pending schemas (353–385, with numbering gaps preserved) and no checksum drift.
+The ordered transactional runner applied all 32 with zero failures, and the
+final schema plan reported zero pending. The tenant preflight then found all
+27 required columns and completed its read-only known-lineage inventory on the
+same clone. This is a separate clone from the earlier 25-migration review; it
+does not modify the retained archived source, active candidate, or legacy
+deployment.
+
+The populated inventory found one location whose direct organization
+assignment lacks a confirming active owned-primary relationship, one
+unassigned location, and no active organization-member rows. It also found
+three report snapshots and 38 dashboard datasets without location. An initial
+preflight output that showed false opaque owner references was discarded after
+the PostgreSQL driver exposed an empty `uuid[]` as the string `{}`. The source
+now casts the aggregate to `text[]` and rejects unexpected array shapes; the
+corrected rerun reported zero relationship candidates. See the
+[sanitized replay evidence](builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json).
+
+The replay establishes schema-source and transactional compatibility for this
+snapshot. It does not establish accountable ownership, complete downstream
+lineage, least-privilege grants, or RLS behavior. No ownership assignment or
+backfill was performed; owner review remains a separate deployment gate.
+
 ## Per-migration review
+
+Migration 386 has been added after the populated replay through 385. It has not
+yet been applied to a database, so its trigger behavior, existing-row backfill,
+runtime query compatibility, and rollback-on-failure still require a focused
+disposable populated-restore review before candidate rollout.
 
 | Migration | Change and compatibility finding on the inspected clone |
 | --- | --- |

@@ -129,6 +129,7 @@
           </div>
           <section id="farm-activity-lifecycle-detail" hidden aria-labelledby="farm-activity-lifecycle-detail-heading">
             <h3 id="farm-activity-lifecycle-detail-heading">Canonical activity and decision history</h3>
+            <p id="farm-activity-eligibility-status" class="muted" role="status" aria-live="polite"></p>
             <pre id="farm-activity-lifecycle-content"></pre>
             <ol id="farm-activity-lifecycle-events"></ol>
             <form id="farm-activity-draft-edit-form" class="form-grid" hidden>
@@ -242,6 +243,7 @@
       const farmActivityLifecycleQueue = document.querySelector("#farm-activity-lifecycle-queue");
       const farmActivityLifecycleDetail = document.querySelector("#farm-activity-lifecycle-detail");
       const farmActivityLifecycleContent = document.querySelector("#farm-activity-lifecycle-content");
+      const farmActivityEligibilityStatus = document.querySelector("#farm-activity-eligibility-status");
       const farmActivityLifecycleEvents = document.querySelector("#farm-activity-lifecycle-events");
       const farmActivityDraftEditForm = document.querySelector("#farm-activity-draft-edit-form");
       const farmActivityEditStatus = document.querySelector("#farm-activity-edit-status");
@@ -568,7 +570,10 @@
             const date = document.createElement("td");
             date.textContent = activity.activity_date || "—";
             const lifecycle = document.createElement("td");
-            lifecycle.textContent = activity.exception_closed ? `${activity.status} (exception closed)` : activity.status;
+            const statusLabel = activity.exception_closed ? `${activity.status} (exception closed)` : activity.status;
+            lifecycle.textContent = activity.eligible_for_use === true
+              ? statusLabel
+              : `${statusLabel} · restricted (${farmActivityEligibilityReason(activity.eligibility_reason)})`;
             const updated = document.createElement("td");
             updated.textContent = activity.updated_at ? new Date(activity.updated_at).toLocaleString() : "—";
             const action = document.createElement("td");
@@ -606,6 +611,9 @@
           if (!response.ok) throw new Error("The canonical activity detail is unavailable.");
           const result = await response.json();
           currentFarmActivity = result.data;
+          farmActivityEligibilityStatus.textContent = currentFarmActivity.eligible_for_use === true
+            ? "This activity is currently eligible for governed review. Publication still requires the separate human workflow."
+            : `Restricted from further use: ${farmActivityEligibilityReason(currentFarmActivity.eligibility_reason)}. The record remains visible for authorized review. Editing, submission, verification, rework, and publication are blocked; rejection or exception closure appears only when the current workflow state allows it.`;
           const {
             workflow_events: events,
             workflow_events_truncated: eventsTruncated,
@@ -643,7 +651,9 @@
         farmActivityTransitionActions.replaceChildren();
         const activity = currentFarmActivity;
         const locationId = farmActivityLocation.value;
+        const eligible = activity?.eligible_for_use === true;
         farmActivityDraftEditForm.hidden = !activity
+          || !eligible
           || activity.status !== "draft"
           || !farmActivityEditLocations.has(locationId);
         if (!activity) {
@@ -659,6 +669,9 @@
           if (!(activity.workflow_events || []).some((event) => event.action === "exception_closed")) {
             allowed.push("close-exception");
           }
+        }
+        if (!eligible) {
+          allowed = allowed.filter((action) => ["reject", "close-exception"].includes(action));
         }
         const labels = {
           submit: "Submit for verification",
@@ -684,8 +697,29 @@
         farmActivityTransitionForm.hidden = false;
       }
 
+      function farmActivityEligibilityReason(reason) {
+        const labels = {
+          source_not_eligible: "the source form or collection lineage could not be confirmed",
+          transport_pending: "the collection has not finished syncing",
+          review_required: "form review is required",
+          participant_link_revoked: "the participant reference was revoked",
+          consent_unassessed: "consent has not been assessed",
+          consent_not_effective_at_collection: "consent was not active when the record was collected",
+          consent_expired_after_collection: "consent expired after collection",
+          consent_no_longer_active: "consent is no longer active",
+          consent_expired: "consent has expired",
+          withdrawn_after_collection: "consent was withdrawn after collection"
+        };
+        return labels[reason] || String(reason || "source_not_eligible").replaceAll("_", " ");
+      }
+
       async function transitionFarmActivity(action) {
         if (!currentFarmActivity) return;
+        if (currentFarmActivity.eligible_for_use !== true
+            && !["reject", "close-exception"].includes(action)) {
+          farmActivityTransitionStatus.textContent = "This activity is restricted from further use and must remain in human disposition.";
+          return;
+        }
         const reason = document.querySelector("#farm-activity-transition-reason").value.trim();
         const reasonRequired = ["reject", "request-rework", "close-exception"].includes(action);
         if (reasonRequired && !reason) {
@@ -740,6 +774,7 @@
       async function saveFarmActivityDraftEdit(event) {
         event.preventDefault();
         if (!currentFarmActivity || currentFarmActivity.status !== "draft"
+            || currentFarmActivity.eligible_for_use !== true
             || !farmActivityEditLocations.has(farmActivityLocation.value)) return;
         const reason = document.querySelector("#farm-activity-edit-reason").value.trim();
         if (!reason) {

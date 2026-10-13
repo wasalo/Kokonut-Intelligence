@@ -121,6 +121,9 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         FROM farm_activity
         WHERE location_id = %s
           AND status = 'published'
+          AND farm_activity_source_eligible_for_use(
+              source_system, source_id, source_raw, location_id
+          )
           AND (%s::date IS NULL OR activity_date >= %s::date)
           AND (%s::date IS NULL OR activity_date <= %s::date)
         GROUP BY activity_type

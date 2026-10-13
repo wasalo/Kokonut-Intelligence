@@ -3,11 +3,17 @@
 Status: source map, declarative workflow correction, private intake and draft
 promotion, governed lifecycle writes, published-only farm summary, rework-metric
 provenance, canonical queue/detail reads, operator-console controls, and
-migration 385's audited native draft-edit path are implemented. Migrations
-383–385 are deployed to the local candidate. Migration 385's exact-target
-checkpoint restore, zero-pending plan, app health, and protected-route checks
-are recorded. OIDC is disabled, the candidate has no farm-activity workflow
-fixture rows, and MAN-CAP-001 remains open.
+migration 385's audited native draft-edit path are implemented. Source now also
+adds migration 386's current-use gate across farm-activity reports, metrics,
+analytics, exports, process traces, and data-quality sampling; it blocks edits
+and forward transitions after eligibility ends while preserving operator
+disposition visibility. Focused PostgreSQL 16 synthetic acceptance and the
+application/query/console suite pass (56 passed, 18 skipped); the full
+populated ordered migration replay also passed. Candidate deployment remains
+open. Migrations
+383–385 remain deployed to the local candidate. OIDC is disabled, the
+candidate has no farm-activity workflow fixture rows, and MAN-CAP-001 remains
+open.
 
 This map selects the current `farm_activity_v1` Field Collector form as the
 first Batch 3 vertical slice. It records existing behavior, the native Kernel
@@ -140,11 +146,29 @@ draft metric_value / governed report_snapshot draft
   on truthful status transitions and actor attribution. Per repository policy,
   computation must still create a draft, unverified `metric_value`; a person
   verifies it separately.
-* `services/export/reports/core.py::generate_farm_summary` currently summarizes
-  location/farms/plots/crop cycles, harvests, finance, expenses, and
-  attestations; it does not include farm activities. `store_snapshot` creates
-  an unfrozen draft `report_snapshot`; report review and publication are a
-  separate lifecycle.
+* Migration 386 adds `farm_activity_source_eligible_for_use(...)` as the
+  canonical source gate. It checks exact collection/source/location lineage,
+  matching active immutable form revision, and current eligibility. Current
+  reports, selected metrics, ecological/value-added analytics, process mining,
+  data-quality sampling, repository-owned dashboard queries, the optional
+  Directus weekly snapshot hook, and both export paths now apply it. Arbitrary
+  operator-edited dashboard SQL still requires inventory and review. The lifecycle
+  queue/detail reads expose the eligibility result and reason to authorized
+  operators for disposition; the draft editor and submit, verify, rework, and
+  publish actions fail closed when eligibility has ended. Existing rejection
+  and exception actions remain available only where lifecycle state permits;
+  they are not the retention-disposition workflow. Directus read policies
+  exclude Field Collector rows because its permission DSL cannot evaluate the
+  cross-table gate; scoped Gateway reads retain eligible use and private review
+  access. The synthetic migration checks cover both Directus-present and
+  Kernel-only deployments. Full populated replay and candidate rollout remain
+  open pending candidate deployment and configured OIDC acceptance.
+* `services/export/reports/core.py::generate_farm_summary` summarizes
+  location/farms/plots/crop cycles, harvests, finance, expenses, attestations,
+  and a published-only farm-activity aggregate. `store_snapshot` creates an
+  unfrozen draft `report_snapshot`; report review and publication are a
+  separate lifecycle. Migration 386 also excludes Field Collector activities
+  whose current source eligibility has ended.
 
 ## Native handoff contract and remaining work
 

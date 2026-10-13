@@ -19,12 +19,15 @@ WITH active_org_relationships AS (
            COUNT(*)::int AS active_relationship_count,
            COUNT(DISTINCT member.organization_id)::int AS active_org_count,
            COALESCE(
-               ARRAY_AGG(DISTINCT member.organization_id ORDER BY member.organization_id)
+               ARRAY_AGG(
+                   DISTINCT member.organization_id::text
+                   ORDER BY member.organization_id::text
+               )
                    FILTER (
                        WHERE member.membership_type = 'owned'
                          AND member.role = 'primary'
                    ),
-               ARRAY[]::uuid[]
+               ARRAY[]::text[]
            ) AS owned_primary_org_ids
       FROM organization_member AS member
      WHERE member.status = 'active'
@@ -114,7 +117,7 @@ SELECT location.id AS location_id,
        COALESCE(relationships.active_relationship_count, 0)
            AS active_organization_relationship_count,
        COALESCE(relationships.active_org_count, 0) AS active_organization_count,
-       COALESCE(relationships.owned_primary_org_ids, ARRAY[]::uuid[])
+       COALESCE(relationships.owned_primary_org_ids, ARRAY[]::text[])
            AS owned_primary_organization_ids,
        COALESCE(devices.device_count, 0) AS mobile_device_count,
        COALESCE(devices.active_device_count, 0) AS active_mobile_device_count,
@@ -374,7 +377,15 @@ def collect_inventory(location_id: str | None = None) -> dict:
 
     locations = []
     for row in rows:
-        candidate_ids = list(row["owned_primary_organization_ids"] or [])
+        raw_candidate_ids = row["owned_primary_organization_ids"]
+        if raw_candidate_ids is None:
+            candidate_ids = []
+        elif isinstance(raw_candidate_ids, (list, tuple)):
+            candidate_ids = list(raw_candidate_ids)
+        else:
+            raise RuntimeError(
+                "database driver returned an unsupported organization array representation"
+            )
         status = _ownership_status(row["assigned_organization_id"], candidate_ids)
         locations.append(
             {

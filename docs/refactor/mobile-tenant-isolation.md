@@ -114,8 +114,12 @@ verification:
    missing context denies; organization A cannot select or mutate organization
    B; same-location partner access requires an explicit share; revoked grants
    stop access; pooled connections do not retain prior context; workers cannot
-   bypass scope; and every downstream mobile consumer checks
-   `v_mobile_collection_use_eligibility` before reporting or publication.
+   bypass scope; and every downstream mobile consumer checks current
+   Field Collector eligibility before reporting or publication. Migration
+   386 adds the canonical activity predicate and source-level consumer filters;
+   focused PostgreSQL 16 synthetic acceptance and 56 application/query/console
+   checks pass. The full ordered replay passed on a fresh populated archive
+   clone; candidate rollout remains pending in [Batch 5](batches.md).
 6. Take an encrypted checkpoint, rehearse upgrade and rollback on a restored
    copy, and only then roll out to the local candidate. Keep the current
    location-grant checks in place throughout migration.
@@ -131,3 +135,22 @@ deployment. These steps prove only known direct lineage and the inventory's
 location-scoped contract. Organization ownership reconciliation, tenant-aware
 operator membership/grants, RLS, worker isolation, and downstream consumer
 parity remain open. No RLS migration or live data mutation was made.
+
+On 13 October 2026 the preflight also ran against a fresh isolated copy of the
+populated archive after the ordered migration runner applied all 32 pending
+schemas through migration 385; the final schema plan had zero pending entries.
+The corrected inventory found two locations and no active organization-member
+rows. One location has a direct organization assignment without a confirming
+active owned-primary relationship; the other is unassigned. It counted four
+mobile devices and five location-scoped dashboard datasets, plus three report
+snapshots and 38 dashboard datasets with no location. No identifiers were
+retained in evidence, and no owner was inferred or backfilled. The replay also
+exposed and fixed UUID-array decoding that had generated false opaque owner
+references; the corrected query casts to `text[]` and fails closed for an
+unexpected driver shape. See the [sanitized replay evidence](builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json).
+
+Accountable data-owner review of both location records and the unlocated report
+and dashboard rows remains required before tenant backfill, grants, or RLS.
+This archive inventory covers known direct relations only; complete downstream
+lineage, least-privilege worker behavior, and eligibility checks in each
+reporting/publication consumer remain open.

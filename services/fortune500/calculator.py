@@ -168,7 +168,11 @@ def get_farm_metrics(location_id: str) -> FarmMetrics:
         cur.execute("""
             SELECT COUNT(*) as total,
                    COUNT(CASE WHEN status IN ('verified', 'published') THEN 1 END) as verified
-            FROM farm_activity WHERE location_id = %s
+            FROM farm_activity
+            WHERE location_id = %s
+              AND farm_activity_source_eligible_for_use(
+                  source_system, source_id, source_raw, location_id
+              )
         """, (location_id,))
         gov = cur.fetchone()
         if gov:

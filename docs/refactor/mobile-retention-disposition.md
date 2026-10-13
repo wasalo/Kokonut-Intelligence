@@ -78,10 +78,25 @@ activity. Those entities are now rejected by policy creation and skipped by
 legacy configured sweeps with an explicit reason. No data is changed by this
 guard.
 
-The existing `v_mobile_collection_use_eligibility` remains the use gate. The
-OIDC review queue can expose ineligible rows to a location-scoped operator, but
-it is not a retention case manager and its append-only notes do not approve
-destruction. A read-only inventory is now available at
+The existing `v_mobile_collection_use_eligibility` remains the collection
+gate. Migration 386 adds a canonical farm-activity predicate that rechecks
+source lineage, the current form revision, and this view at each downstream
+use. Reports, metrics, analytics, process traces, repository-owned dashboards,
+and exports exclude ineligible Field Collector activities. The optional
+Directus weekly snapshot hook also applies the gate. Custom or operator-edited
+saved SQL needs a separate inventory and review. Operators can still see them through
+authorized lifecycle reads, marked with an eligibility reason; edits and
+forward transitions stop. Existing rejection/exception actions remain
+available only where their governed status preconditions allow them; they do
+not implement the retention-disposition case. Directus cannot express the
+cross-table predicate, so its farm-activity read policies preserve their
+existing scopes while excluding Field Collector rows; authorized Gateway
+review reads remain available. Focused PostgreSQL 16 synthetic acceptance
+passed with Directus installed and absent, and 56 focused application/query/
+console tests passed (18 skipped). The full ordered migration replay passed on
+a fresh populated archive clone; candidate rollout remains pending. The OIDC review queue can expose ineligible rows to a
+location-scoped operator, but it is not a retention case manager and its
+append-only notes do not approve destruction. A read-only inventory is now available at
 `GET /operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory`
 with the separate `mobile_collection_retention:inventory` location grant. It
 also requires the location-scoped review-queue read grant. The inventory returns

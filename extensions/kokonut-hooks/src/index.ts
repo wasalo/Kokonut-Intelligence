@@ -544,6 +544,9 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     try {
       const activities = await database('farm_activity')
         .where('status', 'verified')
+        .whereRaw(
+          'farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)'
+        )
         .select(
           database.raw('DATE_TRUNC(\'week\', activity_date) as week'),
           'location_id',

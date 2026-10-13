@@ -85,12 +85,35 @@ def list_farm_activities(
             """SELECT activity.id, activity.location_id, activity.activity_type,
                           activity.activity_date, activity.status, activity.created_at,
                           activity.updated_at,
+                          farm_activity_source_eligible_for_use(
+                              activity.source_system, activity.source_id,
+                              activity.source_raw, activity.location_id
+                          ) AS eligible_for_use,
+                          CASE
+                              WHEN farm_activity_source_eligible_for_use(
+                                  activity.source_system, activity.source_id,
+                                  activity.source_raw, activity.location_id
+                              ) THEN 'eligible'
+                              ELSE COALESCE(
+                                  NULLIF(eligibility.eligibility_reason, 'eligible'),
+                                  'source_not_eligible'
+                              )
+                          END AS eligibility_reason,
                           EXISTS (
                               SELECT 1 FROM farm_activity_workflow_event AS event
                                WHERE event.farm_activity_id = activity.id
                                  AND event.action = 'exception_closed'
                           ) AS exception_closed
                      FROM farm_activity AS activity
+                     LEFT JOIN offline_collection AS collection
+                       ON collection.id = CASE
+                           WHEN activity.source_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                           THEN activity.source_id::uuid
+                           ELSE NULL::uuid
+                       END
+                      AND collection.location_id = activity.location_id
+                     LEFT JOIN v_mobile_collection_use_eligibility AS eligibility
+                       ON eligibility.collection_id = collection.id
                     WHERE activity.location_id = %s::uuid
                       AND activity.source_system = 'field_collector'
                       AND activity.source_raw->>'form_id' = 'farm_activity_v1'
@@ -138,6 +161,20 @@ def get_farm_activity(
                           activity.activity_date, activity.description,
                           activity.labor_hours, activity.notes, activity.status,
                           activity.created_at, activity.updated_at,
+                          farm_activity_source_eligible_for_use(
+                              activity.source_system, activity.source_id,
+                              activity.source_raw, activity.location_id
+                          ) AS eligible_for_use,
+                          CASE
+                              WHEN farm_activity_source_eligible_for_use(
+                                  activity.source_system, activity.source_id,
+                                  activity.source_raw, activity.location_id
+                              ) THEN 'eligible'
+                              ELSE COALESCE(
+                                  NULLIF(eligibility.eligibility_reason, 'eligible'),
+                                  'source_not_eligible'
+                              )
+                          END AS eligibility_reason,
                           (
                               SELECT COUNT(*) > 100
                                 FROM farm_activity_workflow_event AS event
@@ -165,6 +202,15 @@ def get_farm_activity(
                                 ) AS bounded
                           ), '[]'::jsonb) AS workflow_events
                      FROM farm_activity AS activity
+                     LEFT JOIN offline_collection AS collection
+                       ON collection.id = CASE
+                           WHEN activity.source_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+                           THEN activity.source_id::uuid
+                           ELSE NULL::uuid
+                       END
+                      AND collection.location_id = activity.location_id
+                     LEFT JOIN v_mobile_collection_use_eligibility AS eligibility
+                       ON eligibility.collection_id = collection.id
                     WHERE activity.id = %s::uuid
                       AND activity.location_id = %s::uuid
                       AND activity.source_system = 'field_collector'
@@ -252,7 +298,10 @@ def edit_farm_activity_draft(
                 """SELECT id::text, source_id, location_id::text, status::text,
                           source_system, source_raw->>'form_id',
                           source_raw->>'form_version', activity_type,
-                          activity_date, description, labor_hours, notes
+                          activity_date, description, labor_hours, notes,
+                          farm_activity_source_eligible_for_use(
+                              source_system, source_id, source_raw, location_id
+                          ) AS eligible_for_use
                      FROM farm_activity
                     WHERE id = %s::uuid
                       AND location_id = %s::uuid
@@ -268,6 +317,10 @@ def edit_farm_activity_draft(
                 return None
             if activity[3] != "draft":
                 raise FarmActivityDraftEditConflict("Only a draft farm activity can be edited")
+            if activity[12] is not True:
+                raise FarmActivityDraftEditConflict(
+                    "The source form, consent, or review state blocks further use pending human disposition"
+                )
 
             cur.execute(
                 """SELECT resource, action
@@ -486,7 +539,10 @@ def transition_farm_activity(
                 (operator_id, event_action, normalized_reason),
             )
             cur.execute(
-                """SELECT id::text, location_id::text, status::text, source_system
+                """SELECT id::text, location_id::text, status::text, source_system,
+                          farm_activity_source_eligible_for_use(
+                              source_system, source_id, source_raw, location_id
+                          ) AS eligible_for_use
                      FROM farm_activity
                     WHERE id = %s::uuid
                       AND location_id = %s::uuid
@@ -502,6 +558,10 @@ def transition_farm_activity(
                 return None
             if activity[2] not in allowed_from:
                 raise FarmActivityTransitionConflict("Farm activity is not in a state for this decision")
+            if action in {"submit", "verify", "request-rework", "publish"} and activity[4] is not True:
+                raise FarmActivityTransitionConflict(
+                    "The source form, consent, or review state blocks further use pending human disposition"
+                )
 
             cur.execute(
                 """SELECT id FROM operator_scope_grant

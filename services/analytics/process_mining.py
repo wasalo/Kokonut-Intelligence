@@ -111,12 +111,23 @@ def get_traces(
 ) -> Dict[Tuple[str, str], List[Dict[str, Any]]]:
     """Group lifecycle_transition rows into ordered traces per (type, id)."""
     sql = """
-        SELECT entity_type, entity_id, from_status, to_status, transitioned_at
-        FROM lifecycle_transition
+        SELECT lt.entity_type, lt.entity_id, lt.from_status, lt.to_status, lt.transitioned_at
+        FROM lifecycle_transition AS lt
+        WHERE (
+            lt.entity_type IS DISTINCT FROM 'farm_activity'
+            OR EXISTS (
+                SELECT 1 FROM farm_activity AS activity
+                 WHERE activity.id = lt.entity_id
+                   AND farm_activity_source_eligible_for_use(
+                       activity.source_system, activity.source_id,
+                       activity.source_raw, activity.location_id
+                   )
+            )
+        )
     """
     params: List[Any] = []
     if entity_type:
-        sql += " WHERE entity_type = %s"
+        sql += " AND lt.entity_type = %s"
         params.append(entity_type)
     sql += " ORDER BY entity_type, entity_id, transitioned_at"
     if limit:
@@ -244,8 +255,19 @@ def case_timeline(
     cur.execute(
         """
         SELECT from_status, to_status, transitioned_at
-        FROM lifecycle_transition
+        FROM lifecycle_transition AS lt
         WHERE entity_id = %s::uuid
+          AND (
+              lt.entity_type IS DISTINCT FROM 'farm_activity'
+              OR EXISTS (
+                  SELECT 1 FROM farm_activity AS activity
+                   WHERE activity.id = lt.entity_id
+                     AND farm_activity_source_eligible_for_use(
+                         activity.source_system, activity.source_id,
+                         activity.source_raw, activity.location_id
+                     )
+              )
+          )
         ORDER BY transitioned_at
         """,
         (entity_id,),

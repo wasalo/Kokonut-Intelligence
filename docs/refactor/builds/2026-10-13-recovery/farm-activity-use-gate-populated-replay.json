@@ -1,0 +1,67 @@
+{
+  "run_id": "farm-activity-use-gate-populated-replay-20261013",
+  "date": "2026-10-13",
+  "result": "passed",
+  "scope": "Ordered, checksummed migration 386 on a fresh clone of the retained populated archive copy",
+  "migration_sha256": "2968b14ee0089e6da713022a4f6d718294ceb126e6913bf60f485fb0bff9ceb1",
+  "source": {
+    "archive_recovery_volume": "kokonut-kernel-migration-replay-retry1-20261013_recovery-postgres-data",
+    "source_volume_detached_and_mounted_read_only_for_copy": true,
+    "temporary_clone_volume": "kokonut-kernel-migration-386-20261013_recovery-postgres-data",
+    "database_image": "postgis/postgis:16-3.4",
+    "network": "Compose internal network; no published ports",
+    "source_volume_modified": false
+  },
+  "migration_runner": {
+    "commands": [
+      "python -m services.migration.cli plan --schemas-only",
+      "python -m services.migration.cli migrate --schemas-only"
+    ],
+    "compose_project": "kokonut-kernel-migration-386-20261013",
+    "database": "kokonut_restore",
+    "before": {
+      "pending_schema_migrations": 1,
+      "pending_migration": "schema:386_farm_activity_consent_use_gate.sql",
+      "checksum_drift": false
+    },
+    "apply": {
+      "applied": 1,
+      "failed": 0,
+      "transaction_behavior": "ordered runner applied migration body and migration ledger update atomically"
+    },
+    "after": {
+      "pending_schema_migrations": 0,
+      "migration_status": "applied",
+      "schema_version_marker_count": 1
+    },
+    "directus_permission_seed_rerun": "passed separately in disposable PostgreSQL; exact seed tail applied twice with zero permission-state changes on the second run"
+  },
+  "post_apply_checks": {
+    "existing_farm_activity_directus_read_permissions_gated": "8/8",
+    "directus_permissions_type": "json",
+    "present_repository_seeded_farm_activity_dashboard_query_gated": true,
+    "repository_seeded_vsm_dataset_id_present": false,
+    "retained_counts": {
+      "locations": 2,
+      "mobile_devices": 4,
+      "dashboard_datasets": 43,
+      "farm_activity_total": 30,
+      "field_collector_sourced_farm_activity": 0
+    }
+  },
+  "cleanup": {
+    "temporary_container_removed": true,
+    "temporary_internal_network_removed": true,
+    "temporary_clone_volume_removed": true,
+    "original_recovery_volume_retained": true,
+    "candidate_services_changed": false,
+    "candidate_services_verified_healthy_after_cleanup": true,
+    "retained_archive_volume_verified_present": true,
+    "legacy_services_accessed": false
+  },
+  "limitations": [
+    "The populated archive contained no Field Collector-sourced farm-activity rows; record-level use behavior was exercised in the separate synthetic PostgreSQL acceptance fixture.",
+    "Directus permission rows were verified in PostgreSQL; live Directus HTTP/API authorization remains open.",
+    "Candidate rollout, configured OIDC, tenant ownership reconciliation, RLS, and formal retention/erasure acceptance remain open."
+  ]
+}

@@ -53,9 +53,13 @@ def _entity_loc_sql(loc: Optional[str]):
     for tbl, _ in _PIPELINE:
         loc_expr = "NULL::uuid AS location_id" if tbl in _NO_LOCATION else "location_id"
         leg = f"SELECT '{tbl}' AS et, id, {loc_expr} FROM {tbl}"
+        if tbl == "farm_activity":
+            leg += " WHERE farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)"
         if loc:
             if tbl in _NO_LOCATION:
                 leg += " WHERE 1 = 0"  # no location dimension; exclude when scoping
+            elif tbl == "farm_activity":
+                leg += " AND location_id = %(loc)s"
             else:
                 leg += " WHERE location_id = %(loc)s"
         legs.append(leg)
@@ -67,7 +71,12 @@ def wip_by_stage(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]
     legs, params = [], []
     for tbl, col in _PIPELINE:
         leg = f"SELECT '{tbl}' AS entity_type, {col}::text AS status, COUNT(*) AS wip FROM {tbl}"
-        if location_id and tbl not in _NO_LOCATION:
+        if tbl == "farm_activity":
+            leg += " WHERE farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)"
+        if location_id and tbl not in _NO_LOCATION and tbl == "farm_activity":
+            leg += " AND location_id = %s"
+            params.append(location_id)
+        elif location_id and tbl not in _NO_LOCATION:
             leg += " WHERE location_id = %s"
             params.append(location_id)
         elif location_id and tbl in _NO_LOCATION:

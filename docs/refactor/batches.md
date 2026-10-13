@@ -482,12 +482,53 @@ reporting views.
 - [x] Run the same source against the current candidate's complete schema. It
   reported all 27 required columns, migration 385, and zero rows; the candidate
   is empty ([evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json)).
-- [ ] Apply and verify ordered migrations on a separate isolated populated copy
-  before requesting a complete ownership/lineage inventory.
-- [ ] Run the preflight on a populated deployment and review
-  unassigned/mismatched/shared ownership and unlocated-row counts with
-  accountable data owners before any backfill or RLS work.
-- [ ] Reconcile location ownership; implement tenant-aware identities/grants and transaction-local RLS; verify every downstream consumer checks `v_mobile_collection_use_eligibility` before reporting or publication.
+- [x] Restore the populated archive into a fresh internal-only copy, apply the
+  32 pending ordered schemas through migration 385, and verify zero pending
+  migrations. The transactional runner reported no checksum drift or failures.
+- [x] Run the complete read-only preflight on that migrated copy: 27/27 schema
+  requirements, two locations, four mobile devices, and five location-scoped
+  dashboard datasets. It found one direct owner assignment without a confirming
+  active relationship, one unassigned location, three unlocated report
+  snapshots, and 38 unlocated dashboard datasets ([evidence](builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json)).
+- [ ] Have accountable data owners resolve the two location ownership cases and
+  review unlocated report/dashboard lineage before any backfill or RLS work.
+- [ ] Reconcile location ownership; implement tenant-aware identities/grants
+  and transaction-local RLS; verify every downstream consumer checks
+  `v_mobile_collection_use_eligibility` before reporting or publication.
+- [x] Source-audit and gate canonical Field Collector use after capture:
+  migration 386 adds a current source/form/consent eligibility function and
+  blocks ineligible draft edits and forward lifecycle transitions. Reports,
+  metrics, analytics, repository-owned dashboards, exports, process traces, and
+  data-quality sampling now filter through that gate. Authorized lifecycle
+  reads retain ineligible rows with a reason for human disposition.
+- [x] Run focused migration/query/lifecycle acceptance for migration 386 in a
+  network-isolated PostgreSQL 16 disposable database with synthetic schema and
+  records. Withdrawal followed by regrant remained ineligible; retired forms
+  entered review; malformed and mismatched lineage failed closed; provenance
+  changes and productive transitions were blocked while rejection disposition
+  remained available. Seeded queries were gated and Directus permissions
+  preserved their prior scope while excluding Field Collector rows. The
+  recursive JSONPath gate check also passed after existing scopes were nested;
+  replaying the Directus permission repair twice made no second-run changes,
+  including for a NULL permission. The focused application/query/console suites
+  pass (56 passed, 18 skipped). The populated ordered-migration replay is
+  recorded separately below; candidate rollout remains open ([evidence](builds/2026-10-13-recovery/farm-activity-use-gate-disposable-acceptance.json)).
+- [x] Apply migration 386 through the ordered, checksummed runner to a fresh
+  clone of the populated archived database. The read-only plan found one
+  pending migration and no checksum drift; after application the schema plan
+  reported zero pending. The migration marker, all 8/8 farm-activity Directus
+  read gates, and the present seeded dashboard query were verified. The copy
+  had two locations, four devices, 43 dashboard datasets, and 30 total
+  `farm_activity` rows, with zero Field Collector-sourced canonical activities.
+  After the final SQL checksum update, the replay was repeated against the
+  restored `kokonut_restore` database; the migration ledger remained exact and
+  the final plan reported zero pending. The retained source volume was not
+  changed; the temporary clone volume, container, and network were removed,
+  and the candidate services stayed healthy ([evidence](builds/2026-10-13-recovery/farm-activity-use-gate-populated-replay.json)).
+- [ ] Prepare and receive approval for the local-candidate rollout: fresh
+  encrypted checkpoint, ordered migration 386, app rebuild/recreation, health
+  and protected-route checks, and rollback readiness. Candidate services remain
+  on migration 385 until that gated step.
 - [x] Apply migrations 380 and 381 through the ordered, checksummed runner, seed five reviewed `1.1.0` forms, rebuild only the candidate app, and rehearse the encrypted pre-migration checkpoint restore; the exact-target candidate plan has zero pending schemas ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)). The candidate had no pre-existing form or collection rows; populated external databases still need their own reviewed rollout.
 - [x] Roll out the follow-up `1.2.0` allowlisted schemas and payload validator to the candidate using a fresh checkpoint/rehearsal; retain the existing `1.1.0` app image as a rollback artifact. App rollback alone is not safe for mobile sync because it predates payload validation; see the access contract.
 - [x] Recover the local candidate Docker app after its exact prior image digest was unavailable: rebuild from source commit `7c69510`, verify all three candidate services and `/health`, and retain the known-good image under a dated tag. Preserve the legacy stack and all data volumes ([evidence](builds/2026-10-12-recovery/docker-candidate-runtime-recovery.json)).

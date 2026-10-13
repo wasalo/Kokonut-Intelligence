@@ -158,6 +158,18 @@ it listed 11 missing inventory columns and skipped all ownership/lineage counts
 The complete-schema path also returned 27/27 required columns and migration 385
 against the empty local candidate ([evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json)).
 
+A separate internal-only restore of the populated archive then applied all 32
+pending schema migrations through 385 with zero failures and zero pending
+afterward. Its corrected inventory found two locations, no active
+organization-member relationships, one direct assignment not confirmed by an
+active owned-primary relationship, and one unassigned location. It counted four
+mobile devices, five location-scoped dashboard datasets, three report snapshots
+without location, and 38 dashboard datasets without location. The first run
+exposed UUID-array string decoding that emitted false opaque references; the
+query now aggregates to `text[]` and fails closed on unsupported driver output.
+No owner was inferred or backfilled. See the [sanitized populated replay
+evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json).
+
 ### Private media and request protections
 
 - `POST /api/mobile/media/uploads` requires an active `X-Device-Token` and a
@@ -261,6 +273,17 @@ accepted a valid `1.2.0` payload; its synthetic fixture was removed from the
 database clone. The test bypassed the enrollment route, so the trusted
 enrollment/OIDC and full mobile workflow acceptance remain open. The legacy project,
 staging/production databases, and Cloudflare resources were not changed.
+
+Migration 386 adds a canonical `farm_activity_source_eligible_for_use(...)`
+predicate for reports, selected metrics, analytics, process traces,
+repository-owned dashboards, data-quality sampling, and exports. It rechecks
+collection lineage, active immutable form revision, and current consent/form
+eligibility after draft promotion. Retiring
+or inactivating a form revision moves linked collections back into private
+review. Ineligible canonical rows remain visible to authorized operators for
+disposition, while edits and forward lifecycle actions are blocked. Migration
+386 and the matching app source are not yet database-tested or deployed to the
+local candidate; see the Batch 5 checklist.
 Registered-upload expiry cleanup passed an isolated PostgreSQL/local-media
 acceptance. Provider-neutral orphan reconciliation is implemented with a
 dry-run default; live S3/R2 acceptance and production retention remain open, as

@@ -139,8 +139,31 @@ Other deployments must use the ordered, checksummed migration workflow.
   authenticated intake route; it writes only to the private collection queue.
   The source scan found no business, reporting, or publication consumer of
   `offline_collection` outside the Field Collector API and the transport-only
-  CLI. Every future downstream consumer must use this view before reporting,
-  publication, or other use.
+  CLI. Migration 386 adds
+  `farm_activity_source_eligible_for_use(source_system, source_id, source_raw,
+  location_id)`, which fails closed for Field Collector lineage unless the
+  exact collection, active immutable form revision, and current eligibility
+  view all agree. Canonical reports, metrics, analytics, process traces, data
+  quality, repository-owned dashboard queries, and exports apply this
+  predicate. The repository's seeded dashboards and optional Directus weekly
+  snapshot hook were updated; operator-edited dashboard SQL is not rewritten
+  unless it matches the exact repository seed template and requires separate
+  inventory/review. Retirement or inactivation moves
+  linked collections into the existing private review queue. Ineligible
+  canonical activities remain visible only through authorized operator
+  lifecycle reads with an eligibility reason; edits and forward workflow
+  transitions are blocked. Existing rejection/exception actions remain
+  available only where their governed status preconditions allow them; this is
+  not the formal retention-disposition workflow. Directus cannot express this
+  cross-table predicate in its permission DSL, so its farm-activity read
+  policies retain their existing location/status scopes while excluding
+  Field Collector rows; those records use the scoped Gateway reads instead.
+  The migration passed focused PostgreSQL 16 synthetic acceptance both with
+  and without Directus installed, and the focused application/query/console
+  suite passed (56 passed, 18 skipped). Migration 386 also passed the ordered,
+  checksummed runner on a fresh clone of the populated archived database with
+  zero pending schemas and no checksum drift. It is not deployed to the
+  candidate.
 
 ### Withdrawal and retention
 

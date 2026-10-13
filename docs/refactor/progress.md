@@ -3399,3 +3399,94 @@ The complete-schema path was also run against the current candidate. It returned
 27/27 required columns and migration 385, with zero locations and zero known
 lineage rows. This confirms only the empty-candidate path; see the separate
 [complete-schema evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json).
+
+## Populated Field Collector migration replay and ownership inventory — 13 October 2026
+
+Restored the checksum-verified archived database into a new internal-only,
+template0-derived copy. The migration planner found 32 pending schemas, from
+353 through 385 with existing numbering gaps, and no checksum drift. The
+transactional runner applied all 32 with zero failures; the follow-up plan
+reported zero pending schemas. The restored copy now records 376 applied
+schema migrations and the original 32 seed migrations. No seed migration,
+owner assignment, tenant grant, or RLS policy was applied.
+
+The complete read-only preflight found 27/27 required columns and migration
+385. Across two locations, it found no active organization-member rows: one
+location has a direct organization assignment without a confirming active
+owned-primary relationship, and the other has no direct assignment. The
+inventory counted four mobile devices and five location-scoped dashboard
+datasets; it also found three report snapshots and 38 dashboard datasets with
+no location. These counts identify review work, not an ownership decision.
+
+The first complete-schema execution exposed a driver-boundary bug: an empty
+PostgreSQL `uuid[]` arrived as the string `{}`, which the preflight iterated as
+two characters and turned into false opaque owner references. The result was
+discarded. The query now aggregates IDs as `text[]`, and the collector fails
+closed on any unsupported array representation. The corrected read-only run
+reported zero relationship candidates, one `assigned_owner_not_confirmed_by_relationship`
+location, and one `unassigned` location. Python syntax compilation and
+`git diff --check` passed; no test suite ran.
+
+The one-shot runner and recovery container/network were removed after capture;
+the isolated volume was retained. An earlier incomplete first-boot volume was
+also retained separately without archive restore or migrations. The candidate,
+legacy stack, and their databases were not accessed. Accountable owner review,
+unlocated report/dashboard lineage, tenant-aware grants, RLS, and downstream
+eligibility parity remain open. See the [sanitized replay evidence](builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json),
+[tenant contract](mobile-tenant-isolation.md), and [Batch 5 checklist](batches.md).
+
+## Field Collector current-use gate — 13 October 2026
+
+Added ordered migration 386 with a fail-closed canonical farm-activity
+eligibility predicate. It matches the Field Collector source ID, payload
+lineage, location, collection type, immutable form revision, and current
+eligibility view; it also checks that the revision remains active. Form
+retirement/inactivation moves linked collections into the existing private
+review queue. A database trigger blocks ineligible content edits and forward
+workflow changes; existing rejection/exception actions remain available only
+where governed lifecycle state permits, and do not replace formal retention
+disposition.
+
+Applied the predicate to farm summaries, ecological/value-added analytics,
+Fortune 500 governance counts, process traces and value-stream calculations,
+three lifecycle metrics, data-quality sampling, repository-owned Metabase and
+saved-dashboard queries, the optional Directus weekly snapshot hook, and both
+farm-activity export paths. The migration rewrites only the exact known seeded
+dashboard SQL; custom/operator-edited SQL still needs inventory and review.
+Authorized canonical lifecycle reads retain ineligible rows and return
+eligibility/reason fields for disposition; the editor and transition service
+return a conflict before writes when the source is no longer eligible. The
+source change is documented in the mobile access and retention contracts, the
+workflow map, Batch 5 checklist, and CAP-001/CAP-053 progress.
+
+Focused source tests pass: 56 passed, 18 skipped across eligibility,
+lifecycle, workflow, farm metrics/report, process/value-stream, and operator
+console checks. Targeted Ruff, Python compilation, the operator-console inline
+JavaScript syntax check, and `git diff --check` also pass. Migration 386 was applied to a network-isolated PostgreSQL 16
+disposable database populated with synthetic schema and rows. Assertions
+covered active eligibility, legacy-source compatibility, wrong-location and
+malformed lineage, withdrawal followed by a later grant, content/workflow
+blocking, allowed rejection disposition, immutable provenance, retired-form
+review queuing, Directus permission-scope preservation, seeded dashboard
+filters, and the migration marker. The Directus seed repair was then applied
+twice against nested location scopes and a NULL permission row; the recursive
+gate check found exactly one gate per row, and a row-for-row comparison showed
+the second pass changed no permission state. A Kernel-only run of the final
+SQL removed
+`directus_permissions` before applying migration 386 and passed, confirming the
+optional Directus branch. Temporary containers were removed.
+
+The checksummed runner then applied the final migration 386 checksum to a fresh
+copy of the retained populated archive's `kokonut_restore` database after its
+plan found one pending schema and no checksum drift. The post-run schema plan returned zero pending; the migration
+ledger and marker were present, all 8/8 existing farm-activity Directus read
+permissions carried the source gate, and the present seeded farm-activity
+dashboard query was eligibility-gated. The clone retained two locations, four
+devices, and 43 dashboard datasets, plus 30 total `farm_activity` rows and
+zero Field Collector-sourced canonical activities; the second seeded VSM
+dataset ID was absent. The retained recovery volume was unchanged. The
+temporary clone volume, container, and network were removed; the candidate
+app, proxy, Metabase, and database remain healthy on migration 385. Candidate
+rollout is the next separately gated action. See [synthetic acceptance evidence](builds/2026-10-13-recovery/farm-activity-use-gate-disposable-acceptance.json),
+[populated replay evidence](builds/2026-10-13-recovery/farm-activity-use-gate-populated-replay.json),
+[Batch 5 checklist](batches.md), and [capability matrix](capability-matrix.md).

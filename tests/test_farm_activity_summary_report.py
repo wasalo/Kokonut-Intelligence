@@ -143,8 +143,10 @@ def test_farm_summary_aggregates_only_published_activities_and_excludes_private_
     assert "activity_date >= %s::date" in normalized
     assert "activity_date <= %s::date" in normalized
     assert params == (LOCATION_ID, "2026-10-01", "2026-10-01", "2026-10-31", "2026-10-31")
+    selected_columns = normalized.split("from farm_activity", maxsplit=1)[0]
     for private_field in ("description", "notes", "source_raw", "device_id", "participant"):
-        assert private_field not in normalized
+        assert private_field not in selected_columns
+    assert "farm_activity_source_eligible_for_use" in normalized
     assert "location" in report
     assert "boundary" not in report["location"]
     assert "center" not in report["location"]
