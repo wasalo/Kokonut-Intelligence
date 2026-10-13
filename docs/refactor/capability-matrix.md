@@ -35,7 +35,10 @@ missing labels from each image config and awaits a fresh run. Security surfaced
 vendored OpenZeppelin fixtures, public EVM addresses, reproducibility hashes,
 test identifiers, and documented credential placeholders. A narrow checked-in
 Gitleaks allowlist and explicit config invocation now cover those reviewed
-patterns; a fresh workflow run must pass before the security gate is accepted.
+patterns; the full-history Security workflow passed on 13 October 2026. Two CI
+runs exposed nested OCI indexes that the checker did not traverse; the current
+PR fix recursively inspects nested manifests and falls back to image config
+metadata. A fresh CI run must pass before the release gate is accepted.
 Deployment settings remain pending, and no ARM64 runtime is certified
 ([release-input contract](kernel-release-inputs.md);
 [local attempt evidence](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).

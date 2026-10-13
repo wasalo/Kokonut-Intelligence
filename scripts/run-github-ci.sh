@@ -124,9 +124,9 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m pip install slither-analyzer==0.11.5 semgrep==1.170.0 ruff pip-audit
 npm install --global --no-audit --no-fund @cyfrin/aderyn@0.6.8
-curl --proto '=https' --tlsv1.2 -LsSf https://foundry.paradigm.xyz | bash
-"$HOME/.foundry/bin/foundryup"
-export PATH="$HOME/.foundry/bin:$PATH"
+# GitHub Actions installs a pinned Foundry action/toolchain before this script.
+# Local runs must provide forge on PATH; the CI script never downloads a moving
+# installer or toolchain release itself.
 ./scripts/verify-ci-toolchain.sh
 
 echo '=== Ruff security scan ==='

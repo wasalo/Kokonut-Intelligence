@@ -12,7 +12,8 @@ The former OneDev buildspec has been replaced by these repository workflows:
 
 Every third-party action is pinned to a full commit SHA. The CI job is limited
 to 90 minutes, uses the isolated `ki-ci` Compose project and high loopback
-ports, and tears its containers and volumes down when it exits.
+ports, installs Foundry from a SHA-pinned action at a fixed release, and tears
+its containers and volumes down when it exits.
 
 ## GitHub repository settings
 

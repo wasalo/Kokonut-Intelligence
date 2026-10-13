@@ -18,9 +18,10 @@ package versions and their verified amd64/arm64 availability.
 The gate extracts `python-packages.json` from each application platform and
 requires exact package name/version parity between the two architectures. It
 also checks that both database image variants contain the locked PostGIS
-package versions. Platform identity comes from OCI index descriptors, with a
-fallback to image config metadata when an exporter omits descriptor platform
-labels; non-image attestations are skipped. OCI archive digests and platform
+package versions. Platform identity comes from Linux AMD64/ARM64 OCI index
+descriptors. The checker recursively walks nested indexes and falls back to
+image config metadata when an image descriptor omits platform labels;
+non-image attestations are skipped. OCI archive digests and platform
 descriptors are reported in the CI log; temporary archives are removed at job
 exit.
 

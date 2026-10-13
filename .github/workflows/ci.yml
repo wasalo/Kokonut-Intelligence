@@ -45,5 +45,11 @@ jobs:
         with:
           node-version-file: .node-version
 
+      - name: Install pinned Foundry toolchain
+        uses: foundry-rs/foundry-toolchain@908c540300062bd5a7e473851cdb4282204cee09 # v1.9.1
+        with:
+          version: v1.8.5
+          cache: false
+
       - name: Run the complete CI gate
         run: bash scripts/run-github-ci.sh

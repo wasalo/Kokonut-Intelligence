@@ -67,7 +67,7 @@ The API origin path (including whether a route goes directly to the current Gate
 - Assign named human owners for canonical data, operations, secrets, backups/restore, and independent approval; the repository does not assign this RACI.
 - Inventory the eight retained Staging volumes, record size/contents classification and seed-versus-historical/manual/user-originated data, then agree archive and disposition. **Do not prune or delete volumes.**
 - Resolve the authorized test-secret injection path. Prior local test attempts hit the documented SOPS fail-closed path; no identity/key diagnosis or secrets change was performed.
-- Keep the OneDev Staging trigger paused throughout the control-plane transition. Reconcile current trigger/job behavior read-only and verify that Gitea does not introduce a duplicate deployment trigger; Staging remains paused unless Wasabi separately approves reactivation.
+- The OneDev-to-Gitea transition item is superseded by the repository's return to GitHub. GitHub CI and Security are now defined in source; Security has passed on the current PR and CI is being corrected after its OCI metadata check failed. Staging remains disabled in the GitHub workflow. After GitHub checks and environment settings are active, the repository owner should retire any remote OneDev staging trigger or runner.
 - Reconcile backup policy with actual scripts, including Directus media, Metabase metadata if retained, Mosquitto state if valuable, decryption, and an isolated restore rehearsal.
 
 ### 1B — Historical OneDev-to-Gitea migration plan (superseded)

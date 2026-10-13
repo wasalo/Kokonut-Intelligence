@@ -118,26 +118,45 @@ def _platform_manifests(archive: tarfile.TarFile) -> tuple[dict[str, dict], str]
     index_bytes = _read_oci_json(archive, "index.json")
     index_digest = hashlib.sha256(_read_oci_member(archive, "index.json")).hexdigest()
     manifests: dict[str, dict] = {}
-    for descriptor in index_bytes.get("manifests", []):
+    visited: set[str] = set()
+
+    def visit(descriptor: dict) -> None:
+        descriptor_digest = descriptor.get("digest")
+        if not descriptor_digest or descriptor_digest in visited:
+            return
+        visited.add(descriptor_digest)
         platform = descriptor.get("platform") or {}
         architecture = platform.get("architecture")
-        manifest = json.loads(_blob(archive, descriptor["digest"]).read().decode("utf-8"))
+        content = json.loads(_blob(archive, descriptor_digest).read().decode("utf-8"))
 
-        # OCI exporters may omit platform metadata from index descriptors. The
-        # image config remains authoritative for the platform; attestations do
-        # not carry an image config and are skipped by this fallback.
-        if not platform:
-            config_descriptor = manifest.get("config") or {}
-            config_digest = config_descriptor.get("digest")
-            if not config_digest:
-                continue
+        if platform.get("os") == "linux" and architecture in {"amd64", "arm64"}:
+            manifests[architecture] = content
+            return
+
+        # Some exporters wrap the platform index in an unlabelled descriptor.
+        # Walk nested indexes before treating a descriptor as an image manifest.
+        child_descriptors = content.get("manifests")
+        if isinstance(child_descriptors, list):
+            for child in child_descriptors:
+                if isinstance(child, dict) and child.get("digest"):
+                    visit(child)
+            return
+
+        # OCI exporters may omit platform metadata from image descriptors. The
+        # image config remains authoritative; attestations have no config and
+        # are skipped by this fallback.
+        config_descriptor = content.get("config") or {}
+        config_digest = config_descriptor.get("digest")
+        if config_digest:
             config = json.loads(_blob(archive, config_digest).read().decode("utf-8"))
-            platform = {"os": config.get("os"), "architecture": config.get("architecture")}
-            architecture = platform["architecture"]
+            config_platform = {"os": config.get("os"), "architecture": config.get("architecture")}
+            architecture = config_platform["architecture"]
+            if config_platform.get("os") == "linux" and architecture in {"amd64", "arm64"}:
+                manifests[architecture] = content
 
-        if platform.get("os") != "linux" or architecture not in {"amd64", "arm64"}:
-            continue
-        manifests[architecture] = manifest
+    for descriptor in index_bytes.get("manifests", []):
+        if isinstance(descriptor, dict) and descriptor.get("digest"):
+            visit(descriptor)
     missing = {"amd64", "arm64"} - manifests.keys()
     if missing:
         raise LockError(f"OCI output is missing linux platform(s): {', '.join(sorted(missing))}")

@@ -3563,11 +3563,12 @@ recovery/build inventories, domain migration labels, deterministic test keys,
 and literal credential placeholders in examples. Added `.gitleaks.toml` with
 rule-scoped exact path/line/value exceptions and made the workflow select that
 config explicitly; full-history scanning and the other secret rules remain
-enabled. The corrected Security workflow has not yet completed a rerun. CI was
-initially failed because Buildx's OCI index omitted platform labels consumed by
-the release checker; the checker now derives labels from image configs when
-descriptors omit them. The corrected CI and Security workflows have not yet
-completed a rerun. GitHub runner registration,
+enabled. The full-history Security workflow passed on 13 October 2026. Two CI
+runs built both architecture images and failed release validation because
+Buildx wrapped platform manifests in nested OCI indexes. The current PR fix
+recursively inspects nested indexes, then derives platform labels from image
+configs when image descriptors omit them. A new CI run is required to accept
+the fix. GitHub runner registration,
 `staging`/`production` environments, branch rules, and production SSH secrets
 remain pending remote configuration; see [setup requirements](../github-actions.md).
 Staging also requires a reviewed source change to clear its disabled flag. No
