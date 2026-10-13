@@ -3634,3 +3634,18 @@ both linux/amd64 and linux/arm64. The package inventory checker then identified
 one difference: `libquadmath0` version `12.2.0-14+deb12u1` on amd64 and no such
 package on arm64. Debian publishes this package for amd64/i386, and
 `libgfortran5` only depends on it on those architectures ([package details](https://packages.debian.org/bookworm/libquadmath0), [dependency details](https://packages.debian.org/bookworm/libgfortran5)). The reviewed difference is now recorded in the SHA-256-locked package catalog. The checker still requires the observed complete difference map to equal that contract exactly, so any extra package/version delta or a stale expectation fails. Static release-input validation is the next local check; a fresh GitHub CI run remains required for acceptance.
+
+### GitHub CI run 285 test-suite repair — 13 October 2026
+
+CI run 285 passed the default and ClickHouse-enabled app builds for AMD64 and
+ARM64, passed the PostGIS builds for both architectures, and passed the locked
+installed-package inventory comparison. The full suite then reported 23
+failures with 4,532 passing tests. The failures traced to a missing CI
+ClickHouse database selection in the end-to-end helper, the mobile-form seed
+rewriting immutable revisions on rerun, a hard-coded developer scratch path,
+and stale tests for current gRPC scopes/handlers, sensor projection adapters,
+strict sensor ranges, CORS `Vary` headers, rate-limiter constraints, and
+provider-independent workflow jobs. These were corrected in the active PR.
+The focused local run passed 155 tests with one database-backed seed check
+skipped because the local database service was unavailable. A clean GitHub CI
+run is still required to confirm the complete database-backed path.

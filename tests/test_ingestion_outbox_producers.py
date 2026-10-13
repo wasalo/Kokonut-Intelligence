@@ -1,5 +1,6 @@
 """Canonical ingestion producers enqueue ClickHouse delivery."""
 
+from datetime import date, time
 from unittest.mock import MagicMock, patch
 
 
@@ -27,8 +28,15 @@ def test_sensor_queues_instead_of_inserting():
     from services.ingestion.sensor_ingester import insert_reading_clickhouse
 
     info = ("sensor", "name", "slug", "type-id", "soil_moisture", "loc", None, "active", "http")
-    with patch("services.ingestion.sensor_ingester.enqueue") as queue, patch("services.ingestion.sensor_ingester.insert_clickhouse_rows") as direct:
-        insert_reading_clickhouse(info, "2026-01-01", "12:00:00", 20.0, conn=MagicMock())
+    conn = MagicMock()
+    cursor = MagicMock()
+    cursor.fetchone.return_value = (
+        "reading-id", "loc", None, "sensor", "soil_moisture", 20.0, "%",
+        date(2026, 1, 1), time(12, 0), "good",
+    )
+    conn.cursor.return_value.__enter__.return_value = cursor
+    with patch("services.ingestion.sensor_projection.enqueue") as queue, patch("services.ingestion.sensor_projection.post_clickhouse_rows") as direct:
+        insert_reading_clickhouse(info, "2026-01-01", "12:00:00", 20.0, conn=conn)
     queue.assert_called_once()
     direct.assert_not_called()
 
@@ -91,15 +99,13 @@ def test_gnosis_producers_queue_instead_of_inserting():
 
 
 def test_sensor_transport_helpers_queue_instead_of_inserting():
-    import services.ingestion.http_sensor_receiver
-    with patch("services.ingestion.http_sensor_receiver.enqueue") as http_queue, patch("services.ingestion.http_sensor_receiver.post_clickhouse_rows") as http_direct:
+    with patch("services.ingestion.sensor_projection.enqueue") as http_queue, patch("services.ingestion.sensor_projection.post_clickhouse_rows") as http_direct:
         from services.ingestion.http_sensor_receiver import _insert_ch
         _insert_ch("reading", "loc", None, "sensor", "soil_moisture", 20, "%", "2026-01-01T00:00:00Z", conn=MagicMock())
     http_queue.assert_called_once()
     http_direct.assert_not_called()
 
-    import services.ingestion.mqtt_subscriber
-    with patch("services.ingestion.mqtt_subscriber.enqueue") as mqtt_queue, patch("services.ingestion.mqtt_subscriber.post_clickhouse_rows") as mqtt_direct:
+    with patch("services.ingestion.sensor_projection.enqueue") as mqtt_queue, patch("services.ingestion.sensor_projection.post_clickhouse_rows") as mqtt_direct:
         from services.ingestion.mqtt_subscriber import MQTTSensorSubscriber
         MQTTSensorSubscriber()._insert_ch("reading", "loc", None, "sensor", "soil_moisture", 20, "%", "2026-01-01T00:00:00Z", conn=MagicMock())
     mqtt_queue.assert_called_once()

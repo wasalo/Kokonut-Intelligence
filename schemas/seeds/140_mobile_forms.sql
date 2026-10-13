@@ -104,24 +104,6 @@ VALUES
           {"source":"repository-owner delegation, 2026-10-12","basis":"The repository owner explicitly delegated the form-policy judgment to the implementation agent."}
         ]$soil_sample_evidence$::jsonb
     )
-ON CONFLICT (form_id) DO UPDATE SET
-    name = EXCLUDED.name,
-    description = EXCLUDED.description,
-    form_schema = EXCLUDED.form_schema,
-    ui_schema = EXCLUDED.ui_schema,
-    version = EXCLUDED.version,
-    collection_type = EXCLUDED.collection_type,
-    status = EXCLUDED.status,
-    consent_policy_status = EXCLUDED.consent_policy_status,
-    consent_data_category = EXCLUDED.consent_data_category,
-    consent_purpose = EXCLUDED.consent_purpose,
-    consent_scope_type = EXCLUDED.consent_scope_type,
-    consent_scope_id = EXCLUDED.consent_scope_id,
-    consent_recipient_type = EXCLUDED.consent_recipient_type,
-    consent_recipient_party_id = EXCLUDED.consent_recipient_party_id,
-    consent_recipient_name = EXCLUDED.consent_recipient_name,
-    consent_version = EXCLUDED.consent_version,
-    consent_policy_reviewed_by = EXCLUDED.consent_policy_reviewed_by,
-    consent_policy_reviewed_at = EXCLUDED.consent_policy_reviewed_at,
-    consent_policy_evidence = EXCLUDED.consent_policy_evidence,
-    updated_at = NOW();
+-- Re-seeding must not rewrite a governed form revision or reactivate a retired one.
+-- Existing forms are updated only through an explicit new revision workflow.
+ON CONFLICT (form_id) DO NOTHING;

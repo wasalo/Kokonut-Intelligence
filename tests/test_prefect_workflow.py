@@ -74,16 +74,22 @@ def test_requirements_has_prefect() -> None:
 
 
 def test_weather_flow_wraps_cli() -> None:
-    content = Path("services/flows/weather.py").read_text()
-    assert "services.ingestion.weather" in content
-    assert "subprocess" in content
+    from unittest.mock import patch
+
+    from services.flows.weather import weather_ingestion_flow
+
+    with patch("services.flows.weather.run_job", return_value={"status": "success"}) as run_job:
+        assert weather_ingestion_flow.fn("80b1d06b-a82d-4d02-a4f6-243e81fdf122") == {"status": "success"}
+    run_job.assert_called_once_with("weather", location_id="80b1d06b-a82d-4d02-a4f6-243e81fdf122")
 
 
 def test_metrics_flow_wraps_cli() -> None:
-    content = Path("services/flows/metrics.py").read_text()
-    assert "services.metrics" in content
-    assert "--all-locations" in content
-    assert "--verify" not in content
+    from services.core.jobs import JOBS
+
+    spec = JOBS["metrics"]
+    assert spec.module == "services.metrics"
+    assert spec.arguments == ("--compute", "--all-locations")
+    assert "--verify" not in spec.arguments
 
 
 def test_pipeline_has_dependency_chains() -> None:

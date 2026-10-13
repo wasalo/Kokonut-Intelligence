@@ -74,6 +74,14 @@ def test_seed_idempotency() -> None:
     assert not failures, f"Seed idempotency checks failed: {', '.join(failures)}"
 
 
+def test_mobile_form_seed_does_not_rewrite_governed_revisions() -> None:
+    from pathlib import Path
+
+    seed_sql = Path("schemas/seeds/140_mobile_forms.sql").read_text(encoding="utf-8")
+    assert "ON CONFLICT (form_id) DO NOTHING;" in seed_sql
+    assert "ON CONFLICT (form_id) DO UPDATE" not in seed_sql
+
+
 if __name__ == "__main__":
     print("=== Seed Idempotency Test ===")
     results = run_seed_idempotency()

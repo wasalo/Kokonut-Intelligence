@@ -193,7 +193,7 @@ class TestRequireScope:
         })
         try:
             mock_context = MagicMock()
-            require_scope(mock_context, "ecocredit", "class")
+            require_scope(mock_context, "ecocredit:class", "read")
             mock_context.abort.assert_not_called()
         finally:
             grpc_auth_context.reset(token)
@@ -308,7 +308,7 @@ class TestConnectionPoolRelease:
         mock_factory.release = MagicMock()
 
         interceptor = APIKeyInterceptor(db_factory=mock_factory)
-        continuation = MagicMock(return_value="handler")
+        continuation = MagicMock(return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None))
 
         details = MagicMock()
         details.method = "ecocredit.v1.EcocreditService/Classes"
@@ -362,7 +362,7 @@ class TestConnectionPoolRelease:
             mock_factory.release = release
 
             interceptor = APIKeyInterceptor(db_factory=mock_factory)
-            continuation = MagicMock(return_value="handler")
+            continuation = MagicMock(return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None))
 
             interceptor.intercept_service(continuation, details)
 
@@ -385,12 +385,12 @@ class TestTLSConfig:
             with patch.dict(os.environ, {
                 "GRPC_TLS_CERT": cert_path,
                 "GRPC_TLS_KEY": key_path,
-                "GRPC_PORT": "0",
+                "GRPC_PORT": "50051",
             }, clear=False):
                 env = os.environ.copy()
                 env["GRPC_TLS_CERT"] = cert_path
                 env["GRPC_TLS_KEY"] = key_path
-                env["GRPC_PORT"] = "0"
+                env["GRPC_PORT"] = "50051"
 
                 with patch.dict(os.environ, env, clear=True):
                     with patch("services.grpc.server._get_db_pool") as mock_pool:
@@ -430,7 +430,7 @@ class TestTLSConfig:
         env = os.environ.copy()
         env.pop("GRPC_TLS_CERT", None)
         env.pop("GRPC_TLS_KEY", None)
-        env["GRPC_PORT"] = "0"
+        env["GRPC_PORT"] = "50051"
 
         with patch.dict(os.environ, env, clear=True):
             with patch("services.grpc.server._get_db_pool") as mock_pool:

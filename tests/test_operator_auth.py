@@ -300,7 +300,7 @@ def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatc
 
     assert response.status_code == 200, response.text
     assert response.headers["cache-control"] == "no-store"
-    assert response.headers["vary"] == "Cookie"
+    assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
     assert response.json()["data"] == [{"id": "collection-id", "activity_type": "weeding"}]
     queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 9)
     assert provider.scopes_seen == [(OPERATOR_ID, "farm_activity", "read", LOCATION_ID)]
@@ -523,7 +523,7 @@ def test_farm_activity_draft_edit_route_requires_scope_csrf_and_passes_reason(mo
 
     assert response.status_code == 200, response.text
     assert response.headers["cache-control"] == "no-store"
-    assert response.headers["vary"] == "Cookie"
+    assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
     assert response.json()["data"]["action"] == "draft_edited"
     assert provider.scopes_seen == [
         (OPERATOR_ID, "farm_activity", "edit_draft", LOCATION_ID),
@@ -635,7 +635,7 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
 
     assert response.status_code == 200, response.text
     assert response.headers["cache-control"] == "no-store"
-    assert response.headers["vary"] == "Cookie"
+    assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
     assert response.json()["data"] == [{"id": "collection-id", "payload": None}]
     queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 7)
     assert provider.scopes_seen == [
@@ -754,7 +754,7 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
 
     assert response.status_code == 200, response.text
     assert response.headers["cache-control"] == "no-store"
-    assert response.headers["vary"] == "Cookie"
+    assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
     assert response.json()["data"]["inventory_scope"] == "known_direct_lineage_only"
     assert provider.scopes_seen == [
         (OPERATOR_ID, "mobile_collection_retention", "inventory", LOCATION_ID),

@@ -276,10 +276,11 @@ class TestGatewayRateLimiter:
     def test_check_exceeds_limit(self):
         from services.gateway.rate_limiter import RateLimiter
 
-        limiter = RateLimiter(max_tokens=2, refill_rate=0)
-        assert limiter.check("caller1") is True
-        assert limiter.check("caller1") is True
-        assert limiter.check("caller1") is False  # exhausted
+        limiter = RateLimiter(max_tokens=2, refill_rate=1)
+        with patch("services.gateway.rate_limiter.time.monotonic", return_value=0):
+            assert limiter.check("caller1") is True
+            assert limiter.check("caller1") is True
+            assert limiter.check("caller1") is False  # exhausted
 
     def test_get_status(self):
         from services.gateway.rate_limiter import RateLimiter
