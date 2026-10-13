@@ -1,15 +1,13 @@
 # Farm activity workflow map
 
 Status: source map, declarative workflow correction, private intake and draft
-promotion, governed lifecycle writes, published-only farm summary, and
-rework-metric provenance are implemented on the feature branch. Migrations
-383–384 and lifecycle writes are deployed to the local candidate; its exact
-checkpoint/restore, migration, health, and protected-route checks are recorded.
-Source now also includes canonical queue/detail reads, operator-console
-controls, and migration 385's audited native draft-edit path. These additions
-have not yet been checked or deployed. The candidate still has only migrations
-383–384 applied; OIDC is disabled, it has no farm activity fixture rows, and
-MAN-CAP-001 remains open.
+promotion, governed lifecycle writes, published-only farm summary, rework-metric
+provenance, canonical queue/detail reads, operator-console controls, and
+migration 385's audited native draft-edit path are implemented. Migrations
+383–385 are deployed to the local candidate. Migration 385's exact-target
+checkpoint restore, zero-pending plan, app health, and protected-route checks
+are recorded. OIDC is disabled, the candidate has no farm-activity workflow
+fixture rows, and MAN-CAP-001 remains open.
 
 This map selects the current `farm_activity_v1` Field Collector form as the
 first Batch 3 vertical slice. It records existing behavior, the native Kernel
@@ -102,9 +100,10 @@ draft metric_value / governed report_snapshot draft
   can change again.
   Existing `lifecycle_transition` rows continue to be written for changed
   status values; `exception_closed` is a separate event because status stays
-  rejected. Migrations 383–384 and lifecycle write routes have been applied to
-  the local candidate. Migration 385 and the canonical read, edit, and console
-  additions are source-only and have not been deployed there.
+  rejected. Migrations 383–385 and the canonical read, edit, and console routes
+  are deployed to the local candidate; the app-only rollout passed health and
+  unauthenticated route checks. OIDC remains disabled and no live workflow rows
+  have been created.
 * `services/gateway/farm_activity_lifecycle.py` now also lists native
   `farm_activity_v1` 1.2.0 records without free text and returns bounded
   canonical detail with workflow history. Both reads bind activity and
@@ -306,30 +305,35 @@ person-specific evaluations; future text review must retain that restriction.
    volume/network were removed; candidate state is unchanged
    ([lifecycle evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json),
    [report/metric evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
-7. **Source and isolated verification complete; rollout pending:** migration
+7. **Source, isolated verification, and candidate rollout complete:** migration
    385, the immutable-schema draft edit service, OIDC/CSRF route, and console
    editor provide reasoned, append-only content corrections. Ninety-five
    focused Python tests and Ruff pass. A clean replay of all 376 schema
    migrations into isolated PostGIS 16 succeeded; a synthetic native draft edit
    verified changed-field metadata and content digest, rejected event mutation,
    and proved that a failed event insert rolls the canonical update back. The
-   scratch project and test fixture were removed. The candidate still has
-   migrations 383–384 and was not modified; checkpointed migration/app rollout
-   and real-provider browser acceptance remain open. Roll back only the route/UI
-   if needed while retaining migration 385 and its edit evidence; correct
-   database behavior with a reviewed forward migration rather than deleting or
-   rewriting append-only history. Higher-contention stress, configured-provider
-   OIDC, populated workflow acceptance on the candidate, and MAN-CAP-001 remain
-   open ([verification evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json)).
+   scratch project and test fixture were removed. The candidate then received
+   migration 385 and an app-only rebuild from `f854d47` after a fresh encrypted
+   checkpoint restored with matching migration fingerprints, extension
+   versions, and workflow counts. Health returned 200; unauthenticated review,
+   activity, and draft-edit routes returned 401. PostgreSQL, Metabase, and proxy
+   stayed up, and the temporary restore project was removed. Roll back only the
+   route/UI if needed while retaining migration 385 and its edit evidence;
+   correct database behavior with a reviewed forward migration rather than
+   deleting or rewriting append-only history. Higher-contention stress,
+   configured-provider OIDC, populated workflow acceptance, and MAN-CAP-001
+   remain open ([source verification](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json),
+   [candidate rollout](builds/2026-10-13-recovery/candidate-farm-activity-draft-edit-rollout.json)).
 
 Rollback uses additive migrations, the existing OIDC session and default-deny
 location grants, and preservation of `offline_collection` as the source record.
 The candidate contains the migration guards and lifecycle write routes; the
-latest read/UI source has not been deployed, so no rollback action is needed for
-that delta. If a deployed route is rolled back, pause native intake and retain a
-compatible transition path for native 1.2.0 rows; migration 384 guards
-intentionally stay active and must not be bypassed through Directus. Keep the
-additive index and event history. A failed promotion or transition rolls back
+current read/UI source is deployed from `f854d47`. If the app is rolled back,
+retain the migration 385 guard and the additive event history; use the retained
+pre-rollout image tag and encrypted checkpoint only before accepting native
+workflow data. Otherwise, correct database behavior with a reviewed forward
+migration. Migration 384 guards intentionally stay active and must not be
+bypassed through Directus. A failed promotion, edit, or transition rolls back
 the canonical write and its event together. If a draft is incorrect, use the
 governed rework path; do not delete it or rewrite the captured source.
 
@@ -340,14 +344,15 @@ governed rework path; do not delete it or rewrite the captured source.
   queue/detail reads and grant-checked promotion/transition services.
 * `services/gateway/operator_auth.py` owns route policy and the OIDC handlers;
   `apps/operator-console/index.html` renders the location-scoped workflow.
-* `schemas/postgres/383_farm_activity_workflow_events.sql` and
-  `schemas/postgres/384_farm_activity_lifecycle_guards.sql` are applied to the
+* `schemas/postgres/383_farm_activity_workflow_events.sql`,
+  `schemas/postgres/384_farm_activity_lifecycle_guards.sql`, and
+  `schemas/postgres/385_farm_activity_draft_edit_events.sql` are applied to the
   candidate and must remain immutable; future schema changes require new
   migrations.
-* Next acceptance: a guarded migration-385/app-only candidate rollout with a
-  retained rollback image/checkpoint, then configured OIDC browser review. Do not create
-  synthetic live operator data until the existing enrollment/test
-  authorization flow is explicitly established.
+* Next acceptance: configure OIDC and complete provider-backed browser review,
+  then plan populated candidate workflow acceptance. Do not create synthetic
+  live operator data until the existing enrollment/test authorization flow is
+  explicitly established.
 * Continue updating `docs/refactor/batches.md`,
   `docs/refactor/capability-matrix.md`, and `docs/refactor/progress.md` at each
   implementation checkpoint.

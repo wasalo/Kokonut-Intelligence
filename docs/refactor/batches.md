@@ -159,10 +159,12 @@ backups/volumes; no production cutover in this batch.
   all 376 ordered schema migrations applied in disposable PostGIS 16, and a
   synthetic native draft edit verified the content digest, immutable event,
   and rollback after an injected event-write failure ([evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json)).
-- [ ] After a separate candidate-rollout authorization, checkpoint the local
-  candidate database, apply migration 385, rebuild/recreate only its app, and
-  verify health, migration status, and protected-route behavior. The candidate
-  was not changed during this verification; configured OIDC remains separate.
+- [x] After separate rollout authorization, create and restore-test a fresh
+  encrypted candidate checkpoint, apply migration 385 through the ordered
+  runner, rebuild from `f854d47`, and recreate only the app. The candidate has
+  376 applied schemas and zero pending; app health is 200, unauthenticated
+  review/farm-activity/draft-edit routes return 401, and PostgreSQL, Metabase,
+  and proxy stayed up ([rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-draft-edit-rollout.json)).
 - [x] Implement source-level native editing for draft farm activities against
   the immutable source form schema, with a location-scoped edit grant, required
   correction reason, and append-only content-edit evidence (migration 385);
@@ -203,19 +205,25 @@ workflow event during the actual transition service call; the activity stayed
 `draft`, and neither the workflow-event nor lifecycle-transition ledger
 recorded `submitted`. Two simultaneous PostgreSQL promotion calls passed: one
 created the draft, the other returned the same activity ID with `created=false`,
-and the database retained one canonical row and one `draft_created` event. The
-local candidate has migrations 383–384 and a retained exact-target encrypted
-checkpoint and rollback image; OIDC is disabled. The subsequent source-level
-canonical queue/detail, console, and migration-385 draft-edit slices now pass
-the focused verification recorded below, but remain undeployed. Higher-contention
-stress, configured-provider OIDC, and MAN-CAP-001 remain open. See [candidate
-rollout evidence](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json).
+and the database retained one canonical row and one `draft_created` event. The earlier local candidate rollout applied migrations 383–384 with an exact-
+target encrypted checkpoint and rollback image; OIDC remains disabled. The
+canonical queue/detail, console, and migration-385 draft-edit source now pass
+focused verification and are deployed to the candidate. Migration 385 has zero
+pending schemas, and a fresh encrypted checkpoint restored with matching
+migration fingerprints, extension versions, and workflow counts. Only the app
+was recreated; PostgreSQL, Metabase, and proxy stayed healthy/running. The
+candidate remains empty for farm activities, workflow events, and mobile
+collections. Higher-contention stress, configured-provider OIDC, populated
+workflow acceptance, and MAN-CAP-001 remain open. See [migration 383–384
+rollout](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json) and
+[migration 385 rollout](builds/2026-10-13-recovery/candidate-farm-activity-draft-edit-rollout.json).
 Migration-385 source acceptance now passes a separate 95-test focused suite plus
 Ruff. A fresh disposable PostGIS 16 replay applied 376 ordered schema
 migrations, then validated a synthetic draft edit, its digest-backed
 append-only event, rejection of event mutation, and transaction rollback after
-an injected event-insert failure. The scratch container was removed and the
-candidate was not changed. See [draft-edit evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json).
+an injected event-insert failure. The scratch container was removed and the candidate was unchanged during this source check. See [draft-edit evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json).
+
+The separately authorized candidate rollout then restored a fresh encrypted checkpoint into an isolated template0 database and matched migration fingerprints, extensions, and selected workflow counts. Migration 385 applied with zero pending schemas; the app rebuilt from `f854d47` and alone was recreated. Health returned 200 and protected review, activity, and draft-edit routes returned 401 without credentials. PostgreSQL, Metabase, and proxy stayed up; the temporary restore resources were removed. See [candidate rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-draft-edit-rollout.json).
 
 Rollback: the API release can be reverted, but migration 384's native form
 guards intentionally remain active and the legacy provider must not be used to

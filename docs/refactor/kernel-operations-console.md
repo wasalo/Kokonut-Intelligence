@@ -9,11 +9,12 @@ rework/publish/exception controls, and a native draft editor. Focused migration,
 route/query, immutable-schema, grant-lock, append-only rollback, and console
 checks now pass; all 376 schema migrations and a synthetic edit/rollback
 acceptance passed on disposable PostGIS 16 ([evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json)).
-The queue/detail, edit route, and console remain source-only and are not deployed
-to the candidate. OIDC remains disabled because no provider settings have been
-configured. Real-provider login, browser-runtime acceptance, and live payload
-acceptance remain open. This remains a partial implementation, not an accepted
-console.
+The queue/detail, edit route, and console are deployed to the local candidate
+after migration 385 and an app-only rebuild from `f854d47`. Candidate health
+returns 200 and unauthenticated protected reads and draft edits return 401.
+OIDC remains disabled because no provider settings have been configured.
+Real-provider login, browser-runtime acceptance, and live payload acceptance
+remain open. This remains a partial implementation, not an accepted console.
 
 ## Current repository boundary
 
@@ -194,8 +195,10 @@ are cleared; unknown fields and values outside the form schema are rejected.
 The database keeps `source_raw` and the captured collection unchanged, and
 appends a same-state `draft_edited` event with the operator, reason, changed
 field names, and SHA-256 of the resulting canonical content. The event contains
-no copied description or notes. Migration 385 and this route have not yet been
-tested or applied to the local candidate.
+no copied description or notes. Migration 385 is applied to the candidate;
+focused service/route/console checks and isolated PostGIS acceptance passed,
+and the candidate rejects unauthenticated draft-edit requests with 401. No
+candidate workflow rows have been created.
 Actions are shown only when the operator session contains the matching
 location grant, and the Gateway and database recheck authorization and legal
 state on every write. Verification, rejection, and publication retain the
