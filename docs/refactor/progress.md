@@ -2974,3 +2974,48 @@ promotion, and report/metric integration remain open. The [workflow map](farm-ac
 contains the source trace, field contract, acceptance sequence, and rollback
 strategy. CAP-001 remains partial; no end-to-end capability acceptance is
 claimed.
+
+
+### Batch 3 private intake and canonical draft promotion — 12 October 2026
+
+Implemented the first native Field Collector-to-farm-activity write slice on
+the feature branch. `services/gateway/farm_activity_workflow.py` now lists
+eligible, unpromoted `farm_activity_v1` 1.2.0 captures without free text,
+returns bounded private detail behind two location-scoped read grants, and
+promotes an explicitly reviewed capture to one canonical `draft`. Promotion
+rechecks the exact active form revision, stored payload schema, consent/use
+eligibility, location, sync state, and database grants in the write transaction.
+It holds locks on the active form revision, any participant link, and both
+grants through commit so concurrent retirement or revocation is ordered against
+the promotion. Location comes from the collection; only declared activity fields are copied;
+source lineage retains a payload digest rather than another copy of private
+text. The operator identity is recorded separately from participant/device
+identity. Identical retries return the existing source row; mismatched source
+identity fails closed.
+
+OIDC policies and routes in `services/gateway/operator_auth.py` use CSRF for
+promotion and require `farm_activity:create_draft` plus
+`mobile_collection_review:read_detail`; private reads are no-store. Migration
+383 preflights duplicate Field Collector source identities, adds a partial
+unique source index, and adds an append-only event ledger with transition-shape
+checks and a trigger tying event location/status/source to the canonical row.
+The `draft_created` event requires a review acknowledgement and matching
+payload digest. It does not yet implement governed transition routes or
+independent verifier/publisher enforcement.
+
+Validation: `tests/test_migration.py`, `tests/test_workflow_specs.py`,
+`tests/test_farm_activity_workflow.py`, and `tests/test_operator_auth.py`
+passed (55 tests); Ruff passed. Migration 383
+compiled transactionally in a disposable database, and synthetic trigger
+checks accepted a valid draft event while rejecting canonical status mismatch
+and event updates. A read-only `EXPLAIN` verified the exact promotion lock
+query against the existing eligibility view. The temporary database and
+migration file were removed. No candidate migration, app rebuild, or data
+write occurred. The migration/API are not yet deployed.
+
+Batch 3 now has the native intake/draft slice checked off. Submit/reject/rework/
+verify/publish enforcement, reviewer independence, published-only reporting,
+draft metric parity, and complete disposable database failure coverage remain
+open. CAP-001 remains partial; this does not satisfy MAN-CAP-001. The
+[workflow map](farm-activity-workflow-map.md) and [Batch 3 checklist](batches.md)
+track the interface, evidence, and rollback boundary.

@@ -126,6 +126,41 @@ def test_mobile_collection_review_routes_use_separate_location_read_actions():
     ]
 
 
+def test_farm_activity_intake_routes_require_oidc_and_separate_detail_grants():
+    queue_policy = operator_auth.auth_route_policy(
+        "GET", "/operator/api/farm-activity-intake-queue", enabled=True
+    )
+    detail_policy = operator_auth.auth_route_policy(
+        "GET",
+        "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222",
+        enabled=True,
+    )
+    draft_policy = operator_auth.auth_route_policy(
+        "POST",
+        "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222/draft",
+        enabled=True,
+    )
+
+    assert queue_policy["resource"] == "farm_activity"
+    assert queue_policy["action"] == "read"
+    assert detail_policy["action"] == "read_detail"
+    assert detail_policy["additional_scopes"] == [
+        {"resource": "mobile_collection_review", "action": "read_detail"}
+    ]
+    assert draft_policy["action"] == "create_draft"
+    assert draft_policy["additional_scopes"] == detail_policy["additional_scopes"]
+    assert operator_auth.auth_route_policy(
+        "POST",
+        "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222/draft",
+        enabled=False,
+    ) is None
+    assert operator_auth.auth_route_policy(
+        "DELETE",
+        "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222",
+        enabled=True,
+    ) is None
+
+
 class _ReviewProvider(_FakeProvider):
     def __init__(self, *, allowed_action=None, allowed_actions=None):
         super().__init__(allowed=False)
@@ -142,6 +177,146 @@ class _ReviewProvider(_FakeProvider):
             and action in self.allowed_actions
             and location_id == LOCATION_ID
         )
+
+
+class _FarmActivityProvider(_FakeProvider):
+    def __init__(self, *, allowed_scopes=()):
+        super().__init__(allowed=False)
+        self.allowed_scopes = set(allowed_scopes)
+        self.scopes_seen = []
+
+    def has_scope(self, operator_id, resource, action, location_id):
+        self.scopes_seen.append((operator_id, resource, action, location_id))
+        return (
+            operator_id == OPERATOR_ID
+            and (resource, action) in self.allowed_scopes
+            and location_id == LOCATION_ID
+        )
+
+
+def _set_operator_cookies(client, *, csrf=False):
+    client.cookies.set(
+        operator_auth.SESSION_COOKIE,
+        "valid-session",
+        path=operator_auth.SESSION_COOKIE_PATH,
+    )
+    if csrf:
+        client.cookies.set(
+            operator_auth.CSRF_COOKIE,
+            "valid-csrf",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+
+
+def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatch):
+    provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "read")})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+    queue_reader = MagicMock(return_value=[{"id": "collection-id", "activity_type": "weeding"}])
+    monkeypatch.setattr(
+        "services.gateway.farm_activity_workflow.list_farm_activity_intake",
+        queue_reader,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            "/operator/api/farm-activity-intake-queue",
+            params={"location_id": LOCATION_ID, "limit": 9},
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["data"] == [{"id": "collection-id", "activity_type": "weeding"}]
+    queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 9)
+    assert provider.scopes_seen == [(OPERATOR_ID, "farm_activity", "read", LOCATION_ID)]
+
+
+def test_farm_activity_detail_requires_both_detail_grants(monkeypatch):
+    provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "read_detail")})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+    detail_reader = MagicMock(return_value={"id": "collection-id"})
+    monkeypatch.setattr(
+        "services.gateway.farm_activity_workflow.get_farm_activity_intake",
+        detail_reader,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 403
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "farm_activity", "read_detail", LOCATION_ID),
+        (OPERATOR_ID, "mobile_collection_review", "read_detail", LOCATION_ID),
+    ]
+    detail_reader.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("csrf", "content_reviewed", "status"),
+    [(False, True, 403), (True, False, 422), (True, True, 201)],
+)
+def test_farm_activity_draft_route_requires_scope_csrf_and_review_acknowledgement(
+    monkeypatch, csrf, content_reviewed, status
+):
+    provider = _FarmActivityProvider(
+        allowed_scopes={
+            ("farm_activity", "create_draft"),
+            ("mobile_collection_review", "read_detail"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    audit_records = []
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda _self, **record: audit_records.append(record),
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda _self, _reservation: None,
+    )
+    draft_writer = MagicMock(
+        return_value={"id": "activity-id", "status": "draft", "created": True}
+    )
+    monkeypatch.setattr(
+        "services.gateway.farm_activity_workflow.create_farm_activity_draft",
+        draft_writer,
+    )
+
+    headers = {"X-CSRF-Token": "valid-csrf"} if csrf else {}
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=csrf)
+        response = client.post(
+            "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222/draft",
+            params={"location_id": LOCATION_ID},
+            headers=headers,
+            json={"content_reviewed": content_reviewed},
+        )
+
+    assert response.status_code == status, response.text
+    if status == 201:
+        assert response.headers["cache-control"] == "no-store"
+        assert response.json()["data"]["status"] == "draft"
+        draft_writer.assert_called_once_with(
+            OPERATOR_ID,
+            "22222222-2222-4222-8222-222222222222",
+            LOCATION_ID,
+            content_reviewed=True,
+        )
+        assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
+        assert audit_records[-1]["location_id"] == LOCATION_ID
+    else:
+        draft_writer.assert_not_called()
 
 
 def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkeypatch):

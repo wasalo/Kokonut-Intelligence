@@ -413,6 +413,33 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    farm_activity_intake_match = re.fullmatch(
+        r"/operator/api/farm-activity-intake-queue(?:/([0-9a-fA-F-]{36})(?:/(draft))?)?",
+        path,
+    )
+    if farm_activity_intake_match and enabled:
+        collection_id, suffix = farm_activity_intake_match.groups()
+        if method.upper() == "GET" and collection_id is None:
+            action = "read"
+        elif method.upper() == "GET" and collection_id is not None and suffix is None:
+            action = "read_detail"
+        elif method.upper() == "POST" and collection_id is not None and suffix == "draft":
+            action = "create_draft"
+        else:
+            return None
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            **(
+                {"additional_scopes": [{"resource": "mobile_collection_review", "action": "read_detail"}]}
+                if action in {"read_detail", "create_draft"}
+                else {}
+            ),
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     routes = {
         ("GET", "/operator/"): ("console", True, False),
         ("GET", "/operator/auth/login"): ("login", True, False),
@@ -837,6 +864,173 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             status_code=201,
             content={"data": jsonable_encoder(event)},
             headers={"Cache-Control": "no-store", "Pragma": "no-cache", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/farm-activity-intake-queue")
+    async def farm_activity_intake_queue(request: Request, location_id: str, limit: int = 50):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.farm_activity_workflow import list_farm_activity_intake
+
+        try:
+            rows = await run_in_threadpool(
+                list_farm_activity_intake,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity intake queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity intake service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/farm-activity-intake-queue/{collection_id}")
+    async def farm_activity_intake_detail(
+        request: Request, collection_id: str, location_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.farm_activity_workflow import (
+            FarmActivityPayloadTooLarge,
+            get_farm_activity_intake,
+        )
+
+        try:
+            row = await run_in_threadpool(
+                get_farm_activity_intake,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+            )
+        except FarmActivityPayloadTooLarge:
+            return JSONResponse(
+                status_code=413,
+                content={"error": "Farm activity intake exceeds the review limit"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity intake detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity intake service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Eligible farm activity not found"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.post(
+        "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
+        status_code=201,
+    )
+    async def promote_farm_activity_draft(
+        request: Request, collection_id: str, location_id: str, body: dict
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.farm_activity_workflow import (
+            FarmActivityIntakeInvalid,
+            create_farm_activity_draft,
+        )
+
+        if set(body) != {"content_reviewed"} or body.get("content_reviewed") is not True:
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Explicit content review is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        try:
+            row = await run_in_threadpool(
+                create_farm_activity_draft,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+                content_reviewed=True,
+            )
+        except FarmActivityIntakeInvalid as exc:
+            return JSONResponse(
+                status_code=422,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except RuntimeError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity source conflict (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=409,
+                content={"error": "Farm activity source conflict"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity draft creation unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity workflow service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Eligible farm activity not found"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            status_code=201 if row["created"] else 200,
+            content={"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
     @router.post("/operator/api/mobile/locations/{location_id}/enrollments", status_code=201)

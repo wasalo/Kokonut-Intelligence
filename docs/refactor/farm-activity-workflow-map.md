@@ -1,7 +1,11 @@
 # Farm activity workflow map
 
-Status: source map and declarative workflow correction complete; native write
-and review flow not implemented.
+Status: source map and declarative workflow correction complete. The private
+Field Collector queue/detail and canonical draft promotion API are implemented
+on the feature branch and validated in focused tests; migration 383 has passed
+an isolated PostgreSQL trigger check. The feature has not been deployed to the
+candidate. Governed submit/reject/rework/verify/publish routes and published-only
+report/metric handoffs remain unimplemented.
 
 This map selects the current `farm_activity_v1` Field Collector form as the
 first Batch 3 vertical slice. It records what the repository does today and
@@ -18,7 +22,10 @@ offline_collection + mobile_media_upload
         │ eligibility view: transport / immutable form / consent policy
         ▼
 OIDC location-scoped review queue and append-only reviewer notes
-        │  [no farm_activity promotion route exists]
+        │
+        ├── private farm-activity intake queue/detail (OIDC, location grants)
+        │       └── explicit reviewed promotion → farm_activity draft
+        │
         ▼
 farm_activity (canonical governed record; currently populated by other paths)
         │ lifecycle_transition ledger
@@ -48,13 +55,46 @@ draft metric_value / governed report_snapshot draft
 * `services/gateway/operator_mobile_review.py` provides location-scoped queue
   and bounded detail reads plus append-only reviewer events. It intentionally
   does not mutate collection eligibility, promote records, or publish content.
-  The current queue is aimed at form/consent review and does not implement the
-  `farm_activity` workflow.
+  The current queue is aimed at form/consent review; the new farm-activity
+  intake path is a separate route and service.
+* The current feature branch adds `services/gateway/farm_activity_workflow.py`
+  and OIDC routes for `GET /operator/api/farm-activity-intake-queue`, scoped
+  detail, and `POST /operator/api/farm-activity-intake-queue/{id}/draft`.
+  The queue and detail readers require the active immutable 1.2.0 revision and
+  its `not_required` policy; retired captures remain in the private mobile
+  review queue rather than this promotion queue. Queue results omit free text;
+  detail requires both
+  `farm_activity:read_detail` and `mobile_collection_review:read_detail`, is
+  capped at 512 KiB, and is sent with `Cache-Control: no-store`. Promotion
+  requires CSRF, both `farm_activity:create_draft` and
+  `mobile_collection_review:read_detail`, and the exact body
+  `{"content_reviewed": true}`. Middleware also requires a valid OIDC session
+  and the location-scoped grants.
+* Promotion locks and rechecks the source row and exact active form revision,
+  then holds locks on any participant link and both active database grants
+  through commit. Concurrent participant or grant revocation waits for the
+  promotion to finish; a revocation that wins first makes the promotion fail.
+  Form validation, consent eligibility, and sync state are also rechecked.
+  It validates the stored payload against that immutable form schema, derives
+  location from the collection, and maps only `activity_type`, `activity_date`,
+  `description`, `labor_hours`, and `notes`. It creates a private canonical
+  `draft`, keeps participant/device identity separate from the OIDC operator,
+  and stores only form/version, source collection ID, and payload digest in
+  `source_raw`. An identical retry returns the same canonical row; a
+  source/location/digest mismatch fails closed.
+* Additive migration 383 adds a preflighted partial unique source index and an
+  append-only `farm_activity_workflow_event` ledger. Its insert trigger checks
+  canonical status, location and source identity; a `draft_created` event also
+  requires the content-review acknowledgement and matching payload digest.
+  The ledger defines allowed transition shapes, but this slice only emits
+  `draft_created`; it does not yet provide or enforce the governed transition
+  API. The migration and application code are not yet applied to the candidate.
 * `schemas/postgres/003_operations.sql` defines canonical `farm_activity`
   fields, lineage fields, and lifecycle status. `services/export/
   spreadsheet_bridge.py::import_farm_activity_csv` is one existing importer;
-  it creates draft rows. No Field Collector-to-`farm_activity` adapter or
-  location-scoped native farm-activity write/review route is present.
+  it creates draft rows. The feature branch now adds the first
+  Field Collector-to-`farm_activity` draft adapter and location-scoped intake
+  routes; governed lifecycle routes remain absent.
 * Migration 179 records status changes in `lifecycle_transition` for
   `farm_activity`. It reads `kokonut.actor_id` and `kokonut.actor_type`, but
   the trigger observes status changes only; it does not enforce legal state
@@ -77,21 +117,22 @@ draft metric_value / governed report_snapshot draft
   an unfrozen draft `report_snapshot`; report review and publication are a
   separate lifecycle.
 
-## Proposed native handoff contract
+## Native handoff contract and remaining work
 
-These are the implementation boundaries for the next Batch 3 slices. Names
-below describe the intended contract; routes and services are not yet present.
+The private intake and draft portions below are implemented on the current
+feature branch as described above. Lifecycle transitions and analytical
+handoffs remain target contracts for the next Batch 3 slices.
 
 ### Promotion from private capture to canonical draft
 
-1. An OIDC operator with a location-scoped `mobile_collection_review:read_detail`
-   grant reads the synced collection. A distinct explicit action (proposed
-   grant `farm_activity:create_draft`) promotes it; consent eligibility alone
-   never performs this write.
-2. In one database transaction, the service locks and rechecks the collection,
+1. **Implemented:** an OIDC operator with both location-scoped
+   `farm_activity:read_detail` and `mobile_collection_review:read_detail`
+   grants reads the synced collection. A distinct `farm_activity:create_draft`
+   action promotes it; consent eligibility alone never performs this write.
+2. **Implemented:** in one database transaction, the service locks and rechecks the collection,
    exact form revision, location, sync state, eligibility, and existing source
    mapping. It rejects revoked/ineligible collections and retries safely.
-3. The server derives `farm_activity.location_id` from the collection. It maps
+3. **Implemented:** the server derives `farm_activity.location_id` from the collection. It maps
    only the declared v1.2.0 fields:
 
    | Form payload | Canonical field | Rule |
@@ -108,21 +149,22 @@ below describe the intended contract; routes and services are not yet present.
    infer them from names or free text. Uploaded photo references remain private
    attachments to the collection until a separately reviewed attachment
    mapping is designed.
-4. Set `status='draft'`. Preserve source lineage as
+4. **Implemented:** set `status='draft'`. Preserve source lineage as
    `source_system='field_collector'`, `source_id=<offline_collection.id>`,
    `schema_version='1.2.0'`, and a minimal `source_raw` envelope containing
    form ID/version, collection ID, and payload digest. The original payload
    remains in `offline_collection`; do not duplicate private text or media in
    the lineage envelope.
-5. Add an additive partial unique constraint/index for the adapter's stable
+5. **Implemented:** add an additive partial unique constraint/index for the adapter's stable
    `(source_system, source_id)` identity after a duplicate preflight. On retry,
    return the existing canonical row only if location and source mapping agree;
    otherwise fail closed. Preserve other importers' source-key semantics.
-6. Record collection promotion and operator action in an append-only audit
-   event. Set transaction-local lifecycle actor context before status changes.
-   Do not treat the Field Collector device `user_id`, participant link, or OIDC
-   `operator_id` as a `party` identity. Keep operator identity in the operator
-   audit/lifecycle actor fields and retain their distinct semantics.
+6. **Partially implemented:** record collection promotion and operator action
+   in an append-only event. Set transaction-local lifecycle actor context before
+   status changes. Do not treat the Field Collector device `user_id`, participant
+   link, or OIDC `operator_id` as a `party` identity. The promotion event is
+   present; later transition events and verifier/publisher independence checks
+   still need runtime enforcement.
 
 ### Lifecycle and authorization
 
@@ -169,25 +211,38 @@ person-specific evaluations; future text review must retain that restriction.
    test so rejection offers explicit rework or exception disposition, the
    submitter and verifier are distinct by contract, and publication requires a
    human action. Runtime enforcement remains open.
-3. Add a narrow service under `services/gateway/` for private collection
-   promotion and canonical draft creation, with strict scope, exact-revision,
-   idempotency, source-lineage, and transaction-local actor handling.
+3. **Done for draft promotion:** `services/gateway/farm_activity_workflow.py`
+   implements private collection reads and canonical draft creation with
+   strict scope, exact-revision, idempotency, source-lineage, and transaction-
+   local actor handling. The Gateway route is implemented in
+   `services/gateway/operator_auth.py`.
 4. Add explicit submit/reject/rework/verify/publish transitions through the
    native Gateway route policy and operator grants; keep reviewer notes
    append-only and preserve state-transition evidence.
 5. Add the published-only farm activity summary and one draft report/metric
    fixture with independently checked expected output.
-6. Verify with disposable PostgreSQL/PostGIS state and injected failures:
+6. **Partial verification complete:** 55 tests across migration, workflow,
+   service, and OIDC suites pass; Ruff passes; migration 383 compiled in a disposable PostgreSQL database,
+   and its valid draft-event, status-mismatch, and append-only trigger behavior
+   passed with synthetic rows. A read-only `EXPLAIN` also validated the exact
+   collection-lock query against the current eligibility view. The remaining
+   disposable service/database failure checks are:
    duplicate promotion, stale/ineligible collection, wrong location, grant
    denial/revocation, actor identity, reviewer independence, rejected rework,
    invalid transition, rollback, published-only projection, draft metric,
    and draft report hashing. Live OIDC/public-route acceptance remains a later
-   deployment gate.
+   deployment gate; this migration and route have not been deployed to the
+   candidate.
 
-Rollback uses additive migration(s), disabled-by-default native write routes,
-and preservation of `offline_collection` as the source record. If promotion or
-parity fails, disable the new route and leave existing Directus/spreadsheet
-paths and all source rows intact; do not delete or rewrite captured records.
+Rollback uses additive migration(s), the existing OIDC session and default-
+deny location grants, and preservation of `offline_collection` as the source
+record. For this slice, reverting the application release removes the new
+route; leave its additive index and event table in place because they are inert
+without the new code and may contain audit history after deployment. A failed
+promotion transaction leaves no canonical row or event. If a created draft
+later proves incorrect, use the governed draft/rework path; do not silently
+delete it or rewrite the captured source. Existing Directus/spreadsheet paths
+remain available during rollback.
 
 ## Files in scope for the next implementation slices
 

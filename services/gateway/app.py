@@ -37,6 +37,7 @@ async def _request_location(request, policy: dict) -> str | None:
     if policy.get("resource") in {
         "report_snapshot_review",
         "mobile_collection_review",
+        "farm_activity",
     }:
         from uuid import UUID
 
