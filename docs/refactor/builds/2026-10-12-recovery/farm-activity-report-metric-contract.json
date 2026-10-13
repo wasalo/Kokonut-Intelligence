@@ -65,8 +65,8 @@
       "cleanup": "temporary database container removed; candidate app/database and volumes unchanged"
     },
     "limitations": [
-      "The full-schema replay applied schema migrations only; seed data was excluded and the metric definition was an ephemeral synthetic fixture",
-      "PostgreSQL duplicate-promotion parity remains open; the real PostgreSQL failure injection covered lifecycle transition event rollback",
+      "The full-schema replay applied schema migrations only; seed data was excluded and the metric definition and promotion fixtures were synthetic",
+      "The concurrent duplicate-promotion check covered two simultaneous callers; higher-contention stress was not run",
       "The candidate database and app were not migrated, rebuilt, or written",
       "Configured-provider acceptance and MAN-CAP-001 remain open"
     ],
@@ -86,7 +86,15 @@
         "metric_verified": false,
         "metric_source_count": 2,
         "reworked_source_count": 1,
-        "database_trigger_failure_rolled_back": true
+        "database_trigger_failure_rolled_back": true,
+        "duplicate_promotion_same_activity_id": true,
+        "duplicate_promotion_canonical_activity_count": 1,
+        "duplicate_promotion_draft_created_event_count": 1,
+        "duplicate_promotion_concurrent_calls": 2,
+        "duplicate_promotion_created_values": [
+          false,
+          true
+        ]
       },
       "cleanup": "Disposable database volume and Compose network removed; candidate app, database, and volumes unchanged",
       "database_trigger_failure": {
@@ -98,6 +106,17 @@
           "no submitted lifecycle_transition was committed"
         ],
         "scope": "Disposable full-schema PostGIS 16 database only; trigger and rows were synthetic and removed with the scratch project"
+      },
+      "duplicate_promotion": {
+        "result": "passed",
+        "method": "Ran two simultaneous calls to the real create_farm_activity_draft service behind a two-party start barrier for the same synthetic eligible capture after all schema migrations applied",
+        "assertions": [
+          "exactly one concurrent call created a canonical draft and the other returned created=false",
+          "both calls returned the same activity ID",
+          "exactly one canonical farm_activity row exists for the source collection",
+          "exactly one draft_created workflow event exists for the source collection"
+        ],
+        "scope": "Two simultaneous callers on a synthetic location, form revision, operator grants, and collection in disposable PostgreSQL; all fixture rows were removed with the project"
       }
     },
     "focused_batch_3_acceptance": {
@@ -108,7 +127,7 @@
         "wrong-location draft promotion performs no canonical write",
         "injected workflow-event insert failure after the draft insert triggers rollback and closes the connection"
       ],
-      "limitation": "Its injected unit-double failure is supplemented by the real PostgreSQL transition failure check recorded under full_schema_parity; PostgreSQL duplicate-promotion parity remains open.",
+      "limitation": "The unit-double event failure is supplemented by real PostgreSQL transition rollback; a barrier-synchronized two-caller promotion race also passed, while higher-contention stress was not run.",
       "command": "PYTHONPATH=. uv run --no-project --cache-dir /private/tmp/kokonut-kernel-uv-cache --with 'pytest>=9.1.1,<10.0' --with 'psycopg2-binary>=2.9.9' pytest tests/test_migration.py tests/test_workflow_specs.py tests/test_farm_activity_workflow.py tests/test_farm_activity_lifecycle.py tests/test_operator_auth.py tests/test_farm_activity_metrics.py tests/test_farm_activity_summary_report.py tests/test_report_governance.py tests/test_metrics.py::test_metric_computation_always_creates_draft_value -q"
     }
   }
