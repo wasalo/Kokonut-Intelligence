@@ -511,8 +511,8 @@ reporting views.
   recursive JSONPath gate check also passed after existing scopes were nested;
   replaying the Directus permission repair twice made no second-run changes,
   including for a NULL permission. The focused application/query/console suites
-  pass (56 passed, 18 skipped). The populated ordered-migration replay is
-  recorded separately below; candidate rollout remains open ([evidence](builds/2026-10-13-recovery/farm-activity-use-gate-disposable-acceptance.json)).
+  pass (56 passed, 18 skipped). The populated ordered-migration replay and
+  separately approved candidate rollout are recorded below ([source evidence](builds/2026-10-13-recovery/farm-activity-use-gate-disposable-acceptance.json); [rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json)).
 - [x] Apply migration 386 through the ordered, checksummed runner to a fresh
   clone of the populated archived database. The read-only plan found one
   pending migration and no checksum drift; after application the schema plan
@@ -567,7 +567,8 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 ## Batch 6 — Certification and release (Phase 8)
 
 - [x] Refresh ARM64 Kernel application and PostGIS build artifacts from the current checkout under unique local tags; retain image identities and build/runtime limitations ([record](arm64-image-pair-refresh.md)).
-- [ ] Lock release inputs and add architecture CI gates.
+- [x] Add a SHA-256 build-input lock and OneDev multi-platform OCI build gate for the minimal app and PostGIS targets; the gate requires matching Python package versions across AMD64/ARM64 and checks the selected PostGIS versions ([contract](kernel-release-inputs.md)). A local AMD64 build completed; the ARM64 counterpart stopped during package resolution after registry DNS failed, so neither the pair nor OneDev gate is accepted ([attempt record](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
+- [ ] Generate hash-locked transitive Python dependencies and snapshot-pinned apt inputs; execute the new architecture gate on a pull request and retain its build record.
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
 - [ ] Review capability matrix, submit branch PR and obtain passing release CI.

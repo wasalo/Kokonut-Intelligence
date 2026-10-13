@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-13",
+  "source_commit": "c2a5354",
+  "builder": "Docker Buildx v0.37.2 / BuildKit v0.33.1 / desktop-linux",
+  "application": {
+    "linux/amd64": {
+      "result": "built",
+      "local_tag": "kokonut-kernel-release-app-amd64:c2a5354",
+      "image_id": "sha256:28b1d635e278afa582e85a20ad968ded1af2b8b75cdc0ff1907c6162d2b2ef8a",
+      "platform": "linux/amd64"
+    },
+    "linux/arm64": {
+      "result": "failed_during_dependency_resolution",
+      "stage": "pip install in Dockerfile.kernel",
+      "reason": "DNS resolution for files.pythonhosted.org failed after the package server timed out; no final ARM64 application image was exported"
+    }
+  },
+  "postgis": {
+    "result": "not_attempted",
+    "reason": "The application dependency build could not complete; the paired-image run was stopped before the database target."
+  },
+  "multi_arch_pair_verified": false,
+  "candidate_or_legacy_services_changed": false,
+  "database_or_volume_changed": false,
+  "ci_gate_run": false,
+  "test_suites_run": false
+}

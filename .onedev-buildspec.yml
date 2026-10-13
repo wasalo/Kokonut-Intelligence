@@ -47,7 +47,7 @@ jobs:
         curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
         chmod a+r /etc/apt/keyrings/docker.asc
         echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
-        apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin python3 python3-venv >/dev/null
+        apt-get update -qq && apt-get install -y -qq docker-ce-cli docker-compose-plugin docker-buildx-plugin python3 python3-venv >/dev/null
         docker --version; docker compose version
         echo "=== [step] Writing CI .env ==="
         umask 077
@@ -81,6 +81,8 @@ jobs:
         echo "=== [step] Supply-chain gates ==="
         ./scripts/check-tracked-secrets.sh
         ./scripts/check-image-digests.sh
+        echo "=== [step] Kernel release-input and multi-architecture build gates ==="
+        bash scripts/build-kernel-multiarch.sh
         echo "=== [step] Start CI database (for bootstrap check) ==="
         # ci-check.sh runs verify-clean-bootstrap.sh, which needs a PostgreSQL
         # reachable via 'docker compose exec'. With the isolated ki-ci namespace
@@ -242,7 +244,7 @@ jobs:
   retryDelay: 30
   includeUpstreamWhenRebuild: false
   includeDownstreamWhenRebuild: false
-  timeout: 3600
+  timeout: 5400
 - name: deploy-staging
   steps:
   - type: CheckoutStep
