@@ -154,6 +154,10 @@ backups/volumes; no production cutover in this batch.
   hashed, unfrozen `draft`; metric values remain unverified drafts ([workflow
   map](farm-activity-workflow-map.md); [source-level evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
 - [x] Exercise scoped role/field/row policy and failure paths in focused tests and disposable PostgreSQL. The 91-test Batch 3 suite covers wrong-location query binding/no-write, duplicate retry, and stale eligibility; full-schema PostGIS confirmed a real PostgreSQL workflow-event trigger failure rolls back the activity status and both event ledgers.
+- [x] Checkpoint and restore the exact local candidate PostgreSQL database;
+  apply migrations 383–384 transactionally; rebuild and recreate only the
+  candidate app; verify 375 applied schemas, zero pending, workflow guards,
+  health, and anonymous route protection ([rollout evidence](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json)).
 
 Gate: retained end-to-end evidence for the selected CAP rows, with explicit
 uncovered domains. This branch checkpoint passes 77 focused migration,
@@ -172,7 +176,7 @@ seeds) to a disposable PostGIS 16 database. Real service functions produced two
 published activities and 5.25 hours, excluded a draft and private source marker,
 stored a hash-matching unfrozen draft snapshot, and persisted a 50% rework metric
 with two source records and `verified=false`. The disposable volume/network were
-removed. The expanded focused Batch 3 suite passes 91 tests and Ruff, including wrong-location query binding/no-write checks and rollback after an injected workflow-event insert failure. A second check replayed all 375 schema migrations in disposable PostGIS 16, then used a real PostgreSQL trigger to reject the submitted workflow event during the actual transition service call; the activity stayed `draft`, and neither the workflow-event nor lifecycle-transition ledger recorded `submitted`. Two simultaneous PostgreSQL promotion calls passed: one created the draft, the other returned the same activity ID with `created=false`, and the database retained one canonical row and one `draft_created` event. Higher-contention stress, configured-provider OIDC, and candidate rollout remain open. The candidate database and app have not been migrated or rebuilt.
+removed. The expanded focused Batch 3 suite passes 91 tests and Ruff, including wrong-location query binding/no-write checks and rollback after an injected workflow-event insert failure. A second check replayed all 375 schema migrations in disposable PostGIS 16, then used a real PostgreSQL trigger to reject the submitted workflow event during the actual transition service call; the activity stayed `draft`, and neither the workflow-event nor lifecycle-transition ledger recorded `submitted`. Two simultaneous PostgreSQL promotion calls passed: one created the draft, the other returned the same activity ID with `created=false`, and the database retained one canonical row and one `draft_created` event. The local candidate now has migrations 383–384 and the current app image, with a retained exact-target encrypted checkpoint and rollback image; rollout checks passed, but the candidate contains no activity/collection rows and OIDC is disabled. Higher-contention stress, configured-provider OIDC, and MAN-CAP-001 remain open. See [candidate rollout evidence](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json).
 Rollback: the API release can be reverted, but migration 384's native form
 guards intentionally remain active and the legacy provider must not be used to
 bypass lifecycle decisions for native 1.2.0 rows. Pause intake and use a

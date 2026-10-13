@@ -1,0 +1,83 @@
+{
+  "date_local": "2026-10-12",
+  "checked_at_utc": "2026-10-13T03:32:04Z",
+  "purpose": "Roll out native Field Collector farm-activity lifecycle migrations 383–384 to the local Kernel candidate.",
+  "source_commit": "c87aa33f1cbaf03ef4fae991077c2198be14e1fa",
+  "preflight": {
+    "compose_project": "kokonut-kernel-candidate",
+    "compose_files": [
+      "docker-compose.kernel-candidate.yml",
+      "docker-compose.kernel-metabase.yml",
+      "docker-compose.kernel-edge.yml"
+    ],
+    "migration_plan_before": [
+      "schema:383_farm_activity_workflow_events.sql",
+      "schema:384_farm_activity_lifecycle_guards.sql"
+    ],
+    "checksum_drift": false,
+    "farm_activity_rows": 0,
+    "native_farm_activity_v1_2_rows": 0,
+    "duplicate_field_collector_source_ids": 0,
+    "offline_collection_rows": 0
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-farm-activity-20261013T0324Z",
+    "format": "age-encrypted PostgreSQL custom archive",
+    "sha256": "ebd0d8c01613143739534988a745ce1155d285572481f18c4ce279c7169ba037",
+    "bytes": 5304787,
+    "source_database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_rehearsal": {
+      "target": "kokonut_restore on a fresh template0 database in an internal-only recovery project",
+      "decryption_and_pg_restore_list": "passed",
+      "migration_fingerprints_matched": 373,
+      "installed_extensions_exact_match": true,
+      "selected_mobile_operator_and_farm_counts_exact_match": true,
+      "combined_comparison_rows_exact_match": 388,
+      "temporary_container_network_volume_removed": true
+    },
+    "scope": "Single PostgreSQL database only; excludes roles/grants, other databases, Docker volumes, external media, and provider state."
+  },
+  "migration": {
+    "command": "python3 -m services.migration migrate --schemas-only --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-metabase.yml",
+    "result": "Applied: 2, Failed: 0",
+    "applied": [
+      "schema:383_farm_activity_workflow_events.sql",
+      "schema:384_farm_activity_lifecycle_guards.sql"
+    ],
+    "schema_migrations_applied_after": 375,
+    "pending_after": 0,
+    "workflow_event_rows": 0,
+    "farm_activity_rows_after": 0,
+    "offline_collection_rows_after": 0,
+    "required_native_triggers_present": true
+  },
+  "application": {
+    "rebuilt_from_source_commit": "c87aa33f1cbaf03ef4fae991077c2198be14e1fa",
+    "new_image_id": "sha256:85e3c85e1bd994ea30a280f7f646f2ec7d1d02413456b3f410768989bde9288a",
+    "only_candidate_app_recreated": true,
+    "database_proxy_metabase_recreated": false,
+    "health": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "loopback_http": {
+      "GET /health": 200,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401,
+      "GET /operator/auth/login": 404
+    },
+    "oidc_configuration": "disabled; no provider-backed login or review workflow was exercised"
+  },
+  "rollback": {
+    "application_tag": "kokonut-kernel-candidate-app:rollback-pre-farm-activity-20261013",
+    "application_image_id": "sha256:2e6380905da7806c25d4c755dc66ff08c505a08c9143a7a413dee75c4a813ded",
+    "database_checkpoint": "backups/kernel-candidate-pre-farm-activity-20261013T0324Z",
+    "policy": "Use the retained checkpoint for a pre-acceptance database restore; after native workflow data exists, preserve guards and prefer a reviewed forward migration."
+  },
+  "limitations": [
+    "No real OIDC provider is configured, so authorized browser workflow acceptance remains open.",
+    "The candidate contains no farm-activity or offline-collection rows; no live domain transition was exercised.",
+    "Higher-contention promotion stress, final report/metric handoff acceptance, and MAN-CAP-001 remain open."
+  ]
+}
