@@ -48,4 +48,4 @@ jobs:
           gitleaks version
 
       - name: Scan all fetched Git history with Gitleaks
-        run: gitleaks git --redact --verbose --log-opts='--all' .
+        run: gitleaks git --config .gitleaks.toml --redact --verbose --log-opts='--all' .

@@ -28,8 +28,16 @@ selected row counts. See [rollout evidence](builds/2026-10-13-recovery/candidate
 have a SHA-256 lock, and GitHub Actions is configured to build AMD64/ARM64 OCI
 archives and compare resolved Python/PostGIS package versions. The current
 local AMD64 app build succeeded; its ARM64 counterpart stopped at package-host
-DNS failure. The first GitHub run and deployment settings remain pending, and
-no ARM64 runtime is certified ([release-input contract](kernel-release-inputs.md);
+DNS failure. The first GitHub CI run built the images but failed archive
+validation because the OCI index omitted platform labels; the checker now reads
+missing labels from each image config and awaits a fresh run. Security surfaced
+544 Gitleaks matches. Review traced them to
+vendored OpenZeppelin fixtures, public EVM addresses, reproducibility hashes,
+test identifiers, and documented credential placeholders. A narrow checked-in
+Gitleaks allowlist and explicit config invocation now cover those reviewed
+patterns; a fresh workflow run must pass before the security gate is accepted.
+Deployment settings remain pending, and no ARM64 runtime is certified
+([release-input contract](kernel-release-inputs.md);
 [local attempt evidence](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
 Transitive Python and apt snapshot locks remain open.
 

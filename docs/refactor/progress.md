@@ -3557,9 +3557,18 @@ its run. Production retains the explicit confirmation, pre-deploy backup, and
 health check. Deployment runbooks, contribution guidance, compliance evidence,
 and capability progress now refer to GitHub. The OneDev buildspec was removed.
 
-No tests or workflow runs were started for this configuration migration.
-GitHub runner registration, `staging`/`production` environments, branch rules,
-the production SSH secrets, and the first Actions run remain pending remote
-configuration; see [setup requirements](../github-actions.md). Staging also
-requires a reviewed source change to clear its disabled flag. No deployment
-was performed.
+The first GitHub Actions run exposed 544 Gitleaks findings. Review traced the
+matches to public OpenZeppelin test fixtures, public EVM addresses, SHA-256
+recovery/build inventories, domain migration labels, deterministic test keys,
+and literal credential placeholders in examples. Added `.gitleaks.toml` with
+rule-scoped exact path/line/value exceptions and made the workflow select that
+config explicitly; full-history scanning and the other secret rules remain
+enabled. The corrected Security workflow has not yet completed a rerun. CI was
+initially failed because Buildx's OCI index omitted platform labels consumed by
+the release checker; the checker now derives labels from image configs when
+descriptors omit them. The corrected CI and Security workflows have not yet
+completed a rerun. GitHub runner registration,
+`staging`/`production` environments, branch rules, and production SSH secrets
+remain pending remote configuration; see [setup requirements](../github-actions.md).
+Staging also requires a reviewed source change to clear its disabled flag. No
+deployment was performed.

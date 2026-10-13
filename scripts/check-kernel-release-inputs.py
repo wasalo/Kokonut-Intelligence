@@ -120,12 +120,24 @@ def _platform_manifests(archive: tarfile.TarFile) -> tuple[dict[str, dict], str]
     manifests: dict[str, dict] = {}
     for descriptor in index_bytes.get("manifests", []):
         platform = descriptor.get("platform") or {}
-        if platform.get("os") != "linux":
-            continue
         architecture = platform.get("architecture")
-        if architecture not in {"amd64", "arm64"}:
+        manifest = json.loads(_blob(archive, descriptor["digest"]).read().decode("utf-8"))
+
+        # OCI exporters may omit platform metadata from index descriptors. The
+        # image config remains authoritative for the platform; attestations do
+        # not carry an image config and are skipped by this fallback.
+        if not platform:
+            config_descriptor = manifest.get("config") or {}
+            config_digest = config_descriptor.get("digest")
+            if not config_digest:
+                continue
+            config = json.loads(_blob(archive, config_digest).read().decode("utf-8"))
+            platform = {"os": config.get("os"), "architecture": config.get("architecture")}
+            architecture = platform["architecture"]
+
+        if platform.get("os") != "linux" or architecture not in {"amd64", "arm64"}:
             continue
-        manifests[architecture] = json.loads(_blob(archive, descriptor["digest"]).read().decode("utf-8"))
+        manifests[architecture] = manifest
     missing = {"amd64", "arm64"} - manifests.keys()
     if missing:
         raise LockError(f"OCI output is missing linux platform(s): {', '.join(sorted(missing))}")

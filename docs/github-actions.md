@@ -44,7 +44,12 @@ GitHub Actions secrets.
 The CI and Security workflows need no deployment credentials. Their
 `GITHUB_TOKEN` permissions are read-only. The Security workflow runs the
 upstream Gitleaks CLI directly; it does not require a Gitleaks Action license,
-write PR comments, or upload scan reports.
+write PR comments, or upload scan reports. Its checked-in `.gitleaks.toml`
+extends the default rules and records narrow, rule-specific exceptions for
+public EVM addresses, vendored OpenZeppelin test fixtures, source/recovery
+hash inventories, deterministic test identifiers, and documented credential
+placeholders. Full Git history remains in scope, and every unallowlisted match
+still fails the job.
 
 ## Deployment controls
 
