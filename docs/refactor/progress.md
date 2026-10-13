@@ -3814,9 +3814,12 @@ SOPS. Compose checks confirm the default candidate omits OIDC, the OIDC overlay
 fails configuration when the issuer is missing, and explicit test settings
 reach the app environment. The profile planner now supports `--oidc` and rejects
 that option without `--proxy`, ensuring the secure-cookie path uses HTTPS.
-Fifteen Compose/planner checks pass; Ruff, Python compilation, and whitespace
-checks are clean. No real provider, credential, browser, or service was used;
-OIDC login/session and console acceptance remain open.
+Config-only checks cover minimal, edge, standard, analytics, portability, and
+OIDC selections, including private ClickHouse, edge media/resource settings,
+and the explicit ARM64 guard. Eighteen Compose/planner checks pass; Ruff, Python
+compilation, and whitespace checks are clean. No real provider, credential,
+browser, or service was used; OIDC login/session and console acceptance remain
+open.
 
 
 ## Batch 2 focused platform-integrity source run — 13 October 2026

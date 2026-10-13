@@ -54,7 +54,8 @@ stop them explicitly before cutover, allowing active leases to settle. Preserve
 database, broker, certificate, and private-media volumes. Keep legacy services
 stopped; the planner never selects legacy manifests or legacy project names.
 
-Three planner contract checks and twelve optional Compose-profile checks pass.
-Ruff, Python compilation, and whitespace checks pass. The planner only builds a
+Four planner contract checks and fourteen Compose-profile checks pass across
+minimal, edge, standard, analytics, portability, and OIDC selections. Ruff,
+Python compilation, and whitespace checks pass. The planner only builds a
 command string; no deployment, secret read, or profile cutover was performed.
 Runtime acceptance remains separate from command selection.

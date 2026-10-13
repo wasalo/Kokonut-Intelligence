@@ -124,6 +124,31 @@ def test_standard_kernel_profile_defaults_to_shared_postgres_limiter() -> None:
     assert config["services"]["app"]["environment"]["KOKONUT_RATE_LIMIT_PROVIDER"] == "postgres"
 
 
+def test_edge_kernel_profile_selects_local_private_media_and_resource_limits() -> None:
+    config = _compose_config(
+        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-edge.yml"),
+        extra_env={"MOBILE_MEDIA_LOCAL_KEY": "compose-test-only-key"},
+    )
+
+    assert set(config["services"]) == {"database", "app"}
+    assert config["services"]["database"]["mem_limit"] == str(1024**3)
+    assert config["services"]["database"]["cpus"] == 2.0
+    environment = config["services"]["app"]["environment"]
+    assert environment["MOBILE_MEDIA_PROVIDER"] == "local"
+    assert environment["MOBILE_MEDIA_LOCAL_KEY"] == "compose-test-only-key"
+    assert "kernel-private-media" in config["volumes"]
+
+
+def test_analytics_kernel_profile_adds_private_clickhouse() -> None:
+    config = _compose_config(
+        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-analytics.yml")
+    )
+
+    assert set(config["services"]) == {"database", "app", "clickhouse"}
+    assert config["services"]["app"]["environment"]["KOKONUT_FEATURE_CLICKHOUSE"] == "true"
+    assert not config["services"]["clickhouse"].get("ports")
+
+
 def test_legacy_dataset_sql_override_reaches_kernel_app_and_worker_profiles() -> None:
     enabled = {"KOKONUT_FEATURE_LEGACY_DATASET_SQL": "true"}
 

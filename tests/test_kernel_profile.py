@@ -45,3 +45,10 @@ def test_oidc_profile_plans_candidate_proxy_and_oidc_manifests() -> None:
     assert "docker-compose.kernel-proxy.yml" in result.stdout
     assert "docker-compose.kernel-oidc.yml" in result.stdout
     assert "up -d" not in result.stdout
+
+
+def test_profile_planner_keeps_unaccepted_arm64_target_blocked() -> None:
+    result = _run_planner("edge", "--target-platform", "linux/arm64")
+
+    assert result.returncode != 0
+    assert "ARM64 deployment is blocked" in result.stderr

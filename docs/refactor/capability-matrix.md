@@ -44,10 +44,11 @@ OIDC overlay remains disabled unless explicitly selected. `.env.example` now
 lists the required provider settings and identifies client/state secrets as
 SOPS-only inputs; Compose checks confirm the default profile omits OIDC and the
 selected overlay fails closed when settings are missing. The profile planner
-now exposes `--oidc` only alongside the HTTPS proxy selection. Fifteen Compose
-and planner tests pass. No real provider credentials or browser session were
-configured, so login, grant provisioning, CSRF, and console acceptance remain
-open.
+now exposes `--oidc` only alongside the HTTPS proxy selection. The contract
+suite also covers the minimal, edge, standard, analytics, and portability
+manifests; 18 profile checks pass, including the explicit ARM64 guard. No real
+provider credentials or browser session were configured, so login, grant
+provisioning, CSRF, and console acceptance remain open.
 
 **13 October 2026 platform-integrity source check (CAP-047):** the focused
 migration, Gateway authorization, scheduler durability, event-bus durability,
