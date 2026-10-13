@@ -4,14 +4,15 @@
 are implemented in source. The shell includes location-scoped Field Collector
 enrollment, submitted-report reads, a private Field Collector review queue and
 append-only review notes, plus source-level farm-activity intake, private draft
-promotion, canonical activity reads, and grant-filtered submit/verify/reject/
-rework/publish/exception controls. The new farm-activity queue/detail and
-console controls have not yet been tested or deployed to the candidate. OIDC
+promotion, canonical activity reads, grant-filtered submit/verify/reject/
+rework/publish/exception controls, and a native draft editor. The farm-activity
+queue/detail, edit route, and console controls are source-only and have not yet
+been checked or deployed to the candidate. OIDC
 remains disabled because no provider settings have been configured. Real
 provider login, database-backed grant checks, browser behavior, and live
-payload acceptance remain open. Native content editing for drafts returned
-for rework is also not implemented yet. This remains a partial implementation,
-not an accepted console.
+payload acceptance remain open. Native draft correction is implemented in
+source but remains unverified. This remains a partial implementation, not an
+accepted console.
 
 ## Current repository boundary
 
@@ -178,6 +179,22 @@ at 100 and omits descriptions and notes. Detail requires the same two detail
 grants and returns bounded activity fields plus append-only decision history.
 Detail includes the newest 100 events at most and indicates when older events
 are omitted.
+
+Native `farm_activity_v1` 1.2.0 drafts can be corrected with
+`PATCH /operator/api/farm-activities/{activity_id}/draft?location_id=...`.
+The request requires `farm_activity:edit_draft`, `farm_activity:read_detail`,
+and `mobile_collection_review:read_detail` at that location, plus the normal
+OIDC session and CSRF token. Its body is `{ "content": { ... }, "reason":
+"..." }`; `content` accepts only `activity_type`, `activity_date`,
+`description`, `labor_hours`, and `notes`. The service merges the patch with the
+current canonical fields and validates the result against the immutable form
+revision referenced by the original collection. Optional fields set to `null`
+are cleared; unknown fields and values outside the form schema are rejected.
+The database keeps `source_raw` and the captured collection unchanged, and
+appends a same-state `draft_edited` event with the operator, reason, changed
+field names, and SHA-256 of the resulting canonical content. The event contains
+no copied description or notes. Migration 385 and this route have not yet been
+tested or applied to the local candidate.
 Actions are shown only when the operator session contains the matching
 location grant, and the Gateway and database recheck authorization and legal
 state on every write. Verification, rejection, and publication retain the

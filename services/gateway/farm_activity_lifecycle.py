@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import math
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from functools import partial
 from typing import Callable
 from uuid import UUID
@@ -13,6 +16,14 @@ class FarmActivityTransitionInvalid(ValueError):
 
 class FarmActivityTransitionConflict(RuntimeError):
     """Raised when the current lifecycle state cannot accept a decision."""
+
+
+class FarmActivityDraftEditInvalid(ValueError):
+    """Raised when a draft edit is malformed or does not match its form revision."""
+
+
+class FarmActivityDraftEditConflict(RuntimeError):
+    """Raised when a draft is no longer editable or its audit event is missing."""
 
 
 _TRANSITIONS = {
@@ -201,6 +212,236 @@ def get_farm_activity(
             conn.rollback()
         finally:
             conn.close()
+
+
+def edit_farm_activity_draft(
+    operator_id: str,
+    activity_id: str,
+    location_id: str,
+    content_patch: dict,
+    reason: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict | None:
+    """Edit a native draft against its immutable source schema and audit the change."""
+    operator_id, activity_id, location_id = _normalize_ids(operator_id, activity_id, location_id)
+    allowed_fields = {"activity_type", "activity_date", "description", "labor_hours", "notes"}
+    if not isinstance(content_patch, dict) or not content_patch:
+        raise FarmActivityDraftEditInvalid("Provide at least one farm activity field to edit")
+    if set(content_patch) - allowed_fields:
+        raise FarmActivityDraftEditInvalid("Draft edits accept only fields from the farm activity form")
+    if not isinstance(reason, str) or not reason.strip():
+        raise FarmActivityDraftEditInvalid("A correction reason is required")
+    normalized_reason = reason.strip()
+    if len(normalized_reason) > 2000:
+        raise FarmActivityDraftEditInvalid("Correction reason exceeds 2000 characters")
+
+    conn = (connection_factory or _connection_factory())()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SET LOCAL statement_timeout = '5s'")
+            cur.execute("SET LOCAL lock_timeout = '2s'")
+            cur.execute(
+                "SELECT set_config('kokonut.actor_id', %s, true), "
+                "set_config('kokonut.actor_type', 'operator', true), "
+                "set_config('kokonut.workflow_action', 'draft_edited', true), "
+                "set_config('kokonut.workflow_reason', %s, true)",
+                (operator_id, normalized_reason),
+            )
+            cur.execute(
+                """SELECT id::text, source_id, location_id::text, status::text,
+                          source_system, source_raw->>'form_id',
+                          source_raw->>'form_version', activity_type,
+                          activity_date, description, labor_hours, notes
+                     FROM farm_activity
+                    WHERE id = %s::uuid
+                      AND location_id = %s::uuid
+                      AND source_system = 'field_collector'
+                      AND source_raw->>'form_id' = 'farm_activity_v1'
+                      AND source_raw->>'form_version' = '1.2.0'
+                    FOR UPDATE""",
+                (activity_id, location_id),
+            )
+            activity = cur.fetchone()
+            if activity is None:
+                conn.rollback()
+                return None
+            if activity[3] != "draft":
+                raise FarmActivityDraftEditConflict("Only a draft farm activity can be edited")
+
+            cur.execute(
+                """SELECT resource, action
+                     FROM operator_scope_grant
+                    WHERE operator_id = %s::uuid
+                      AND location_id = %s::uuid
+                      AND revoked_at IS NULL
+                      AND (
+                          (resource = 'farm_activity' AND action IN ('edit_draft', 'read_detail'))
+                          OR (resource = 'mobile_collection_review' AND action = 'read_detail')
+                      )
+                    FOR SHARE""",
+                (operator_id, location_id),
+            )
+            grants = {(row[0], row[1]) for row in cur.fetchall()}
+            required_grants = {
+                ("farm_activity", "edit_draft"),
+                ("farm_activity", "read_detail"),
+                ("mobile_collection_review", "read_detail"),
+            }
+            if not required_grants.issubset(grants):
+                conn.rollback()
+                return None
+
+            try:
+                source_collection_id = str(UUID(str(activity[1])))
+            except (TypeError, ValueError) as exc:
+                raise FarmActivityDraftEditConflict("The draft source lineage is unavailable") from exc
+            cur.execute(
+                """SELECT revision.form_schema
+                     FROM offline_collection AS collection
+                     JOIN mobile_form_version AS revision
+                       ON revision.id = collection.form_revision_id
+                    WHERE collection.id = %s::uuid
+                      AND collection.location_id = %s::uuid
+                      AND collection.form_id = 'farm_activity_v1'
+                      AND collection.form_version = '1.2.0'
+                      AND revision.form_id = 'farm_activity_v1'
+                      AND revision.version = '1.2.0'
+                    FOR SHARE OF collection, revision""",
+                (source_collection_id, location_id),
+            )
+            revision = cur.fetchone()
+            if revision is None:
+                raise FarmActivityDraftEditConflict("The immutable source form revision is unavailable")
+
+            payload = {
+                "activity_type": activity[7],
+                "activity_date": activity[8].isoformat(),
+            }
+            for field, value in (
+                ("description", activity[9]),
+                ("labor_hours", activity[10]),
+                ("notes", activity[11]),
+            ):
+                if value is not None:
+                    payload[field] = float(value) if field == "labor_hours" else value
+            for field, value in content_patch.items():
+                if value is None:
+                    if field in {"activity_type", "activity_date"}:
+                        raise FarmActivityDraftEditInvalid(f"{field} cannot be cleared")
+                    payload.pop(field, None)
+                else:
+                    payload[field] = value
+
+            if "labor_hours" in payload:
+                try:
+                    labor_number = float(payload["labor_hours"])
+                except (TypeError, ValueError, OverflowError) as exc:
+                    raise FarmActivityDraftEditInvalid("Labor hours must be a finite number") from exc
+                if not math.isfinite(labor_number):
+                    raise FarmActivityDraftEditInvalid("Labor hours must be a finite number")
+                payload["labor_hours"] = labor_number
+
+            from services.mobile.form_validation import (
+                FormPayloadInvalid,
+                FormSchemaUnavailable,
+                validate_form_payload,
+            )
+
+            try:
+                validate_form_payload(revision[0], payload)
+            except FormPayloadInvalid as exc:
+                raise FarmActivityDraftEditInvalid(
+                    "Draft content does not match its immutable farm activity form revision"
+                ) from exc
+            except FormSchemaUnavailable as exc:
+                raise FarmActivityDraftEditConflict(
+                    "The immutable source form schema cannot be evaluated"
+                ) from exc
+
+            try:
+                activity_date = date.fromisoformat(payload["activity_date"])
+                labor_hours = (
+                    Decimal(str(payload["labor_hours"]))
+                    if "labor_hours" in payload
+                    else None
+                )
+            except (TypeError, ValueError, InvalidOperation) as exc:
+                raise FarmActivityDraftEditInvalid("Draft date or labor value is invalid") from exc
+            if labor_hours is not None:
+                try:
+                    representable_labor_hours = labor_hours.quantize(Decimal("0.01"))
+                except InvalidOperation as exc:
+                    raise FarmActivityDraftEditInvalid(
+                        "Labor hours exceed the canonical field precision"
+                    ) from exc
+                if (
+                    not labor_hours.is_finite()
+                    or labor_hours < 0
+                    or labor_hours > Decimal("999999.99")
+                    or representable_labor_hours != labor_hours
+                ):
+                    raise FarmActivityDraftEditInvalid(
+                        "Labor hours must fit the canonical field precision of two decimal places"
+                    )
+
+            updated_values = (
+                payload["activity_type"],
+                activity_date,
+                payload.get("description"),
+                labor_hours,
+                payload.get("notes"),
+            )
+            current_values = (activity[7], activity[8], activity[9], activity[10], activity[11])
+            if updated_values == current_values:
+                raise FarmActivityDraftEditInvalid("The edit does not change any farm activity fields")
+
+            cur.execute(
+                """UPDATE farm_activity
+                      SET activity_type = %s,
+                          activity_date = %s,
+                          description = %s,
+                          labor_hours = %s,
+                          notes = %s,
+                          updated_at = NOW()
+                    WHERE id = %s::uuid""",
+                (*updated_values, activity_id),
+            )
+            cur.execute(
+                """SELECT id::text, action, from_status, to_status, reason,
+                          metadata->'changed_fields', created_at
+                     FROM farm_activity_workflow_event
+                    WHERE farm_activity_id = %s::uuid
+                      AND location_id = %s::uuid
+                      AND actor_operator_id = %s::uuid
+                      AND action = 'draft_edited'
+                      AND from_status = 'draft'
+                      AND to_status = 'draft'
+                    ORDER BY created_at DESC, id DESC
+                    LIMIT 1""",
+                (activity_id, location_id, operator_id),
+            )
+            event = cur.fetchone()
+            if event is None:
+                raise FarmActivityDraftEditConflict("Farm activity edit evidence was not recorded")
+
+        conn.commit()
+        return {
+            "event_id": str(event[0]),
+            "activity_id": activity_id,
+            "location_id": location_id,
+            "action": event[1],
+            "from_status": event[2],
+            "to_status": event[3],
+            "reason": event[4],
+            "changed_fields": event[5],
+            "created_at": event[6].isoformat() if hasattr(event[6], "isoformat") else str(event[6]),
+        }
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def transition_farm_activity(

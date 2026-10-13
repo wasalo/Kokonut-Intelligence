@@ -157,9 +157,13 @@ backups/volumes; no production cutover in this batch.
   an explicit verification request; preserve the current candidate image and
   database checkpoint before rollout. OIDC-provider acceptance remains a
   separate gate.
-- [ ] Add native editing for reworked drafts with form-schema validation and
-  append-only content-edit evidence before treating the console rework loop as
-  complete; do not rely on Directus as the required Kernel path.
+- [x] Implement source-level native editing for draft farm activities against
+  the immutable source form schema, with a location-scoped edit grant, required
+  correction reason, and append-only content-edit evidence (migration 385);
+  do not rely on Directus as the required Kernel path.
+- [ ] With explicit verification authorization, run focused migration, route,
+  immutable-schema, grant-lock, append-only rollback, and console checks for the
+  draft-edit slice; then perform a checkpointed candidate app/schema rollout.
 - [x] Add the published-only farm-activity summary to the governed farm report
   and include published lifecycle entities in `rework_rate_pct`, with period,
   source-record and reworked-subset provenance. The report snapshot remains

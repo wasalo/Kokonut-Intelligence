@@ -461,6 +461,22 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    farm_activity_edit_match = re.fullmatch(
+        r"/operator/api/farm-activities/([0-9a-fA-F-]{36})/draft", path
+    )
+    if farm_activity_edit_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "farm_activity",
+            "action": "edit_draft",
+            "additional_scopes": [
+                {"resource": "farm_activity", "action": "read_detail"},
+                {"resource": "mobile_collection_review", "action": "read_detail"},
+            ],
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     farm_activity_transition_match = re.fullmatch(
         r"/operator/api/farm-activities/([0-9a-fA-F-]{36})/(submit|verify|reject|request-rework|publish|close-exception)",
         path,
@@ -1247,6 +1263,88 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
         return JSONResponse(
             {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.patch("/operator/api/farm-activities/{activity_id}/draft")
+    async def edit_farm_activity_draft_route(
+        request: Request, activity_id: str, location_id: str, body: dict
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if set(body) != {"content", "reason"} or not isinstance(body.get("content"), dict):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Draft edit body requires content and a correction reason"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.gateway.farm_activity_lifecycle import (
+            FarmActivityDraftEditConflict,
+            FarmActivityDraftEditInvalid,
+            edit_farm_activity_draft,
+        )
+
+        try:
+            result = await run_in_threadpool(
+                edit_farm_activity_draft,
+                request.state.operator_session.operator.operator_id,
+                activity_id,
+                location_id,
+                body["content"],
+                body["reason"],
+            )
+        except FarmActivityDraftEditInvalid as exc:
+            return JSONResponse(
+                status_code=422,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except FarmActivityDraftEditConflict as exc:
+            return JSONResponse(
+                status_code=409,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            if exc.pgcode == "P0001":
+                get_logger("gateway.farm_activity").info(
+                    "Farm activity draft edit rejected by database guard"
+                )
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Farm activity draft edit is not permitted"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity draft edit unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity workflow service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Farm activity not found or draft-edit grants unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(result)},
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 

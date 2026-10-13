@@ -5,9 +5,11 @@ promotion, governed lifecycle writes, published-only farm summary, and
 rework-metric provenance are implemented on the feature branch. Migrations
 383–384 and lifecycle writes are deployed to the local candidate; its exact
 checkpoint/restore, migration, health, and protected-route checks are recorded.
-This turn adds source-level canonical queue/detail reads and operator-console
-controls; those changes have not yet been tested or deployed. OIDC is disabled,
-the candidate has no farm activity fixture rows, and MAN-CAP-001 remains open.
+Source now also includes canonical queue/detail reads, operator-console
+controls, and migration 385's audited native draft-edit path. These additions
+have not yet been checked or deployed. The candidate still has only migrations
+383–384 applied; OIDC is disabled, it has no farm activity fixture rows, and
+MAN-CAP-001 remains open.
 
 This map selects the current `farm_activity_v1` Field Collector form as the
 first Batch 3 vertical slice. It records existing behavior, the native Kernel
@@ -94,12 +96,15 @@ draft metric_value / governed report_snapshot draft
   valid source/form lineage and active location grants for draft creation,
   appends an event atomically for every lifecycle action, blocks illegal status
   changes, and prevents edits to submitted, verified, rejected, or published
-  content. Rework returns the row to draft before content can change again.
+  content. Migration 385 adds the `draft_edited` event and requires the
+  dedicated native edit route's operator attribution, edit grant, and reason
+  for draft content changes. Rework returns the row to draft before content
+  can change again.
   Existing `lifecycle_transition` rows continue to be written for changed
   status values; `exception_closed` is a separate event because status stays
   rejected. Migrations 383–384 and lifecycle write routes have been applied to
-  the local candidate. The canonical activity read routes and console controls
-  added in the latest source slice are not yet deployed there.
+  the local candidate. Migration 385 and the canonical read, edit, and console
+  additions are source-only and have not been deployed there.
 * `services/gateway/farm_activity_lifecycle.py` now also lists native
   `farm_activity_v1` 1.2.0 records without free text and returns bounded
   canonical detail with workflow history. Both reads bind activity and
@@ -107,13 +112,12 @@ draft metric_value / governed report_snapshot draft
   `mobile_collection_review:read_detail`. The transition service also rejects
   legacy Field Collector rows that do not carry the exact native form lineage.
   Decision history returns at most the newest 100 events and marks truncation.
-  `apps/operator-console/index.html` now has source-level intake promotion and
-  lifecycle controls. Actions render only for the operator's granted location
-  and current state; rejection, rework, and exception closure require a reason,
-  and publication asks for an explicit browser confirmation. Returning a row
-  to draft is available, but a native schema-validated draft edit route and
-  append-only edit evidence are still missing; do not treat the rework loop as
-  complete or make Directus mandatory for correction.
+  `apps/operator-console/index.html` now has source-level intake promotion,
+  lifecycle controls, and native draft correction. Actions render only for the
+  operator's granted location and current state; rejection, rework, exception
+  closure, and draft correction require a reason, and publication asks for an
+  explicit browser confirmation. The new correction path is implemented in
+  source but has not been checked or deployed to the candidate.
 * `schemas/postgres/003_operations.sql` defines canonical `farm_activity`
   fields, lineage fields, and lifecycle status. `services/export/
   spreadsheet_bridge.py::import_farm_activity_csv` is one existing importer;
@@ -209,8 +213,16 @@ handoffs remain target contracts for the next Batch 3 slices.
   both latest actors. A verified row cannot be silently edited.
 * Rejection is a reasoned rework/exception state, not an unconditionally
   terminal state. `rejected -> draft` is an explicit `rework` action that
-  preserves the prior rejection event. Draft content can then be corrected;
-  submitted or later content is immutable. `close_exception` records a distinct
+  preserves the prior rejection event. A draft can be corrected only through
+  `PATCH /operator/api/farm-activities/{id}/draft`, with an OIDC session, CSRF,
+  the location-scoped `farm_activity:edit_draft` action, and both private detail
+  grants. The service locks the native draft and its exact immutable 1.2.0 form
+  revision, merges only the five declared fields, and validates the complete
+  payload against that revision before writing. A nonblank correction reason
+  is required. Additive migration 385 appends a same-state `draft_edited` event
+  containing only changed field names and a SHA-256 digest; it does not copy
+  free text into the event or change the captured source payload. Submitted or
+  later content remains immutable. `close_exception` records a distinct
   reasoned event while leaving lifecycle status rejected. A rejected row is
   never eligible for metric/report publication.
 * Publication is a separate, explicit human-controlled action with
@@ -294,6 +306,13 @@ person-specific evaluations; future text review must retain that restriction.
    volume/network were removed; candidate state is unchanged
    ([lifecycle evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json),
    [report/metric evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
+7. **Implemented in source, verification pending:** migration 385, the native
+   schema-validated draft edit service, its OIDC/CSRF route, and the console
+   editor provide reasoned, append-only content corrections. No tests were
+   added or run for this slice, and it has not been applied to the candidate.
+   Roll back the application route/UI if needed while retaining migration 385
+   and its edit evidence; correct database behavior with a reviewed forward
+   migration rather than deleting or rewriting the append-only history.
    The combined suite covers duplicate retry, stale/ineligible collections,
    wrong-location read/write query guards, and rollback on an injected event
    write failure. Real PostgreSQL failed-trigger rollback and the two-caller
