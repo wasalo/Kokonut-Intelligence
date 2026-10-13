@@ -3923,11 +3923,12 @@ resource/action/location scopes.
 No operator tenant affiliations were inferred from legacy location grants;
 NULL-tenant grants remain compatible and prevent this slice from claiming full
 tenant isolation. Transfer controls, worker/database-role boundaries,
-transaction-local RLS context, focused acceptance, full migration replay, and
-candidate rollout remain open. Source syntax compilation, pilot seed shell
-syntax, Ruff 0.17.0 on the modified Gateway modules, and whitespace checks
-passed. No test suite, migration replay, database change, candidate
-rollout, or external push occurred; CI run #291 still covers only the earlier
+transaction-local RLS context, CLI membership/share lifecycle, legacy-grant
+conversion, full migration replay, and candidate rollout remain open. Source
+syntax compilation, pilot seed shell syntax, Ruff 0.17.0 on the modified
+Gateway modules, and whitespace checks passed. No test suite, migration
+replay, database change, candidate rollout, or external push had occurred at
+the time of this source update; CI run #291 still covers only the earlier
 remote PR head. See [tenant boundary](mobile-tenant-isolation.md), [console
 contract](kernel-operations-console.md), [batch checklist](batches.md), and
 [`388_tenant_aware_operator_grants.sql`](../../schemas/postgres/388_tenant_aware_operator_grants.sql).
@@ -3945,13 +3946,33 @@ predicate for farm activity. The source inventory is in
 
 This closes only the repository-source audit. External or operator-edited
 dashboard SQL, populated output parity, and direct-database isolation remain
-open. Focused tests and migrations 388–389 replay remain unrun pending explicit
-verification authorization; Ruff, Python compilation, and whitespace checks
-are the static checks for this change. CI run 291 is green on the earlier PR
-head and does not cover this local batch.
+open. At that point focused checks and migration 388–389 replay awaited
+verification authorization; the owner has since approved them. CI run 291 is
+green on the earlier PR head and does not cover this local batch.
 
-Migration 389 now adds database-trigger checks for tenant-aware grants on
-Field Collector draft creation, content edits, and lifecycle events, using the
+Migration 389 adds database-trigger checks for tenant-aware grants on Field
+Collector draft creation, content edits, and lifecycle events, using the
 shared predicate from migration 388. The checks retain NULL-tenant grant
-compatibility. The migration is not replayed or tested; both migrations 388
-and 389 remain behind the focused acceptance and rollout gates.
+compatibility.
+
+### Migration 388–389 disposable acceptance — 13 October 2026
+
+Ran the actual migrations 387–389 in order against a network-disabled
+disposable PostgreSQL 16 container, then replayed 388–389 to check idempotency.
+The owner verification rows for Adelphi and Genesis were created as expected.
+Positive and negative grant cases covered owner access, partner access with
+and without a share, expiry/revocation, operator membership and identity state,
+organization status, grant revocation, unverified/stale ownership, and legacy
+NULL-tenant compatibility. Migration 389 accepted an authorized draft insert,
+edit, submit event, and draft-edited event, and denied each tested path when a
+required grant was missing. A legacy grant passed the trigger boundary, while
+non-target manual records were unaffected. The sanitized run record is
+[`tenant-grants-migrations-disposable.json`](builds/2026-10-13-recovery/tenant-grants-migrations-disposable.json).
+
+This is a minimum compatible schema check, not a full repository migration
+replay; it does not exercise the existing 384–385 triggers in combination with
+389. Operator-CLI membership/share lifecycle, legacy-grant conversion, full
+ordered replay, candidate rollout, transfer controls, worker/direct-database
+boundaries, transaction-local context, and RLS remain open. No candidate or
+legacy database was touched. CI run #291 covers the earlier remote PR head,
+not these local changes.

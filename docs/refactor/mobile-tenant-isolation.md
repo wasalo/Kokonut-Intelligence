@@ -114,8 +114,12 @@ verification:
    requires an owner-side tenant administrator; revocation also revokes the
    corresponding tenant grants. Existing NULL-tenant location grants remain
    compatible and are not backfilled because their operators' tenant
-   affiliations are not known. Focused provisioning, revocation, migration,
-   and cross-tenant denial acceptance remains open before RLS.
+   affiliations are not known. Focused migration and authorization checks now
+   pass on a network-disabled disposable PostgreSQL 16 database for actual
+   migrations 387–389, including idempotent replay of 388–389 and positive and
+   negative Field Collector trigger cases. Operator-CLI membership/share
+   lifecycle, legacy-grant conversion, the full 384–385 trigger stack, and
+   complete ordered replay remain open before any candidate rollout or RLS.
 4. Add transaction-local context to each service/worker connection path, then
    add additive RLS policies and indexes through new ordered migrations. Keep
    existing migrations immutable.
@@ -143,9 +147,10 @@ preflight CLI is implemented and ran successfully against the local candidate,
 which returned zero locations and zero inventoried rows. This confirms only
 that the candidate is empty; it does not establish ownership for a populated
 deployment. These steps prove only known direct lineage and the inventory's
-location-scoped contract. Organization ownership reconciliation, tenant-aware
-operator membership/grants, RLS, worker isolation, and downstream consumer
-parity remain open. No RLS migration or live data mutation was made.
+location-scoped contract. Ownership outside the two confirmed seed locations,
+operator-CLI membership/share lifecycle, legacy-grant conversion, RLS, worker
+isolation, and downstream consumer parity remain open. No RLS migration or
+live data mutation was made.
 
 On 13 October 2026 the preflight also ran against a fresh isolated copy of the
 populated archive after the ordered migration runner applied all 32 pending
@@ -167,10 +172,11 @@ and dashboard rows remain unassigned after a read-only lineage review found no
 location or confirmed-tenant reference that establishes their owner. This
 review covers the 38 unlocated dashboard definitions and three unlocated draft
 snapshots on the retained archive clone; it does not claim complete downstream
-lineage. Least-privilege worker behavior, audited transfer semantics, and
-the tenant-aware grant source foundation is implemented, but its focused
-acceptance and any conversion of legacy grants remain open. RLS is not enabled
-by this ownership reconciliation ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
+lineage. Least-privilege worker behavior, audited transfer semantics, operator
+CLI membership/share lifecycle, legacy-grant conversion, full migration replay,
+and candidate rollout remain open. The tenant-aware grant source has passed
+focused disposable acceptance, but RLS is not enabled by this ownership
+reconciliation ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
 
 ## Confirmed seed-location owner mapping — 13 October 2026
 
@@ -208,8 +214,10 @@ The migration does not infer operator affiliations from old location grants.
 Legacy NULL-tenant grants continue to use the existing explicit
 location-scoped contract until each identity is reconciled. Tenant grants are
 not a claim of row-level isolation: transaction-local context, worker scoping,
-transfer workflow, direct database privilege boundaries, focused acceptance,
-full ordered replay, and candidate rollout remain open. RLS remains disabled.
+transfer workflow, direct database privilege boundaries, CLI lifecycle and
+legacy-grant conversion, full ordered replay, and candidate rollout remain
+open. Focused predicate and trigger acceptance has passed on a minimal
+compatible disposable PostgreSQL schema. RLS remains disabled.
 
 ### Field Collector write-trigger follow-up — 13 October 2026
 
@@ -217,7 +225,24 @@ Migration 389 adds tenant-aware grant checks to the Field Collector draft
 insert, content-edit, and lifecycle-event trigger paths created by migrations
 384–385. The new guards call the migration-388 shared authorization predicate,
 which preserves the explicit compatibility behavior for existing NULL-tenant
-location grants. Earlier applied migrations remain unchanged. Migration 389 is
-source-only: no ordered replay, trigger acceptance, or candidate rollout has
-been run. It does not provide tenant isolation for arbitrary direct SQL, set
-transaction-local tenant context, or enable RLS.
+location grants. Earlier applied migrations remain unchanged.
+
+### Disposable migration acceptance — 13 October 2026
+
+The actual SQL for migrations 387, 388, and 389 passed in order against a
+network-disabled disposable PostgreSQL 16 instance; migrations 388 and 389
+also passed an idempotency replay. Authorization checks covered the confirmed
+owner, a partner requiring an active share, expired/revoked shares, revoked
+membership, inactive organization, disabled identity, revoked grant, stale or
+missing owner verification, and legacy NULL-tenant compatibility. Trigger
+checks covered Field Collector draft insert, edit, submit and draft-edited
+events, including denied cases when required grants were absent. Manual
+records outside the targeted form identity remained unaffected. Sanitized
+evidence is in
+[`tenant-grants-migrations-disposable.json`](builds/2026-10-13-recovery/tenant-grants-migrations-disposable.json).
+
+This uses a minimal compatible schema. It does not replay the full repository
+migration chain or test interaction with the existing 384–385 triggers. The
+operator CLI membership/share lifecycle, legacy-grant conversion, candidate
+rollout, transaction-local tenant context, arbitrary direct-SQL isolation, and
+RLS remain open. No candidate database was changed.
