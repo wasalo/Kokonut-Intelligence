@@ -23,6 +23,13 @@ been observed with zero tasks. The historical seed
 applied to a target until its ownership and duplication implications are
 reviewed. Reconcile live provider state immediately before any cutover.
 
+A read-only status query inside the healthy local candidate app on 12 October
+local time (13 October UTC) reported zero enabled, disabled, running, or failing
+native scheduler tasks. The candidate project has no Prefect container. This
+confirms the candidate has no registered native schedules; it says nothing
+about an external Prefect service or other Docker projects. See the
+[candidate scheduler snapshot](builds/2026-10-12-recovery/candidate-scheduler-owner-snapshot.json).
+
 ## Configured recurring flows
 
 `config/prefect/deployment.yaml` declares four UTC schedules and one manual

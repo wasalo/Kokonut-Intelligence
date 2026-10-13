@@ -185,6 +185,9 @@ index and event evidence.
   worker crontab, historical scheduled-task seed, and event-worker ownership;
   document the default single-dispatcher policy, per-job cutover/replay risks,
   and source/runtime evidence limits ([inventory](schedule-ownership-inventory.md)).
+- [x] Read the healthy local candidate scheduler state: zero enabled, disabled,
+  running, or failing tasks; no Prefect container in this candidate project
+  ([evidence](builds/2026-10-12-recovery/candidate-scheduler-owner-snapshot.json)).
 - [ ] Reconcile active provider state and accountable owners; resolve each
   operation's cadence/input gaps, idempotency, overlap, and recovery policy;
   transfer jobs one at a time with output parity and rollback evidence. The
