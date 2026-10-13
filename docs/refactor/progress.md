@@ -3300,6 +3300,11 @@ participant identity, media keys/hashes, and cross-location lineage. The console
 `no-store`, and makes clear that reports, external exports, and backup copies
 are not covered.
 
-This is a source-only slice. Focused route-policy, service-query, console, and
-location-isolation acceptance remains pending; no test suite was run. It does
-not create a case, approve a retention basis, or execute erasure.
+This is a source-only slice. Focused service/query, dual-grant route authorization,
+and console acceptance passed: all 49 tests in the focused operator auth/review/
+console files passed, and Ruff is clean. The query contract verifies location
+binding and both active grants,
+read-only transaction mode, and absence of payload/object-key output; route tests
+verify either missing grant denies access. It does not create a case, approve a
+retention basis, or execute erasure. Reports, external exports, on-chain
+references, backups, and full cross-location lineage remain uncovered.

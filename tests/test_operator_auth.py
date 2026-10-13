@@ -126,6 +126,25 @@ def test_mobile_collection_review_routes_use_separate_location_read_actions():
     ]
 
 
+def test_mobile_disposition_inventory_requires_retention_and_queue_read_scopes():
+    path = (
+        "/operator/api/mobile-collection-review-queue/"
+        "22222222-2222-4222-8222-222222222222/disposition-inventory"
+    )
+    policy = operator_auth.auth_route_policy("GET", path, enabled=True)
+
+    assert policy["resource"] == "mobile_collection_retention"
+    assert policy["action"] == "inventory"
+    assert policy["additional_scopes"] == [
+        {"resource": "mobile_collection_review", "action": "read"}
+    ]
+    assert policy["location_id"] is None
+    assert policy["scope_required"] is True
+    assert policy["public"] is False
+    assert operator_auth.auth_route_policy("POST", path, enabled=True) is None
+    assert operator_auth.auth_route_policy("GET", path, enabled=False) is None
+
+
 def test_farm_activity_intake_routes_require_oidc_and_separate_detail_grants():
     queue_policy = operator_auth.auth_route_policy(
         "GET", "/operator/api/farm-activity-intake-queue", enabled=True
@@ -213,6 +232,22 @@ class _ReviewProvider(_FakeProvider):
             operator_id == OPERATOR_ID
             and resource == "mobile_collection_review"
             and action in self.allowed_actions
+            and location_id == LOCATION_ID
+        )
+
+
+class _DispositionProvider(_FakeProvider):
+    def __init__(self, *, allowed_scopes=()):
+        super().__init__(allowed=False)
+        self.allowed_scopes = set(allowed_scopes)
+        self.scopes_seen = []
+
+    def has_scope(self, operator_id, resource, action, location_id):
+        scope = (operator_id, resource, action, location_id)
+        self.scopes_seen.append(scope)
+        return (
+            operator_id == OPERATOR_ID
+            and (resource, action) in self.allowed_scopes
             and location_id == LOCATION_ID
         )
 
@@ -679,6 +714,94 @@ def test_mobile_collection_detail_uses_separate_grant_and_is_audited(monkeypatch
     ]
     assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
     assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkeypatch):
+    provider = _DispositionProvider(
+        allowed_scopes={
+            ("mobile_collection_retention", "inventory"),
+            ("mobile_collection_review", "read"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    audit_records = []
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda _self, **record: audit_records.append(record),
+    )
+    reader = MagicMock(
+        return_value={
+            "collection_id": "22222222-2222-4222-8222-222222222222",
+            "inventory_scope": "known_direct_lineage_only",
+        }
+    )
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
+        reader,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/"
+            "22222222-2222-4222-8222-222222222222/disposition-inventory",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["data"]["inventory_scope"] == "known_direct_lineage_only"
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "mobile_collection_retention", "inventory", LOCATION_ID),
+        (OPERATOR_ID, "mobile_collection_review", "read", LOCATION_ID),
+    ]
+    reader.assert_called_once_with(
+        OPERATOR_ID,
+        "22222222-2222-4222-8222-222222222222",
+        LOCATION_ID,
+    )
+    assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
+    assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+@pytest.mark.parametrize(
+    "allowed_scopes",
+    [
+        {("mobile_collection_retention", "inventory")},
+        {("mobile_collection_review", "read")},
+    ],
+)
+def test_mobile_disposition_inventory_denies_when_either_grant_is_missing(
+    monkeypatch, allowed_scopes
+):
+    provider = _DispositionProvider(allowed_scopes=allowed_scopes)
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+    reader = MagicMock()
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
+        reader,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/"
+            "22222222-2222-4222-8222-222222222222/disposition-inventory",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 403
+    reader.assert_not_called()
 
 
 def test_mobile_review_event_requires_detail_grant_and_csrf(monkeypatch):

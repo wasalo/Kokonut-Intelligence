@@ -11,6 +11,7 @@ from services.gateway.operator_mobile_review import (
     MobileCollectionPayloadTooLarge,
     MobileReviewEventInvalid,
     get_mobile_collection,
+    get_mobile_collection_disposition_inventory,
     list_mobile_collections,
     record_mobile_review_event,
 )
@@ -38,7 +39,7 @@ class FakeCursor:
 
     def execute(self, sql, params=()):
         self.statements.append((sql, params))
-        if "FROM mobile_collection_review_event AS event" in sql:
+        if "SELECT event.id, event.actor_operator_id" in sql:
             self.result_rows = self.event_rows
             self.description = [SimpleNamespace(name=name) for name in self.event_rows[0]] if self.event_rows else []
         elif "SELECT oc.id" in sql:
@@ -183,6 +184,81 @@ def test_mobile_collection_detail_rejects_large_payload_and_returns_no_content()
         LOCATION_ID,
         connection_factory=lambda: missing,
     ) is None
+
+
+def test_disposition_inventory_is_read_only_location_scoped_and_content_free():
+    row = {
+        "collection_id": UUID(COLLECTION_ID),
+        "location_id": UUID(LOCATION_ID),
+        "eligible_for_use": False,
+        "eligibility_reason": "retired_form_version",
+        "inventory_scope": "known_direct_lineage_only",
+        "collection": {
+            "sync_status": "synced",
+            "form_id": "field_note_v1",
+            "form_version": "1.1.0",
+            "has_participant_link": True,
+            "has_collection_consent_reference": True,
+            "has_sync_consent_reference": False,
+            "payload_bytes": 72,
+            "payload_field_count": 4,
+            "photo_reference_count": 1,
+            "has_coordinates": True,
+        },
+        "private_media": {"object_count": 1, "total_bytes": 2048, "by_status": {"stored": 1}},
+        "canonical_activity": {"total": 0, "by_status": {}},
+        "workflow_event_count": 0,
+        "review_event_count": 1,
+    }
+    connection = FakeConnection([row])
+
+    inventory = get_mobile_collection_disposition_inventory(
+        OPERATOR_ID,
+        COLLECTION_ID,
+        LOCATION_ID,
+        connection_factory=lambda: connection,
+    )
+
+    assert inventory["collection_id"] == COLLECTION_ID
+    assert inventory["location_id"] == LOCATION_ID
+    assert inventory["inventory_scope"] == "known_direct_lineage_only"
+    assert inventory["collection"]["payload_bytes"] == 72
+    assert "participant_link_id" not in inventory["collection"]
+    assert "payload" not in inventory
+    assert "private/object/key" not in json.dumps(inventory)
+    query, params = connection.cursor_instance.statements[-1]
+    assert params == (COLLECTION_ID, LOCATION_ID, OPERATOR_ID, OPERATOR_ID)
+    assert "oc.id = %s::uuid" in query
+    assert "oc.location_id = %s::uuid" in query
+    assert "grant_row.resource = 'mobile_collection_retention'" in query
+    assert "grant_row.action = 'inventory'" in query
+    assert "review_grant.resource = 'mobile_collection_review'" in query
+    assert "review_grant.action = 'read'" in query
+    assert "upload.location_id = oc.location_id" in query
+    assert "farm.location_id = oc.location_id" in query
+    assert "upload.object_key" not in query
+    assert "oc.payload AS payload" not in query
+    assert any("SET TRANSACTION READ ONLY" in sql for sql, _ in connection.cursor_instance.statements)
+    assert connection.rolled_back and connection.closed
+
+
+def test_disposition_inventory_returns_no_row_without_authorized_location_match():
+    connection = FakeConnection([])
+
+    inventory = get_mobile_collection_disposition_inventory(
+        OPERATOR_ID,
+        COLLECTION_ID,
+        LOCATION_ID,
+        connection_factory=lambda: connection,
+    )
+
+    query, params = connection.cursor_instance.statements[-1]
+    assert inventory is None
+    assert "oc.location_id = %s::uuid" in query
+    assert "grant_row.location_id = oc.location_id" in query
+    assert "review_grant.location_id = oc.location_id" in query
+    assert params == (COLLECTION_ID, LOCATION_ID, OPERATOR_ID, OPERATOR_ID)
+    assert connection.rolled_back and connection.closed
 
 
 class FakeWriteCursor:

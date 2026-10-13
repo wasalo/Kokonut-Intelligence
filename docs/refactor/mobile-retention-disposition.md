@@ -93,6 +93,13 @@ database lineage; reports, external exports, on-chain references, and backups
 still require separate reconciliation. The inventory is not a case manager and
 cannot approve or execute a disposition.
 
+Focused acceptance on 13 October 2026 passed (49 operator auth/review/console
+tests; Ruff clean): service/query scope and read-only checks, both-grant route
+authorization including denial when either grant is missing, no-store/audit
+behavior, and console permission/rendering checks. This validates the known
+direct-lineage inventory contract only; it does not establish complete lineage
+or authorize retention, de-identification, or erasure.
+
 Keep the capability partial until a disposition case, dual-control execution,
 complete downstream/media/backup reconciliation, and jurisdiction-approved
 retention ownership are implemented and accepted.
