@@ -186,17 +186,38 @@ hook registrations and side effects, native Gateway/operator route surface,
 tenant scoping model, and the limited coverage of the existing metadata and
 permission source checks. The inventory distinguishes database privileges from
 Directus API authorization and identifies the scheduled NOI and weekly snapshot
-callbacks that need a single-owner decision. Directus uses the legacy
-single-location user field for selected staff filters; the native operator
-console uses explicit grants, so these identity models are not assumed to be
+callbacks that need a single-owner decision. The staff permission seed
+references `$CURRENT_USER.location_id`, but the restored archive has no
+corresponding `directus_users.location_id` column; the native operator console
+uses explicit grants, so these identity models are not assumed to be
 equivalent. Many read permissions request every field, and Auditor has
 unfiltered access to additional report/governance collections; confirm the
 intended forensic scope before changing it. The weekly callback only groups
 eligible activity and logs a count, so it does not establish persisted snapshot
-parity. No test suite or live Directus request ran for this review. Source
-mapping is complete, while effective API/field/row/hook parity stays open until
-an isolated runtime identity and disposable scoped rows are used. See the
-[Directus parity inventory](directus-parity-inventory.md).
+parity. See the [Directus parity inventory](directus-parity-inventory.md).
+
+## Phase 3 Directus isolated API probe — 13 October 2026
+
+Restored the populated application archive into a fresh internal-only copy,
+applied its ordered migrations with zero pending and no checksum drift, and
+started the pinned Directus 12.1.1 bootstrap/runtime using the DML-only
+identity. Bootstrap and health passed; admin login returned 200, anonymous
+`farm_activity` access was denied, and the optional consumer-role fixture
+passed. The archived `directus_users` table has no `location_id` even though
+the Field Worker permission seed filters on `$CURRENT_USER.location_id`.
+Synthetic Field Worker requests returned 403 for both own- and other-location
+rows, with zero rows exposed. This is fail-closed behavior and does not prove
+location-scoped authorization or field privacy. Identity-creation retries hit
+Directus `LIMIT_EXCEEDED`, and hooks/scheduled jobs were not started. API
+cleanup for the first synthetic identities did not finish; removing the entire
+isolated database volume, runtime and private network removed the test rows and
+identities. Candidate services stayed healthy and the legacy stack stayed
+stopped. See [sanitized runtime evidence](builds/2026-10-13-recovery/directus-api-parity.json).
+
+The next parity run needs an explicit identity-location model (or a deliberate
+switch to grants), followed by own-location, cross-location, field, write,
+extension-hook and schedule checks. Directus remains optional; this result does
+not authorize ownership backfill or tenant RLS.
 
 The broader reporting gate is now mapped at source level: three first-party
 cards have copied-fixture evidence, the report generator registers 94 draft

@@ -24,9 +24,13 @@ anonymous farm-activity/review routes return 401. Its database checkpoint was
 restore-rehearsed with matching migration fingerprints, extension versions, and
 selected row counts. See [rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json).
 
-The Directus source inventory maps its permission and hook boundary for CAP-001
-and CAP-053, but does not establish effective Directus API parity; the
-collection-scoped runtime review remains open ([inventory](directus-parity-inventory.md)).
+The Directus source inventory and isolated runtime probe map the CAP-001/CAP-053
+boundary, but do not establish API parity. The archived `directus_users` table
+has no `location_id` despite staff filters using `$CURRENT_USER.location_id`;
+synthetic Field Worker requests returned 403 with no rows visible, which is
+fail-closed but does not prove own-location access or cross-location isolation.
+Field/write visibility, hook, and schedule acceptance remain open
+([inventory](directus-parity-inventory.md); [runtime evidence](builds/2026-10-13-recovery/directus-api-parity.json)).
 
 **13 October 2026 Phase 4 reporting safety update:** legacy
 `dashboard_dataset.query_sql` execution now has an explicit

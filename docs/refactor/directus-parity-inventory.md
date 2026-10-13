@@ -1,7 +1,8 @@
 # Directus parity inventory
 
 **Review date:** 13 October 2026  
-**Status:** source inventory complete; runtime parity remains open.
+**Status:** source inventory complete; isolated runtime probe completed with a
+fail-closed result; runtime parity remains open.
 
 ## Decision boundary
 
@@ -23,11 +24,15 @@ inventory is not evidence that the whole Directus surface has been replaced.
 | Schema metadata | [`tests/test_directus_metadata.py`](../../tests/test_directus_metadata.py) and [`schemas/directus/snapshots/schema_latest.json`](../../schemas/directus/snapshots/schema_latest.json) | The checker compares snapshot sort fields and physical field metadata, and can query the local Compose database when it is running. | Permission parity, API response shape, current runtime identity, or whether the optional Directus profile is deployed. |
 | Native replacement surface | [`services/gateway/router.py`](../../services/gateway/router.py), [`services/gateway/operator_auth.py`](../../services/gateway/operator_auth.py), [`native-location-reads.md`](native-location-reads.md), and the [operator console contract](kernel-operations-console.md) | Native routes cover a deliberately bounded public read surface and selected authenticated reviewer, farm-activity, and Field Collector operations. Their policies are explicit and unknown routes remain protected. | Generic CRUD, all Directus collections and fields, admin UI behavior, and one-to-one role semantics are not implemented as native parity. |
 
-The current Directus permissions are keyed to a single `location_id` on the
-Directus user record for the repaired staff filters. The native operator
-console uses explicit grants that can authorize a principal for selected
-locations. These are different identity models; do not infer a multi-location
-equivalence from the presence of a location predicate in both systems.
+The repaired staff permission filters reference
+`$CURRENT_USER.location_id`, but the restored populated archive's
+`directus_users` table has no `location_id` column. A pinned-image probe showed
+the synthetic Field Worker requests denied, with no synthetic rows visible;
+that is fail-closed behavior, not proof of correct own-location access or
+cross-location isolation. The native operator console uses explicit grants
+that can authorize a principal for selected locations. These are different
+identity models; do not infer equivalence from the presence of a location
+predicate in both systems.
 
 The SQL also grants `fields = '*'` on many read rules, so a row predicate does
 not establish field privacy. The Auditor policy deliberately has unfiltered
@@ -73,12 +78,40 @@ aggregate results and sanitized request/response evidence; remove synthetic
 users, rows, sessions, and permissions after the run. Do not start a second
 schedule owner during the comparison.
 
+## Isolated runtime result — 13 October 2026
+
+The pinned Directus 12.1.1 image bootstrapped successfully against a fresh
+internal-only clone of the populated archive and became healthy. Admin login
+returned HTTP 200, while anonymous `farm_activity` collection access was
+denied. The copied database completed its ordered migration replay with zero
+pending migrations. The optional consumer-role fixture passed for the
+separate Directus DML role.
+
+The cloned `directus_users` table did not contain `location_id`, although the
+Field Worker `farm_activity` read/update and related staff filters use
+`$CURRENT_USER.location_id`. Two synthetic locations and rows were available.
+Both synthetic Field Worker reads returned HTTP 403 and exposed zero synthetic
+rows. Because the role was denied even its own row and the identity had no
+location attribute to evaluate, this is a fail-closed result only; it does not
+validate scoped read/write behavior, field privacy, or parity. Later identity
+creation retries hit Directus `LIMIT_EXCEEDED`, so no second complete run was
+possible. The probe did not start the hooks extension or scheduled jobs.
+
+The disposable API fixture's cleanup path did not complete through Directus
+for the first synthetic identities. The entire isolated recovery project,
+including its database volume, Directus runtime, and private network, was then
+removed; no synthetic identities or rows remain in the candidate or archived
+source. The candidate stack remained healthy and the legacy stack remained
+stopped. Sanitized results are retained in
+[`directus-api-parity.json`](builds/2026-10-13-recovery/directus-api-parity.json).
+
 ## Current disposition
 
-Source mapping is complete enough to plan a collection-scoped acceptance suite,
-but it does not close the Directus API/field/row/hook parity gate. Directus is
-not enabled in the local Kernel candidate, the legacy stack remains stopped,
-and no live Directus request was made for this review. Keep Directus optional
-and retain its archived state until the retained-use-case inventory and
-isolated runtime checks are accepted. The public native location read remains
-conservative and is not a substitute for the full Directus role surface.
+The runtime probe narrows the next Directus task: establish how the deployed
+schema is intended to supply a location to Directus identities (or replace
+those policies with an explicit grant model), then rerun own-location,
+cross-location, write, and field-visibility requests. Hook-by-hook and
+scheduled-job parity still need separate checks. Keep Directus optional and
+retain its archived state until each retained use case has accepted evidence.
+The public native location read remains conservative and is not a substitute
+for the full Directus role surface.

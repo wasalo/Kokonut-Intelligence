@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-13",
+  "gate": "Directus runtime API role and location-scope parity",
+  "result": "blocked_fail_closed",
+  "scope": "fresh internal-only clone of the populated archived application database",
+  "images": {
+    "postgres_postgis": "postgis/postgis:16-3.4",
+    "directus": "directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d"
+  },
+  "migration_replay": {
+    "ordered_runner_completed": true,
+    "pending_migrations_after_replay": 0,
+    "checksum_drift": false
+  },
+  "runtime": {
+    "owner_bootstrap_exit_code": 0,
+    "health_http_status": 200,
+    "admin_login_http_status": 200,
+    "anonymous_farm_activity_access_denied": true,
+    "directus_dml_role_fixture": "passed"
+  },
+  "tenant_probe": {
+    "available_synthetic_locations": 2,
+    "directus_users_has_location_id": false,
+    "permission_seed_references_current_user_location_id": true,
+    "synthetic_field_worker_read_http_statuses": [403, 403],
+    "synthetic_rows_visible": 0,
+    "interpretation": "fail closed; own-location access and cross-location isolation were not established",
+    "field_visibility_established": false,
+    "write_scope_established": false
+  },
+  "reprobe": {
+    "completed": false,
+    "limitation": "Directus identity creation retries returned LIMIT_EXCEEDED"
+  },
+  "hooks_and_schedules": {
+    "extension_started": false,
+    "scheduled_jobs_started": false,
+    "parity_established": false
+  },
+  "cleanup": {
+    "fixture_api_cleanup_completed": false,
+    "disposable_database_volume_removed": true,
+    "directus_runtime_removed": true,
+    "private_network_removed": true,
+    "synthetic_rows_or_users_remain": false
+  },
+  "other_stacks": {
+    "candidate_app": "healthy; unchanged",
+    "candidate_database": "healthy; unchanged",
+    "candidate_metabase": "healthy; unchanged",
+    "legacy_stack": "stopped; unchanged"
+  },
+  "disposition": "Keep Directus optional. Resolve the missing identity location attribute or adopt explicit grants, then rerun scoped API, field, write, hook, and schedule acceptance before claiming parity."
+}
