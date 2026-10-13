@@ -1,27 +1,35 @@
 {
   "format_version": 1,
-  "lock_scope": "Kernel minimal application and PostGIS image build inputs",
+  "lock_scope": "Kernel default and ClickHouse-enabled application plus PostGIS image build inputs",
   "base_images": {
     "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
     "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
   },
   "sha256_inputs": {
-    "Dockerfile.kernel": "27d95adbb486f90a0455659cd7ead7ad8be853a050c4f6a71dccdfc4325ce942",
+    "Dockerfile.kernel": "094ff4de06cd632b836fe7c85cd4f8d43ca938e44e8ba7b9ba29bc4ff87e695e",
     "Dockerfile.kernel-postgis": "2b5b7a9d4740d0323a1c7abecebd92bbac8567147c8351822d0cda1fcd33092f",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
     "requirements/exports.txt": "1780570edca5518251d507d39d9c9fed24db4451315d73e75f9c8faceec36c71",
     "requirements/storage.txt": "55b669581f72f640218f77096989eef395448cf37f61b72db17029dc74440e1b",
+    "requirements/clickhouse.txt": "94e0790ca756b254d8567ce2aeb69cdd47f7591e2944939adf1dddb00d073dfd",
+    "requirements/kernel-runtime.in": "e619e8f2d898343db986881c108a6b35f371008d5c27fa2d340359896c7f82fe",
+    "requirements/kernel-runtime.lock": "80e50a655e4f7c530d102fd09b4fc0502ae9020ed5a170303615e4c0dfd08921",
+    "requirements/kernel-clickhouse.in": "d45f7ea822daef4616987cb57a240a4e2eea4fdf74424aa6222b1f0167c2bc4e",
+    "requirements/kernel-clickhouse.lock": "ea9154ed4eb3c4234dee73a6588f4550191f227de82f972644d937b090dc66ab",
     "config/postgres/kernel-postgis-packages.json": "5015822598567c2535a3ecd3a31e543b5f059c809a683e34edfaab912f7ae1b6"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
     "POSTGIS_SCRIPTS_VERSION": "3.6.4+dfsg-2.pgdg12+1",
-    "verified_architectures": ["amd64", "arm64"]
+    "verified_architectures": [
+      "amd64",
+      "arm64"
+    ]
   },
   "dependency_lock_status": {
-    "python_direct_inputs": "sha256-locked requirement manifests",
-    "python_transitive_dependencies": "not hash-locked; CI requires exact version parity between same-run amd64 and arm64 builds",
+    "python_direct_inputs": "SHA-256-locked source requirement manifests",
+    "python_transitive_dependencies": "hash-locked default and ClickHouse profile closures; pending GitHub multi-architecture acceptance",
     "apt_transitive_dependencies": "not snapshot-locked; CI checks selected PostGIS package versions on both architectures"
   }
 }

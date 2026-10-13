@@ -1,22 +1,18 @@
 # Candidate Kernel image. Legacy images remain the supported complete runtime.
 FROM python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS kernel-base
 
+ARG KOKONUT_CLICKHOUSE=false
+
 WORKDIR /app
 
 RUN useradd -m -u 10001 -s /bin/bash appuser
 
-COPY requirements/kernel.txt requirements/web3.txt requirements/exports.txt requirements/clickhouse.txt requirements/storage.txt ./requirements/
-# Preserve Web3 and private field-media/spreadsheet dependencies in the candidate.
-RUN pip install --no-cache-dir \
-    -r requirements/kernel.txt \
-    -r requirements/web3.txt \
-    -r requirements/exports.txt \
-    -r requirements/storage.txt
-
-ARG KOKONUT_CLICKHOUSE=false
+# Install one reviewed, hash-checked closure. The optional ClickHouse profile
+# has a full superset lock so every selected runtime remains reproducible.
+COPY requirements/kernel-runtime.lock requirements/kernel-clickhouse.lock ./requirements/
 RUN case "$KOKONUT_CLICKHOUSE" in \
-    true) pip install --no-cache-dir -r requirements/clickhouse.txt ;; \
-    false) : ;; \
+    true) pip install --no-cache-dir --require-hashes -r requirements/kernel-clickhouse.lock ;; \
+    false) pip install --no-cache-dir --require-hashes -r requirements/kernel-runtime.lock ;; \
     *) echo "KOKONUT_CLICKHOUSE must be true or false" >&2; exit 1 ;; \
     esac
 

@@ -1,0 +1,6 @@
+# Minimal Kernel runtime with optional provider dependencies included in the
+# standard app target. Keep this closure aligned with Dockerfile.kernel.
+-r kernel.txt
+-r web3.txt
+-r exports.txt
+-r storage.txt

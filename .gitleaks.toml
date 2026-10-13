@@ -31,6 +31,14 @@ regexes = ['''^\s*"[^"]+": "[a-fA-F0-9]{64}",?$''']
 paths = ['''^docs/refactor/builds/2026-10-10-batch1/(amd64|arm64)-source\.json$''']
 
 [[allowlists]]
+description = "Generated Kernel locks record public package-artifact SHA-256 checksums, not credentials."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*--hash=sha256:[a-fA-F0-9]{64}(\s+\\)?$''']
+paths = ['''^requirements/kernel-(runtime|clickhouse)\.lock$''']
+
+[[allowlists]]
 description = "The recovery inventory records only one-way hashes of ephemeral Redis key names."
 targetRules = ["generic-api-key"]
 condition = "AND"

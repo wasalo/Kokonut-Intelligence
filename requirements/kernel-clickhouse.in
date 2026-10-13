@@ -1,0 +1,3 @@
+# Full standard Kernel runtime with the optional ClickHouse provider enabled.
+-r kernel-runtime.in
+-r clickhouse.txt

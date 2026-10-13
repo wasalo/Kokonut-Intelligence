@@ -3567,9 +3567,22 @@ enabled. The full-history Security workflow passed on 13 October 2026. Two CI
 runs built both architecture images and failed release validation because
 Buildx wrapped platform manifests in nested OCI indexes. The current PR fix
 recursively inspects nested indexes, then derives platform labels from image
-configs when image descriptors omit them. A new CI run is required to accept
-the fix. GitHub runner registration,
+configs when image descriptors omit them. CI run 280 is executing that fix;
+the following dependency-lock changes require their own CI run. GitHub runner registration,
 `staging`/`production` environments, branch rules, and production SSH secrets
 remain pending remote configuration; see [setup requirements](../github-actions.md).
 Staging also requires a reviewed source change to clear its disabled flag. No
 deployment was performed.
+
+### Kernel Python lock follow-up — 13 October 2026
+
+Generated hash-locked Python dependency closures for the default Kernel runtime
+and optional ClickHouse-enabled profile with pip-tools 7.6.2. The Kernel
+Dockerfile now selects one full lock at build time and pip enforces hashes.
+`config/kernel/release-input-lock.json` covers the source manifests, both lock
+files, and Dockerfile bytes. The multi-architecture release script now builds
+and inspects both app profiles plus PostGIS for linux/amd64 and linux/arm64.
+GitHub CI run 280 started before these changes and does not validate them; a
+fresh PR run is required. Apt repository snapshots and transitive Debian
+package versions remain open. No local test suite or Docker build was run for
+this slice.

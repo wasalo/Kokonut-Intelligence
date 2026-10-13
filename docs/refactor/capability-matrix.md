@@ -42,7 +42,9 @@ metadata. A fresh CI run must pass before the release gate is accepted.
 Deployment settings remain pending, and no ARM64 runtime is certified
 ([release-input contract](kernel-release-inputs.md);
 [local attempt evidence](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
-Transitive Python and apt snapshot locks remain open.
+Hash-locked Python closures for the default app and optional ClickHouse profile
+are now wired into the Kernel image; multi-architecture acceptance is pending.
+Apt snapshots and transitive Debian package locks remain open.
 
 | ID | Capability | Owning code area | Named manual check and required result | Existing Python test candidates | Implementation / deployment progress |
 |---|---|---|---|---|---|
