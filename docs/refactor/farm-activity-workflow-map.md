@@ -1,16 +1,17 @@
 # Farm activity workflow map
 
 Status: source map, declarative workflow correction, private queue/detail,
-canonical draft promotion, and governed lifecycle transitions are implemented
-on the feature branch. Migrations 383–384 and the transition routes pass focused
-tests and disposable PostgreSQL acceptance. The feature has not been deployed
-to the candidate. Published-only report/metric handoffs and full MAN-CAP-001
-acceptance remain open.
+canonical draft promotion, governed lifecycle transitions, the published-only
+farm summary, and rework-metric provenance are implemented on the feature
+branch. Migrations 383–384 and the transition routes pass focused tests and
+disposable PostgreSQL acceptance. Eleven report/metric tests and a minimal
+synthetic-schema PostGIS check also pass. The feature has not been deployed to
+the candidate; full-schema parity and MAN-CAP-001 acceptance remain open.
 
 This map selects the current `farm_activity_v1` Field Collector form as the
-first Batch 3 vertical slice. It records what the repository does today and
-defines the handoffs the native Kernel path must provide. It does not change
-runtime behavior or move existing data.
+first Batch 3 vertical slice. It records existing behavior, the native Kernel
+implementation, and remaining acceptance gaps. It does not change runtime
+behavior or move existing data.
 
 ## Current source path
 
@@ -206,13 +207,20 @@ handoffs remain target contracts for the next Batch 3 slices.
 
 ### Metric and report handoff
 
-The first parity slice should add a bounded, location/period-filtered activity
-summary to `generate_farm_summary`, using only published farm activities and
-explicit units/counts. `store_snapshot` should persist the result as a draft
-report with its canonical report hash. It must not auto-submit, verify, freeze,
-or publish the snapshot. A selected activity metric may be computed from the
-same published fixture only if its calculation and source IDs are explicit;
-the result stays draft and needs a separate human `--verify-value` action.
+`services/export/reports/core.py::generate_farm_summary` now adds a bounded,
+location/period-filtered activity summary using only published farm activities.
+It reports activity counts and reported labor hours by activity type; it omits
+free text, media, participant/device identity, source lineage, and canonical
+record IDs. `services/export/reports/context.py::store_snapshot` persists the
+generated result through the existing SHA-256 hash path as an unfrozen `draft`.
+It does not submit, verify, freeze, or publish the snapshot.
+
+`services/metrics/calculators/rework_rate.py` includes `farm_activity` in the
+published cohort. The metric counts published-in-period lifecycle entities
+that have a rejection transition, uses an inclusive calendar end date, and
+returns the published source cohort plus the reworked subset (each capped at
+100 IDs with truncation flags). The existing metric engine stores the result
+with `verified = FALSE`; human verification remains a separate action.
 
 Do not publish notes, worker identity, private media URLs, or participant data
 through the report. The form specifically prohibits worker names and
@@ -234,8 +242,11 @@ person-specific evaluations; future text review must retain that restriction.
 4. **Implemented in source:** add explicit submit/reject/rework/verify/publish/
    exception-close transitions through the native Gateway route policy and
    operator grants; preserve operator-attributed state-transition evidence.
-5. Add the published-only farm activity summary and one draft report/metric
-   fixture with independently checked expected output.
+5. **Implemented in source:** add the published-only farm activity summary and
+   connect its generated output to the existing hashed draft snapshot path;
+   include farm activities in the provenance-bearing `rework_rate_pct` draft
+   calculation. Synthetic fixture expectations and privacy exclusions are
+   recorded in [report/metric evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json).
 6. **Partial verification complete:** 77 tests across migration, workflow,
    lifecycle service, and OIDC suites pass; Ruff passes. Migrations 383–384
    compiled transactionally in a disposable PostgreSQL database. Synthetic
@@ -244,12 +255,21 @@ person-specific evaluations; future text review must retain that restriction.
    missing draft event, self-verification, rejection by the submitter or
    verifier, missing reason, revoked grant, invalid transition, post-submit
    content edit, and event update/delete. A legacy Field Collector row using a
-   different form version remained outside the new guard. The scratch database
-   is removed and the candidate remains unchanged ([sanitized evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json)). Remaining checks include
+   different form version remained outside the new guard. Separately, 11
+   focused report/metric tests and Ruff pass, covering synthetic published-only
+   aggregates, private-field exclusion, period bounds, report hash/draft state,
+   source/rework provenance, array-literal normalization, and the existing
+   unverified metric insert rule. A disposable PostGIS 16 run with minimal
+   synthetic schema and rows also verified the real report query, report hash /
+   draft insert, metric result, both source IDs, reworked source, and unverified
+   metric insert. This does not establish parity against the full migration
+   chain. The scratch database is removed and the candidate remains unchanged
+   ([lifecycle evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json),
+   [report/metric evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)). Remaining checks include
    duplicate promotion, stale/ineligible source, wrong-location read/write,
    route-level OIDC against a configured provider, rollback under injected DB
-   failure, published-only projection, draft metric, and draft report hashing.
-   These migrations and routes are not deployed to the candidate.
+   failure, full-schema report/metric parity, and candidate rollout. These
+   migrations and routes are not deployed to the candidate.
 
 Rollback uses additive migrations, the existing OIDC session and default-deny
 location grants, and preservation of `offline_collection` as the source record.

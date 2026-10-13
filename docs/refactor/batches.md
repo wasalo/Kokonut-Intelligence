@@ -148,7 +148,11 @@ backups/volumes; no production cutover in this batch.
 - [x] Implement governed submit/reject/rework/verify/publish/exception-close
   routes and database lifecycle enforcement, including independent verifier,
   rejection reviewer, and publisher checks ([workflow map](farm-activity-workflow-map.md)).
-- [ ] Connect draft metric computation and one governed report to that workflow.
+- [x] Add the published-only farm-activity summary to the governed farm report
+  and include published lifecycle entities in `rework_rate_pct`, with period,
+  source-record and reworked-subset provenance. The report snapshot remains
+  hashed, unfrozen `draft`; metric values remain unverified drafts ([workflow
+  map](farm-activity-workflow-map.md); [source-level evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
 - [ ] With verification authorization, exercise role/field/row policy and failure paths.
 
 Gate: retained end-to-end evidence for the selected CAP rows, with explicit
@@ -158,6 +162,14 @@ their draft, submit, verify, reject, rework, publish, exception-close,
 independent-actor, revoked-grant, content-immutability, append-only, deferred
 draft-evidence, and legacy-row compatibility checks passed in disposable local
 PostgreSQL ([evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json)).
+The separate report/metric slice passes 11 focused tests and Ruff, including
+published-only aggregation, private-field exclusion, period boundaries,
+snapshot hashing/draft state, metric provenance, and unverified metric storage
+([evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
+An additional disposable PostGIS 16 check passed the report projection, snapshot
+hash/draft insert, metric calculation, source IDs, and unverified metric insert
+against a minimal synthetic schema. Full ordered-schema parity and candidate
+rollout remain open.
 The candidate database and app have not been migrated or rebuilt.
 Rollback: the API release can be reverted, but migration 384's native form
 guards intentionally remain active and the legacy provider must not be used to
