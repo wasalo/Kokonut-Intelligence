@@ -154,6 +154,10 @@ jurisdiction-aware retention owner. The generic retention sweeper explicitly
 rejects/skips protected consent, collection, media, and governed activity
 tables. This guard does not implement erasure; see the
 [retention and disposition contract](mobile-retention-disposition.md).
+An OIDC route now exposes a content-free known-lineage inventory under a
+separate `mobile_collection_retention:inventory` location grant. It is read-only
+and does not close a disposition case; downstream reports, exports, and backups
+still need reconciliation.
 
 ## Remaining policy and operational gates
 

@@ -1,6 +1,6 @@
 # Field Collector form authoring and review operations
 
-**Status:** Manifest validation/publication, the OIDC-scoped Field Collector queue, and append-only reviewer notes are implemented in source. Publication passed trigger-focused disposable PostGIS acceptance; queue/review route and query tests pass; migration 382 and the actual Gateway service functions passed isolated PostGIS checks. The complete 373-file ordered schema replay through migration 382 passed on a clean disposable PostGIS database; migration 382 is applied to the candidate and its app health/auth gates pass; real-provider/browser acceptance and human disposition remain open.
+**Status:** Manifest validation/publication, the OIDC-scoped Field Collector queue, append-only reviewer notes, and a separate-grant read-only disposition inventory are implemented in source. Publication passed trigger-focused disposable PostGIS acceptance; queue/review route and query tests pass; migration 382 and the actual Gateway service functions passed isolated PostGIS checks. The inventory's focused authorization/query/console acceptance is pending. The complete 373-file ordered schema replay through migration 382 passed on a clean disposable PostGIS database; migration 382 is applied to the candidate and its app health/auth gates pass; real-provider/browser acceptance and human disposition remain open.
 
 **Decision date:** 12 October 2026.
 
@@ -129,11 +129,14 @@ boundary. A review event does not itself publish a record.
 This decision does not select a legal basis, jurisdiction, or retention period.
 There is no automatic pruning of mobile collections, participant links, consent
 events, or review history. A withdrawal blocks new use under the eligibility
-view and opens human disposition; it does not silently erase or authorize
-continued publication. Any later erase/restrict workflow needs an approved
-retention schedule, a recorded request/authority, media cleanup behavior, and a
-separate audit trail that preserves only the minimum evidence required by the
-approved policy.
+view and requires human disposition; it does not silently erase or authorize
+continued publication. A separate `mobile_collection_retention:inventory`
+grant exposes known direct database lineage counts without payload, participant
+IDs, or object keys. This is an assessment aid, not a case decision or proof of
+complete lineage. Any later erase/restrict workflow needs an approved retention
+schedule, a recorded request/authority, media cleanup behavior, downstream and
+backup reconciliation, and a separate audit trail that preserves only the
+minimum evidence required by the approved policy.
 
 ## Implementation sequence and acceptance
 

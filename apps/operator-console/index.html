@@ -207,6 +207,12 @@
               <p id="mobile-review-event-status" class="muted" role="status"></p>
             </section>
           </section>
+          <section id="mobile-disposition-inventory-panel" hidden aria-labelledby="mobile-disposition-inventory-heading">
+            <h3 id="mobile-disposition-inventory-heading">Disposition impact inventory</h3>
+            <p class="muted">Read-only counts for known database lineage. It omits payload values, participant identifiers, media keys, external exports, and backup copies; it does not approve or execute a disposition.</p>
+            <pre id="mobile-disposition-inventory"></pre>
+            <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
+          </section>
         </section>
         <div id="no-grants" class="notice" hidden>No report, collection review, farm activity, or enrollment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
@@ -258,8 +264,12 @@
       const mobileReviewEvents = document.querySelector("#mobile-review-events");
       const mobileReviewEventForm = document.querySelector("#mobile-review-event-form");
       const mobileReviewEventStatus = document.querySelector("#mobile-review-event-status");
+      const mobileDispositionInventoryPanel = document.querySelector("#mobile-disposition-inventory-panel");
+      const mobileDispositionInventory = document.querySelector("#mobile-disposition-inventory");
+      const mobileDispositionInventoryStatus = document.querySelector("#mobile-disposition-inventory-status");
       let mobileDetailLocations = new Set();
       let mobileReviewWriteLocations = new Set();
+      let mobileDispositionLocations = new Set();
       let currentMobileCollectionId = null;
       let farmActivityDetailLocations = new Set();
       let farmActivityCreateLocations = new Set();
@@ -318,6 +328,9 @@
             .map((scope) => scope.location_id));
           mobileReviewWriteLocations = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "mobile_collection_review" && scope.action === "review")
+            .map((scope) => scope.location_id));
+          mobileDispositionLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_collection_retention" && scope.action === "inventory")
             .map((scope) => scope.location_id));
           const mobilePayloadLocations = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "mobile_collection_review" && scope.action === "read_detail")
@@ -783,6 +796,10 @@
       async function loadMobileQueue() {
         mobileReviewQueue.replaceChildren();
         mobileReviewDetail.hidden = true;
+        currentMobileCollectionId = null;
+        mobileDispositionInventoryPanel.hidden = true;
+        mobileDispositionInventory.textContent = "";
+        mobileDispositionInventoryStatus.textContent = "";
         mobileReviewStatus.textContent = "Loading Field Collector records…";
         const locationId = mobileReviewLocation.value;
         const params = new URLSearchParams({ location_id: locationId, limit: "50" });
@@ -815,6 +832,14 @@
               open.addEventListener("click", () => loadMobileCollection(collection.id));
               action.append(open);
             }
+            if (mobileDispositionLocations.has(locationId)) {
+              const inventory = document.createElement("button");
+              inventory.type = "button";
+              inventory.className = "secondary";
+              inventory.textContent = "Disposition inventory";
+              inventory.addEventListener("click", () => loadMobileDispositionInventory(collection.id));
+              action.append(inventory);
+            }
             row.append(form, collected, formReview, consent, eligibility, action);
             mobileReviewQueue.append(row);
           }
@@ -831,6 +856,9 @@
 
       async function loadMobileCollection(collectionId) {
         mobileReviewDetail.hidden = true;
+        mobileDispositionInventoryPanel.hidden = true;
+        mobileDispositionInventory.textContent = "";
+        mobileDispositionInventoryStatus.textContent = "";
         currentMobileCollectionId = collectionId;
         mobileReviewStatus.textContent = "Loading private collection payload…";
         const params = new URLSearchParams({ location_id: mobileReviewLocation.value });
@@ -860,11 +888,41 @@
             mobileDetailLocations.has(mobileReviewLocation.value)
             && mobileReviewWriteLocations.has(mobileReviewLocation.value)
           );
+          mobileDispositionInventoryPanel.hidden = true;
+          mobileDispositionInventory.textContent = "";
+          mobileDispositionInventoryStatus.textContent = "";
           mobileReviewEventStatus.textContent = "";
           mobileReviewDetail.hidden = false;
           mobileReviewStatus.textContent = "Payload loaded. Review notes are append-only; consent eligibility remains a hard gate.";
         } catch (error) {
           mobileReviewStatus.textContent = error.message;
+        }
+      }
+
+      async function loadMobileDispositionInventory(collectionId) {
+        mobileDispositionInventoryPanel.hidden = false;
+        mobileDispositionInventory.textContent = "";
+        mobileDispositionInventoryStatus.textContent = "Loading read-only lineage counts…";
+        if (!mobileDispositionLocations.has(mobileReviewLocation.value)) {
+          mobileDispositionInventoryStatus.textContent = "A separate inventory grant is required for this location.";
+          return;
+        }
+        const params = new URLSearchParams({ location_id: mobileReviewLocation.value });
+        try {
+          const response = await fetch(
+            `/operator/api/mobile-collection-review-queue/${encodeURIComponent(collectionId)}/disposition-inventory?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or separate inventory grant is not valid.");
+          }
+          if (response.status === 404) throw new Error("No authorized inventory is available for this collection.");
+          if (!response.ok) throw new Error("The disposition inventory is unavailable.");
+          const result = await response.json();
+          mobileDispositionInventory.textContent = JSON.stringify(result.data, null, 2);
+          mobileDispositionInventoryStatus.textContent = "Known direct database lineage only; reconcile external exports and backups separately.";
+        } catch (error) {
+          mobileDispositionInventoryStatus.textContent = error.message;
         }
       }
 

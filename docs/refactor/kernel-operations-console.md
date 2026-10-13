@@ -96,6 +96,15 @@ operator, collection, and location, validates bounded reason/evidence fields,
 and rejects edits/deletes. Notes do not alter consent eligibility or governed
 lifecycle state.
 
+The disposition impact inventory is a separate queue action. It requires
+`mobile_collection_retention:inventory` plus `mobile_collection_review:read`,
+but not the payload detail grant. It returns counts/statuses for the collection,
+private media, promoted farm activities, and review/workflow events; it omits
+payload values, participant identifiers, object keys, and hashes. The source
+rechecks both grants and location in SQL. It is read-only and covers direct
+database lineage only; it cannot decide or execute retention, erasure, or
+de-identification.
+
 For browser requests, prefer serving the console from the Gateway's own origin
 or an explicitly trusted same-site origin. The server should keep provider
 tokens out of JavaScript and use a short-lived, `HttpOnly`, `Secure`,
@@ -221,6 +230,9 @@ python3 -m services.cli operator grant --operator-id UUID \
 python3 -m services.cli operator grant --operator-id UUID \
   --resource mobile_collection_review --action read_detail \
   --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID \
+  --resource mobile_collection_retention --action inventory \
+  --location-id LOCATION_UUID --granted-by OPERATOR
 ```
 
 After migration 382 has been applied, reviewer-note access also needs an
@@ -283,7 +295,8 @@ grant itself permission or skip the domain service's lifecycle checks.
   API-key/capability routes stay separate)
 - `services/gateway/operator_review.py` and
   `services/gateway/operator_mobile_review.py` (bounded report and Field
-  Collector queries plus append-only reviewer events)
+  Collector queries, append-only reviewer events, and content-free disposition
+  impact inventory)
 - `schemas/postgres/382_mobile_collection_review_events.sql` (append-only
   operator-attributed review notes with collection eligibility guards)
 - `schemas/postgres/380_operator_identity_sessions.sql` (additive identity,
@@ -291,7 +304,8 @@ grant itself permission or skip the domain service's lifecycle checks.
 - `Dockerfile.kernel`, `requirements/oidc.txt`, and
   `docker-compose.kernel-oidc.yml` (optional dependency/image/deployment path)
 - `apps/operator-console/index.html` (same-origin principal shell, report and
-  Field Collector list/detail reads, reviewer-note form, and one-time
+  Field Collector list/detail reads, reviewer-note form, read-only disposition
+  inventory, and one-time
   enrollment-code form)
 - `sdk/javascript/src/client.ts` (possible follow-on typed console methods;
   current same-origin console uses browser `fetch` and the session cookie)

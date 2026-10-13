@@ -81,9 +81,21 @@ guard.
 The existing `v_mobile_collection_use_eligibility` remains the use gate. The
 OIDC review queue can expose ineligible rows to a location-scoped operator, but
 it is not a retention case manager and its append-only notes do not approve
-destruction. Keep the capability partial until a disposition case, dual-control
-execution, media/backup reconciliation, and jurisdiction-approved retention
-ownership are implemented and accepted.
+destruction. A read-only inventory is now available at
+`GET /operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory`
+with the separate `mobile_collection_retention:inventory` location grant. It
+also requires the location-scoped review-queue read grant. The inventory returns
+eligibility, collection field/attachment counts, private-media
+counts/bytes/statuses, canonical farm-activity counts/statuses, and review and
+workflow event counts. It does not return payload values, participant IDs,
+object keys, or media hashes. The scope is explicitly limited to known direct
+database lineage; reports, external exports, on-chain references, and backups
+still require separate reconciliation. The inventory is not a case manager and
+cannot approve or execute a disposition.
+
+Keep the capability partial until a disposition case, dual-control execution,
+complete downstream/media/backup reconciliation, and jurisdiction-approved
+retention ownership are implemented and accepted.
 
 ## Rollback
 

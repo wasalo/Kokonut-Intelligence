@@ -210,6 +210,136 @@ def get_mobile_collection(
             conn.close()
 
 
+def get_mobile_collection_disposition_inventory(
+    operator_id: str,
+    collection_id: str,
+    location_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict | None:
+    """Return a read-only, content-free inventory for an ineligible collection.
+
+    This is a known-lineage summary, not proof that all exports or backups have
+    been reconciled. A separate retention grant is required; no data is changed.
+    """
+    try:
+        operator_id = str(UUID(operator_id))
+        collection_id = str(UUID(collection_id))
+        location_id = str(UUID(location_id))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid operator, collection, or location identifier") from exc
+
+    conn = (connection_factory or _connection_factory())()
+    try:
+        rows = _read_rows(
+            conn,
+            """SELECT oc.id AS collection_id,
+                          oc.location_id,
+                          eligibility.eligible_for_use,
+                          eligibility.eligibility_reason,
+                          'known_direct_lineage_only' AS inventory_scope,
+                          jsonb_build_object(
+                              'sync_status', oc.sync_status,
+                              'form_id', oc.form_id,
+                              'form_version', oc.form_version,
+                              'has_participant_link', oc.participant_link_id IS NOT NULL,
+                              'has_collection_consent_reference',
+                                  oc.consent_event_id_at_collection IS NOT NULL,
+                              'has_sync_consent_reference',
+                                  oc.consent_event_id_at_sync IS NOT NULL,
+                              'payload_bytes', octet_length(oc.payload::text),
+                              'payload_field_count', CASE
+                                  WHEN jsonb_typeof(oc.payload) = 'object'
+                                  THEN jsonb_object_length(oc.payload) ELSE 0 END,
+                              'photo_reference_count', CASE
+                                  WHEN jsonb_typeof(oc.photo_refs) = 'array'
+                                  THEN jsonb_array_length(oc.photo_refs) ELSE 0 END,
+                              'has_coordinates', oc.latitude IS NOT NULL OR oc.longitude IS NOT NULL
+                          ) AS collection,
+                          (
+                              SELECT jsonb_build_object(
+                                  'object_count', COALESCE(SUM(media.status_count), 0),
+                                  'total_bytes', COALESCE(SUM(media.size_bytes), 0),
+                                  'by_status', COALESCE(
+                                      jsonb_object_agg(media.status, media.status_count), '{}'::jsonb
+                                  )
+                              )
+                                FROM (
+                                    SELECT upload.status, COUNT(*) AS status_count,
+                                           SUM(upload.size_bytes) AS size_bytes
+                                      FROM mobile_media_upload AS upload
+                                     WHERE (upload.attached_collection_id = oc.id
+                                        OR (upload.attached_collection_id IS NULL
+                                            AND upload.device_id = oc.device_id
+                                            AND upload.collection_client_id = oc.client_id))
+                                       AND upload.location_id = oc.location_id
+                                     GROUP BY upload.status
+                                ) AS media
+                          ) AS private_media,
+                          (
+                              SELECT jsonb_build_object(
+                                  'total', COALESCE(SUM(activity.status_count), 0),
+                                  'by_status', COALESCE(
+                                      jsonb_object_agg(activity.status, activity.status_count), '{}'::jsonb
+                                  )
+                              )
+                                FROM (
+                                    SELECT farm.status::text AS status, COUNT(*) AS status_count
+                                      FROM farm_activity AS farm
+                                     WHERE farm.source_system = 'field_collector'
+                                       AND farm.source_id = oc.id::text
+                                       AND farm.location_id = oc.location_id
+                                     GROUP BY farm.status
+                                ) AS activity
+                          ) AS canonical_activity,
+                          (
+                              SELECT COUNT(*)
+                                FROM farm_activity_workflow_event AS event
+                               WHERE event.source_collection_id = oc.id
+                                 AND event.location_id = oc.location_id
+                          ) AS workflow_event_count,
+                          (
+                              SELECT COUNT(*)
+                                FROM mobile_collection_review_event AS event
+                               WHERE event.collection_id = oc.id
+                                 AND event.location_id = oc.location_id
+                          ) AS review_event_count
+                     FROM offline_collection AS oc
+                     JOIN v_mobile_collection_use_eligibility AS eligibility
+                       ON eligibility.collection_id = oc.id
+                    WHERE oc.id = %s::uuid
+                      AND oc.location_id = %s::uuid
+                      AND oc.sync_status = 'synced'
+                      AND (oc.form_review_required OR NOT eligibility.eligible_for_use)
+                      AND EXISTS (
+                          SELECT 1 FROM operator_scope_grant AS grant_row
+                           WHERE grant_row.operator_id = %s::uuid
+                             AND grant_row.resource = 'mobile_collection_retention'
+                             AND grant_row.action = 'inventory'
+                             AND grant_row.location_id = oc.location_id
+                             AND grant_row.revoked_at IS NULL
+                      )
+                      AND EXISTS (
+                          SELECT 1 FROM operator_scope_grant AS review_grant
+                           WHERE review_grant.operator_id = %s::uuid
+                             AND review_grant.resource = 'mobile_collection_review'
+                             AND review_grant.action = 'read'
+                             AND review_grant.location_id = oc.location_id
+                             AND review_grant.revoked_at IS NULL
+                      )
+                    LIMIT 1""",
+            (collection_id, location_id, operator_id, operator_id),
+        )
+        if not rows:
+            return None
+        return _isoformat(rows[0], ())
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
 def _validate_review_event(value: object) -> tuple[str, str, list[dict[str, str]]]:
     if not isinstance(value, dict) or set(value) != {"decision", "reason", "evidence"}:
         raise MobileReviewEventInvalid("event must contain decision, reason, and evidence only")

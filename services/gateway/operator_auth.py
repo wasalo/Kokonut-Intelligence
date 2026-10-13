@@ -386,6 +386,22 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    mobile_disposition_inventory_match = re.fullmatch(
+        r"/operator/api/mobile-collection-review-queue/([0-9a-fA-F-]{36})/disposition-inventory",
+        path,
+    )
+    if mobile_disposition_inventory_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "mobile_collection_retention",
+            "action": "inventory",
+            "additional_scopes": [
+                {"resource": "mobile_collection_review", "action": "read"}
+            ],
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     mobile_review_match = re.fullmatch(
         r"/operator/api/mobile-collection-review-queue(?:/([0-9a-fA-F-]{36})(?:/(events))?)?",
         path,
@@ -870,6 +886,59 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             )
         if row is None:
             return JSONResponse(status_code=404, content={"error": "Mobile collection not found"})
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get(
+        "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory"
+    )
+    async def mobile_collection_disposition_inventory(
+        request: Request, collection_id: str, location_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store"},
+            )
+        from services.gateway.operator_mobile_review import (
+            get_mobile_collection_disposition_inventory,
+        )
+
+        try:
+            row = await run_in_threadpool(
+                get_mobile_collection_disposition_inventory,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile disposition inventory unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile disposition inventory unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Disposition inventory not found or not authorized"},
+                headers={"Cache-Control": "no-store"},
+            )
         from fastapi.encoders import jsonable_encoder
 
         return JSONResponse(
