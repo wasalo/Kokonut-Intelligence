@@ -29,7 +29,11 @@ TEST_ENV = {
 }
 
 
-def _compose_config(*profiles: str, files: tuple[str, ...] = ("docker-compose.yml",)) -> dict:
+def _compose_config(
+    *profiles: str,
+    files: tuple[str, ...] = ("docker-compose.yml",),
+    extra_env: dict[str, str] | None = None,
+) -> dict:
     command = ["docker", "compose", "--env-file", "/dev/null"]
     for profile in profiles:
         command.extend(["--profile", profile])
@@ -39,7 +43,7 @@ def _compose_config(*profiles: str, files: tuple[str, ...] = ("docker-compose.ym
     result = subprocess.run(
         command,
         cwd=ROOT,
-        env=TEST_ENV,
+        env=TEST_ENV | (extra_env or {}),
         capture_output=True,
         text=True,
         check=False,
@@ -118,6 +122,53 @@ def test_standard_kernel_profile_defaults_to_shared_postgres_limiter() -> None:
     )
     assert "cache" not in config["services"]
     assert config["services"]["app"]["environment"]["KOKONUT_RATE_LIMIT_PROVIDER"] == "postgres"
+
+
+def test_legacy_dataset_sql_override_reaches_kernel_app_and_worker_profiles() -> None:
+    enabled = {"KOKONUT_FEATURE_LEGACY_DATASET_SQL": "true"}
+
+    defaults = _compose_config(files=("docker-compose.kernel-candidate.yml",))
+    assert (
+        defaults["services"]["app"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"]
+        == "false"
+    )
+
+    candidate = _compose_config(
+        files=("docker-compose.kernel-candidate.yml",),
+        extra_env=enabled,
+    )
+    assert (
+        candidate["services"]["app"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"]
+        == "true"
+    )
+
+    standard = _compose_config(
+        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-standard.yml"),
+        extra_env=enabled,
+    )
+    assert (
+        standard["services"]["app"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"]
+        == "true"
+    )
+    assert (
+        standard["services"]["worker"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"]
+        == "true"
+    )
+
+    portability = _compose_config(
+        "application",
+        "workers",
+        files=("docker-compose.kernel-portability.yml",),
+        extra_env=enabled,
+    )
+    assert (
+        portability["services"]["app"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"]
+        == "true"
+    )
+    assert (
+        portability["services"]["worker"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"]
+        == "true"
+    )
 
 
 def test_metabase_profile_disables_public_sharing_and_embedding_without_secret() -> None:

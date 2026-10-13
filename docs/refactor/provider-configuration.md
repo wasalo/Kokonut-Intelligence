@@ -44,8 +44,12 @@ location scoping, or result materialization; those acceptance gates remain open.
 - Legacy defaults and existing feature registry function signatures retained.
 - Disabled providers bypass registered probes and port checks.
 - PostgreSQL health connections close even after a failed query.
-- No schema, durable state, credentials, or Docker changes in this slice.
-- Lint and formatting reviewed; runtime/contract tests have not been run.
+- No schema, durable state, or credential changes in this slice. Compose now
+  forwards the legacy SQL switch through candidate, portability, and standard
+  app/worker profiles; it remains false by default.
+- Twelve focused provider tests and eleven Compose-profile tests passed; Ruff,
+  Python compilation, shell syntax, and whitespace checks passed. No live query
+  was issued.
 - Before profile cutover, exercise defaults, malformed values, disabled-provider
   probes, absent optional packages, explicit target lists, and gateway health
   response compatibility in the focused core/gateway suites.

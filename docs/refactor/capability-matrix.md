@@ -32,7 +32,10 @@ collection-scoped runtime review remains open ([inventory](directus-parity-inven
 `dashboard_dataset.query_sql` execution now has an explicit
 `KOKONUT_FEATURE_LEGACY_DATASET_SQL` gate that defaults off; read-only dataset
 listing remains available. This reduces the default Kernel execution surface,
-but does not establish saved-dashboard ownership, query safety, least-privilege
+and the compatibility switch reaches candidate, portability, and standard app
+and worker profiles. Twenty-three focused core and Compose-profile tests pass,
+with Ruff, shell syntax, and whitespace checks clean. It does not establish
+saved-dashboard ownership, query safety, least-privilege
 grants, location scoping, or report parity ([implementation](provider-configuration.md);
 [inventory](reporting-parity-inventory.md)).
 

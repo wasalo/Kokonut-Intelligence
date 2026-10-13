@@ -230,8 +230,15 @@ The legacy stored-SQL refresher is now an explicitly gated compatibility path:
 function enforces that gate while read-only dataset listing stays available.
 This keeps unreviewed stored SQL out of the default Kernel runtime. It does not
 make opt-in queries safe or close the outstanding owner, role, location-scope,
-materialization, and report-parity gates. No tests or live queries ran for this
-change.
+materialization, and report-parity gates. The focused core-feature suite passes
+12 tests, Ruff passes on the changed Python files, and Python compilation passes;
+no live dashboard query ran. The switch now reaches candidate, portability,
+and standard API/worker Compose environments while defaulting to false. Compose
+profile checks confirmed the explicit override. Those checks also exposed and
+fixed a strict-shell health-check false negative: container-name detection now
+consumes the full Docker output instead of allowing `grep -q` to close its pipe
+early. The combined focused core and Compose-profile suites pass 23 tests; Ruff,
+shell syntax, and whitespace checks pass. No stored dashboard query ran.
 
 A read-only aggregate pass over the isolated legacy archive found 43 stored
 dashboard dataset definitions, all with owner metadata but only 12 distinct
