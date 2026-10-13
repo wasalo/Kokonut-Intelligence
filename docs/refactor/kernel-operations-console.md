@@ -155,6 +155,9 @@ setting names and a localhost HTTPS callback example; client and state secrets
 belong in `.env.sops`, not plaintext `.env`. A Compose contract check verifies
 the overlay remains opt-in and rejects missing provider settings. No real
 provider or credentials have been configured by that source check.
+The profile planner exposes `--oidc` and requires `--proxy` alongside it;
+`python3 scripts/kernel-profile.py minimal --proxy --oidc` prints the complete
+candidate/proxy/OIDC Compose command without loading secrets or starting it.
 
 ```sh
 source scripts/load-secrets.sh

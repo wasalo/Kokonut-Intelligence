@@ -3810,11 +3810,13 @@ OIDC, and deployed credentialed-CORS acceptance remain open.
 
 Added the optional OIDC provider settings to `.env.example`, including a
 localhost HTTPS callback example and a reminder to keep client/state secrets in
-SOPS. A Compose profile check confirms the default candidate omits OIDC, the
-OIDC overlay fails configuration when the issuer is missing, and explicit test
-settings reach the app environment. The focused Compose-profile suite passes 12
-tests and Ruff is clean. No real provider, credential, browser, or service was
-used; OIDC login/session and console acceptance remain open.
+SOPS. Compose checks confirm the default candidate omits OIDC, the OIDC overlay
+fails configuration when the issuer is missing, and explicit test settings
+reach the app environment. The profile planner now supports `--oidc` and rejects
+that option without `--proxy`, ensuring the secure-cookie path uses HTTPS.
+Fifteen Compose/planner checks pass; Ruff, Python compilation, and whitespace
+checks are clean. No real provider, credential, browser, or service was used;
+OIDC login/session and console acceptance remain open.
 
 
 ## Batch 2 focused platform-integrity source run — 13 October 2026

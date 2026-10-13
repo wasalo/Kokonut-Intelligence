@@ -17,6 +17,7 @@ PROFILES = {
 }
 OPTIONAL = {
     "proxy": "docker-compose.kernel-proxy.yml",
+    "oidc": "docker-compose.kernel-oidc.yml",
     "grpc": "docker-compose.kernel-grpc.yml",
     "mqtt": "docker-compose.kernel-mqtt.yml",
     "http_sensors": "docker-compose.kernel-http-sensors.yml",
@@ -40,6 +41,8 @@ def main() -> None:
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
+    if args.oidc and not args.proxy:
+        parser.error("--oidc requires --proxy so operator session cookies use the HTTPS origin")
 
     files = [BASE]
     if args.separate_workers:
