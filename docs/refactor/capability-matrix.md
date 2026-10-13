@@ -24,6 +24,10 @@ anonymous farm-activity/review routes return 401. Its database checkpoint was
 restore-rehearsed with matching migration fingerprints, extension versions, and
 selected row counts. See [rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json).
 
+The Directus source inventory maps its permission and hook boundary for CAP-001
+and CAP-053, but does not establish effective Directus API parity; the
+collection-scoped runtime review remains open ([inventory](directus-parity-inventory.md)).
+
 **13 October 2026 Phase 8 update:** the minimal app/PostGIS build inputs now
 have a SHA-256 lock, and GitHub Actions is configured to build AMD64/ARM64 OCI
 archives and compare resolved Python/PostGIS package versions. The current

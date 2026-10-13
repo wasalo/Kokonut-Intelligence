@@ -179,6 +179,21 @@ suite or HTTP route request ran. Refresh the OpenAPI snapshot before rerunning
 the generator. SDK build/publication, runtime
 parity, and the operations-console slice remain open.
 
+## Directus parity source inventory — 13 October 2026
+
+Mapped the legacy permission seed, DML-only Directus runtime identity, Directus
+hook registrations and side effects, native Gateway/operator route surface,
+tenant scoping model, and the limited coverage of the existing metadata and
+permission source checks. The inventory distinguishes database privileges from
+Directus API authorization and identifies the scheduled NOI and weekly snapshot
+callbacks that need a single-owner decision. Directus uses the legacy
+single-location user field for selected staff filters; the native operator
+console uses explicit grants, so these identity models are not assumed to be
+equivalent. No test suite or live Directus request ran for this review. Source
+mapping is complete, while effective API/field/row/hook parity stays open until
+an isolated runtime identity and disposable scoped rows are used. See the
+[Directus parity inventory](directus-parity-inventory.md).
+
 ## Phase 7 JavaScript SDK compiler compatibility — 11 October 2026
 
 Installed the SDK's declared TypeScript 5.8.3 development dependency locally and
