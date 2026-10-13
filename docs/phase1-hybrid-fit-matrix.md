@@ -1,6 +1,6 @@
 # KI-21 Phase 1 — Hybrid Placement and Migration Design (Review Draft)
 
-- **Current Git platform (13 October 2026):** The repository was migrated back to GitHub before the Kokonut Kernel refactor. The OneDev-to-Gitea transition material below is historical planning context and is superseded. GitHub is canonical; see [`docs/github-actions.md`](github-actions.md) for workflow setup. The repository-side runner, environment, branch-protection, and secret configuration remains pending.
+- **Current Git platform (13 October 2026):** The repository was migrated back to GitHub before the Kokonut Kernel refactor. The earlier OneDev-to-Gitea proposal below is superseded and has no remaining implementation steps. GitHub is canonical; see [`docs/github-actions.md`](github-actions.md) for workflow setup. GitHub runner, environment, branch-protection, and secret configuration remains pending.
 - **Status:** Proposed hybrid placement; local no-user-data Worker prototype implemented; not architecture approval or Cloudflare deployment authorization
 - **Evidence date:** 2026-09-30
 - **Baseline:** [`Phase 0 capability and data baseline`](phase0-capability-baseline.md), source revision `18ae8cf`
@@ -67,28 +67,26 @@ The API origin path (including whether a route goes directly to the current Gate
 - Assign named human owners for canonical data, operations, secrets, backups/restore, and independent approval; the repository does not assign this RACI.
 - Inventory the eight retained Staging volumes, record size/contents classification and seed-versus-historical/manual/user-originated data, then agree archive and disposition. **Do not prune or delete volumes.**
 - Resolve the authorized test-secret injection path. Prior local test attempts hit the documented SOPS fail-closed path; no identity/key diagnosis or secrets change was performed.
-- The OneDev-to-Gitea transition item is superseded by the repository's return to GitHub. GitHub CI and Security are now defined in source; full-history Security passed, and CI run 280 is checking the recursive OCI metadata fix. New Python lockfiles require the next CI run. Staging remains disabled in the GitHub workflow. After GitHub checks and environment settings are active, the repository owner should retire any remote OneDev staging trigger or runner.
+- The repository's Git platform is GitHub. GitHub CI, full-history Gitleaks Security, and manually gated deployment workflows are defined in source; Security passed on `cf5bcd3`, while CI run 281 is in progress and predates the newer apt snapshot lock. Staging remains disabled in the GitHub workflow. After GitHub checks and environment settings are active, retire any remote OneDev triggers or runner service.
 - Reconcile backup policy with actual scripts, including Directus media, Metabase metadata if retained, Mosquitto state if valuable, decryption, and an isolated restore rehearsal.
 
-### 1B — Historical OneDev-to-Gitea migration plan (superseded)
+### 1B — GitHub workflow migration complete; remote retirement pending
 
-- **Decision (2026-09-30):** Wasabi will migrate the Kokonut repository and tracking workspace from OneDev into the Gitea organization already created. Wasabi will run the migration flow after this plan is ready. The selected migration items are **Milestones, Labels, Issues, and Pull Requests**. This supersedes earlier plan text that treated OneDev as the long-term control plane and Gitea only as an emergency contingency.
-- **Current target reported by Wasabi (2026-09-30): Gitea 1.27.1.** Do not run the built-in import from that version: it is within the affected range for the OneDev migration denial-of-service advisory (through 1.27.2), predates the 1.27.3 private-attachment fix, and is specifically where the redirect-SSRF correction was reverted.
-- **Updated release path (2026-09-30):** Gitea 28.0.0 (the new versioning drops the historical `1.` prefix from 1.28.0) was released today and is listed as patched for the redirect-SSRF advisory. Its release routes migrations/mirrors/Git network operations through an internal proxy with configurable egress. The migration flow is functionally supported; this is a security gate, not a compatibility claim that the import cannot work. Upgrade from Wasabi-reported 1.27.1 only after reviewing the release breaking changes, verifying backups, Git >=2.25, `ROOT_URL`, and migration egress settings.
-- Before the one-time import, configure and verify `[migrations] EGRESS_MODE = strict` and `ALLOWED_HOST_LIST` limited to the trusted OneDev source host/required port; confirm redirects to loopback/private/internal hosts are denied. The release defaults egress mode to `lax`, so do not rely on defaults. In strict mode, host entries without ports permit only 80/443. Review `BLOCKED_HOST_LIST` and the new egress policy, limit migration permission to trusted operators, test private attachments with authorized and unauthorized viewers, and disable/restrict migration capability after import.
-- **No-mirror clarification:** Wasabi will use a one-time import, not a pull mirror. This avoids scheduled repeated fetch exposure, but the advisory also demonstrates a one-time migration attack using the initial clone, so no-mirror alone does not remove the redirect-SSRF risk. Keep mirror mode disabled and use the v28.0.0 strict-egress gate.
-- **Checkpoint done (2026-09-30):** validated KI plan/prototype content is committed as `d78efe9` on `chore/ki-21-phase-0-baseline` and pushed to the OneDev `origin` remote for migration. The unrelated `uv.lock` Python-version edit remains local and uncommitted; it is excluded unless separately reviewed and approved.
-- In the migration flow, include the selected tracking items and preserve Git history, branches, tags, and LFS objects if present. Use one-time import mode, not pull-mirror mode. Verify what the actual instance/version imports rather than assuming every issue/PR field is preserved.
-- After import, compare repository refs and item counts; inspect representative open/closed issues and PRs, labels, milestones, associations, comments, attachments, review state, cross-references, and PR head/base branches. Confirm organization/team access and default branch. Keep OneDev available as a rollback/source reference until this audit passes.
-- CI/control-plane cutover is a separate gate: reconcile Gitea Actions workflows and runner labels, secrets, webhooks, required checks, branch protections, and human approvals. These are not among the selected migration items and must not be assumed to transfer. Keep Staging auto-deployment paused and Production promotion manual; ensure only one CI system can deploy after cutover.
-- Once Wasabi confirms the import, update issue references and finalize this plan in Gitea. No OneDev repository migration, CI cutover, Gitea write, Staging change, Cloudflare resource change, or deployment is performed by this agent.
+The repository is back on GitHub. Its former OneDev buildspec was removed and
+replaced with GitHub Actions CI, full-history Gitleaks Security, and manually
+gated Staging and Production workflows. Security passed on commit `cf5bcd3`;
+CI run 281 is in progress but predates the current apt snapshot source lock.
+The source-controlled Staging gate remains disabled. GitHub repository settings
+and any remaining remote OneDev triggers or runner service still need to be
+checked and retired by an administrator with access to those platforms. No
+Gitea migration is planned.
 
 ### 1C — Local proof completed; remote preview remains gated
 
 - Implemented a local-only synthetic Worker + Static Assets proof in [`prototypes/cloudflare-edge-preview`](../prototypes/cloudflare-edge-preview/README.md): static preview, `/healthz`, explicit unavailable `/api/*`, restrictive static-asset headers, and no KI backend/data bindings.
 - Verification on 2026-09-29: `npm run validate` passed Wrangler type generation, TypeScript checking, classic-script syntax checking, **4 Vitest runtime tests**, and `wrangler deploy --dry-run`. A local Wrangler session served the page and verified `/healthz` = 200, `/api/farms` = 404, `POST /healthz` = 405, and unknown asset = 404; the browser rendered the healthy-but-disconnected status.
-- These checks establish local behavior only—not a Cloudflare account deployment, public URL, Gitea Actions integration, external access control, or remote runtime parity.
-- A remote non-production Worker preview still requires separate resource/deployment approval with the target account/name, public-preview access controls, and an agreed usage/cost boundary. If approved after Gitea cutover, test Gitea Actions/runner `wrangler` build/deploy, environment isolation, scoped token handling, logs, rollback/version restoration, and deletion procedure; leave public production DNS and current Staging routes unchanged.
+- These checks establish local behavior only—not a Cloudflare account deployment, public URL, GitHub Actions deployment integration, external access control, or remote runtime parity.
+- A remote non-production Worker preview still requires separate resource/deployment approval with the target account/name, public-preview access controls, and an agreed usage/cost boundary. If approved, test GitHub Actions/runner `wrangler` build/deploy, environment isolation, scoped token handling, logs, rollback/version restoration, and deletion procedure; leave public production DNS and current Staging routes unchanged.
 - Do not connect the first remote preview to live PostgreSQL, Directus, R2 user data, production secrets, or legacy volumes.
 
 ### 1D — Evaluate backend offload only if the local/remote preview demonstrates value
@@ -107,7 +105,7 @@ The API origin path (including whether a route goes directly to the current Gate
 
 - No TCO estimate is asserted: request volume, egress, Worker execution, object count/size, retention, Tunnel topology and current Cloudflare plan eligibility are not established by Phase 0. Current Workers documentation says requests served directly as static assets are free/unlimited and static asset storage has no additional charge, while requests that invoke Worker code are billed under Workers pricing; other product, storage, security and network costs still need a measured estimate. Build a monthly comparison against Coolify compute, storage, backup, bandwidth and operator effort before approving paid resources.
 - Keep API and personalized responses non-cacheable unless a route has explicit public-data eligibility, short freshness, invalidation and privacy tests. Never cache credentials, device sync state, private farm data, or admin routes.
-- Keep secrets in the active CI/Cloudflare secret stores with distinct per-environment scope; recreate and verify CI secrets during Gitea cutover rather than assuming OneDev secrets transfer. No secrets in source, build logs, frontend assets, or uploaded Worker bundles.
+- Keep secrets in the active GitHub/Cloudflare secret stores with distinct per-environment scope. Verify the GitHub environment configuration directly; do not assume OneDev secrets transferred. No secrets in source, build logs, frontend assets, or uploaded Worker bundles.
 - Preserve role/location authorization at the canonical backend. A signed file URL is a bearer token and does not itself enforce farm membership after issuance.
 - Require test evidence for functional parity, authorization denial cases, tenant isolation, audit durability, API contracts, load/concurrency, timeout/retry behavior, observability, data backup/restore, cost, and rollback before each capability moves.
 - A successful Worker deployment, database ping, or file upload is only a component test—not a migration acceptance result.
@@ -121,11 +119,11 @@ The API origin path (including whether a route goes directly to the current Gate
 5. Are new mobile/photo uploads a near-term requirement, and what retention/privacy rules apply?
 6. Which Cloudflare products/features and plan are eligible, and what usage budget/SLO should the proof meet?
 7. Which operational log/alert destination and incident owner cover Cloudflare-to-Coolify failures?
-8. After import, which Gitea Actions workflows, runner labels, repository secrets, branch protections, and required checks are approved for the canonical CI path?
+8. Which GitHub runner registrations, repository secrets, branch protections, required checks, and environment approvals are active for the canonical CI path?
 
 ## 7. References
 
-Cloudflare references checked 2026-09-27; Gitea references checked 2026-09-30.
+Cloudflare references checked 2026-09-27.
 
 - [Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/) — static assets and Worker code can be deployed/routed together; [billing and limits](https://developers.cloudflare.com/workers/static-assets/billing-and-limitations/) — static asset versus Worker-script charges.
 - [Python Workers packages and FastAPI](https://developers.cloudflare.com/workers/languages/python/packages/fastapi/) and [package compatibility](https://developers.cloudflare.com/workers/languages/python/packages/) — Python Worker runtime/dependency constraints.
@@ -134,9 +132,3 @@ Cloudflare references checked 2026-09-27; Gitea references checked 2026-09-30.
 - [R2 presigned URLs](https://developers.cloudflare.com/r2/api/s3/presigned-urls/) — supported operations, CORS and bearer-token cautions.
 - [Containers fundamentals](https://developers.cloudflare.com/containers/concepts/) and [limits/instance types](https://developers.cloudflare.com/containers/platform/limits/) — request routing, on-demand lifecycle, resource sizes and ephemeral local storage.
 - [Workers Builds Git integrations](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/) and [external CI/CD](https://developers.cloudflare.com/workers/ci-cd/external-cicd/) — supported providers and deployment from other CI systems.
-- [Gitea migration API](https://docs.gitea.com/api/operations/repo-migrate/) — accepts `onedev` as a migration source and exposes milestones, labels, issues, pull requests, LFS, releases, and wiki options.
-- [Gitea 28.0.0 release notes](https://blog.gitea.com/release-of-28.0.0/) — released 2026-09-30; documents the internal Git proxy, migration egress settings/defaults, Git version floor, and breaking changes.
-- [Official Gitea releases](https://github.com/go-gitea/gitea/releases) — verify the deployed release and its security fixes before import.
-- [Gitea OneDev migration security advisory GHSA-46px-6cqx-c5fv (CVE-2026-60018)](https://github.com/go-gitea/gitea/security/advisories/GHSA-46px-6cqx-c5fv) — affected versions through 1.27.2; patched in 1.27.3.
-- [Gitea migration redirect/SSRF advisory GHSA-82f7-87hm-852x](https://github.com/go-gitea/gitea/security/advisories/GHSA-82f7-87hm-852x) — the 1.27.1 reversion and proxy/egress mitigations for Git HTTP redirects.
-- [Gitea private-attachment authorization advisory GHSA-frpv-2xgv-wxpq (CVE-2026-78433)](https://github.com/go-gitea/gitea/security/advisories/GHSA-frpv-2xgv-wxpq) — some pre-2026-01-16 private attachments could be served through public-repository paths; patched in 1.27.3.

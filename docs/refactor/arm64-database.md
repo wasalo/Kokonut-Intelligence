@@ -68,9 +68,9 @@ Installed package versions are recorded inside the artifact at
 The image adds no automatic schema or seed initialization. Existing migration
 000 creates postgis and postgis_topology; other canonical extensions remain
 owned by schema SQL. Raster capability and package compatibility still need
-inspection/acceptance. Exact apt package selection does not pin every transitive
-dependency or guarantee reproducibility after repository metadata changes;
-record the built image digest and evaluate package snapshots before release.
+inspection/acceptance. The paired builds documented above used the live PGDG
+suite before the apt source lock below and do not verify the current snapshot
+inputs.
 
 This Dockerfile is not referenced by current Compose and was not built or
 started. It does not change the candidate's existing PostgreSQL patch level or
@@ -148,12 +148,12 @@ for `kokonut-kernel-postgis-amd64:local`. Docker reports 911,774,311 bytes
 reported size must not be treated as proof of a smaller installed filesystem.
 Comparable compressed/unpacked/layer/storage measurements remain pending.
 
-The JSON now marks database_build_verified true to mean both architecture builds
-completed; runtime_certified remains false. It does not mean extension, schema,
-restore, spatial/raster, or Raspberry Pi tests passed. Both artifacts remain
-local tags, not a published multi-platform index or selected deployment image.
-Dependencies are recorded by each image's package inventory; transitive apt
-packages remain subject to repository changes on rebuild.
+The JSON previously marked `database_build_verified` true to mean both
+architecture builds completed; those artifacts predate the apt source lock.
+The field is now false until both architectures rebuild from the snapshot-aware
+definition. Runtime certification remains false. The earlier artifacts are
+retained as historical identities, not a published multi-platform index or
+selected deployment image.
 
 No database or data volume was started, migrated, or replaced. Current candidate
 Compose and the planner ARM64 guard remain unchanged. Prepare a fresh isolated
@@ -164,6 +164,19 @@ runtime tests were added or run for the paired build.
 The subsequent [ARM64 application build](arm64-application.md) also completed.
 Deployment selection, extension/runtime acceptance, and hardware certification
 remain separate gates; the original manifests' ARM64 guard stays active.
+
+## Snapshot-aware apt source follow-up — 13 October 2026
+
+The current `Dockerfile.kernel-postgis` source set is defined in
+`config/postgres/kernel-apt.sources`: Debian Bookworm and security packages come
+from the `20261012T000000Z` snapshot, while the exact PostGIS packages come from
+`bookworm-pgdg-archive` at the versions in
+`config/postgres/kernel-postgis-packages.json`. A low-priority apt preference
+keeps unrelated PGDG packages behind the dated Debian source. The release-input
+lock covers both source files and the package record. CI run 281 started before
+this update; the next multi-architecture run must rebuild both targets before
+the new apt inputs are accepted. The full installed-package inventories,
+extension behavior, restore, runtime, and Raspberry Pi remain separate gates.
 
 Build the final target with both explicit arguments after discovery:
 

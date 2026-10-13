@@ -13,9 +13,10 @@ projects, publish images, or touch database volumes.
 `config/kernel/release-input-lock.json` pins SHA-256 digests for the application
 and database base manifests, the Kernel Dockerfiles, the direct Python
 requirement manifests and generated locks for the runtime and optional
-ClickHouse profile, and the verified PostGIS package catalog. The catalog
-records the exact PostGIS runtime and script package versions and their
-verified amd64/arm64 availability.
+ClickHouse profile, the Debian/PGDG apt source definitions, and the verified
+PostGIS package catalog. The catalog records the exact PostGIS runtime and
+script package versions, the Debian snapshot timestamp, and their verified
+amd64/arm64 availability.
 
 The gate extracts `python-packages.json` from each default and ClickHouse app
 platform and requires exact package name/version parity between the two
@@ -36,12 +37,20 @@ enabled. Regenerate locks with the pinned pip-tools version and review package
 changes before updating the release-input manifest. The lock does not pin the
 Python base image's bundled pip independently from its digest.
 
-The PostGIS apt packages are version-pinned, but apt repository snapshots and
-transitive Debian package versions are not locked. GitHub-hosted runner Docker
-and Buildx tooling come from the runner image and are outside the app release
-lock. The CI gate validates the selected PostGIS package versions; it
-does not certify extension behavior,
-logical restore, ARM64 runtime, or Raspberry Pi resource limits.
+PostGIS package resolution now uses a timestamped Debian Bookworm snapshot and
+the PGDG archive, with exact versions for the two selected PostGIS packages.
+The source files and timestamp are covered by the release-input lock. The
+current archive check verifies the selected PostGIS package versions on both
+architectures; it does not compare the full Debian package inventory or certify
+extension behavior, logical restore, ARM64 runtime, or Raspberry Pi resource
+limits. A fresh multi-architecture run is required to accept the snapshot
+change. GitHub-hosted runner Docker and Buildx tooling come from the runner image
+and are outside the app release lock.
+
+The Debian source uses the official [snapshot service](https://snapshot.debian.org/)
+at an explicit UTC timestamp. PGDG's [APT documentation](https://wiki.postgresql.org/wiki/Apt/FAQ)
+describes its `-pgdg-snapshot` suite as a development snapshot; this build uses
+the released-package archive with exact PostGIS version pins instead.
 
 ## Updating inputs
 

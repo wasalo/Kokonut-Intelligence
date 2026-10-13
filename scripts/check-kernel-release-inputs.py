@@ -69,6 +69,33 @@ def _validate_inputs(lock: dict) -> None:
     package_record = _load_json(ROOT / "config/postgres/kernel-postgis-packages.json")
     if package_record.get("base_image") != base_images.get("database"):
         raise LockError("PostGIS package record base_image differs from the release lock")
+    apt_sources = package_record.get("apt_sources")
+    if not isinstance(apt_sources, dict):
+        raise LockError("PostGIS package record has no apt_sources lock")
+    snapshot_timestamp = apt_sources.get("debian_snapshot_timestamp", "")
+    if not re.fullmatch(r"\d{8}T\d{6}Z", snapshot_timestamp):
+        raise LockError("PostGIS Debian snapshot timestamp must be an exact UTC timestamp")
+    sources_path = apt_sources.get("source_file")
+    preferences_path = apt_sources.get("preferences_file")
+    try:
+        sources = (ROOT / sources_path).read_text(encoding="utf-8")
+        preferences = (ROOT / preferences_path).read_text(encoding="utf-8")
+    except (TypeError, OSError) as error:
+        raise LockError(f"cannot read locked PostGIS apt source inputs: {error}") from error
+    expected_source_entries = (
+        f"https://snapshot.debian.org/archive/debian/{snapshot_timestamp}/",
+        f"https://snapshot.debian.org/archive/debian-security/{snapshot_timestamp}/",
+        "Suites: bookworm bookworm-updates",
+        "Suites: bookworm-security",
+        apt_sources.get("pgdg_archive_uri"),
+        apt_sources.get("pgdg_archive_suite"),
+    )
+    if any(not entry or entry not in sources for entry in expected_source_entries):
+        raise LockError("PostGIS apt source file differs from the package-record snapshot lock")
+    if package_record.get("repository_suite") != apt_sources.get("pgdg_archive_suite"):
+        raise LockError("PostGIS repository_suite differs from its apt source lock")
+    if "Pin-Priority: 100" not in preferences:
+        raise LockError("PostGIS PGDG archive packages must have low default apt priority")
     if set(package_record.get("verified_package_catalog_architectures", [])) != {"amd64", "arm64"}:
         raise LockError("PostGIS package catalog must be verified for amd64 and arm64")
     package_args = package_record.get("build_arguments", {})

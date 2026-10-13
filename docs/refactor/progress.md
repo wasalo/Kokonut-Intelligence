@@ -3565,10 +3565,11 @@ rule-scoped exact path/line/value exceptions and made the workflow select that
 config explicitly; full-history scanning and the other secret rules remain
 enabled. The full-history Security workflow passed on 13 October 2026. Two CI
 runs built both architecture images and failed release validation because
-Buildx wrapped platform manifests in nested OCI indexes. The current PR fix
-recursively inspects nested indexes, then derives platform labels from image
-configs when image descriptors omit them. CI run 280 is executing that fix;
-the following dependency-lock changes require their own CI run. GitHub runner registration,
+Buildx wrapped platform manifests in nested OCI indexes. The PR fix recursively
+inspects nested indexes, then derives platform labels from image configs when
+image descriptors omit them. CI run 281 is validating that fix and the Python
+dependency locks. The subsequent apt snapshot source update requires a fresh CI
+run. GitHub runner registration,
 `staging`/`production` environments, branch rules, and production SSH secrets
 remain pending remote configuration; see [setup requirements](../github-actions.md).
 Staging also requires a reviewed source change to clear its disabled flag. No
@@ -3582,7 +3583,19 @@ Dockerfile now selects one full lock at build time and pip enforces hashes.
 `config/kernel/release-input-lock.json` covers the source manifests, both lock
 files, and Dockerfile bytes. The multi-architecture release script now builds
 and inspects both app profiles plus PostGIS for linux/amd64 and linux/arm64.
-GitHub CI run 280 started before these changes and does not validate them; a
-fresh PR run is required. Apt repository snapshots and transitive Debian
-package versions remain open. No local test suite or Docker build was run for
-this slice.
+GitHub CI run 281 is validating the Python locks and app profiles. It began
+before the apt source update below and cannot accept that change. No local test
+suite or Docker build was run for this slice.
+
+### Kernel apt source lock follow-up — 13 October 2026
+
+Added a UTC-dated Debian Bookworm snapshot source and switched the selected
+PostGIS packages to the PGDG released-package archive with exact versions.
+The apt source and preference files plus the package catalog are covered by
+`config/kernel/release-input-lock.json`; the release checker requires the
+timestamp, suites, archive, and low default PGDG priority to agree. Earlier
+local amd64/arm64 PostGIS artifacts were built before this source lock and are
+retained as historical identities, not acceptance evidence for the new input.
+CI run 281 predates this update; a fresh multi-architecture build must verify
+the apt resolution. Full installed-package inventory comparison, extension and
+restore acceptance, and hardware certification remain open.

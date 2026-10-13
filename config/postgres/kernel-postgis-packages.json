@@ -1,14 +1,23 @@
 {
   "observed_date": "2026-10-10",
   "base_image": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
-  "repository_suite": "bookworm-pgdg",
+  "repository_suite": "bookworm-pgdg-archive",
+  "apt_sources": {
+    "debian_snapshot_timestamp": "20261012T000000Z",
+    "debian_suites": ["bookworm", "bookworm-updates", "bookworm-security"],
+    "pgdg_archive_uri": "https://apt-archive.postgresql.org/pub/repos/apt",
+    "pgdg_archive_suite": "bookworm-pgdg-archive",
+    "source_file": "config/postgres/kernel-apt.sources",
+    "preferences_file": "config/postgres/kernel-pgdg.pref"
+  },
   "verified_package_catalog_architectures": ["amd64", "arm64"],
   "build_arguments": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
     "POSTGIS_SCRIPTS_VERSION": "3.6.4+dfsg-2.pgdg12+1"
   },
-  "database_build_verified": true,
-  "completed_builds": {
+  "database_build_verified": false,
+  "previous_database_build_verified": true,
+  "pre_snapshot_lock_builds": {
     "linux/amd64": {
       "tag": "kokonut-kernel-postgis-amd64:local",
       "image_identity": "sha256:10d2101d4d0abee25a6b5217ae5fa43f5c912eb75d3b34f17f206e1fcfcff789",
