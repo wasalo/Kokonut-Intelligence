@@ -285,13 +285,21 @@ def create_farm_activity_draft(
                       AND EXISTS (
                           SELECT 1 FROM operator_scope_grant AS detail_grant
                            WHERE detail_grant.operator_id = %s::uuid
+                             AND detail_grant.resource = 'farm_activity'
+                             AND detail_grant.action = 'read_detail'
+                             AND detail_grant.location_id = oc.location_id
+                             AND detail_grant.revoked_at IS NULL
+                      )
+                      AND EXISTS (
+                          SELECT 1 FROM operator_scope_grant AS detail_grant
+                           WHERE detail_grant.operator_id = %s::uuid
                              AND detail_grant.resource = 'mobile_collection_review'
                              AND detail_grant.action = 'read_detail'
                              AND detail_grant.location_id = oc.location_id
                              AND detail_grant.revoked_at IS NULL
                       )
                     FOR UPDATE OF oc, revision""",
-                (collection_id, location_id, operator_id, operator_id),
+                (collection_id, location_id, operator_id, operator_id, operator_id),
             )
             intake = cur.fetchone()
             if intake is None:
@@ -314,10 +322,11 @@ def create_farm_activity_draft(
                     conn.rollback()
                     return None
 
-            # Recheck and lock both grants for the duration of this write, so
-            # a concurrent operator-grant revocation cannot race promotion.
+            # Recheck and lock each required grant for the duration of this
+            # write, so a concurrent revocation cannot race promotion.
             for resource, action in (
                 ("farm_activity", "create_draft"),
+                ("farm_activity", "read_detail"),
                 ("mobile_collection_review", "read_detail"),
             ):
                 cur.execute(

@@ -1,12 +1,13 @@
 # Farm activity workflow map
 
-Status: source map, declarative workflow correction, private queue/detail,
-canonical draft promotion, governed lifecycle transitions, the published-only
-farm summary, and rework-metric provenance are implemented on the feature
-branch. Migrations 383–384 and the transition routes pass focused tests and
-disposable PostgreSQL acceptance. Eleven report/metric tests and a minimal
-synthetic-schema PostGIS check also pass. The feature has not been deployed to
-the candidate; full-schema parity and MAN-CAP-001 acceptance remain open.
+Status: source map, declarative workflow correction, private intake and draft
+promotion, governed lifecycle writes, published-only farm summary, and
+rework-metric provenance are implemented on the feature branch. Migrations
+383–384 and lifecycle writes are deployed to the local candidate; its exact
+checkpoint/restore, migration, health, and protected-route checks are recorded.
+This turn adds source-level canonical queue/detail reads and operator-console
+controls; those changes have not yet been tested or deployed. OIDC is disabled,
+the candidate has no farm activity fixture rows, and MAN-CAP-001 remains open.
 
 This map selects the current `farm_activity_v1` Field Collector form as the
 first Batch 3 vertical slice. It records existing behavior, the native Kernel
@@ -59,7 +60,7 @@ draft metric_value / governed report_snapshot draft
   does not mutate collection eligibility, promote records, or publish content.
   The current queue is aimed at form/consent review; the new farm-activity
   intake path is a separate route and service.
-* The current feature branch adds `services/gateway/farm_activity_workflow.py`
+* The feature branch adds `services/gateway/farm_activity_workflow.py`
   and OIDC routes for `GET /operator/api/farm-activity-intake-queue`, scoped
   detail, and `POST /operator/api/farm-activity-intake-queue/{id}/draft`.
   The queue and detail readers require the active immutable 1.2.0 revision and
@@ -68,12 +69,12 @@ draft metric_value / governed report_snapshot draft
   detail requires both
   `farm_activity:read_detail` and `mobile_collection_review:read_detail`, is
   capped at 512 KiB, and is sent with `Cache-Control: no-store`. Promotion
-  requires CSRF, both `farm_activity:create_draft` and
-  `mobile_collection_review:read_detail`, and the exact body
+  requires CSRF, `farm_activity:create_draft`, `farm_activity:read_detail`,
+  and `mobile_collection_review:read_detail`, and the exact body
   `{"content_reviewed": true}`. Middleware also requires a valid OIDC session
   and the location-scoped grants.
 * Promotion locks and rechecks the source row and exact active form revision,
-  then holds locks on any participant link and both active database grants
+  then holds locks on any participant link and all three active database grants
   through commit. Concurrent participant or grant revocation waits for the
   promotion to finish; a revocation that wins first makes the promotion fail.
   Form validation, consent eligibility, and sync state are also rechecked.
@@ -96,13 +97,29 @@ draft metric_value / governed report_snapshot draft
   content. Rework returns the row to draft before content can change again.
   Existing `lifecycle_transition` rows continue to be written for changed
   status values; `exception_closed` is a separate event because status stays
-  rejected. These migrations and routes are not applied to the candidate.
+  rejected. Migrations 383–384 and lifecycle write routes have been applied to
+  the local candidate. The canonical activity read routes and console controls
+  added in the latest source slice are not yet deployed there.
+* `services/gateway/farm_activity_lifecycle.py` now also lists native
+  `farm_activity_v1` 1.2.0 records without free text and returns bounded
+  canonical detail with workflow history. Both reads bind activity and
+  location; detail requires `farm_activity:read_detail` and
+  `mobile_collection_review:read_detail`. The transition service also rejects
+  legacy Field Collector rows that do not carry the exact native form lineage.
+  Decision history returns at most the newest 100 events and marks truncation.
+  `apps/operator-console/index.html` now has source-level intake promotion and
+  lifecycle controls. Actions render only for the operator's granted location
+  and current state; rejection, rework, and exception closure require a reason,
+  and publication asks for an explicit browser confirmation. Returning a row
+  to draft is available, but a native schema-validated draft edit route and
+  append-only edit evidence are still missing; do not treat the rework loop as
+  complete or make Directus mandatory for correction.
 * `schemas/postgres/003_operations.sql` defines canonical `farm_activity`
   fields, lineage fields, and lifecycle status. `services/export/
   spreadsheet_bridge.py::import_farm_activity_csv` is one existing importer;
-  it creates draft rows. The feature branch now adds the first
-  Field Collector-to-`farm_activity` draft adapter and location-scoped intake
-  routes; governed lifecycle routes remain absent.
+  it creates draft rows. The feature branch adds the first
+  Field Collector-to-`farm_activity` draft adapter, location-scoped intake
+  routes, and governed lifecycle routes.
 * Migration 179 records status changes in `lifecycle_transition` for
   `farm_activity`. It reads `kokonut.actor_id` and `kokonut.actor_type`, but
   the trigger observes status changes only; it does not enforce legal state
@@ -112,8 +129,9 @@ draft metric_value / governed report_snapshot draft
   rejection as terminal and publication as a system action. The declarative
   spec is now corrected: the submitter is separated from the human verifier,
   rejection offers rework or exception disposition, and publication is an
-  explicit human action. Runtime authorization and database guards are still
-  absent; this spec remains a declaration rather than an API enforcement layer.
+  explicit human action. OIDC route policy and PostgreSQL lifecycle guards now
+  enforce those rules for native 1.2.0 rows; configured-provider acceptance
+  remains open.
 * `services/metrics/calculators/{governed_lead_time,first_time_through_yield,
   rework_rate}.py` include farm activity lifecycle traces. The metrics depend
   on truthful status transitions and actor attribution. Per repository policy,
@@ -279,32 +297,40 @@ person-specific evaluations; future text review must retain that restriction.
    The combined suite covers duplicate retry, stale/ineligible collections,
    wrong-location read/write query guards, and rollback on an injected event
    write failure. Real PostgreSQL failed-trigger rollback and the two-caller
-   concurrent duplicate-promotion check passed. Higher-contention stress, configured-provider OIDC, and candidate rollout
-   remain open. These migrations and routes
-   are not deployed to the candidate.
+   concurrent duplicate-promotion check passed. Migrations 383–384 and the
+   lifecycle write routes are deployed to the local candidate. Higher-contention
+   stress, configured-provider OIDC, candidate acceptance of populated workflow
+   rows, and MAN-CAP-001 remain open. The latest canonical read routes and
+   console controls are source-only and have not been tested or deployed.
 
 Rollback uses additive migrations, the existing OIDC session and default-deny
 location grants, and preservation of `offline_collection` as the source record.
-The feature is not deployed, so no rollback action is needed now. After
-deployment, a route rollback must pause native intake and retain a compatible
-transition path for native 1.2.0 rows; migration 384 guards intentionally stay
-active and must not be bypassed through Directus. Keep the additive index and
-event history. A failed promotion or transition rolls back the canonical write
-and its event together. If a draft is incorrect, use the governed rework path;
-do not delete it or rewrite the captured source.
+The candidate contains the migration guards and lifecycle write routes; the
+latest read/UI source has not been deployed, so no rollback action is needed for
+that delta. If a deployed route is rolled back, pause native intake and retain a
+compatible transition path for native 1.2.0 rows; migration 384 guards
+intentionally stay active and must not be bypassed through Directus. Keep the
+additive index and event history. A failed promotion or transition rolls back
+the canonical write and its event together. If a draft is incorrect, use the
+governed rework path; do not delete it or rewrite the captured source.
 
-## Files in scope for the next implementation slices
+## Files touched and upcoming acceptance
 
-* `services/workflow_specs/farm_activity.py` and workflow contract tests.
-* `services/gateway/operator_auth.py`, `services/gateway/router.py`,
-  `services/gateway/app.py`, plus a focused farm-activity service module and
-  auth/route tests.
-* Additive `schemas/postgres/` migration for source idempotency and any required
-  transition/audit constraints; never edit an applied migration.
-* `services/mobile/api.py` only if a reusable transaction contract is needed;
-  sync should remain private intake, not silent canonical promotion.
-* `services/metrics/calculators/` and `services/export/reports/core.py` for the
-  published-only metric/report parity slice.
-* `docs/refactor/batches.md`, `docs/refactor/capability-matrix.md`, and
-  `docs/refactor/progress.md` at every implementation checkpoint.
+* `services/gateway/farm_activity_lifecycle.py` and
+  `services/gateway/farm_activity_workflow.py` provide the bounded canonical
+  queue/detail reads and grant-checked promotion/transition services.
+* `services/gateway/operator_auth.py` owns route policy and the OIDC handlers;
+  `apps/operator-console/index.html` renders the location-scoped workflow.
+* `schemas/postgres/383_farm_activity_workflow_events.sql` and
+  `schemas/postgres/384_farm_activity_lifecycle_guards.sql` are applied to the
+  candidate and must remain immutable; future schema changes require new
+  migrations.
+* Next acceptance: native draft editing with append-only evidence; focused
+  query/route/console checks; a guarded app-only candidate rollout with retained
+  rollback image/checkpoint; and configured OIDC browser review. Do not create
+  synthetic live operator data until the existing enrollment/test
+  authorization flow is explicitly established.
+* Continue updating `docs/refactor/batches.md`,
+  `docs/refactor/capability-matrix.md`, and `docs/refactor/progress.md` at each
+  implementation checkpoint.
 

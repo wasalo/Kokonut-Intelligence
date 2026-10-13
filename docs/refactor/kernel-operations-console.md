@@ -1,14 +1,17 @@
 # Kernel operations console boundary
 
 **Status:** OIDC identity/session foundation and a same-origin operator shell
-are implemented in source. The shell now includes location-scoped Field
-Collector enrollment for operators granted `mobile_device:enroll`, submitted
-report reads, and a private Field Collector review queue with separate list and
-detail grants. OIDC remains disabled because no provider settings have been
-configured. Focused source tests cover the grant boundary and route wiring;
-real-provider login, database-backed grant checks, mobile review browser
-behavior, and live payload acceptance remain open. This remains a partial
-implementation, not an accepted console.
+are implemented in source. The shell includes location-scoped Field Collector
+enrollment, submitted-report reads, a private Field Collector review queue and
+append-only review notes, plus source-level farm-activity intake, private draft
+promotion, canonical activity reads, and grant-filtered submit/verify/reject/
+rework/publish/exception controls. The new farm-activity queue/detail and
+console controls have not yet been tested or deployed to the candidate. OIDC
+remains disabled because no provider settings have been configured. Real
+provider login, database-backed grant checks, browser behavior, and live
+payload acceptance remain open. Native content editing for drafts returned
+for rework is also not implemented yet. This remains a partial implementation,
+not an accepted console.
 
 ## Current repository boundary
 
@@ -17,8 +20,8 @@ has no KI API or authentication connection. `services/mobile/field-collector.htm
 is the field collection client, not an operator console. The new
 `apps/operator-console/` shell displays a verified OIDC principal, issues
 single-use Field Collector enrollment codes for explicitly granted locations,
-can read submitted report snapshots, and can review synced Field Collector rows
-for explicitly granted locations. The local
+reads submitted report snapshots, reviews synced Field Collector rows, and
+provides a governed farm-activity workflow for explicitly granted locations. The local
 [`kernel overview CLI`](kernel-operator-cli.md) is read-only and has no browser
 identity.
 
@@ -166,11 +169,21 @@ read returns `report_data` only for the selected submitted record under the
 same grant, with a 512 KiB payload ceiling. The Field Collector queue returns
 at most 100 synced ineligible/review-required summaries. Its separate detail
 read requires `read_detail`, returns payloads up to 512 KiB, and exposes only a
-photo count. Neither queue exposes arbitrary SQL or other location scopes.
-Network-level snapshots with a null `location_id` are excluded until a separate
-network-scope model is designed. The console does not verify or publish records;
-those actions still require their domain-specific human workflow. Its only
-collection write is an append-only review note.
+photo count. The farm-activity intake list returns at most 100 eligible native
+1.2.0 summaries without free text. Private intake detail requires
+`farm_activity:read_detail` and `mobile_collection_review:read_detail`; draft
+promotion additionally requires `farm_activity:create_draft` and repeats all
+three grants in the transaction. The canonical lifecycle list is also capped
+at 100 and omits descriptions and notes. Detail requires the same two detail
+grants and returns bounded activity fields plus append-only decision history.
+Detail includes the newest 100 events at most and indicates when older events
+are omitted.
+Actions are shown only when the operator session contains the matching
+location grant, and the Gateway and database recheck authorization and legal
+state on every write. Verification, rejection, and publication retain the
+independent-actor rules. Neither queue exposes arbitrary SQL or other location
+scopes. Network-level snapshots with a null `location_id` are excluded until a
+separate network-scope model is designed.
 
 Grant a console capability explicitly after applying migration 380:
 
@@ -196,21 +209,43 @@ explicit location grant:
 python3 -m services.cli operator grant --operator-id UUID --resource mobile_collection_review --action review --location-id LOCATION_UUID --granted-by OPERATOR
 ```
 
-## First console slice
+Farm activity access is separate from Field Collector form review. `read` lists
+eligible intake and canonical summaries; `read_detail` is also required before
+private intake or canonical content can be opened. Draft promotion requires
+`create_draft` in addition to both detail grants. Give each lifecycle decision
+only to the operators expected to perform it:
 
-The report and Field Collector queues, append-only reviewer-note action, and enrollment action are
-implemented in the Gateway and `apps/operator-console/`. They use same-origin
-cookie requests and explicit per-location grants; collection detail requires a
-second grant. The mobile list omits identity and payload, detail is bounded, and
-no media download route is exposed. Reviewer notes use `review` plus
-`read_detail` and cannot mutate eligibility or lifecycle state. No backend key
-is sent to the browser. The
-enrollment code response is not cached and the code is displayed once. Do not
-expose arbitrary SQL, broad Directus collection CRUD,
-service-health probes, or administration controls.
+```sh
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action read --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action read_detail --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action create_draft --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action submit --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action verify --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action reject --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action rework --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action publish --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action close_exception --location-id LOCATION_UUID --granted-by OPERATOR
+```
 
-Add governed actions later as explicit resource/action routes. Verification,
-rejection, publication, credit retirement, and agent execution must retain the
+## Current console slices
+
+The report and Field Collector queues, append-only reviewer-note action, and
+enrollment action are implemented in the Gateway and
+`apps/operator-console/`. The farm-activity workflow now has source-level
+intake and canonical queues, separately granted private detail, explicit
+review acknowledgement before draft promotion, and grant-filtered lifecycle
+actions. It uses same-origin cookie requests and CSRF for writes. The mobile
+list omits identity and payload, detail is bounded, and no media download route
+is exposed. Reviewer notes use `review` plus `read_detail` and cannot mutate
+eligibility or lifecycle state. No backend key is sent to the browser. The
+enrollment code response is not cached and the code is displayed once. The new
+farm-activity read/UI slice is not yet deployed or accepted, and the console
+does not yet edit reworked drafts. Do not expose
+arbitrary SQL, broad Directus collection CRUD, service-health probes, or
+administration controls.
+
+Other governed actions must use explicit resource/action routes. Verification,
+rejection, publication, credit retirement, and agent execution retain the
 existing independent human-review and confirmation boundaries. The UI cannot
 grant itself permission or skip the domain service's lifecycle checks.
 

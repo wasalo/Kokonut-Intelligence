@@ -38,6 +38,171 @@ def _normalize_ids(operator_id: str, activity_id: str, location_id: str) -> tupl
         raise ValueError("Invalid operator, farm activity, or location identifier") from exc
 
 
+def _normalize_operator_location(operator_id: str, location_id: str) -> tuple[str, str]:
+    try:
+        return str(UUID(operator_id)), str(UUID(location_id))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid operator or location identifier") from exc
+
+
+def _read_query(conn, sql: str, params: tuple) -> list[dict]:
+    with conn.cursor() as cur:
+        cur.execute("SET TRANSACTION READ ONLY")
+        cur.execute("SET LOCAL statement_timeout = '5s'")
+        cur.execute("SET LOCAL lock_timeout = '2s'")
+        cur.execute(sql, params)
+        columns = [description.name for description in cur.description]
+        return [dict(zip(columns, row)) for row in cur.fetchall()]
+
+
+def list_farm_activities(
+    operator_id: str,
+    location_id: str,
+    limit: int = 50,
+    *,
+    connection_factory: Callable | None = None,
+) -> list[dict]:
+    """List the location's native Field Collector workflow records without free text."""
+    operator_id, location_id = _normalize_operator_location(operator_id, location_id)
+    if not 1 <= limit <= 100:
+        raise ValueError("limit must be between 1 and 100")
+
+    conn = (connection_factory or _connection_factory())()
+    try:
+        rows = _read_query(
+            conn,
+            """SELECT activity.id, activity.location_id, activity.activity_type,
+                          activity.activity_date, activity.status, activity.created_at,
+                          activity.updated_at,
+                          EXISTS (
+                              SELECT 1 FROM farm_activity_workflow_event AS event
+                               WHERE event.farm_activity_id = activity.id
+                                 AND event.action = 'exception_closed'
+                          ) AS exception_closed
+                     FROM farm_activity AS activity
+                    WHERE activity.location_id = %s::uuid
+                      AND activity.source_system = 'field_collector'
+                      AND activity.source_raw->>'form_id' = 'farm_activity_v1'
+                      AND activity.source_raw->>'form_version' = '1.2.0'
+                      AND EXISTS (
+                          SELECT 1 FROM operator_scope_grant AS grant_row
+                           WHERE grant_row.operator_id = %s::uuid
+                             AND grant_row.resource = 'farm_activity'
+                             AND grant_row.action = 'read'
+                             AND grant_row.location_id = activity.location_id
+                             AND grant_row.revoked_at IS NULL
+                      )
+                    ORDER BY activity.updated_at DESC, activity.id DESC
+                    LIMIT %s""",
+            (location_id, operator_id, limit),
+        )
+        for row in rows:
+            row["id"] = str(row["id"])
+            row["location_id"] = str(row["location_id"])
+            row["activity_date"] = row["activity_date"].isoformat()
+            for field in ("created_at", "updated_at"):
+                row[field] = row[field].isoformat() if row[field] else None
+        return rows
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
+def get_farm_activity(
+    operator_id: str,
+    activity_id: str,
+    location_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict | None:
+    """Read bounded canonical content and its human decision history by location."""
+    operator_id, activity_id, location_id = _normalize_ids(operator_id, activity_id, location_id)
+    conn = (connection_factory or _connection_factory())()
+    try:
+        rows = _read_query(
+            conn,
+            """SELECT activity.id, activity.location_id, activity.activity_type,
+                          activity.activity_date, activity.description,
+                          activity.labor_hours, activity.notes, activity.status,
+                          activity.created_at, activity.updated_at,
+                          (
+                              SELECT COUNT(*) > 100
+                                FROM farm_activity_workflow_event AS event
+                               WHERE event.farm_activity_id = activity.id
+                                 AND event.location_id = activity.location_id
+                          ) AS workflow_events_truncated,
+                          COALESCE((
+                              SELECT jsonb_agg(jsonb_build_object(
+                                  'action', bounded.action,
+                                  'from_status', bounded.from_status,
+                                  'to_status', bounded.to_status,
+                                  'reason', bounded.reason,
+                                  'actor_operator_id', bounded.actor_operator_id::text,
+                                  'created_at', bounded.created_at
+                              ) ORDER BY bounded.created_at, bounded.id)
+                                FROM LATERAL (
+                                    SELECT event.id, event.action, event.from_status,
+                                           event.to_status, event.reason,
+                                           event.actor_operator_id, event.created_at
+                                      FROM farm_activity_workflow_event AS event
+                                     WHERE event.farm_activity_id = activity.id
+                                       AND event.location_id = activity.location_id
+                                     ORDER BY event.created_at DESC, event.id DESC
+                                     LIMIT 100
+                                ) AS bounded
+                          ), '[]'::jsonb) AS workflow_events
+                     FROM farm_activity AS activity
+                    WHERE activity.id = %s::uuid
+                      AND activity.location_id = %s::uuid
+                      AND activity.source_system = 'field_collector'
+                      AND activity.source_raw->>'form_id' = 'farm_activity_v1'
+                      AND activity.source_raw->>'form_version' = '1.2.0'
+                      AND EXISTS (
+                          SELECT 1 FROM operator_scope_grant AS grant_row
+                           WHERE grant_row.operator_id = %s::uuid
+                             AND grant_row.resource = 'farm_activity'
+                             AND grant_row.action = 'read_detail'
+                             AND grant_row.location_id = activity.location_id
+                             AND grant_row.revoked_at IS NULL
+                      )
+                      AND EXISTS (
+                          SELECT 1 FROM operator_scope_grant AS detail_grant
+                           WHERE detail_grant.operator_id = %s::uuid
+                             AND detail_grant.resource = 'mobile_collection_review'
+                             AND detail_grant.action = 'read_detail'
+                             AND detail_grant.location_id = activity.location_id
+                             AND detail_grant.revoked_at IS NULL
+                      )
+                    LIMIT 1""",
+            (activity_id, location_id, operator_id, operator_id),
+        )
+        if not rows:
+            return None
+        row = rows[0]
+        row["id"] = str(row["id"])
+        row["location_id"] = str(row["location_id"])
+        row["activity_date"] = row["activity_date"].isoformat()
+        for field in ("created_at", "updated_at"):
+            row[field] = row[field].isoformat() if row[field] else None
+        row["workflow_events"] = [
+            {
+                **event,
+                "created_at": event["created_at"].isoformat()
+                if hasattr(event["created_at"], "isoformat")
+                else event["created_at"],
+            }
+            for event in (row["workflow_events"] or [])
+        ]
+        return row
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
 def transition_farm_activity(
     operator_id: str,
     activity_id: str,
@@ -85,6 +250,8 @@ def transition_farm_activity(
                     WHERE id = %s::uuid
                       AND location_id = %s::uuid
                       AND source_system = 'field_collector'
+                      AND source_raw->>'form_id' = 'farm_activity_v1'
+                      AND source_raw->>'form_version' = '1.2.0'
                     FOR UPDATE""",
                 (activity_id, location_id),
             )

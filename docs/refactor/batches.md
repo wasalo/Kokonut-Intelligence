@@ -1,6 +1,6 @@
 # Kernel execution checklist
 
-Updated: 12 October 2026. Current architecture focus remains Phase 7; batch
+Updated: 13 October 2026. Current architecture focus remains Phase 7; batch
 numbers group work across phases and do not replace the phase acceptance gates.
 
 ## Working agreement
@@ -148,6 +148,18 @@ backups/volumes; no production cutover in this batch.
 - [x] Implement governed submit/reject/rework/verify/publish/exception-close
   routes and database lifecycle enforcement, including independent verifier,
   rejection reviewer, and publisher checks ([workflow map](farm-activity-workflow-map.md)).
+- [x] Add source-level location-scoped canonical activity list/detail reads and
+  same-origin console controls for intake review, explicit draft promotion,
+  decision history, and grant-filtered lifecycle actions. Promotion also
+  requires the separate farm-activity detail grant and locks all required
+  grants through commit ([console contract](kernel-operations-console.md)).
+- [ ] Run focused route/query/console checks and rebuild the candidate app after
+  an explicit verification request; preserve the current candidate image and
+  database checkpoint before rollout. OIDC-provider acceptance remains a
+  separate gate.
+- [ ] Add native editing for reworked drafts with form-schema validation and
+  append-only content-edit evidence before treating the console rework loop as
+  complete; do not rely on Directus as the required Kernel path.
 - [x] Add the published-only farm-activity summary to the governed farm report
   and include published lifecycle entities in `rework_rate_pct`, with period,
   source-record and reworked-subset provenance. The report snapshot remains
@@ -176,7 +188,7 @@ seeds) to a disposable PostGIS 16 database. Real service functions produced two
 published activities and 5.25 hours, excluded a draft and private source marker,
 stored a hash-matching unfrozen draft snapshot, and persisted a 50% rework metric
 with two source records and `verified=false`. The disposable volume/network were
-removed. The expanded focused Batch 3 suite passes 91 tests and Ruff, including wrong-location query binding/no-write checks and rollback after an injected workflow-event insert failure. A second check replayed all 375 schema migrations in disposable PostGIS 16, then used a real PostgreSQL trigger to reject the submitted workflow event during the actual transition service call; the activity stayed `draft`, and neither the workflow-event nor lifecycle-transition ledger recorded `submitted`. Two simultaneous PostgreSQL promotion calls passed: one created the draft, the other returned the same activity ID with `created=false`, and the database retained one canonical row and one `draft_created` event. The local candidate now has migrations 383–384 and the current app image, with a retained exact-target encrypted checkpoint and rollback image; rollout checks passed, but the candidate contains no activity/collection rows and OIDC is disabled. Higher-contention stress, configured-provider OIDC, and MAN-CAP-001 remain open. See [candidate rollout evidence](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json).
+removed. The expanded focused Batch 3 suite passes 91 tests and Ruff, including wrong-location query binding/no-write checks and rollback after an injected workflow-event insert failure. A second check replayed all 375 schema migrations in disposable PostGIS 16, then used a real PostgreSQL trigger to reject the submitted workflow event during the actual transition service call; the activity stayed `draft`, and neither the workflow-event nor lifecycle-transition ledger recorded `submitted`. Two simultaneous PostgreSQL promotion calls passed: one created the draft, the other returned the same activity ID with `created=false`, and the database retained one canonical row and one `draft_created` event. The local candidate has migrations 383–384, the transition-write API, and an app image from the pre-console-read source, with a retained exact-target encrypted checkpoint and rollback image; rollout checks passed, but the candidate contains no activity/collection rows and OIDC is disabled. The latest source adds canonical queue/detail routes and console controls but has not been tested or deployed. Higher-contention stress, configured-provider OIDC, and MAN-CAP-001 remain open. See [candidate rollout evidence](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json).
 Rollback: the API release can be reverted, but migration 384's native form
 guards intentionally remain active and the legacy provider must not be used to
 bypass lifecycle decisions for native 1.2.0 rows. Pause intake and use a
