@@ -2933,3 +2933,20 @@ current `services/` tree and `VERSION`; candidate services were not rebuilt or
 recreated. Live S3/R2 listing/deletion, populated-bucket lineage, and production
 retention ownership remain open. See [run evidence](builds/2026-10-12-recovery/field-collector-media-orphan-reconcile.json),
 [media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+
+### Batch 5 isolated private-media orphan apply acceptance — 12 October 2026
+
+Exercised the actual local encryption adapter and reconciliation function in an
+isolated temporary directory. Two synthetic objects were written; one object's
+modification time was set to 26 hours old while the other remained current.
+Dry-run reported two unregistered objects, one eligible object, one too-young
+object, and zero deletions. Explicit apply deleted only the aged object. The
+younger object's `head_private` check still authenticated successfully.
+
+The injected database adapter recorded two SELECT statements during apply and
+no mutations. The temporary directory and remaining synthetic object were
+removed. This validates the local apply path and age gate without touching the
+candidate media volume, a live database, S3/R2, or production data. See
+[isolated apply evidence](builds/2026-10-12-recovery/field-collector-media-orphan-apply-isolated.json)
+and the [media contract](local-private-media.md).

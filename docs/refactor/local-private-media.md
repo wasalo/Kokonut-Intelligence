@@ -217,9 +217,19 @@ no per-object restore journal; configure provider versioning/backups when
 recovery of deleted bytes is required. The code has focused
 storage/reconciliation/cleanup coverage, and a dry-run against the local
 candidate provider reported zero provider objects and zero registered
-upload keys without writes. No S3/R2 bucket was listed, and no apply was run.
-Production retention ownership and populated external-provider acceptance
-remain open. See [dry-run evidence](builds/2026-10-12-recovery/field-collector-media-orphan-reconcile.json).
+upload keys without writes. No S3/R2 bucket was listed or changed, and the
+candidate received no apply operation. Production retention ownership and
+populated external-provider acceptance remain open. See [candidate dry-run
+evidence](builds/2026-10-12-recovery/field-collector-media-orphan-reconcile.json).
+
+An isolated local-store apply check created two synthetic encrypted objects in
+a temporary directory, aged one to 26 hours, and left the other current. The
+dry-run selected exactly one object and deleted nothing. Explicit apply removed
+only the aged object; the younger object remained and passed authenticated
+`head_private`. A fake read-only database adapter observed two SELECTs during
+apply and zero mutations. Temporary storage was removed automatically. This
+exercises the local provider's explicit deletion path; it does not test candidate
+media or S3/R2. See [isolated apply evidence](builds/2026-10-12-recovery/field-collector-media-orphan-apply-isolated.json).
 
 
 ## Full runtime volume replacement check — 12 October 2026
