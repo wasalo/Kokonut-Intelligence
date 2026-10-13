@@ -17,7 +17,7 @@
     "requirements/kernel-runtime.lock": "80e50a655e4f7c530d102fd09b4fc0502ae9020ed5a170303615e4c0dfd08921",
     "requirements/kernel-clickhouse.in": "d45f7ea822daef4616987cb57a240a4e2eea4fdf74424aa6222b1f0167c2bc4e",
     "requirements/kernel-clickhouse.lock": "ea9154ed4eb3c4234dee73a6588f4550191f227de82f972644d937b090dc66ab",
-    "config/postgres/kernel-postgis-packages.json": "2e2d845e63d399d542451fdcce33cdc9b6219e51636bfbf19dc061e4dad0570c",
+    "config/postgres/kernel-postgis-packages.json": "c436d6268f440f7ac54bf298b65529199680cf48526f0504cb1bceed02bec79c",
     "config/postgres/kernel-apt.sources": "1bc6a4368d8284b4e8a35f24e381449e493eff6f9993869987f5193538f0cd42",
     "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec",
     "config/postgres/kernel-bootstrap.sources": "a4bf76ae4956dcda020029113fb722f0dd35c9597331554a96f63883dfda1f51"
@@ -33,6 +33,6 @@
   "dependency_lock_status": {
     "python_direct_inputs": "SHA-256-locked source requirement manifests",
     "python_transitive_dependencies": "hash-locked default and ClickHouse profile closures; pending GitHub multi-architecture acceptance",
-    "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories across amd64 and arm64; multi-architecture acceptance pending"
+    "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories against exact locked architecture-specific expectations; multi-architecture acceptance pending"
   }
 }

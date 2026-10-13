@@ -12,6 +12,13 @@
     "preferences_file": "config/postgres/kernel-pgdg.pref"
   },
   "verified_package_catalog_architectures": ["amd64", "arm64"],
+  "architecture_specific_package_differences": {
+    "libquadmath0": {
+      "amd64": "12.2.0-14+deb12u1",
+      "arm64": null,
+      "rationale": "Debian publishes libquadmath0 for amd64/i386, and libgfortran5 depends on it only on those architectures; no arm64 package is available. See https://packages.debian.org/bookworm/libquadmath0 and https://packages.debian.org/bookworm/libgfortran5."
+    }
+  },
   "build_arguments": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
     "POSTGIS_SCRIPTS_VERSION": "3.6.4+dfsg-2.pgdg12+1"

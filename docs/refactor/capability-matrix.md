@@ -44,12 +44,14 @@ Deployment settings remain pending, and no ARM64 runtime is certified
 [local attempt evidence](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
 Hash-locked Python closures for the default app and optional ClickHouse profile
 are now wired into the Kernel image; multi-architecture acceptance is pending.
-The PostGIS build now uses a dated Debian snapshot and exact PGDG package
-versions, and the release checker compares full installed-package inventory
-parity. [CI run 283](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38443881835)
-failed before package installation because the pinned base image lacked a CA
-bundle; the signed-snapshot CA bootstrap repair is in the current PR, and fresh
-CI acceptance remains open. Hardware acceptance remains open.
+The PostGIS build uses a dated Debian snapshot and exact PGDG package versions.
+[CI run 284](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38449176283)
+confirmed the signed-snapshot CA bootstrap and built both architecture images.
+The inventory check then found the amd64-only `libquadmath0` package; its exact
+version and absence on arm64 are now part of the SHA-256-locked package
+contract. The checker permits only that exact reviewed difference and still
+fails on any other package inventory mismatch. A clean CI rerun and hardware
+acceptance remain open.
 
 | ID | Capability | Owning code area | Named manual check and required result | Existing Python test candidates | Implementation / deployment progress |
 |---|---|---|---|---|---|

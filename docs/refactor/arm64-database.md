@@ -177,12 +177,14 @@ timestamped Debian snapshot over HTTP with APT signature verification enabled;
 the next stage switches to the locked HTTPS sources. A low-priority apt
 preference keeps unrelated PGDG packages behind the dated Debian source. The
 release-input lock covers the bootstrap source, HTTPS source, preference, and
-package record. CI run 283 exposed the missing-CA bootstrap cycle; it failed
-before package installation. The release checker now compares the complete
-installed Debian package inventories and selected PostGIS versions across
-architectures. A fresh multi-architecture run must rebuild both targets and
-exercise this checker before the apt inputs and inventory parity are accepted.
-Extension behavior, restore, runtime, and Raspberry Pi remain separate gates.
+package record. CI run 283 exposed the missing-CA bootstrap cycle. Run 284
+confirmed the CA bootstrap and built both architecture images; full inventory
+comparison found the documented `libquadmath0` amd64-only package, now recorded
+with its exact version in the locked package record. The checker requires the
+entire observed difference map to match those explicit expectations; a fresh
+multi-architecture run must pass before the apt inputs and inventory parity
+are accepted. Extension behavior, restore, runtime, and Raspberry Pi remain
+separate gates.
 
 Build the final target with both explicit arguments after discovery:
 

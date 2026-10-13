@@ -47,12 +47,17 @@ later stage switches to the locked HTTPS Debian and PGDG sources before
 resolving PostGIS. Both source definitions and the timestamp are covered by the
 release-input lock. The
 release gate verifies the selected PostGIS package versions and compares the
-complete installed Debian package inventories across both architectures,
-reporting missing or differently versioned packages (up to 50 differences per
-failure). It does not certify extension behavior, logical restore, ARM64 runtime,
-or Raspberry Pi resource limits. A fresh multi-architecture run is required to
-accept the snapshot change. GitHub-hosted runner Docker and Buildx tooling come
-from the runner image and are outside the app release lock.
+complete installed Debian package inventories across both architectures.
+Architecture-specific differences are allowed only when the exact package,
+version-or-absence pair, and rationale appear in the SHA-256-locked package
+catalog; the complete observed difference set must equal that contract. All
+other missing or differently versioned packages fail the build (up to 50
+details are printed). CI run 284 confirmed the bootstrap and both PostGIS
+builds, then revealed the amd64-only `libquadmath0` package, which is now the
+first explicit contract entry. A clean multi-architecture run is required to
+accept it. This gate does not certify extension behavior, logical restore,
+ARM64 runtime, or Raspberry Pi resource limits. GitHub-hosted runner Docker and
+Buildx tooling come from the runner image and are outside the app release lock.
 
 The Debian source uses the official [snapshot service](https://snapshot.debian.org/)
 at an explicit UTC timestamp. PGDG's [APT documentation](https://wiki.postgresql.org/wiki/Apt/FAQ)

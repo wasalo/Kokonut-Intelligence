@@ -120,6 +120,24 @@ def _validate_inputs(lock: dict) -> None:
         raise LockError("PostGIS PGDG archive packages must have low default apt priority")
     if set(package_record.get("verified_package_catalog_architectures", [])) != {"amd64", "arm64"}:
         raise LockError("PostGIS package catalog must be verified for amd64 and arm64")
+    package_differences = package_record.get("architecture_specific_package_differences")
+    if not isinstance(package_differences, dict):
+        raise LockError("PostGIS package record has no architecture-specific inventory contract")
+    for name, expectation in package_differences.items():
+        if not re.fullmatch(r"[a-z0-9][a-z0-9+.-]*", name):
+            raise LockError(f"invalid architecture-specific Debian package name: {name!r}")
+        if not isinstance(expectation, dict) or set(expectation) != {"amd64", "arm64", "rationale"}:
+            raise LockError(f"invalid architecture-specific inventory expectation for {name}")
+        versions = (expectation["amd64"], expectation["arm64"])
+        if any(
+            version is not None and (not isinstance(version, str) or not version)
+            for version in versions
+        ):
+            raise LockError(f"invalid architecture-specific package version for {name}")
+        if versions[0] == versions[1]:
+            raise LockError(f"architecture-specific inventory expectation for {name} must describe a difference")
+        if not isinstance(expectation["rationale"], str) or not expectation["rationale"].strip():
+            raise LockError(f"architecture-specific inventory expectation for {name} must describe a justified difference")
     package_args = package_record.get("build_arguments", {})
     for name in ("POSTGIS_PACKAGE_VERSION", "POSTGIS_SCRIPTS_VERSION"):
         if package_args.get(name) != lock.get("postgis_packages", {}).get(name):
@@ -283,19 +301,38 @@ def _verify_postgis(archive_path: Path, lock: dict) -> None:
                     )
         amd64 = actual_by_arch["amd64"]
         arm64 = actual_by_arch["arm64"]
-        differences = [
-            f"{name}: amd64={amd64.get(name, '<missing>')}, arm64={arm64.get(name, '<missing>')}"
+        actual_differences = {
+            name: (amd64.get(name), arm64.get(name))
             for name in sorted(amd64.keys() | arm64.keys())
             if amd64.get(name) != arm64.get(name)
-        ]
-        if differences:
+        }
+        package_record = _load_json(ROOT / "config/postgres/kernel-postgis-packages.json")
+        expected_differences = {
+            name: (expectation["amd64"], expectation["arm64"])
+            for name, expectation in package_record["architecture_specific_package_differences"].items()
+        }
+        if actual_differences != expected_differences:
+            descriptions = []
+            for name in sorted(actual_differences.keys() | expected_differences.keys()):
+                actual = actual_differences.get(name)
+                expected = expected_differences.get(name)
+                if actual != expected:
+                    actual_versions = actual or (None, None)
+                    expected_versions = expected or (None, None)
+                    descriptions.append(
+                        f"{name}: actual amd64={actual_versions[0] or '<missing>'}, "
+                        f"arm64={actual_versions[1] or '<missing>'}; expected "
+                        f"amd64={expected_versions[0] or '<matching>'}, "
+                        f"arm64={expected_versions[1] or '<matching>'}"
+                    )
             raise LockError(
-                "installed Debian package inventory parity failed:\n  "
-                + "\n  ".join(differences[:50])
+                "installed Debian package inventory differs from the locked architecture-specific contract:\n  "
+                + "\n  ".join(descriptions[:50])
             )
         print(
             "PostGIS OCI build verified: linux/amd64 + linux/arm64, "
-            f"{len(amd64)} matching installed packages including selected PostGIS versions, "
+            f"{len(amd64)} amd64 and {len(arm64)} arm64 installed packages including selected PostGIS versions, "
+            f"{len(expected_differences)} documented architecture-specific package difference(s), "
             f"index sha256:{index_digest}"
         )
 
