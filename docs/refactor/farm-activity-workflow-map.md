@@ -266,17 +266,18 @@ person-specific evaluations; future text review must retain that restriction.
    state, 50% rework rate, two source records, and unverified metric state.
    The expanded Batch 3 suite passes 91 tests and Ruff. Unit checks bind detail
    and promotion to the requested location, ensure a wrong-location promotion
-   writes nothing, and verify rollback after an injected workflow-event insert
-   failure using a database double. The scratch volume/network were removed;
-   candidate state is unchanged
+   writes nothing, and cover duplicate retry and stale eligibility. On the full
+   schema, a synthetic PostgreSQL trigger rejected the submitted workflow event
+   during the real transition service call; the activity remained `draft`, with
+   no submitted workflow event or lifecycle transition committed. The scratch
+   volume/network were removed; candidate state is unchanged
    ([lifecycle evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json),
    [report/metric evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
    The combined suite covers duplicate retry, stale/ineligible collections,
    wrong-location read/write query guards, and rollback on an injected event
-   write failure. Real PostgreSQL duplicate-promotion and failed-trigger
-   rollback acceptance remain open, along with configured-provider OIDC and
-   candidate rollout. These migrations and routes are not deployed to the
-   candidate.
+   write failure. Real PostgreSQL failed-trigger rollback passed. PostgreSQL
+   duplicate-promotion parity, configured-provider OIDC, and candidate rollout
+   remain open. These migrations and routes are not deployed to the candidate.
 
 Rollback uses additive migrations, the existing OIDC session and default-deny
 location grants, and preservation of `offline_collection` as the source record.

@@ -66,7 +66,7 @@
     },
     "limitations": [
       "The full-schema replay applied schema migrations only; seed data was excluded and the metric definition was an ephemeral synthetic fixture",
-      "The database-error injection case uses a unit fake; real PostgreSQL failed-trigger rollback remains open",
+      "PostgreSQL duplicate-promotion parity remains open; the real PostgreSQL failure injection covered lifecycle transition event rollback",
       "The candidate database and app were not migrated, rebuilt, or written",
       "Configured-provider acceptance and MAN-CAP-001 remain open"
     ],
@@ -85,9 +85,20 @@
         "rework_rate_pct": 50.0,
         "metric_verified": false,
         "metric_source_count": 2,
-        "reworked_source_count": 1
+        "reworked_source_count": 1,
+        "database_trigger_failure_rolled_back": true
       },
-      "cleanup": "Disposable database volume and Compose network removed; candidate app, database, and volumes unchanged"
+      "cleanup": "Disposable database volume and Compose network removed; candidate app, database, and volumes unchanged",
+      "database_trigger_failure": {
+        "result": "passed",
+        "method": "Synthetic PostgreSQL BEFORE INSERT trigger rejected the submitted workflow event while the real transition service updated the canonical row",
+        "assertions": [
+          "farm_activity remained draft after the transition raised",
+          "no submitted farm_activity_workflow_event was committed",
+          "no submitted lifecycle_transition was committed"
+        ],
+        "scope": "Disposable full-schema PostGIS 16 database only; trigger and rows were synthetic and removed with the scratch project"
+      }
     },
     "focused_batch_3_acceptance": {
       "result": "91 passed",
@@ -97,7 +108,7 @@
         "wrong-location draft promotion performs no canonical write",
         "injected workflow-event insert failure after the draft insert triggers rollback and closes the connection"
       ],
-      "limitation": "The injected failure uses a unit database double; failed-trigger rollback has not yet been repeated on disposable PostgreSQL.",
+      "limitation": "Its injected unit-double failure is supplemented by the real PostgreSQL transition failure check recorded under full_schema_parity; PostgreSQL duplicate-promotion parity remains open.",
       "command": "PYTHONPATH=. uv run --no-project --cache-dir /private/tmp/kokonut-kernel-uv-cache --with 'pytest>=9.1.1,<10.0' --with 'psycopg2-binary>=2.9.9' pytest tests/test_migration.py tests/test_workflow_specs.py tests/test_farm_activity_workflow.py tests/test_farm_activity_lifecycle.py tests/test_operator_auth.py tests/test_farm_activity_metrics.py tests/test_farm_activity_summary_report.py tests/test_report_governance.py tests/test_metrics.py::test_metric_computation_always_creates_draft_value -q"
     }
   }

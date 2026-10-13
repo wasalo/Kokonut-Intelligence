@@ -153,7 +153,7 @@ backups/volumes; no production cutover in this batch.
   source-record and reworked-subset provenance. The report snapshot remains
   hashed, unfrozen `draft`; metric values remain unverified drafts ([workflow
   map](farm-activity-workflow-map.md); [source-level evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
-- [ ] With verification authorization, exercise role/field/row policy and failure paths.
+- [x] Exercise scoped role/field/row policy and failure paths in focused tests and disposable PostgreSQL. The 91-test Batch 3 suite covers wrong-location query binding/no-write, duplicate retry, and stale eligibility; full-schema PostGIS confirmed a real PostgreSQL workflow-event trigger failure rolls back the activity status and both event ledgers.
 
 Gate: retained end-to-end evidence for the selected CAP rows, with explicit
 uncovered domains. This branch checkpoint passes 77 focused migration,
@@ -172,12 +172,7 @@ seeds) to a disposable PostGIS 16 database. Real service functions produced two
 published activities and 5.25 hours, excluded a draft and private source marker,
 stored a hash-matching unfrozen draft snapshot, and persisted a 50% rework metric
 with two source records and `verified=false`. The disposable volume/network were
-removed. The expanded focused Batch 3 suite passes 91 tests and Ruff,
-including wrong-location query binding/no-write checks and rollback after an
-injected workflow-event insert failure. That injected failure used a database
-double; real PostgreSQL failed-trigger rollback, configured OIDC, and candidate
-rollout remain open. The candidate database and app have not been migrated or
-rebuilt.
+removed. The expanded focused Batch 3 suite passes 91 tests and Ruff, including wrong-location query binding/no-write checks and rollback after an injected workflow-event insert failure. A second check replayed all 375 schema migrations in disposable PostGIS 16, then used a real PostgreSQL trigger to reject the submitted workflow event during the actual transition service call; the activity stayed `draft`, and neither the workflow-event nor lifecycle-transition ledger recorded `submitted`. PostgreSQL duplicate-promotion parity, configured-provider OIDC, and candidate rollout remain open. The candidate database and app have not been migrated or rebuilt.
 Rollback: the API release can be reverted, but migration 384's native form
 guards intentionally remain active and the legacy provider must not be used to
 bypass lifecycle decisions for native 1.2.0 rows. Pause intake and use a
