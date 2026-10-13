@@ -3660,8 +3660,9 @@ discarding a conflicting row. The seed now selects only form IDs absent from
 `mobile_form` before inserting and retains `DO NOTHING` as the uniqueness
 fallback. The regression check asserts that exclusion predicate. The focused
 pytest invocation could not run locally because pytest is absent from the
-system interpreter; source assertions and `git diff --check` pass. The full
-database-backed idempotency check is pending on a fresh CI run.
+system interpreter; source assertions and `git diff --check` pass. [CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973)
+is running on fix commit `6549043`; the full database-backed idempotency result
+is pending.
 
 ### Batch 4 Redis and shared-limiter profile decision — 13 October 2026
 
