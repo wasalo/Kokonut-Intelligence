@@ -244,22 +244,70 @@ def _schema_state(conn) -> tuple[dict, dict]:
         "SELECT to_regclass('public.schema_migration') IS NOT NULL AS present"
     ).first()
     migration_table_exists = bool(migration_table_row and migration_table_row["present"])
-    applied_schema = None
+    applied_migration = None
+    ordering_basis = "unavailable"
     if migration_table_exists:
-        latest_migration = conn.execute(
+        migration_id_column = conn.execute(
             """
-            SELECT version
-              FROM schema_migration
-             WHERE status = 'applied'
-             ORDER BY applied_at DESC, version DESC
-             LIMIT 1
+            SELECT EXISTS (
+                SELECT 1
+                  FROM information_schema.columns
+                 WHERE table_schema = 'public'
+                   AND table_name = 'schema_migration'
+                   AND column_name = 'migration_id'
+            ) AS present
             """
         ).first()
-        applied_schema = latest_migration["version"] if latest_migration else None
+        if migration_id_column and migration_id_column["present"]:
+            latest_migration = conn.execute(
+                """
+                SELECT migration_id
+                  FROM schema_migration
+                 WHERE status = 'applied'
+                   AND left(migration_id, 7) = 'schema:'
+                 ORDER BY
+                    NULLIF(
+                        substring(migration_id FROM '^schema:([0-9]+)_'), ''
+                    )::numeric DESC NULLS LAST,
+                    migration_id DESC
+                 LIMIT 1
+                """
+            ).first()
+            if latest_migration:
+                applied_migration = latest_migration["migration_id"]
+                ordering_basis = "schema_migration_id"
+
+        if applied_migration is None:
+            latest_numeric_version = conn.execute(
+                """
+                SELECT version
+                  FROM schema_migration
+                 WHERE status = 'applied'
+                   AND version ~ '^[0-9]+$'
+                 ORDER BY version::numeric DESC
+                 LIMIT 1
+                """
+            ).first()
+            if latest_numeric_version:
+                applied_migration = latest_numeric_version["version"]
+                ordering_basis = "numeric_version"
+            else:
+                latest_migration = conn.execute(
+                    """
+                    SELECT version
+                      FROM schema_migration
+                     WHERE status = 'applied'
+                     ORDER BY applied_at DESC, version DESC
+                     LIMIT 1
+                    """
+                ).first()
+                applied_migration = latest_migration["version"] if latest_migration else None
+                ordering_basis = "applied_at_fallback" if latest_migration else "unavailable"
 
     return schema_coverage, {
         "migration_history_available": bool(migration_table_exists),
-        "latest_applied_version": applied_schema,
+        "latest_applied_migration": applied_migration,
+        "migration_ordering_basis": ordering_basis,
     }
 
 
