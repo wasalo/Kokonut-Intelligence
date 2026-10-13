@@ -245,7 +245,7 @@ index and event evidence.
   transfer jobs one at a time with output parity and rollback evidence. The
   source inventory does not prove Prefect activation or native scheduler state.
 - [ ] Close projection, named-query, report and dashboard parity gaps in scoped groups.
-- [ ] Resolve Redis session/cache inventory and shared limiter requirements.
+- [x] Resolve Kernel Redis/session/cache and limiter requirements: operator sessions and computation cache are PostgreSQL-backed; minimal/edge default to the single-instance local limiter, while standard defaults to shared PostgreSQL limits; any future scale deployment must use a shared provider. Redis remains an optional Directus adapter. Direct and ASGI multi-process plus two-container HTTP shared-consumption checks pass. Production multi-host failover and Directus Redis state transfer/reset remain separate release gates ([boundary](rate-limit-boundary.md); [shared-provider evidence](builds/2026-10-11-recovery/postgres-rate-limit-two-api-http.json)).
 - [ ] With verification authorization, exercise leases, retries, idempotency and outages.
 
 Gate: every migrated flow has durable recovery and output parity evidence.

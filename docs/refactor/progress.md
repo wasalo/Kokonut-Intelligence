@@ -3662,3 +3662,19 @@ fallback. The regression check asserts that exclusion predicate. The focused
 pytest invocation could not run locally because pytest is absent from the
 system interpreter; source assertions and `git diff --check` pass. The full
 database-backed idempotency check is pending on a fresh CI run.
+
+### Batch 4 Redis and shared-limiter profile decision — 13 October 2026
+
+The Kernel candidate has no Redis service or Python Redis dependency. Operator
+sessions and computation results are PostgreSQL-backed; Redis remains limited
+to the optional legacy Directus cache/rate-limit adapters. Minimal and edge
+profiles keep the bounded process-local limiter for one API instance. The
+standard profile now defaults to the PostgreSQL-backed limiter so horizontally
+scaled API replicas can share budgets after migration 373 is applied. Existing direct-call, ASGI
+multi-process, and two-container HTTP acceptance covers shared consumption;
+production multi-host failover, public ingress, and migration/retirement of
+legacy Directus Redis state remain open. The two focused Compose profile tests
+pass, and the mobile-form seed source regression check also passes (3 total).
+Provider-boundary and dependency-group checks pass (17 vendor import sites;
+12 groups/32 requirements aligned). No services or database state were changed.
+This slice is not pushed until CI run 287 completes.

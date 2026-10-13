@@ -18,10 +18,10 @@ or force a Docker platform, and manual Compose commands bypass the guard.
 | --- | --- | --- |
 | minimal | PostgreSQL + combined API/workers | Capability parity and recovery |
 | edge | Minimal + encrypted local media/resource limits | ARM64/Pi hardware and storage recovery |
-| standard | PostgreSQL + separate API and worker | Role cutover and worker progress monitoring |
+| standard | PostgreSQL + separate API and worker; PostgreSQL shared limiter by default | Migration 373, role cutover, and worker progress monitoring |
 | analytics | Minimal + private ClickHouse | Schema bootstrap and projection parity |
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |
-| scale | Rejected with an explanation | Shared rate limits, replica concurrency, recovery and measured sizing |
+| scale | Rejected with an explanation | Multi-host failover, replica concurrency, recovery and measured sizing |
 
 Add `--proxy`, `--grpc`, `--mqtt`, or `--http-sensors` explicitly for the corresponding optional
 overlay. These options do not enable providers in unrelated services or promise

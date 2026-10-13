@@ -105,6 +105,21 @@ def test_production_metabase_is_opt_in_and_traefik_routed() -> None:
     assert "traefik.http.routers.kokonut-metabase.rule" in metabase["labels"]
 
 
+def test_minimal_kernel_profile_omits_redis_and_uses_local_limiter() -> None:
+    config = _compose_config(files=("docker-compose.kernel-candidate.yml",))
+    assert set(config["services"]) == {"database", "app"}
+    environment = config["services"]["app"]["environment"]
+    assert environment["KOKONUT_RATE_LIMIT_PROVIDER"] == "local"
+
+
+def test_standard_kernel_profile_defaults_to_shared_postgres_limiter() -> None:
+    config = _compose_config(
+        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-standard.yml")
+    )
+    assert "cache" not in config["services"]
+    assert config["services"]["app"]["environment"]["KOKONUT_RATE_LIMIT_PROVIDER"] == "postgres"
+
+
 def test_metabase_profile_disables_public_sharing_and_embedding_without_secret() -> None:
     environment = _compose_config("metabase")["services"]["metabase"]["environment"]
     assert environment["MB_ENABLE_PUBLIC_SHARING"] == "false"

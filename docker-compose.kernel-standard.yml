@@ -4,6 +4,7 @@ services:
   app:
     command: ["python3", "-m", "services.core.runtime", "--port", "8099"]
     environment:
+      KOKONUT_RATE_LIMIT_PROVIDER: ${KOKONUT_RATE_LIMIT_PROVIDER:-postgres}
       KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
       DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
