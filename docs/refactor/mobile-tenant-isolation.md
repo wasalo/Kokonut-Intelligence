@@ -87,6 +87,10 @@ verification:
    as `python3 -m services.cli mobile-tenant-preflight [--location-id UUID]`;
    it emits opaque references and aggregate relation counts, never performs an
    owner backfill, and labels unlocated-record totals as database-wide. The
+   command checks required schema columns first. Older/partial schemas return
+   `schema_incomplete` with missing columns and latest migration context when
+   available, without querying inventory rows; use an isolated migrated copy
+   before interpreting row counts. The
    local candidate run found zero locations and zero inventoried rows; it is
    empty and cannot establish ownership for a populated deployment ([sanitized
    evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json)).

@@ -147,6 +147,13 @@ installation. Review a populated deployment's output with accountable data
 owners before any ownership backfill, tenant grant, or RLS migration. See the
 [tenant isolation contract](../../docs/refactor/mobile-tenant-isolation.md).
 
+Before counting rows, the command checks that every required relation/column
+exists. An older or partial schema returns `inventory_status: schema_incomplete`,
+lists the missing `relation.column` requirements and latest applied migration
+when migration history is available, and skips ownership/lineage queries. Bring
+an isolated copy through the ordered migrations before treating its inventory as
+complete.
+
 ### Private media and request protections
 
 - `POST /api/mobile/media/uploads` requires an active `X-Device-Token` and a

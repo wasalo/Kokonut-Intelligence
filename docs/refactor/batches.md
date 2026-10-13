@@ -473,6 +473,10 @@ reporting views.
 - [x] Run the read-only preflight against the local candidate and record the
   sanitized result ([evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json)).
   It returned zero locations and zero inventoried rows; the candidate is empty.
+- [x] Gate inventory SQL on required relation/column availability and report
+  incomplete schema plus latest applied migration without running row counts.
+- [ ] Exercise the schema-incomplete response against an isolated older
+  populated restore before interpreting that restore's ownership data.
 - [ ] Run the preflight on a populated deployment and review
   unassigned/mismatched/shared ownership and unlocated-row counts with
   accountable data owners before any backfill or RLS work.

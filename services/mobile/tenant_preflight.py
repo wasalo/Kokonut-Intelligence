@@ -174,6 +174,94 @@ _COUNT_FIELDS = (
     "dashboard_dataset_count",
 )
 
+_REQUIRED_COLUMNS = (
+    ("location", "id"),
+    ("location", "status"),
+    ("location", "organization_id"),
+    ("organization_member", "location_id"),
+    ("organization_member", "organization_id"),
+    ("organization_member", "status"),
+    ("organization_member", "membership_type"),
+    ("organization_member", "role"),
+    ("mobile_device", "location_id"),
+    ("mobile_device", "status"),
+    ("mobile_device", "revoked_at"),
+    ("mobile_device_enrollment", "location_id"),
+    ("mobile_device_enrollment", "used_at"),
+    ("mobile_device_enrollment", "revoked_at"),
+    ("mobile_device_enrollment", "expires_at"),
+    ("offline_collection", "id"),
+    ("offline_collection", "location_id"),
+    ("v_mobile_collection_use_eligibility", "collection_id"),
+    ("v_mobile_collection_use_eligibility", "eligible_for_use"),
+    ("mobile_media_upload", "location_id"),
+    ("mobile_media_upload", "status"),
+    ("farm_activity", "location_id"),
+    ("farm_activity", "source_system"),
+    ("farm_activity_workflow_event", "location_id"),
+    ("mobile_collection_review_event", "location_id"),
+    ("report_snapshot", "location_id"),
+    ("dashboard_dataset", "location_id"),
+)
+
+_SCHEMA_COVERAGE_SQL = """
+WITH required(relation_name, column_name) AS (
+    VALUES
+""" + ",\n".join(
+    f"        ('{relation}', '{column}')" for relation, column in _REQUIRED_COLUMNS
+) + """
+), missing AS (
+    SELECT required.relation_name, required.column_name
+      FROM required
+      LEFT JOIN information_schema.columns AS available
+        ON available.table_schema = 'public'
+       AND available.table_name = required.relation_name
+       AND available.column_name = required.column_name
+     WHERE available.column_name IS NULL
+)
+SELECT (SELECT COUNT(*)::int FROM required) AS required_column_count,
+       COALESCE(
+           ARRAY_AGG(relation_name || '.' || column_name ORDER BY relation_name, column_name),
+           ARRAY[]::text[]
+       ) AS missing_columns
+  FROM missing
+"""
+
+
+def _schema_state(conn) -> tuple[dict, dict]:
+    coverage = conn.execute(_SCHEMA_COVERAGE_SQL).first()
+    if coverage is None:
+        raise RuntimeError("schema coverage query returned no result")
+    missing_columns = list(coverage["missing_columns"] or [])
+    schema_coverage = {
+        "status": "incomplete" if missing_columns else "complete",
+        "required_column_count": coverage["required_column_count"],
+        "available_column_count": coverage["required_column_count"] - len(missing_columns),
+        "missing_columns": missing_columns,
+    }
+
+    migration_table_row = conn.execute(
+        "SELECT to_regclass('public.schema_migration') IS NOT NULL AS present"
+    ).first()
+    migration_table_exists = bool(migration_table_row and migration_table_row["present"])
+    applied_schema = None
+    if migration_table_exists:
+        latest_migration = conn.execute(
+            """
+            SELECT version
+              FROM schema_migration
+             WHERE status = 'applied'
+             ORDER BY applied_at DESC, version DESC
+             LIMIT 1
+            """
+        ).first()
+        applied_schema = latest_migration["version"] if latest_migration else None
+
+    return schema_coverage, {
+        "migration_history_available": bool(migration_table_exists),
+        "latest_applied_version": applied_schema,
+    }
+
 
 def _opaque_reference(value: object, entity: str) -> str | None:
     if value is None:
@@ -213,11 +301,28 @@ def collect_inventory(location_id: str | None = None) -> dict:
     with get_connection(connect_timeout=5) as conn:
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         conn.execute("SET LOCAL statement_timeout = '15s'")
-        rows = conn.execute(
-            _INVENTORY_SQL,
-            {"location_id": normalized_location_id},
-        ).all()
-        unlocated_rows = conn.execute(_UNLOCATED_SQL).all()
+        schema_coverage, schema_state = _schema_state(conn)
+        if schema_coverage["status"] == "complete":
+            rows = conn.execute(
+                _INVENTORY_SQL,
+                {"location_id": normalized_location_id},
+            ).all()
+            unlocated_rows = conn.execute(_UNLOCATED_SQL).all()
+
+    if schema_coverage["status"] != "complete":
+        return {
+            "scope": "read_only_organization_ownership_and_known_lineage_preflight",
+            "inventory_status": "schema_incomplete",
+            "location_filter_applied": normalized_location_id is not None,
+            "schema_coverage": schema_coverage,
+            "schema_state": schema_state,
+            "limitations": [
+                "No ownership or lineage rows were queried because one or more "
+                "required inventory columns are unavailable.",
+                "Apply and verify the ordered migrations on an isolated copy "
+                "before requesting a complete inventory.",
+            ],
+        }
 
     locations = []
     for row in rows:
@@ -270,7 +375,10 @@ def collect_inventory(location_id: str | None = None) -> dict:
     }
     return {
         "scope": "read_only_organization_ownership_and_known_lineage_preflight",
+        "inventory_status": "complete",
         "location_filter_applied": normalized_location_id is not None,
+        "schema_coverage": schema_coverage,
+        "schema_state": schema_state,
         "records_without_location_scope": "database_wide",
         "location_count": len(locations),
         "ownership_review_status_counts": dict(sorted(status_counts.items())),

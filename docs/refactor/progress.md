@@ -3360,3 +3360,18 @@ This closes the local-candidate inventory run only. It does not resolve
 ownership for a populated or production database; accountable owner review,
 tenant-aware grants, RLS, and downstream lineage remain open. No tests were
 run, and no database records were changed.
+
+## Field Collector tenant preflight schema gate — 13 October 2026
+
+Updated the read-only preflight to inspect the required public relation/column
+set before running ownership or lineage counts. If a restored or deployed
+database is behind the current Field Collector schema, the command returns
+`inventory_status: schema_incomplete`, the missing `relation.column` names, and
+the latest applied migration when migration history exists. It does not issue
+the inventory queries in that case. Complete schemas retain the existing
+repeatable-read, read-only behavior and include the schema-coverage summary.
+
+This is a source/documentation change only. No older populated snapshot was
+queried, no database was changed, and no tests were run. The populated-copy
+schema-gate exercise and accountable owner review remain open; no backfill or
+RLS migration is authorized by this preflight.
