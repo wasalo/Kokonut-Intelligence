@@ -3692,3 +3692,17 @@ from CAP-007 and the parent checklist. This closes only that implementation and
 reporting-slice item; the candidate remains empty, broader analytics parity and
 MAN-CAP-007 are not accepted, and the Batch 2 provider/recovery gates remain
 open. No runtime state or services changed.
+
+
+## Optional Metabase documentation state reconciliation — 13 October 2026
+
+Aligned the optional consumer-role and reporting-contract documents with the
+completed Batch 4e candidate setup. The candidate profile uses the distinct
+`kokonut_analytics_ro` identity and exposes only the reviewed reporting views;
+its three Kokonut cards passed copied-populated-fixture SQL parity, and encrypted
+metadata restore counts matched. Removed stale statements that source/card setup
+was still pending, corrected the profile-default wording, and marked the source
+and parity steps complete in the reporting contract. Production credentials,
+live populated candidate results, broader report/dashboard parity, and
+MAN-CAP-007 remain open. This reconciles existing evidence; no runtime state
+or services changed.

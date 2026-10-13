@@ -102,10 +102,15 @@ curated views above and named measures with documented units and date semantics.
   API or a separately scoped design; Metabase row filters are not the database
   authorization boundary.
 
-The isolated reporting check exercises the actual curated views as
-`kokonut_analytics_ro`. It demonstrates the proposed database boundary and
-view behavior on synthetic data, but does not establish parity on populated
-Kokonut application rows or authorize a Metabase source connection.
+The initial isolated reporting-role check exercises the curated views as
+`kokonut_analytics_ro` with synthetic data; by itself it did not establish
+populated-row parity or authorize a source connection. Later, Batch 4e
+registered the optional candidate source, compared the exact exported card SQL
+with independent references on a copied populated fixture, and restored the
+encrypted metadata archive with matching inventory ([parity evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json);
+[profile contract](metabase-kernel-profile.md)). That work validates the
+first-party card slice, not the full MAN-CAP-007 workflow or populated live
+operations.
 
 ## Implementation sequence
 
@@ -125,19 +130,21 @@ Kokonut application rows or authorize a Metabase source connection.
    and denials for base relations, the private policy table, writes, DDL, and
    other databases. The current run used a new-schema scratch database in a
    copied recovery volume; populated application-row parity remains open.
-5. Configure the optional Metabase source only against the application database
-   and `kokonut_reporting`. Add Kokonut-owned cards from approved views; retain
+5. **Completed for the local candidate in Batch 4e:** configure the optional
+   Metabase source only against the application database and
+   `kokonut_reporting`; register Kokonut-owned cards from approved views; retain
    the archived E-commerce Insights board solely as a labeled demo fixture.
-6. Compare each card's result with an independent SQL/reference fixture and the
-   native governed source for the same dataset before enabling the profile for
-   users.
+6. **Completed for the first-party cards on a copied populated fixture:** compare
+   exact saved-card SQL outputs with independent SQL/reference results. The
+   candidate remains empty, so live populated operations and full MAN-CAP-007
+   acceptance remain open.
 
 Likely implementation owners are `schemas/postgres/` (new additive migration),
 `scripts/fixtures/kernel-optional-db-roles-check.py` (actual-view privilege
 checks), `docker-compose.kernel-analytics.yml` plus the Metabase overlay (source
 configuration and private networking), `docs/refactor/optional-database-roles.md`,
-and a new Kokonut-specific Metabase export/card fixture under
-`docs/refactor/builds/` or the repository's chosen dashboard-assets directory.
+and the retained credential-free Kokonut card export at
+`docs/refactor/metabase/kokonut-reporting-cards.json`.
 Do not add credentials to checked-in card exports.
 
 ## Acceptance and rollback
