@@ -36,7 +36,9 @@ See the
 This establishes a device-to-location boundary for these routes. The schema
 does not define a general `tenant_id`; location is the mobile scope only. This
 does not establish RLS or tenant isolation for other services, Directus, or
-external integrations.
+external integrations. The target organization/tenant distinction, treatment
+of nullable `location.organization_id`, and fail-closed RLS rollout gates are
+recorded in the [tenant isolation contract](mobile-tenant-isolation.md).
 
 ## Implemented baseline — migration 381 source
 
@@ -171,10 +173,16 @@ still need reconciliation.
    responses and writes network-only. Still complete real-browser offline
    capture/reconnection, retired and consent-required withdrawal cases, and
    downstream human disposition before treating CAP-053 as accepted.
-2. Specify organization-wide tenant policy. Location is the scope for this
-   mobile API only; locations must not be treated as interchangeable tenant IDs.
-3. Define the human retention/erasure disposition process for participant-linked
-   records after withdrawal and for operational records generally.
+2. Implement the documented organization-wide tenant model and database RLS.
+   Location is the scope for this mobile API only; locations must not be treated
+   as interchangeable tenant IDs. Reconcile nullable/conflicting ownership
+   before tenant enforcement, and do not infer owner access from
+   `organization_member` relationships ([tenant contract](mobile-tenant-isolation.md)).
+3. Implement a human disposition case workflow for participant-linked records
+   after withdrawal and for operational records generally. The interim decision,
+   evidence, dual-control, and lineage requirements are defined in the
+   [retention contract](mobile-retention-disposition.md); accountable retention
+   periods and the reviewed executor remain open.
 4. Manifest validation/publication and the OIDC-scoped queue/detail routes are
    implemented in source under the [form operations contract](mobile-form-operations.md).
    Disposable publication and migration-trigger checks and focused source tests

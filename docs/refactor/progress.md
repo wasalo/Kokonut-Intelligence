@@ -3308,3 +3308,21 @@ read-only transaction mode, and absence of payload/object-key output; route test
 verify either missing grant denies access. It does not create a case, approve a
 retention basis, or execute erasure. Reports, external exports, on-chain
 references, backups, and full cross-location lineage remain uncovered.
+
+## Field Collector tenant isolation target — 13 October 2026
+
+Inspected the location and organization schema before choosing the tenant
+boundary. `location.organization_id` is nullable, while `organization_member`
+is an organization-to-location/farm relationship and does not authorize an
+operator. The mobile API continues to use the enrolled device's location and
+explicit operator location grants. Documented organization as the future
+security tenant, location as operational scope, explicit sharing grants,
+fail-closed handling for unmapped records, transaction-local database context,
+and the required RLS rollout/rollback acceptance in the
+[tenant isolation contract](mobile-tenant-isolation.md).
+
+This is a policy and sequencing decision only. No RLS migration, ownership
+backfill, provider configuration, or live data mutation was made. The current
+mobile location boundary remains in force; tenant-aware identity/grants, owner
+reconciliation, RLS, worker isolation, and downstream eligibility checks remain
+implementation gates.
