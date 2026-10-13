@@ -108,8 +108,14 @@ verification:
    locations or resolve unlocated report/dashboard rows. Audited organization
    transfer and explicit-sharing semantics are still required before RLS.
 3. Add server-managed organization membership and tenant-aware grants while
-   preserving existing location-grant compatibility. Test provisioning,
-   revocation, and cross-tenant denial before changing RLS.
+   preserving existing location-grant compatibility. Source foundation is in
+   migration 388: tenant grants require an active operator membership plus a
+   current verified location owner or explicit share; share creation/revocation
+   requires an owner-side tenant administrator; revocation also revokes the
+   corresponding tenant grants. Existing NULL-tenant location grants remain
+   compatible and are not backfilled because their operators' tenant
+   affiliations are not known. Focused provisioning, revocation, migration,
+   and cross-tenant denial acceptance remains open before RLS.
 4. Add transaction-local context to each service/worker connection path, then
    add additive RLS policies and indexes through new ordered migrations. Keep
    existing migrations immutable.
@@ -157,10 +163,14 @@ unexpected driver shape. See the [sanitized replay evidence](builds/2026-10-13-r
 The account owner has resolved both seed-location owner records: Kokonut
 Network owns Adelphi and Genesis exclusively. The source implementation is
 migration 387 plus the final `seed-pilot.sh` ownership seed. Unlocated report
-and dashboard rows remain unassigned pending lineage review. This archive
-inventory covers known direct relations only; complete downstream lineage,
-least-privilege worker behavior, audited transfer semantics, and tenant-aware
-grants remain open. RLS is not enabled by this ownership reconciliation.
+and dashboard rows remain unassigned after a read-only lineage review found no
+location or confirmed-tenant reference that establishes their owner. This
+review covers the 38 unlocated dashboard definitions and three unlocated draft
+snapshots on the retained archive clone; it does not claim complete downstream
+lineage. Least-privilege worker behavior, audited transfer semantics, and
+the tenant-aware grant source foundation is implemented, but its focused
+acceptance and any conversion of legacy grants remain open. RLS is not enabled
+by this ownership reconciliation ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
 
 ## Confirmed seed-location owner mapping — 13 October 2026
 
@@ -180,3 +190,23 @@ deactivation of the observed legacy owner link, and refusal/rollback on an
 unrelated owner ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acceptance.json)).
 Full ordered-migration replay and candidate rollout remain separate gates; the
 mapping decision alone does not authorize a candidate rollout.
+
+## Tenant-aware operator grant foundation — 13 October 2026
+
+Migration 388 adds an explicit owner-verification ledger for the two confirmed
+seed locations, server-managed OIDC operator-to-organization memberships,
+revocable location shares, and an optional organization tenant on
+`operator_scope_grant`. New tenant-qualified grants require an active operator
+membership and either the verified owner organization or an explicit share.
+Only a tenant administrator of the verified owner organization may create or
+revoke a share through the local operator CLI; share and membership revocation
+also revokes the associated tenant-qualified grants. Request authorization and
+the in-query report, mobile-review, and farm-activity grant checks now use the
+same database predicate.
+
+The migration does not infer operator affiliations from old location grants.
+Legacy NULL-tenant grants continue to use the existing explicit
+location-scoped contract until each identity is reconciled. Tenant grants are
+not a claim of row-level isolation: transaction-local context, worker scoping,
+transfer workflow, direct database privilege boundaries, focused acceptance,
+full ordered replay, and candidate rollout remain open. RLS remains disabled.

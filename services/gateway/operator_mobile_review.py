@@ -101,6 +101,10 @@ def list_mobile_collections(
                              AND grant_row.resource = 'mobile_collection_review'
                              AND grant_row.action = 'read'
                              AND grant_row.location_id = oc.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                     ORDER BY oc.collected_at DESC, oc.id DESC
@@ -164,6 +168,10 @@ def get_mobile_collection(
                              AND grant_row.resource = 'mobile_collection_review'
                              AND grant_row.action = 'read_detail'
                              AND grant_row.location_id = oc.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                     LIMIT 1""",
@@ -191,6 +199,10 @@ def get_mobile_collection(
                              AND grant_row.resource = 'mobile_collection_review'
                              AND grant_row.action = 'read_detail'
                              AND grant_row.location_id = event.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                     ORDER BY event.created_at DESC, event.id DESC
@@ -317,6 +329,10 @@ def get_mobile_collection_disposition_inventory(
                              AND grant_row.resource = 'mobile_collection_retention'
                              AND grant_row.action = 'inventory'
                              AND grant_row.location_id = oc.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                       AND EXISTS (
@@ -325,6 +341,10 @@ def get_mobile_collection_disposition_inventory(
                              AND review_grant.resource = 'mobile_collection_review'
                              AND review_grant.action = 'read'
                              AND review_grant.location_id = oc.location_id
+                             AND operator_scope_grant_allows(
+                                 review_grant.operator_id, review_grant.resource,
+                                 review_grant.action, review_grant.location_id
+                             )
                              AND review_grant.revoked_at IS NULL
                       )
                     LIMIT 1""",
@@ -409,6 +429,10 @@ def record_mobile_review_event(
                              AND grant_row.resource = 'mobile_collection_review'
                              AND grant_row.action = 'review'
                              AND grant_row.location_id = oc.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                       AND EXISTS (
@@ -417,6 +441,10 @@ def record_mobile_review_event(
                              AND detail_grant.resource = 'mobile_collection_review'
                              AND detail_grant.action = 'read_detail'
                              AND detail_grant.location_id = oc.location_id
+                             AND operator_scope_grant_allows(
+                                 detail_grant.operator_id, detail_grant.resource,
+                                 detail_grant.action, detail_grant.location_id
+                             )
                              AND detail_grant.revoked_at IS NULL
                       )
                    RETURNING id, collection_id, location_id, actor_operator_id,

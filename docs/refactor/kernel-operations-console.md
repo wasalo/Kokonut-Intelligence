@@ -79,6 +79,32 @@ issuer/subject and grants one resource/action for one existing location. No
 role, tenant, location, or permission claim from the browser is trusted.
 Wildcard operator permissions are not accepted by the CLI or schema.
 
+Migration 388 adds server-managed organization memberships, a verified-owner
+ledger for the two confirmed seed locations, explicit location shares, and a
+tenant key on operator grants. A tenant-qualified grant requires an active
+operator membership and either the location's current verified owner or an
+active owner-issued share. Creating or revoking a share requires a
+`tenant_admin` membership in the verified owner organization. The local
+provisioning CLI remains the trusted administrative boundary; browser sessions
+receive resource/action/location scopes only and never select a tenant.
+
+Examples for this source contract:
+
+```sh
+python3 -m services.cli operator organization-membership grant --operator-id UUID --organization-id ORG_UUID --membership-role operator --granted-by ADMIN
+python3 -m services.cli operator organization-membership grant --operator-id OWNER_ADMIN_UUID --organization-id OWNER_ORG_UUID --membership-role tenant_admin --granted-by ADMIN
+python3 -m services.cli operator location-share grant --location-id LOCATION_UUID --organization-id PARTNER_ORG_UUID --granted-by-operator-id OWNER_ADMIN_UUID --reason "Approved location collaboration"
+python3 -m services.cli operator grant --operator-id UUID --organization-id ORG_UUID --resource farm_activity --action read --location-id LOCATION_UUID --granted-by ADMIN
+```
+
+Membership and share revocations require an operator identifier and reason;
+they also revoke dependent tenant-qualified grants. Existing NULL-tenant
+location grants remain compatible and are not assigned to an organization
+without accountable operator mapping. Migration 388 has not been rolled out;
+focused database acceptance, conversion of legacy grants, audited ownership
+transfers, transaction-local context, direct-database isolation, and RLS remain
+open.
+
 The browser session response includes only the signed-in operator's active
 grant tuples so the page can offer assigned locations. The report review grant
 is `report_snapshot_review:read`. Field Collector list/detail grants are
@@ -171,7 +197,8 @@ This command is for a deployment with an already configured provider; it has
 not been run in this batch.
 
 Before allowing an operator to sign in, apply migration 380 and provision the
-OIDC subject locally:
+OIDC subject locally. For tenant-qualified access, also apply migration 388,
+create the organization membership, and grant the specific resource/action:
 
 ```sh
 python3 -m services.cli operator identity provision --issuer ISSUER --subject SUBJECT --display-name NAME

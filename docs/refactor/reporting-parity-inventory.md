@@ -67,6 +67,9 @@ The pre-existing recovery volume remains retained.
 Sanitized aggregate results are retained in
 [`reporting-archive-inventory.json`](builds/2026-10-13-recovery/reporting-archive-inventory.json).
 No raw identifiers, query text, owner labels, or report payloads were retained.
+A follow-up read-only review found no direct location or confirmed-tenant
+lineage for the 38 unlocated dashboard definitions or three report snapshots;
+they remain unassigned ([lineage review](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
 
 ## Report registry map
 

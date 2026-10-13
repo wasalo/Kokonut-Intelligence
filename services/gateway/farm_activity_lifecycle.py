@@ -124,6 +124,10 @@ def list_farm_activities(
                              AND grant_row.resource = 'farm_activity'
                              AND grant_row.action = 'read'
                              AND grant_row.location_id = activity.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                     ORDER BY activity.updated_at DESC, activity.id DESC
@@ -222,6 +226,10 @@ def get_farm_activity(
                              AND grant_row.resource = 'farm_activity'
                              AND grant_row.action = 'read_detail'
                              AND grant_row.location_id = activity.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                       AND EXISTS (
@@ -230,6 +238,10 @@ def get_farm_activity(
                              AND detail_grant.resource = 'mobile_collection_review'
                              AND detail_grant.action = 'read_detail'
                              AND detail_grant.location_id = activity.location_id
+                             AND operator_scope_grant_allows(
+                                 detail_grant.operator_id, detail_grant.resource,
+                                 detail_grant.action, detail_grant.location_id
+                             )
                              AND detail_grant.revoked_at IS NULL
                       )
                     LIMIT 1""",
@@ -324,10 +336,14 @@ def edit_farm_activity_draft(
 
             cur.execute(
                 """SELECT resource, action
-                     FROM operator_scope_grant
-                    WHERE operator_id = %s::uuid
-                      AND location_id = %s::uuid
-                      AND revoked_at IS NULL
+                     FROM operator_scope_grant AS grant_row
+                    WHERE grant_row.operator_id = %s::uuid
+                      AND grant_row.location_id = %s::uuid
+                      AND grant_row.revoked_at IS NULL
+                      AND operator_scope_grant_allows(
+                          grant_row.operator_id, grant_row.resource,
+                          grant_row.action, grant_row.location_id
+                      )
                       AND (
                           (resource = 'farm_activity' AND action IN ('edit_draft', 'read_detail'))
                           OR (resource = 'mobile_collection_review' AND action = 'read_detail')
@@ -564,12 +580,16 @@ def transition_farm_activity(
                 )
 
             cur.execute(
-                """SELECT id FROM operator_scope_grant
-                    WHERE operator_id = %s::uuid
-                      AND resource = 'farm_activity'
-                      AND action = %s
-                      AND location_id = %s::uuid
-                      AND revoked_at IS NULL
+                """SELECT id FROM operator_scope_grant AS grant_row
+                    WHERE grant_row.operator_id = %s::uuid
+                      AND grant_row.resource = 'farm_activity'
+                      AND grant_row.action = %s
+                      AND grant_row.location_id = %s::uuid
+                      AND grant_row.revoked_at IS NULL
+                      AND operator_scope_grant_allows(
+                          grant_row.operator_id, grant_row.resource,
+                          grant_row.action, grant_row.location_id
+                      )
                     FOR SHARE""",
                 (operator_id, grant_action, location_id),
             )

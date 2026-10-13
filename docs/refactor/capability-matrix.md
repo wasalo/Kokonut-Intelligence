@@ -31,11 +31,21 @@ a final pilot ownership seed, and updated legacy seed assignments. A network-
 disabled PostgreSQL 16 compatibility fixture passed clean-bootstrap ordering,
 idempotent replay, legacy owner-link deactivation, exact owner assertions, and
 refusal/rollback for an unrelated owner ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acceptance.json)). This closes the owner-decision and
-focused source acceptance gates for those two records only. Unlocated
-report/dashboard lineage, full ordered-migration replay, tenant-aware
-identity/grants, transfer semantics, worker isolation, RLS, and MAN-CAP-001 /
-MAN-CAP-053 remain open. The mapping does not establish user access or end-to-end
-tenant isolation.
+focused source acceptance gates for those two records only. A read-only review
+found no source-grounded location/tenant mapping for the 38 unlocated dashboard
+definitions or three report snapshots, so those records remain unassigned
+([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
+Full ordered-migration replay, tenant-aware identity/grants, transfer semantics,
+worker isolation, RLS, and MAN-CAP-001 / MAN-CAP-053 remain open. The mapping
+does not establish user access or end-to-end tenant isolation.
+
+The tenant-aware source foundation is now present in migration 388: explicit
+operator organization memberships, verified seed-location ownership, revocable
+organization shares, and tenant-qualified resource/action grants. Local CLI and
+request/query checks enforce membership plus owner/share scope for new grants;
+legacy NULL-tenant grants remain compatible and unbackfilled. Focused acceptance,
+full ordered replay, transfer controls, worker/direct-database isolation, RLS,
+and MAN-CAP-001 / MAN-CAP-053 remain open.
 
 The Directus source inventory and isolated runtime probe map the CAP-001/CAP-053
 boundary, but do not establish API parity. The archived `directus_users` table

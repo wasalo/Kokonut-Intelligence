@@ -3881,7 +3881,53 @@ rollback ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acce
 could not be installed because PyPI DNS/network access is unavailable. No local
 candidate or legacy database was changed, and the disposable container was
 removed. Unlocated lineage review, tenant-aware grants, transfer/sharing
-semantics, full ordered-migration replay, and RLS remain open. GitHub confirms
-CI run #291 and Security run #15 passed on remote PR #68 head
-`56a0105f700ad1137d3b5ee6accce59552ebee7e`; the current local branch is 12
-commits ahead, so those unpushed changes are not covered.
+semantics, full ordered-migration replay, and RLS remained open at that
+checkpoint. GitHub confirmed CI run #291 and Security run #15 passed on remote
+PR #68 head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; the local branch was 12
+commits ahead at that point, so those changes were not covered.
+
+
+## Archived report/dashboard tenant-lineage review — 13 October 2026
+
+Reviewed the unlocated dashboard definitions and report snapshots on the
+retained network-isolated archive clone in explicit read-only transactions.
+None of the 38 dashboard rows contains a known location ID/name reference in
+its stored query or metadata, and none of its owner fields equals the
+confirmed Kokonut Network tenant. The three draft reports are two DAO proposal
+history snapshots and one State of Kokonut snapshot; embedded location
+fields/lists do not match either known location, and narrative mentions do not
+prove a single-location owner. Stored
+queries and report payloads were not returned, and no data was changed. All 41
+records therefore remain unassigned; their lineage review is complete for this
+archive snapshot, while broader downstream lineage and report/dashboard
+capability selection remain open ([evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
+The temporary network-disabled inspection container was stopped and removed;
+the review volume remains retained. CI run #291 is green on the earlier remote
+PR head; this local evidence and the current branch changes await the next
+batch push and CI run.
+
+
+## Tenant-aware operator grant source foundation — 13 October 2026
+
+Added ordered migration 388 with an explicit tenant-owner verification ledger
+for the two confirmed seed locations, OIDC operator organization memberships,
+revocable location shares, and an optional organization key on
+`operator_scope_grant`. The local operator CLI can provision tenant membership,
+create/revoke owner-authorized shares, issue tenant-qualified resource/action
+grants, and revoke dependent grants when membership or a share is withdrawn.
+Gateway scope checks and report, mobile-review, and farm-activity SQL queries
+now call one shared predicate that validates identity, membership, owner/share,
+location, resource, and action. Browser responses continue to receive only
+resource/action/location scopes.
+
+No operator tenant affiliations were inferred from legacy location grants;
+NULL-tenant grants remain compatible and prevent this slice from claiming full
+tenant isolation. Transfer controls, worker/database-role boundaries,
+transaction-local RLS context, focused acceptance, full migration replay, and
+candidate rollout remain open. Source syntax compilation, pilot seed shell
+syntax, Ruff 0.17.0 on the modified Gateway modules, and whitespace checks
+passed. No test suite, migration replay, database change, candidate
+rollout, or external push occurred; CI run #291 still covers only the earlier
+remote PR head. See [tenant boundary](mobile-tenant-isolation.md), [console
+contract](kernel-operations-console.md), [batch checklist](batches.md), and
+[`388_tenant_aware_operator_grants.sql`](../../schemas/postgres/388_tenant_aware_operator_grants.sql).

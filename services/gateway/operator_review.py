@@ -53,6 +53,10 @@ def list_submitted_reports(
                              AND grant_row.resource = 'report_snapshot_review'
                              AND grant_row.action = 'read'
                              AND grant_row.location_id = rs.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                     ORDER BY rs.created_at DESC, rs.id DESC
@@ -118,6 +122,10 @@ def get_submitted_report(
                              AND grant_row.resource = 'report_snapshot_review'
                              AND grant_row.action = 'read'
                              AND grant_row.location_id = rs.location_id
+                             AND operator_scope_grant_allows(
+                                 grant_row.operator_id, grant_row.resource,
+                                 grant_row.action, grant_row.location_id
+                             )
                              AND grant_row.revoked_at IS NULL
                       )
                     LIMIT 1""",

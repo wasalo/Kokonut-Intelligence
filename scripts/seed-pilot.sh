@@ -37,18 +37,18 @@ echo "Waiting for PostgreSQL..."
 wait_for_postgres
 echo "PostgreSQL is ready."
 
-# Fail before applying any pilot records if the schema/owner organization has
-# not been migrated. The pilot seed below depends on migration 387.
+# Fail before applying any pilot records if tenant ownership/grant foundations
+# have not been migrated. Pilot ownership evidence is seeded after locations.
 if ! docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
     psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence -Atqc \
     "SELECT EXISTS (
          SELECT 1
            FROM schema_migration
-          WHERE migration_id = 'schema:387_kokonut_network_tenant_ownership.sql'
+          WHERE migration_id = 'schema:388_tenant_aware_operator_grants.sql'
             AND status = 'applied'
      )" \
     | grep -qx t; then
-    echo "ERROR: Apply ordered migrations through 387 before loading pilot data." >&2
+    echo "ERROR: Apply ordered migrations through 388 before loading pilot data." >&2
     exit 1
 fi
 
@@ -108,6 +108,9 @@ done
 # organization assignment, and Genesis is created by 098_multi_farm.sql.
 echo "  Applying: 120_kokonut_network_ownership.sql"
 seed_apply "$SEED_DIR/120_kokonut_network_ownership.sql" pilot
+
+echo "  Applying: 121_kokonut_network_tenant_owner_verification.sql"
+seed_apply "$SEED_DIR/121_kokonut_network_tenant_owner_verification.sql" pilot
 
 echo ""
 echo "=== Pilot Farm Data Loaded ==="

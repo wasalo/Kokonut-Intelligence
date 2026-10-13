@@ -281,10 +281,8 @@ class OIDCOperatorProvider:
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    """SELECT EXISTS (
-                           SELECT 1 FROM operator_scope_grant
-                            WHERE operator_id = %s AND resource = %s AND action = %s
-                              AND location_id = %s AND revoked_at IS NULL
+                    """SELECT operator_scope_grant_allows(
+                           %s::uuid, %s, %s, %s::uuid
                        )""",
                     (operator_id, resource, action, location_id),
                 )
@@ -308,6 +306,9 @@ class OIDCOperatorProvider:
                     """SELECT resource, action, location_id
                          FROM operator_scope_grant
                         WHERE operator_id = %s AND revoked_at IS NULL
+                          AND operator_scope_grant_allows(
+                              operator_id, resource, action, location_id
+                          )
                         ORDER BY resource, action, location_id""",
                     (operator_id,),
                 )

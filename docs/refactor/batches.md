@@ -252,6 +252,7 @@ index and event evidence.
 - [x] Inventory report/projection/query source boundaries: three curated BI views/cards; the 94-type draft report-snapshot registry; one typed public analytics query; bounded evidence graph reads; optional ClickHouse rollups; and the legacy `dashboard_dataset.query_sql` runner. The inventory records that the runner executes stored SQL and discards rows after counting, so it is not a replacement reporting store ([inventory](reporting-parity-inventory.md)).
 - [x] Make the legacy stored-SQL dashboard refresher opt-in and disabled by default; keep read-only dataset listing available. The false-by-default switch reaches candidate, portability, and standard app/worker profiles; 23 focused core and Compose-profile tests pass, as do Ruff and shell syntax checks. Query safety, least-privilege role, and retained-dashboard acceptance remain open ([provider settings](provider-configuration.md); [inventory](reporting-parity-inventory.md)).
 - [x] Inspect archived dashboard/report metadata in an isolated read-only transaction without returning or executing stored query text. Found 43 datasets, none previously refreshed, zero eligible for the `--all` selector, and three unlocated draft report snapshots; owner labels were counted but not retained ([sanitized evidence](builds/2026-10-13-recovery/reporting-archive-inventory.json)).
+- [x] Review direct location lineage for the 38 unlocated dashboard definitions and three unlocated report snapshots on the retained isolated archive clone. No dashboard query/metadata references either known location or confirms Kokonut Network as owner; report location fields/lists do not match either location, and narrative mentions do not establish one owning location. Keep all 41 rows unassigned; no backfill was made ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
 - [ ] Have accountable capability owners select retained report types and dashboards, confirm audience/scope and measures, and provide reference fixtures. The source registry is not an ownership or usage inventory.
 - [ ] With verification authorization, exercise leases, retries, idempotency and outages.
 
@@ -501,15 +502,26 @@ reporting views.
 - [x] Record the owner decision and implement the scoped mapping in migration
   `387_kokonut_network_tenant_ownership.sql`; preserve the legacy Adelphi org
   record, and add `120_kokonut_network_ownership.sql` after Genesis is seeded.
+- [x] Review direct location lineage for the three unlocated report snapshots
+  and 38 unlocated dashboard definitions. No source-grounded mapping was found;
+  keep all 41 unassigned ([evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
 - [x] Run migration/seed acceptance on a network-disabled disposable
   PostgreSQL 16 fixture, including idempotency, wrong-owner refusal/transaction
   rollback, legacy member deactivation, and fresh pilot-seed ordering
   ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acceptance.json)).
-- [ ] Review unlocated report/dashboard lineage before assigning those records.
-- [ ] Define audited transfer and explicit-sharing semantics, implement
-  tenant-aware identities/grants and transaction-local RLS, and verify every
-  downstream consumer checks `v_mobile_collection_use_eligibility` before
-  reporting or publication.
+- [x] Add the tenant-aware grant foundation in migration 388: explicit owner
+  verification, server-managed operator organization membership, revocable
+  location sharing, and tenant-qualified resource/action grants. CLI and
+  application/query authorization paths enforce the shared predicate. Legacy
+  NULL-tenant location grants remain compatible and are not backfilled.
+- [ ] Run focused migration, membership/share lifecycle, grant conversion,
+  cross-tenant denial, and ordered-replay acceptance for migration 388 before
+  considering any candidate rollout.
+- [ ] Define and implement audited owner-transfer controls, reconcile other
+  locations and legacy operator grants, add transaction-local context, and
+  establish least-privilege worker/direct-database boundaries before RLS.
+- [ ] Verify every downstream consumer checks
+  `v_mobile_collection_use_eligibility` before reporting or publication.
 - [x] Source-audit and gate canonical Field Collector use after capture:
   migration 386 adds a current source/form/consent eligibility function and
   blocks ineligible draft edits and forward lifecycle transitions. Reports,
@@ -591,7 +603,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Rerun the snapshot-aware PostGIS build and locked inventory comparison on both architectures and retain the passing result ([CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973): 229 AMD64 and 228 ARM64 packages, with the single documented architecture-specific difference).
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
-- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current local head. CI run 291 and Security run 15 passed on PR #68 remote head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; the 12 local commits beyond that remote head, including the tenant ownership changes, still need CI after the next batch push. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
+- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current local head. CI run 291 and Security run 15 passed on PR #68 remote head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; 13 local commits beyond that remote head, including tenant ownership, lineage, and grant-foundation work, still need CI after the next batch push. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
 - [ ] Execute a reviewed cutover and retire dependencies only after their gates close.
 
 Gate: all required deployment profiles and selected capability acceptance criteria
