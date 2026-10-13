@@ -3678,3 +3678,17 @@ pass, and the mobile-form seed source regression check also passes (3 total).
 Provider-boundary and dependency-group checks pass (17 vendor import sites;
 12 groups/32 requirements aligned). No services or database state were changed.
 This slice is not pushed until CI run 287 completes.
+
+
+## Batch checklist reconciliation — 13 October 2026
+
+Reconciled the parent Batch 2 Metabase checkbox with the already-retained Batch
+4e evidence. The optional profile is scoped to the three reviewed
+`kokonut_reporting` views; three first-party cards were executed against the
+empty candidate and their exact exported SQL matched independent base-table
+references on a copied populated fixture. The metadata backup restore also
+matched the live source/card/dashboard inventory. Linked the card-output record
+from CAP-007 and the parent checklist. This closes only that implementation and
+reporting-slice item; the candidate remains empty, broader analytics parity and
+MAN-CAP-007 are not accepted, and the Batch 2 provider/recovery gates remain
+open. No runtime state or services changed.
