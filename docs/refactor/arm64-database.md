@@ -7,9 +7,12 @@ database reference:
 
 Buildx reports a single Docker v2 manifest, and Docker manifest inspection's
 platform descriptor reports linux/amd64. This pinned artifact is not a native
-ARM64 database image. The current minimal/edge/standard manifests therefore
-cannot yet satisfy the Raspberry Pi ARM64 target. AMD64 emulation is not ARM64
-certification and has no demonstrated Pi resource/recovery budget.
+ARM64 database image. The current minimal/edge/standard/analytics manifests
+therefore cannot yet satisfy the Raspberry Pi ARM64 target. A separate portability
+manifest now builds a custom PostgreSQL/PostGIS image for both architectures,
+but that evaluation path has not passed database runtime or hardware
+acceptance. AMD64 emulation is not ARM64 certification and has no demonstrated
+Pi resource/recovery budget.
 
 The command planner now accepts `--target-platform` and rejects linux/arm64
 with this known blocker before printing a deployment command. Its default is
@@ -18,22 +21,40 @@ or Docker architecture override. Manual Compose commands bypass the planner
 and still require platform review. No database image, volume, or container was
 changed by this inspection.
 
-## Implementation path
+## Current selection status — 13 October 2026
 
-Prepare a separate candidate PostGIS build based on a verified multi-platform
-PostgreSQL 16 image, with pinned/reviewed PostGIS packages and required extension
-initialization. Preserve PostgreSQL major version, application database/user,
-private networking, data directory, health probe, backup tools, and PostGIS/raster
-capabilities required by the schema. Determine package versions from verified
-repository metadata rather than assuming AMD64 package constraints are portable.
-Keep this additive until its extension/schema parity gates pass.
+The dedicated `docker-compose.kernel-portability.yml` manifest now references
+`Dockerfile.kernel-postgis` and accepts `linux/amd64` or `linux/arm64` through
+`scripts/kernel-portability.py`. GitHub Actions run 287 built the application
+and custom PostGIS targets for both architectures and passed the locked package
+inventory comparison with the reviewed `libquadmath0` architecture difference.
+These are build checks, not evidence of PostgreSQL startup, extension/schema
+parity, backup/restore, or Raspberry Pi operation.
 
-Build native or cross-platform AMD64/ARM64 artifacts, record immutable identities,
-then initialize a fresh ARM64 database volume and apply the checksummed schema.
-Rehearse logical backup/restore and spatial/raster queries before migrating farm
-data. Do not attach an existing candidate or legacy data directory to an
-unvalidated replacement image. Never upgrade extensions or database versions
-implicitly as part of architecture selection.
+The primary `docker-compose.kernel-candidate.yml` still uses the pinned
+AMD64-only `postgis/postgis:16-3.4` digest above. Therefore
+`scripts/kernel-profile.py --target-platform linux/arm64` remains blocked for
+minimal, edge, standard, and analytics selections. The portability stack is a
+separate evaluation deployment; no existing candidate or legacy data volume
+was attached to the custom image. The latest local application build record is
+for commit `c2a5354`: AMD64 built, but ARM64 dependency resolution failed after
+the package host timed out, so the PostGIS target was not attempted. CI run 287
+passed the multi-architecture image/package gate on earlier commit `6549043`;
+current branch-head CI is still required ([local evidence](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
+
+## Remaining acceptance path
+
+The additive PostGIS build uses a verified multi-platform PostgreSQL 16 base and
+pinned package versions found on both architectures. It preserves PostgreSQL
+major version, application database/user, private networking, data directory,
+health probe, and extension initialization responsibility. Keep it separate
+from the default candidate until extension/schema parity gates pass.
+
+The remaining work is to initialize a fresh ARM64 database volume, apply the
+checksummed schema, and rehearse logical backup/restore plus spatial/raster
+queries before migrating farm data. Do not attach an existing candidate or
+legacy data directory to an unvalidated replacement image. Never upgrade
+extensions or database versions implicitly as part of architecture selection.
 
 Application ARM64 wheels/builds, hardware memory/CPU/storage measurements,
 offline recovery, and 24-hour operation remain separate gates. Optional MQTT,
@@ -41,10 +62,10 @@ gRPC, ClickHouse, and proxy image platforms also require their own evidence.
 Only remove the planner guard when the selected database artifact and manifest
 path actually support ARM64; build success alone does not certify hardware.
 
-Registry inspection succeeded; planner static lint and diff checks passed.
-No runtime tests, image builds, migrations, hardware runs, or data changes were
-performed. Rollback retains the current AMD64 candidate and legacy artifacts
-and their volumes while ARM64 preparation proceeds separately.
+At initial registry inspection, no runtime tests, image builds, migrations,
+hardware runs, or data changes had been performed. The later current-state
+evidence is recorded below. Rollback retains the current AMD64 candidate and
+legacy artifacts and their volumes while ARM64 preparation proceeds separately.
 
 ## Additive build definition
 
@@ -68,17 +89,19 @@ Installed package versions are recorded inside the artifact at
 The image adds no automatic schema or seed initialization. Existing migration
 000 creates postgis and postgis_topology; other canonical extensions remain
 owned by schema SQL. Raster capability and package compatibility still need
-inspection/acceptance. The paired builds documented above used the live PGDG
-suite before the apt source lock below and do not verify the current snapshot
-inputs.
+runtime acceptance. The earlier paired builds used the live PGDG suite before
+the apt source lock below; CI run 287 later built from the locked snapshot-aware
+inputs and passed the architecture package inventory gate.
 
-This Dockerfile is not referenced by current Compose and was not built or
-started. It does not change the candidate's existing PostgreSQL patch level or
-PostGIS 3.4 deployment. A new package version may differ from historical PostGIS;
-review extension upgrade/restore compatibility before adoption. The ARM64 planner
-guard remains active. Database schema, migrations, volumes, and containers remain
-unchanged. Diff checks passed; platform package resolution, builds, extension
-parity, fresh-volume initialization, restore, and hardware gates remain pending.
+At first definition this Dockerfile was not yet selected by Compose or built.
+It is now used by the separate portability manifest and its build targets passed
+in CI run 287. It does not change the candidate's existing PostgreSQL patch
+level or PostGIS 3.4 deployment. The new package version differs from historical
+PostGIS; review extension upgrade/restore compatibility before adoption. The
+ARM64 deployment guard remains active. No schema, migration, existing volume,
+or candidate container was changed by adding this evaluation path. Runtime
+extension parity, fresh-volume initialization, restore, and hardware gates
+remain pending.
 
 ## Package discovery stage
 
@@ -130,10 +153,13 @@ separately; this reported image size is not a memory or Pi-storage guarantee.
 
 The build ran under local cross-platform execution, not on Raspberry Pi hardware.
 No database server, volume, schemas, extension upgrades, or application services
-were started. The image is not selected by current Compose, and the planner's
-ARM64 guard stays active until the application/database deployment path and
-acceptance gates are prepared. AMD64 final-target build, extension initialization,
-spatial/raster queries, logical restore, and hardware certification remain pending.
+were started by this build. At that point the image was not selected by Compose;
+it is now referenced by the separate portability evaluation manifest. The
+planner's ARM64 guard remains active for the primary candidate until its
+database deployment path and acceptance gates are prepared. AMD64 final-target
+build, extension initialization, spatial/raster queries, logical restore, and
+hardware certification were still pending when this historical entry was
+recorded; the paired-build and locked-CI records below supersede its build status.
 At this stage the JSON recorded only the ARM64 artifact, with the paired build
 still pending. The completed pair below supersedes that build status; runtime
 acceptance remains incomplete. No runtime tests were added or run; diff checks passed.
@@ -149,15 +175,19 @@ reported size must not be treated as proof of a smaller installed filesystem.
 Comparable compressed/unpacked/layer/storage measurements remain pending.
 
 The JSON previously marked `database_build_verified` true to mean both
-architecture builds completed; those artifacts predate the apt source lock.
-The field is now false until both architectures rebuild from the snapshot-aware
-definition. Runtime certification remains false. The earlier artifacts are
-retained as historical identities, not a published multi-platform index or
-selected deployment image.
+architecture builds completed; those local artifacts predate the apt source
+lock. Its field remains false because their image identities have not been
+replaced with snapshot-aware local builds. CI run 287 separately built the
+locked targets and passed package comparison, but its artifact identities are
+not recorded as local image tags in this file. Runtime certification remains
+false. The earlier local artifacts are historical identities, not a published
+multi-platform index or selected deployment image.
 
-No database or data volume was started, migrated, or replaced. Current candidate
-Compose and the planner ARM64 guard remain unchanged. Prepare a fresh isolated
-database deployment path and complete acceptance before adopting either artifact;
+No database or data volume was started, migrated, or replaced. The primary
+candidate Compose and planner ARM64 guard remain unchanged. The separate
+portability Compose path uses the custom image for isolated evaluation. Prepare
+a fresh isolated database deployment path and complete acceptance before
+adopting either artifact;
 preserve historical image/volume state for rollback. Diff checks passed and no
 runtime tests were added or run for the paired build.
 
@@ -179,12 +209,12 @@ preference keeps unrelated PGDG packages behind the dated Debian source. The
 release-input lock covers the bootstrap source, HTTPS source, preference, and
 package record. CI run 283 exposed the missing-CA bootstrap cycle. Run 284
 confirmed the CA bootstrap and built both architecture images; full inventory
-comparison found the documented `libquadmath0` amd64-only package, now recorded
-with its exact version in the locked package record. The checker requires the
-entire observed difference map to match those explicit expectations; a fresh
-multi-architecture run must pass before the apt inputs and inventory parity
-are accepted. Extension behavior, restore, runtime, and Raspberry Pi remain
-separate gates.
+comparison found the documented `libquadmath0` AMD64-only package, now recorded
+with its exact version in the locked package record. CI run 287 passed the
+default, ClickHouse, and PostGIS image builds plus locked package comparison on
+both architectures. That build-input gate is accepted for the tested commit;
+current branch-head CI, extension behavior, restore, runtime, and Raspberry Pi
+remain separate gates.
 
 Build the final target with both explicit arguments after discovery:
 
@@ -195,8 +225,9 @@ docker build --platform linux/arm64 --target kernel-postgis \
   -f Dockerfile.kernel-postgis -t kokonut-kernel-postgis-arm64:local .
 ```
 
-This final-target command is documented, not executed. Use a distinct AMD64
-tag for its counterpart and record actual artifact/package versions. The ARM64
-metadata stage does not start a database or demonstrate Pi resource usage.
-The planner remains guarded, current Compose remains on the legacy-compatible
-database image, and no volume, migration, or extension was changed.
+This manual final-target command is documented, not executed directly; CI run
+287 built the target through the release workflow. Use a distinct AMD64 tag for
+its counterpart and record actual artifact/package versions. An image build
+does not start a database or demonstrate Pi resource usage. The primary profile
+planner remains guarded, the default candidate remains on the legacy-compatible
+database image, and no existing volume, migration, or extension was changed.

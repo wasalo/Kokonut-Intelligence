@@ -1,5 +1,20 @@
 # ARM64 Kernel application build evidence
 
+## Current source status — 13 October 2026
+
+GitHub Actions run 287 built the default and ClickHouse-enabled application
+images plus the custom PostGIS image for AMD64 and ARM64, and passed the locked
+package inventory comparison on commit `6549043`. The current branch moved
+forward afterward, so it still needs a fresh CI run. A local attempt on commit
+`c2a5354` built the AMD64 application, then failed ARM64 dependency resolution
+after the package host timed out; the final ARM64 image was not exported and
+the paired PostGIS target was not attempted ([attempt record](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
+
+The passing CI build is build evidence only. It does not certify startup,
+PostGIS extension parity, ARM64 restore, or operation on a 4 GB Raspberry Pi.
+The primary candidate still uses its AMD64-only database image and its planner
+guard remains active.
+
 The [later public-read refresh](arm64-public-reads.md) records the current ARM64
 local tag with the newer public API contracts. The build below is historical
 installation evidence, not the latest source artifact.
@@ -28,10 +43,10 @@ driver and encryption packages resolved ARM64 wheels. Key installed versions:
 | boto3 / openpyxl | 1.43.111 / 3.1.5 |
 | pycryptodome | 3.24.0 |
 
-This fresh resolution uses version ranges and can differ from cached AMD64
-dependencies. Build/install success is not runtime compatibility evidence.
-Before release, capture complete dependency inventories, select a reviewed lock
-strategy, and rebuild both architectures from the same source/dependency policy.
+This historical resolution uses version ranges and can differ from cached AMD64
+dependencies. Later work added hash-locked Python dependency closures for the
+default and ClickHouse images, and CI run 287 verified package parity for its
+tested commit. Build/install success is not runtime compatibility evidence.
 The artifact includes uncommitted source, including migrations 371–373 and the
 latest gateway rate-limit changes; none of those migrations were applied here.
 
