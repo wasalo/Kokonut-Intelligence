@@ -90,19 +90,23 @@ def grant_scope(args) -> None:
         if identity is None:
             raise ValueError("enabled operator identity was not found")
         target = conn.execute(
-            """SELECT loc.organization_id AS location_organization_id,
-                      owner.organization_id AS verified_organization_id
+            """SELECT loc.organization_id AS location_organization_id
                  FROM location AS loc
-                 LEFT JOIN location_tenant_owner_verification AS owner
-                   ON owner.location_id = loc.id AND owner.revoked_at IS NULL
                 WHERE loc.id = :location_id
-                FOR SHARE OF loc""",
+                FOR SHARE""",
             {"location_id": location_id},
         ).first()
         if target is None:
             raise ValueError("location was not found")
         location_organization_id = str(target[0]) if target[0] is not None else None
-        verified_organization_id = str(target[1]) if target[1] is not None else None
+        owner = conn.execute(
+            """SELECT organization_id
+                 FROM location_tenant_owner_verification
+                WHERE location_id = :location_id AND revoked_at IS NULL
+                FOR SHARE""",
+            {"location_id": location_id},
+        ).first()
+        verified_organization_id = str(owner[0]) if owner is not None else None
         if verified_organization_id is not None and verified_organization_id != location_organization_id:
             raise ValueError("location ownership verification is stale; resolve ownership before granting access")
         if organization_id is None:
@@ -118,7 +122,8 @@ def grant_scope(args) -> None:
                     WHERE membership.operator_id = :operator_id
                       AND membership.organization_id = :organization_id
                       AND membership.revoked_at IS NULL
-                      AND tenant.status = 'active'""",
+                      AND tenant.status = 'active'
+                    FOR SHARE OF membership, tenant""",
                 {"operator_id": operator_id, "organization_id": organization_id},
             ).first()
             if membership is None:
@@ -132,7 +137,8 @@ def grant_scope(args) -> None:
                     WHERE location_id = :location_id
                       AND organization_id = :organization_id
                       AND revoked_at IS NULL
-                      AND (expires_at IS NULL OR expires_at > NOW())""",
+                      AND (expires_at IS NULL OR expires_at > NOW())
+                    FOR SHARE""",
                 {"location_id": location_id, "organization_id": organization_id},
             ).first()
             if not owns_location and shared_location is None:
@@ -221,11 +227,11 @@ def grant_organization_membership(args) -> None:
         raise ValueError("granted-by must identify the local operator")
     with get_connection() as conn:
         identity = conn.execute(
-            "SELECT id FROM operator_identity WHERE id = :operator_id AND enabled = TRUE",
+            "SELECT id FROM operator_identity WHERE id = :operator_id AND enabled = TRUE FOR SHARE",
             {"operator_id": operator_id},
         ).first()
         organization = conn.execute(
-            "SELECT id FROM organization WHERE id = :organization_id AND status = 'active'",
+            "SELECT id FROM organization WHERE id = :organization_id AND status = 'active' FOR SHARE",
             {"organization_id": organization_id},
         ).first()
         if identity is None or organization is None:
@@ -317,7 +323,7 @@ def grant_location_share(args) -> None:
         if owner_organization_id == organization_id:
             raise ValueError("the owner organization does not need a share grant")
         target_org = conn.execute(
-            "SELECT id FROM organization WHERE id = :organization_id AND status = 'active'",
+            "SELECT id FROM organization WHERE id = :organization_id AND status = 'active' FOR SHARE",
             {"organization_id": organization_id},
         ).first()
         owner_admin = conn.execute(
@@ -328,7 +334,8 @@ def grant_location_share(args) -> None:
                 WHERE identity.id = :operator_id AND identity.enabled = TRUE
                   AND membership.organization_id = :organization_id
                   AND membership.membership_role = 'tenant_admin'
-                  AND membership.revoked_at IS NULL""",
+                  AND membership.revoked_at IS NULL
+                FOR SHARE OF identity, membership""",
             {
                 "operator_id": granted_by_operator_id,
                 "organization_id": owner_organization_id,
@@ -391,7 +398,8 @@ def revoke_location_share(args) -> None:
                 WHERE identity.id = :operator_id AND identity.enabled = TRUE
                   AND membership.organization_id = :organization_id
                   AND membership.membership_role = 'tenant_admin'
-                  AND membership.revoked_at IS NULL""",
+                  AND membership.revoked_at IS NULL
+                FOR SHARE OF identity, membership""",
             {"operator_id": revoked_by_operator_id, "organization_id": str(share[3])},
         ).first()
         if owner_admin is None:
