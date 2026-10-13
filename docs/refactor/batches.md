@@ -582,7 +582,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Rerun the snapshot-aware PostGIS build and locked inventory comparison on both architectures and retain the passing result ([CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973): 229 AMD64 and 228 ARM64 packages, with the single documented architecture-specific difference).
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
-- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current branch head. PR #68 is open; run 287 passed on an earlier commit, and the current branch head still needs CI.
+- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current branch head. PR #68 is open; run 287 passed on an earlier commit, and the current branch head still needs CI. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
 - [ ] Execute a reviewed cutover and retire dependencies only after their gates close.
 
 Gate: all required deployment profiles and selected capability acceptance criteria

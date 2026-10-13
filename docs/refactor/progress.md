@@ -3832,3 +3832,12 @@ pytest's temporary directory; the complete suite then passed. Ruff is clean.
 No candidate or Docker service changed. This is source test evidence only;
 external delivery, provider state, physical failure, and broader runtime
 recovery remain open.
+
+
+## Current local architecture checks — 13 October 2026
+
+After the latest local commits, dependency groups align (12 groups, 32
+requirements), provider boundaries pass across 17 vendor import sites, and the
+Kernel release-input lock matches its sources. The release checker received no
+OCI archives, so this confirms source/config consistency only; it does not
+replace a CI run for the current branch head or ARM64 runtime acceptance.

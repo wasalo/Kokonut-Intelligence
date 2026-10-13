@@ -54,8 +54,11 @@ provisioning, CSRF, and console acceptance remain open.
 migration, Gateway authorization, scheduler durability, event-bus durability,
 carbon-credit, threatcasting, backcasting, and Delphi suites pass 279 tests.
 Host-run Gateway app tests now use a private temporary audit journal, matching
-the container's writable-spool contract. Ruff passes. This source-level run does
-not close live provider state, external delivery, or broader recovery gates.
+the container's writable-spool contract. Ruff passes. The current source also
+passes provider-boundary review (17 vendor import sites), and 12 dependency
+groups/32 requirements align. Release-input locks match; no OCI archives were
+supplied to the local release checker. This source-level evidence does not close
+live provider state, external delivery, or broader recovery gates.
 
 **13 October 2026 Phase 8 update:** the minimal app/PostGIS build inputs now
 have a SHA-256 lock, and GitHub Actions is configured to build AMD64/ARM64 OCI
