@@ -520,8 +520,15 @@ reporting views.
 - [ ] Define and implement audited owner-transfer controls, reconcile other
   locations and legacy operator grants, add transaction-local context, and
   establish least-privilege worker/direct-database boundaries before RLS.
-- [ ] Verify every downstream consumer checks
-  `v_mobile_collection_use_eligibility` before reporting or publication.
+- [x] Audit repository-owned downstream consumers of Field Collector data;
+  the source review found an unguarded process-interface elapsed-time lookup
+  and added the shared eligibility predicate. Reporting, export, metric,
+  analytics, process-trace, Gateway review, hook, and repository-dashboard
+  paths are inventoried in the [consumer audit](field-collector-downstream-source-audit.md).
+- [ ] Verify external and operator-edited dashboard/report consumers against
+  populated fixtures, and establish least-privilege direct-database boundaries
+  before claiming universal downstream or tenant isolation. Unknown saved SQL
+  is not rewritten, and archived unlocated reporting rows remain unassigned.
 - [x] Source-audit and gate canonical Field Collector use after capture:
   migration 386 adds a current source/form/consent eligibility function and
   blocks ineligible draft edits and forward lifecycle transitions. Reports,
@@ -603,7 +610,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Rerun the snapshot-aware PostGIS build and locked inventory comparison on both architectures and retain the passing result ([CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973): 229 AMD64 and 228 ARM64 packages, with the single documented architecture-specific difference).
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
-- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current local head. CI run 291 and Security run 15 passed on PR #68 remote head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; 13 local commits beyond that remote head, including tenant ownership, lineage, and grant-foundation work, still need CI after the next batch push. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
+- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current local head. CI run 291 and Security run 15 passed on PR #68 remote head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; 15 local commits beyond that remote head, including tenant ownership, lineage, grant-foundation, and downstream eligibility work, still need CI after the next batch push. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
 - [ ] Execute a reviewed cutover and retire dependencies only after their gates close.
 
 Gate: all required deployment profiles and selected capability acceptance criteria

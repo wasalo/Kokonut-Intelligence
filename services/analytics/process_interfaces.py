@@ -11,7 +11,7 @@ Schema: 190_process_interfaces.sql
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
@@ -132,12 +132,18 @@ def _compute_elapsed(
         return None
 
     time_col = "created_at"
-    corr_col = correlation_key if correlation_key != "subject_id" else "subject_id"
+    eligibility_predicate = ""
+    if source_type == "farm_activity":
+        eligibility_predicate = """
+          AND farm_activity_source_eligible_for_use(
+              source_system, source_id, source_raw, location_id
+          )
+        """
 
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f"SELECT {time_col} FROM {table} WHERE id = %s::uuid",
+                f"SELECT {time_col} FROM {table} WHERE id = %s::uuid{eligibility_predicate}",
                 (str(source_id),),
             )
             row = cur.fetchone()

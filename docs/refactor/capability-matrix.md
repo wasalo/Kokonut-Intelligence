@@ -996,3 +996,14 @@ remain alongside 25 saved-card placements. The target was removed and live
 metadata was unchanged. Card-output parity also passed on an isolated populated
 copy. [Restore
 manifest](builds/2026-10-11-recovery/candidate-metabase-backup.json).
+
+### CAP-053 source-audit update — 13 October 2026
+
+The repository-owned Field Collector consumer audit found and fixed an
+unguarded farm-activity timestamp lookup in
+`services/analytics/process_interfaces.py`. Other repository-owned report,
+export, metric, analytics, process-trace, Gateway, hook, and seeded dashboard
+consumers use the shared eligibility predicate. This source-only update does
+not close CAP-053: external/operator-edited dashboard parity, populated output
+validation, real OIDC, browser offline/withdrawal acceptance, disposition,
+retention, and RLS remain open. See the [consumer audit](field-collector-downstream-source-audit.md).

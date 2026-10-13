@@ -3931,3 +3931,21 @@ rollout, or external push occurred; CI run #291 still covers only the earlier
 remote PR head. See [tenant boundary](mobile-tenant-isolation.md), [console
 contract](kernel-operations-console.md), [batch checklist](batches.md), and
 [`388_tenant_aware_operator_grants.sql`](../../schemas/postgres/388_tenant_aware_operator_grants.sql).
+
+### Downstream Field Collector source audit — 13 October 2026
+
+A source audit of repository-owned farm-activity consumers found that report,
+export, metric, analytics, trace, Gateway, hook, and seeded dashboard paths use
+the migration-386 eligibility predicate directly or through the shared
+`farm_activity_source_eligible_for_use` function. The audit found one exception:
+`services/analytics/process_interfaces.py` fetched a farm-activity timestamp by
+ID without checking current eligibility. That lookup now applies the shared
+predicate for farm activity. The source inventory is in
+[field-collector-downstream-source-audit.md](field-collector-downstream-source-audit.md).
+
+This closes only the repository-source audit. External or operator-edited
+dashboard SQL, populated output parity, and direct-database isolation remain
+open. Focused tests and migration 388 replay remain unrun pending explicit
+verification authorization; Ruff, Python compilation, and whitespace checks
+are the static checks for this change. CI run 291 is green on the earlier PR
+head and does not cover this local batch.
