@@ -37,6 +37,37 @@ contract, that its measures are correct for a capability, or that it is safe
 for a broad read role. Inventory and approve candidate views per report owner
 instead of exposing the schema wholesale.
 
+## Populated archive metadata snapshot
+
+A read-only transaction inspected aggregate metadata from the existing isolated
+legacy PostgreSQL replay through migration 385. The encrypted source archive
+checksum matched its retained manifest. No stored query text was returned or
+executed, and the temporary network-disabled container was removed afterward.
+The pre-existing recovery volume remains retained.
+
+- The clone contains 43 `dashboard_dataset` rows: 41 `published` and 2
+  `verified`. All have `query_sql` and an owner metadata field; there are 12
+  distinct owner labels, which were not retained in evidence. Only 5 rows have
+  a location, and none has refresh timestamp or last-refresh metadata.
+- The 43 stored SQL fields have 11 `SELECT` keyword prefixes and 32
+  `dashboards` keyword prefixes. Five rows contain a hard-coded UUID literal;
+  none contains a recognized `%s` or `$n` bind placeholder. Prefix counts are
+  not a SQL parser result: no query was validated or executed. The odd
+  `dashboards` prefix needs source-format and owner review before the runner is
+  considered usable.
+- The repository CLI's `--all` selector targets `active`; it would select zero
+  rows from this restored state. A caller can still request a specific dataset
+  by ID, and the source code then executes its `query_sql` without status
+  filtering. This makes the runtime query path a separate security gate.
+- The archive contains three `report_snapshot` rows: two
+  `dao_proposal_history` and one `state_of_kokonut`. All are unfrozen `draft`
+  records and have no location. They do not demonstrate published-report
+  parity or a location-scoped dashboard.
+
+Sanitized aggregate results are retained in
+[`reporting-archive-inventory.json`](builds/2026-10-13-recovery/reporting-archive-inventory.json).
+No raw identifiers, query text, owner labels, or report payloads were retained.
+
 ## Report registry map
 
 The current 94-key registry is grouped by implementation module below. This is
@@ -83,10 +114,10 @@ can be generated together, and all snapshots begin as drafts.
 ## Current disposition
 
 The three-card public reporting slice has bounded copied-fixture evidence.
-Source mapping now distinguishes it from the 94 report snapshots, the single
-typed public analytics query, the separate evidence graph, ClickHouse rollups,
-and the legacy dynamic-SQL dashboard dataset mechanism. No test suite, stored
-dashboard SQL, database, or runtime service was queried or changed for this
-source review. Reporting and projection parity remains open until retained
-capabilities are selected by owners and accepted against scoped populated
-fixtures.
+Source mapping distinguishes it from the 94 report types, the single typed
+public analytics query, the separate evidence graph, ClickHouse rollups, and
+the legacy dynamic-SQL dashboard dataset mechanism. The archive review queried
+only aggregate metadata in a read-only transaction. No test suite ran, stored
+SQL was executed, report was generated, or source database was changed.
+Reporting and projection parity remains open until retained capabilities are
+selected by owners and accepted against scoped populated fixtures.

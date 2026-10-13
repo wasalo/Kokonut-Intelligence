@@ -225,6 +225,15 @@ stored SQL, select which reports remain product requirements, or establish
 parity. See the [reporting parity inventory](reporting-parity-inventory.md) and
 [Batch 4 checklist](batches.md).
 
+A read-only aggregate pass over the isolated legacy archive found 43 stored
+dashboard dataset definitions, all with owner metadata but only 12 distinct
+owner labels; the labels were not retained. None had refresh metadata, none
+would be selected by `--all`, and only five were location-scoped. The stored
+query fields include 11 `SELECT` prefixes and 32 `dashboards` prefixes; this
+was a leading-token count, not SQL validation, and none was executed. Three
+unlocated, unfrozen draft report snapshots remain in the archive. See the
+[sanitized archive inventory](builds/2026-10-13-recovery/reporting-archive-inventory.json).
+
 ## Phase 7 JavaScript SDK compiler compatibility — 11 October 2026
 
 Installed the SDK's declared TypeScript 5.8.3 development dependency locally and
