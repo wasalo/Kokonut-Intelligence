@@ -412,6 +412,7 @@ reporting views.
 - [x] Define the private gRPC profile's network, TLS, API-key, database-role, health, sizing, and rollback boundaries ([contract](grpc-overlay.md)).
 - [x] Define the Caddy proxy's default exposure, route ownership, TLS trust, forwarded-header behavior, health boundary, and rollback ([contract](kernel-proxy.md)).
 - [x] Map the existing device/location/media boundary and document the consent, form-validation, and tenant gaps ([contract](mobile-access-contract.md)).
+- [x] Protect consent, Field Collector, private-media, and governed farm-activity tables from the generic soft-delete sweeper; define the restricted-pending-disposition baseline and record the remaining erasure limitations ([policy](mobile-retention-disposition.md)).
 - [x] Inspect mobile enrollment, collection, forms, media, and append-only consent paths; draft the additive participant-link, consent, and immutable-form-version enforcement proposal ([contract](mobile-access-contract.md)).
 - [x] Approve the collector/participant identity boundary, reviewer-controlled location link, consent source/check timing, withdrawal gate, and immutable/stale form handling baseline.
 - [x] Implement migration 381 source, versioned form reads/sync validation, reviewer link create/revoke routes, opaque-ref UI capture, and the downstream eligibility view ([contract](mobile-access-contract.md)).

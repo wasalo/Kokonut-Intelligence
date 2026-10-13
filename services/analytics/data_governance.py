@@ -31,6 +31,29 @@ from ..common.logging import get_logger
 logger = get_logger("analytics.data_governance")
 
 
+# These records have consent, lifecycle, provenance, or private-media semantics
+# that the generic ``deleted_at`` retention sweep cannot preserve. Their
+# disposition must use a reviewed, domain-specific workflow.
+_REVIEWED_DISPOSITION_ENTITIES = frozenset({
+    "farm_activity",
+    "farm_activity_workflow_event",
+    "mobile_collection_review_event",
+    "mobile_device",
+    "mobile_form_version",
+    "mobile_media_upload",
+    "mobile_participant_link",
+    "offline_collection",
+    "stakeholder_consent",
+})
+
+
+def _requires_reviewed_disposition(entity_type: str | None) -> bool:
+    return (
+        isinstance(entity_type, str)
+        and entity_type.strip().lower() in _REVIEWED_DISPOSITION_ENTITIES
+    )
+
+
 # ============================================================
 # Consent Management
 # ============================================================
@@ -707,6 +730,10 @@ def set_retention_policy(
     metadata: dict = None,
 ) -> dict:
     """Set a data retention policy for a category."""
+    if _requires_reviewed_disposition(entity_type):
+        raise ValueError(
+            "this entity requires a dedicated reviewed disposition workflow"
+        )
     cur = conn.cursor()
     policy_id = str(uuid.uuid4())
 
@@ -763,7 +790,15 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
         policies = cur.fetchall()
         for policy_id, category, entity_type, location_id, days, method, legal_hold, auto_enforce, enforcement_status in policies:
             status, candidates, affected, error = "skipped", 0, 0, None
-            if not auto_enforce or enforcement_status != "active" or legal_hold or method == "none":
+            if _requires_reviewed_disposition(entity_type):
+                status = "skipped"
+                error = "protected entity requires a dedicated reviewed disposition workflow"
+            elif (
+                not auto_enforce
+                or enforcement_status != "active"
+                or legal_hold
+                or method == "none"
+            ):
                 status = "skipped"
             elif not entity_type:
                 status, error = "error", "policy has no entity_type"

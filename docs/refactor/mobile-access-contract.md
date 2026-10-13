@@ -148,6 +148,13 @@ delete append-only consent or collection evidence. There is not yet a human
 retention/erasure disposition workflow; that remains a release gate. Do not
 describe these records as erased or resolved after a withdrawal.
 
+The interim operating policy now treats affected records as restricted pending
+human disposition and prohibits automatic purge without an accountable,
+jurisdiction-aware retention owner. The generic retention sweeper explicitly
+rejects/skips protected consent, collection, media, and governed activity
+tables. This guard does not implement erasure; see the
+[retention and disposition contract](mobile-retention-disposition.md).
+
 ## Remaining policy and operational gates
 
 1. Candidate migrations 380 and 381 and the curated form seed are applied; five
