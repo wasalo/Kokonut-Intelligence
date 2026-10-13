@@ -101,9 +101,12 @@ verification:
    that candidate does not establish populated ownership. The earlier local
    candidate inventory found zero locations and zero rows
    ([candidate evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json)).
-2. Have accountable data owners resolve the ownership map and define audited
-   organization-transfer and explicit-sharing semantics. Unresolved records
-   remain outside tenant-protected APIs until resolved.
+2. Resolve the seed-location ownership map before tenant backfill. The
+   repository owner confirmed Kokonut Network as the exclusive owner of both
+   Kokonut Adelphi and Kokonut Genesis on 2026-10-13. This decision applies only
+   to those two repository seed locations; it does not assign owners to other
+   locations or resolve unlocated report/dashboard rows. Audited organization
+   transfer and explicit-sharing semantics are still required before RLS.
 3. Add server-managed organization membership and tenant-aware grants while
    preserving existing location-grant compatibility. Test provisioning,
    revocation, and cross-tenant denial before changing RLS.
@@ -151,8 +154,29 @@ exposed and fixed UUID-array decoding that had generated false opaque owner
 references; the corrected query casts to `text[]` and fails closed for an
 unexpected driver shape. See the [sanitized replay evidence](builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json).
 
-Accountable data-owner review of both location records and the unlocated report
-and dashboard rows remains required before tenant backfill, grants, or RLS.
-This archive inventory covers known direct relations only; complete downstream
-lineage, least-privilege worker behavior, and eligibility checks in each
-reporting/publication consumer remain open.
+The account owner has resolved both seed-location owner records: Kokonut
+Network owns Adelphi and Genesis exclusively. The source implementation is
+migration 387 plus the final `seed-pilot.sh` ownership seed. Unlocated report
+and dashboard rows remain unassigned pending lineage review. This archive
+inventory covers known direct relations only; complete downstream lineage,
+least-privilege worker behavior, audited transfer semantics, and tenant-aware
+grants remain open. RLS is not enabled by this ownership reconciliation.
+
+## Confirmed seed-location owner mapping — 13 October 2026
+
+The repository owner confirmed exclusive Kokonut Network ownership for
+Kokonut Adelphi (`a0000000-0000-0000-0000-000000000001`) and Kokonut Genesis
+(`a0000000-0000-0000-0000-000000000002`). The implementation creates/resolves
+the SQL `organization` row with `org_key = 'kokonut-network'`, applies a
+narrowly-scoped, fail-closed ownership migration, and re-applies the mapping
+after all pilot seeds so Genesis is present. The historical Kokonut Adelphi
+organization row and non-owner relationship types remain intact. Active
+`owned` relationships for these two locations converge on one primary Network
+relationship each. This does not assign ownership to other locations, retag
+unlocated reports/dashboards, provision user access, or enable RLS. Migration
+and seed acceptance passed on a network-disabled disposable PostgreSQL 16
+compatibility fixture, including idempotent replay, clean-bootstrap ordering,
+deactivation of the observed legacy owner link, and refusal/rollback on an
+unrelated owner ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acceptance.json)).
+Full ordered-migration replay and candidate rollout remain separate gates; the
+mapping decision alone does not authorize a candidate rollout.

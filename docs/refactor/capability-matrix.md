@@ -24,6 +24,19 @@ anonymous farm-activity/review routes return 401. Its database checkpoint was
 restore-rehearsed with matching migration fingerprints, extension versions, and
 selected row counts. See [rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json).
 
+**13 October 2026 tenant-owner decision (CAP-001 / CAP-053):** the repository
+owner confirmed that Kokonut Network exclusively owns the two seeded locations,
+Kokonut Adelphi and Kokonut Genesis. Source now includes ordered migration 387,
+a final pilot ownership seed, and updated legacy seed assignments. A network-
+disabled PostgreSQL 16 compatibility fixture passed clean-bootstrap ordering,
+idempotent replay, legacy owner-link deactivation, exact owner assertions, and
+refusal/rollback for an unrelated owner ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acceptance.json)). This closes the owner-decision and
+focused source acceptance gates for those two records only. Unlocated
+report/dashboard lineage, full ordered-migration replay, tenant-aware
+identity/grants, transfer semantics, worker isolation, RLS, and MAN-CAP-001 /
+MAN-CAP-053 remain open. The mapping does not establish user access or end-to-end
+tenant isolation.
+
 The Directus source inventory and isolated runtime probe map the CAP-001/CAP-053
 boundary, but do not establish API parity. The archived `directus_users` table
 has no `location_id` despite staff filters using `$CURRENT_USER.location_id`;

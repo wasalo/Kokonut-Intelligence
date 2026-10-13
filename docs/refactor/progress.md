@@ -3862,3 +3862,26 @@ requirements), provider boundaries pass across 17 vendor import sites, and the
 Kernel release-input lock matches its sources. The release checker received no
 OCI archives, so this confirms source/config consistency only; it does not
 replace a CI run for the current branch head or ARM64 runtime acceptance.
+
+
+## Tenant ownership mapping — 13 October 2026
+
+The repository owner confirmed Kokonut Network as the exclusive owner of the
+two repository seed locations, Kokonut Adelphi and Kokonut Genesis. Source now
+adds ordered migration 387, a final idempotent pilot ownership seed after
+Genesis creation, and consistent assignments in the legacy organization seeds.
+The migration is limited to the two exact seed identities, accepts only the
+observed legacy Adelphi owner or an already-canonical assignment, and refuses
+other owners. It preserves the legacy Adelphi organization and non-owner
+relationship types, and it does not enable RLS or assign the unlocated report
+and dashboard rows. A network-disabled PostgreSQL 16 compatibility fixture
+passed archive-like and clean-bootstrap scenarios, migration/seed idempotency,
+legacy owner-link deactivation, and wrong-owner refusal with transaction
+rollback ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acceptance.json)). All 16 test functions in `tests/test_impact_network.py` were invoked directly and passed; pytest
+could not be installed because PyPI DNS/network access is unavailable. No local
+candidate or legacy database was changed, and the disposable container was
+removed. Unlocated lineage review, tenant-aware grants, transfer/sharing
+semantics, full ordered-migration replay, and RLS remain open. GitHub confirms
+CI run #291 and Security run #15 passed on remote PR #68 head
+`56a0105f700ad1137d3b5ee6accce59552ebee7e`; the current local branch is 12
+commits ahead, so those unpushed changes are not covered.

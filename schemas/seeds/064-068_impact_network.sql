@@ -6,6 +6,14 @@
 -- 064: Organization
 -- ============================================================================
 
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM organization WHERE org_key = 'kokonut-network') THEN
+        RAISE EXCEPTION 'Apply migration 387 before loading the impact-network seed';
+    END IF;
+END;
+$$;
+
 INSERT INTO organization (
     id, org_key, name, org_type, description, governance_model, status,
     source_system, source_id, source_raw
@@ -21,22 +29,22 @@ ON CONFLICT (id) DO UPDATE SET
     status = EXCLUDED.status,
     updated_at = NOW();
 
--- Link existing location to organization
-UPDATE location SET organization_id = 'a0000000-0000-0000-0000-000000000700'
+-- The Adelphi organization remains a distinct pilot entity. Kokonut Network is
+-- the confirmed tenant owner of the location.
+UPDATE location SET organization_id = (
+    SELECT id FROM organization WHERE org_key = 'kokonut-network'
+)
 WHERE id = 'a0000000-0000-0000-0000-000000000001';
 
 -- Organization member
 INSERT INTO organization_member (
-    id, organization_id, location_id, farm_id, membership_type, join_date, role, status,
-    source_system, source_id, source_raw
+    id, organization_id, location_id, farm_id, membership_type, join_date, role, status
 ) VALUES
-('a0000000-0000-0000-0000-000000000710',
- 'a0000000-0000-0000-0000-000000000700',
+('a0000000-0000-0000-0000-000000000711',
+ (SELECT id FROM organization WHERE org_key = 'kokonut-network'),
  'a0000000-0000-0000-0000-000000000001',
  'a0000000-0000-0000-0000-000000000010',
- 'owned', '2025-01-01', 'primary', 'active',
- 'pilot_seed', 'org-member-adelphi',
- '{"record_type":"organization_member","privacy":"public_summary"}'::jsonb)
+ 'owned', '2025-01-01', 'primary', 'active')
 ON CONFLICT (id) DO UPDATE SET
     status = EXCLUDED.status,
     updated_at = NOW();

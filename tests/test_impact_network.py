@@ -87,6 +87,46 @@ def test_seed_has_organization() -> None:
     assert "cooperative" in text
 
 
+def test_tenant_ownership_migration_is_limited_to_confirmed_demo_locations() -> None:
+    migration = Path(
+        "schemas/postgres/387_kokonut_network_tenant_ownership.sql"
+    ).read_text()
+    assert "'kokonut-network'" in migration
+    assert "Kokonut Network" in migration
+    assert "Kokonut Adelphi" in migration
+    assert "Kokonut Genesis" in migration
+    assert "unreviewed existing owner" in migration
+    assert "ALTER TABLE location ENABLE ROW LEVEL SECURITY" not in migration
+
+
+def test_pilot_ownership_seed_runs_after_genesis_and_is_idempotent() -> None:
+    script = Path("scripts/seed-pilot.sh").read_text()
+    assert script.index("schema:387_kokonut_network_tenant_ownership.sql") < script.index(
+        '"$SEED_DIR/001_pilot_farm.sql"'
+    )
+    assert script.index("098_multi_farm.sql") < script.index(
+        "120_kokonut_network_ownership.sql"
+    )
+    ownership_seed = Path(
+        "schemas/seeds/120_kokonut_network_ownership.sql"
+    ).read_text()
+    assert "ON CONFLICT (id) DO UPDATE" in ownership_seed
+    assert "Kokonut Genesis" in ownership_seed
+
+
+def test_legacy_pilot_organization_seed_uses_confirmed_network_owner() -> None:
+    pilot_organization = Path("schemas/seeds/113_pilot_organization.sql").read_text()
+    assert "org_key = 'kokonut-network'" in pilot_organization
+    assert "SET organization_id = 'a0000000-0000-0000-0000-000000000700'" not in pilot_organization
+
+    impact_seed = SEED.read_text()
+    assert "SELECT id FROM organization WHERE org_key = 'kokonut-network'" in impact_seed
+    member_seed = impact_seed.split("INSERT INTO organization_member (", 1)[1].split(
+        "ON CONFLICT", 1
+    )[0]
+    assert "source_system" not in member_seed
+
+
 def test_seed_has_funding() -> None:
     text = SEED.read_text()
     assert "donor" in text
@@ -141,6 +181,9 @@ if __name__ == "__main__":
     test_schema_067_defines_tables()
     test_schema_068_defines_tables()
     test_seed_has_organization()
+    test_tenant_ownership_migration_is_limited_to_confirmed_demo_locations()
+    test_pilot_ownership_seed_runs_after_genesis_and_is_idempotent()
+    test_legacy_pilot_organization_seed_uses_confirmed_network_owner()
     test_seed_has_funding()
     test_seed_has_bounties()
     test_seed_has_office()

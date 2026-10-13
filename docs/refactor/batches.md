@@ -497,12 +497,19 @@ reporting views.
   dashboard datasets. It found one direct owner assignment without a confirming
   active relationship, one unassigned location, three unlocated report
   snapshots, and 38 unlocated dashboard datasets ([evidence](builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json)).
-- The two seed locations are **Kokonut Adelphi** (`a0000000-0000-0000-0000-000000000001`) and **Kokonut Genesis** (`a0000000-0000-0000-0000-000000000002`). The archived row assigns Adelphi to an organization named Kokonut Adelphi (`a0000000-0000-0000-0000-000000000700`), while Genesis is unassigned; neither has an active `organization_member` row in that archive. The source seeds describe Adelphi as a demonstration pilot for Kokonut Network and Genesis as the Network's second farm, but the archived `organization` table has no Kokonut Network record. The repository owner considers Kokonut Network the likely owner; confirm whether that applies to both and whether either location is shared before creating or changing ownership records.
-- [ ] Have accountable data owners resolve the two location ownership cases and
-  review unlocated report/dashboard lineage before any backfill or RLS work.
-- [ ] Reconcile location ownership; implement tenant-aware identities/grants
-  and transaction-local RLS; verify every downstream consumer checks
-  `v_mobile_collection_use_eligibility` before reporting or publication.
+- The archive contains **Kokonut Adelphi** (`a0000000-0000-0000-0000-000000000001`) and **Kokonut Genesis** (`a0000000-0000-0000-0000-000000000002`). Adelphi was assigned to the legacy Kokonut Adelphi organization (`a0000000-0000-0000-0000-000000000700`); Genesis was unassigned. The repository owner confirmed both are owned exclusively by Kokonut Network.
+- [x] Record the owner decision and implement the scoped mapping in migration
+  `387_kokonut_network_tenant_ownership.sql`; preserve the legacy Adelphi org
+  record, and add `120_kokonut_network_ownership.sql` after Genesis is seeded.
+- [x] Run migration/seed acceptance on a network-disabled disposable
+  PostgreSQL 16 fixture, including idempotency, wrong-owner refusal/transaction
+  rollback, legacy member deactivation, and fresh pilot-seed ordering
+  ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acceptance.json)).
+- [ ] Review unlocated report/dashboard lineage before assigning those records.
+- [ ] Define audited transfer and explicit-sharing semantics, implement
+  tenant-aware identities/grants and transaction-local RLS, and verify every
+  downstream consumer checks `v_mobile_collection_use_eligibility` before
+  reporting or publication.
 - [x] Source-audit and gate canonical Field Collector use after capture:
   migration 386 adds a current source/form/consent eligibility function and
   blocks ineligible draft edits and forward lifecycle transitions. Reports,
@@ -584,7 +591,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Rerun the snapshot-aware PostGIS build and locked inventory comparison on both architectures and retain the passing result ([CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973): 229 AMD64 and 228 ARM64 packages, with the single documented architecture-specific difference).
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
-- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current branch head. PR #68 is open; run 287 passed on an earlier commit, and the current branch head still needs CI. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
+- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current local head. CI run 291 and Security run 15 passed on PR #68 remote head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; the 12 local commits beyond that remote head, including the tenant ownership changes, still need CI after the next batch push. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
 - [ ] Execute a reviewed cutover and retire dependencies only after their gates close.
 
 Gate: all required deployment profiles and selected capability acceptance criteria

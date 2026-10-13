@@ -37,6 +37,21 @@ echo "Waiting for PostgreSQL..."
 wait_for_postgres
 echo "PostgreSQL is ready."
 
+# Fail before applying any pilot records if the schema/owner organization has
+# not been migrated. The pilot seed below depends on migration 387.
+if ! docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" \
+    psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence -Atqc \
+    "SELECT EXISTS (
+         SELECT 1
+           FROM schema_migration
+          WHERE migration_id = 'schema:387_kokonut_network_tenant_ownership.sql'
+            AND status = 'applied'
+     )" \
+    | grep -qx t; then
+    echo "ERROR: Apply ordered migrations through 387 before loading pilot data." >&2
+    exit 1
+fi
+
 # Apply all pilot seed files
 echo ""
 echo "Applying pilot farm seed data..."
@@ -88,6 +103,11 @@ for seed_file in \
         seed_apply "$seed_file" pilot
     fi
 done
+
+# Ownership must be applied last: earlier pilot seeds create Adelphi's legacy
+# organization assignment, and Genesis is created by 098_multi_farm.sql.
+echo "  Applying: 120_kokonut_network_ownership.sql"
+seed_apply "$SEED_DIR/120_kokonut_network_ownership.sql" pilot
 
 echo ""
 echo "=== Pilot Farm Data Loaded ==="
