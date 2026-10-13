@@ -306,21 +306,21 @@ person-specific evaluations; future text review must retain that restriction.
    volume/network were removed; candidate state is unchanged
    ([lifecycle evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json),
    [report/metric evidence](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json)).
-7. **Implemented in source, verification pending:** migration 385, the native
-   schema-validated draft edit service, its OIDC/CSRF route, and the console
-   editor provide reasoned, append-only content corrections. No tests were
-   added or run for this slice, and it has not been applied to the candidate.
-   Roll back the application route/UI if needed while retaining migration 385
-   and its edit evidence; correct database behavior with a reviewed forward
-   migration rather than deleting or rewriting the append-only history.
-   The combined suite covers duplicate retry, stale/ineligible collections,
-   wrong-location read/write query guards, and rollback on an injected event
-   write failure. Real PostgreSQL failed-trigger rollback and the two-caller
-   concurrent duplicate-promotion check passed. Migrations 383–384 and the
-   lifecycle write routes are deployed to the local candidate. Higher-contention
-   stress, configured-provider OIDC, candidate acceptance of populated workflow
-   rows, and MAN-CAP-001 remain open. The latest canonical read routes and
-   console controls are source-only and have not been tested or deployed.
+7. **Source and isolated verification complete; rollout pending:** migration
+   385, the immutable-schema draft edit service, OIDC/CSRF route, and console
+   editor provide reasoned, append-only content corrections. Ninety-five
+   focused Python tests and Ruff pass. A clean replay of all 376 schema
+   migrations into isolated PostGIS 16 succeeded; a synthetic native draft edit
+   verified changed-field metadata and content digest, rejected event mutation,
+   and proved that a failed event insert rolls the canonical update back. The
+   scratch project and test fixture were removed. The candidate still has
+   migrations 383–384 and was not modified; checkpointed migration/app rollout
+   and real-provider browser acceptance remain open. Roll back only the route/UI
+   if needed while retaining migration 385 and its edit evidence; correct
+   database behavior with a reviewed forward migration rather than deleting or
+   rewriting append-only history. Higher-contention stress, configured-provider
+   OIDC, populated workflow acceptance on the candidate, and MAN-CAP-001 remain
+   open ([verification evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json)).
 
 Rollback uses additive migrations, the existing OIDC session and default-deny
 location grants, and preservation of `offline_collection` as the source record.
@@ -344,9 +344,8 @@ governed rework path; do not delete it or rewrite the captured source.
   `schemas/postgres/384_farm_activity_lifecycle_guards.sql` are applied to the
   candidate and must remain immutable; future schema changes require new
   migrations.
-* Next acceptance: native draft editing with append-only evidence; focused
-  query/route/console checks; a guarded app-only candidate rollout with retained
-  rollback image/checkpoint; and configured OIDC browser review. Do not create
+* Next acceptance: a guarded migration-385/app-only candidate rollout with a
+  retained rollback image/checkpoint, then configured OIDC browser review. Do not create
   synthetic live operator data until the existing enrollment/test
   authorization flow is explicitly established.
 * Continue updating `docs/refactor/batches.md`,

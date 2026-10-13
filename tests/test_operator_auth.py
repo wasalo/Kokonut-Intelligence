@@ -183,6 +183,22 @@ def test_farm_activity_lifecycle_routes_require_location_scoped_action(route_act
     ) is None
 
 
+def test_farm_activity_draft_edit_route_requires_edit_and_both_detail_scopes():
+    path = "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/draft"
+    policy = operator_auth.auth_route_policy("PATCH", path, enabled=True)
+
+    assert policy["resource"] == "farm_activity"
+    assert policy["action"] == "edit_draft"
+    assert policy["additional_scopes"] == [
+        {"resource": "farm_activity", "action": "read_detail"},
+        {"resource": "mobile_collection_review", "action": "read_detail"},
+    ]
+    assert policy["scope_required"] is True
+    assert policy["public"] is False
+    assert operator_auth.auth_route_policy("PATCH", path, enabled=False) is None
+    assert operator_auth.auth_route_policy("POST", path, enabled=True) is None
+
+
 class _ReviewProvider(_FakeProvider):
     def __init__(self, *, allowed_action=None, allowed_actions=None):
         super().__init__(allowed=False)
@@ -431,6 +447,130 @@ def test_farm_activity_lifecycle_route_rejects_unknown_body_fields(monkeypatch):
 
     assert response.status_code == 422
     transition.assert_not_called()
+
+
+def test_farm_activity_draft_edit_route_requires_scope_csrf_and_passes_reason(monkeypatch):
+    provider = _FarmActivityProvider(
+        allowed_scopes={
+            ("farm_activity", "edit_draft"),
+            ("farm_activity", "read_detail"),
+            ("mobile_collection_review", "read_detail"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda _self, _reservation: None,
+    )
+    editor = MagicMock(return_value={"activity_id": "activity-id", "action": "draft_edited"})
+    monkeypatch.setattr(
+        "services.gateway.farm_activity_lifecycle.edit_farm_activity_draft",
+        editor,
+    )
+
+    path = "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/draft"
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=True)
+        response = client.patch(
+            path,
+            params={"location_id": LOCATION_ID},
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json={
+                "content": {"activity_type": "planting"},
+                "reason": "Corrected after review",
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["data"]["action"] == "draft_edited"
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "farm_activity", "edit_draft", LOCATION_ID),
+        (OPERATOR_ID, "farm_activity", "read_detail", LOCATION_ID),
+        (OPERATOR_ID, "mobile_collection_review", "read_detail", LOCATION_ID),
+    ]
+    editor.assert_called_once_with(
+        OPERATOR_ID,
+        "33333333-3333-4333-8333-333333333333",
+        LOCATION_ID,
+        {"activity_type": "planting"},
+        "Corrected after review",
+    )
+
+
+@pytest.mark.parametrize(
+    ("csrf", "allowed_scopes", "body", "status"),
+    [
+        (
+            False,
+            {
+                ("farm_activity", "edit_draft"),
+                ("farm_activity", "read_detail"),
+                ("mobile_collection_review", "read_detail"),
+            },
+            {"content": {"activity_type": "planting"}, "reason": "Correction"},
+            403,
+        ),
+        (
+            True,
+            {("farm_activity", "edit_draft"), ("farm_activity", "read_detail")},
+            {"content": {"activity_type": "planting"}, "reason": "Correction"},
+            403,
+        ),
+        (
+            True,
+            {
+                ("farm_activity", "edit_draft"),
+                ("farm_activity", "read_detail"),
+                ("mobile_collection_review", "read_detail"),
+            },
+            {
+                "content": {"activity_type": "planting"},
+                "reason": "Correction",
+                "actor_operator_id": OPERATOR_ID,
+            },
+            422,
+        ),
+    ],
+)
+def test_farm_activity_draft_edit_route_denies_missing_authority_or_invalid_body(
+    monkeypatch, csrf, allowed_scopes, body, status
+):
+    provider = _FarmActivityProvider(allowed_scopes=allowed_scopes)
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda _self, _reservation: None,
+    )
+    editor = MagicMock()
+    monkeypatch.setattr(
+        "services.gateway.farm_activity_lifecycle.edit_farm_activity_draft",
+        editor,
+    )
+
+    headers = {"X-CSRF-Token": "valid-csrf"} if csrf else {}
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=csrf)
+        response = client.patch(
+            "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/draft",
+            params={"location_id": LOCATION_ID},
+            headers=headers,
+            json=body,
+        )
+
+    assert response.status_code == status, response.text
+    editor.assert_not_called()
 
 
 def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkeypatch):

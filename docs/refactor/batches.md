@@ -153,17 +153,20 @@ backups/volumes; no production cutover in this batch.
   decision history, and grant-filtered lifecycle actions. Promotion also
   requires the separate farm-activity detail grant and locks all required
   grants through commit ([console contract](kernel-operations-console.md)).
-- [ ] Run focused route/query/console checks and rebuild the candidate app after
-  an explicit verification request; preserve the current candidate image and
-  database checkpoint before rollout. OIDC-provider acceptance remains a
-  separate gate.
+- [x] Run focused migration, route/query, immutable-schema, grant-lock,
+  append-only rollback, and console checks for draft editing. The focused
+  migration/workflow/lifecycle/OIDC/console suite passes 95 tests plus Ruff;
+  all 376 ordered schema migrations applied in disposable PostGIS 16, and a
+  synthetic native draft edit verified the content digest, immutable event,
+  and rollback after an injected event-write failure ([evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json)).
+- [ ] After a separate candidate-rollout authorization, checkpoint the local
+  candidate database, apply migration 385, rebuild/recreate only its app, and
+  verify health, migration status, and protected-route behavior. The candidate
+  was not changed during this verification; configured OIDC remains separate.
 - [x] Implement source-level native editing for draft farm activities against
   the immutable source form schema, with a location-scoped edit grant, required
   correction reason, and append-only content-edit evidence (migration 385);
   do not rely on Directus as the required Kernel path.
-- [ ] With explicit verification authorization, run focused migration, route,
-  immutable-schema, grant-lock, append-only rollback, and console checks for the
-  draft-edit slice; then perform a checkpointed candidate app/schema rollout.
 - [x] Add the published-only farm-activity summary to the governed farm report
   and include published lifecycle entities in `rework_rate_pct`, with period,
   source-record and reworked-subset provenance. The report snapshot remains
@@ -192,7 +195,28 @@ seeds) to a disposable PostGIS 16 database. Real service functions produced two
 published activities and 5.25 hours, excluded a draft and private source marker,
 stored a hash-matching unfrozen draft snapshot, and persisted a 50% rework metric
 with two source records and `verified=false`. The disposable volume/network were
-removed. The expanded focused Batch 3 suite passes 91 tests and Ruff, including wrong-location query binding/no-write checks and rollback after an injected workflow-event insert failure. A second check replayed all 375 schema migrations in disposable PostGIS 16, then used a real PostgreSQL trigger to reject the submitted workflow event during the actual transition service call; the activity stayed `draft`, and neither the workflow-event nor lifecycle-transition ledger recorded `submitted`. Two simultaneous PostgreSQL promotion calls passed: one created the draft, the other returned the same activity ID with `created=false`, and the database retained one canonical row and one `draft_created` event. The local candidate has migrations 383–384, the transition-write API, and an app image from the pre-console-read source, with a retained exact-target encrypted checkpoint and rollback image; rollout checks passed, but the candidate contains no activity/collection rows and OIDC is disabled. The latest source adds canonical queue/detail routes and console controls but has not been tested or deployed. Higher-contention stress, configured-provider OIDC, and MAN-CAP-001 remain open. See [candidate rollout evidence](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json).
+removed. The earlier expanded Batch 3 suite passed 91 tests and Ruff, including
+wrong-location query binding/no-write checks and an injected workflow-event
+failure. A second check replayed all 375 schema migrations in disposable
+PostGIS 16, then used a real PostgreSQL trigger to reject the submitted
+workflow event during the actual transition service call; the activity stayed
+`draft`, and neither the workflow-event nor lifecycle-transition ledger
+recorded `submitted`. Two simultaneous PostgreSQL promotion calls passed: one
+created the draft, the other returned the same activity ID with `created=false`,
+and the database retained one canonical row and one `draft_created` event. The
+local candidate has migrations 383–384 and a retained exact-target encrypted
+checkpoint and rollback image; OIDC is disabled. The subsequent source-level
+canonical queue/detail, console, and migration-385 draft-edit slices now pass
+the focused verification recorded below, but remain undeployed. Higher-contention
+stress, configured-provider OIDC, and MAN-CAP-001 remain open. See [candidate
+rollout evidence](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json).
+Migration-385 source acceptance now passes a separate 95-test focused suite plus
+Ruff. A fresh disposable PostGIS 16 replay applied 376 ordered schema
+migrations, then validated a synthetic draft edit, its digest-backed
+append-only event, rejection of event mutation, and transaction rollback after
+an injected event-insert failure. The scratch container was removed and the
+candidate was not changed. See [draft-edit evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json).
+
 Rollback: the API release can be reverted, but migration 384's native form
 guards intentionally remain active and the legacy provider must not be used to
 bypass lifecycle decisions for native 1.2.0 rows. Pause intake and use a

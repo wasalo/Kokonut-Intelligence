@@ -5,14 +5,15 @@ are implemented in source. The shell includes location-scoped Field Collector
 enrollment, submitted-report reads, a private Field Collector review queue and
 append-only review notes, plus source-level farm-activity intake, private draft
 promotion, canonical activity reads, grant-filtered submit/verify/reject/
-rework/publish/exception controls, and a native draft editor. The farm-activity
-queue/detail, edit route, and console controls are source-only and have not yet
-been checked or deployed to the candidate. OIDC
-remains disabled because no provider settings have been configured. Real
-provider login, database-backed grant checks, browser behavior, and live
-payload acceptance remain open. Native draft correction is implemented in
-source but remains unverified. This remains a partial implementation, not an
-accepted console.
+rework/publish/exception controls, and a native draft editor. Focused migration,
+route/query, immutable-schema, grant-lock, append-only rollback, and console
+checks now pass; all 376 schema migrations and a synthetic edit/rollback
+acceptance passed on disposable PostGIS 16 ([evidence](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json)).
+The queue/detail, edit route, and console remain source-only and are not deployed
+to the candidate. OIDC remains disabled because no provider settings have been
+configured. Real-provider login, browser-runtime acceptance, and live payload
+acceptance remain open. This remains a partial implementation, not an accepted
+console.
 
 ## Current repository boundary
 
@@ -236,6 +237,7 @@ only to the operators expected to perform it:
 python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action read --location-id LOCATION_UUID --granted-by OPERATOR
 python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action read_detail --location-id LOCATION_UUID --granted-by OPERATOR
 python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action create_draft --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action edit_draft --location-id LOCATION_UUID --granted-by OPERATOR
 python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action submit --location-id LOCATION_UUID --granted-by OPERATOR
 python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action verify --location-id LOCATION_UUID --granted-by OPERATOR
 python3 -m services.cli operator grant --operator-id UUID --resource farm_activity --action reject --location-id LOCATION_UUID --granted-by OPERATOR
@@ -256,8 +258,9 @@ list omits identity and payload, detail is bounded, and no media download route
 is exposed. Reviewer notes use `review` plus `read_detail` and cannot mutate
 eligibility or lifecycle state. No backend key is sent to the browser. The
 enrollment code response is not cached and the code is displayed once. The new
-farm-activity read/UI slice is not yet deployed or accepted, and the console
-does not yet edit reworked drafts. Do not expose
+farm-activity read/edit UI passed focused source and disposable database
+checks, but it is not yet deployed or accepted with a real identity provider.
+Do not expose
 arbitrary SQL, broad Directus collection CRUD, service-health probes, or
 administration controls.
 

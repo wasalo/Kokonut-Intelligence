@@ -186,6 +186,7 @@ class WriteCursor:
         participant_link=("active",),
         active_grants=(
             ("farm_activity", "create_draft"),
+            ("farm_activity", "read_detail"),
             ("mobile_collection_review", "read_detail"),
         ),
     ):
@@ -232,6 +233,7 @@ class WriteConnection:
         participant_link=("active",),
         active_grants=(
             ("farm_activity", "create_draft"),
+            ("farm_activity", "read_detail"),
             ("mobile_collection_review", "read_detail"),
         ),
     ):
@@ -346,7 +348,7 @@ def test_draft_promotion_maps_allowlisted_fields_and_records_digest():
     lock_queries = [
         sql for sql, _params in connection.cursor_instance.statements if "FOR SHARE" in sql
     ]
-    assert len(lock_queries) == 2
+    assert len(lock_queries) == 3
     assert any("resource = %s" in sql and "action = %s" in sql for sql in lock_queries)
     assert connection.committed and connection.closed and not connection.rolled_back
 
@@ -413,7 +415,7 @@ def test_draft_promotion_does_not_write_outside_requested_location():
     )
     assert result is None
     assert "AND oc.location_id = %s::uuid" in query
-    assert params == (COLLECTION_ID, other_location, OPERATOR_ID, OPERATOR_ID)
+    assert params == (COLLECTION_ID, other_location, OPERATOR_ID, OPERATOR_ID, OPERATOR_ID)
     assert not any(
         "INSERT INTO farm_activity (" in sql
         for sql, _params in connection.cursor_instance.statements
