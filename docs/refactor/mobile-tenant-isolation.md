@@ -119,10 +119,12 @@ verification:
    386 adds the canonical activity predicate and source-level consumer filters;
    focused PostgreSQL 16 synthetic acceptance and 56 application/query/console
    checks pass. The full ordered replay passed on a fresh populated archive
-   clone; candidate rollout remains pending in [Batch 5](batches.md).
-6. Take an encrypted checkpoint, rehearse upgrade and rollback on a restored
-   copy, and only then roll out to the local candidate. Keep the current
-   location-grant checks in place throughout migration.
+   clone. Migration 386 is also deployed on the local candidate after a fresh
+   encrypted checkpoint restore rehearsal; only the app was recreated and its
+   protected routes still return 401 anonymously ([rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json)).
+6. For future tenant/RLS migrations, take an encrypted checkpoint, rehearse
+   upgrade and rollback on a restored copy, and only then roll out to the local
+   candidate. Keep the current location-grant checks in place throughout.
 
 ## Current acceptance state
 

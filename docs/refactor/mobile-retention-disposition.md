@@ -94,7 +94,9 @@ existing scopes while excluding Field Collector rows; authorized Gateway
 review reads remain available. Focused PostgreSQL 16 synthetic acceptance
 passed with Directus installed and absent, and 56 focused application/query/
 console tests passed (18 skipped). The full ordered migration replay passed on
-a fresh populated archive clone; candidate rollout remains pending. The OIDC review queue can expose ineligible rows to a
+a fresh populated archive clone. Migration 386 is now applied to the local
+candidate after encrypted checkpoint restore parity; the app is healthy and
+anonymous activity/review routes remain protected ([rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json)). The OIDC review queue can expose ineligible rows to a
 location-scoped operator, but it is not a retention case manager and its
 append-only notes do not approve destruction. A read-only inventory is now available at
 `GET /operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory`

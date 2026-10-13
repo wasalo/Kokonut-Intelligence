@@ -525,10 +525,11 @@ reporting views.
   the final plan reported zero pending. The retained source volume was not
   changed; the temporary clone volume, container, and network were removed,
   and the candidate services stayed healthy ([evidence](builds/2026-10-13-recovery/farm-activity-use-gate-populated-replay.json)).
-- [ ] Prepare and receive approval for the local-candidate rollout: fresh
-  encrypted checkpoint, ordered migration 386, app rebuild/recreation, health
-  and protected-route checks, and rollback readiness. Candidate services remain
-  on migration 385 until that gated step.
+- [x] Complete the separately approved local-candidate rollout: create and
+  restore-rehearse a fresh age-encrypted checkpoint, apply migration 386 with
+  the ordered runner, rebuild/recreate only the candidate app, and verify zero
+  pending schemas, health 200, and anonymous protected-route 401 responses.
+  The checkpoint and prior app image remain available for rollback ([evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json)).
 - [x] Apply migrations 380 and 381 through the ordered, checksummed runner, seed five reviewed `1.1.0` forms, rebuild only the candidate app, and rehearse the encrypted pre-migration checkpoint restore; the exact-target candidate plan has zero pending schemas ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)). The candidate had no pre-existing form or collection rows; populated external databases still need their own reviewed rollout.
 - [x] Roll out the follow-up `1.2.0` allowlisted schemas and payload validator to the candidate using a fresh checkpoint/rehearsal; retain the existing `1.1.0` app image as a rollback artifact. App rollback alone is not safe for mobile sync because it predates payload validation; see the access contract.
 - [x] Recover the local candidate Docker app after its exact prior image digest was unavailable: rebuild from source commit `7c69510`, verify all three candidate services and `/health`, and retain the known-good image under a dated tag. Preserve the legacy stack and all data volumes ([evidence](builds/2026-10-12-recovery/docker-candidate-runtime-recovery.json)).
