@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-13",
+  "checked_at_utc": "2026-10-13T13:58:47Z",
+  "purpose": "Read-only inventory of candidate organization ownership and known Field Collector lineage before tenant/RLS design proceeds.",
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "database_service": "database",
+    "source_commit": "e8062fb",
+    "legacy_stack_queried": false,
+    "services_recreated": false,
+    "execution": "Unified CLI ran in a disposable container on the candidate private network; current services/cli.py and services/mobile/tenant_preflight.py were bind-mounted read-only."
+  },
+  "transaction": {
+    "isolation": "repeatable read",
+    "read_only": true,
+    "statement_timeout": "15 seconds"
+  },
+  "result": {
+    "scope": "read_only_organization_ownership_and_known_lineage_preflight",
+    "location_filter_applied": false,
+    "records_without_location_scope": "database_wide",
+    "location_count": 0,
+    "ownership_review_status_counts": {},
+    "locations_with_multiple_active_organization_relationships": 0,
+    "known_relation_rows_at_locations_without_direct_organization_assignment": 0,
+    "record_totals_by_known_relation": {
+      "mobile_device": 0,
+      "active_mobile_device": 0,
+      "enrollment": 0,
+      "pending_enrollment": 0,
+      "mobile_collection": 0,
+      "ineligible_mobile_collection": 0,
+      "private_media_upload": 0,
+      "attached_private_media": 0,
+      "canonical_field_activity": 0,
+      "workflow_event": 0,
+      "review_event": 0,
+      "report_snapshot": 0,
+      "dashboard_dataset": 0
+    },
+    "records_without_location": {
+      "mobile_device": 0,
+      "mobile_collection": 0,
+      "report_snapshot": 0,
+      "dashboard_dataset": 0
+    },
+    "locations": []
+  },
+  "interpretation": "The local candidate contains no location rows or inventoried lineage. This does not establish ownership status for the legacy, production, or any populated deployment.",
+  "limitations": [
+    "Organization relationships are review evidence, not authorization or automatic owner assignment.",
+    "Counts cover listed direct relations only and do not prove complete downstream, export, or backup lineage.",
+    "Relation row counts can include one collection in multiple lineage tables and are not a unique-record total.",
+    "This report does not verify or enable row-level security."
+  ],
+  "data_changes": false,
+  "tests_run": false
+}

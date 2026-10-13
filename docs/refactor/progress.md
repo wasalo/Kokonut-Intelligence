@@ -3339,10 +3339,24 @@ dataset counts, and reports rows lacking a location separately. It emits
 stable opaque location/organization references rather than raw UUIDs. The
 filtered mode labels unlocated counts as database-wide.
 
-This is a source and documentation change only. The candidate database was not
-queried and no tests were run. The next ownership step is to run the inventory,
-review the sanitized output with accountable data owners, and record decisions;
-the command does not infer or write ownership. Tenant-aware grants, RLS,
-worker isolation, complete downstream lineage, and ownership reconciliation
-remain open. See the [CLI guide](../../services/mobile/README.md) and
-[tenant contract](mobile-tenant-isolation.md).
+At the time this source slice was added, the candidate database was not queried
+and no tests were run. The command does not infer or write ownership.
+Tenant-aware grants, RLS, worker isolation, complete downstream lineage, and
+ownership reconciliation remain open. See the [CLI guide](../../services/mobile/README.md)
+and [tenant contract](mobile-tenant-isolation.md).
+
+### Candidate execution — 13 October 2026
+
+Ran the unified CLI in a disposable container on the private
+`kokonut-kernel-candidate` network. The current CLI and preflight module were
+bind-mounted read-only; the database transaction used repeatable-read, read-only
+mode with a 15-second statement timeout. The candidate contained zero location
+rows, zero ownership relationships, and zero known mobile/downstream records,
+including zero records without a location. The legacy stack was not queried,
+and no long-lived service was recreated. The sanitized result is retained in
+the [preflight evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json).
+
+This closes the local-candidate inventory run only. It does not resolve
+ownership for a populated or production database; accountable owner review,
+tenant-aware grants, RLS, and downstream lineage remain open. No tests were
+run, and no database records were changed.

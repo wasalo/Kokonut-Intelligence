@@ -141,9 +141,10 @@ instead of location or organization UUIDs, and counts known mobile and
 downstream rows. Organization relationships are review evidence only; the
 command never assigns an owner or changes data. With `--location-id`, the
 location rows are filtered but `records_without_location` remains a
-database-wide total. The command is implemented but has not yet been run
-against the candidate database. Review its output with accountable data owners
-before any ownership backfill, tenant grant, or RLS migration. See the
+database-wide total. The local candidate run returned zero locations and zero
+inventoried rows; it is empty and does not establish ownership for a populated
+installation. Review a populated deployment's output with accountable data
+owners before any ownership backfill, tenant grant, or RLS migration. See the
 [tenant isolation contract](../../docs/refactor/mobile-tenant-isolation.md).
 
 ### Private media and request protections

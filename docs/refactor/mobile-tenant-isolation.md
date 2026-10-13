@@ -86,8 +86,10 @@ verification:
    rows whose source cannot be assigned. Keep this read-only. The source preflight is available
    as `python3 -m services.cli mobile-tenant-preflight [--location-id UUID]`;
    it emits opaque references and aggregate relation counts, never performs an
-   owner backfill, and labels unlocated-record totals as database-wide. It has
-   not yet been run against the candidate database.
+   owner backfill, and labels unlocated-record totals as database-wide. The
+   local candidate run found zero locations and zero inventoried rows; it is
+   empty and cannot establish ownership for a populated deployment ([sanitized
+   evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json)).
 2. Have accountable data owners resolve the ownership map and define audited
    organization-transfer and explicit-sharing semantics. Unresolved records
    remain outside tenant-protected APIs until resolved.
@@ -111,9 +113,10 @@ verification:
 
 The content-free disposition inventory passes focused service/query,
 dual-grant authorization, and console checks. A separate read-only ownership
-preflight CLI is implemented in source, but has not yet been executed against
-the candidate. These steps prove only known direct lineage and the inventory's
+preflight CLI is implemented and ran successfully against the local candidate,
+which returned zero locations and zero inventoried rows. This confirms only
+that the candidate is empty; it does not establish ownership for a populated
+deployment. These steps prove only known direct lineage and the inventory's
 location-scoped contract. Organization ownership reconciliation, tenant-aware
 operator membership/grants, RLS, worker isolation, and downstream consumer
-parity remain open. No RLS migration or live data mutation is part of this
-document update.
+parity remain open. No RLS migration or live data mutation was made.
