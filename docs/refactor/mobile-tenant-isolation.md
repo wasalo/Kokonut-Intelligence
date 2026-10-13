@@ -80,10 +80,14 @@ verification:
 
 ## Ordered implementation and acceptance
 
-1. Inventory active locations, `location.organization_id`, organization
-   relationships, mobile devices, collections, media, and downstream rows.
-   Report null owners, disagreements, shared locations, and rows whose source
-   cannot be assigned. Keep this read-only.
+1. Inventory active and inactive locations, `location.organization_id`,
+   organization relationships, mobile devices, collections, media, and
+   downstream rows. Report null owners, disagreements, shared locations, and
+   rows whose source cannot be assigned. Keep this read-only. The source preflight is available
+   as `python3 -m services.cli mobile-tenant-preflight [--location-id UUID]`;
+   it emits opaque references and aggregate relation counts, never performs an
+   owner backfill, and labels unlocated-record totals as database-wide. It has
+   not yet been run against the candidate database.
 2. Have accountable data owners resolve the ownership map and define audited
    organization-transfer and explicit-sharing semantics. Unresolved records
    remain outside tenant-protected APIs until resolved.
@@ -106,8 +110,10 @@ verification:
 ## Current acceptance state
 
 The content-free disposition inventory passes focused service/query,
-dual-grant authorization, and console checks. This proves only its
-known-direct-lineage, location-scoped contract. Organization ownership
-reconciliation, tenant-aware operator membership/grants, RLS, worker isolation,
-and downstream consumer parity remain open. No RLS migration or live data
-mutation is part of this document update.
+dual-grant authorization, and console checks. A separate read-only ownership
+preflight CLI is implemented in source, but has not yet been executed against
+the candidate. These steps prove only known direct lineage and the inventory's
+location-scoped contract. Organization ownership reconciliation, tenant-aware
+operator membership/grants, RLS, worker isolation, and downstream consumer
+parity remain open. No RLS migration or live data mutation is part of this
+document update.

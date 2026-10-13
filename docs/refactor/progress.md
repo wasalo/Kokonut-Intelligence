@@ -3326,3 +3326,23 @@ backfill, provider configuration, or live data mutation was made. The current
 mobile location boundary remains in force; tenant-aware identity/grants, owner
 reconciliation, RLS, worker isolation, and downstream eligibility checks remain
 implementation gates.
+
+## Field Collector tenant ownership preflight CLI — 13 October 2026
+
+Added `python3 -m services.cli mobile-tenant-preflight` with an optional
+`--location-id` filter. The command runs an explicitly read-only,
+repeatable-read transaction with a 15-second statement timeout. It compares
+nullable direct organization assignments with active `owned`/`primary`
+relationships, inventories known device, enrollment, collection, private-media,
+canonical activity, workflow/review event, report snapshot, and dashboard
+dataset counts, and reports rows lacking a location separately. It emits
+stable opaque location/organization references rather than raw UUIDs. The
+filtered mode labels unlocated counts as database-wide.
+
+This is a source and documentation change only. The candidate database was not
+queried and no tests were run. The next ownership step is to run the inventory,
+review the sanitized output with accountable data owners, and record decisions;
+the command does not infer or write ownership. Tenant-aware grants, RLS,
+worker isolation, complete downstream lineage, and ownership reconciliation
+remain open. See the [CLI guide](../../services/mobile/README.md) and
+[tenant contract](mobile-tenant-isolation.md).

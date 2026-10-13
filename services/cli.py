@@ -67,6 +67,11 @@ _MOUNTED = [
     ("audit-spool", "services.gateway.audit_spool_cli", "Gateway audit journal maintenance"),
     ("operator", "services.gateway.operator_cli", "OIDC operator identity and scope provisioning"),
     ("mobile-forms", "services.mobile.forms_cli", "Field Collector form manifest validation and preview"),
+    (
+        "mobile-tenant-preflight",
+        "services.mobile.tenant_preflight",
+        "Read-only Field Collector organization ownership and lineage inventory",
+    ),
     ("mobile-media-cleanup", "services.mobile.media_cleanup", "Preview or expire unattached Field Collector media uploads"),
     ("mobile-media-reconcile", "services.mobile.media_reconcile", "Preview or remove aged unregistered Field Collector media objects"),
     ("crisp", "services.crisp.cli", "CRISP risk scoring"),

@@ -124,6 +124,28 @@ from the manifest reviewer. The CLI is a privileged local maintenance tool;
 browser self-service and the OIDC-scoped private review queue remain in
 progress. See the [form operations contract](../../docs/refactor/mobile-form-operations.md).
 
+### Organization ownership preflight
+
+Before planning tenant-aware grants or row-level security, inspect current
+location ownership assignments and known Field Collector lineage using the
+read-only CLI:
+
+```bash
+python3 -m services.cli mobile-tenant-preflight
+python3 -m services.cli mobile-tenant-preflight --location-id UUID
+```
+
+The report compares nullable `location.organization_id` values with active
+`owned`/`primary` organization relationships, emits stable opaque references
+instead of location or organization UUIDs, and counts known mobile and
+downstream rows. Organization relationships are review evidence only; the
+command never assigns an owner or changes data. With `--location-id`, the
+location rows are filtered but `records_without_location` remains a
+database-wide total. The command is implemented but has not yet been run
+against the candidate database. Review its output with accountable data owners
+before any ownership backfill, tenant grant, or RLS migration. See the
+[tenant isolation contract](../../docs/refactor/mobile-tenant-isolation.md).
+
 ### Private media and request protections
 
 - `POST /api/mobile/media/uploads` requires an active `X-Device-Token` and a

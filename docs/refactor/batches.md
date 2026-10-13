@@ -466,6 +466,14 @@ reporting views.
 - [ ] Configure and accept a real OIDC provider, login/session, operator grant provisioning, CSRF, and browser console enrollment/revocation. Source route/auth checks pass; the synthetic API-key enrollment route is covered by the isolated end-to-end check.
 - [x] Define the interim human retention/disposition baseline: restricted pending review, no automatic purge without accountable jurisdiction-aware ownership, and dual-control before destructive execution ([policy](mobile-retention-disposition.md)).
 - [x] Document the tenant/RLS target from the current schema: organization is the tenant, location is operational scope, organization/location relationships do not grant users access, and unmapped ownership fails closed ([contract](mobile-tenant-isolation.md)).
+- [x] Add a read-only ownership and known-lineage preflight CLI; emit opaque
+  location/organization references and distinguish relationship-row counts
+  from distinct organizations ([command](../../services/mobile/tenant_preflight.py)).
+  The CLI has not yet been executed against the candidate database.
+- [ ] Run the preflight against the local candidate, review
+  unassigned/mismatched/shared ownership and unlocated-row counts with
+  accountable data owners, and record a sanitized inventory before any
+  backfill or RLS work.
 - [ ] Reconcile location ownership; implement tenant-aware identities/grants and transaction-local RLS; verify every downstream consumer checks `v_mobile_collection_use_eligibility` before reporting or publication.
 - [x] Apply migrations 380 and 381 through the ordered, checksummed runner, seed five reviewed `1.1.0` forms, rebuild only the candidate app, and rehearse the encrypted pre-migration checkpoint restore; the exact-target candidate plan has zero pending schemas ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)). The candidate had no pre-existing form or collection rows; populated external databases still need their own reviewed rollout.
 - [x] Roll out the follow-up `1.2.0` allowlisted schemas and payload validator to the candidate using a fresh checkpoint/rehearsal; retain the existing `1.1.0` app image as a rollback artifact. App rollback alone is not safe for mobile sync because it predates payload validation; see the access contract.
