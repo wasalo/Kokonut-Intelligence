@@ -440,6 +440,28 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    farm_activity_transition_match = re.fullmatch(
+        r"/operator/api/farm-activities/([0-9a-fA-F-]{36})/(submit|verify|reject|request-rework|publish|close-exception)",
+        path,
+    )
+    if farm_activity_transition_match and method.upper() == "POST" and enabled:
+        _, route_action = farm_activity_transition_match.groups()
+        action = {
+            "submit": "submit",
+            "verify": "verify",
+            "reject": "reject",
+            "request-rework": "rework",
+            "publish": "publish",
+            "close-exception": "close_exception",
+        }[route_action]
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     routes = {
         ("GET", "/operator/"): ("console", True, False),
         ("GET", "/operator/auth/login"): ("login", True, False),
@@ -1030,6 +1052,92 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         return JSONResponse(
             status_code=201 if row["created"] else 200,
             content={"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.post("/operator/api/farm-activities/{activity_id}/{action}")
+    async def transition_farm_activity_route(
+        request: Request,
+        activity_id: str,
+        action: str,
+        location_id: str,
+        body: dict,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if set(body) - {"reason"} or ("reason" in body and body["reason"] is not None and not isinstance(body["reason"], str)):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Transition body accepts only an optional text reason"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.gateway.farm_activity_lifecycle import (
+            FarmActivityTransitionConflict,
+            FarmActivityTransitionInvalid,
+            transition_farm_activity,
+        )
+
+        try:
+            result = await run_in_threadpool(
+                transition_farm_activity,
+                request.state.operator_session.operator.operator_id,
+                activity_id,
+                location_id,
+                action,
+                body.get("reason"),
+            )
+        except FarmActivityTransitionInvalid as exc:
+            return JSONResponse(
+                status_code=422,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except FarmActivityTransitionConflict as exc:
+            return JSONResponse(
+                status_code=409,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            if exc.pgcode == "P0001":
+                get_logger("gateway.farm_activity").info(
+                    "Farm activity lifecycle decision rejected by database guard"
+                )
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Farm activity lifecycle decision is not permitted"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity lifecycle service unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity lifecycle service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Farm activity not found or transition grant unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(result)},
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 

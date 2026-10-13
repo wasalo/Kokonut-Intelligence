@@ -139,25 +139,31 @@ backups/volumes; no production cutover in this batch.
   record consent-versus-semantic-review boundaries and missing code paths
   ([workflow map](farm-activity-workflow-map.md)).
 - [x] Align the farm-activity workflow specification with reasoned rework or
-  exception disposition and explicit human publication; runtime enforcement
-  remains in the next slice.
+  exception disposition and explicit human publication.
 - [x] Add the native private intake queue/detail and explicit OIDC promotion
   route for eligible `farm_activity_v1` captures; create one location-derived,
   idempotent canonical draft with source lineage and operator event evidence.
 - [x] Add migration 383 source uniqueness and append-only draft-event guards;
   validate DDL and trigger behavior in a disposable PostgreSQL database.
-- [ ] Implement governed submit/reject/rework/verify/publish routes and database
-  lifecycle enforcement, including independent verifier and publisher checks.
+- [x] Implement governed submit/reject/rework/verify/publish/exception-close
+  routes and database lifecycle enforcement, including independent verifier,
+  rejection reviewer, and publisher checks ([workflow map](farm-activity-workflow-map.md)).
 - [ ] Connect draft metric computation and one governed report to that workflow.
 - [ ] With verification authorization, exercise role/field/row policy and failure paths.
 
 Gate: retained end-to-end evidence for the selected CAP rows, with explicit
-uncovered domains. Current branch validation includes 55 focused migration,
-workflow, service, and OIDC tests, Ruff, a disposable migration/trigger smoke, and a read-only
-query plan; the new migration and API have not been applied to the candidate.
-Rollback: revert the route/service release while retaining the additive source
-index and event table; preserve the existing governed provider path until
-parity is accepted.
+uncovered domains. This branch checkpoint passes 77 focused migration,
+workflow, service, and OIDC tests plus Ruff. Migrations 383–384 compiled and
+their draft, submit, verify, reject, rework, publish, exception-close,
+independent-actor, revoked-grant, content-immutability, append-only, deferred
+draft-evidence, and legacy-row compatibility checks passed in disposable local
+PostgreSQL ([evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json)).
+The candidate database and app have not been migrated or rebuilt.
+Rollback: the API release can be reverted, but migration 384's native form
+guards intentionally remain active and the legacy provider must not be used to
+bypass lifecycle decisions for native 1.2.0 rows. Pause intake and use a
+compatible transition API or a reviewed forward fix; preserve the additive
+index and event evidence.
 
 ## Batch 4 — Native orchestration and analytics parity (Phases 3–5)
 

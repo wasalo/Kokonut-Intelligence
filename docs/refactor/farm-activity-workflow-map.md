@@ -1,11 +1,11 @@
 # Farm activity workflow map
 
-Status: source map and declarative workflow correction complete. The private
-Field Collector queue/detail and canonical draft promotion API are implemented
-on the feature branch and validated in focused tests; migration 383 has passed
-an isolated PostgreSQL trigger check. The feature has not been deployed to the
-candidate. Governed submit/reject/rework/verify/publish routes and published-only
-report/metric handoffs remain unimplemented.
+Status: source map, declarative workflow correction, private queue/detail,
+canonical draft promotion, and governed lifecycle transitions are implemented
+on the feature branch. Migrations 383–384 and the transition routes pass focused
+tests and disposable PostgreSQL acceptance. The feature has not been deployed
+to the candidate. Published-only report/metric handoffs and full MAN-CAP-001
+acceptance remain open.
 
 This map selects the current `farm_activity_v1` Field Collector form as the
 first Batch 3 vertical slice. It records what the repository does today and
@@ -28,7 +28,8 @@ OIDC location-scoped review queue and append-only reviewer notes
         │
         ▼
 farm_activity (canonical governed record; currently populated by other paths)
-        │ lifecycle_transition ledger
+        │ OIDC-scoped submit / verify / reject / rework / publish / close-exception
+        │ append-only farm_activity_workflow_event + lifecycle_transition ledger
         ▼
 draft metric_value / governed report_snapshot draft
 ```
@@ -86,9 +87,15 @@ draft metric_value / governed report_snapshot draft
   append-only `farm_activity_workflow_event` ledger. Its insert trigger checks
   canonical status, location and source identity; a `draft_created` event also
   requires the content-review acknowledgement and matching payload digest.
-  The ledger defines allowed transition shapes, but this slice only emits
-  `draft_created`; it does not yet provide or enforce the governed transition
-  API. The migration and application code are not yet applied to the candidate.
+  Migration 384 scopes these lifecycle guards to `farm_activity_v1` 1.2.0 source
+  rows, preserving other historical Field Collector source rows. It requires
+  valid source/form lineage and active location grants for draft creation,
+  appends an event atomically for every lifecycle action, blocks illegal status
+  changes, and prevents edits to submitted, verified, rejected, or published
+  content. Rework returns the row to draft before content can change again.
+  Existing `lifecycle_transition` rows continue to be written for changed
+  status values; `exception_closed` is a separate event because status stays
+  rejected. These migrations and routes are not applied to the candidate.
 * `schemas/postgres/003_operations.sql` defines canonical `farm_activity`
   fields, lineage fields, and lifecycle status. `services/export/
   spreadsheet_bridge.py::import_farm_activity_csv` is one existing importer;
@@ -159,26 +166,34 @@ handoffs remain target contracts for the next Batch 3 slices.
    `(source_system, source_id)` identity after a duplicate preflight. On retry,
    return the existing canonical row only if location and source mapping agree;
    otherwise fail closed. Preserve other importers' source-key semantics.
-6. **Partially implemented:** record collection promotion and operator action
-   in an append-only event. Set transaction-local lifecycle actor context before
-   status changes. Do not treat the Field Collector device `user_id`, participant
-   link, or OIDC `operator_id` as a `party` identity. The promotion event is
-   present; later transition events and verifier/publisher independence checks
-   still need runtime enforcement.
+6. **Implemented in source:** record draft promotion and every later operator
+   action in the append-only event ledger. Set the OIDC operator as the
+   transaction-local actor; never treat device `user_id`, participant link, or
+   OIDC `operator_id` as a `party` identity.
 
 ### Lifecycle and authorization
 
 * Draft creation is location-scoped and never directly publishes.
 * A submit action moves `draft -> submitted` after required content checks.
   Submission actor is retained so the reviewer can be required to differ.
+* The native route `POST /operator/api/farm-activities/{id}/{action}` requires
+  an OIDC session, CSRF validation, a location query parameter, and the exact
+  action grant: `submit`, `verify`, `reject`, `rework`, `publish`, or
+  `close_exception`. Each database transaction locks the canonical row and
+  grant, checks the current state, applies one transition, and reads back its
+  appended event. Unknown body fields are rejected. Rejection, rework, and
+  exception closure require a nonblank reason of at most 2,000 characters.
 * A human verifier with location-scoped `farm_activity:verify` authority moves
-  `submitted -> verified` or rejects with a reason. The verifier must differ
-  from the submitter. A verified row may still be edited only by returning it
-  to a reviewable state with an audit entry; silent edits are prohibited.
+  `submitted -> verified`; the verifier must differ from the latest submitter.
+  Rejection from submitted or verified requires a reviewer distinct from the
+  latest submitter and, where present, verifier. A publisher must differ from
+  both latest actors. A verified row cannot be silently edited.
 * Rejection is a reasoned rework/exception state, not an unconditionally
-  terminal state. The workflow spec and guards must define an explicit
-  `rejected -> draft` correction path while preserving the rejection event.
-  A rejected row is never eligible for metric/report publication.
+  terminal state. `rejected -> draft` is an explicit `rework` action that
+  preserves the prior rejection event. Draft content can then be corrected;
+  submitted or later content is immutable. `close_exception` records a distinct
+  reasoned event while leaving lifecycle status rejected. A rejected row is
+  never eligible for metric/report publication.
 * Publication is a separate, explicit human-controlled action with
   location-scoped `farm_activity:publish` authority. Only published records
   may enter the public farm-activity summary or the selected governed metric
@@ -210,39 +225,41 @@ person-specific evaluations; future text review must retain that restriction.
 2. **Done:** update `services/workflow_specs/farm_activity.py` and its contract
    test so rejection offers explicit rework or exception disposition, the
    submitter and verifier are distinct by contract, and publication requires a
-   human action. Runtime enforcement remains open.
+   human action. Runtime enforcement is implemented in source in step 4.
 3. **Done for draft promotion:** `services/gateway/farm_activity_workflow.py`
    implements private collection reads and canonical draft creation with
    strict scope, exact-revision, idempotency, source-lineage, and transaction-
    local actor handling. The Gateway route is implemented in
    `services/gateway/operator_auth.py`.
-4. Add explicit submit/reject/rework/verify/publish transitions through the
-   native Gateway route policy and operator grants; keep reviewer notes
-   append-only and preserve state-transition evidence.
+4. **Implemented in source:** add explicit submit/reject/rework/verify/publish/
+   exception-close transitions through the native Gateway route policy and
+   operator grants; preserve operator-attributed state-transition evidence.
 5. Add the published-only farm activity summary and one draft report/metric
    fixture with independently checked expected output.
-6. **Partial verification complete:** 55 tests across migration, workflow,
-   service, and OIDC suites pass; Ruff passes; migration 383 compiled in a disposable PostgreSQL database,
-   and its valid draft-event, status-mismatch, and append-only trigger behavior
-   passed with synthetic rows. A read-only `EXPLAIN` also validated the exact
-   collection-lock query against the current eligibility view. The remaining
-   disposable service/database failure checks are:
-   duplicate promotion, stale/ineligible collection, wrong location, grant
-   denial/revocation, actor identity, reviewer independence, rejected rework,
-   invalid transition, rollback, published-only projection, draft metric,
-   and draft report hashing. Live OIDC/public-route acceptance remains a later
-   deployment gate; this migration and route have not been deployed to the
-   candidate.
+6. **Partial verification complete:** 77 tests across migration, workflow,
+   lifecycle service, and OIDC suites pass; Ruff passes. Migrations 383–384
+   compiled transactionally in a disposable PostgreSQL database. Synthetic
+   rows accepted draft creation, submit, independent verify, reject, rework,
+   resubmit, publish, and same-status exception closure; guards rejected a
+   missing draft event, self-verification, rejection by the submitter or
+   verifier, missing reason, revoked grant, invalid transition, post-submit
+   content edit, and event update/delete. A legacy Field Collector row using a
+   different form version remained outside the new guard. The scratch database
+   is removed and the candidate remains unchanged ([sanitized evidence](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json)). Remaining checks include
+   duplicate promotion, stale/ineligible source, wrong-location read/write,
+   route-level OIDC against a configured provider, rollback under injected DB
+   failure, published-only projection, draft metric, and draft report hashing.
+   These migrations and routes are not deployed to the candidate.
 
-Rollback uses additive migration(s), the existing OIDC session and default-
-deny location grants, and preservation of `offline_collection` as the source
-record. For this slice, reverting the application release removes the new
-route; leave its additive index and event table in place because they are inert
-without the new code and may contain audit history after deployment. A failed
-promotion transaction leaves no canonical row or event. If a created draft
-later proves incorrect, use the governed draft/rework path; do not silently
-delete it or rewrite the captured source. Existing Directus/spreadsheet paths
-remain available during rollback.
+Rollback uses additive migrations, the existing OIDC session and default-deny
+location grants, and preservation of `offline_collection` as the source record.
+The feature is not deployed, so no rollback action is needed now. After
+deployment, a route rollback must pause native intake and retain a compatible
+transition path for native 1.2.0 rows; migration 384 guards intentionally stay
+active and must not be bypassed through Directus. Keep the additive index and
+event history. A failed promotion or transition rolls back the canonical write
+and its event together. If a draft is incorrect, use the governed rework path;
+do not delete it or rewrite the captured source.
 
 ## Files in scope for the next implementation slices
 

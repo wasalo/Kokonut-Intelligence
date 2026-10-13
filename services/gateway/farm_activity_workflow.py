@@ -347,6 +347,12 @@ def create_farm_activity_draft(
                 payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
             )
             payload_digest = hashlib.sha256(serialized_payload.encode("utf-8")).hexdigest()
+            cur.execute(
+                "SELECT set_config('kokonut.workflow_action', 'draft_created', true), "
+                "set_config('kokonut.content_reviewed', 'true', true), "
+                "set_config('kokonut.payload_sha256', %s, true)",
+                (payload_digest,),
+            )
             source_raw = {
                 "form_id": "farm_activity_v1",
                 "form_version": "1.2.0",

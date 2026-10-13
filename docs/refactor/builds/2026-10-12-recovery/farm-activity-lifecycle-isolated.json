@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-12",
+  "purpose": "Validate Field Collector farm_activity lifecycle guards in disposable PostgreSQL.",
+  "postgresql_major": 16,
+  "migrations": [
+    "schemas/postgres/383_farm_activity_workflow_events.sql",
+    "schemas/postgres/384_farm_activity_lifecycle_guards.sql"
+  ],
+  "transactional_migration_apply": "passed",
+  "synthetic_happy_paths": [
+    "reviewed native draft with matching source digest and event",
+    "draft to submitted",
+    "submitted to verified by a different operator",
+    "verified to published by a third operator",
+    "submitted to rejected with reason",
+    "rejected to draft with reason",
+    "resubmission after rework",
+    "rejected exception closed with a separate event and unchanged rejected status"
+  ],
+  "synthetic_guard_rejections": [
+    "native draft commit without its matching draft_created event",
+    "verification by the latest submitter",
+    "rejection by the latest submitter",
+    "rejection by the latest verifier",
+    "rejection without a reason",
+    "transition after action grant revocation",
+    "illegal lifecycle transition",
+    "content edit after submission",
+    "workflow event update or delete"
+  ],
+  "legacy_field_collector_row_outside_native_1_2_0_guard": "passed",
+  "focused_pytest_count": 77,
+  "ruff": "passed",
+  "scratch_database_removed": true,
+  "candidate_database_changed": false,
+  "candidate_app_rebuilt": false,
+  "limitations": [
+    "OIDC provider-backed candidate route acceptance remains open.",
+    "Published-only farm report and metric handoffs remain open.",
+    "MAN-CAP-001 remains open."
+  ]
+}

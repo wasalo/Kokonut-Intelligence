@@ -154,6 +154,28 @@ def test_farm_activity_intake_routes_require_oidc_and_separate_detail_grants():
         "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222/draft",
         enabled=False,
     ) is None
+
+
+@pytest.mark.parametrize(
+    ("route_action", "scope_action"),
+    [
+        ("submit", "submit"),
+        ("verify", "verify"),
+        ("reject", "reject"),
+        ("request-rework", "rework"),
+        ("publish", "publish"),
+        ("close-exception", "close_exception"),
+    ],
+)
+def test_farm_activity_lifecycle_routes_require_location_scoped_action(route_action, scope_action):
+    path = f"/operator/api/farm-activities/{'33333333-3333-4333-8333-333333333333'}/{route_action}"
+    policy = operator_auth.auth_route_policy("POST", path, enabled=True)
+
+    assert policy["resource"] == "farm_activity"
+    assert policy["action"] == scope_action
+    assert policy["scope_required"] is True
+    assert policy["public"] is False
+    assert operator_auth.auth_route_policy("GET", path, enabled=True) is None
     assert operator_auth.auth_route_policy(
         "DELETE",
         "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222",
@@ -317,6 +339,98 @@ def test_farm_activity_draft_route_requires_scope_csrf_and_review_acknowledgemen
         assert audit_records[-1]["location_id"] == LOCATION_ID
     else:
         draft_writer.assert_not_called()
+
+
+def test_farm_activity_lifecycle_route_requires_scope_csrf_and_passes_reason(monkeypatch):
+    provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "reject")})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    audit_records = []
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda _self, **record: audit_records.append(record),
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda _self, _reservation: None,
+    )
+    transition = MagicMock(
+        return_value={
+            "event_id": "event-id",
+            "activity_id": "33333333-3333-4333-8333-333333333333",
+            "location_id": LOCATION_ID,
+            "action": "rejected",
+            "from_status": "submitted",
+            "to_status": "rejected",
+            "reason": "The activity date needs correction",
+        }
+    )
+    monkeypatch.setattr(
+        "services.gateway.farm_activity_lifecycle.transition_farm_activity",
+        transition,
+    )
+
+    headers = {"X-CSRF-Token": "valid-csrf"}
+    path = "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/reject"
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=True)
+        response = client.post(
+            path,
+            params={"location_id": LOCATION_ID},
+            headers=headers,
+            json={"reason": "The activity date needs correction"},
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["data"]["action"] == "rejected"
+    transition.assert_called_once_with(
+        OPERATOR_ID,
+        "33333333-3333-4333-8333-333333333333",
+        LOCATION_ID,
+        "reject",
+        "The activity date needs correction",
+    )
+    assert provider.scopes_seen == [(OPERATOR_ID, "farm_activity", "reject", LOCATION_ID)]
+    assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+def test_farm_activity_lifecycle_route_rejects_unknown_body_fields(monkeypatch):
+    provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "submit")})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda _self, _reservation: None,
+    )
+    transition = MagicMock()
+    monkeypatch.setattr(
+        "services.gateway.farm_activity_lifecycle.transition_farm_activity",
+        transition,
+    )
+    path = "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/submit"
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=True)
+        response = client.post(
+            path,
+            params={"location_id": LOCATION_ID},
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json={"verified": True},
+        )
+
+    assert response.status_code == 422
+    transition.assert_not_called()
 
 
 def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkeypatch):

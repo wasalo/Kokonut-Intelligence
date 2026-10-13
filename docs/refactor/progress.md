@@ -3019,3 +3019,52 @@ draft metric parity, and complete disposable database failure coverage remain
 open. CAP-001 remains partial; this does not satisfy MAN-CAP-001. The
 [workflow map](farm-activity-workflow-map.md) and [Batch 3 checklist](batches.md)
 track the interface, evidence, and rollback boundary.
+
+
+### Batch 3 native farm activity lifecycle enforcement — 12 October 2026
+
+Added `services/gateway/farm_activity_lifecycle.py` and six OIDC-protected,
+location-scoped transitions at
+`POST /operator/api/farm-activities/{id}/{action}`: submit, verify, reject,
+request-rework, publish, and close-exception. Every action requires its own
+grant, CSRF, a canonical row lock, and an active grant lock. Rejection, rework,
+and exception closure require a nonblank reason. One transaction changes
+status and writes the append-only operator event; identity, action, source,
+location, current status, and event-to-scope mapping are checked by PostgreSQL.
+The verifier differs from the latest submitter. Rejection from either submitted
+or verified state requires a reviewer distinct from the latest submitter and
+verifier. Publication requires a third actor distinct from both. Rework returns
+the row to draft while preserving prior events; content is immutable after
+submission and editable only after an explicit rework transition. Exception
+closure records a reasoned event without changing the rejected lifecycle state.
+
+Migration 384 scopes write/status guards to `farm_activity_v1` version 1.2.0,
+preflights matching draft and current-status evidence, requires an enabled
+operator with a current location grant, locks both promotion grants and
+transition grants, and appends status-change events synchronously. Historical
+Field Collector rows from other form versions remain outside this guard. The
+deferred constraint trigger protects draft creation evidence; status-transition
+evidence is inserted and validated in the same statement transaction.
+
+Validation: 77 focused migration, workflow-spec, draft-promotion, lifecycle,
+and OIDC tests passed; Ruff passed. Migrations 383–384 compiled transactionally
+in a disposable PostgreSQL database. Synthetic rows completed draft creation,
+submit, independent verification, rework, resubmission, publication, rejection,
+and same-status exception closure. Database guards rejected missing draft
+evidence, self-verification, rejection by either submitter or verifier,
+missing reason, revoked scope, illegal transitions, post-submit content edits,
+and event update/delete. A legacy Field Collector row remained outside the
+new 1.2.0 guard. The scratch database was removed; no candidate migration,
+rebuild, or write occurred. The candidate does not have
+these routes yet.
+
+Sanitized scratch evidence: [lifecycle acceptance](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json).
+
+This closes runtime transition enforcement in source only. OIDC against a
+configured provider, wrong-location/error-injection acceptance, duplicate and
+stale-source promotion checks, published-only metric/report handoffs, and
+MAN-CAP-001 remain open. CAP-001 remains partial. Rollback after deployment
+must keep a compatible transition endpoint for 1.2.0 rows or pause native
+intake; the additive database guards must not be bypassed through Directus.
+See the [workflow map](farm-activity-workflow-map.md),
+[checklist](batches.md), and [capability matrix](capability-matrix.md).
