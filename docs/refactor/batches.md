@@ -181,7 +181,14 @@ index and event evidence.
 
 ## Batch 4 — Native orchestration and analytics parity (Phases 3–5)
 
-- [ ] Assign each known job a schedule owner and cutover/replay policy.
+- [x] Inventory the 15 shared JobSpecs, configured Prefect deployment schedules,
+  worker crontab, historical scheduled-task seed, and event-worker ownership;
+  document the default single-dispatcher policy, per-job cutover/replay risks,
+  and source/runtime evidence limits ([inventory](schedule-ownership-inventory.md)).
+- [ ] Reconcile active provider state and accountable owners; resolve each
+  operation's cadence/input gaps, idempotency, overlap, and recovery policy;
+  transfer jobs one at a time with output parity and rollback evidence. The
+  source inventory does not prove Prefect activation or native scheduler state.
 - [ ] Close projection, named-query, report and dashboard parity gaps in scoped groups.
 - [ ] Resolve Redis session/cache inventory and shared limiter requirements.
 - [ ] With verification authorization, exercise leases, retries, idempotency and outages.

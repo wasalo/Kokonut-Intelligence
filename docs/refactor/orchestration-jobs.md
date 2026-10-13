@@ -2,7 +2,7 @@
 
 ## Implemented boundary
 
-`services/core/jobs.py` defines thirteen immutable command specifications and
+`services/core/jobs.py` defines fifteen immutable command specifications and
 `run_job(job_id, location_id=...)`. It imports no orchestration SDK or domain
 service. Commands use the current Python interpreter, fixed module names,
 fixed arguments, and the existing operation timeouts. Weather and climate accept
@@ -30,6 +30,11 @@ The catalog is not a schedule registry and creates no database rows.
 permission. Credit adjustment checks remain outside that allowlist. Calling a
 known operation explicitly does not expand database-driven scheduler authority.
 The scheduler must continue validating its stored module paths independently.
+
+The source-level dispatcher, cadence, cutover, and replay inventory is in the
+[schedule ownership record](schedule-ownership-inventory.md). It distinguishes
+these operation specifications from Prefect deployments, legacy cron examples,
+historical scheduler seeds, and the long-running event worker.
 
 `run_job` performs one attempt. It owns no leases, retry loops, run state, or
 cron dispatcher. Adoption by the durable PostgreSQL scheduler requires an

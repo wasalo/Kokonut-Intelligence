@@ -120,6 +120,9 @@ assertion after later commits.
   prerequisite runs from the same UTC window; migration and runtime gates pending.
 - [Scheduler job planning](scheduler-job-planning.md): disabled schedule
   definitions from shared jobs, with dependency and cutover gates pending.
+- [Schedule ownership inventory](schedule-ownership-inventory.md): source-level
+  Prefect/cron/database job mapping and per-job cutover/replay policy; live
+  provider ownership and runtime acceptance remain open.
 - [Shared orchestration jobs](orchestration-jobs.md): provider-independent
   operations and corrected Prefect task submissions; runtime gates pending.
 - [Edge profile](edge-profile.md): encrypted local media and conservative
