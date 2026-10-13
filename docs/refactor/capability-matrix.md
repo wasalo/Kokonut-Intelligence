@@ -39,6 +39,15 @@ saved-dashboard ownership, query safety, least-privilege
 grants, location scoping, or report parity ([implementation](provider-configuration.md);
 [inventory](reporting-parity-inventory.md)).
 
+**13 October 2026 OIDC configuration update (CAP-001 / CAP-053):** the optional
+OIDC overlay remains disabled unless explicitly selected. `.env.example` now
+lists the required provider settings and identifies client/state secrets as
+SOPS-only inputs; a Compose contract check confirms the default profile omits
+OIDC and the selected overlay fails closed when settings are missing. Twelve
+Compose-profile tests pass. No real provider credentials or browser session
+were configured, so login, grant provisioning, CSRF, and console acceptance
+remain open.
+
 **13 October 2026 Phase 8 update:** the minimal app/PostGIS build inputs now
 have a SHA-256 lock, and GitHub Actions is configured to build AMD64/ARM64 OCI
 archives and compare resolved Python/PostGIS package versions. The current

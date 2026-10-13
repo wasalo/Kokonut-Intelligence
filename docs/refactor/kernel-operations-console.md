@@ -150,7 +150,11 @@ with `requirements/oidc.txt` by adding
 Configure issuer, client ID, client secret, callback URL, and a random
 32-byte-or-longer state secret via the existing SOPS-loaded environment. The
 callback URL must be HTTPS and end in `/operator/auth/callback`. The Compose
-overlay refuses to start without all required values.
+overlay refuses to start without all required values. `.env.example` lists the
+setting names and a localhost HTTPS callback example; client and state secrets
+belong in `.env.sops`, not plaintext `.env`. A Compose contract check verifies
+the overlay remains opt-in and rejects missing provider settings. No real
+provider or credentials have been configured by that source check.
 
 ```sh
 source scripts/load-secrets.sh

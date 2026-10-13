@@ -171,6 +171,52 @@ def test_legacy_dataset_sql_override_reaches_kernel_app_and_worker_profiles() ->
     )
 
 
+def test_oidc_compose_overlay_is_opt_in_and_requires_provider_settings() -> None:
+    candidate_files = ("docker-compose.kernel-candidate.yml",)
+    default_app = _compose_config(files=candidate_files)["services"]["app"]
+    assert "KOKONUT_OPERATOR_OIDC_ENABLED" not in default_app["environment"]
+
+    oidc_files = (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-proxy.yml",
+        "docker-compose.kernel-oidc.yml",
+    )
+    command = ["docker", "compose", "--env-file", "/dev/null"]
+    for compose_file in oidc_files:
+        command.extend(["-f", compose_file])
+    command.extend(["config", "--format", "json"])
+    missing_settings = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=TEST_ENV,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert missing_settings.returncode != 0
+    assert "OIDC issuer must be configured" in missing_settings.stderr
+
+    configured = _compose_config(
+        files=oidc_files,
+        extra_env={
+            "KOKONUT_OPERATOR_OIDC_ISSUER": "https://identity.example.invalid",
+            "KOKONUT_OPERATOR_OIDC_CLIENT_ID": "compose-contract",
+            "KOKONUT_OPERATOR_OIDC_CLIENT_SECRET": "compose-test-only",
+            "KOKONUT_OPERATOR_OIDC_REDIRECT_URI": (
+                "https://localhost:8448/operator/auth/callback"
+            ),
+            "KOKONUT_OPERATOR_OIDC_STATE_SECRET": "compose-test-only-state-secret-32-bytes",
+        },
+    )
+    environment = configured["services"]["app"]["environment"]
+    assert environment["KOKONUT_OPERATOR_OIDC_ENABLED"] == "true"
+    assert environment["KOKONUT_OPERATOR_OIDC_ISSUER"] == "https://identity.example.invalid"
+    assert (
+        environment["KOKONUT_OPERATOR_OIDC_REDIRECT_URI"]
+        == "https://localhost:8448/operator/auth/callback"
+    )
+
+
 def test_metabase_profile_disables_public_sharing_and_embedding_without_secret() -> None:
     environment = _compose_config("metabase")["services"]["metabase"]["environment"]
     assert environment["MB_ENABLE_PUBLIC_SHARING"] == "false"

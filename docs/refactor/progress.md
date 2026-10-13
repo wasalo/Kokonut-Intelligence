@@ -3804,3 +3804,14 @@ provider; no identity-provider call or live service was involved. The new
 focused test passed, and the four Gateway CORS preflight tests passed. This
 closes the in-process source regression gap only; browser/certificate, real
 OIDC, and deployed credentialed-CORS acceptance remain open.
+
+
+## Batch 5 OIDC deployment-input contract — 13 October 2026
+
+Added the optional OIDC provider settings to `.env.example`, including a
+localhost HTTPS callback example and a reminder to keep client/state secrets in
+SOPS. A Compose profile check confirms the default candidate omits OIDC, the
+OIDC overlay fails configuration when the issuer is missing, and explicit test
+settings reach the app environment. The focused Compose-profile suite passes 12
+tests and Ruff is clean. No real provider, credential, browser, or service was
+used; OIDC login/session and console acceptance remain open.
