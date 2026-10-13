@@ -2,9 +2,22 @@
 # Package versions must be verified for each target architecture before build.
 FROM postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4 AS postgres-base
 
+# The pinned base image has no system CA bundle. Bootstrap it from the same
+# signed Debian snapshot over HTTP; APT still verifies Release and package
+# signatures using Debian's archive keyring before HTTPS sources are enabled.
+FROM postgres-base AS ca-bootstrap
+COPY config/postgres/kernel-bootstrap.sources /tmp/kernel-bootstrap.sources
+RUN set -eux; \
+    find /etc/apt/sources.list.d -mindepth 1 -maxdepth 1 -delete; \
+    rm -f /etc/apt/sources.list; \
+    install -D -m 0644 /tmp/kernel-bootstrap.sources /etc/apt/sources.list.d/kokonut-bootstrap.sources; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates; \
+    rm -rf /var/lib/apt/lists/*
+
 # Keep the package indexes stable across rebuilds. Debian packages resolve from
 # the dated snapshot; the PGDG archive supplies the exact selected PostGIS build.
-FROM postgres-base AS apt-snapshot-base
+FROM ca-bootstrap AS apt-snapshot-base
 COPY config/postgres/kernel-apt.sources /tmp/kernel-apt.sources
 COPY config/postgres/kernel-pgdg.pref /tmp/kernel-pgdg.pref
 RUN set -eux; \

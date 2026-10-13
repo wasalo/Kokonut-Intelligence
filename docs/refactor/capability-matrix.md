@@ -46,7 +46,10 @@ Hash-locked Python closures for the default app and optional ClickHouse profile
 are now wired into the Kernel image; multi-architecture acceptance is pending.
 The PostGIS build now uses a dated Debian snapshot and exact PGDG package
 versions, and the release checker compares full installed-package inventory
-parity. Both await CI acceptance; hardware acceptance remains open.
+parity. [CI run 283](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38443881835)
+failed before package installation because the pinned base image lacked a CA
+bundle; the signed-snapshot CA bootstrap repair is in the current PR, and fresh
+CI acceptance remains open. Hardware acceptance remains open.
 
 | ID | Capability | Owning code area | Named manual check and required result | Existing Python test candidates | Implementation / deployment progress |
 |---|---|---|---|---|---|

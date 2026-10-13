@@ -77,9 +77,11 @@ def _validate_inputs(lock: dict) -> None:
         raise LockError("PostGIS Debian snapshot timestamp must be an exact UTC timestamp")
     sources_path = apt_sources.get("source_file")
     preferences_path = apt_sources.get("preferences_file")
+    bootstrap_sources_path = apt_sources.get("bootstrap_source_file")
     try:
         sources = (ROOT / sources_path).read_text(encoding="utf-8")
         preferences = (ROOT / preferences_path).read_text(encoding="utf-8")
+        bootstrap_sources = (ROOT / bootstrap_sources_path).read_text(encoding="utf-8")
     except (TypeError, OSError) as error:
         raise LockError(f"cannot read locked PostGIS apt source inputs: {error}") from error
     expected_source_entries = (
@@ -92,6 +94,26 @@ def _validate_inputs(lock: dict) -> None:
     )
     if any(not entry or entry not in sources for entry in expected_source_entries):
         raise LockError("PostGIS apt source file differs from the package-record snapshot lock")
+    expected_bootstrap_entries = (
+        f"http://snapshot.debian.org/archive/debian/{snapshot_timestamp}/",
+        "Suites: bookworm",
+        "Components: main",
+        "Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg",
+        "Check-Valid-Until: no",
+    )
+    if any(entry not in bootstrap_sources for entry in expected_bootstrap_entries):
+        raise LockError("PostGIS CA bootstrap source differs from the Debian snapshot lock")
+    if "https://" in bootstrap_sources or "apt-archive.postgresql.org" in bootstrap_sources:
+        raise LockError("PostGIS CA bootstrap source must use only the signed Debian HTTP snapshot")
+    postgis_dockerfile = (ROOT / "Dockerfile.kernel-postgis").read_text(encoding="utf-8")
+    bootstrap_stage = postgis_dockerfile.find("FROM postgres-base AS ca-bootstrap")
+    ca_install = postgis_dockerfile.find("apt-get install -y --no-install-recommends ca-certificates")
+    https_stage = postgis_dockerfile.find("FROM ca-bootstrap AS apt-snapshot-base")
+    https_sources_copy = postgis_dockerfile.find("COPY config/postgres/kernel-apt.sources", https_stage)
+    if min(bootstrap_stage, ca_install, https_stage, https_sources_copy) < 0 or not (
+        bootstrap_stage < ca_install < https_stage < https_sources_copy
+    ):
+        raise LockError("PostGIS CA certificates must be bootstrapped before HTTPS apt sources are enabled")
     if package_record.get("repository_suite") != apt_sources.get("pgdg_archive_suite"):
         raise LockError("PostGIS repository_suite differs from its apt source lock")
     if "Pin-Priority: 100" not in preferences:

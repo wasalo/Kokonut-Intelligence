@@ -21,7 +21,7 @@ repository-visible progress alongside it.
 | 5 — Optional Redis | Partial; local runtime/restart and isolated PostgreSQL shared-consumption, lock-timeout, and direct and ASGI multi-process plus two-container network HTTP checks passed; provider selection remains open | Existing PG computation cache retained; local limiter concurrency/LRU/process reset and candidate app restart verified; in the migration-373 portability DB, two backend instances admitted 121/140 concurrent checks within the refill-aware bound, denied an over-capacity request, returned retry 10, and isolated a distinct caller; a held synthetic row lock raised SQLSTATE 55P03 after 2.124 seconds and its bucket was removed; network-disabled source ASGI checks selected PostgresRateLimiter and returned 503/Retry-After 30 on an unreachable DB; GatewayAudit now has a bounded SQLite queue, idempotent startup replay, a status/checkpoint/restore CLI, and process-exit/checkpoint/restore recovery evidence; four OS processes shared one bucket across 160 direct calls (114 allowed, 46 denied in 1.653 seconds), then four gateway processes handled 160 ASGI requests (121 returned 200, 39 returned 429 with Retry-After) within the refill-aware bound; two private-network API containers then handled 160 HTTP requests through the shared database (119 returned 200, 41 returned 429 with Retry-After); PostgreSQL adapter remains opt-in and candidate stays local; [local runtime](builds/2026-10-10-recovery/gateway-rate-limit-runtime.json), [local contract](builds/2026-10-11-recovery/gateway-rate-limit-local-contract.json), [process reset](builds/2026-10-11-recovery/gateway-rate-limit-process-reset.json), [app restart](builds/2026-10-11-recovery/gateway-rate-limit-app-restart.json), [PG shared check](builds/2026-10-11-recovery/postgres-rate-limiter-concurrency.json), [lock timeout](builds/2026-10-11-recovery/postgres-rate-limit-lock-timeout.json), [multi-process check](builds/2026-10-11-recovery/postgres-rate-limit-multiprocess.json), [ASGI multi-process](builds/2026-10-11-recovery/postgres-rate-limit-asgi-multiprocess.json), [two-container HTTP](builds/2026-10-11-recovery/postgres-rate-limit-two-api-http.json), [audit outage/replay](builds/2026-10-11-recovery/gateway-audit-spool-recovery.json), [checkpoint recovery](builds/2026-10-11-recovery/gateway-audit-spool-backup-restore.json), [audit write guard](builds/2026-10-11-recovery/gateway-audit-spool-write-guard.json) | Volume/host/device loss, external alert delivery and production retention owner; auth/revocation/cache/TTL and identity-abuse acceptance; production/public ingress, multi-host failover, replica restart and scale acceptance; scale remains unavailable |
 | 6 — Optional edges | Prepared/built in selected targets; acceptance open | MQTT/gRPC/HTTP sensor/Caddy overlays; CSV/HTTP exercised in-process and over TCP inside the private recovery network; selected handler receipt recovery; bounded Caddy TLS/redirect/header smoke, one-hop forwarded-header audit identity check, loopback-published redirect/follow check at default and alternate HTTPS ports, configured/untrusted CORS preflight, CORS decoration on an auth denial, isolated current-source and deployed local limiter checks with 429/Retry-After, preflight bypass and durable audit, plus promoted-image local concurrency/LRU, process reset, candidate app restart, source-level PostgreSQL-outage 503, real audit outage journaling and startup replay across app-container replacement, checkpoint/restore and process-exit recovery, held-row lock-timeout handling, direct four-process shared-bucket consumption, four-process gateway ASGI 200/429 behavior, and two-container network HTTP sharing; [sensor evidence](sensor-entrypoint-recovery.md), [proxy evidence](kernel-proxy.md), [source limiter](builds/2026-10-10-recovery/gateway-rate-limit-isolated.json), [runtime limiter](builds/2026-10-10-recovery/gateway-rate-limit-runtime.json), [local contract](builds/2026-10-11-recovery/gateway-rate-limit-local-contract.json), [process reset](builds/2026-10-11-recovery/gateway-rate-limit-process-reset.json), [app restart](builds/2026-10-11-recovery/gateway-rate-limit-app-restart.json), [outage boundary](builds/2026-10-11-recovery/postgres-rate-limit-outage.json), [audit outage](builds/2026-10-11-recovery/postgres-rate-limit-audit-outage.json), [lock timeout](builds/2026-10-11-recovery/postgres-rate-limit-lock-timeout.json), [multi-process check](builds/2026-10-11-recovery/postgres-rate-limit-multiprocess.json), [ASGI multi-process](builds/2026-10-11-recovery/postgres-rate-limit-asgi-multiprocess.json), [two-container HTTP](builds/2026-10-11-recovery/postgres-rate-limit-two-api-http.json), [audit journal](builds/2026-10-11-recovery/gateway-audit-spool-recovery.json), [audit checkpoint](builds/2026-10-11-recovery/gateway-audit-spool-backup-restore.json), [audit write guard](builds/2026-10-11-recovery/gateway-audit-spool-write-guard.json) | Volume/host/device loss, external alert delivery and production retention owner; production/public ingress, replica failover/scale; non-loopback/public ingress, multi-hop trusted-proxy policy, mobile/upload consent/form baseline and candidate migration 380/381 plus 1.2.0 strict-schema rollout complete; 60 mobile/schema and four CORS checks passed; live device acceptance remains open, CORS on successful authenticated/credentialed responses, HTTP/CSV/MQTT parity, optional service parity, broader handler recovery, delayed sink visibility/reconciliation, RPC streaming/auth and external Traefik acceptance |
 | 7 — Native API | **Active, partial read slice deployed; v1 public read aliases, typed SDK sources, local operator overview, and source-level OIDC report reads, mobile review queue and append-only review-event source; mobile consent/form enforcement and exact-revision JSON Schema validation deployed on the candidate** | Native public locations/metrics, published CRISP and location roll-up, strict response models, bounded read execution and readiness gates; additive `/api/v1` routes with explicit public policies; generated Python/TypeScript models and paths; local read-only Kernel overview; optional OIDC identity/session adapter; location-scoped submitted `report_snapshot` list/detail routes and same-origin read-only queue; services/gateway/router.py, services/gateway/operator_auth.py, services/gateway/operator_review.py, services/gateway/app.py, apps/operator-console/index.html, services/mobile/api.py, services/mobile/form_validation.py, schemas/postgres/381_mobile_consent_form_revisions.sql | Live v1 payload/role/grant/auth and Directus parity; JavaScript SDK runtime import and offline Python/JavaScript SDK contract parity passed with fake adapters, while live route parity remains open; shared lifecycle hooks and tenant/RLS scope; farm-activity lifecycle writes and human actor guards have source/disposable checks; canonical queue/detail and console controls are source-tested; migration-385 draft editing passes focused service/route/console checks and full disposable PostGIS replay/trigger acceptance; migration 385 and the operator routes/editor are deployed to the candidate with zero pending schemas and protected-route checks passing; OIDC-scoped same-origin Field Collector enrollment and revocation routes plus the one-time code console are implemented and source-tested; provider configuration, login/session/audit, and live enrollment-created workflow remain open; isolated authenticated 1.2.0 sync accepted valid data and rejected an undeclared field; report queue scope/detail and review-event source checks pass; migration 382 is applied to the candidate; the current-source app was rebuilt and returned health 200, while OIDC login remains disabled and anonymous review-queue access returns 401 ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-review-rollout.json)); migrations 380/381 and the candidate 1.2.0 form rollout remain applied |
-| 8 — ARM64/scale/retirement | Build preparation; local AMD64 app build succeeded; GitHub Actions CI/security/deployment workflows added, first workflow run pending | Earlier matched AMD64/ARM64 artifacts; [build record](arm64-image-pair-refresh.md); [release input contract](kernel-release-inputs.md); [GitHub Actions setup](../github-actions.md) | Latest local ARM64 rebuild stopped during package resolution after registry DNS failed; GitHub runner/environment setup and first CI run, ARM64 runtime/bootstrap/restore, actual 4 GB Pi/SSD measurement, 24-hour recovery, hash-locked transitive Python/apt inputs, scale concurrency, production cutover and dependency retirement remain open |
+| 8 — ARM64/scale/retirement | Build preparation; default and ClickHouse app build gate configured; snapshot-aware PostGIS CI run 283 failed during CA bootstrap | Earlier matched AMD64/ARM64 artifacts; [build record](arm64-image-pair-refresh.md); [release input contract](kernel-release-inputs.md); [GitHub Actions setup](../github-actions.md) | Snapshot CA bootstrap repair and a fresh multi-architecture run, ARM64 runtime/bootstrap/restore, actual 4 GB Pi/SSD measurement, 24-hour recovery, GitHub runner/environment setup, scale concurrency, production cutover and dependency retirement remain open |
 
 ## Phase 4 schedule ownership inventory — 12 October 2026
 
@@ -3567,9 +3567,13 @@ enabled. The full-history Security workflow passed on 13 October 2026. Two CI
 runs built both architecture images and failed release validation because
 Buildx wrapped platform manifests in nested OCI indexes. The PR fix recursively
 inspects nested indexes, then derives platform labels from image configs when
-image descriptors omit them. CI run 281 is validating that fix and the Python
-dependency locks. The subsequent apt snapshot source update requires a fresh CI
-run. GitHub runner registration,
+image descriptors omit them. [CI run 283](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38443881835)
+included the Python dependency locks and apt snapshot inputs but failed during
+PostGIS package-source setup because the
+pinned PostgreSQL base had no system CA bundle. A signed Debian snapshot
+bootstrap now installs `ca-certificates` before the build switches to HTTPS
+sources; a fresh multi-architecture run must pass before the release gate is
+accepted. GitHub runner registration,
 `staging`/`production` environments, branch rules, and production SSH secrets
 remain pending remote configuration; see [setup requirements](../github-actions.md).
 Staging also requires a reviewed source change to clear its disabled flag. No
@@ -3583,9 +3587,11 @@ Dockerfile now selects one full lock at build time and pip enforces hashes.
 `config/kernel/release-input-lock.json` covers the source manifests, both lock
 files, and Dockerfile bytes. The multi-architecture release script now builds
 and inspects both app profiles plus PostGIS for linux/amd64 and linux/arm64.
-GitHub CI run 281 is validating the Python locks and app profiles. It began
-before the apt source update below and cannot accept that change. No local test
-suite or Docker build was run for this slice.
+GitHub [CI run 283](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38443881835)
+included the Python locks and app profiles and reached the
+PostGIS build, where the missing CA bundle prevented apt from reaching the
+locked HTTPS sources. This run does not accept the multi-architecture release
+gate. No local test suite or Docker build was run for this slice.
 
 ### Kernel apt source lock follow-up — 13 October 2026
 
@@ -3596,8 +3602,27 @@ The apt source and preference files plus the package catalog are covered by
 timestamp, suites, archive, and low default PGDG priority to agree. Earlier
 local amd64/arm64 PostGIS artifacts were built before this source lock and are
 retained as historical identities, not acceptance evidence for the new input.
-CI run 281 predates this update; a fresh multi-architecture build must verify
-the apt resolution. The release checker now compares the complete installed
-Debian package inventories across architectures and reports missing or
-different package versions. Snapshot build and inventory acceptance, extension
-and restore acceptance, and hardware certification remain open.
+CI run 283 showed that the pinned PostgreSQL base has no CA bundle, so apt could
+not authenticate the locked HTTPS sources and could not install
+`ca-certificates` from those same sources. A first build stage now installs the
+bundle from the same timestamped Debian snapshot over HTTP, with APT signature
+checks and the Debian archive keyring enabled; later stages use the locked
+HTTPS sources. The bootstrap source and stage order are validated and
+SHA-256-locked. The release checker compares the complete installed Debian
+package inventories across architectures and reports missing or different
+package versions. CI run 283 failed before package installation and did not
+reach inventory comparison; a fresh snapshot-aware build must pass. Extension
+and restore acceptance and hardware certification remain open.
+
+### PostGIS CA bootstrap repair — 13 October 2026
+
+CI run 283 failed in the PostGIS stage because the digest-pinned PostgreSQL base
+has no trusted CA bundle. The build tried to install `ca-certificates` only
+after enabling HTTPS Debian and PGDG sources, producing a bootstrap cycle. Added
+a separate first stage that installs the CA bundle from the same dated Debian
+snapshot over HTTP while retaining APT signature verification with Debian's
+archive keyring. The next stage then switches to the locked HTTPS Debian and
+PGDG sources. The bootstrap source is included in the input lock and the
+release checker verifies both the source and stage ordering. No local Docker
+build or test suite was run; fresh GitHub multi-architecture CI remains the
+acceptance gate.

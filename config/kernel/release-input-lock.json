@@ -7,7 +7,7 @@
   },
   "sha256_inputs": {
     "Dockerfile.kernel": "094ff4de06cd632b836fe7c85cd4f8d43ca938e44e8ba7b9ba29bc4ff87e695e",
-    "Dockerfile.kernel-postgis": "3c34d6d1442687a57b749a99b9184b60de78b92aa9bb6bed80c9b16e02a9d16a",
+    "Dockerfile.kernel-postgis": "180b813d48759c170cc36a78526c893dc71e51a78c18a75cd101c330a1958d8c",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
     "requirements/exports.txt": "1780570edca5518251d507d39d9c9fed24db4451315d73e75f9c8faceec36c71",
@@ -17,9 +17,10 @@
     "requirements/kernel-runtime.lock": "80e50a655e4f7c530d102fd09b4fc0502ae9020ed5a170303615e4c0dfd08921",
     "requirements/kernel-clickhouse.in": "d45f7ea822daef4616987cb57a240a4e2eea4fdf74424aa6222b1f0167c2bc4e",
     "requirements/kernel-clickhouse.lock": "ea9154ed4eb3c4234dee73a6588f4550191f227de82f972644d937b090dc66ab",
-    "config/postgres/kernel-postgis-packages.json": "447a89ae6c89e954c0a0295b866b7027613ae9c63d857e3a4950399da522b5f2",
+    "config/postgres/kernel-postgis-packages.json": "2e2d845e63d399d542451fdcce33cdc9b6219e51636bfbf19dc061e4dad0570c",
     "config/postgres/kernel-apt.sources": "1bc6a4368d8284b4e8a35f24e381449e493eff6f9993869987f5193538f0cd42",
-    "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec"
+    "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec",
+    "config/postgres/kernel-bootstrap.sources": "a4bf76ae4956dcda020029113fb722f0dd35c9597331554a96f63883dfda1f51"
   },
   "postgis_packages": {
     "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",

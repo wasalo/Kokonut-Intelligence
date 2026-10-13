@@ -5,6 +5,7 @@
   "apt_sources": {
     "debian_snapshot_timestamp": "20261012T000000Z",
     "debian_suites": ["bookworm", "bookworm-updates", "bookworm-security"],
+    "bootstrap_source_file": "config/postgres/kernel-bootstrap.sources",
     "pgdg_archive_uri": "https://apt-archive.postgresql.org/pub/repos/apt",
     "pgdg_archive_suite": "bookworm-pgdg-archive",
     "source_file": "config/postgres/kernel-apt.sources",

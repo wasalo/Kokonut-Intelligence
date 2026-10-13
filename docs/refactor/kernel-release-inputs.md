@@ -13,9 +13,10 @@ projects, publish images, or touch database volumes.
 `config/kernel/release-input-lock.json` pins SHA-256 digests for the application
 and database base manifests, the Kernel Dockerfiles, the direct Python
 requirement manifests and generated locks for the runtime and optional
-ClickHouse profile, the Debian/PGDG apt source definitions, and the verified
-PostGIS package catalog. The catalog records the exact PostGIS runtime and
-script package versions, the Debian snapshot timestamp, and their verified
+ClickHouse profile, the Debian/PGDG apt source definitions, the signed Debian
+HTTP bootstrap source used to install the CA bundle, and the verified PostGIS
+package catalog. The catalog records the exact PostGIS runtime and script
+package versions, the Debian snapshot timestamp, and their verified
 amd64/arm64 availability.
 
 The gate extracts `python-packages.json` from each default and ClickHouse app
@@ -39,7 +40,12 @@ Python base image's bundled pip independently from its digest.
 
 PostGIS package resolution now uses a timestamped Debian Bookworm snapshot and
 the PGDG archive, with exact versions for the two selected PostGIS packages.
-The source files and timestamp are covered by the release-input lock. The
+The pinned PostgreSQL base lacks a CA bundle, so a first build stage uses only
+the same timestamped Debian snapshot over HTTP to install `ca-certificates`;
+APT signature verification remains enabled with Debian's archive keyring. A
+later stage switches to the locked HTTPS Debian and PGDG sources before
+resolving PostGIS. Both source definitions and the timestamp are covered by the
+release-input lock. The
 release gate verifies the selected PostGIS package versions and compares the
 complete installed Debian package inventories across both architectures,
 reporting missing or differently versioned packages (up to 50 differences per
