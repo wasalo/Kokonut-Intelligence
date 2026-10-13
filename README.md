@@ -375,7 +375,7 @@ See [AGENTS.md](AGENTS.md) for the full command catalogue and [CHANGELOG.md](CHA
 
 ## CI And Contributing
 
-CI runs on OneDev via `.onedev-buildspec.yml` as a single `ci` job on every push and pull request (~14 minutes). The pipeline is structured for fast feedback:
+CI and security checks run through GitHub Actions on pull requests to `main` and pushes to `main`. The `CI` workflow runs the complete suite, dependency and static-analysis gates, Solidity and Directus hook checks, and locked AMD64/ARM64 builds. The `Security` workflow scans tracked source and full Git history with Gitleaks. See [the GitHub Actions operations guide](docs/github-actions.md) for deployment setup and required repository settings.
 
 1. **Supply-chain gates**: Secret scanning (`check-tracked-secrets.sh`) and image digest pinning (`check-image-digests.sh`).
 2. **Fast-fail steps** (fail immediately, no Docker needed):
@@ -390,15 +390,13 @@ CI runs on OneDev via `.onedev-buildspec.yml` as a single `ci` job on every push
 7. **Solidity**: `forge fmt --check`, `forge build --sizes`, `forge test`.
 8. **Directus hooks**: `npm ci`, `npm run build`, `npm test`.
 
-The runner connects to the Compose network via `docker network bridge` for database access during tests. `compute-metrics.sh` runs in CI to populate governed metric rows required by platform-integrity tests.
-
-This repository is hosted on a self-managed Git instance (not GitHub), so GitHub-specific workflows, rulesets, and `.github/` config do not apply.
+The GitHub-hosted CI runner uses the isolated Compose project and loopback-only database ports for host-run checks. `compute-metrics.sh` runs in CI to populate governed metric rows required by platform-integrity tests. Staging remains paused behind a disabled workflow flag and manual dispatch; production promotion is manual and environment-gated.
 
 Contributing guidelines:
 
 > [!IMPORTANT]
 > - `AGENTS.md` is the canonical command reference and contributing workflow — update it when adding commands, env vars, or conventions.
-> - Branch from `main` (`feat/...`, `fix/...`, `chore/...`), open a pull request, and merge through the OneDev UI or the `tod` agent skills (`work-on-issue`, `submit-pull-request-work`) once reviewed. Never push directly to `main` except for hotfixes.
+> - Branch from `main` (`feat/...`, `fix/...`, `chore/...`), open a GitHub pull request, and merge after review and required checks pass. Never push directly to `main` except for hotfixes.
 > - Seed files must be idempotent with `ON CONFLICT` guards and `psql -v ON_ERROR_STOP=1`.
 
 ---

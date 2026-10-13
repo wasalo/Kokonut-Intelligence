@@ -2,7 +2,7 @@
 
 Phase 0 inventory, captured 9 October 2026.
 
-**Current status (13 October): Phase 7 native API and OIDC operator access remain active; the candidate has migration 386 applied and 377 schemas with zero pending.** A Phase 8 OneDev multi-architecture build gate is now in source; its CI run, transitive dependency lock, and ARM64 runtime acceptance remain open. See
+**Current status (13 October): Phase 7 native API and OIDC operator access remain active; the candidate has migration 386 applied and 377 schemas with zero pending.** Phase 8 now has GitHub Actions CI, security scanning, staging deployment, and manual production promotion definitions; their first GitHub run and required remote settings remain pending, as do transitive dependency locking and ARM64 runtime acceptance. See
 [the phase ledger](progress.md) and [capability progress](capability-matrix.md).
 The baseline sections below preserve historical observations, not current
 phase-completion claims.
@@ -67,8 +67,9 @@ assertion after later commits.
 - [ARM64 database blocker](arm64-database.md): pinned PostGIS confirmed AMD64-only;
   native Pi deployment rejected by the planner pending a replacement build.
 - [Kernel release inputs](kernel-release-inputs.md): build inputs are SHA-256
-  locked and OneDev builds/compares the minimal app and PostGIS targets across
-  AMD64/ARM64; transitive dependency locks and a successful CI run remain open.
+  locked and GitHub Actions is configured to build/compare the minimal app and
+  PostGIS targets across AMD64/ARM64; transitive dependency locks and a
+  successful CI run remain open.
 - [PostgreSQL rate limits](postgres-rate-limits.md): explicit shared-budget
   adapter and migration 373; unapplied, with scale/availability acceptance pending.
 - [Rate-limit boundary](rate-limit-boundary.md): injectable gateway contract and

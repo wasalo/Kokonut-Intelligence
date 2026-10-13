@@ -9,11 +9,11 @@ All work follows a 3-step branch → PR → merge flow:
    - `git checkout -b feat/my-feature main`
 
 2. **Commit & PR**: Commit locally, push the branch, and open a PR to `main`.
-   - Use TOD agent skills (`work-on-issue`, `submit-pull-request-work`) to create PRs via OneDev.
+   - Open and review pull requests through GitHub; require the repository's CI and Security checks before merging.
    - Never push directly to `main`.
 
 3. **Merge**: When CI passes, merge the PR into `main`.
-   - Use TOD agent skills (`submit-pull-request-work`) or merge via OneDev UI.
+   - Merge through GitHub after required checks and reviews pass.
    - Delete the feature branch after merge.
 
 **Exception**: Hotfixes may be committed directly to `main` with a follow-up PR for any ancillary changes.
@@ -1296,7 +1296,7 @@ Commands:
 
 ## Deployment
 
-- Environments: CI (`ki-ci`, disposable), staging (`ki-staging`, cerberus, auto-deploys on merge to main), production (`ki-prod`, dedicated host, manual promotion with `DEPLOY_CONFIRM=yes`). Full matrix: `docs/deployment-topology.md`.
+- Environments: CI (`ki-ci`, disposable, GitHub-hosted runner), staging (`ki-staging`, dedicated self-hosted runner, manual dispatch currently paused), production (`ki-prod`, dedicated host, manual promotion with `DEPLOY_CONFIRM=yes`). Full matrix: `docs/deployment-topology.md`.
 - **Namespace invariant**: every Compose project pins its project name (`-p`/`COMPOSE_PROJECT_NAME`); never derive it from a directory name on a shared host (KI-390).
 - Staging deploy: `deploy/scripts/deploy-staging.sh` (idempotent; secrets via SOPS+age, key on host only).
 - Production deploy: `deploy/scripts/deploy-production.sh` — takes a backup checkpoint first; requires `DEPLOY_CONFIRM=yes`; on failed health check it prints rollback instructions and never auto-rolls back.

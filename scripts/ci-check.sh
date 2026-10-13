@@ -4,7 +4,7 @@
 # ============================================================
 # Full test coverage is handled by verify-full-test-suite.sh.
 # Static analysis is handled by static-analysis.sh.
-# Security tooling (ruff, pip-audit) runs as standalone buildspec steps.
+# Security tooling (ruff, pip-audit) runs in the GitHub Actions CI script.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

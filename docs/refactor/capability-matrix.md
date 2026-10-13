@@ -25,11 +25,12 @@ restore-rehearsed with matching migration fingerprints, extension versions, and
 selected row counts. See [rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json).
 
 **13 October 2026 Phase 8 update:** the minimal app/PostGIS build inputs now
-have a SHA-256 lock, and OneDev CI is configured to build AMD64/ARM64 OCI
+have a SHA-256 lock, and GitHub Actions is configured to build AMD64/ARM64 OCI
 archives and compare resolved Python/PostGIS package versions. The current
 local AMD64 app build succeeded; its ARM64 counterpart stopped at package-host
-DNS failure. The OneDev gate has not run and no ARM64 runtime is certified
-([release-input contract](kernel-release-inputs.md); [local attempt evidence](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
+DNS failure. The first GitHub run and deployment settings remain pending, and
+no ARM64 runtime is certified ([release-input contract](kernel-release-inputs.md);
+[local attempt evidence](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
 Transitive Python and apt snapshot locks remain open.
 
 | ID | Capability | Owning code area | Named manual check and required result | Existing Python test candidates | Implementation / deployment progress |

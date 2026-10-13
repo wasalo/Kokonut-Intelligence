@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      COMPOSE_PROJECT_NAME: ki-ci
+      CI_PG_HOST_PORT: 127.0.0.1:15432
+      CI_CH_HOST_PORT: 127.0.0.1:18123
+      DIRECTUS_HOST_PORT: 127.0.0.1:18055
+      GATEWAY_HOST_PORT: 127.0.0.1:18099
+      GRPC_HOST_PORT: 127.0.0.1:50052
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up ARM emulation
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        with:
+          node-version-file: .node-version
+
+      - name: Run the complete CI gate
+        run: bash scripts/run-github-ci.sh

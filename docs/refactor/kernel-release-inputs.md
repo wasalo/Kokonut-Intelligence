@@ -1,6 +1,6 @@
 # Kernel release-input and architecture build gate
 
-The OneDev `ci` job now verifies a reviewed build-input lock and builds the
+The GitHub Actions `CI` job verifies a reviewed build-input lock and builds the
 minimal application and PostGIS targets as multi-platform OCI archives for
 `linux/amd64` and `linux/arm64`. The gate runs on main updates and pull requests.
 It uses `--pull --no-cache` so paired builds resolve current locked inputs. It
@@ -30,9 +30,9 @@ an update to a newer version shared by both architectures. A future release
 lock must use a reviewed cross-platform Python lock with hashes.
 
 The PostGIS apt packages are version-pinned, but apt repository snapshots and
-transitive Debian package versions are not locked. OneDev also installs Docker,
-Compose, and Buildx tooling from its configured apt repository without a package
-version lock. The CI gate validates the selected PostGIS package versions; it
+transitive Debian package versions are not locked. GitHub-hosted runner Docker
+and Buildx tooling come from the runner image and are outside the app release
+lock. The CI gate validates the selected PostGIS package versions; it
 does not certify extension behavior,
 logical restore, ARM64 runtime, or Raspberry Pi resource limits.
 
