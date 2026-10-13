@@ -225,6 +225,14 @@ stored SQL, select which reports remain product requirements, or establish
 parity. See the [reporting parity inventory](reporting-parity-inventory.md) and
 [Batch 4 checklist](batches.md).
 
+The legacy stored-SQL refresher is now an explicitly gated compatibility path:
+`KOKONUT_FEATURE_LEGACY_DATASET_SQL` defaults to `false`, and the execution
+function enforces that gate while read-only dataset listing stays available.
+This keeps unreviewed stored SQL out of the default Kernel runtime. It does not
+make opt-in queries safe or close the outstanding owner, role, location-scope,
+materialization, and report-parity gates. No tests or live queries ran for this
+change.
+
 A read-only aggregate pass over the isolated legacy archive found 43 stored
 dashboard dataset definitions, all with owner metadata but only 12 distinct
 owner labels; the labels were not retained. None had refresh metadata, none

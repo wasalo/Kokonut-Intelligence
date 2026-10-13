@@ -64,6 +64,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "orchestration",
         "description": "Prefect workflow orchestration",
     },
+    "legacy_dataset_sql": {
+        "enabled": _providers.legacy_dataset_sql,
+        "critical": False,
+        "category": "analytics",
+        "description": "Legacy stored-SQL dashboard dataset refresh",
+    },
     "agents": {
         "enabled": os.getenv("KOKONUT_FEATURE_AGENTS", "true").lower() == "true",
         "critical": False,

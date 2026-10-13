@@ -19,6 +19,7 @@ import psycopg2
 import psycopg2.extras
 
 from services.common.database import get_db
+from services.core.features import require_feature
 
 
 def get_pg():
@@ -45,6 +46,7 @@ def list_datasets(conn, dataset_id: str = None):
 
 def refresh_dataset(conn, dataset_id: str) -> dict:
     """Execute a dataset's stored SQL query and update metadata."""
+    require_feature("legacy_dataset_sql")
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Fetch dataset definition

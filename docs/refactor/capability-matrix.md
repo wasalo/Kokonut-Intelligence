@@ -28,6 +28,14 @@ The Directus source inventory maps its permission and hook boundary for CAP-001
 and CAP-053, but does not establish effective Directus API parity; the
 collection-scoped runtime review remains open ([inventory](directus-parity-inventory.md)).
 
+**13 October 2026 Phase 4 reporting safety update:** legacy
+`dashboard_dataset.query_sql` execution now has an explicit
+`KOKONUT_FEATURE_LEGACY_DATASET_SQL` gate that defaults off; read-only dataset
+listing remains available. This reduces the default Kernel execution surface,
+but does not establish saved-dashboard ownership, query safety, least-privilege
+grants, location scoping, or report parity ([implementation](provider-configuration.md);
+[inventory](reporting-parity-inventory.md)).
+
 **13 October 2026 Phase 8 update:** the minimal app/PostGIS build inputs now
 have a SHA-256 lock, and GitHub Actions is configured to build AMD64/ARM64 OCI
 archives and compare resolved Python/PostGIS package versions. The current

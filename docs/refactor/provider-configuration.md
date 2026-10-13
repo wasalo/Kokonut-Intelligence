@@ -10,8 +10,10 @@ with the setting name and never echo the supplied value.
 The existing feature registry consumes these settings at import time. Restart
 the application after changing settings. All historical defaults remain:
 Directus, ClickHouse, gRPC, Metabase, and MQTT enabled; Prefect disabled.
-PostgreSQL cannot be disabled. Directus remains critical when selected.
-The settings are shown in `.env.example`.
+PostgreSQL cannot be disabled. Directus remains critical when selected. The
+legacy stored-SQL dashboard refresher is disabled unless
+`KOKONUT_FEATURE_LEGACY_DATASET_SQL=true` is set explicitly. The settings are
+shown in `.env.example`.
 
 Health output includes every configured feature by default. Disabled providers
 receive `state=disabled`, `healthy=true`, and `critical=false`, without running
@@ -28,6 +30,13 @@ disabling Directus currently removes its health requirement but leaves dependent
 gateway location routes unavailable. No lightweight deployment is certified yet.
 Metabase's Compose opt-in and its legacy feature default remain separate until
 the deployment profile work reconciles them.
+
+The `legacy_dataset_sql` feature is an execution gate, not a new provider. Its
+default-off setting prevents `refresh_dataset()` and the refresh CLI from
+executing stored `dashboard_dataset.query_sql` until an operator explicitly
+enables the compatibility path. Read-only dataset listing remains available.
+Enabling it does not establish query safety, least-privilege database grants,
+location scoping, or result materialization; those acceptance gates remain open.
 
 ## Acceptance and remaining checks
 
