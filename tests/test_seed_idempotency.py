@@ -78,6 +78,7 @@ def test_mobile_form_seed_does_not_rewrite_governed_revisions() -> None:
     from pathlib import Path
 
     seed_sql = Path("schemas/seeds/140_mobile_forms.sql").read_text(encoding="utf-8")
+    assert "WHERE existing.form_id = seed.form_id" in seed_sql
     assert "ON CONFLICT (form_id) DO NOTHING;" in seed_sql
     assert "ON CONFLICT (form_id) DO UPDATE" not in seed_sql
 

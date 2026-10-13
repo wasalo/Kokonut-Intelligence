@@ -3649,3 +3649,16 @@ provider-independent workflow jobs. These were corrected in the active PR.
 The focused local run passed 155 tests with one database-backed seed check
 skipped because the local database service was unavailable. A clean GitHub CI
 run is still required to confirm the complete database-backed path.
+
+### GitHub CI run 286 seed-idempotency follow-up — 13 October 2026
+
+[CI run 286](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38458613711)
+passed 4,556 tests and failed only the database-backed seed-idempotency check.
+The initial fix changed the mobile-form seed to `ON CONFLICT DO NOTHING`, but
+PostgreSQL still evaluates the immutable-revision `BEFORE INSERT` trigger before
+discarding a conflicting row. The seed now selects only form IDs absent from
+`mobile_form` before inserting and retains `DO NOTHING` as the uniqueness
+fallback. The regression check asserts that exclusion predicate. The focused
+pytest invocation could not run locally because pytest is absent from the
+system interpreter; source assertions and `git diff --check` pass. The full
+database-backed idempotency check is pending on a fresh CI run.
