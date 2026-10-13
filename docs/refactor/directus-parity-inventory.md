@@ -29,10 +29,21 @@ console uses explicit grants that can authorize a principal for selected
 locations. These are different identity models; do not infer a multi-location
 equivalence from the presence of a location predicate in both systems.
 
-The hook source also has side effects beyond request validation: NOI snapshot
+The SQL also grants `fields = '*'` on many read rules, so a row predicate does
+not establish field privacy. The Auditor policy deliberately has unfiltered
+reads for collections beyond the ten-collection staff location-repair list,
+including reporting and governance records. Confirm that this global forensic
+scope is intended before replacing it with tenant-scoped native routes; do not
+silently narrow it or call it equivalent to the native operator grants.
+
+The hook source also has effects beyond request validation: NOI snapshot
 recalculation, financial projection writes, lifecycle history, and daily/weekly
-scheduled callbacks. Those need separate owned-job and projection parity
-decisions before disabling hooks or Directus.
+scheduled callbacks. The daily NOI callback calls the snapshot upsert path. The
+weekly callback currently performs a grouped read of verified, source-eligible
+farm activity and logs the number of locations; it does not persist snapshot
+rows. Decide whether that callback is an unfinished placeholder or an intended
+capability before claiming scheduled-output parity. These paths need separate
+owned-job and projection decisions before disabling hooks or Directus.
 
 ## Scoped parity procedure
 

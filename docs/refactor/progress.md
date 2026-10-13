@@ -189,10 +189,21 @@ Directus API authorization and identifies the scheduled NOI and weekly snapshot
 callbacks that need a single-owner decision. Directus uses the legacy
 single-location user field for selected staff filters; the native operator
 console uses explicit grants, so these identity models are not assumed to be
-equivalent. No test suite or live Directus request ran for this review. Source
+equivalent. Many read permissions request every field, and Auditor has
+unfiltered access to additional report/governance collections; confirm the
+intended forensic scope before changing it. The weekly callback only groups
+eligible activity and logs a count, so it does not establish persisted snapshot
+parity. No test suite or live Directus request ran for this review. Source
 mapping is complete, while effective API/field/row/hook parity stays open until
 an isolated runtime identity and disposable scoped rows are used. See the
 [Directus parity inventory](directus-parity-inventory.md).
+
+The broader reporting gate is also scoped more precisely: Batch 4e already
+accepts the three first-party cards against copied populated fixtures, while
+the archived Metabase image contained only generic sample-H2 e-commerce cards
+and no Kokonut source. Full projection, named-query, and capability-specific
+dashboard acceptance remains open ([source inventory](metabase-source-inventory.md);
+[reporting contract](metabase-reporting-contract.md)).
 
 ## Phase 7 JavaScript SDK compiler compatibility — 11 October 2026
 

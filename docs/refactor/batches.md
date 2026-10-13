@@ -245,7 +245,7 @@ index and event evidence.
   operation's cadence/input gaps, idempotency, overlap, and recovery policy;
   transfer jobs one at a time with output parity and rollback evidence. The
   source inventory does not prove Prefect activation or native scheduler state.
-- [ ] Close projection, named-query, report and dashboard parity gaps in scoped groups.
+- [ ] Close projection, named-query, report and dashboard parity gaps in scoped groups. Batch 4e closed the initial PostgreSQL reporting contract and three first-party cards against copied populated fixtures; the archived Metabase inventory found 39 generic e-commerce cards on sample H2 and no Kokonut PostgreSQL/ClickHouse source. Remaining work is the capability-owner inventory for native projections and named queries, plus acceptance for each retained Kokonut report/dashboard surface ([source inventory](metabase-source-inventory.md); [reporting contract](metabase-reporting-contract.md); [card parity](builds/2026-10-11-recovery/metabase-card-output-parity.json)).
 - [x] Resolve Kernel Redis/session/cache and limiter requirements: operator sessions and computation cache are PostgreSQL-backed; minimal/edge default to the single-instance local limiter, while standard defaults to shared PostgreSQL limits; any future scale deployment must use a shared provider. Redis remains an optional Directus adapter. Direct and ASGI multi-process plus two-container HTTP shared-consumption checks pass. Production multi-host failover and Directus Redis state transfer/reset remain separate release gates ([boundary](rate-limit-boundary.md); [shared-provider evidence](builds/2026-10-11-recovery/postgres-rate-limit-two-api-http.json)).
 - [ ] With verification authorization, exercise leases, retries, idempotency and outages.
 
