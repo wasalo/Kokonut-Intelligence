@@ -2950,3 +2950,27 @@ removed. This validates the local apply path and age gate without touching the
 candidate media volume, a live database, S3/R2, or production data. See
 [isolated apply evidence](builds/2026-10-12-recovery/field-collector-media-orphan-apply-isolated.json)
 and the [media contract](local-private-media.md).
+
+
+### Batch 3 farm activity workflow source map — 12 October 2026
+
+Mapped `farm_activity_v1` 1.2.0 across the offline Field Collector, exact-form
+validation and consent eligibility, the location-scoped mobile review queue,
+canonical `farm_activity`, lifecycle ledger/specification, metrics, and farm
+summary report. The source map confirms mobile sync creates a private
+`offline_collection`; there is no Field Collector promotion route. For this
+`not_required` form, the eligibility view can report consent eligibility, but
+that is separate from semantic review, independent verification, and
+publication. The existing workflow spec also has terminal rejection and system
+publication; that conflict is corrected in the workflow-spec slice below.
+
+Checked the source-map and workflow-spec items in Batch 3. The declarative spec
+now requires an independent human verifier by contract, keeps rejected records
+available for an explicit correction loop or terminal exception disposition,
+and makes publication a separate human-approved step. Added focused contract
+coverage. These are workflow declarations only: runtime authorization,
+submitter/verifier identity enforcement, database lifecycle guards, canonical
+promotion, and report/metric integration remain open. The [workflow map](farm-activity-workflow-map.md)
+contains the source trace, field contract, acceptance sequence, and rollback
+strategy. CAP-001 remains partial; no end-to-end capability acceptance is
+claimed.

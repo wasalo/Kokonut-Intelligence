@@ -134,7 +134,13 @@ backups/volumes; no production cutover in this batch.
 
 ## Batch 3 — One complete minimal pilot workflow (Phases 2, 7)
 
-- [ ] Map one farm activity through draft, submission, independent review and publication.
+- [x] Map `farm_activity_v1` from Field Collector capture through the proposed
+  canonical draft, submission, independent review and publication handoffs;
+  record consent-versus-semantic-review boundaries and missing code paths
+  ([workflow map](farm-activity-workflow-map.md)).
+- [x] Align the farm-activity workflow specification with reasoned rework or
+  exception disposition and explicit human publication; runtime enforcement
+  remains in the next slice.
 - [ ] Implement shared lifecycle/authorization contracts and the native API slice.
 - [ ] Connect draft metric computation and one governed report to that workflow.
 - [ ] With verification authorization, exercise role/field/row policy and failure paths.
