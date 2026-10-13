@@ -6,7 +6,7 @@ The former OneDev buildspec has been replaced by these repository workflows:
 | Workflow | Trigger | Purpose |
 |---|---|---|
 | `CI` | Pull requests to `main`, pushes to `main`, manual dispatch | Runs secret-pattern and image-digest gates, the locked AMD64/ARM64 image builds, Python security checks and full suite, static analysis, Solidity checks, and Directus hook checks. It builds temporary OCI archives only; it does not publish images. |
-| `Security` | Pull requests to `main`, pushes to `main`, weekly schedule, manual dispatch | Scans tracked source and full Git history with Gitleaks. |
+| `Security` | Pull requests to `main`, pushes to `main`, weekly schedule, manual dispatch | Scans tracked source and all fetched Git history with the checksum-pinned Gitleaks CLI. |
 | `Deploy staging` | Manual dispatch from `main` only | Requires the explicit `yes` input and protected `staging` environment; a source-controlled disabled flag keeps deployment blocked until the architecture/data hold is cleared. |
 | `Deploy production` | Manual dispatch from `main` only | Requires the explicit `yes` input, the protected `production` environment, pre-deploy backup, and post-deploy health verification. |
 
@@ -35,9 +35,6 @@ After the workflows are merged:
    Add `DEPLOY_PROD_SSH_KEY` as the private key secret and
    `DEPLOY_PROD_KNOWN_HOSTS` as the verified SSH host-key entry. The private
    key must be authorized for the `kokonut-deploy` user on the production host.
-5. If the repository belongs to a GitHub organization, add the Gitleaks action
-   license as the `GITLEAKS_LICENSE` repository or organization secret. A
-   personal-account repository does not need that license secret.
 
 The staging host keeps its existing SOPS age identity and encrypted
 environment. The production host also keeps its own separate SOPS identity.
@@ -45,8 +42,9 @@ Neither age identity nor decrypted deployment environment is copied into
 GitHub Actions secrets.
 
 The CI and Security workflows need no deployment credentials. Their
-`GITHUB_TOKEN` permissions are read-only. Gitleaks pull-request comments and
-artifact uploads are disabled.
+`GITHUB_TOKEN` permissions are read-only. The Security workflow runs the
+upstream Gitleaks CLI directly; it does not require a Gitleaks Action license,
+write PR comments, or upload scan reports.
 
 ## Deployment controls
 
