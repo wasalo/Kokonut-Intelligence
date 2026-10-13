@@ -198,12 +198,32 @@ mapping is complete, while effective API/field/row/hook parity stays open until
 an isolated runtime identity and disposable scoped rows are used. See the
 [Directus parity inventory](directus-parity-inventory.md).
 
-The broader reporting gate is also scoped more precisely: Batch 4e already
-accepts the three first-party cards against copied populated fixtures, while
-the archived Metabase image contained only generic sample-H2 e-commerce cards
-and no Kokonut source. Full projection, named-query, and capability-specific
-dashboard acceptance remains open ([source inventory](metabase-source-inventory.md);
-[reporting contract](metabase-reporting-contract.md)).
+The broader reporting gate is now mapped at source level: three first-party
+cards have copied-fixture evidence, the report generator registers 94 draft
+snapshot types, the typed analytics query port has one public query, and the
+legacy dashboard dataset runner executes stored SQL but discards result rows
+after counting them. The inventory distinguishes these from bounded evidence
+graph reads and optional ClickHouse rollups. Accountable owner selection,
+reference fixtures, and retained dashboard/report acceptance remain open
+([source inventory](metabase-source-inventory.md); [reporting contract](metabase-reporting-contract.md);
+[parity inventory](reporting-parity-inventory.md)). No test suite or live
+dashboard SQL execution was performed for this source review.
+
+## Phase 4 reporting and projection source inventory — 13 October 2026
+
+Mapped the native analytics query port, versioned public Gateway reads, graph
+lineage projection, 94 registered draft report types, optional Metabase card
+slice, legacy `dashboard_dataset.query_sql` refresh path, and ClickHouse rollup
+contracts. The inventory found that the dashboard refresh worker executes the
+stored SQL through the application database connection, fetches all returned
+rows, discards them after counting, and stores only refresh metadata. The five
+repository-seeded dataset examples are `published` while the `--all` command
+selects `active` rows. This worker is not a durable result store or a safe
+general reporting interface; review its DB role, writers, and retained
+consumers before enabling it. The source inventory does not approve or execute
+stored SQL, select which reports remain product requirements, or establish
+parity. See the [reporting parity inventory](reporting-parity-inventory.md) and
+[Batch 4 checklist](batches.md).
 
 ## Phase 7 JavaScript SDK compiler compatibility — 11 October 2026
 
