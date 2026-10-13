@@ -31,19 +31,26 @@ deprecated worker crontab entries, the historical scheduled-task seed, and the
 long-running event worker. It assigns the PostgreSQL scheduler as the minimal
 profile target while keeping Prefect as an optional adapter, with a one-active-
 dispatcher rule and per-job replay cautions. The inventory identifies
-conflicting sensor and metrics contracts, a climate aggregate/location mismatch,
-unscheduled projection and cleanup work, remote-sensing's internal durable job
-ownership, and the weekly ML retraining docstring/body mismatch. See
+conflicting sensor and metrics contracts, climate fan-out versus per-location
+scheduling, unscheduled projection and cleanup work, remote-sensing's internal durable job
+ownership, and the weekly ML retraining docstring/body mismatch. For climate,
+`--all` means all datasets at a required location; Prefect currently fans out
+over active locations, while native planning represents one location per task.
+See
 [schedule ownership inventory](schedule-ownership-inventory.md) and the
 [Batch 4 checklist](batches.md).
 
 The only runtime action was a read-only `services.scheduler.cli --status`
 inside the healthy local candidate app: it reported zero enabled, disabled,
 running, or failing tasks. No job ran and no task/seed/schedule was written or
-activated. The candidate project has no Prefect container; no external Prefect
-server or unrelated Docker project was queried. The restored legacy database
-also had no scheduled task rows, while seed 050 contains enabled historical
-definitions. See the [candidate status evidence](builds/2026-10-12-recovery/candidate-scheduler-owner-snapshot.json).
+activated. The candidate project has no Prefect container, and a read-only
+global Docker name filter found no running container matching `prefect`; no
+external Prefect API or host process was queried. The restored legacy database
+also had no scheduled task rows. Historical seed 050 contains enabled
+definitions, but `scripts/seed.sh` uses `--schemas-only` and its curated seed
+list excludes it. Its inaccurate comment about applying numbered seed
+migrations is corrected. See
+the [candidate status evidence](builds/2026-10-12-recovery/candidate-scheduler-owner-snapshot.json).
 Batch 4 remains open until live provider state, operational ownership,
 idempotency, and per-job cutover/recovery evidence are established.
 

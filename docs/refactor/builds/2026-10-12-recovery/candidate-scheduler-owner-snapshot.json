@@ -14,9 +14,13 @@
     "running_tasks": 0,
     "failing_tasks": 0
   },
+  "prefect_container_query": {
+    "filter": "docker ps --filter name=prefect",
+    "running_matches": 0
+  },
   "effect": "Read-only status query; no task, schedule, or container state changed.",
   "limitations": [
     "This reports only the local candidate PostgreSQL scheduler.",
-    "No external Prefect server or unrelated Docker project was queried."
+    "No external Prefect API or host process was queried; a local running-container name filter found no Prefect match."
   ]
 }

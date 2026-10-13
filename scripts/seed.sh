@@ -48,8 +48,8 @@ if [ "$REFERENCE_ONLY" = "false" ]; then
     echo "Applying extensions.sql..."
     docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/config/postgres/extensions.sql"
 
-    # Apply PostgreSQL schema and numbered seed migrations through the checksum-
-    # tracked runner. Keep this as the only default PostgreSQL application path.
+    # Apply PostgreSQL schema migrations through the checksum-tracked runner.
+    # Seed data is selected explicitly in CURATED_SEEDS below.
     echo ""
     echo "Applying PostgreSQL schema migrations..."
     python3 -m services.migration migrate --schemas-only

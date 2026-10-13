@@ -21,13 +21,18 @@ no `scheduled_task` or `task_run` rows; the local candidate scheduler has also
 been observed with zero tasks. The historical seed
 `schemas/seeds/050_scheduled_tasks.sql` inserts enabled rows, so it must not be
 applied to a target until its ownership and duplication implications are
-reviewed. Reconcile live provider state immediately before any cutover.
+reviewed. The default `scripts/seed.sh` migration call uses `--schemas-only`,
+which excludes seed data, and its curated seed list does not include seed 050.
+This seed is not applied by normal bootstrap; do not add or manually apply it to
+a Kernel target without first disabling its schedules and reviewing their
+contracts. Reconcile live provider state immediately before any cutover.
 
 A read-only status query inside the healthy local candidate app on 12 October
 local time (13 October UTC) reported zero enabled, disabled, running, or failing
 native scheduler tasks. The candidate project has no Prefect container. This
 confirms the candidate has no registered native schedules; it says nothing
-about an external Prefect service or other Docker projects. See the
+about a remote Prefect service or host process. A read-only Docker name filter
+also found no running local container matching `prefect`. See the
 [candidate scheduler snapshot](builds/2026-10-12-recovery/candidate-scheduler-owner-snapshot.json).
 
 ## Configured recurring flows
@@ -42,7 +47,7 @@ state remains unknown.
 | Prefect `scheduled-hourly` | `0 * * * *` | sensors, anomaly detection, freshness | Sensor's shared job currently has no input contract and its CLI no-argument path prints help. Do not transfer sensor scheduling until it accepts a defined source. |
 | Prefect `scheduled-every-6h` | `0 */6 * * *` | weather, dashboard refresh, remote-sensing flow | Remote sensing has its own durable job claims and provider-level outcomes. Keep one outer trigger and let the internal worker own child attempts; inspect `no_data`, skipped, retryable, and terminal outcomes before replay. |
 | Prefect `scheduled-daily` | `0 6 * * *` | market data, metrics, credit-adjustment check | Metrics create draft, unverified values. The old cron/seed cadence is every four hours, so reconcile the intended cadence and existing output before cutover. Credit adjustment is outside the scheduler module allowlist; retain manual/Prefect ownership until its safety and execution contract is reviewed. |
-| Prefect `scheduled-weekly` | `0 3 * * 0` | climate-data flow | The flow fans out by location; the JobSpec requires a location while its arguments also contain `--all`. Resolve this input-contract mismatch before native planning. The flow docstring mentions ML retraining, but the flow body does not run it. |
+| Prefect `scheduled-weekly` | `0 3 * * 0` | climate-data flow | The flow fans out across active locations; each invocation of the climate CLI uses `--all` to select datasets and a required `--location-id`. Native planning currently describes one location per scheduled task, so cutover must preserve the fan-out without duplicate all-location runs. The flow docstring mentions ML retraining, but the flow body does not run it. |
 | Prefect `full-pipeline` | Manual only | ingestion, monitoring, analytics, then remote sensing | Manual runs can overlap scheduled deployments. Require an operator to check current run state or route through a single guarded workflow before enabling native schedules. |
 
 The deployment file does not declare schedules for EAS, RPC, Gnosis indexing,
@@ -73,7 +78,7 @@ a job is currently running.
 | `dashboards` | Prefect every six hours; deprecated cron and seed every six hours | Native scheduler after named-view and saved-card output parity. Refresh is rebuild-oriented; compare the affected time range and published-only filters before accepting a rerun. |
 | `credit_adjustment` | Prefect daily check and manual full-pipeline path; no legacy cron/seed entry | Keep outside native scheduling until its domain effects and permissions are reviewed. The check command is not retirement confirmation; never auto-confirm a credit retirement. |
 | `remote_sensing` | Prefect every six hours and manual full-pipeline path; internal durable fetch jobs | One reviewed outer trigger only. Prefer the internal durable job system as execution/retry owner; do not also create scheduler rows for the same provider jobs. Reconcile per-provider terminal and no-data states before replay. |
-| `climate` | Prefect weekly; deprecated cron and seed weekly | Resolve the aggregate-versus-location JobSpec mismatch before transfer. Native scheduling should create one reviewed run per location or an explicitly allowlisted durable fan-out. Resume per location and avoid repeating completed locations without idempotency evidence. |
+| `climate` | Prefect weekly; deprecated cron and seed weekly | `--all` selects all climate datasets for one required location; the Prefect flow fans out over active locations sequentially. Preserve that fan-out in native scheduling with one reviewed task per location or an explicitly allowlisted durable fan-out. Resume per location and avoid repeating completed locations without idempotency evidence. |
 | `projections` | One-shot ClickHouse outbox command; not declared in Prefect, cron, or seed schedules | Keep under the durable outbox/projection delivery owner. Do not add periodic scheduler rows until the worker, module policy, sink checkpoint, and reconciliation behavior are explicitly defined. Replay from the durable outbox cursor, never from an untracked wall-clock window. |
 
 ## Work outside the 15-job catalog
