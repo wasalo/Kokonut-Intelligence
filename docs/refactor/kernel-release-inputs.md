@@ -40,12 +40,13 @@ Python base image's bundled pip independently from its digest.
 PostGIS package resolution now uses a timestamped Debian Bookworm snapshot and
 the PGDG archive, with exact versions for the two selected PostGIS packages.
 The source files and timestamp are covered by the release-input lock. The
-current archive check verifies the selected PostGIS package versions on both
-architectures; it does not compare the full Debian package inventory or certify
-extension behavior, logical restore, ARM64 runtime, or Raspberry Pi resource
-limits. A fresh multi-architecture run is required to accept the snapshot
-change. GitHub-hosted runner Docker and Buildx tooling come from the runner image
-and are outside the app release lock.
+release gate verifies the selected PostGIS package versions and compares the
+complete installed Debian package inventories across both architectures,
+reporting missing or differently versioned packages (up to 50 differences per
+failure). It does not certify extension behavior, logical restore, ARM64 runtime,
+or Raspberry Pi resource limits. A fresh multi-architecture run is required to
+accept the snapshot change. GitHub-hosted runner Docker and Buildx tooling come
+from the runner image and are outside the app release lock.
 
 The Debian source uses the official [snapshot service](https://snapshot.debian.org/)
 at an explicit UTC timestamp. PGDG's [APT documentation](https://wiki.postgresql.org/wiki/Apt/FAQ)

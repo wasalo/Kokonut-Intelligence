@@ -7,7 +7,7 @@
   },
   "sha256_inputs": {
     "Dockerfile.kernel": "094ff4de06cd632b836fe7c85cd4f8d43ca938e44e8ba7b9ba29bc4ff87e695e",
-    "Dockerfile.kernel-postgis": "6b19503300d82d51d9b8bd2251a3561be83cd6bcb0c6ce7a1b86ca8f8636edfa",
+    "Dockerfile.kernel-postgis": "3c34d6d1442687a57b749a99b9184b60de78b92aa9bb6bed80c9b16e02a9d16a",
     "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
     "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
     "requirements/exports.txt": "1780570edca5518251d507d39d9c9fed24db4451315d73e75f9c8faceec36c71",
@@ -32,6 +32,6 @@
   "dependency_lock_status": {
     "python_direct_inputs": "SHA-256-locked source requirement manifests",
     "python_transitive_dependencies": "hash-locked default and ClickHouse profile closures; pending GitHub multi-architecture acceptance",
-    "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; multi-architecture build acceptance pending"
+    "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories across amd64 and arm64; multi-architecture acceptance pending"
   }
 }

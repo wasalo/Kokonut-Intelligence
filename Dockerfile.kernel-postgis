@@ -32,7 +32,9 @@ RUN test -n "$POSTGIS_PACKAGE_VERSION" \
        "postgresql-16-postgis-3=$POSTGIS_PACKAGE_VERSION" \
        "postgresql-16-postgis-3-scripts=$POSTGIS_SCRIPTS_VERSION" \
     && mkdir -p /usr/local/share/kokonut \
-    && dpkg-query -W > /usr/local/share/kokonut/database-packages.txt \
+    && dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\t${Version}\n' \
+       | awk '$1 == "ii" { print $2 "\t" $3 }' \
+       > /usr/local/share/kokonut/database-packages.txt \
     && rm -rf /var/lib/apt/lists/*
 
 # Schema extension creation remains owned by the checksummed migration runner.

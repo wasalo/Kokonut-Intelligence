@@ -3597,5 +3597,7 @@ timestamp, suites, archive, and low default PGDG priority to agree. Earlier
 local amd64/arm64 PostGIS artifacts were built before this source lock and are
 retained as historical identities, not acceptance evidence for the new input.
 CI run 281 predates this update; a fresh multi-architecture build must verify
-the apt resolution. Full installed-package inventory comparison, extension and
-restore acceptance, and hardware certification remain open.
+the apt resolution. The release checker now compares the complete installed
+Debian package inventories across architectures and reports missing or
+different package versions. Snapshot build and inventory acceptance, extension
+and restore acceptance, and hardware certification remain open.

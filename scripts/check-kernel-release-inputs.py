@@ -243,7 +243,14 @@ def _verify_postgis(archive_path: Path, lock: dict) -> None:
             for line in package_text.decode("utf-8").splitlines():
                 parts = line.split()
                 if len(parts) >= 2:
-                    packages[parts[0].split(":", 1)[0]] = parts[1]
+                    name = parts[0].split(":", 1)[0]
+                    previous_version = packages.get(name)
+                    if previous_version and previous_version != parts[1]:
+                        raise LockError(
+                            f"{architecture} package inventory has conflicting versions for "
+                            f"{name}: {previous_version} and {parts[1]}"
+                        )
+                    packages[name] = parts[1]
             actual_by_arch[architecture] = packages
             for name, expected_version in selected.items():
                 actual_version = packages.get(name)
@@ -252,9 +259,22 @@ def _verify_postgis(archive_path: Path, lock: dict) -> None:
                         f"{architecture} PostGIS package {name} has version {actual_version!r}; "
                         f"expected {expected_version!r}"
                     )
+        amd64 = actual_by_arch["amd64"]
+        arm64 = actual_by_arch["arm64"]
+        differences = [
+            f"{name}: amd64={amd64.get(name, '<missing>')}, arm64={arm64.get(name, '<missing>')}"
+            for name in sorted(amd64.keys() | arm64.keys())
+            if amd64.get(name) != arm64.get(name)
+        ]
+        if differences:
+            raise LockError(
+                "installed Debian package inventory parity failed:\n  "
+                + "\n  ".join(differences[:50])
+            )
         print(
             "PostGIS OCI build verified: linux/amd64 + linux/arm64, "
-            f"selected packages match, index sha256:{index_digest}"
+            f"{len(amd64)} matching installed packages including selected PostGIS versions, "
+            f"index sha256:{index_digest}"
         )
 
 

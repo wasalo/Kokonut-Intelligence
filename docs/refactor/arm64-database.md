@@ -173,10 +173,12 @@ from the `20261012T000000Z` snapshot, while the exact PostGIS packages come from
 `bookworm-pgdg-archive` at the versions in
 `config/postgres/kernel-postgis-packages.json`. A low-priority apt preference
 keeps unrelated PGDG packages behind the dated Debian source. The release-input
-lock covers both source files and the package record. CI run 281 started before
-this update; the next multi-architecture run must rebuild both targets before
-the new apt inputs are accepted. The full installed-package inventories,
-extension behavior, restore, runtime, and Raspberry Pi remain separate gates.
+lock covers both source files and the package record. The release checker now
+compares the complete installed Debian package inventories and selected PostGIS
+versions across architectures. A fresh multi-architecture run must rebuild both
+targets and exercise this checker before the apt inputs and inventory parity
+are accepted. Extension behavior, restore, runtime, and Raspberry Pi remain
+separate gates.
 
 Build the final target with both explicit arguments after discovery:
 

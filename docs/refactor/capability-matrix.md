@@ -45,8 +45,8 @@ Deployment settings remain pending, and no ARM64 runtime is certified
 Hash-locked Python closures for the default app and optional ClickHouse profile
 are now wired into the Kernel image; multi-architecture acceptance is pending.
 The PostGIS build now uses a dated Debian snapshot and exact PGDG package
-versions; that source change awaits CI. Full installed-package inventory parity
-and hardware acceptance remain open.
+versions, and the release checker compares full installed-package inventory
+parity. Both await CI acceptance; hardware acceptance remains open.
 
 | ID | Capability | Owning code area | Named manual check and required result | Existing Python test candidates | Implementation / deployment progress |
 |---|---|---|---|---|---|

@@ -572,7 +572,8 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Generate hash-locked Python dependency closures for the default Kernel runtime and optional ClickHouse profile, and wire each into `Dockerfile.kernel`; regeneration uses pip-tools 7.6.2 and the source manifests remain SHA-256-locked ([release-input contract](kernel-release-inputs.md)).
 - [ ] Run the updated default-app, ClickHouse-app, and PostGIS AMD64/ARM64 build gate on a pull request and retain the build record. CI run 281 includes the Python lockfiles but predates the apt snapshot change.
 - [x] Pin Debian Bookworm apt sources to an explicit snapshot date and use the PGDG released-package archive with exact PostGIS package versions; lock the source files and package record. The snapshot-aware Docker build and package inventories still need CI acceptance.
-- [ ] Compare full installed Debian package inventories across the pinned AMD64/ARM64 builds and retain the result; the current checker verifies the selected PostGIS versions only.
+- [x] Extend the release checker to compare complete installed Debian package inventories across AMD64/ARM64 and report missing or version-different packages. CI acceptance remains open.
+- [ ] Run the snapshot-aware PostGIS build and inventory comparison on both architectures and retain the passing result.
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
 - [ ] Review capability matrix, submit branch PR and obtain passing release CI.
