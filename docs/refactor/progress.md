@@ -3661,8 +3661,23 @@ discarding a conflicting row. The seed now selects only form IDs absent from
 fallback. The regression check asserts that exclusion predicate. The focused
 pytest invocation could not run locally because pytest is absent from the
 system interpreter; source assertions and `git diff --check` pass. [CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973)
-is running on fix commit `6549043`; the full database-backed idempotency result
-is pending.
+then passed on fix commit `6549043`, including the database-backed idempotency
+check; see the acceptance record below.
+
+### GitHub CI run 287 release-gate acceptance — 13 October 2026
+
+[CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973)
+completed successfully on commit `6549043` in PR #68. It built and verified the
+default and ClickHouse-enabled Kernel apps for AMD64/ARM64, plus the snapshot-
+pinned PostGIS images for both architectures. The full package comparison found
+229 AMD64 and 228 ARM64 packages with only the documented architecture-specific
+`libquadmath0` difference. The complete Python/database suite passed 4,557 tests
+and 75 subtests; `tests/test_seed_idempotency.py::test_seed_idempotency` passed.
+The Solidity suite passed 62 tests and the Directus hooks suite passed 52 tests;
+the workflow reported all CI checks successful. Full-history Security run 11
+also passed. These results close the build, inventory, and seed-regression gates
+for commit `6549043`. Later changes on the current PR branch are not covered yet;
+a fresh run is required before the release-CI gate closes for its current head.
 
 ### Batch 4 Redis and shared-limiter profile decision — 13 October 2026
 

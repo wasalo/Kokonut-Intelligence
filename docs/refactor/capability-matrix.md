@@ -38,7 +38,9 @@ Gitleaks allowlist and explicit config invocation now cover those reviewed
 patterns; the full-history Security workflow passed on 13 October 2026. Two CI
 runs exposed nested OCI indexes that the checker did not traverse; the current
 PR fix recursively inspects nested manifests and falls back to image config
-metadata. A fresh CI run must pass before the release gate is accepted.
+metadata. CI run 287 passed the AMD64/ARM64 app and PostGIS builds, locked
+package comparison, and complete test workflow on commit `6549043`. Later PR
+changes postdate that run, so current-head CI acceptance remains open.
 Deployment settings remain pending, and no ARM64 runtime is certified
 ([release-input contract](kernel-release-inputs.md);
 [local attempt evidence](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
