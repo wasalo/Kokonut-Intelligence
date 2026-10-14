@@ -50,8 +50,9 @@ def test_worker_map_states_shared_identity_and_open_authorization_boundaries():
 
     assert "inherit" in boundary["database_identity"]
     assert "Not established" in boundary["signed_tenant_context"]
-    assert "without a module-specific argument schema" in boundary["module_argument_validation"]
+    assert "validate command_args" in boundary["module_argument_validation"]
     assert any("separate worker database principal" in item for item in inventory["known_open_items"])
+    assert any("existing enabled scheduled_task rows" in item for item in inventory["known_open_items"])
     assert "does not change grants" in boundary["deployment_effect"]
 
 

@@ -107,17 +107,20 @@ source-visible data objects, source scope, external effects, and replay notes.
 `tests/test_worker_operation_map.py` ensures the inventory matches both
 executable allowlists and every entry has source references. This is an
 entrypoint inventory only: transitive calculator/helper/provider calls and
-database-stored command arguments still need their own contracts, so the map
-must not be used as a worker grant list.
+database-stored command arguments remain outside the source-effect map. The
+new module-specific command schemas bound supported scheduler argv before
+activation and dispatch, but do not establish tenant scope or worker grants;
+the map must not be used as a worker grant list.
 
 Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
 remove runtime grants on this evidence. The next code-only step is to complete
-the transitive query/effect and command-argument audit in the worker map. A
-later role/context change needs a non-forgeable system-worker identity and
-narrow operation grants. Active provider schedules, operational owners, and
-any production identity mapping remain separate owner inputs under OFU-16/02.
+the transitive query/effect audit and reconcile existing persisted tasks with
+the new argument contracts. A later role/context change needs a non-forgeable
+system-worker identity and narrow operation grants. Active provider schedules,
+operational owners, and any production identity mapping remain separate owner
+inputs under OFU-16/02.
 
 ## Required sequence before RLS
 

@@ -23,8 +23,13 @@ class SchedulerDurabilityTests(TestCase):
 
         with patch("services.scheduler.engine.subprocess.run", return_value=completed) as run:
             result = engine._execute_task(
-                "run", "task", "metrics", "services.metrics",
-                ["--compute", "--all-locations"], 30, None,
+                "run",
+                "task",
+                "metrics",
+                "services.metrics",
+                ["--compute", "--all-locations"],
+                30,
+                None,
             )
 
         self.assertTrue(result)
@@ -41,9 +46,7 @@ class SchedulerDurabilityTests(TestCase):
         engine._complete_task = Mock()
 
         with patch("services.scheduler.engine.subprocess.run", side_effect=OSError("spawn failed")):
-            result = engine._execute_task(
-                "run", "task", "events", "services.events", ["--process"], 30, None
-            )
+            result = engine._execute_task("run", "task", "events", "services.events", ["--process"], 30, None)
 
         self.assertFalse(result)
         self.assertEqual(engine._complete_task.call_args.args[2], "failed")
@@ -53,13 +56,45 @@ class SchedulerDurabilityTests(TestCase):
         engine._complete_task = Mock()
 
         with patch("services.scheduler.engine.subprocess.run") as run:
+            result = engine._execute_task("run", "task", "untrusted", "os", ["--help"], 30, None)
+
+        self.assertFalse(result)
+        run.assert_not_called()
+        self.assertEqual(engine._complete_task.call_args.args[2], "failed")
+
+    def test_execute_rejects_invalid_command_without_spawning_or_retrying(self):
+        engine = object.__new__(SchedulerEngine)
+        engine._complete_task = Mock()
+
+        with patch("services.scheduler.engine.subprocess.run") as run:
             result = engine._execute_task(
-                "run", "task", "untrusted", "os", ["--help"], 30, None
+                "run",
+                "task",
+                "climate",
+                "services.ingestion.climate_data",
+                ["--all"],
+                30,
+                None,
             )
 
         self.assertFalse(result)
         run.assert_not_called()
         self.assertEqual(engine._complete_task.call_args.args[2], "failed")
+        self.assertFalse(engine._complete_task.call_args.kwargs["retryable"])
+
+    def test_nonretryable_command_failure_has_no_retry_deadline(self):
+        engine = object.__new__(SchedulerEngine)
+        engine._worker_id = "worker-a"
+        conn = _RetryPolicyConnection()
+        engine._conn = conn
+
+        engine._complete_task("task", "run", "failed", 5, "invalid command", retryable=False)
+
+        schedule_update = conn.cursor_value.executed[2]
+        self.assertIn("UPDATE scheduled_task", schedule_update[0])
+        self.assertEqual(schedule_update[1][2], 0)
+        self.assertIsNone(schedule_update[1][3])
+        self.assertTrue(conn.committed)
 
     def test_completion_rejects_run_not_owned_by_worker(self):
         engine = object.__new__(SchedulerEngine)
@@ -127,3 +162,33 @@ class _CompletionConnection:
 
     def commit(self):
         raise AssertionError("lost lease must not commit")
+
+
+class _RetryPolicyCursor:
+    def __init__(self):
+        self.rowcount = 1
+        self.executed = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def execute(self, sql, params=None):
+        self.executed.append((sql, params))
+
+    def fetchone(self):
+        return (1, 3, 60)
+
+
+class _RetryPolicyConnection:
+    def __init__(self):
+        self.cursor_value = _RetryPolicyCursor()
+        self.committed = False
+
+    def cursor(self):
+        return self.cursor_value
+
+    def commit(self):
+        self.committed = True

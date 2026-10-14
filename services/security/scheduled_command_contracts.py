@@ -1,0 +1,268 @@
+"""Argument contracts for database-driven scheduler commands.
+
+Module allowlisting prevents arbitrary imports. These schemas additionally
+limit which supported command a persisted task may invoke and validate its
+arguments before activation or process creation.
+"""
+
+from __future__ import annotations
+
+import re
+from datetime import date, datetime
+from uuid import UUID
+
+from services.security.execution_allowlist import (
+    ALLOWED_SCHEDULED_MODULES,
+    validate_scheduled_module,
+)
+
+
+class ScheduledCommandRejected(ValueError):
+    """A scheduled command violates its module-specific operation contract."""
+
+
+_OPTIONS: dict[str, dict[str, str | None]] = {
+    "services.ingestion.weather": {"--location-id": "uuid"},
+    "services.ingestion.market_data": {
+        "--commodity": "commodity",
+        "--source": "market_source",
+        "--month": "month",
+        "--year": "year",
+    },
+    "services.ingestion.eas_indexer": {"--chain": "eas_chain"},
+    "services.ingestion.rpc_indexer": {
+        "--chain": "rpc_chain",
+        "--wallet": "wallet",
+    },
+    # Sensor CLI input is interactive/file driven. Repeating a fixed value or
+    # reading an arbitrary path from a recurring database task is not a source
+    # contract; use the sensor transport/ingestion workers instead.
+    "services.ingestion.sensor_ingester": {},
+    "services.ingestion.gnosis_indexer": {
+        "--from-block": "block",
+        "--to-block": "block",
+    },
+    "services.ingestion.anomaly_detector": {
+        "--sensor": "uuid",
+        "--since": "datetime",
+        "--baseline-check": None,
+    },
+    "services.metrics": {
+        "--compute": None,
+        "--metric": "metric_key",
+        "--all": None,
+        "--all-locations": None,
+        "--location-id": "uuid",
+        "--period-start": "date",
+        "--period-end": "date",
+        "--json": None,
+        "--reconcile-noi-snapshots": None,
+    },
+    "services.ingestion.data_freshness": {
+        "--check": None,
+        "--source": "identifier",
+    },
+    "services.export.dataset_refresh": {
+        "--dataset-id": "uuid",
+        "--all": None,
+    },
+    "services.ingestion.climate_data": {
+        "--worldclim": None,
+        "--ncep": None,
+        "--modis": None,
+        "--smap": None,
+        "--sentinel1": None,
+        "--all": None,
+        "--location-id": "uuid",
+    },
+    "services.events": {
+        "--process": None,
+        "--notification-process": None,
+        "--batch-size": "batch_size",
+    },
+}
+
+if frozenset(_OPTIONS) != ALLOWED_SCHEDULED_MODULES:
+    raise RuntimeError("Scheduled command contracts must cover the module allowlist exactly")
+
+
+def _reject(message: str) -> ScheduledCommandRejected:
+    return ScheduledCommandRejected(message)
+
+
+def _validate_value(kind: str, value: str) -> None:
+    if not value or len(value) > 512 or "\x00" in value:
+        raise _reject("argument value is empty, too long, or contains a NUL byte")
+    if kind == "uuid":
+        try:
+            UUID(value)
+        except (ValueError, AttributeError):
+            raise _reject("location, sensor, and dataset IDs must be UUIDs") from None
+    elif kind == "market_source":
+        if value not in {"world_bank", "seed"}:
+            raise _reject("market data source is not supported")
+    elif kind == "eas_chain":
+        if value not in {"optimism", "base", "celo"}:
+            raise _reject("EAS chain is not supported")
+    elif kind == "rpc_chain":
+        if value not in {"ethereum", "optimism", "base", "arbitrum", "celo", "gnosis"}:
+            raise _reject("RPC chain is not supported")
+    elif kind == "wallet":
+        if not re.fullmatch(r"0x[a-fA-F0-9]{40}", value):
+            raise _reject("wallet must be a 20-byte hexadecimal address")
+    elif kind == "commodity":
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", value):
+            raise _reject("commodity code has an invalid format")
+    elif kind == "metric_key":
+        if not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", value):
+            raise _reject("metric key has an invalid format")
+    elif kind == "identifier":
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", value):
+            raise _reject("source identifier has an invalid format")
+    elif kind in {"month", "year", "block", "batch_size"}:
+        if not value.isdecimal():
+            raise _reject("numeric argument must be a non-negative integer")
+        number = int(value)
+        limits = {
+            "month": (1, 12),
+            "year": (1900, 2200),
+            "block": (0, 2**63 - 1),
+            "batch_size": (1, 1000),
+        }
+        lower, upper = limits[kind]
+        if not lower <= number <= upper:
+            raise _reject("numeric argument is outside its supported range")
+    elif kind == "date":
+        try:
+            date.fromisoformat(value)
+        except ValueError:
+            raise _reject("period dates must use YYYY-MM-DD") from None
+    elif kind == "datetime":
+        try:
+            datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            raise _reject("since must be an ISO-8601 datetime") from None
+    else:
+        raise RuntimeError(f"Unknown scheduled argument value type: {kind}")
+
+
+def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None:
+    options = set(values)
+
+    if module_path == "services.ingestion.sensor_ingester":
+        raise _reject("sensor ingestion has no recurring source contract")
+
+    if module_path == "services.ingestion.market_data":
+        has_month = "--month" in options
+        has_year = "--year" in options
+        if has_month != has_year:
+            raise _reject("market-data month and year must be supplied together")
+        if has_month and values.get("--source", "world_bank") != "world_bank":
+            raise _reject("month and year filtering is only valid for world_bank")
+
+    elif module_path == "services.ingestion.gnosis_indexer":
+        has_start = "--from-block" in options
+        has_end = "--to-block" in options
+        if has_start != has_end:
+            raise _reject("Gnosis block range requires both --from-block and --to-block")
+        if has_start and int(str(values["--from-block"])) > int(str(values["--to-block"])):
+            raise _reject("Gnosis block range start must not exceed its end")
+
+    elif module_path == "services.ingestion.anomaly_detector":
+        if "--baseline-check" in options and len(options) != 1:
+            raise _reject("baseline check cannot be combined with sensor-window options")
+
+    elif module_path == "services.metrics":
+        if "--reconcile-noi-snapshots" in options:
+            if options != {"--reconcile-noi-snapshots"}:
+                raise _reject("NOI snapshot reconciliation is a standalone operation")
+            return
+        if "--compute" not in options:
+            raise _reject("scheduled metric operation requires --compute")
+        all_locations = "--all-locations" in options
+        all_metrics = "--all" in options
+        one_metric = "--metric" in options
+        if sum((all_locations, all_metrics, one_metric)) != 1:
+            raise _reject("compute requires exactly one of --all-locations, --all, or --metric")
+        if all_locations:
+            if "--location-id" in options:
+                raise _reject("--all-locations cannot be combined with --location-id")
+        elif "--location-id" not in options:
+            raise _reject("single-location metric computation requires --location-id")
+        if all_metrics and one_metric:
+            raise _reject("--all and --metric are mutually exclusive")
+        if "--period-start" in options and "--period-end" in options:
+            if date.fromisoformat(str(values["--period-start"])) > date.fromisoformat(str(values["--period-end"])):
+                raise _reject("period start must not exceed period end")
+
+    elif module_path == "services.ingestion.data_freshness":
+        if "--check" not in options:
+            raise _reject("scheduled freshness operation requires --check")
+
+    elif module_path == "services.export.dataset_refresh":
+        if ("--all" in options) == ("--dataset-id" in options):
+            raise _reject("dataset refresh requires exactly one of --all or --dataset-id")
+
+    elif module_path == "services.ingestion.climate_data":
+        providers = options & {"--worldclim", "--ncep", "--modis", "--smap", "--sentinel1", "--all"}
+        if "--location-id" not in options:
+            raise _reject("climate refresh requires --location-id")
+        if len(providers) != 1:
+            raise _reject("climate refresh requires exactly one provider or --all")
+
+    elif module_path == "services.events":
+        operations = options & {"--process", "--notification-process"}
+        if len(operations) != 1:
+            raise _reject("scheduled event command must select --process or --notification-process")
+
+
+def validate_scheduled_command(module_path: str, command_args: object) -> tuple[str, ...]:
+    """Validate and return immutable argv tokens for one scheduled operation.
+
+    Unsupported commands include human-review actions, event cleanup without a
+    retention decision, unbounded event workers, and recurring sensor ingestion
+    without a source adapter. Validation never invokes the target module.
+    """
+    try:
+        validate_scheduled_module(module_path)
+    except (TypeError, ValueError):
+        raise _reject("scheduled module is not allowlisted") from None
+
+    if not isinstance(command_args, list):
+        raise _reject("command arguments must be a JSON array of strings")
+    if len(command_args) > 32:
+        raise _reject("command contains too many arguments")
+
+    schema = _OPTIONS[module_path]
+    values: dict[str, str | bool] = {}
+    index = 0
+    total_chars = 0
+    while index < len(command_args):
+        option = command_args[index]
+        if not isinstance(option, str) or len(option) > 128 or "\x00" in option:
+            raise _reject("command option token is malformed")
+        if option not in schema:
+            raise _reject("command contains an unsupported option")
+        if option in values:
+            raise _reject("command repeats an option")
+        value_kind = schema[option]
+        if value_kind is None:
+            values[option] = True
+            total_chars += len(option)
+            index += 1
+            continue
+        index += 1
+        if index >= len(command_args):
+            raise _reject("command option is missing its value")
+        value = command_args[index]
+        if not isinstance(value, str) or value.startswith("--"):
+            raise _reject("command option value is malformed")
+        _validate_value(value_kind, value)
+        values[option] = value
+        total_chars += len(option) + len(value)
+        index += 1
+    if total_chars > 4096:
+        raise _reject("command arguments exceed the supported size")
+
+    _validate_operation(module_path, values)
+    return tuple(command_args)

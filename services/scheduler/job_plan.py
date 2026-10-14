@@ -7,14 +7,16 @@ from types import MappingProxyType
 from uuid import UUID
 
 from services.core.jobs import JOBS
-from services.security.execution_allowlist import validate_scheduled_module
+from services.security.scheduled_command_contracts import validate_scheduled_command
 
-CADENCES = MappingProxyType({
-    "hourly": "0 * * * *",
-    "every-6h": "0 */6 * * *",
-    "daily": "0 6 * * *",
-    "weekly": "0 3 * * 0",
-})
+CADENCES = MappingProxyType(
+    {
+        "hourly": "0 * * * *",
+        "every-6h": "0 */6 * * *",
+        "daily": "0 6 * * *",
+        "weekly": "0 3 * * 0",
+    }
+)
 
 
 def build_job_plan(job_id: str, cadence: str, *, location_id: str | None = None) -> dict:
@@ -24,7 +26,6 @@ def build_job_plan(job_id: str, cadence: str, *, location_id: str | None = None)
     catalog never expands the scheduler's module allowlist.
     """
     spec = JOBS[job_id]
-    validate_scheduled_module(spec.module)
     if job_id == "sensors":
         raise ValueError("Sensor scheduling requires an explicit input contract")
     arguments = list(spec.arguments)
@@ -37,6 +38,7 @@ def build_job_plan(job_id: str, cadence: str, *, location_id: str | None = None)
         location = str(UUID(str(location_id)))
         arguments.extend(("--location-id", location))
         name += f"-{location}"
+    validate_scheduled_command(spec.module, arguments)
     return {
         "job_id": job_id,
         "timezone": "UTC",

@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 300 checked and 20 open items (320 total).
+- The execution checklist has 301 checked and 20 open items (321 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -23,8 +23,10 @@ MAN-CAP checks open until each has its own retained evidence.
   protected Data Stream creation, and rejects unscoped cache invalidation from
   event handlers. A separate reporting slice now runs opt-in saved SQL through
   an ACL-verified, read-only reader role. The worker operation inventory covers
-  every current scheduled/event allowlist entry; the transitive graph and
-  argument/auth contracts remain open. Focused source/disposable checks pass;
+  every current scheduled/event allowlist entry. Module-specific scheduler
+  argument contracts now fail closed at activation and dispatch; transitive
+  call effects, enabled legacy rows and worker identity/context remain open.
+  Focused source/disposable checks pass;
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
@@ -104,10 +106,13 @@ before protected reads and writes, and make direct database access fail closed.
    [worker operation map](worker-operation-map.md) inventories all 12 scheduled
    modules and five event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
-   service/provider calls and database-stored argument contracts remain open.
-   Scheduler and event allowlists constrain executable modules but inherit the
-   shared runtime environment; they are not DB-identity or RLS boundaries. The
-   broader code trace is recorded in
+   service/provider calls and existing persisted schedule reconciliation remain
+   open. New module-specific operation schemas validate values and option
+   combinations at activation, run-now, generated job plans, and subprocess
+   dispatch; they reject human-review actions, unsafe cleanup, unbounded event
+   loops and recurring sensor ingestion without a source. Scheduler and event
+   allowlists still inherit the shared runtime environment; they are not
+   DB-identity or RLS boundaries. The broader code trace is recorded in
    [the tenant call-site audit](mobile-tenant-rls-callsite-audit.md).
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.

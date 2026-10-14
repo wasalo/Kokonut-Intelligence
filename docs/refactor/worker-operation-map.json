@@ -5,7 +5,7 @@
   "shared_boundary": {
     "database_identity": "Kernel worker and spawned children inherit the configured runtime PG_USER and PG_PASSWORD.",
     "signed_tenant_context": "Not established by scheduler dispatch or generic event-handler spawn.",
-    "module_argument_validation": "The scheduler allowlists module paths but reads command_args from database state without a module-specific argument schema.",
+    "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
   "scheduled_modules": [
@@ -189,7 +189,7 @@
   ],
   "known_open_items": [
     "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
-    "Add a module-specific command argument contract; scheduler module allowlisting does not validate database-stored command_args.",
+    "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
     "Provision a separate worker database principal and non-forgeable context contract before worker SQL can be trusted under RLS.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ]

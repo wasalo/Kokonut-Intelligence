@@ -4844,13 +4844,28 @@ scope, external effects, and idempotency/retry limits, and it flags the shared
 runtime database identity and absent signed worker tenant context. The new test
 requires exact parity with both executable allowlists and verifies source
 references. It does not claim a complete transitive call graph or authorize
-worker grants/RLS: database-stored arguments, imported calculator/provider
-paths, external schedule ownership, and populated-data replay remain open. The
-historical sensor and climate schedule-seed argument mismatches are called out;
-the seed remains excluded from normal bootstrap. The focused inventory,
+worker grants/RLS: existing enabled-task reconciliation, imported
+calculator/provider paths, external schedule ownership, and populated-data
+replay remain open. The historical sensor, climate, and cleanup schedule-seed
+arguments are called out; the seed remains excluded from normal bootstrap. The focused inventory,
 allowlist, scheduler durability and event durability suites pass 31 tests;
 Ruff, format, JSON, syntax and diff checks pass. Evidence:
 [`worker-operation-map-check.json`](builds/2026-10-14-recovery/worker-operation-map-check.json).
 See
 [`worker-operation-map.md`](worker-operation-map.md) and
 [`worker-operation-map.json`](worker-operation-map.json).
+
+### Scheduled command argument contracts — 14 October 2026
+
+Added static per-module operation schemas for all 12 scheduler-allowlisted
+modules. Schedule graph activation/preflight, `run-now`, the reviewed job-plan
+builder, and runtime process dispatch now validate JSON token arrays, option
+values, required arguments, and option relationships. Invalid commands are
+rejected before subprocess creation and do not receive a retry deadline.
+Human metric verification, event dead-letter actions, unbounded event workers,
+retention-sensitive event cleanup, and recurring sensor ingestion without an
+input-source contract are rejected. Existing active task rows are not rewritten
+automatically, and their external schedule ownership still needs reconciliation.
+Focused contracts, scheduler, map, allowlist, and event tests pass (76), with
+Ruff, format, compilation, and diff checks passing. Evidence:
+[`scheduled-command-contract-check.json`](builds/2026-10-14-recovery/scheduled-command-contract-check.json).

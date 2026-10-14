@@ -282,9 +282,11 @@ MAN-CAP status or acceptance count changes ([evidence](builds/2026-10-14-recover
 matches the scheduler and event-handler allowlists and records their
 source-visible data effects, scopes, providers, and replay limits. A regression
 test prevents a new allowlisted entry from appearing without an inventory row.
-The map is not an authorization boundary; transitive dynamic calls, stored
-arguments, worker-specific identity, and RLS remain open. No MAN-CAP status or
-acceptance count changes ([map](worker-operation-map.md); [focused source-check evidence](builds/2026-10-14-recovery/worker-operation-map-check.json)).
+Module-specific argument schemas now validate scheduler operations at
+activation and dispatch, excluding unsupported human/destructive operations.
+The map and schemas are not an authorization boundary; transitive dynamic
+calls, existing task reconciliation, worker-specific identity, and RLS remain
+open. No MAN-CAP status or acceptance count changes ([map](worker-operation-map.md); [inventory evidence](builds/2026-10-14-recovery/worker-operation-map-check.json); [argument-contract evidence](builds/2026-10-14-recovery/scheduled-command-contract-check.json)).
 
 **13 October 2026 OIDC configuration update (CAP-001 / CAP-053):** the optional
 OIDC overlay remains disabled unless explicitly selected. `.env.example` now
