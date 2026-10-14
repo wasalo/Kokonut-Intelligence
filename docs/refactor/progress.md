@@ -1,13 +1,14 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `c5b703c`; CI #311 is in progress and Security #35 passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–397 passed ordered PostgreSQL 16 application and runner replay on an age-encrypted candidate-checkpoint restore; the candidate remains at 391 and rollout remains open. This is populated-restore evidence, not clean `template0` bootstrap evidence ([record](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)). The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `de5bd4e`; CI #312 is in progress and Security #36 passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–397 passed ordered PostgreSQL 16 application and runner replay on an age-encrypted candidate-checkpoint restore; the candidate remains at 391 and rollout remains open. This is populated-restore evidence, not clean `template0` bootstrap evidence ([record](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)). The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
 Do not treat CI #308 and Security #32 as coverage for commits after their
-verified head. The pushed batch through `c5b703c` includes provider-aware
+verified head. The pushed batch through `de5bd4e` includes provider-aware
 backup/restore, gRPC auth-context lifecycle fixes, and focused RPC policy and
-optional-provider inventories. CI #311 is in progress and Security #35 passed
+optional-provider inventories, plus the worker import closure, SQL inventory,
+dynamic SQL review, and helper-caller trace. CI #312 is in progress and Security #36 passed
 for that batch. The eight-suite platform-integrity set passed 290 tests on
 local commit `238e2ef`. The root implementation plan
 remains intentionally ignored; this ledger and the
@@ -16,18 +17,21 @@ alongside it. Remaining implementation is ordered in the
 [code-first execution plan](code-first-execution-plan.md); owner decisions and
 external inputs are collected in [Open Follow Ups](open-follow-ups.md).
 
-The current unpushed slice adds a deterministic local-import closure for every
-allowlisted scheduled module and event-handler module. It records 69 distinct
-local source files, 407 source edges, no unresolved local modules, and the
-EventBus's single dynamic handler-import site. The direct-SQL inventory covers
-196 execute sites, including 30 composed/variable statements; only the three
-generic adapter calls remain unclassified by statement kind, and no query text
-is retained. The 30 dynamic sites have source-pattern review; current worker
-callsites of the shared SQL helpers are traced and regression-pinned. Twenty-one
-focused worker-inventory tests pass in the project virtual environment. These
-reports do not close function-level
-effect tracing, shared worker identity, or authorization ([source closure](worker-source-closure.json),
-[SQL inventory](worker-sql-inventory.json); [source closure evidence](builds/2026-10-14-recovery/worker-source-closure-check.json)).
+The current unpushed worker slice adds conservative statement-kind inference
+and a direct function-call graph rooted at the executed scheduled modules and
+allowlisted handlers. Across 17 operations it resolves 31 entry functions, 281
+function memberships, and 413 direct call edges over 69 source files. Twenty-five
+focused worker source tests pass in the project virtual environment. The graph
+does not close dynamic dispatch, callback, provider/database effects, shared
+worker identity, or authorization ([source closure](worker-source-closure.json),
+[SQL inventory](worker-sql-inventory.json), [function graph](worker-function-reachability.json); [graph evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json)).
+
+The worker review also has a test-guarded direct-call graph for scheduled
+entrypoints and allowlisted event handlers: 31 entry functions reach 281
+function memberships through 413 static call edges across all 17 operations.
+It does not follow dynamic dispatch, callbacks, unknown-instance methods,
+extensions, or database/provider behavior, so runtime effects and worker
+identity remain open ([graph](worker-function-reachability.json); [check](builds/2026-10-14-recovery/worker-function-reachability-check.json)).
 
 The current source-only telemetry slice keeps freshness-query identifiers in
 fixed maps, binds location values, and records unsupported configured sources

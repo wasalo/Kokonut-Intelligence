@@ -15,9 +15,9 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 315 checked and 20 open items (335 total).
-- The latest pushed implementation batch is `c5b703c`; CI #311 is in progress
-  and Security #35 passed. The last CI-verified head remains `7953afe` (CI #308
+- The execution checklist has 316 checked and 20 open items (336 total).
+- The latest pushed implementation batch is `de5bd4e`; CI #312 is in progress
+  and Security #36 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
 - The latest pushed batch adds provider-aware PostgreSQL-only backup/restore,
   gRPC streaming-auth lifecycle fixes, and focused RPC policy and
@@ -33,7 +33,9 @@ MAN-CAP checks open until each has its own retained evidence.
   with unknown statement kind after conservative local-prefix inference). The dynamic sites have source-pattern review;
   `query()`/`query_one()` have no direct operation callers, and the only direct
   `DatabaseConnection.execute()` call is the literal metrics reconciliation
-  query. Function-level effects, enabled legacy rows and worker
+  query. A direct-call graph now connects 31 executed/allowlisted entry
+  functions to 281 function memberships over the same 17 operations; dynamic
+  dispatch, callbacks, external calls, enabled legacy rows, and worker
   identity/context remain open.
   The metrics entry now references all 20 registered calculator modules with a
   registry-parity test and records direct query tables and composed calculator

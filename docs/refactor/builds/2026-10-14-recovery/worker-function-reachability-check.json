@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-14",
+  "purpose": "Retain a conservative direct-call graph for allowlisted scheduled worker and event-handler entrypoints.",
+  "command": "python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json",
+  "inventory": "docs/refactor/worker-function-reachability.json",
+  "operation_roots": 17,
+  "source_files": 69,
+  "entry_functions": 31,
+  "function_memberships": 281,
+  "direct_call_edges": 413,
+  "operations_without_resolved_entry_functions": 0,
+  "focused_test_command": "./.venv/bin/python -m pytest tests/test_worker_function_reachability.py tests/test_worker_sql_inventory.py tests/test_worker_source_closure.py tests/test_worker_operation_map.py -q",
+  "focused_tests": {
+    "passed": 25,
+    "failed": 0
+  },
+  "limits": [
+    "The graph follows direct statically resolved Python calls only.",
+    "Dynamic dispatch, callbacks, methods on unknown instances, and extension code may not be represented.",
+    "Database functions/views, provider behavior, runtime effects, worker identity, and authorization are not established.",
+    "The graph is a review index, not a complete runtime call graph or least-privilege grant list.",
+    "No database was accessed and no migration was required."
+  ]
+}

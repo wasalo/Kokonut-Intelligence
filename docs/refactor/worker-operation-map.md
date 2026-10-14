@@ -43,6 +43,17 @@ data effects, and an idempotency/retry note.
   The inventory follows imports conservatively, including imports under
   conditional branches; it is not a function-level call graph and does not
   establish that imported code executes for a particular operation.
+- A generated [direct function reachability graph](worker-function-reachability.json)
+  starts scheduled operations at calls under each executed `__main__` guard and
+  event operations at their allowlisted handler. It resolves local/imported
+  function calls, module aliases, and `self`/`cls` methods within the static
+  source closure: 31 entry functions reach 281 function memberships across 17
+  operation roots, with 413 direct call edges and no unresolved operation
+  roots. This captures only statically resolved calls; it omits dynamic
+  dispatch, callbacks, methods on unknown instances, extension code, and
+  database/provider behavior. Use
+  `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
+  to check it. The graph is a review aid, not an authorization boundary.
 - The direct [SQL execution inventory](worker-sql-inventory.json) finds 196
   Python `.execute` sites in those 69 files. It fingerprints 166 literal
   statements and flags 30 f-string/composed/variable statements; eight
@@ -89,12 +100,13 @@ data effects, and an idempotency/retry note.
 
 This map, import closure, SQL inventory, and argument schemas are not an ACL,
 tenant policy, or complete dynamic call graph. The 30 composed/variable sites
-have source-pattern review; the scanner classifies 193 of 196 statement kinds,
+have source-pattern review; direct function reachability is now mapped where
+calls resolve statically. The scanner classifies 193 of 196 statement kinds,
 with only the three generic database adapter wrappers remaining unknown.
-Function-level reachability across all worker helpers, database functions/views,
-provider implementations, and external effects remain to be traced. The map
-also does not prove that external Prefect/host schedules are inactive or that
-effects are replay-safe on populated data.
+Indirect and dynamic helper reachability, database functions/views, provider
+implementations, and external effects remain to be traced. The map also does
+not prove that external Prefect/host schedules are inactive or that effects
+are replay-safe on populated data.
 
 Before worker RLS or runtime-grant reduction:
 
@@ -109,9 +121,10 @@ Before worker RLS or runtime-grant reduction:
    PostgreSQL, then repeat lease/retry/effect tests. Candidate rollout and RLS
    remain separate gates.
 
-The source-closure regression is `tests/test_worker_source_closure.py`, and
-`tests/test_worker_sql_inventory.py` pins both the SQL inventory and the
-current generic-wrapper caller contract; the inventory-only contract test is
+The source-closure regression is `tests/test_worker_source_closure.py`, the
+call-graph regression is `tests/test_worker_function_reachability.py`, and
+`tests/test_worker_sql_inventory.py` pins the SQL inventory and current
+generic-wrapper caller contract; the operation-contract tests are in
 `tests/test_worker_operation_map.py`.
 The focused source, scheduler and event checks pass 37 tests; the retained
 [check record](builds/2026-10-14-recovery/worker-operation-map-check.json)

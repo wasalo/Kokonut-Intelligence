@@ -1301,7 +1301,10 @@ candidate rollout, or RLS ([policy](runtime-role-policy.md); [evidence](builds/2
 
 The worker review now has a deterministic static import closure over all 12
 scheduled modules and five allowlisted event-handler modules, plus a direct SQL
-call-site inventory for the 69 local source files. The SQL inventory records
+call-site inventory and direct-call graph for the 69 local source files. The
+call graph follows 31 entry functions through 281 function memberships and 413
+statically resolved call edges across 17 operations; dynamic dispatch,
+callbacks and external effects remain open. The SQL inventory records
 196 execution sites: 166 literal statement fingerprints, 30 composed or
 variable statements, and three unknown statement kinds. The scanner infers
 fixed local query prefixes and savepoint-control statements; the remaining
