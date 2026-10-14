@@ -1305,8 +1305,9 @@ call-site inventory for the 69 local source files. The SQL inventory records
 196 execution sites: 166 literal statement fingerprints, 30 composed or
 variable statements, and eight unknown statement kinds. The output omits SQL
 text and values; regex-derived relation names are review hints only. This adds
-source navigation and identifies the remaining caller-trace targets; the 30
-dynamic sites have source-pattern review, while three generic database wrappers
-remain caller-dependent. It does not establish function reachability, complete
-effects, worker identity, grants, or tenant isolation. CAP-040 and CAP-047
-remain partial and capability counts do not change ([source closure](worker-source-closure.json); [SQL inventory](worker-sql-inventory.json); [evidence](builds/2026-10-14-recovery/worker-sql-inventory-check.json)).
+source navigation and identifies the remaining function-level effect targets;
+the 30 dynamic sites have source-pattern review, and a source regression traces
+the generic wrappers currently used by the worker closure. It does not
+establish full function reachability, complete effects, worker identity,
+grants, or tenant isolation. CAP-040 and CAP-047 remain partial and capability
+counts do not change ([source closure](worker-source-closure.json); [SQL inventory](worker-sql-inventory.json); [evidence](builds/2026-10-14-recovery/worker-sql-inventory-check.json)).

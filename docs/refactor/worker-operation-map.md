@@ -57,10 +57,12 @@ data effects, and an idempotency/retry note.
   constants); three use the fixed `freshness_scope` savepoint name; one builds
   table names from the fixed freshness-source map; one adds fixed optional
   predicates to the anomaly query; and one wraps saved dashboard SQL through
-  the separately restricted read-only analytics reader. Three generic
-  `services.common.database` wrappers forward SQL supplied by their callers;
-  their caller flows remain untraced and are still open. No user-derived SQL
-  identifier interpolation was found in the reviewed source-built fragments.
+  the separately restricted read-only analytics reader. A worker-source check
+  found no direct `query()` or `query_one()` calls in the operation closure;
+  the only direct `DatabaseConnection.execute()` call is the static SQL
+  reconciliation statement in `services.metrics.cli`. The regression pins
+  those callsites. No user-derived SQL identifier interpolation was found in
+  the reviewed source-built fragments.
 - The `services.events` operation entry includes the optional notification
   processor's outbox/attempt writes; the `services.metrics` entry includes the
   code-owned NOI snapshot reconciliation view and natural-key upsert. It now
@@ -87,12 +89,11 @@ data effects, and an idempotency/retry note.
 
 This map, import closure, SQL inventory, and argument schemas are not an ACL,
 tenant policy, or complete dynamic call graph. The 30 composed/variable sites
-have source-pattern review, but the three generic SQL wrappers still need
-caller-level tracing; eight statements remain unclassified by the scanner.
-Function-level reachability, database functions/views, provider
-implementations, and external effects remain to be traced. The map also does
-not prove that external Prefect/host schedules are inactive or that effects
-are replay-safe on populated data.
+have source-pattern review; eight statements remain unclassified by the
+scanner. Function-level reachability across all worker helpers, database
+functions/views, provider implementations, and external effects remain to be
+traced. The map also does not prove that external Prefect/host schedules are
+inactive or that effects are replay-safe on populated data.
 
 Before worker RLS or runtime-grant reduction:
 
@@ -108,8 +109,9 @@ Before worker RLS or runtime-grant reduction:
    remain separate gates.
 
 The source-closure regression is `tests/test_worker_source_closure.py`, and
-`tests/test_worker_sql_inventory.py` pins the SQL inventory to those sources;
-the inventory-only contract test is `tests/test_worker_operation_map.py`.
+`tests/test_worker_sql_inventory.py` pins both the SQL inventory and the
+current generic-wrapper caller contract; the inventory-only contract test is
+`tests/test_worker_operation_map.py`.
 The focused source, scheduler and event checks pass 37 tests; the retained
 [check record](builds/2026-10-14-recovery/worker-operation-map-check.json)
 contains that inventory test evidence. The separate

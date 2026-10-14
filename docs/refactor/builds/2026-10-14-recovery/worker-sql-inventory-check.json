@@ -13,7 +13,7 @@
   "stored_runtime_values": false,
   "focused_test_command": "./.venv/bin/python -m pytest tests/test_worker_sql_inventory.py tests/test_worker_source_closure.py tests/test_worker_operation_map.py -q",
   "focused_tests": {
-    "passed": 17,
+    "passed": 18,
     "failed": 0
   },
   "limits": [
