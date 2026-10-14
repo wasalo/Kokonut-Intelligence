@@ -4928,3 +4928,15 @@ The two tests pass with Ruff and formatting checks. This verifies the disabled
 provider boundary only; enabled transport/auth parity, streaming, TLS, and
 runtime acceptance remain open. No database or Docker service was used. See
 [`grpc-disabled-provider-import-boundary.json`](builds/2026-10-14-recovery/grpc-disabled-provider-import-boundary.json).
+
+### gRPC protobuf handler and scope inventory — 14 October 2026
+
+Added a source contract test that compares both application-service protobufs
+to their Python handlers and pins all **55 RPC methods** to reviewed scope
+policies. Each protected handler must declare exactly one expected
+resource/action check before acquiring a database connection. The sole public
+method, `ComputeContentHash`, must remain database-free. The focused AST test
+passes; Ruff, format, and diff checks pass. This does not establish live API-key
+authentication, tenant isolation, transport/streaming behavior, TLS, or native
+Gateway parity. See
+[`grpc-rpc-policy-inventory.json`](builds/2026-10-14-recovery/grpc-rpc-policy-inventory.json).

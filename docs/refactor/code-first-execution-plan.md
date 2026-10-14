@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 307 checked and 20 open items (327 total).
+- The execution checklist has 308 checked and 20 open items (328 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -43,7 +43,9 @@ MAN-CAP checks open until each has its own retained evidence.
   verified protected; broader tenant, OIDC, transport, and SDK parity remain.
   The disabled gRPC adapter now has focused coverage proving `serve()` and
   health checks fail before importing optional gRPC packages or the server;
-  enabled transport parity remains open.
+  a source inventory pins all 55 application RPC methods to their handlers and
+  scopes, with scope checks before database access. Enabled transport, tenant,
+  and native Gateway parity remain open.
   Focused source/disposable checks pass;
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
@@ -182,6 +184,12 @@ The gRPC adapter now also has focused tests for the disabled-provider boundary:
 both server startup and health checks return the explicit disabled error before
 loading optional gRPC dependencies. This does not establish enabled transport
 parity or runtime acceptance ([evidence](builds/2026-10-14-recovery/grpc-disabled-provider-import-boundary.json)).
+The two gRPC service protos now have a source inventory pinning 55 RPC methods
+to their handlers and exact resource/action scopes. Every protected handler
+checks scope before acquiring a DB connection; the one public content-hash
+helper is confirmed DB-free. This source check does not establish API-key,
+tenant, streaming, TLS, or native Gateway parity
+([evidence](builds/2026-10-14-recovery/grpc-rpc-policy-inventory.json)).
 The native and Field Collector routers now also have a pinned full method/path
 policy inventory. A 27-test focused Gateway run confirms exact resource/action/
 public policy coverage, 401 for every registered private route when anonymous,
