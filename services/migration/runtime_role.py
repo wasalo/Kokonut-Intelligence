@@ -1,8 +1,8 @@
-"""Provision the bounded application role for a dedicated Kernel database.
+"""Provision least-privilege application and operator-auth roles.
 
-Run this module with migration/operator credentials before starting app or worker
-roles. It is intentionally separate from ordered schema migrations because it
-changes instance/database access policy rather than application schema.
+Run this module with migration/operator credentials before starting app or
+worker roles. It changes instance/database access policy, so it remains
+separate from ordered schema migrations.
 """
 
 from __future__ import annotations
@@ -14,15 +14,100 @@ import re
 import psycopg2
 from psycopg2 import sql
 
-
 _ROLE_NAME = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
-_PLACEHOLDER_SECRET = re.compile(r"^(replace-with|your[_-]|change[_-]me|todo|none|null)", re.IGNORECASE)
+_PLACEHOLDER_SECRET = re.compile(
+    r"^(replace-with|your[_-]|change[_-]me|todo|none|null)", re.IGNORECASE
+)
+_SESSION_FUNCTIONS = (
+    "kokonut_security.create_operator_session(text,text,text,text,text,text,timestamptz)",
+    "kokonut_security.authenticate_operator_session(text)",
+    "kokonut_security.revoke_operator_session(uuid)",
+)
 
 
 def _role_identifier(value: str, label: str) -> sql.Identifier:
     if not _ROLE_NAME.fullmatch(value):
         raise ValueError(f"{label} must be a lowercase PostgreSQL role name")
     return sql.Identifier(value)
+
+
+def _ensure_login_role(cur, *, name: str, identifier: sql.Identifier, password: str) -> int:
+    cur.execute("SELECT oid FROM pg_roles WHERE rolname = %s", (name,))
+    existing = cur.fetchone()
+    if existing:
+        role_oid = existing[0]
+        cur.execute(
+            """
+            SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = %s)
+                OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner = %s
+                           AND nspname NOT LIKE 'pg_%%'
+                           AND nspname <> 'information_schema')
+                OR EXISTS (SELECT 1 FROM pg_database WHERE datdba = %s)
+            """,
+            (role_oid, role_oid, role_oid),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(f"{name} role owns database objects; review and transfer them first")
+
+        cur.execute(
+            """
+            SELECT granted.rolname
+            FROM pg_auth_members membership
+            JOIN pg_roles granted ON granted.oid = membership.roleid
+            WHERE membership.member = %s
+            """,
+            (role_oid,),
+        )
+        for (granted_role,) in cur.fetchall():
+            cur.execute(
+                sql.SQL("REVOKE {} FROM {}").format(
+                    _role_identifier(granted_role, "granted role"), identifier
+                )
+            )
+        cur.execute(
+            sql.SQL(
+                "ALTER ROLE {} WITH LOGIN PASSWORD %s NOSUPERUSER NOCREATEDB "
+                "NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT"
+            ).format(identifier),
+            (password,),
+        )
+    else:
+        cur.execute(
+            sql.SQL(
+                "CREATE ROLE {} WITH LOGIN PASSWORD %s NOSUPERUSER NOCREATEDB "
+                "NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT"
+            ).format(identifier),
+            (password,),
+        )
+        cur.execute("SELECT oid FROM pg_roles WHERE rolname = %s", (name,))
+        role_oid = cur.fetchone()[0]
+    return role_oid
+
+
+def _verify_role_attributes(cur, role_name: str) -> None:
+    cur.execute(
+        """
+        SELECT role.rolsuper, role.rolcreatedb, role.rolcreaterole,
+               role.rolreplication, role.rolbypassrls, role.rolinherit,
+               has_schema_privilege(role.oid, 'public', 'CREATE'),
+               EXISTS (SELECT 1 FROM pg_auth_members membership
+                        WHERE membership.member = role.oid)
+          FROM pg_roles AS role
+         WHERE role.rolname = %s
+        """,
+        (role_name,),
+    )
+    if cur.fetchone() != (False, False, False, False, False, False, False, False):
+        raise RuntimeError(f"{role_name} retains a privileged attribute, membership, or schema CREATE access")
+    cur.execute(
+        """SELECT EXISTS (
+               SELECT 1 FROM pg_class
+                WHERE relowner = (SELECT oid FROM pg_roles WHERE rolname = %s)
+           )""",
+        (role_name,),
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(f"{role_name} must not own database relations")
 
 
 def provision_runtime_role(
@@ -33,95 +118,80 @@ def provision_runtime_role(
     admin_password: str,
     runtime_user: str,
     runtime_password: str,
+    operator_auth_user: str,
+    operator_auth_password: str,
 ) -> dict[str, object]:
-    """Create/update a non-owner DML role and constrain its database access.
+    """Provision a general runtime role plus a session-only auth principal.
 
-    This operation is intended only for a dedicated Kernel PostgreSQL instance.
-    It removes inherited PUBLIC database CONNECT and public-schema CREATE grants;
-    any other application role must receive explicit access after review.
+    The runtime role keeps the existing all-table DML compatibility grant,
+    except it cannot inspect or mutate ``operator_session``. The dedicated
+    auth role can only execute the three bounded functions from migration 395.
+    This is scoped to a dedicated Kernel PostgreSQL instance.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
-    if admin_user == runtime_user:
-        raise ValueError("runtime_user must differ from admin_user")
+    auth_ident = _role_identifier(operator_auth_user, "operator_auth_user")
+    if len({admin_user, runtime_user, operator_auth_user}) != 3:
+        raise ValueError("admin, runtime, and operator-auth roles must be distinct")
     if not admin_password:
         raise ValueError("admin password must be provided")
-    if (len(runtime_password) < 24 or _PLACEHOLDER_SECRET.match(runtime_password)):
-        raise ValueError("runtime password must be a non-placeholder secret of at least 24 characters")
-    if runtime_password == admin_password:
-        raise ValueError("runtime password must differ from the admin password")
+    for label, secret in (
+        ("runtime_password", runtime_password),
+        ("operator_auth_password", operator_auth_password),
+    ):
+        if len(secret) < 24 or _PLACEHOLDER_SECRET.match(secret):
+            raise ValueError(f"{label} must be a non-placeholder secret of at least 24 characters")
+    if len({admin_password, runtime_password, operator_auth_password}) != 3:
+        raise ValueError("admin, runtime, and operator-auth passwords must be distinct")
     if not database or "\x00" in database:
         raise ValueError("database name is required")
 
     conn.autocommit = True
     with conn.cursor() as cur:
-        cur.execute("SELECT current_database(), rolsuper FROM pg_roles WHERE rolname = %s", (admin_user,))
+        cur.execute(
+            "SELECT current_database(), rolsuper FROM pg_roles WHERE rolname = %s",
+            (admin_user,),
+        )
         current_database, admin_is_superuser = cur.fetchone()
         if current_database != database:
             raise RuntimeError("connected database does not match the requested Kernel database")
         if not admin_is_superuser:
             raise RuntimeError("admin user must be a PostgreSQL superuser for instance access hardening")
 
-        cur.execute("SELECT oid FROM pg_roles WHERE rolname = %s", (runtime_user,))
-        existing = cur.fetchone()
-        if existing:
-            runtime_oid = existing[0]
-            cur.execute(
-                """
-                SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = %s)
-                    OR EXISTS (SELECT 1 FROM pg_namespace WHERE nspowner = %s
-                               AND nspname NOT LIKE 'pg_%%'
-                               AND nspname <> 'information_schema')
-                    OR EXISTS (SELECT 1 FROM pg_database WHERE datdba = %s)
-                """,
-                (runtime_oid, runtime_oid, runtime_oid),
-            )
-            if cur.fetchone()[0]:
-                raise RuntimeError("runtime role owns database objects; review and transfer them before provisioning")
+        cur.execute(
+            "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _SESSION_FUNCTIONS),
+            _SESSION_FUNCTIONS,
+        )
+        if any(procedure is None for procedure in cur.fetchone()):
+            raise RuntimeError("migration 395 operator-session functions must be applied before role provisioning")
 
-            cur.execute(
-                """
-                SELECT granted.rolname
-                FROM pg_auth_members membership
-                JOIN pg_roles granted ON granted.oid = membership.roleid
-                WHERE membership.member = %s
-                """,
-                (runtime_oid,),
-            )
-            for (granted_role,) in cur.fetchall():
-                cur.execute(
-                    sql.SQL("REVOKE {} FROM {}").format(
-                        _role_identifier(granted_role, "granted role"), runtime_ident
-                    )
-                )
-
-            cur.execute(
-                sql.SQL(
-                    "ALTER ROLE {} WITH LOGIN PASSWORD %s NOSUPERUSER NOCREATEDB "
-                    "NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT"
-                ).format(runtime_ident),
-                (runtime_password,),
-            )
-        else:
-            cur.execute(
-                sql.SQL(
-                    "CREATE ROLE {} WITH LOGIN PASSWORD %s NOSUPERUSER NOCREATEDB "
-                    "NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT"
-                ).format(runtime_ident),
-                (runtime_password,),
-            )
-
-        cur.execute("SELECT datname FROM pg_database WHERE datallowconn OR datname = 'template1'")
+        _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
+        _ensure_login_role(
+            cur,
+            name=operator_auth_user,
+            identifier=auth_ident,
+            password=operator_auth_password,
+        )
+        cur.execute(
+            "SELECT datname FROM pg_database WHERE datallowconn OR datname = 'template1'"
+        )
         database_names = [row[0] for row in cur.fetchall()]
         for name in database_names:
-            db_ident = sql.Identifier(name)
-            cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(db_ident))
-            cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM {}").format(db_ident, runtime_ident))
+            database_ident = sql.Identifier(name)
+            cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(database_ident))
+            cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM {}").format(database_ident, runtime_ident))
+            cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM {}").format(database_ident, auth_ident))
 
         cur.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
-        cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(runtime_ident))
-        cur.execute(sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(sql.Identifier(database), runtime_ident))
+        for identifier in (runtime_ident, auth_ident):
+            cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(identifier))
+            cur.execute(
+                sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
+                    sql.Identifier(database), identifier
+                )
+            )
         cur.execute(sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(runtime_ident))
+
         cur.execute(
             sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(
                 runtime_ident
@@ -144,59 +214,139 @@ def provision_runtime_role(
                 "GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO {}"
             ).format(admin_ident, runtime_ident)
         )
-
         cur.execute(
-            """
-            SELECT r.rolsuper, r.rolcreatedb, r.rolcreaterole, r.rolreplication,
-                   r.rolbypassrls, r.rolinherit,
-                   has_schema_privilege(r.oid, 'public', 'CREATE'),
-                   EXISTS (SELECT 1 FROM pg_auth_members m WHERE m.member = r.oid)
-            FROM pg_roles r WHERE r.rolname = %s
-            """,
-            (runtime_user,),
+            sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}").format(auth_ident)
         )
-        role_state = cur.fetchone()
-        if role_state != (False, False, False, False, False, False, False, False):
-            raise RuntimeError("runtime role retains a privileged attribute, membership, or schema CREATE access")
-
         cur.execute(
-            """
-            SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
-            FROM pg_database WHERE datallowconn OR datname = 'template1'
-            ORDER BY datname
-            """,
-            (runtime_user,),
+            sql.SQL("REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM {}").format(auth_ident)
         )
-        database_access = {name: can_connect for name, can_connect in cur.fetchall()}
-        if database_access.get(database) is not True or any(
-            access for name, access in database_access.items() if name != database
-        ):
-            raise RuntimeError("runtime role must have CONNECT only to its configured database")
+        cur.execute(
+            sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA kokonut_security FROM {}").format(
+                auth_ident
+            )
+        )
+        cur.execute(
+            sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM {}").format(auth_ident)
+        )
+
+        cur.execute("REVOKE ALL ON TABLE public.operator_session FROM PUBLIC")
+        cur.execute(
+            sql.SQL("REVOKE ALL ON TABLE public.operator_session FROM {}").format(runtime_ident)
+        )
+        cur.execute(
+            sql.SQL("REVOKE ALL ON TABLE public.operator_session FROM {}").format(auth_ident)
+        )
+        columns = (
+            "id, operator_id, session_token_hash, csrf_token_hash, created_at, "
+            "last_seen_at, expires_at, revoked_at"
+        )
+        for privilege in ("SELECT", "INSERT", "UPDATE"):
+            for role_ident in (runtime_ident, auth_ident):
+                cur.execute(
+                    sql.SQL("REVOKE {} ({}) ON TABLE public.operator_session FROM {}").format(
+                        sql.SQL(privilege), sql.SQL(columns), role_ident
+                    )
+                )
+        for function in _SESSION_FUNCTIONS:
+            cur.execute(
+                sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(
+                    sql.SQL(function), runtime_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(function), auth_ident
+                )
+            )
+
+        _verify_role_attributes(cur, runtime_user)
+        _verify_role_attributes(cur, operator_auth_user)
+        for role_name in (runtime_user, operator_auth_user):
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (role_name,),
+            )
+            access = {name: allowed for name, allowed in cur.fetchall()}
+            if access.get(database) is not True or any(
+                allowed for name, allowed in access.items() if name != database
+            ):
+                raise RuntimeError(f"{role_name} must connect only to its configured database")
+
+        for role_name in (runtime_user, operator_auth_user):
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1 FROM pg_attribute AS attribute
+                        WHERE attribute.attrelid = 'public.operator_session'::regclass
+                          AND attribute.attnum > 0 AND NOT attribute.attisdropped
+                          AND (
+                            has_column_privilege(%s, 'public.operator_session', attribute.attname, 'SELECT')
+                            OR has_column_privilege(%s, 'public.operator_session', attribute.attname, 'INSERT')
+                            OR has_column_privilege(%s, 'public.operator_session', attribute.attname, 'UPDATE')
+                          )
+                   )""",
+                (role_name, role_name, role_name),
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError(f"{role_name} retains direct operator-session column privileges")
 
         cur.execute(
-            "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = (SELECT oid FROM pg_roles WHERE rolname = %s))",
-            (runtime_user,),
+            """SELECT has_function_privilege(%s, %s, 'EXECUTE')
+                     OR has_function_privilege(%s, %s, 'EXECUTE')
+                     OR has_function_privilege(%s, %s, 'EXECUTE')""",
+            (
+                runtime_user, _SESSION_FUNCTIONS[0],
+                runtime_user, _SESSION_FUNCTIONS[1],
+                runtime_user, _SESSION_FUNCTIONS[2],
+            ),
         )
         if cur.fetchone()[0]:
-            raise RuntimeError("runtime role must not own database relations")
+            raise RuntimeError("runtime role can execute operator-auth functions")
+        cur.execute(
+            """SELECT has_function_privilege(%s, %s, 'EXECUTE')
+                       AND has_function_privilege(%s, %s, 'EXECUTE')
+                       AND has_function_privilege(%s, %s, 'EXECUTE')""",
+            (
+                operator_auth_user, _SESSION_FUNCTIONS[0],
+                operator_auth_user, _SESSION_FUNCTIONS[1],
+                operator_auth_user, _SESSION_FUNCTIONS[2],
+            ),
+        )
+        if cur.fetchone()[0] is not True:
+            raise RuntimeError("operator-auth role is missing a bounded session function grant")
+
+        cur.execute(
+            """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                 FROM pg_database
+                WHERE datallowconn OR datname = 'template1'
+                ORDER BY datname""",
+            (runtime_user,),
+        )
+        runtime_database_access = {name: allowed for name, allowed in cur.fetchall()}
+        cur.execute(
+            """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                 FROM pg_database
+                WHERE datallowconn OR datname = 'template1'
+                ORDER BY datname""",
+            (operator_auth_user,),
+        )
+        auth_database_access = {name: allowed for name, allowed in cur.fetchall()}
 
     return {
         "status": "provisioned",
         "database": database,
         "runtime_user": runtime_user,
-        "role_attributes": {
-            "superuser": False,
-            "createdb": False,
-            "createrole": False,
-            "replication": False,
-            "bypassrls": False,
-            "inherit": False,
-        },
+        "operator_auth_user": operator_auth_user,
         "public_connect_revoked_from": sorted(database_names),
-        "runtime_connect_grants": database_access,
-        "table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
-        "sequence_privileges": ["USAGE", "SELECT", "UPDATE"],
-        "owns_relations": False,
+        "runtime_connect_grants": runtime_database_access,
+        "operator_auth_connect_grants": auth_database_access,
+        "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
+        "operator_session_access": "bounded functions only",
+        "operator_auth_functions": ["create", "authenticate", "revoke"],
+        "runtime_owns_relations": False,
+        "operator_auth_owns_relations": False,
     }
 
 
@@ -206,8 +356,12 @@ def main() -> int:
     admin_password = os.environ.get("KOKONUT_DB_ADMIN_PASSWORD", "")
     runtime_user = os.environ.get("KOKONUT_RUNTIME_USER", "kokonut_runtime")
     runtime_password = os.environ.get("KOKONUT_RUNTIME_PASSWORD", "")
-    if not admin_password or not runtime_password:
-        raise SystemExit("admin and runtime credentials must be provided through the environment")
+    operator_auth_user = os.environ.get("KOKONUT_OPERATOR_AUTH_USER", "kokonut_operator_auth")
+    operator_auth_password = os.environ.get("KOKONUT_OPERATOR_AUTH_PASSWORD", "")
+    if not admin_password or not runtime_password or not operator_auth_password:
+        raise SystemExit(
+            "admin, runtime, and operator-auth credentials must be provided through the environment"
+        )
 
     conn = psycopg2.connect(
         host=os.environ.get("PG_HOST", "database"),
@@ -225,6 +379,8 @@ def main() -> int:
             admin_password=admin_password,
             runtime_user=runtime_user,
             runtime_password=runtime_password,
+            operator_auth_user=operator_auth_user,
+            operator_auth_password=operator_auth_password,
         )
     finally:
         conn.close()

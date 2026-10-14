@@ -9,13 +9,13 @@ from __future__ import annotations
 import json
 import os
 import uuid
+from pathlib import Path
 
 import psycopg2
 from psycopg2 import sql
 
 from services.gateway.locations import public_locations
 from services.migration.runtime_role import provision_runtime_role
-
 
 DATABASE = os.environ.get("PG_DB", "kokonut_intelligence_restore")
 HOST = os.environ.get("PG_HOST", "database")
@@ -24,6 +24,12 @@ ADMIN_USER = os.environ.get("KOKONUT_DB_ADMIN_USER", "kokonut")
 ADMIN_PASSWORD = os.environ.get("KOKONUT_DB_ADMIN_PASSWORD", "")
 RUNTIME_USER = os.environ.get("KOKONUT_RUNTIME_USER", "kokonut_runtime")
 RUNTIME_PASSWORD = os.environ.get("KOKONUT_RUNTIME_PASSWORD", "")
+OPERATOR_AUTH_USER = os.environ.get("KOKONUT_OPERATOR_AUTH_USER", "kokonut_operator_auth")
+OPERATOR_AUTH_PASSWORD = os.environ.get("KOKONUT_OPERATOR_AUTH_PASSWORD", "")
+OPERATOR_SESSION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "schemas/postgres/395_operator_session_auth_boundary.sql"
+)
 
 
 def connect(user: str, password: str, database: str = DATABASE):
@@ -61,8 +67,8 @@ def expect_denied(conn, statement: str, parameters=None) -> None:
 
 
 def main() -> int:
-    if not ADMIN_PASSWORD or not RUNTIME_PASSWORD:
-        raise SystemExit("synthetic admin and runtime credentials must be provided through the environment")
+    if not ADMIN_PASSWORD or not RUNTIME_PASSWORD or not OPERATOR_AUTH_PASSWORD:
+        raise SystemExit("synthetic admin, runtime, and operator-auth credentials are required")
 
     admin = connect(ADMIN_USER, ADMIN_PASSWORD)
     runtime = None
@@ -73,6 +79,7 @@ def main() -> int:
             cur.execute("SELECT current_database()")
             if cur.fetchone()[0] != DATABASE:
                 raise AssertionError("connected database does not match the isolated restore target")
+            cur.execute(OPERATOR_SESSION_MIGRATION.read_text())
         admin.commit()
 
         first = provision_runtime_role(
@@ -82,6 +89,8 @@ def main() -> int:
             admin_password=ADMIN_PASSWORD,
             runtime_user=RUNTIME_USER,
             runtime_password=RUNTIME_PASSWORD,
+            operator_auth_user=OPERATOR_AUTH_USER,
+            operator_auth_password=OPERATOR_AUTH_PASSWORD,
         )
         second = provision_runtime_role(
             admin,
@@ -90,6 +99,8 @@ def main() -> int:
             admin_password=ADMIN_PASSWORD,
             runtime_user=RUNTIME_USER,
             runtime_password=RUNTIME_PASSWORD,
+            operator_auth_user=OPERATOR_AUTH_USER,
+            operator_auth_password=OPERATOR_AUTH_PASSWORD,
         )
         if first["status"] != "provisioned" or second["status"] != "provisioned":
             raise AssertionError("role provisioning was not repeatable")

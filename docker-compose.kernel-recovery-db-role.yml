@@ -39,10 +39,13 @@ services:
       KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply a synthetic fixture admin password}
       KOKONUT_RUNTIME_USER: kokonut_runtime
       KOKONUT_RUNTIME_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:?Supply a distinct synthetic fixture runtime password}
+      KOKONUT_OPERATOR_AUTH_USER: kokonut_operator_auth
+      KOKONUT_OPERATOR_AUTH_PASSWORD: ${KOKONUT_OPERATOR_AUTH_PASSWORD:?Supply a distinct synthetic operator-auth password}
       PYTHONPATH: /workspace
     volumes:
       - ./VERSION:/workspace/VERSION:ro
       - ./services:/workspace/services:ro
+      - ./schemas/postgres/395_operator_session_auth_boundary.sql:/workspace/schemas/postgres/395_operator_session_auth_boundary.sql:ro
       - ./scripts/fixtures/kernel-db-runtime-role-check.py:/workspace/scripts/fixtures/kernel-db-runtime-role-check.py:ro
     networks: [runtime-role-recovery]
 

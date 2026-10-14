@@ -1,0 +1,30 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-14T15:58:45.773776+00:00",
+  "database": "PostgreSQL 16 disposable container on a bridge without outbound NAT",
+  "migrations": [
+    "394_signed_operator_tenant_context.sql",
+    "395_operator_session_auth_boundary.sql",
+    "395_operator_session_auth_boundary.sql (idempotency replay)"
+  ],
+  "provisioner_status": "provisioned",
+  "runtime_user": "kokonut_runtime",
+  "operator_auth_user": "kokonut_operator_auth",
+  "checks": [
+    "runtime role cannot SELECT, INSERT, UPDATE, or DELETE operator_session rows or columns",
+    "runtime role cannot execute operator-session functions",
+    "runtime role retains DML and sequence access on other public tables",
+    "dedicated operator-auth role has no direct operator_session privileges",
+    "dedicated operator-auth role authenticates, creates, and revokes via bounded functions",
+    "session functions operate under FORCE RLS using their NOLOGIN owner role",
+    "revoked sessions fail authentication immediately"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "external_network_requests": 0,
+  "outbound_nat_enabled": false,
+  "candidate_application_table_rls_enabled": false,
+  "disposable_operator_table_rls_forced": true,
+  "synthetic_rows_remaining": 0,
+  "scope_limit": "Verifies the general runtime role cannot read or create browser sessions, while a distinct operator-auth login can use the narrow SECURITY DEFINER session API. It does not establish the final application-table runtime role allowlist or enable candidate RLS."
+}

@@ -4562,9 +4562,42 @@ Ruff and Python compilation passed. Evidence is at
 `docs/refactor/builds/2026-10-14-recovery/operator-tenant-context-disposable.json`.
 
 This does not enable RLS or establish the final runtime database boundary.
-`provision_runtime_role()` currently grants broad DML across public tables,
-including read access to `operator_session.session_token_hash`; that undermines
-the session-proof boundary if the constrained role is used. Session-table
-isolation, Gateway API-key context, worker/legacy CLI integration, and
-Directus/view access remain explicit RLS prerequisites. The candidate remains
-at migration 391 under OFU-18; no candidate or legacy database was touched.
+Migration 395 below removes direct runtime session-table access. The runtime
+role retains broad DML on other public tables, including mobile device-token
+and enrollment-code hashes; Gateway API-key context,
+worker/legacy CLI integration, and Directus/view access remain explicit RLS
+prerequisites. The candidate remains at migration 391 under OFU-18; no
+candidate or legacy database was touched.
+
+### Operator-session runtime-role boundary — 14 October 2026
+
+Migration 395 adds a dedicated `NOLOGIN`, `NOBYPASSRLS` function owner with
+limited identity/session-table and column privileges. It exposes three
+`SECURITY DEFINER` session functions, with explicit execute grants to the
+separate operator-auth login: create a session for an existing enabled OIDC
+identity, authenticate and touch an active session, and revoke a session. The
+ordinary app runtime role has no session table or column privileges and cannot
+execute those functions. OIDC session operations now use an independent
+database connection configured with
+`KOKONUT_OPERATOR_AUTH_USER` and `KOKONUT_OPERATOR_AUTH_PASSWORD`; scope reads
+and application queries remain on the app role. The two service passwords
+must be distinct.
+
+The disposable PostgreSQL 16 check applied migration 395 twice, enabled and
+forced RLS on the synthetic identity/session tables, provisioned both roles
+through `provision_runtime_role()`, and verified direct session SELECT/INSERT/
+UPDATE/DELETE and function execution fail for the app role. The auth role had
+no direct table access, but its three functions successfully authenticated,
+created, and revoked synthetic sessions under forced RLS; revoked sessions
+failed immediately. Evidence is at
+`docs/refactor/builds/2026-10-14-recovery/operator-session-role-disposable.json`.
+The focused Gateway/session and tenant-context tests passed 83 cases; Ruff and
+Python compilation passed.
+
+The bootstrap now requires migration 395 and a separate generated auth
+credential. The repeatable synthetic/populated runtime-role fixtures and OIDC
+Compose configuration were updated but still need their full regression run.
+This is not candidate rollout or complete RLS readiness: runtime DML remains
+broad on other public tables, including mobile device-token and enrollment
+code hashes. Gateway API-key context, workers, legacy CLI, and Directus/view
+boundaries remain open. Candidate and legacy databases were untouched.

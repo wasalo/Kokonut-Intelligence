@@ -44,6 +44,8 @@ class OIDCSettings:
     client_secret: str
     redirect_uri: str
     state_secret: str
+    operator_auth_user: str = field(repr=False)
+    operator_auth_password: str = field(repr=False)
     session_ttl_seconds: int = 1800
 
     @classmethod
@@ -62,6 +64,8 @@ class OIDCSettings:
             "client_secret": "KOKONUT_OPERATOR_OIDC_CLIENT_SECRET",
             "redirect_uri": "KOKONUT_OPERATOR_OIDC_REDIRECT_URI",
             "state_secret": "KOKONUT_OPERATOR_OIDC_STATE_SECRET",
+            "operator_auth_user": "KOKONUT_OPERATOR_AUTH_USER",
+            "operator_auth_password": "KOKONUT_OPERATOR_AUTH_PASSWORD",
         }
         values = {field: os.environ.get(variable, "").strip() for field, variable in required.items()}
         missing = [variable for field, variable in required.items() if not values[field]]
@@ -72,6 +76,27 @@ class OIDCSettings:
         if len(values["state_secret"].encode("utf-8")) < 32:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_OIDC_STATE_SECRET must be at least 32 bytes"
+            )
+        if not _IDENTIFIER_RE.fullmatch(values["operator_auth_user"]):
+            raise OperatorAuthConfigurationError(
+                "KOKONUT_OPERATOR_AUTH_USER must be a lowercase PostgreSQL role name"
+            )
+        if (
+            len(values["operator_auth_password"]) < 24
+            or values["operator_auth_password"].lower().startswith(
+                ("replace-with", "your_", "your-", "change_", "change-", "todo", "none", "null")
+            )
+        ):
+            raise OperatorAuthConfigurationError(
+                "KOKONUT_OPERATOR_AUTH_PASSWORD must be a generated secret of at least 24 characters"
+            )
+        database_secrets = {
+            os.environ.get(name, "")
+            for name in ("PG_PASSWORD", "POSTGRES_PASSWORD", "KOKONUT_RUNTIME_PASSWORD")
+        }
+        if values["operator_auth_password"] in database_secrets:
+            raise OperatorAuthConfigurationError(
+                "KOKONUT_OPERATOR_AUTH_PASSWORD must differ from the app and database-owner passwords"
             )
         for setting, variable in (("issuer", "KOKONUT_OPERATOR_OIDC_ISSUER"),
                                   ("redirect_uri", "KOKONUT_OPERATOR_OIDC_REDIRECT_URI")):
@@ -141,6 +166,22 @@ def _get_db():
     return get_db(connect_timeout=5)
 
 
+def _get_operator_auth_db(settings: OIDCSettings):
+    """Connect with the session-only database principal, never the app role."""
+    import psycopg2
+
+    from services.common.db import PG_DB, PG_HOST, PG_PORT
+
+    return psycopg2.connect(
+        host=PG_HOST,
+        port=PG_PORT,
+        dbname=PG_DB,
+        user=settings.operator_auth_user,
+        password=settings.operator_auth_password,
+        connect_timeout=5,
+    )
+
+
 def _bounded_claim(value, limit: int = 200) -> str | None:
     if not isinstance(value, str):
         return None
@@ -184,40 +225,43 @@ class OIDCOperatorProvider:
         session_token = secrets.token_urlsafe(_TOKEN_BYTES)
         csrf_token = secrets.token_urlsafe(_TOKEN_BYTES)
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=self.settings.session_ttl_seconds)
-        conn = _get_db()
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    """SELECT id, issuer, subject, display_name
-                         FROM operator_identity
-                        WHERE issuer = %s AND subject = %s AND enabled = TRUE""",
-                    (issuer, subject),
+                    """SELECT session_id, operator_id, issuer, subject, display_name, email
+                         FROM kokonut_security.create_operator_session(
+                             %s, %s, %s, %s, %s, %s, %s
+                         )""",
+                    (
+                        issuer,
+                        subject,
+                        name,
+                        email,
+                        _digest(session_token),
+                        _digest(csrf_token),
+                        expires_at,
+                    ),
                 )
                 identity = cur.fetchone()
                 if identity is None:
                     conn.rollback()
                     return None
-                operator_id, stable_issuer, stable_subject, existing_name = identity
-                cur.execute(
-                    """UPDATE operator_identity
-                          SET display_name = COALESCE(%s, display_name),
-                              email = COALESCE(%s, email), updated_at = NOW()
-                        WHERE id = %s""",
-                    (name, email, operator_id),
-                )
-                cur.execute(
-                    """INSERT INTO operator_session
-                       (operator_id, session_token_hash, csrf_token_hash, expires_at)
-                       VALUES (%s, %s, %s, %s)""",
-                    (operator_id, _digest(session_token), _digest(csrf_token), expires_at),
-                )
+                (
+                    _session_id,
+                    operator_id,
+                    stable_issuer,
+                    stable_subject,
+                    stable_name,
+                    stable_email,
+                ) = identity
             conn.commit()
             principal = OperatorPrincipal(
                 operator_id=str(operator_id),
                 issuer=stable_issuer,
                 subject=stable_subject,
-                display_name=name or existing_name,
-                email=email,
+                display_name=stable_name,
+                email=stable_email,
             )
             return principal, session_token, csrf_token
         finally:
@@ -228,17 +272,13 @@ class OIDCOperatorProvider:
         if not token:
             return None
         session_token_hash = _digest(token)
-        conn = _get_db()
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    """SELECT s.id, s.csrf_token_hash, o.id, o.issuer, o.subject,
-                              o.display_name, o.email
-                         FROM operator_session AS s
-                         JOIN operator_identity AS o ON o.id = s.operator_id
-                        WHERE s.session_token_hash = %s
-                          AND s.revoked_at IS NULL AND s.expires_at > NOW()
-                          AND o.enabled = TRUE""",
+                    """SELECT session_id, csrf_token_hash, operator_id, issuer,
+                              subject, display_name, email
+                         FROM kokonut_security.authenticate_operator_session(%s)""",
                     (session_token_hash,),
                 )
                 row = cur.fetchone()
@@ -246,10 +286,6 @@ class OIDCOperatorProvider:
                     conn.rollback()
                     return None
                 session_id, csrf_hash, operator_id, issuer, subject, name, email = row
-                cur.execute(
-                    "UPDATE operator_session SET last_seen_at = NOW() WHERE id = %s",
-                    (session_id,),
-                )
             conn.commit()
             principal = OperatorPrincipal(
                 operator_id=str(operator_id),
@@ -326,14 +362,12 @@ class OIDCOperatorProvider:
         finally:
             conn.close()
 
-    @staticmethod
-    def revoke_session(session_id: str) -> None:
-        conn = _get_db()
+    def revoke_session(self, session_id: str) -> None:
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    """UPDATE operator_session SET revoked_at = NOW()
-                        WHERE id = %s AND revoked_at IS NULL""",
+                    "SELECT kokonut_security.revoke_operator_session(%s::uuid)",
                     (session_id,),
                 )
             conn.commit()

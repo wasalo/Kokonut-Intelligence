@@ -687,11 +687,15 @@ reporting views.
   OIDC operator context from a live session, tenant-qualified grants, current
   owner/share state, and consistent additional scopes. The context is bound to
   the PostgreSQL backend and transaction; denial clears old context and
-  share/grant changes serialize with active transactions. Focused tenant and
-  operator-auth checks pass. The optional runtime role still has broad table
-  grants and can read operator session-token hashes; legacy CLI paths, Gateway
-  API-key context, workers, and the Directus/view boundary need their own
-  access contracts before RLS. Full request/worker/Directus coverage remains open
+  share/grant changes serialize with active transactions. Migration 395 now
+  removes all runtime-role table/column access to `operator_session`; a distinct
+  auth login can create, authenticate, and revoke sessions only through bounded
+  functions. Disposable PostgreSQL 16 replay, forced-RLS, and privilege checks
+  passed. The runtime role still has broad DML on other public tables,
+  including mobile device/enrollment credential hashes, and
+  legacy CLI paths, Gateway API-key context, workers, and the Directus/view
+  boundary need their own access contracts before RLS. Full request/worker/
+  Directus coverage remains open
   ([audit](mobile-tenant-rls-callsite-audit.md)).
 - [x] Move Field Collector token lookup and one-time enrollment redemption
   behind the bounded database API in migration 392. The dedicated credential
@@ -729,10 +733,18 @@ reporting views.
   legacy/mixed-tenant/disabled/revoked/expired denial, payload tampering,
   transaction cleanup, share revocation, and grant-revocation locking
   ([evidence](builds/2026-10-14-recovery/operator-tenant-context-disposable.json)).
-  This is not candidate rollout or RLS enablement. Runtime session-token table
-  isolation, non-OIDC callers, workers, legacy CLI, and Directus/view access
-  remain open.
-- [ ] Roll out migrations 392–394 to the local candidate only after a fresh encrypted
+  This is not candidate rollout or RLS enablement. Non-OIDC callers, workers,
+  legacy CLI, and Directus/view access remain open.
+- [x] Add migration 395's operator-session database boundary. The general
+  runtime role loses all table/column access to `operator_session` and cannot
+  call session functions. OIDC uses a separate auth login that can only call
+  bounded create/authenticate/revoke functions owned by a `NOLOGIN` role.
+  PostgreSQL 16 disposable replay and forced-RLS acceptance passed, including
+  denial of direct read/write/mint attempts by runtime, direct table reads by
+  auth, successful bounded session lifecycle, and immediate revoked-session
+  denial ([evidence](builds/2026-10-14-recovery/operator-session-role-disposable.json)).
+  This does not establish the final app-table role allowlist or enable RLS.
+- [ ] Roll out migrations 392–395 to the local candidate only after a fresh encrypted
   checkpoint and restore rehearsal; recreate only the candidate app and verify
   health, migration state, and protected routes. Candidate remains at migration
   391 until separately authorized. This rollout alone will not enable RLS.

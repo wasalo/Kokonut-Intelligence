@@ -1,12 +1,13 @@
 # PostgreSQL runtime-role policy
 
-Status: an opt-in application role and bootstrap command are implemented; the
-synthetic and populated-restore checks passed. Separate Directus, Metabase
-metadata, and analytics-source role boundaries also passed on isolated
-populated copies. The pinned Directus owner bootstrap and DML-only runtime
-started successfully. No live candidate, portability, or legacy database was
-modified. Metabase dashboard/source parity and full domain-workflow acceptance
-remain open; see [optional consumer roles](optional-database-roles.md).
+Status: opt-in application and operator-auth roles are implemented. The
+session-table boundary passed a disposable PostgreSQL 16 forced-RLS check;
+existing synthetic and populated-restore role checks are being updated for the
+new migration and second credential. Separate Directus, Metabase metadata, and
+analytics-source role boundaries also passed on isolated populated copies. No
+live candidate, portability, or legacy database was modified. Metabase
+dashboard/source parity and full domain-workflow acceptance remain open; see
+[optional consumer roles](optional-database-roles.md).
 
 ## Role boundary
 
@@ -18,21 +19,35 @@ combined with `docker-compose.kernel-runtime-role.yml`; the app receives only
 `PG_USER` and `PG_PASSWORD`, while the one-shot bootstrap receives the admin
 credential.
 
-The bootstrap requires a dedicated Kernel PostgreSQL instance and a distinct
-runtime password of at least 24 characters. It creates or normalizes the runtime
-role as `LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
-NOBYPASSRLS`. It refuses to reuse a role that owns database objects. It removes
-runtime-role memberships, revokes `PUBLIC CONNECT` on connectable databases,
-revokes `CREATE` on the `public` schema, then grants the runtime role `CONNECT`
-to the selected database, `USAGE` on `public`, DML on existing public tables,
-sequence use, and matching default DML/sequence grants for objects created by
-the migration/operator role.
+The bootstrap requires a dedicated Kernel PostgreSQL instance and distinct
+runtime and operator-auth passwords of at least 24 characters. It creates or
+normalizes both roles as `LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE
+NOREPLICATION NOBYPASSRLS`, and refuses to reuse roles that own database
+objects. It removes their role memberships, revokes `PUBLIC CONNECT` on
+connectable databases and `CREATE` on the `public` schema, then grants both
+roles `CONNECT` only to the selected database. The runtime role receives
+`USAGE` on `public`, DML on public tables except `operator_session`, sequence
+use, and matching default DML/sequence grants. It has no table or column
+privileges on `operator_session` and cannot execute the operator-session
+functions.
 
-The DML grant spans all public tables. It only removes PostgreSQL owner/admin
-powers; it does not replace gateway authorization, row/field controls, or
-service-specific review rules. Other services that share this dedicated
-database need separately reviewed grants. Do not run this bootstrap against the
-legacy stack or a database shared with unrelated applications.
+Migration 395 creates a `NOLOGIN` function owner with only the table and column
+rights needed for session creation, authentication, and revocation. The
+separate `kokonut_operator_auth` login receives explicit `EXECUTE` grants on
+those three functions. The Gateway's OIDC provider uses this credential for
+session operations; scope lookup and application queries continue through the
+ordinary runtime connection. The operator-auth role cannot directly read or
+write the session table. Keep its password separate from the app, runtime, and database
+owner credentials. It is a trusted authentication-service credential because
+its session-creation function can issue sessions for provisioned enabled
+identities.
+
+The remaining runtime DML grant spans public tables other than operator
+sessions. It only removes PostgreSQL owner/admin powers; it does not replace
+gateway authorization, row/field controls, or service-specific review rules.
+Other services that share this dedicated database need separately reviewed
+grants. Do not run this bootstrap against the legacy stack or a database shared
+with unrelated applications.
 
 The grant boundary is for the native Kernel app and its workers. The current
 legacy `docker-compose.yml` runs Directus with `DB_USER=kokonut` and
@@ -53,10 +68,13 @@ role; candidate and legacy instances were not targeted.
 
 ## Enable on a fresh or restored candidate
 
-Add `KOKONUT_RUNTIME_USER` and a distinct `KOKONUT_RUNTIME_PASSWORD` to the
-encrypted secrets file. Keep the host migration environment on the owner
-identity (`PG_USER=kokonut`, with `POSTGRES_PASSWORD`); do not set the runtime
-password as the migration CLI's `PG_PASSWORD`.
+Add `KOKONUT_RUNTIME_USER`, `KOKONUT_RUNTIME_PASSWORD`, and a separate
+`KOKONUT_OPERATOR_AUTH_PASSWORD` to the encrypted secrets file. Keep the host
+migration environment on the owner identity (`PG_USER=kokonut`, with
+`POSTGRES_PASSWORD`); do not set either service password as the migration
+CLI's `PG_PASSWORD`. Apply ordered migrations through 395 before provisioning
+these roles. OIDC also requires the operator-auth role variables in the app
+environment.
 
 For a fresh isolated candidate, load encrypted secrets and provision before
 starting the app or workers:
@@ -109,10 +127,12 @@ application database ACLs or schemas were changed by these checks.
 
 For an app rollback, stop the runtime app/worker and restore the owner credentials
 in the Compose environment. The tighter database ACLs persist; keep them in
-place unless a reviewed restore plan requires broader access. To abandon the
-role policy entirely, restore a pre-change database checkpoint rather than
-granting broad access without an inventory of affected roles.
+place unless a reviewed restore plan requires broader access. If reverting
+migration 395's callers, the functions and auth role can remain unused. To
+abandon the role policy entirely, restore a pre-change database checkpoint
+rather than granting broad access without an inventory of affected roles.
 
 Machine evidence: [synthetic role isolation](builds/2026-10-11-recovery/runtime-role-isolation.json),
 [populated restore check](builds/2026-10-11-recovery/runtime-role-populated-restore.json),
-[optional consumer role boundaries](builds/2026-10-11-recovery/optional-consumer-db-roles.json).
+[optional consumer role boundaries](builds/2026-10-11-recovery/optional-consumer-db-roles.json),
+[operator-session role boundary](builds/2026-10-14-recovery/operator-session-role-disposable.json).

@@ -39,13 +39,22 @@ CREATE UNIQUE INDEX uq_disposable_current_owner
     WHERE revoked_at IS NULL;
 CREATE TABLE public.operator_identity (
     id UUID PRIMARY KEY,
-    enabled BOOLEAN NOT NULL
+    issuer TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    display_name TEXT,
+    email TEXT,
+    enabled BOOLEAN NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (issuer, subject)
 );
 CREATE TABLE public.operator_session (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     operator_id UUID NOT NULL REFERENCES public.operator_identity(id),
     session_token_hash CHAR(64) NOT NULL UNIQUE,
     csrf_token_hash CHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL,
     revoked_at TIMESTAMPTZ
 );
@@ -95,14 +104,16 @@ INSERT INTO public.location_tenant_owner_verification (
     'a0000000-0000-0000-0000-000000000001',
     'a0000000-0000-0000-0000-000000000801'
 );
-INSERT INTO public.operator_identity (id, enabled) VALUES
-    ('a0000000-0000-0000-0000-000000000901', TRUE),
-    ('a0000000-0000-0000-0000-000000000902', TRUE),
-    ('a0000000-0000-0000-0000-000000000903', TRUE),
-    ('a0000000-0000-0000-0000-000000000904', TRUE),
-    ('a0000000-0000-0000-0000-000000000905', FALSE),
-    ('a0000000-0000-0000-0000-000000000906', TRUE),
-    ('a0000000-0000-0000-0000-000000000907', TRUE);
+INSERT INTO public.operator_identity (
+    id, issuer, subject, display_name, email, enabled
+) VALUES
+    ('a0000000-0000-0000-0000-000000000901', 'https://identity.example', 'owner-operator', 'Owner Operator', NULL, TRUE),
+    ('a0000000-0000-0000-0000-000000000902', 'https://identity.example', 'partner-operator', 'Partner Operator', NULL, TRUE),
+    ('a0000000-0000-0000-0000-000000000903', 'https://identity.example', 'multi-operator', 'Multi Operator', NULL, TRUE),
+    ('a0000000-0000-0000-0000-000000000904', 'https://identity.example', 'legacy-operator', 'Legacy Operator', NULL, TRUE),
+    ('a0000000-0000-0000-0000-000000000905', 'https://identity.example', 'disabled-operator', 'Disabled Operator', NULL, FALSE),
+    ('a0000000-0000-0000-0000-000000000906', 'https://identity.example', 'revoked-operator', 'Revoked Operator', NULL, TRUE),
+    ('a0000000-0000-0000-0000-000000000907', 'https://identity.example', 'expired-operator', 'Expired Operator', NULL, TRUE);
 INSERT INTO public.operator_session (
     operator_id, session_token_hash, csrf_token_hash, expires_at, revoked_at
 ) VALUES

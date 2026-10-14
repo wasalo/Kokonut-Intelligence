@@ -14,9 +14,9 @@ acceptance rows.
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** PR #68 is
 at `333507e844cd3937761087f1e7e03f895c509250`. CI run [#306](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311928)
 passed and Security run [#30](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311940)
-passed. The local branch is two commits ahead at `7a8fed7`, and migration 394
-is currently in the working tree. Neither the unpushed commits nor migration
-394 are covered by CI #306.
+passed. The local branch has unpushed work after `333507e`, including commit
+`96594f4` and the migration 395 session-role slice. None of this batch is
+covered by CI #306.
 CI #305 was superseded by the newer push. The preceding CI #304 on
 `8aa33e24f169f15afb249a53ae3d281ed8d843a2` completed with five failures,
 4,632 passed tests, and 75 passed subtests; the local fix batch passes 10
@@ -1236,6 +1236,10 @@ grant rows. Disposable PostgreSQL 16 replay and forced-RLS acceptance passed
 owner/shared access, denials, context cleanup, share revocation, and concurrent
 grant-revocation locking. Twenty focused tenant/OIDC tests passed (one skipped);
 Ruff and Python compilation passed. This does not complete CAP-053 or enable
-RLS: runtime session-token table isolation, Gateway API-key context, workers,
-legacy CLI, Directus/views, and candidate rollout remain open. Candidate stays
-at migration 391 under OFU-18 ([evidence](builds/2026-10-14-recovery/operator-tenant-context-disposable.json)).
+RLS: migration 395 now removes session-table access from the general runtime
+role and gives OIDC a separate bounded auth connection. Its isolated forced-RLS
+acceptance verifies read/write/mint denial for the runtime role and bounded
+session lifecycle for auth ([evidence](builds/2026-10-14-recovery/operator-session-role-disposable.json)).
+Gateway API-key context, workers, legacy CLI, Directus/views, broad runtime DML
+on other public tables (including mobile credential hashes), and candidate
+rollout remain open. Candidate stays at migration 391 under OFU-18.

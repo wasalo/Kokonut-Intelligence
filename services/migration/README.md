@@ -164,7 +164,8 @@ reviewed execution policy exists.
 ## Modules
 
 - `cli` — Discover, track, and apply PostgreSQL schema and seed migrations.
-- `runtime_role` — Provision a bounded application runtime role.
+- `runtime_role` — Provision the Kernel app role and separate bounded
+  operator-auth login; isolate browser-session table access.
 - `analytics_role` — Provision and verify the optional curated reporting-source login.
 - `metabase_role` — Provision and verify the isolated optional Metabase metadata database/login.
 
