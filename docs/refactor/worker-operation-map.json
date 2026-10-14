@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "reviewed": "2026-10-14",
+  "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
+  "shared_boundary": {
+    "database_identity": "Kernel worker and spawned children inherit the configured runtime PG_USER and PG_PASSWORD.",
+    "signed_tenant_context": "Not established by scheduler dispatch or generic event-handler spawn.",
+    "module_argument_validation": "The scheduler allowlists module paths but reads command_args from database state without a module-specific argument schema.",
+    "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
+  },
+  "scheduled_modules": [
+    {
+      "module": "services.ingestion.weather",
+      "scope": "Optional --location-id limits one location; omission scans all active locations with coordinates.",
+      "reads": ["public.location"],
+      "writes": ["public.weather_observation", "public.ingestion_log", "public.clickhouse_outbox"],
+      "external_effects": ["OpenWeatherMap HTTP requests"],
+      "idempotency": "weather_observation insert has no explicit conflict clause; ClickHouse projection is keyed by payload hash. A replay may create a second PostgreSQL observation.",
+      "retry_boundary": "Scheduler retry can repeat provider reads and PostgreSQL inserts; no source watermark is recorded by this entrypoint.",
+      "sources": ["services/ingestion/weather.py", "services/ingestion/base.py", "services/ingestion/clickhouse_outbox.py"]
+    },
+    {
+      "module": "services.ingestion.market_data",
+      "scope": "Global crop/commodity market data; optional commodity and period arguments filter the run.",
+      "reads": ["public.crop"],
+      "writes": ["public.price_observation", "public.ingestion_log"],
+      "external_effects": ["World Bank Pink Sheet HTTP download; optional built-in seed dataset"],
+      "idempotency": "price_observation uses ON CONFLICT (source, commodity_code, market_name, price_date) DO NOTHING.",
+      "retry_boundary": "The natural key suppresses duplicate period rows; provider freshness and historical correction behavior are separate review questions.",
+      "sources": ["services/ingestion/market_data.py", "services/ingestion/base.py"]
+    },
+    {
+      "module": "services.ingestion.eas_indexer",
+      "scope": "All active tracked wallets on configured chains unless --chain selects one chain.",
+      "reads": ["public.wallet_profile", "public.chain_indexer_status", "public.attestation_schema"],
+      "writes": ["public.attestation_schema", "public.attestation_record", "public.chain_indexer_status", "public.ingestion_log", "public.clickhouse_outbox"],
+      "external_effects": ["EAS GraphQL/API requests"],
+      "idempotency": "attestation_record uses attestation_uid conflict suppression; ClickHouse projection has an attestation UID key. The cursor stores a maximum attestation timestamp per chain.",
+      "retry_boundary": "A retry repeats wallet/provider reads; late-arriving events at or below the stored timestamp require separate reconciliation.",
+      "sources": ["services/ingestion/eas_indexer.py", "services/ingestion/base.py", "services/ingestion/clickhouse_outbox.py"]
+    },
+    {
+      "module": "services.ingestion.rpc_indexer",
+      "scope": "All active tracked wallets unless chain or wallet address selects a narrower source.",
+      "reads": ["public.wallet_profile"],
+      "writes": ["public.wallet_activity_event", "public.ingestion_log", "public.clickhouse_outbox"],
+      "external_effects": ["Configured EVM JSON-RPC providers"],
+      "idempotency": "wallet_activity_event suppresses duplicate transaction hashes; projection rows are queued by the stable source key.",
+      "retry_boundary": "A retry repeats RPC reads. Reorg depth, checkpoint advancement, and completeness are not proven by the module allowlist.",
+      "sources": ["services/ingestion/rpc_indexer.py", "services/ingestion/base.py", "services/ingestion/clickhouse_outbox.py"]
+    },
+    {
+      "module": "services.ingestion.sensor_ingester",
+      "scope": "Rows inherit sensor location and plot; CLI modes accept a file or an identified sensor. The historical scheduled seed supplies no arguments and does not define an input source.",
+      "reads": ["public.sensor_device", "public.sensor_type", "public.sensor_reading"],
+      "writes": ["public.sensor_reading", "public.platform_event", "public.ingestion_log", "public.clickhouse_outbox"],
+      "external_effects": [],
+      "idempotency": "sensor_reading is unique by sensor_id/date/time; duplicate timestamp values are compared and conflicting values fail. Event and projection writes share the ingestion transaction where enabled.",
+      "retry_boundary": "A replay of the same row is deduplicated; the scheduled no-argument seed does not establish a valid recurring input contract.",
+      "sources": ["services/ingestion/sensor_ingester.py", "services/ingestion/base.py", "services/events/bus.py"]
+    },
+    {
+      "module": "services.ingestion.gnosis_indexer",
+      "scope": "Configured Gnosis DAO/contracts and indexed protocol events; wallet ownership can resolve farm location rows.",
+      "reads": ["public.wallet_profile", "public.protocol", "public.chain_indexer_status"],
+      "writes": ["public.governance_event", "public.treasury_event", "public.digital_lego_usage", "public.chain_indexer_status", "public.ingestion_log", "public.clickhouse_outbox"],
+      "external_effects": ["Gnosis JSON-RPC provider"],
+      "idempotency": "digital_lego_usage uses conflict suppression; governance_event and treasury_event inserts shown in the indexer do not declare a conflict clause. End-to-end replay idempotency is therefore not established.",
+      "retry_boundary": "The indexer is global and checkpointed, but reorg/duplicate behavior must be verified per event table before automatic replay.",
+      "sources": ["services/ingestion/gnosis_indexer.py", "services/ingestion/base.py", "services/ingestion/clickhouse_outbox.py"]
+    },
+    {
+      "module": "services.ingestion.anomaly_detector",
+      "scope": "The scheduled check can scan all active rules/readings or accept a sensor filter; the event handler is source-reading scoped.",
+      "reads": ["public.alert_rule", "public.sensor_reading", "public.sensor_device", "public.sensor_type", "public.environmental_baseline", "public.platform_event"],
+      "writes": ["public.sensor_anomaly_effect", "public.sensor_alert", "public.mrv_claim", "public.ingestion_log", "public.platform_event", "public.notification_outbox", "public.actuation_log"],
+      "external_effects": ["Scheduled CLI mode can send email and Directus notifications; event mode queues notifications durably. Actuation is recorded for later approval/execution in PostgreSQL; this module does not publish MQTT commands."],
+      "idempotency": "The event handler reserves a per-source-reading/rule effect receipt and commits alert/claim/notification intent atomically. Actuation remains behind approval policy.",
+      "retry_boundary": "A same-reading/rule retry is deduplicated; broader scheduled batch and external-provider recovery remain at-least-once.",
+      "sources": ["services/ingestion/anomaly_detector.py", "services/events/notification_outbox.py", "services/ingestion/mqtt_actuator.py", "schemas/postgres/081_oracle_infrastructure.sql", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+    },
+    {
+      "module": "services.metrics",
+      "scope": "A single location per invocation; --all-locations fans out across all locations.",
+      "reads": ["public.metric_definition", "domain tables selected by each registered calculator"],
+      "writes": ["public.metric_value", "public.platform_event"],
+      "external_effects": [],
+      "idempotency": "Each compute inserts a new metric_value with verified=false; repeated calculations are not deduplicated by the engine. Recalculation remains a draft write, never human verification.",
+      "retry_boundary": "A scheduler retry may create another draft for the same location/period; human review state remains separate.",
+      "sources": ["services/metrics/cli.py", "services/metrics/engine.py", "services/metrics/calculators/crop_revenue.py"]
+    },
+    {
+      "module": "services.ingestion.data_freshness",
+      "scope": "--check scans configured sources and all locations unless --source narrows the configuration set.",
+      "reads": ["public.data_freshness_config", "public.location", "public.sensor_device", "public.sensor_reading", "public.ingestion_log", "public.v_data_freshness_summary"],
+      "writes": ["public.data_freshness_check", "public.data_freshness_alert_state", "public.data_freshness_alert_history", "public.data_freshness_alert_delivery_attempt"],
+      "external_effects": ["Configured email/webhook alert delivery"],
+      "idempotency": "Alert state is locked per source/location and transitions use cooldown logic; every check and provider attempt is retained. End-to-end provider delivery is at-least-once.",
+      "retry_boundary": "Database state is durable; external delivery needs receiver idempotency or operator reconciliation.",
+      "sources": ["services/ingestion/data_freshness.py", "services/ingestion/base.py"]
+    },
+    {
+      "module": "services.export.dataset_refresh",
+      "scope": "All active dashboard_dataset definitions selected by the CLI; result source is limited to the three curated reporting views when the feature is explicitly enabled.",
+      "reads": ["public.dashboard_dataset", "kokonut_reporting.v_farm_summary", "kokonut_reporting.v_verified_metric_values", "kokonut_reporting.v_attestation_summary"],
+      "writes": ["public.dashboard_dataset metadata"],
+      "external_effects": [],
+      "idempotency": "Refresh writes only a row count and metadata. The current SQL text and active state are compared at update time to reject stale results.",
+      "retry_boundary": "KOKONUT_FEATURE_LEGACY_DATASET_SQL defaults off; enabled reads use the separate ACL-verified read-only analytics role.",
+      "sources": ["services/export/dataset_refresh.py", "services/analytics/reporting_reader.py", "services/migration/analytics_role.py"]
+    },
+    {
+      "module": "services.ingestion.climate_data",
+      "scope": "Exactly one required --location-id per process; --all means all climate providers for that location, not all locations.",
+      "reads": ["public.location", "public.plot", "public.farm"],
+      "writes": ["public.worldclim_climate", "provider-specific climate/remote-sensing tables", "public.ingestion_log"],
+      "external_effects": ["WorldClim-derived baseline, NCEP, MODIS, SMAP and optional Google Earth Engine provider adapters"],
+      "idempotency": "worldclim_climate upserts by location_id. Each other provider has its own persistence path; aggregate idempotency is not established by this entrypoint.",
+      "retry_boundary": "Per-location retry is the intended unit; the historical seed's --all argument is invalid because --location-id is required.",
+      "sources": ["services/ingestion/climate_data.py", "services/ingestion/gee_climate.py", "services/ingestion/base.py"]
+    },
+    {
+      "module": "services.events",
+      "scope": "Global event queue; each event's child handler may be tenant-scoped, global, or external as recorded in the handler inventory.",
+      "reads": ["public.platform_event", "public.event_handler", "public.event_handler_delivery"],
+      "writes": ["public.platform_event", "public.event_handler_delivery", "public.event_handler_log", "public.event_dead_letter"],
+      "external_effects": ["Delegated to registered event handlers; notifications use the durable notification outbox"],
+      "idempotency": "Per-event/per-handler receipts suppress already-successful handlers. Delivery is at-least-once; a handler can run twice after lease expiry or crash after side effect.",
+      "retry_boundary": "Durable lease, bounded retry, dead-letter, operator replay and disposal; cleanup retention is still an owner decision.",
+      "sources": ["services/events/bus.py", "services/events/handlers.py", "docs/refactor/event-handler-concurrency.md"]
+    }
+  ],
+  "event_handlers": [
+    {
+      "module": "services.ingestion.anomaly_detector",
+      "function": "handle_sensor_reading",
+      "event_type": "sensor_reading",
+      "scope": "One event/source reading and its location; event execution still inherits the shared runtime database identity without signed tenant context.",
+      "reads": ["public.platform_event", "public.sensor_reading", "public.alert_rule", "public.sensor_type", "public.sensor_device", "public.sensor_alert", "public.location"],
+      "writes": ["public.sensor_anomaly_effect", "public.sensor_alert", "public.mrv_claim", "public.ingestion_log", "public.platform_event", "public.notification_outbox", "public.actuation_log"],
+      "idempotency": "Per-reading/rule receipt; effects commit atomically before the parent worker stores its delivery receipt.",
+      "retry_boundary": "The handler may run again after crash or lease expiry; its source-reading/rule effect receipt suppresses duplicate database effects, while notification delivery remains at-least-once.",
+      "sources": ["services/ingestion/anomaly_detector.py", "services/events/notification_outbox.py", "services/ingestion/mqtt_actuator.py", "schemas/postgres/081_oracle_infrastructure.sql", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+    },
+    {
+      "module": "services.events.handlers",
+      "function": "handle_stale_data",
+      "event_type": "data_stale",
+      "scope": "Global freshness alert identity; notification payload may contain location-scoped details.",
+      "reads": ["public.notification_outbox"],
+      "writes": ["public.notification_outbox"],
+      "idempotency": "Stable source-event/channel/destination outbox key; remote delivery remains at-least-once unless the receiver honors the idempotency key.",
+      "retry_boundary": "Event retry repeats durable enqueue, which conflicts on the stable event/channel/destination identity; provider sending and operator replay happen in the separate outbox worker.",
+      "sources": ["services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+    },
+    {
+      "module": "services.cache.events",
+      "function": "handle_metric_computed",
+      "event_type": "metric_computed",
+      "scope": "Requires and canonicalizes one payload location UUID before invalidating analytics cache entries; does not establish database tenant context.",
+      "reads": ["public.cache_entry"],
+      "writes": ["public.cache_entry invalidation state"],
+      "idempotency": "Repeated invalidation of the same location is idempotent; concurrent and crash/retry evidence exists for this handler.",
+      "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeated location-scoped invalidation is safe and does not affect other locations.",
+      "sources": ["services/cache/events.py", "docs/refactor/event-handler-concurrency.md"]
+    },
+    {
+      "module": "services.cache.events",
+      "function": "handle_crisp_scored",
+      "event_type": "crisp_scored",
+      "scope": "Requires and canonicalizes one payload location UUID before invalidating CRISP cache entries; does not establish database tenant context.",
+      "reads": ["public.cache_entry"],
+      "writes": ["public.cache_entry invalidation state"],
+      "idempotency": "Repeated invalidation of the same location is idempotent; concurrency, timeout, lease takeover and crash/retry evidence exists for this handler.",
+      "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeated location-scoped invalidation is safe and does not affect other locations.",
+      "sources": ["services/cache/events.py", "docs/refactor/event-handler-concurrency.md"]
+    },
+    {
+      "module": "services.events.handlers",
+      "function": "handle_alert_notification",
+      "event_type": "threshold_breached",
+      "scope": "Global notification outbox identity; payload content may reference a location.",
+      "reads": ["public.notification_outbox"],
+      "writes": ["public.notification_outbox"],
+      "idempotency": "Stable source-event/channel/destination outbox key; remote delivery remains at-least-once unless the receiver honors the idempotency key.",
+      "retry_boundary": "Event retry repeats durable enqueue, which conflicts on the stable event/channel/destination identity; provider sending and operator replay happen in the separate outbox worker.",
+      "sources": ["services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+    }
+  ],
+  "known_open_items": [
+    "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
+    "Add a module-specific command argument contract; scheduler module allowlisting does not validate database-stored command_args.",
+    "Provision a separate worker database principal and non-forgeable context contract before worker SQL can be trusted under RLS.",
+    "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
+  ]
+}

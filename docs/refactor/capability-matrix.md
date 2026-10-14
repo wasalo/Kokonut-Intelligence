@@ -278,6 +278,14 @@ This narrows the repository-owned runner boundary; external dashboard roles,
 report ownership/reference fixtures, and tenant scope remain open. No
 MAN-CAP status or acceptance count changes ([evidence](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json)).
 
+**14 October 2026 worker boundary update:** a machine-readable inventory now
+matches the scheduler and event-handler allowlists and records their
+source-visible data effects, scopes, providers, and replay limits. A regression
+test prevents a new allowlisted entry from appearing without an inventory row.
+The map is not an authorization boundary; transitive dynamic calls, stored
+arguments, worker-specific identity, and RLS remain open. No MAN-CAP status or
+acceptance count changes ([map](worker-operation-map.md); [focused source-check evidence](builds/2026-10-14-recovery/worker-operation-map-check.json)).
+
 **13 October 2026 OIDC configuration update (CAP-001 / CAP-053):** the optional
 OIDC overlay remains disabled unless explicitly selected. `.env.example` now
 lists the required provider settings and identifies client/state secrets as

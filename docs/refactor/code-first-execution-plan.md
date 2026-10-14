@@ -15,14 +15,16 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 299 checked and 20 open items (319 total).
+- The execution checklist has 300 checked and 20 open items (320 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
 - The local batch retires the unscoped legacy mobile-offline CLI, tenant-binds
   protected Data Stream creation, and rejects unscoped cache invalidation from
   event handlers. A separate reporting slice now runs opt-in saved SQL through
-  an ACL-verified, read-only reader role. Focused source/disposable checks pass;
+  an ACL-verified, read-only reader role. The worker operation inventory covers
+  every current scheduled/event allowlist entry; the transitive graph and
+  argument/auth contracts remain open. Focused source/disposable checks pass;
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
@@ -99,9 +101,13 @@ before protected reads and writes, and make direct database access fail closed.
    columns, and reject unscoped paths before mutation. Allowlisted cache event
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
-   current scheduler and event allowlists constrain executable modules but
-   inherit the shared runtime environment; they are not DB-identity or RLS
-   boundaries. The code trace is recorded in
+   [worker operation map](worker-operation-map.md) inventories all 12 scheduled
+   modules and five event-handler pairs, with a test guarding allowlist parity.
+   It records source-visible effects and known replay boundaries; transitive
+   service/provider calls and database-stored argument contracts remain open.
+   Scheduler and event allowlists constrain executable modules but inherit the
+   shared runtime environment; they are not DB-identity or RLS boundaries. The
+   broader code trace is recorded in
    [the tenant call-site audit](mobile-tenant-rls-callsite-audit.md).
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.

@@ -4835,3 +4835,22 @@ removed, and candidate/legacy databases were untouched. This closes the
 first-party runner's query-execution boundary only; external dashboard roles,
 retained report ownership, and tenant-scoped parity remain open. Evidence:
 [`saved-reporting-reader-disposable.json`](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json).
+
+### Worker entrypoint and effect inventory — 14 October 2026
+
+Added a machine-readable source map for all 12 scheduler modules and all five
+allowlisted event-handler pairs. It records code-visible read/write objects,
+scope, external effects, and idempotency/retry limits, and it flags the shared
+runtime database identity and absent signed worker tenant context. The new test
+requires exact parity with both executable allowlists and verifies source
+references. It does not claim a complete transitive call graph or authorize
+worker grants/RLS: database-stored arguments, imported calculator/provider
+paths, external schedule ownership, and populated-data replay remain open. The
+historical sensor and climate schedule-seed argument mismatches are called out;
+the seed remains excluded from normal bootstrap. The focused inventory,
+allowlist, scheduler durability and event durability suites pass 31 tests;
+Ruff, format, JSON, syntax and diff checks pass. Evidence:
+[`worker-operation-map-check.json`](builds/2026-10-14-recovery/worker-operation-map-check.json).
+See
+[`worker-operation-map.md`](worker-operation-map.md) and
+[`worker-operation-map.json`](worker-operation-map.json).
