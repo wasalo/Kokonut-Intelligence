@@ -75,6 +75,14 @@ data effects, and an idempotency/retry note.
   invoke it. Generic database adapters and other effects remain in review. Use
   `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
   to check the report.
+- A static-only [worker boundary preflight](worker-boundary-preflight.json)
+  combines the allowlists, import closure, function graph, and SQL join. It
+  confirms all 17 operation roots and local imports, reports the shared runtime
+  database identity with no signed tenant context, and keeps RLS blocked. It
+  explicitly leaves live grants, migration state, active schedules, and owner
+  mappings `not_assessed`; it never connects to PostgreSQL. Use
+  `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
+  to verify the generated summary.
 - A source review grouped those 30 dynamic/composed sites: 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds

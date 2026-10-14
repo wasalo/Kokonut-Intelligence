@@ -21,9 +21,9 @@ import scripts.worker_function_reachability as worker_function_reachability  # n
 import scripts.worker_sql_inventory as worker_sql_inventory  # noqa: E402
 
 
-def build_inventory() -> dict:
-    function_graph = worker_function_reachability.build_inventory()
-    sql_inventory = worker_sql_inventory.build_inventory()
+def build_inventory(function_graph: dict | None = None, sql_inventory: dict | None = None) -> dict:
+    function_graph = function_graph or worker_function_reachability.build_inventory()
+    sql_inventory = sql_inventory or worker_sql_inventory.build_inventory()
     operation_functions: dict[str, set[tuple[str, str]]] = {}
     operation_site_ids: dict[str, set[str]] = {}
     all_graph_functions: set[tuple[str, str]] = set()

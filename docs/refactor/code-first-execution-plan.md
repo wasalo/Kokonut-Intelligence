@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 317 checked and 20 open items (337 total).
+- The execution checklist has 318 checked and 20 open items (338 total).
 - The latest pushed implementation batch is `de5bd4e`; CI #312 is in progress
   and Security #36 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -162,7 +162,13 @@ before protected reads and writes, and make direct database access fail closed.
    existing handlers still work through their narrow grants/functions.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
-   printing personal or secret values.
+   printing personal or secret values. **Partial:** the static-only first pass
+   confirms all 17 allowlisted roots and imports, reports the shared runtime
+   identity and 21 SQL functions outside current worker-root graphs, and keeps
+   RLS blocked. Live role/grant attributes, migration ledger/drift, active
+   schedules, and pending tenant ownership are explicitly `not_assessed`; the
+   preflight database role and those read-only inputs remain open
+   ([report](worker-boundary-preflight.json); [evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
 5. Keep application RLS disabled until all code paths and data ownership inputs
    pass. Isolated forced-RLS fixtures can prove policy behavior; they do not
    authorize turning it on in the candidate or a populated deployment.

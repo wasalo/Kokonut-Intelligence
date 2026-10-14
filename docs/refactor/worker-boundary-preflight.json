@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "generated_by": "scripts/worker_boundary_preflight.py",
+  "scope": "Static source preflight only. It does not connect to a database or inspect live role grants, applied migrations, enabled schedules, tenant ownership, or external dispatchers.",
+  "status": "review_required",
+  "operation_coverage": {
+    "scheduled_allowlist_count": 12,
+    "event_handler_allowlist_count": 5,
+    "expected_operation_count": 17,
+    "source_closure_operation_count": 17,
+    "function_graph_operation_count": 17,
+    "missing_source_closure_operations": [],
+    "missing_function_graph_operations": [],
+    "unresolved_function_roots": 0,
+    "passed": true
+  },
+  "source_closure": {
+    "source_file_count": 69,
+    "unresolved_local_module_count": 0,
+    "known_allowlisted_dynamic_import_site_count": 1,
+    "passed": true
+  },
+  "worker_identity": {
+    "database_identity": "shared_configured_runtime_identity",
+    "signed_tenant_context_established_by_dispatch": false,
+    "unbound_operation_root_count": 17,
+    "status": "not_tenant_bound"
+  },
+  "sql_reachability": {
+    "execution_site_count": 196,
+    "sites_with_static_operation_path": 175,
+    "sites_without_static_function_match": 21,
+    "site_refs_for_review": [
+      {
+        "site": "services/cache/cache.py:119:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/cache/cache.py:202:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/cache/cache.py:223:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/cache/cache.py:238:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/cache/cache.py:51:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/cache/cache.py:67:20",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/cache/cache.py:76:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/common/database.py:132:12",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 17
+      },
+      {
+        "site": "services/common/database.py:71:15",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 17
+      },
+      {
+        "site": "services/common/database.py:74:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 17
+      },
+      {
+        "site": "services/events/insight_transfer.py:206:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/events/insight_transfer.py:254:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/ingestion/clickhouse_outbox.py:112:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 5
+      },
+      {
+        "site": "services/ingestion/clickhouse_outbox.py:198:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 5
+      },
+      {
+        "site": "services/ingestion/clickhouse_outbox.py:219:12",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 5
+      },
+      {
+        "site": "services/ingestion/clickhouse_outbox.py:266:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 5
+      },
+      {
+        "site": "services/ingestion/clickhouse_outbox.py:70:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 5
+      },
+      {
+        "site": "services/ingestion/clickhouse_outbox.py:88:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 5
+      },
+      {
+        "site": "services/ingestion/data_freshness.py:114:4",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/ingestion/mqtt_actuator.py:148:4",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/ingestion/sensor_ingester.py:465:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      }
+    ],
+    "static_effects_complete": false
+  },
+  "database_checks": {
+    "runtime_role_attributes_and_grants": "not_assessed",
+    "migration_prerequisites_and_drift": "not_assessed",
+    "pending_tenant_ownership_mappings": "not_assessed",
+    "active_persisted_schedule_contracts": "not_assessed",
+    "rls_readiness": "not_ready"
+  },
+  "limitations": [
+    "A SQL site outside the current worker-root graph is not proven dead or unreachable.",
+    "The known EventBus allowlisted handler dispatch is represented as separate operation roots; other dynamic callbacks may remain.",
+    "This static report is not a database ACL, tenant policy, or authorization decision.",
+    "No database, migration, or secret was accessed."
+  ]
+}

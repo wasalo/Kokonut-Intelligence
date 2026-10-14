@@ -31,7 +31,10 @@ unknown instance types, extension/provider and database behavior, worker
 identity and authorization are still open ([source closure](worker-source-closure.json),
 [SQL inventory](worker-sql-inventory.json), [function graph](worker-function-reachability.json),
 [SQL reachability](worker-sql-reachability.json); [function graph evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json),
-[SQL join evidence](builds/2026-10-14-recovery/worker-sql-reachability-check.json)).
+[SQL join evidence](builds/2026-10-14-recovery/worker-sql-reachability-check.json)). The static-only
+[worker boundary preflight](worker-boundary-preflight.json) adds three passing
+checks and keeps the RLS gate closed; live grants, migration state, active
+schedules, and owner mappings remain unassessed ([evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
 
 The current source-only telemetry slice keeps freshness-query identifiers in
 fixed maps, binds location values, and records unsupported configured sources

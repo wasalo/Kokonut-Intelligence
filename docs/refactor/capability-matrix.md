@@ -290,8 +290,10 @@ literal metrics-registry entries. Its SQL join has a static function path for
 from all current worker-root graphs, which does not prove they are dead code.
 This improves code review but is not an authorization boundary:
 other dynamic calls, existing task reconciliation, worker-specific identity,
-and RLS remain open. No MAN-CAP status or acceptance count changes
-([map](worker-operation-map.md); [function graph](worker-function-reachability.json); [SQL reachability](worker-sql-reachability.json); [worker check evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json); [SQL join evidence](builds/2026-10-14-recovery/worker-sql-reachability-check.json); [inventory evidence](builds/2026-10-14-recovery/worker-operation-map-check.json); [argument-contract evidence](builds/2026-10-14-recovery/scheduled-command-contract-check.json)).
+and RLS remain open. The new static-only boundary preflight reports all 17 roots
+as lacking signed tenant context and explicitly leaves live grants, migrations,
+active schedules, and ownership unassessed. No MAN-CAP status or acceptance
+count changes ([map](worker-operation-map.md); [function graph](worker-function-reachability.json); [SQL reachability](worker-sql-reachability.json); [static preflight](worker-boundary-preflight.json); [worker check evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json); [SQL join evidence](builds/2026-10-14-recovery/worker-sql-reachability-check.json); [preflight evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json); [inventory evidence](builds/2026-10-14-recovery/worker-operation-map-check.json); [argument-contract evidence](builds/2026-10-14-recovery/scheduled-command-contract-check.json)).
 
 **13 October 2026 OIDC configuration update (CAP-001 / CAP-053):** the optional
 OIDC overlay remains disabled unless explicitly selected. `.env.example` now

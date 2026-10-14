@@ -86,6 +86,8 @@ Commands:
 - Check optional provider import boundaries: `python3 scripts/check-provider-boundaries.py`
 - Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
 - Check worker direct function reachability: `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
+- Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
+- Check static worker boundary preflight: `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
 - Check worker SQL call inventory: `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
 - Capture static Kernel inventory: `python3 scripts/kernel-inventory.py --output docs/refactor/repository-inventory.json`
 - Start services with encrypted secrets: `source scripts/load-secrets.sh && docker compose up -d`
