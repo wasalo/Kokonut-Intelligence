@@ -4308,7 +4308,9 @@ populated ownership/transfer behavior, human retention/erasure disposition,
 RLS, seed-ledger reconciliation, and media/role/external-provider recovery
 remain open. The approved eight-suite platform-integrity suite passed all 279
 tests locally on pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
-Security #23 passed and CI #299 is in progress on that same pushed commit.
+Immediately before the current local batch, pushed commit
+`daf69fa4f6af2be1ffd906ef153c3e0b8916741f` had Security #25 pass and CI #301
+in progress; those checks do not cover this local batch.
 
 ### Isolated Field Collector browser offline acceptance — 14 October 2026
 
@@ -4341,3 +4343,20 @@ existing seed is adopted and no seed is applied; `064-068` is particularly
 sensitive because it contains pilot upserts and updates the seeded Adelphi
 location owner. See
 [preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json).
+
+### Curated seed ledger tracking — 14 October 2026
+
+The migration CLI now accepts an explicit repeated `--only-migration` list,
+validates each ID against the discovered sources, rejects duplicates and
+unknown IDs before applying anything, and preserves the supplied order. The
+curated `seed.sh` path now sends its existing reference-seed list through that
+transactional checksum-tracked runner; reference-only mode still omits the
+mobile-form seed. A pending 140_mobile_forms.sql refuses to claim pre-existing
+seed-form rows as its provenance, checking before a selected batch and again
+under a table lock in the seed transaction. The script was not executed against
+the candidate. Its five active forms and ten existing revisions still lack
+exact row-to-source parity and a ledger record, so that candidate state remains
+unadopted and no seed SQL was applied. Focused migration/upgrade checks and
+shell syntax validation are recorded with this source batch. The focused
+migration/upgrade suites passed 43 tests; Ruff, shell syntax, migration source
+validation for 503 files, and diff checks passed.

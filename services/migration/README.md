@@ -26,6 +26,28 @@ Without these options, legacy ambient Compose selection is preserved. These opti
 select the destination only; checksums, ordering, locks, and transaction handling
 remain enforced. No services are started by the migration CLI.
 
+## Explicit migration selection
+
+`migrate` accepts repeated `--only-migration` options for callers that own a
+reviewed subset, such as the curated reference seeds. IDs use the full discovered
+name, for example:
+
+```bash
+python3 -m services.migration migrate \
+  --only-migration seed:000_expense_categories.sql \
+  --only-migration seed:022_metric_governance.sql
+```
+
+The runner validates all discovered sources and applied checksums, rejects an
+unknown or duplicate selected ID before applying, and preserves the order of
+the supplied IDs. Omit the option to use the regular schema-first full plan.
+Selection does not resolve dependencies: apply required schema migrations
+first. The curated seed script does that in its schema-only pass.
+When the selected list includes seed:140_mobile_forms.sql, existing rows for
+its five form IDs block the selected batch before any member runs. The seed is
+checked again under a table lock in its transaction, so an existing form is
+never silently treated as historical evidence that the seed was applied.
+
 ## Audited historical checksum repair
 
 The runner rejects any applied migration whose recorded SHA256 differs from

@@ -6,10 +6,13 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All named MAN-CAP acceptance checks below remain **not run**; implementation and deployment progress are tracked separately in the new progress column. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links and audit history before/after the provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
-**Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** commit
-`33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118` is the latest pushed PR #68 head.
-The approved eight-suite platform-integrity suite passed all 279 tests locally
-on this commit; CI run #299 remains in progress and Security run #23 passed.
+**Previous pushed-head verification (CAP-001 / CAP-047 / CAP-053):** immediately
+before the current seed-ledger batch, PR #68 was at commit
+`daf69fa4f6af2be1ffd906ef153c3e0b8916741f`. CI run [#301](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38508099702)
+was in progress and Security run [#25](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38508099693)
+passed. This verification does not include the current local source batch. The
+approved eight-suite platform-integrity suite passed all 279 tests locally on
+the earlier pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus
 parity, worker/direct-database isolation, RLS, and named manual acceptance
@@ -33,10 +36,14 @@ re-enrollment remains open and RLS remains disabled
 **14 October 2026 seed-ledger preflight (CAP-053):** the migration runner
 previously omitted the range-prefixed `064-068_impact_network.sql`; source
 discovery now includes all 121 candidate-pending seeds and validates 503 total
-migration files. The existing candidate has five active mobile forms and ten
-revision rows without a `140_mobile_forms.sql` ledger row, while the curated
-`seed.sh` path currently executes its SQL outside the ledger. No seed was run
-or adopted because exact row-to-source parity has not been established; see the
+migration files. The curated `seed.sh` list now goes through selective ordered
+migration execution and checksummed ledger writes. A pending form seed refuses
+to claim existing matching rows as its provenance; the check runs before the
+curated batch and repeats under a table lock inside the seed transaction. The
+script was not run against the candidate. The candidate has five active mobile
+forms and ten revision rows without a `140_mobile_forms.sql` ledger row. No
+seed was run or adopted because
+exact row-to-source parity has not been established; see the
 [preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json).
 
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and

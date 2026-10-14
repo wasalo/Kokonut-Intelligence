@@ -21,6 +21,14 @@ PROJECT_DIR = Path(__file__).parent.parent.parent
 SCHEMA_DIR = PROJECT_DIR / "schemas" / "postgres"
 SEED_DIR = PROJECT_DIR / "schemas" / "seeds"
 SEED_VERSION_PREFIX = re.compile(r"^\d+(?:-\d+)?$")
+MOBILE_FORM_SEED_ID = "seed:140_mobile_forms.sql"
+MOBILE_FORM_SEED_IDS = (
+    "farm_activity_v1",
+    "harvest_v1",
+    "expense_v1",
+    "field_note_v1",
+    "soil_sample_v1",
+)
 # Canonical KI tables and migration tracking live in public; exclude "$user" so
 # a role-named schema cannot shadow public objects during migrations.
 MIGRATION_SEARCH_PATH = "public, topology, tiger"
@@ -445,6 +453,34 @@ def _migration_body_without_transaction(migration_id: str, sql_content: str) -> 
     ) + "\n"
 
 
+def _assert_no_existing_mobile_seed_rows() -> None:
+    """Do not record a non-destructive no-op as historical seed provenance."""
+    form_variables = {
+        f"mobile_form_id_{index}": form_id
+        for index, form_id in enumerate(MOBILE_FORM_SEED_IDS)
+    }
+    form_refs = ", ".join(
+        f":'mobile_form_id_{index}'" for index in range(len(MOBILE_FORM_SEED_IDS))
+    )
+    result = _psql(
+        f"""
+SELECT count(*)
+FROM public.mobile_form
+WHERE form_id = ANY(ARRAY[{form_refs}]::text[]);
+""",
+        form_variables,
+    )
+    try:
+        existing_forms = int(result.stdout.strip())
+    except (AttributeError, ValueError) as exc:
+        raise MigrationError("could not verify existing mobile-form seed state") from exc
+    if existing_forms:
+        raise MigrationError(
+            "refusing to apply seed:140_mobile_forms.sql over existing seeded forms "
+            "without an applied ledger row; reconcile the complete form and revision state first"
+        )
+
+
 def _apply_files(files: list[dict]) -> None:
     """Apply migrations one at a time, each in its own psql session.
 
@@ -461,6 +497,27 @@ def _apply_files(files: list[dict]) -> None:
     for file_info in files:
         migration_id = file_info["id"]
         logger.info("Applying migration %s...", migration_id)
+        precondition_sql = ""
+        if migration_id == MOBILE_FORM_SEED_ID:
+            form_ids = ", ".join(
+                "'" + form_id.replace("'", "''") + "'"
+                for form_id in MOBILE_FORM_SEED_IDS
+            )
+            precondition_sql = f"""
+LOCK TABLE public.mobile_form IN SHARE ROW EXCLUSIVE MODE;
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM public.mobile_form
+        WHERE form_id = ANY(ARRAY[{form_ids}]::text[])
+    ) THEN
+        RAISE EXCEPTION USING MESSAGE =
+            'refusing to apply seed:140_mobile_forms.sql over existing seeded forms without an applied ledger row; reconcile the complete form and revision state first';
+    END IF;
+END;
+$$;
+"""
         sql_content = _migration_body_without_transaction(
             migration_id, file_info["path"].read_text()
         )
@@ -489,6 +546,7 @@ SELECT EXISTS (
     SELECT pg_advisory_unlock(777204681);
 \\else
 BEGIN;
+{precondition_sql}
 {sql_content}
 {sql_track}
 COMMIT;
@@ -530,12 +588,35 @@ def cmd_status() -> None:
     print(f"\n{len(files)} total, {done} applied, {len(files) - done} pending")
 
 
-def cmd_migrate(dry_run: bool = False, schemas_only: bool = False) -> None:
+def cmd_migrate(
+    dry_run: bool = False,
+    schemas_only: bool = False,
+    only_migrations: list[str] | None = None,
+) -> None:
     files, applied = _load_state(include_seeds=not schemas_only)
+    if only_migrations is not None:
+        if not only_migrations:
+            raise MigrationError("--only-migration requires at least one migration ID")
+        if len(set(only_migrations)) != len(only_migrations):
+            raise MigrationError("--only-migration IDs must be unique")
+        by_id = {item["id"]: item for item in files}
+        missing = [migration_id for migration_id in only_migrations if migration_id not in by_id]
+        if missing:
+            raise MigrationError(
+                "selected migration IDs were not discovered: " + ", ".join(missing)
+            )
+        files = [by_id[migration_id] for migration_id in only_migrations]
     pending = [
         item for item in files
         if applied.get(item["id"], {}).get("status") != "applied"
     ]
+    if (
+        only_migrations is not None
+        and any(item["id"] == MOBILE_FORM_SEED_ID for item in pending)
+    ):
+        # Refuse before earlier members of a curated batch can run; _apply_files
+        # repeats the check under a table lock immediately before this seed.
+        _assert_no_existing_mobile_seed_rows()
     if not pending:
         print("All migrations already applied.")
         return
@@ -595,9 +676,17 @@ def main() -> None:
         action="store_true",
         help="Apply only PostgreSQL schema migrations, excluding seed data",
     )
+    parser.add_argument(
+        "--only-migration",
+        action="append",
+        dest="only_migrations",
+        help="Apply only this discovered migration ID (repeat to preserve an explicit order)",
+    )
     args = parser.parse_args()
     try:
         configure_compose(args.compose_project, args.compose_file)
+        if args.only_migrations and args.command != "migrate":
+            raise MigrationError("--only-migration is supported only by the migrate command")
         if args.command == "status":
             cmd_status()
         elif args.command == "validate":
@@ -622,7 +711,10 @@ def main() -> None:
         elif args.command in {"plan", "dry-run"}:
             cmd_plan(schemas_only=args.schemas_only)
         else:
-            cmd_migrate(schemas_only=args.schemas_only)
+            cmd_migrate(
+                schemas_only=args.schemas_only,
+                only_migrations=args.only_migrations,
+            )
     except MigrationError as exc:
         logger.error("Migration failed: %s", exc)
         raise SystemExit(1) from exc

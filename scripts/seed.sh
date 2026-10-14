@@ -49,7 +49,8 @@ if [ "$REFERENCE_ONLY" = "false" ]; then
     docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" psql -v ON_ERROR_STOP=1 -U kokonut -d kokonut_intelligence < "$PROJECT_DIR/config/postgres/extensions.sql"
 
     # Apply PostgreSQL schema migrations through the checksum-tracked runner.
-    # Seed data is selected explicitly in CURATED_SEEDS below.
+    # Seed data is selected explicitly in CURATED_SEEDS below and uses the same
+    # checksum ledger after schema application.
     echo ""
     echo "Applying PostgreSQL schema migrations..."
     python3 -m services.migration migrate --schemas-only
@@ -124,12 +125,15 @@ if [ "$REFERENCE_ONLY" = "false" ]; then
     CURATED_SEEDS+=("schemas/seeds/140_mobile_forms.sql")
 fi
 
+CURATED_MIGRATIONS=()
 for seed_file in "${CURATED_SEEDS[@]}"; do
-    echo ""
-    echo "Seeding ${seed_file##*/}..."
-    psql_exec "$PROJECT_DIR/$seed_file"
-    echo "${seed_file##*/} seeded."
+    CURATED_MIGRATIONS+=(--only-migration "seed:${seed_file##*/}")
 done
+
+echo ""
+echo "Applying ${#CURATED_SEEDS[@]} explicitly selected seed migration(s)..."
+python3 -m services.migration migrate "${CURATED_MIGRATIONS[@]}"
+echo "Curated seed migrations applied successfully."
 fi
 
 echo ""

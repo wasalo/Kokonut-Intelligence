@@ -241,6 +241,79 @@ def test_apply_batch_folds_explicit_transaction_into_atomic_ledger_write(tmp_pat
     assert apply_sql.index("INSERT INTO schema_migration") < apply_sql.index("COMMIT;")
 
 
+def test_mobile_form_seed_locks_and_rejects_untracked_existing_seed_forms(tmp_path, monkeypatch):
+    migration = _sql_file(
+        tmp_path / "140_mobile_forms.sql",
+        "INSERT INTO mobile_form VALUES ('test');",
+    )
+    calls = []
+
+    def fake_psql(sql, variables=None):
+        calls.append((sql, variables))
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+    cli._apply_files([{
+        "id": cli.MOBILE_FORM_SEED_ID,
+        "name": "140_mobile_forms",
+        "path": migration,
+        "checksum": "abc",
+    }])
+
+    guarded_sql = calls[0][0]
+    assert "LOCK TABLE public.mobile_form IN SHARE ROW EXCLUSIVE MODE" in guarded_sql
+    assert "refusing to apply seed:140_mobile_forms.sql" in guarded_sql
+    assert guarded_sql.index("LOCK TABLE") < guarded_sql.index("INSERT INTO mobile_form")
+    assert guarded_sql.index("INSERT INTO mobile_form") < guarded_sql.index("INSERT INTO schema_migration")
+
+
+def test_curated_migrate_preflights_mobile_forms_before_applying_batch(monkeypatch):
+    files = [
+        {"id": "seed:000_reference.sql"},
+        {"id": cli.MOBILE_FORM_SEED_ID},
+    ]
+    applied_files = []
+    calls = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    def fake_psql(sql, variables=None):
+        calls.append((sql, variables))
+        return subprocess.CompletedProcess([], 0, "2\n", "")
+
+    monkeypatch.setattr(cli, "_psql", fake_psql)
+
+    with pytest.raises(cli.MigrationError, match="existing seeded forms"):
+        cli.cmd_migrate(
+            only_migrations=["seed:000_reference.sql", cli.MOBILE_FORM_SEED_ID]
+        )
+
+    assert applied_files == []
+    assert len(calls) == 1
+    assert "public.mobile_form" in calls[0][0]
+    assert calls[0][1] == {
+        f"mobile_form_id_{index}": form_id
+        for index, form_id in enumerate(cli.MOBILE_FORM_SEED_IDS)
+    }
+
+
+def test_curated_migrate_allows_empty_mobile_form_state(monkeypatch, capsys):
+    files = [{"id": cli.MOBILE_FORM_SEED_ID}]
+    applied_files = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(
+        cli,
+        "_psql",
+        lambda sql, variables=None: subprocess.CompletedProcess([], 0, "0\n", ""),
+    )
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    cli.cmd_migrate(only_migrations=[cli.MOBILE_FORM_SEED_ID])
+
+    assert [item["id"] for item in applied_files] == [cli.MOBILE_FORM_SEED_ID]
+    assert "Applying 1 migration(s)" in capsys.readouterr().out
+
+
 def test_transaction_wrapper_rejects_unmatched_boundary():
     with pytest.raises(cli.MigrationError, match="unsupported transaction boundaries"):
         cli._migration_body_without_transaction("schema:001_bad.sql", "BEGIN;\nSELECT 1;\n")
@@ -256,6 +329,45 @@ def test_plan_does_not_initialize_or_reconcile_tracking(monkeypatch):
     cli.cmd_plan()
 
     assert calls == ["validate", "checksums"]
+
+
+def test_migrate_applies_only_requested_ids_in_requested_order(monkeypatch, capsys):
+    files = [
+        {"id": "schema:001_schema.sql"},
+        {"id": "seed:010_first.sql"},
+        {"id": "seed:020_second.sql"},
+    ]
+    applied_files = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    cli.cmd_migrate(only_migrations=["seed:020_second.sql", "seed:010_first.sql"])
+
+    assert [item["id"] for item in applied_files] == [
+        "seed:020_second.sql",
+        "seed:010_first.sql",
+    ]
+    assert "Applying 2 migration(s)" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("selected", "error"),
+    [
+        (["seed:010_first.sql", "seed:010_first.sql"], "must be unique"),
+        (["seed:missing.sql"], "were not discovered"),
+        ([], "requires at least one"),
+    ],
+)
+def test_migrate_rejects_invalid_selected_ids_before_apply(monkeypatch, selected, error):
+    files = [{"id": "seed:010_first.sql"}]
+    applied_files = []
+    monkeypatch.setattr(cli, "_load_state", lambda include_seeds: (files, {}))
+    monkeypatch.setattr(cli, "_apply_files", applied_files.extend)
+
+    with pytest.raises(cli.MigrationError, match=error):
+        cli.cmd_migrate(only_migrations=selected)
+
+    assert applied_files == []
 
 
 def test_modified_applied_migration_is_rejected():

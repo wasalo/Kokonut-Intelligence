@@ -55,6 +55,14 @@ def test_reference_only_seed_mode_skips_schema_bootstrap():
     assert "services.migration migrate --schemas-only" in source
 
 
+def test_curated_seeds_use_ordered_migration_ledger():
+    source = (SCRIPTS / "seed.sh").read_text(encoding="utf-8")
+
+    assert 'CURATED_MIGRATIONS+=(--only-migration "seed:${seed_file##*/}")' in source
+    assert 'services.migration migrate "${CURATED_MIGRATIONS[@]}"' in source
+    assert 'psql_exec "$PROJECT_DIR/$seed_file"' not in source
+
+
 def test_upgrade_docs_define_maintenance_window_and_manual_rollback():
     source = (PROJECT_ROOT / "docs" / "upgrades.md").read_text(encoding="utf-8")
 
