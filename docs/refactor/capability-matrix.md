@@ -13,14 +13,14 @@ acceptance rows.
 
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** seed
 replay/bootstrap evidence is at PR #68 head
-`8aa33e24f169f15afb249a53ae3d281ed8d843a2`. CI run [#304](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715581)
-completed with 5 failures, 4,632 passed tests, and 75 passed subtests; the
-failure causes are tracked in the current local fix batch. Security run [#28](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715446)
-passed. The current local updates are not part of those checks.
-The approved eight-suite platform-integrity suite passed 288 tests locally
-on commit `1c0084513b157bb99468d4c650e269c57e243c96`. CI #304 failed five
-cases; the local fix batch passes the targeted regressions and full operator
-auth/Compose suites, but has not yet been pushed or covered by CI
+`7b155cb705cb03895bba9a16b3ab07937502bb68`. CI run [#305](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38577274192)
+is in progress and Security run [#29](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38577274372)
+passed. The preceding CI #304 on `8aa33e24f169f15afb249a53ae3d281ed8d843a2`
+completed with five failures, 4,632 passed tests, and 75 passed subtests; the
+local fix batch passes 10 targeted regression cases and 72 full operator-auth
+and Compose tests. The approved eight-suite platform-integrity suite passed
+288 tests locally on `1c0084513b157bb99468d4c650e269c57e243c96`. Capability
+completion remains open until CI #305 passes
 ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 The focused reviewer-note service/auth slice also passed 14 service and three
@@ -50,7 +50,10 @@ and `POST /api/mobile/register`. Sixteen offline registration/queue checks and
 50 mobile API/form-validation checks passed; Ruff and Python syntax checks are
 clean. The legacy queue and sync path remains transport-only and unassessed.
 MAN-CAP-053 stays partial pending live OIDC and reconnect, human disposition,
-tenant/RLS, and retention acceptance.
+tenant/RLS, and retention acceptance. The source-only
+[tenant/RLS call-site audit](mobile-tenant-rls-callsite-audit.md) records why
+pre-context device/enrollment lookups and non-OIDC mutation paths must be
+closed before enabling row policies.
 
 **14 October 2026 seed-ledger preflight (CAP-053):** the migration runner
 previously omitted the range-prefixed `064-068_impact_network.sql`; source

@@ -22,8 +22,10 @@ and five failures. The local fix batch updates tenant-aware test contracts,
 makes operator enrollment denials explicitly non-cacheable, and corrects seed
 ordering and OIDC Compose assertions. The five CI regressions pass locally; the
 full operator-auth and Compose suites pass 72 tests, and Ruff/Python syntax
-checks are clean. Security run #28 passed. These local changes have not yet
-been pushed or checked by CI ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
+checks are clean. Security run #28 passed. The fix batch is pushed in
+`7b155cb705cb03895bba9a16b3ab07937502bb68`; CI #305 is in progress and Security #29 passed, so the local results still
+need remote CI confirmation
+([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 ## Phase ledger
 
@@ -4425,6 +4427,17 @@ selected form/service row counts matched, and its scratch project and volume
 were removed. The exact 30-seed scope, 90 deferred sources, candidate
 baseline, and rollback path are recorded. No seed SQL has run on the candidate
 during this preflight ([bootstrap evidence](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json); [rollout preflight](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json)).
+
+### Tenant/RLS call-site audit — 14 October 2026
+
+A source-only audit mapped device-token lookup, one-time enrollment redemption,
+tenant-scoped device queries, OIDC and API-key operator mutations, the legacy
+transport CLI, preflight inventory, Directus, and legacy mobile views. It found
+pre-context bearer-credential lookups plus capability/API-key mutation routes
+without operator tenant context; the legacy CLI also has unscoped queue/list/
+sync commands. The audit records the closure sequence and role boundary before
+RLS. No RLS was enabled and no database state changed
+([audit](mobile-tenant-rls-callsite-audit.md)).
 
 ### Legacy mobile registration guard — 14 October 2026
 

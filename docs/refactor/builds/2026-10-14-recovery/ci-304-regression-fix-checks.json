@@ -42,5 +42,5 @@
     "python_compile": "passed",
     "git_diff_check": "passed"
   },
-  "remaining_gate": "Push this batch and obtain a fresh green CI run; current local changes are not covered by run 304."
+  "remaining_gate": "Commit 7b155cb705cb03895bba9a16b3ab07937502bb68 was pushed to PR #68. CI #305 (run 38577274192) is in progress; Security #29 (run 38577274372) passed. Wait for CI #305 to complete successfully."
 }
