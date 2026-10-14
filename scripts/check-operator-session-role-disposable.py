@@ -17,13 +17,17 @@ import psycopg2
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 FIXTURE = ROOT / "tests/fixtures/operator_tenant_context_disposable.sql"
+MOBILE_ROLE_FIXTURE = ROOT / "tests/fixtures/operator_session_mobile_role_boundary.sql"
 MIGRATIONS = (
+    ROOT / "schemas/postgres/391_mobile_device_tenant_binding.sql",
+    ROOT / "schemas/postgres/392_mobile_credential_functions.sql",
+    ROOT / "schemas/postgres/393_mobile_tenant_context_proof.sql",
     ROOT / "schemas/postgres/394_signed_operator_tenant_context.sql",
     ROOT / "schemas/postgres/395_operator_session_auth_boundary.sql",
 )
 DEFAULT_OUTPUT = (
     ROOT
-    / "docs/refactor/builds/2026-10-14-recovery/operator-session-role-disposable.json"
+    / "docs/refactor/builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json"
 )
 OPERATOR_ID = "a0000000-0000-0000-0000-000000000901"
 ISSUER = "https://identity.example"
@@ -160,8 +164,95 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
             )
             if cursor.rowcount != 1:
                 raise AssertionError("runtime role could not delete its unrelated probe row")
+            cursor.execute(
+                """SELECT device_id, device_name, status, last_sync_at
+                     FROM public.mobile_device WHERE device_id = 'role-boundary-device'"""
+            )
+            if cursor.fetchone()[0] != "role-boundary-device":
+                raise AssertionError("runtime role lost safe mobile-device reads")
+            cursor.execute(
+                """SELECT device_id, user_id, location_id, owner_binding_current
+                     FROM kokonut_security.resolve_mobile_device_token(%s)""",
+                ("a" * 64,),
+            )
+            resolved = cursor.fetchone()
+            if resolved != (
+                "role-boundary-device",
+                "synthetic-user",
+                "a0000000-0000-0000-0000-000000000001",
+                True,
+            ):
+                raise AssertionError("runtime role could not resolve a current device token via the bounded function")
+            cursor.execute(
+                """SELECT result, registered_location_id::text
+                     FROM kokonut_security.redeem_mobile_enrollment(
+                         %s, %s, %s, %s, NULL, NULL, %s, %s
+                     )""",
+                (
+                    "b" * 64,
+                    "role-boundary-registered-device",
+                    "Synthetic enrolled device",
+                    "phone",
+                    "1.0.0",
+                    "e" * 64,
+                ),
+            )
+            if cursor.fetchone() != (
+                "registered",
+                "a0000000-0000-0000-0000-000000000001",
+            ):
+                raise AssertionError("runtime role could not redeem a current owner-bound enrollment")
+            cursor.execute(
+                """UPDATE public.mobile_device
+                      SET last_seen_at = NOW(), updated_at = NOW()
+                    WHERE device_id = 'role-boundary-device'"""
+            )
+            if cursor.rowcount != 1:
+                raise AssertionError("runtime role lost the Field Collector last-seen update")
+            cursor.execute(
+                """INSERT INTO public.mobile_device_enrollment (
+                       code_hash, user_id, location_id, tenant_organization_id,
+                       created_by, expires_at
+                   ) VALUES (
+                       repeat('c', 64), 'synthetic-user',
+                       'a0000000-0000-0000-0000-000000000001',
+                       'a0000000-0000-0000-0000-000000000801',
+                       'synthetic-operator', NOW() + INTERVAL '30 minutes'
+                   ) RETURNING id, expires_at"""
+            )
+            enrollment_id, expires_at = cursor.fetchone()
+            if enrollment_id is None or expires_at is None:
+                raise AssertionError("runtime role lost enrollment issuance columns")
+            cursor.execute(
+                """UPDATE public.mobile_device_enrollment
+                      SET revoked_at = NOW()
+                    WHERE id = %s AND used_at IS NULL AND revoked_at IS NULL
+                    RETURNING id""",
+                (enrollment_id,),
+            )
+            if cursor.fetchone()[0] != enrollment_id:
+                raise AssertionError("runtime role lost enrollment revocation columns")
+            cursor.execute(
+                """UPDATE public.mobile_device
+                      SET status = 'revoked', device_token_hash = NULL,
+                          revoked_at = NOW(), updated_at = NOW()
+                    WHERE device_id = 'role-boundary-device' AND status = 'active'
+                    RETURNING device_id"""
+            )
+            if cursor.fetchone()[0] != "role-boundary-device":
+                raise AssertionError("runtime role lost device revocation columns")
         runtime.commit()
         for statement in (
+            "SELECT device_token_hash FROM public.mobile_device LIMIT 1",
+            "SELECT push_token FROM public.mobile_device LIMIT 1",
+            "SELECT device_id FROM public.mobile_device WHERE device_token_hash = repeat('a', 64)",
+            "SELECT * FROM public.mobile_device LIMIT 1",
+            "INSERT INTO public.mobile_device (device_id) VALUES ('runtime-device')",
+            "DELETE FROM public.mobile_device WHERE device_id = 'role-boundary-device'",
+            "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1",
+            "SELECT * FROM public.mobile_device_enrollment LIMIT 1",
+            "UPDATE public.mobile_device_enrollment SET code_hash = repeat('d', 64)",
+            "DELETE FROM public.mobile_device_enrollment WHERE id = 'a0000000-0000-0000-0000-000000000111'",
             "SELECT session_token_hash FROM public.operator_session LIMIT 1",
             "INSERT INTO public.operator_session (operator_id, session_token_hash, csrf_token_hash, expires_at) VALUES ('a0000000-0000-0000-0000-000000000901', repeat('8', 64), repeat('7', 64), NOW() + INTERVAL '30 minutes')",
             "UPDATE public.operator_session SET revoked_at = NOW() WHERE session_token_hash = repeat('b', 64)",
@@ -200,6 +291,8 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
                 raise AssertionError("operator-auth login could not create a bounded session")
         auth.commit()
         expect_privilege_denial(auth, "SELECT session_token_hash FROM public.operator_session LIMIT 1")
+        expect_privilege_denial(auth, "SELECT device_token_hash FROM public.mobile_device LIMIT 1")
+        expect_privilege_denial(auth, "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1")
         with auth.cursor() as cursor:
             cursor.execute(
                 "SELECT kokonut_security.revoke_operator_session(%s::uuid)",
@@ -219,6 +312,10 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
     return [
         "runtime role cannot SELECT, INSERT, UPDATE, or DELETE operator_session rows or columns",
         "runtime role cannot execute operator-session functions",
+        "runtime role cannot read device-token, push, or enrollment-code credentials",
+        "runtime role retains only the mobile device/enrollment columns used by current API handlers",
+        "runtime login can call bounded token-resolution and enrollment-redemption functions",
+        "operator-auth role has no direct mobile credential table access",
         "runtime role retains DML and sequence access on other public tables",
         "dedicated operator-auth role has no direct operator_session privileges",
         "dedicated operator-auth role authenticates, creates, and revokes via bounded functions",
@@ -261,6 +358,7 @@ def main() -> int:
         started = True
         wait_ready(container)
         docker_sql(container, FIXTURE.read_text())
+        docker_sql(container, MOBILE_ROLE_FIXTURE.read_text())
         docker_sql(
             container,
             """CREATE TABLE public.operator_session_runtime_probe (
@@ -287,6 +385,9 @@ def main() -> int:
             "checked_at": datetime.now(timezone.utc).isoformat(),
             "database": "PostgreSQL 16 disposable container on a bridge without outbound NAT",
             "migrations": [
+                "391_mobile_device_tenant_binding.sql",
+                "392_mobile_credential_functions.sql",
+                "393_mobile_tenant_context_proof.sql",
                 "394_signed_operator_tenant_context.sql",
                 "395_operator_session_auth_boundary.sql",
                 "395_operator_session_auth_boundary.sql (idempotency replay)",
@@ -302,7 +403,7 @@ def main() -> int:
             "candidate_application_table_rls_enabled": False,
             "disposable_operator_table_rls_forced": True,
             "synthetic_rows_remaining": 0,
-            "scope_limit": "Verifies the general runtime role cannot read or create browser sessions, while a distinct operator-auth login can use the narrow SECURITY DEFINER session API. It does not establish the final application-table runtime role allowlist or enable candidate RLS.",
+            "scope_limit": "Verifies the general runtime role cannot read browser or mobile credential material and retains only declared mobile-table columns required by current API handlers. This is not the final application-table allowlist, database-verified Gateway capability, Directus boundary, or candidate RLS acceptance.",
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n")

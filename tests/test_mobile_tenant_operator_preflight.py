@@ -84,7 +84,7 @@ def _location_row():
 def _unlocated_row():
     return {
         "mobile_device_count": 0,
-        "active_unlocated_token_device_count": 0,
+        "active_unlocated_device_count": 0,
         "pending_unlocated_unbound_enrollment_count": 0,
         "mobile_collection_count": 0,
         "report_snapshot_count": 0,

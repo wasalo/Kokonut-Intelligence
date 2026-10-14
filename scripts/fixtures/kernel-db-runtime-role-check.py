@@ -25,6 +25,10 @@ OPERATOR_SESSION_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "schemas/postgres/395_operator_session_auth_boundary.sql"
 )
+MOBILE_ROLE_FIXTURE = (
+    Path(__file__).resolve().parents[2]
+    / "tests/fixtures/operator_session_mobile_role_boundary.sql"
+)
 
 
 def connect(user: str, password: str, database: str = DATABASE):
@@ -61,6 +65,8 @@ def main() -> None:
                 cur.execute(f'CREATE DATABASE "{UNRELATED_DATABASE}"')
             cur.execute("DROP TABLE IF EXISTS public.kernel_role_probe_existing CASCADE")
             cur.execute("DROP TABLE IF EXISTS public.kernel_role_probe_future CASCADE")
+            cur.execute("DROP TABLE IF EXISTS public.mobile_device_enrollment CASCADE")
+            cur.execute("DROP TABLE IF EXISTS public.mobile_device CASCADE")
             cur.execute(
                 """CREATE TABLE IF NOT EXISTS public.operator_identity (
                        id UUID PRIMARY KEY,
@@ -87,6 +93,7 @@ def main() -> None:
                    )"""
             )
             cur.execute(OPERATOR_SESSION_MIGRATION.read_text())
+            cur.execute(MOBILE_ROLE_FIXTURE.read_text())
             cur.execute(
                 """
                 CREATE TABLE public.kernel_role_probe_existing (
@@ -154,6 +161,9 @@ def main() -> None:
                 cur.execute("DELETE FROM public.kernel_role_probe_future WHERE id = %s", (future_id,))
 
             for statement in (
+                "SELECT device_token_hash FROM public.mobile_device LIMIT 1",
+                "SELECT push_token FROM public.mobile_device LIMIT 1",
+                "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1",
                 "CREATE TABLE public.kernel_role_probe_forbidden (id INTEGER)",
                 "CREATE ROLE kernel_role_probe_forbidden LOGIN",
                 "CREATE DATABASE kernel_role_probe_forbidden",

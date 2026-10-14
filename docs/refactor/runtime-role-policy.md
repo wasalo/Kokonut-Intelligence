@@ -1,9 +1,9 @@
 # PostgreSQL runtime-role policy
 
-Status: opt-in application and operator-auth roles are implemented. The
-session-table boundary passed a disposable PostgreSQL 16 forced-RLS check;
-existing synthetic and populated-restore role checks are being updated for the
-new migration and second credential. Separate Directus, Metabase metadata, and
+Status: opt-in application and operator-auth roles are implemented. Operator
+session and mobile credential boundaries passed disposable PostgreSQL 16 role
+checks, including forced RLS for the session functions; the synthetic and
+populated-restore role fixtures use the second credential. Separate Directus, Metabase metadata, and
 analytics-source role boundaries also passed on isolated populated copies. No
 live candidate, portability, or legacy database was modified. Metabase
 dashboard/source parity and full domain-workflow acceptance remain open; see
@@ -26,10 +26,15 @@ NOREPLICATION NOBYPASSRLS`, and refuses to reuse roles that own database
 objects. It removes their role memberships, revokes `PUBLIC CONNECT` on
 connectable databases and `CREATE` on the `public` schema, then grants both
 roles `CONNECT` only to the selected database. The runtime role receives
-`USAGE` on `public`, DML on public tables except `operator_session`, sequence
-use, and matching default DML/sequence grants. It has no table or column
-privileges on `operator_session` and cannot execute the operator-session
-functions.
+`USAGE` on `public`, default DML on public tables, and sequence use. The two
+mobile credential tables replace that broad table grant with explicit column
+grants: the app can read non-credential device and enrollment fields and
+perform only the writes used by current mobile handlers. It cannot read
+`mobile_device.device_token_hash`, `mobile_device.push_token`, or
+`mobile_device_enrollment.code_hash`; it cannot insert or delete devices,
+delete enrollments, or edit enrollment credential hashes. Operator sessions
+have no table or column privileges and their functions cannot be executed by
+the general runtime role.
 
 Migration 395 creates a `NOLOGIN` function owner with only the table and column
 rights needed for session creation, authentication, and revocation. The
@@ -43,11 +48,14 @@ its session-creation function can issue sessions for provisioned enabled
 identities.
 
 The remaining runtime DML grant spans public tables other than operator
-sessions. It only removes PostgreSQL owner/admin powers; it does not replace
-gateway authorization, row/field controls, or service-specific review rules.
-Other services that share this dedicated database need separately reviewed
-grants. Do not run this bootstrap against the legacy stack or a database shared
-with unrelated applications.
+sessions and the two mobile credential tables. Mobile enrollment insertion and
+device token revocation remain possible through the shared runtime role, so
+this is not yet a database-verified Gateway capability boundary. It also does
+not replace gateway authorization, row/field controls, or service-specific
+review rules. Workers, the legacy CLI, Directus, views, and all other public
+tables still need separately reviewed grants before RLS. Do not run this
+bootstrap against the legacy stack or a database shared with unrelated
+applications.
 
 The grant boundary is for the native Kernel app and its workers. The current
 legacy `docker-compose.yml` runs Directus with `DB_USER=kokonut` and
@@ -120,6 +128,18 @@ while Metabase app startup is tracked separately. The repeatable runner is
 `docker-compose.kernel-recovery-populated-role.yml`; it attaches to the
 internal-only network of the separate recovery project.
 
+The 14 October mobile credential role acceptance verified that direct
+`SELECT`, `SELECT *`, and hash predicates cannot read device-token, push, or
+enrollment-code credentials; representative last-seen, enrollment issuance,
+enrollment revocation, and device revocation SQL continue to work. The actual
+runtime login also called the existing bounded token resolver and one-time
+enrollment redemption functions successfully. See
+[mobile role evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).
+The tenant-preflight inventory no longer queries credential columns and labels
+its aggregate count as active unbound devices rather than inferring token
+presence. This acceptance did not exercise Gateway handlers through the runtime
+login, roll the role out to the candidate, or enable application-table RLS.
+
 Both fixtures ran without published ports or network egress. Their database
 containers are stopped and named volumes retained. The current candidate remains
 healthy and owner-backed; legacy services remain stopped. No candidate or legacy
@@ -135,4 +155,5 @@ rather than granting broad access without an inventory of affected roles.
 Machine evidence: [synthetic role isolation](builds/2026-10-11-recovery/runtime-role-isolation.json),
 [populated restore check](builds/2026-10-11-recovery/runtime-role-populated-restore.json),
 [optional consumer role boundaries](builds/2026-10-11-recovery/optional-consumer-db-roles.json),
-[operator-session role boundary](builds/2026-10-14-recovery/operator-session-role-disposable.json).
+[operator-session role boundary](builds/2026-10-14-recovery/operator-session-role-disposable.json),
+[mobile credential role boundary](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).

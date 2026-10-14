@@ -12,18 +12,20 @@ Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** PR #68 is
-at `333507e844cd3937761087f1e7e03f895c509250`. CI run [#306](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311928)
-passed and Security run [#30](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311940)
-passed. The local branch has unpushed work after `333507e`, including commit
-`96594f4` and the migration 395 session-role slice. None of this batch is
-covered by CI #306.
+open at `35bf8b31ced47f8a35a7692f305c70bc0ea577c0`. CI run [#306](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311928)
+and Security run [#30](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311940)
+passed on the earlier head `333507e844cd3937761087f1e7e03f895c509250`. The
+connected GitHub status endpoint returned no check contexts for `35bf8b3` at
+last inspection, so current-head CI is unverified. Local work after that pushed
+head includes the session-role commit and the ongoing mobile credential grant
+batch; neither is covered by CI #306.
 CI #305 was superseded by the newer push. The preceding CI #304 on
 `8aa33e24f169f15afb249a53ae3d281ed8d843a2` completed with five failures,
 4,632 passed tests, and 75 passed subtests; the local fix batch passes 10
 targeted regression cases and 72 full operator-auth and Compose tests. The
 approved eight-suite platform-integrity suite passed 288 tests locally on
 `1c0084513b157bb99468d4c650e269c57e243c96`. Capability completion remains
-open until the unpushed local commit and migration-393 batch receive their own passing CI run ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
+open until current branch work receives passing CI ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus
@@ -1241,5 +1243,19 @@ role and gives OIDC a separate bounded auth connection. Its isolated forced-RLS
 acceptance verifies read/write/mint denial for the runtime role and bounded
 session lifecycle for auth ([evidence](builds/2026-10-14-recovery/operator-session-role-disposable.json)).
 Gateway API-key context, workers, legacy CLI, Directus/views, broad runtime DML
-on other public tables (including mobile credential hashes), and candidate
-rollout remain open. Candidate stays at migration 391 under OFU-18.
+on other public tables, and candidate rollout remain open. Candidate stays at
+migration 391 under OFU-18.
+
+**14 October 2026 runtime mobile credential grants (CAP-053):** the app runtime
+now receives an explicit column allowlist on `mobile_device` and
+`mobile_device_enrollment`. It cannot read device-token, push, or enrollment
+hashes, use `SELECT *` across those tables, insert/delete devices, delete
+enrollments, or edit enrollment hashes. Safe handler SQL for device reads,
+enrollment issue/revoke, last-seen updates, and device revocation passed in a
+network-isolated PostgreSQL 16 role check. The runtime login also called the
+bounded token resolver and one-time enrollment redemption successfully. The
+  focused mobile/auth/migration set passed 148 tests; Ruff and 507-source
+migration validation passed. This check did not run the HTTP handlers through
+the runtime login and does not close DML on other public tables,
+database-verified Gateway capabilities, workers, legacy CLI, Directus/views,
+candidate rollout, or RLS ([policy](runtime-role-policy.md); [evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)).

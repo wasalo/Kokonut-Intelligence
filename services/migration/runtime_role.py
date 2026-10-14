@@ -23,6 +23,61 @@ _SESSION_FUNCTIONS = (
     "kokonut_security.authenticate_operator_session(text)",
     "kokonut_security.revoke_operator_session(uuid)",
 )
+_MOBILE_DEVICE_READ_COLUMNS = (
+    "id",
+    "device_id",
+    "device_name",
+    "device_type",
+    "os",
+    "os_version",
+    "app_version",
+    "location_id",
+    "user_id",
+    "has_camera",
+    "has_gps",
+    "has_offline",
+    "status",
+    "last_sync_at",
+    "last_seen_at",
+    "metadata",
+    "created_at",
+    "updated_at",
+    "revoked_at",
+    "tenant_organization_id",
+)
+_MOBILE_DEVICE_UPDATE_COLUMNS = (
+    "status",
+    "device_token_hash",
+    "revoked_at",
+    "updated_at",
+    "last_seen_at",
+    "last_sync_at",
+)
+_MOBILE_ENROLLMENT_READ_COLUMNS = (
+    "id",
+    "user_id",
+    "location_id",
+    "created_by",
+    "expires_at",
+    "used_at",
+    "consumed_device_id",
+    "revoked_at",
+    "created_at",
+    "tenant_organization_id",
+)
+_MOBILE_ENROLLMENT_INSERT_COLUMNS = (
+    "code_hash",
+    "user_id",
+    "location_id",
+    "tenant_organization_id",
+    "created_by",
+    "expires_at",
+)
+_MOBILE_ENROLLMENT_UPDATE_COLUMNS = ("revoked_at",)
+_MOBILE_CREDENTIAL_COLUMNS = {
+    "mobile_device": ("device_token_hash", "push_token"),
+    "mobile_device_enrollment": ("code_hash",),
+}
 
 
 def _role_identifier(value: str, label: str) -> sql.Identifier:
@@ -110,6 +165,125 @@ def _verify_role_attributes(cur, role_name: str) -> None:
         raise RuntimeError(f"{role_name} must not own database relations")
 
 
+def _apply_mobile_credential_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
+    """Replace broad runtime grants on mobile credentials with call-site grants."""
+    policies = {
+        "mobile_device": {
+            "select": _MOBILE_DEVICE_READ_COLUMNS,
+            "insert": (),
+            "update": _MOBILE_DEVICE_UPDATE_COLUMNS,
+        },
+        "mobile_device_enrollment": {
+            "select": _MOBILE_ENROLLMENT_READ_COLUMNS,
+            "insert": _MOBILE_ENROLLMENT_INSERT_COLUMNS,
+            "update": _MOBILE_ENROLLMENT_UPDATE_COLUMNS,
+        },
+    }
+    for table_name, grants in policies.items():
+        table_ident = sql.Identifier("public", table_name)
+        cur.execute(
+            "SELECT attname FROM pg_attribute "
+            "WHERE attrelid = to_regclass(%s) AND attnum > 0 AND NOT attisdropped",
+            (f"public.{table_name}",),
+        )
+        actual_columns = {row[0] for row in cur.fetchall()}
+        required_columns = set(_MOBILE_CREDENTIAL_COLUMNS[table_name])
+        for columns in grants.values():
+            required_columns.update(columns)
+        missing_columns = sorted(required_columns - actual_columns)
+        if not actual_columns or missing_columns:
+            raise RuntimeError(
+                f"{table_name} is missing columns required for the mobile credential boundary"
+            )
+
+        cur.execute(
+            sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
+                table_ident, runtime_ident
+            )
+        )
+        # Column grants survive a table-level REVOKE, so explicitly clear any
+        # grants left by an earlier provisioner version before applying the
+        # allowlist. Unknown future columns remain inaccessible until reviewed.
+        for column_name in sorted(actual_columns):
+            for privilege in ("SELECT", "INSERT", "UPDATE"):
+                cur.execute(
+                    sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                        sql.SQL(privilege),
+                        sql.Identifier(column_name),
+                        table_ident,
+                        runtime_ident,
+                    )
+                )
+        for privilege, columns in grants.items():
+            if not columns:
+                continue
+            cur.execute(
+                sql.SQL("GRANT {} ({}) ON TABLE {} TO {}").format(
+                    sql.SQL(privilege),
+                    sql.SQL(", ").join(sql.Identifier(column) for column in columns),
+                    table_ident,
+                    runtime_ident,
+                )
+            )
+
+    return {
+        "mobile_device": {
+            "select": list(_MOBILE_DEVICE_READ_COLUMNS),
+            "update": list(_MOBILE_DEVICE_UPDATE_COLUMNS),
+            "denied_select": list(_MOBILE_CREDENTIAL_COLUMNS["mobile_device"]),
+            "insert": [],
+            "delete": False,
+        },
+        "mobile_device_enrollment": {
+            "select": list(_MOBILE_ENROLLMENT_READ_COLUMNS),
+            "insert": list(_MOBILE_ENROLLMENT_INSERT_COLUMNS),
+            "update": list(_MOBILE_ENROLLMENT_UPDATE_COLUMNS),
+            "denied_select": list(
+                _MOBILE_CREDENTIAL_COLUMNS["mobile_device_enrollment"]
+            ),
+            "delete": False,
+        },
+    }
+
+
+def _verify_mobile_credential_boundary(cur, role_name: str) -> None:
+    checks = (
+        ("public.mobile_device", "device_id", "SELECT", True),
+        ("public.mobile_device", "device_token_hash", "SELECT", False),
+        ("public.mobile_device", "push_token", "SELECT", False),
+        ("public.mobile_device", "device_token_hash", "UPDATE", True),
+        ("public.mobile_device", "device_token_hash", "INSERT", False),
+        ("public.mobile_device_enrollment", "id", "SELECT", True),
+        ("public.mobile_device_enrollment", "code_hash", "SELECT", False),
+        ("public.mobile_device_enrollment", "code_hash", "INSERT", True),
+        ("public.mobile_device_enrollment", "code_hash", "UPDATE", False),
+        ("public.mobile_device_enrollment", "revoked_at", "UPDATE", True),
+    )
+    for table_name, column_name, privilege, expected in checks:
+        cur.execute(
+            "SELECT has_column_privilege(%s, %s, %s, %s)",
+            (role_name, table_name, column_name, privilege),
+        )
+        if cur.fetchone()[0] is not expected:
+            raise RuntimeError(
+                f"{role_name} has an unexpected {privilege} grant on "
+                f"{table_name}.{column_name}"
+            )
+    for table_name, privilege in (
+        ("public.mobile_device", "INSERT"),
+        ("public.mobile_device", "UPDATE"),
+        ("public.mobile_device", "DELETE"),
+        ("public.mobile_device_enrollment", "UPDATE"),
+        ("public.mobile_device_enrollment", "DELETE"),
+    ):
+        cur.execute(
+            "SELECT has_table_privilege(%s, %s, %s)",
+            (role_name, table_name, privilege),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(f"{role_name} retains table-wide {privilege} on {table_name}")
+
+
 def provision_runtime_role(
     conn,
     *,
@@ -123,10 +297,11 @@ def provision_runtime_role(
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
-    The runtime role keeps the existing all-table DML compatibility grant,
-    except it cannot inspect or mutate ``operator_session``. The dedicated
-    auth role can only execute the three bounded functions from migration 395.
-    This is scoped to a dedicated Kernel PostgreSQL instance.
+    The runtime role keeps all-table DML compatibility for the legacy schema,
+    except ``operator_session`` and mobile credential tables, which use
+    explicit least-privilege grants. The dedicated auth role can only execute
+    the three bounded functions from migration 395. This is scoped to a
+    dedicated Kernel PostgreSQL instance.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -214,6 +389,7 @@ def provision_runtime_role(
                 "GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO {}"
             ).format(admin_ident, runtime_ident)
         )
+        mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         cur.execute(
             sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}").format(auth_ident)
         )
@@ -317,6 +493,8 @@ def provision_runtime_role(
         if cur.fetchone()[0] is not True:
             raise RuntimeError("operator-auth role is missing a bounded session function grant")
 
+        _verify_mobile_credential_boundary(cur, runtime_user)
+
         cur.execute(
             """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
                  FROM pg_database
@@ -343,6 +521,12 @@ def provision_runtime_role(
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
+        "runtime_table_privilege_exceptions": {
+            "mobile_device": "explicit column allowlist; no table-wide INSERT, UPDATE, or DELETE",
+            "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
+            "operator_session": "bounded functions only",
+        },
+        "runtime_mobile_credential_privileges": mobile_credential_grants,
         "operator_session_access": "bounded functions only",
         "operator_auth_functions": ["create", "authenticate", "revoke"],
         "runtime_owns_relations": False,

@@ -1,14 +1,14 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Current candidate runtime: migrations 387–391 are applied (382 schemas, zero pending); one curated seed (`seed:140_mobile_forms.sql`) is recorded and 120 seed files remain pending. The five existing mobile forms and ten revisions now have reconciled seed-ledger history. Migration 391’s encrypted checkpoint and app-only rollout passed health and anonymous protected-route checks; a read-only follow-up confirms the migration checksum and 382-schema ledger, health 200, and protected review route 401. RLS remains disabled.** **Current implementation focus: the candidate serves Field Collector `1.2.0` schemas; Phase 7 source includes OIDC enrollment controls, a separate-grant Field Collector review queue, and append-only reviewer notes; the full clean replay passed and migrations 382–386 are now applied to the candidate; its app health and protected anonymous-access gates pass, while real OIDC remains unconfigured; browser checks cover mock-origin offline capture/reconnect plus candidate-Gateway sync and pending-badge refresh. A locked-browser local vault reset control is now implemented and visible in the candidate.** The vault reset confirmation was not invoked. The repository owner has since unlocked the existing browser vault; its home shows zero pending records and requests a new enrollment code because the synthetic server device was removed. The latest Batch 3 slice also adds a published-only farm-activity aggregate to the governed farm summary and extends `rework_rate_pct` with bounded source/rework provenance; actual report/snapshot/metric integration after all 375 ordered schema migrations replayed into disposable PostGIS 16 passes; the expanded Batch 3 suite passes 91 tests and Ruff, including location-scope and injected-event-failure unit checks. A real PostgreSQL workflow-event trigger failure now confirms transaction rollback after all 375 schema migrations; two simultaneous PostgreSQL duplicate-promotion calls passed; candidate migrations 383–385 and the app-only rollout from `f854d47` now pass local schema, health, and protected-route checks; higher-contention stress, real OIDC, and MAN-CAP-001 remain open. A rollback-only live PostgreSQL check confirms the consent eligibility view preserves post-collection withdrawal after regrant, and real Gateway HTTP checks reject both active and synthetic retired required-consent records after withdrawal/regrant without writes; browser consent handling, OS airplane mode, real OIDC/provider acceptance, and the remaining media, governance and retention gates remain open. The seeded retired `1.1.0` forms are `not_required`, so a reviewed synthetic retired revision was used for the latter policy branch. Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria. Current source adds OIDC-scoped canonical farm-activity queue/detail reads, console promotion/lifecycle controls, and migration-385 immutable-form-validated draft correction. The focused source suite passes 95 tests plus Ruff; all 376 ordered schema migrations and a synthetic edit/event-digest/append-only/rollback acceptance pass in disposable PostGIS 16. At the migration-385 rollout checkpoint, the candidate had 376 applied schemas and zero pending. A fresh age-encrypted checkpoint restored with matching migration fingerprints, extension versions, and workflow counts; only the app was rebuilt from `f854d47`. A retention-safety slice now blocks generic soft-delete policies for consent, Field Collector, private-media, and governed farm-activity tables; withdrawal still restricts use pending human disposition, and end-to-end erasure remains unimplemented. Health returned 200 and protected review, activity, and draft-edit routes returned 401; PostgreSQL, Metabase, and proxy stayed up. Configured OIDC, populated workflow acceptance, and MAN-CAP-001 remain open ([rollout](builds/2026-10-13-recovery/candidate-farm-activity-draft-edit-rollout.json)).
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `35bf8b31ced47f8a35a7692f305c70bc0ea577c0`. CI #306 and Security #30 passed for older head `333507e844cd3937761087f1e7e03f895c509250`; the connected GitHub status endpoint returned no contexts for `35bf8b3` at last inspection. Local migrations 392–395 have isolated PostgreSQL acceptance and remain gated from candidate rollout. The current runtime mobile credential grant batch passes disposable PostgreSQL acceptance and focused checks; it is uncommitted and has no CI coverage.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
-Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #68,
-based on the updated main branch. No merge or passing release CI is recorded. The
-root implementation plan remains intentionally
-ignored; this ledger and the [capability matrix](capability-matrix.md) provide
-repository-visible progress alongside it. Owner-only decisions and external
-acceptance inputs are collected in [Open Follow Ups](open-follow-ups.md).
+Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
+Do not treat the earlier CI result as coverage for the current branch head or
+uncommitted batch. The root implementation plan remains intentionally ignored;
+this ledger and the [capability matrix](capability-matrix.md) provide
+repository-visible progress alongside it. Owner decisions and external inputs
+are collected in [Open Follow Ups](open-follow-ups.md).
 
 The prescribed platform-integrity suite was rerun on local commit `1c00845`
 after the owner authorized ongoing verification: 288 tests passed across
@@ -4596,8 +4596,38 @@ Python compilation passed.
 
 The bootstrap now requires migration 395 and a separate generated auth
 credential. The repeatable synthetic/populated runtime-role fixtures and OIDC
-Compose configuration were updated but still need their full regression run.
-This is not candidate rollout or complete RLS readiness: runtime DML remains
-broad on other public tables, including mobile device-token and enrollment
-code hashes. Gateway API-key context, workers, legacy CLI, and Directus/view
+Compose configuration are updated. Mobile device/enrollment credential reads
+are now denied by the bootstrap's explicit column grants; this is not candidate
+rollout or complete RLS readiness. Runtime DML remains broad on other public
+tables, and Gateway API-key context, workers, legacy CLI, and Directus/view
 boundaries remain open. Candidate and legacy databases were untouched.
+### Runtime mobile credential column boundary — 14 October 2026
+
+The ordinary Kernel runtime bootstrap no longer leaves table-wide privileges
+on `mobile_device` and `mobile_device_enrollment`. Explicit column grants keep
+the current API SQL operations for non-secret reads, enrollment issue/revoke,
+device status/token revocation, and last-sync/last-seen updates. Direct reads of
+`device_token_hash`, `push_token`, and `code_hash` are denied, including
+`SELECT *` and predicates; device insertion, table-wide writes/deletes, and
+enrollment hash edits are denied. Future unknown columns remain ungranted until
+the allowlist is updated. The tenant preflight now reports active unbound
+devices without querying token hashes.
+
+The disposable PostgreSQL 16 check replayed migrations 391–395, provisioned
+the runtime and operator-auth roles twice through the current bootstrap, forced
+RLS on the operator identity/session fixture, and verified session functions
+plus the mobile column grants. The actual runtime login resolved an owner-bound
+device token and redeemed a single-use enrollment through the bounded
+PostgreSQL functions. Representative handler SQL for safe reads, last-seen
+updates, enrollment issue/revoke, and device revocation succeeded; direct
+credential reads and unauthorized table operations failed. The focused mobile,
+auth, and migration regression set passed 148 tests; Ruff passed, and all 507
+migration sources validated.
+Machine evidence is
+[runtime-mobile-credential-role-disposable.json](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).
+
+This does not run the HTTP handlers through the dedicated runtime login, prove
+database authorization for Gateway API-key requests, or close runtime DML on
+other public tables. Worker, legacy CLI, Directus/view, ownership, and final
+RLS gates remain open. No candidate or legacy database was changed; migrations
+392–395 remain under separately gated candidate rollout OFU-18.

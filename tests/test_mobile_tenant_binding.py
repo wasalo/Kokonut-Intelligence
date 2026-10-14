@@ -97,13 +97,13 @@ def test_preflight_reports_device_binding_counts_without_leaking_identifiers(mon
         **{field: 0 for field in tenant_preflight._TENANT_BINDING_COUNT_FIELDS},
         **{field: 0 for field in tenant_preflight._OPERATOR_ACCESS_COUNT_FIELDS},
         "tenant_unbound_device_count": 1,
-        "active_unbound_token_device_count": 1,
+        "active_unbound_device_count": 1,
         "owner_mismatch_device_count": 1,
         "pending_unbound_enrollment_count": 1,
     }
     unlocated_row = {
         "mobile_device_count": 0,
-        "active_unlocated_token_device_count": 0,
+        "active_unlocated_device_count": 0,
         "pending_unlocated_unbound_enrollment_count": 0,
         "mobile_collection_count": 0,
         "report_snapshot_count": 0,
@@ -121,9 +121,16 @@ def test_preflight_reports_device_binding_counts_without_leaking_identifiers(mon
 
     assert inventory["inventory_status"] == "complete"
     assert inventory["tenant_binding_totals_at_locations"]["tenant_unbound_device"] == 1
-    assert inventory["tenant_binding_totals_at_locations"]["active_unbound_token_device"] == 1
+    assert inventory["tenant_binding_totals_at_locations"]["active_unbound_device"] == 1
     assert inventory["tenant_binding_totals_at_locations"]["owner_mismatch_device"] == 1
     assert inventory["tenant_binding_totals_at_locations"]["pending_unbound_enrollment"] == 1
     assert inventory["locations"][0]["mobile_tenant_binding"]["tenant_unbound_device"] == 1
     assert location_id not in json.dumps(inventory)
     assert owner_id not in json.dumps(inventory)
+
+
+def test_preflight_inventory_does_not_read_mobile_credential_columns():
+    assert "device_token_hash" not in tenant_preflight._INVENTORY_SQL
+    assert "device_token_hash" not in tenant_preflight._UNLOCATED_SQL
+    assert "code_hash" not in tenant_preflight._INVENTORY_SQL
+    assert "push_token" not in tenant_preflight._INVENTORY_SQL

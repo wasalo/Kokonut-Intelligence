@@ -164,6 +164,13 @@ def main() -> int:
         expect_denied(runtime, "CREATE ROLE kernel_role_create_denied")
         expect_denied(runtime, "CREATE DATABASE kernel_role_create_denied")
         expect_denied(runtime, sql.SQL("SET ROLE {}").format(sql.Identifier(ADMIN_USER)).as_string(runtime))
+        mobile_credential_denials = (
+            "SELECT device_token_hash FROM public.mobile_device LIMIT 1",
+            "SELECT push_token FROM public.mobile_device LIMIT 1",
+            "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1",
+        )
+        for statement in mobile_credential_denials:
+            expect_denied(runtime, statement)
 
         denied_databases = []
         for other_database in ("postgres", "kokonut_intelligence"):
@@ -207,6 +214,11 @@ def main() -> int:
                         "CREATE ROLE",
                         "CREATE DATABASE",
                         "SET ROLE admin",
+                    ],
+                    "denied_mobile_credential_reads": [
+                        "device_token_hash",
+                        "push_token",
+                        "code_hash",
                     ],
                     "denied_unrelated_databases": denied_databases,
                     "role_attributes": {

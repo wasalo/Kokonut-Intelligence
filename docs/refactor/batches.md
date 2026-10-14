@@ -691,8 +691,7 @@ reporting views.
   removes all runtime-role table/column access to `operator_session`; a distinct
   auth login can create, authenticate, and revoke sessions only through bounded
   functions. Disposable PostgreSQL 16 replay, forced-RLS, and privilege checks
-  passed. The runtime role still has broad DML on other public tables,
-  including mobile device/enrollment credential hashes, and
+  passed. The runtime role still has broad DML on other public tables, and
   legacy CLI paths, Gateway API-key context, workers, and the Directus/view
   boundary need their own access contracts before RLS. Full request/worker/
   Directus coverage remains open
@@ -744,6 +743,18 @@ reporting views.
   auth, successful bounded session lifecycle, and immediate revoked-session
   denial ([evidence](builds/2026-10-14-recovery/operator-session-role-disposable.json)).
   This does not establish the final app-table role allowlist or enable RLS.
+- [x] Tighten runtime privileges on `mobile_device` and
+  `mobile_device_enrollment`: the runtime role cannot read device-token, push,
+  or enrollment-code hashes, insert/delete devices, delete enrollments, or
+  edit enrollment hashes. Explicit column grants preserve the SQL shapes used
+  for safe device reads, status updates, enrollment issue/revoke, and device
+  revocation. Tenant preflight now reports active unbound devices without
+  reading credential columns. The isolated PostgreSQL 16 role check denied
+  direct hash reads, hash predicates, and `SELECT *`, while the allowed handler
+  statements succeeded; no candidate/legacy DB was touched
+  ([evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)).
+  This does not verify the HTTP handlers under the runtime login or close the
+  broader role, Gateway API-key, worker, legacy CLI, Directus, or RLS gates.
 - [ ] Roll out migrations 392–395 to the local candidate only after a fresh encrypted
   checkpoint and restore rehearsal; recreate only the candidate app and verify
   health, migration state, and protected routes. Candidate remains at migration

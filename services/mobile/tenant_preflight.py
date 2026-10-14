@@ -47,9 +47,8 @@ mobile_devices AS (
            )::int AS tenant_unbound_device_count,
            COUNT(*) FILTER (
                WHERE device.status = 'active' AND device.revoked_at IS NULL
-                 AND device.device_token_hash IS NOT NULL
                  AND device.tenant_organization_id IS NULL
-           )::int AS active_unbound_token_device_count,
+           )::int AS active_unbound_device_count,
            COUNT(*) FILTER (
                WHERE device.tenant_organization_id IS NOT NULL
                  AND NOT EXISTS (
@@ -222,8 +221,8 @@ SELECT location.id AS location_id,
        COALESCE(devices.active_device_count, 0) AS active_mobile_device_count,
        COALESCE(devices.tenant_bound_device_count, 0) AS tenant_bound_device_count,
        COALESCE(devices.tenant_unbound_device_count, 0) AS tenant_unbound_device_count,
-       COALESCE(devices.active_unbound_token_device_count, 0)
-           AS active_unbound_token_device_count,
+       COALESCE(devices.active_unbound_device_count, 0)
+           AS active_unbound_device_count,
        COALESCE(devices.owner_mismatch_device_count, 0) AS owner_mismatch_device_count,
        COALESCE(enrollments.enrollment_count, 0) AS enrollment_count,
        COALESCE(enrollments.pending_enrollment_count, 0) AS pending_enrollment_count,
@@ -281,9 +280,8 @@ _UNLOCATED_SQL = """
 SELECT (SELECT COUNT(*)::int FROM mobile_device WHERE location_id IS NULL)
            AS mobile_device_count,
        (SELECT COUNT(*)::int FROM mobile_device
-         WHERE location_id IS NULL AND device_token_hash IS NOT NULL
-           AND status = 'active' AND revoked_at IS NULL)
-           AS active_unlocated_token_device_count,
+         WHERE location_id IS NULL AND status = 'active' AND revoked_at IS NULL)
+           AS active_unlocated_device_count,
        (SELECT COUNT(*)::int FROM mobile_device_enrollment
          WHERE location_id IS NULL AND tenant_organization_id IS NULL AND used_at IS NULL
            AND revoked_at IS NULL AND expires_at > NOW())
@@ -315,7 +313,7 @@ _COUNT_FIELDS = (
 _TENANT_BINDING_COUNT_FIELDS = (
     "tenant_bound_device_count",
     "tenant_unbound_device_count",
-    "active_unbound_token_device_count",
+    "active_unbound_device_count",
     "owner_mismatch_device_count",
     "tenant_bound_enrollment_count",
     "tenant_unbound_enrollment_count",
@@ -368,7 +366,6 @@ _REQUIRED_COLUMNS = (
     ("organization_member", "membership_type"),
     ("organization_member", "role"),
     ("mobile_device", "location_id"),
-    ("mobile_device", "device_token_hash"),
     ("mobile_device", "status"),
     ("mobile_device", "revoked_at"),
     ("mobile_device", "tenant_organization_id"),
@@ -665,8 +662,8 @@ def collect_inventory(location_id: str | None = None) -> dict:
     }
     unlocated = {
         "mobile_device": int(unlocated_rows[0]["mobile_device_count"]),
-        "active_unlocated_token_device": int(
-            unlocated_rows[0]["active_unlocated_token_device_count"]
+        "active_unlocated_device": int(
+            unlocated_rows[0]["active_unlocated_device_count"]
         ),
         "pending_unlocated_unbound_enrollment": int(
             unlocated_rows[0]["pending_unlocated_unbound_enrollment_count"]
