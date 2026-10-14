@@ -130,9 +130,33 @@
     "legacy_stack_touched": false,
     "verification_performed_writes": false
   },
+  "follow_up_read_only_verification": {
+    "checked_at_utc": "2026-10-14T04:38:24Z",
+    "candidate_database_ledger": {
+      "applied_schema_migrations": 382,
+      "migration_391": {
+        "status": "applied",
+        "sha256": "7888012b4165fa6e81f4c91f9a0881d3800ae3523f54d7ffd81a2bdb1cdd1be3"
+      },
+      "applied_seed_migrations": 1,
+      "non_applied_migration_rows": 0
+    },
+    "candidate_containers": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "loopback_http": {
+      "GET /health": 200,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    },
+    "method": "Read-only candidate ledger transaction, container status inspection, and loopback HTTP requests.",
+    "verification_performed_writes": false
+  },
   "limitations": [
     "The candidate contained no locations, tenant transfers, mobile devices, or enrollments; rollout validates ordered schema deployment and anonymous route protection, not populated ownership, re-enrollment, or transfer behavior.",
-    "All 120 reference and pilot seed migrations remain pending, and existing mobile-form seed history requires reconciliation.",
+    "The mobile-form seed history was reconciled after this rollout; one seed migration is now recorded and the remaining 120 seed files are pending.",
     "RLS remains disabled; migration 391 does not claim database-enforced tenant isolation.",
     "Live-browser re-enrollment acceptance and human retention/erasure disposition remain open.",
     "The restore rehearsal validates the single candidate PostgreSQL database only; it excludes roles/grants, other databases, Docker volumes, external media, and provider state."

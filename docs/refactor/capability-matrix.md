@@ -6,13 +6,14 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All named MAN-CAP acceptance checks below remain **not run**; implementation and deployment progress are tracked separately in the new progress column. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links and audit history before/after the provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
-**Previous pushed-head verification (CAP-001 / CAP-047 / CAP-053):** after
-seed reconciliation was pushed, PR #68 was at commit
-`c26aa32229ebeb5f86f219c8b3ccb9f857bf93ec`. CI run [#303](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38510013935)
-was in progress and Security run [#27](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38510014012)
-passed. Those checks do not include the current local read-only inventory
-update. The approved eight-suite platform-integrity suite passed all 279 tests
-locally on the earlier pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
+**Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** seed
+replay/bootstrap evidence is at PR #68 head
+`8aa33e24f169f15afb249a53ae3d281ed8d843a2`. CI run [#304](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715581)
+is queued behind still-running CI #303, and Security run [#28](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715446)
+passed. The current local documentation update is not part of those checks.
+The approved eight-suite platform-integrity suite passed all 279 tests locally
+on the earlier pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
+
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus
 parity, worker/direct-database isolation, RLS, and named manual acceptance
@@ -46,7 +47,7 @@ active 1.2.0 forms and five matching active revisions exact, with five retired
 recorded `seed:140_mobile_forms.sql` as applied without changing business rows;
 120 other seed files remain pending. See the
 [preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json)
-and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. The full 31-seed ordered list applied to an isolated checkpoint restore and skipped cleanly on a second invocation. A separate `template0` bootstrap then passed all 382 schemas through 391 and all 31 curated seeds. Candidate application remains a separate rollout gate; 90 non-curated seeds remain unselected ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json); [snapshot replay](builds/2026-10-14-recovery/curated-seed-disposable-replay.json); [fresh bootstrap](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json)).
+and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. The full 31-seed ordered list applied to an isolated checkpoint restore and skipped cleanly on a second invocation. A separate `template0` bootstrap then passed all 382 schemas through 391 and all 31 curated seeds. The candidate remains at one recorded seed; 90 non-curated seeds remain unselected ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json); [snapshot replay](builds/2026-10-14-recovery/curated-seed-disposable-replay.json); [fresh bootstrap](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json)). A fresh encrypted checkpoint was restore-rehearsed with matching migration and extension fingerprints and selected form/service counts. Applying the other 30 curated seeds to the candidate remains a separate, approval-gated rollout ([preflight](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json)).
 
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,
