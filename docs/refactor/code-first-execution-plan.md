@@ -42,9 +42,10 @@ MAN-CAP checks open until each has its own retained evidence.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–396 and the remaining curated seeds are prepared
-  but have not been applied to the local candidate. Migration 397 is source-
-  tested but has not had isolated PostgreSQL execution. Migrations 392–397 and
-  the curated seeds remain separately approval-gated under OFU-17 and OFU-18.
+  but have not been applied to the local candidate. Migration 397 passed
+  isolated PostgreSQL acceptance against a synthetic schema fixture; full
+  bootstrap acceptance remains open. Migrations 392–397 and the curated seeds
+  remain separately approval-gated under OFU-17 and OFU-18.
 - Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
   confirmed as exclusive to Kokonut Network. Do not ask for that mapping again.
 - There is no Raspberry Pi available. The code-only ARM64 assessment passed
@@ -298,7 +299,8 @@ deployment or semantic acceptance:
   certificate when browser acceptance is scheduled (OFU-10/11).
 - **Candidate-only writes:** approval to apply the 30 curated seeds (OFU-17)
   and a separate approval to roll out migrations 392–397 (OFU-18). Migration
-  397 still needs isolated PostgreSQL acceptance. Neither rollout is implied by
+  397 has isolated PostgreSQL acceptance against a synthetic schema fixture;
+  full-bootstrap acceptance is still open. Neither rollout is implied by
   code/test approval.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only

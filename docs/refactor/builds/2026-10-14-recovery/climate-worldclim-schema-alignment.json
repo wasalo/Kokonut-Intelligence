@@ -4,13 +4,29 @@
   "result": "passed",
   "scope": {
     "candidate_or_legacy_database_touched": false,
-    "disposable_postgres_migration_applied": false,
+    "disposable_postgres_migration_applied": true,
     "migration": "397_worldclim_location_baseline_key.sql",
     "existing_rows_deleted_or_rewritten": false,
     "worldclim_network_fetch_claimed": false,
     "latitude_proxy_provenance_explicit": true,
     "location_baseline_plot_fallback_added": true,
     "raspberry_pi_hardware_used": false
+  },
+  "disposable_postgres": {
+    "result": "passed",
+    "server": "PostgreSQL 16 (postgres:16-alpine)",
+    "network": "disabled",
+    "storage": "temporary container tmpfs",
+    "container_removed": true,
+    "candidate_or_legacy_database_touched": false,
+    "fixture_scope": "Minimal synthetic schema matching the relations and columns read or replaced by migration 397; this did not replay migrations 001-396.",
+    "checks": [
+      "Migration 397 applied in one transaction with no duplicate location-level rows.",
+      "Plot-specific WorldClim rows take precedence over location-level baselines.",
+      "A plot without a specific row receives the location-level fallback; two plots still produce exactly two feature rows.",
+      "The partial unique index rejects a second location-level row while allowing plot-specific rows.",
+      "Duplicate legacy location-level rows make the migration fail transactionally; both rows remain and the index/view are absent after rollback."
+    ]
   },
   "pytest": [
     {
@@ -33,7 +49,7 @@
     "git_diff_check": "passed"
   },
   "limitations": [
-    "The Docker daemon is inaccessible in this session, so migration 397 was not applied to a disposable PostgreSQL database; its SQL parse, partial-index inference, and behavior against existing data are unverified at runtime.",
+    "The disposable PostgreSQL fixture proves migration syntax, index behavior, view fallback, and duplicate-preflight rollback against the referenced schema shape; it does not replay the full 001-396 bootstrap or inspect candidate WorldClim rows.",
     "Migration 397 fails transactionally if duplicate location-level baselines exist and does not delete or select among them; any such rows need reviewed reconciliation before rollout.",
     "The WorldClim compatibility command computes latitude_proxy_v1 estimates and does not fetch WorldClim rasters. Google Earth Engine provider output and duplicate replay behavior were not exercised.",
     "No Raspberry Pi hardware was available or used; physical-device behavior remains unverified."

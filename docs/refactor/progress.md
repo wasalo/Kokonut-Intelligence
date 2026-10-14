@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `26edad1`; CI #310 is in progress and Security #34 passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–396 have isolated PostgreSQL acceptance and remain gated from candidate rollout; migration 397 has source and migration-discovery checks only and has not run against PostgreSQL. The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `26edad1`; CI #310 is in progress and Security #34 passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–396 have isolated PostgreSQL acceptance and remain gated from candidate rollout; migration 397 now also passes isolated PostgreSQL acceptance against a synthetic schema fixture, while full-bootstrap acceptance and candidate rollout remain open. The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
@@ -4689,7 +4689,8 @@ This does not run every HTTP handler through the dedicated runtime login or
 close runtime DML on other public tables. Worker, legacy CLI, Directus/view,
 ownership, and final RLS gates remain open. No candidate or legacy database was
 changed; migrations 392–397 remain under separately gated candidate rollout
-OFU-18. Migration 397 still needs isolated PostgreSQL acceptance.
+OFU-18. Migration 397 has since passed isolated PostgreSQL acceptance against
+a synthetic schema fixture; full-bootstrap validation remains open.
 
 ### Gateway credential tenant context — 14 October 2026
 
