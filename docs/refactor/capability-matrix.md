@@ -74,11 +74,12 @@ boundaries, and RLS remain open; tenant isolation remains partial.
 
 Append-only reviewer-note writes now set context before the INSERT on the same
 connection and require the `review` and `read_detail` grants to resolve to one
-tenant. Thirteen mobile-review service checks, eleven tenant-context checks,
-and three focused auth-route checks pass, including transaction completion and
-HTTP 403 on cross-tenant denial. Candidate and legacy databases were not used.
-This closes only the reviewer-note write path; remaining Gateway/worker paths
-and RLS are still open.
+tenant. Fourteen mobile-review service checks, eleven tenant-context checks,
+and three focused auth-route checks pass. The tests confirm context precedes
+the INSERT, scope denial rolls back and closes the transaction without writing,
+and the route returns HTTP 403 for cross-tenant denial. Candidate and legacy
+databases were not used. This closes only the reviewer-note write path;
+remaining Gateway/worker paths and RLS are still open.
 
 OIDC participant-link creation and revocation now use same-origin
 `/operator/api/mobile/.../participants` routes so the operator session cookie is

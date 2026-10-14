@@ -439,6 +439,36 @@ def test_review_event_sets_same_tenant_context_before_append_only_insert(
     assert json.loads(params[2]) == event_body()["evidence"]
 
 
+def test_review_event_rolls_back_and_closes_when_tenant_scope_is_denied(monkeypatch):
+    from services.common.tenant_context import TenantContextDenied
+
+    connection = FakeWriteConnection()
+
+    def deny_tenant_context(*_args, **_kwargs):
+        raise TenantContextDenied("review and detail grants resolve to different tenants")
+
+    monkeypatch.setattr(
+        operator_mobile_review,
+        "set_operator_tenant_context",
+        deny_tenant_context,
+    )
+
+    with pytest.raises(TenantContextDenied):
+        record_mobile_review_event(
+            OPERATOR_ID,
+            COLLECTION_ID,
+            LOCATION_ID,
+            event_body(),
+            connection_factory=lambda: connection,
+        )
+
+    assert connection.rolled_back and connection.closed and not connection.committed
+    assert not any(
+        "INSERT INTO mobile_collection_review_event" in statement
+        for statement, _params in connection.cursor_instance.statements
+    )
+
+
 @pytest.mark.parametrize(
     "mutate",
     [

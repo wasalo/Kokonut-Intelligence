@@ -584,9 +584,11 @@ reporting views.
   both `mobile_collection_review:review` and
   `mobile_collection_review:read_detail` before the INSERT. Context is set on
   the same transaction/connection, and cross-tenant denial maps to HTTP 403.
-  Thirteen mobile-review service tests, eleven tenant-context tests, and three
-  focused auth-route tests pass; Ruff and `git diff --check` pass. Candidate and
-  legacy databases were untouched.
+  Fourteen mobile-review service tests, eleven tenant-context tests, and three
+  focused auth-route tests pass. The service tests confirm tenant denial rolls
+  back and closes the transaction before any INSERT; the route test returns
+  HTTP 403 for cross-tenant denial. Ruff and `git diff --check` pass. Candidate
+  and legacy databases were untouched.
 - [x] Verify tenant-aware Field Collector farm-activity intake and canonical
   activity read/write paths. The workflow service suite passed 10 tests, the
   lifecycle suite passed 31, and 26 focused OIDC/auth route tests passed,
