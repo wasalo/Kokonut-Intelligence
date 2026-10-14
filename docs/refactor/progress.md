@@ -19,6 +19,12 @@ alongside it. Remaining implementation is ordered in the
 [code-first execution plan](code-first-execution-plan.md); owner decisions and
 external inputs are collected in [Open Follow Ups](open-follow-ups.md).
 
+The latest local slice, not yet pushed, makes event-driven cache invalidation
+require a valid location UUID instead of allowing a missing scope to invalidate
+every location. It passes 59 focused cache, architecture, and event-delivery
+tests plus Ruff and syntax checks. The shared worker database identity remains
+open; see the worker call-site audit.
+
 The prescribed platform-integrity suite passed 290 tests on local commit
 `238e2ef`, including the tenant-bound Data Stream route regression. The earlier
 288-test run on `1c00845` remains in [historical evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json);
@@ -4758,6 +4764,21 @@ This closes only the Data Stream create path. Search, file/proof operations,
 other Gateway handlers, shared-organization API-key affiliation, production
 credential provisioning, worker/Directus boundaries, broad runtime grants,
 and application RLS remain open.
+
+### Event-driven cache invalidation scope — 14 October 2026
+
+The cache event handlers previously passed `location_id=None` to the cache
+backend when a malformed event omitted its location. Since `None` means
+all-location invalidation, one malformed message could invalidate cache rows
+across every farm. All four cache invalidation handlers now parse and
+canonicalize a UUID before constructing the provider; absent, NULL, or malformed
+scope raises a bounded handler error before any invalidation. The event bus
+retains its existing retry/dead-letter behavior.
+
+Focused cache, architecture, and durable event-delivery suites: **59 passed**;
+Ruff, Python syntax, and `git diff --check` passed. This closes only the broad
+cache side effect. It does not add worker-specific DB credentials or signed
+tenant context, and application RLS remains disabled.
 
 ### Scheduler and event-worker tenant boundary trace — 14 October 2026
 

@@ -804,6 +804,16 @@ reporting views.
   and migration replay. No candidate or legacy database was touched. Search,
   file/proof routes, environment-key database provisioning, and other Gateway
   handlers remain open ([evidence](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)).
+- [x] Fail closed on unscoped worker cache invalidation. The allowlisted cache
+  event handlers now require a canonical location UUID before creating the
+  cache provider, so a malformed event cannot flush every location's cached
+  results. Producers for sensor and metric events already include location IDs.
+  Missing, NULL, and malformed-location cases across all four handlers fail
+  before adapter construction; the focused cache, architecture, and event-bus
+  suites pass (59 tests), as do Ruff, Python syntax, and diff checks. This
+  narrows one side effect only: the event worker still inherits the shared
+  runtime DB identity and has no signed worker tenant context. No database or
+  candidate was changed.
 - [ ] Roll out migrations 392–396 to the local candidate only after a fresh encrypted
   checkpoint and restore rehearsal; recreate only the candidate app and verify
   health, migration state, and protected routes. Candidate remains at migration

@@ -7,10 +7,20 @@ the relevant cache entries.
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from services.cache.ports import ComputationCacheBackend
 from services.common.logging import get_logger
 
 logger = get_logger("cache.events")
+
+
+def _require_location_id(payload: dict) -> str:
+    """Reject unscoped invalidation so malformed events cannot flush all tenants."""
+    try:
+        return str(UUID(str(payload.get("location_id", ""))))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("cache invalidation requires a valid location_id") from exc
 
 
 def handle_metric_computed(
@@ -19,7 +29,7 @@ def handle_metric_computed(
     """Invalidate analytics caches when metrics are recomputed."""
     from services.cache.backend import get_computation_cache
 
-    location_id = payload.get("location_id")
+    location_id = _require_location_id(payload)
     cache = cache_backend if cache_backend is not None else get_computation_cache()
 
     count = cache.invalidate(
@@ -36,7 +46,7 @@ def handle_crisp_scored(
     """Invalidate CRISP caches when scores are recomputed."""
     from services.cache.backend import get_computation_cache
 
-    location_id = payload.get("location_id")
+    location_id = _require_location_id(payload)
     cache = cache_backend if cache_backend is not None else get_computation_cache()
 
     count = cache.invalidate(
@@ -53,7 +63,7 @@ def handle_sensor_reading(
     """Invalidate metric caches when new sensor data arrives."""
     from services.cache.backend import get_computation_cache
 
-    location_id = payload.get("location_id")
+    location_id = _require_location_id(payload)
     cache = cache_backend if cache_backend is not None else get_computation_cache()
 
     count = cache.invalidate(
@@ -70,7 +80,7 @@ def handle_harvest_recorded(
     """Invalidate metric caches when a harvest is recorded."""
     from services.cache.backend import get_computation_cache
 
-    location_id = payload.get("location_id")
+    location_id = _require_location_id(payload)
     cache = cache_backend if cache_backend is not None else get_computation_cache()
 
     count = cache.invalidate(

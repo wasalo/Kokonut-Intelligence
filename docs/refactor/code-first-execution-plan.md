@@ -15,13 +15,14 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 296 checked and 20 open items (316 total).
+- The execution checklist has 297 checked and 20 open items (317 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
-- The local batch retires the unscoped legacy mobile-offline CLI and adds
-  transaction-bound tenant context to the protected Data Stream create route.
-  Focused source/disposable checks pass; remote CI has not run for these changes.
+- The local batch retires the unscoped legacy mobile-offline CLI, tenant-binds
+  protected Data Stream creation, and rejects unscoped cache invalidation from
+  event handlers. Focused source/disposable checks pass; remote CI has not run
+  for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–396 and the remaining curated seeds are prepared
@@ -94,10 +95,12 @@ before protected reads and writes, and make direct database access fail closed.
    tenant identity, and no repository runtime caller depends on them. Equivalent
    capture/sync uses the consent-aware Gateway. Continue the same trace across
    workers and other CLIs; give workers only required database functions and
-   columns, and reject unscoped paths before mutation. The current scheduler
-   and event allowlists constrain executable modules but inherit the shared
-   runtime environment; they are not DB-identity or RLS boundaries. The code
-   trace is recorded in
+   columns, and reject unscoped paths before mutation. Allowlisted cache event
+   handlers now require a valid location UUID before invalidating entries,
+   preventing malformed events from triggering a global cache flush. The
+   current scheduler and event allowlists constrain executable modules but
+   inherit the shared runtime environment; they are not DB-identity or RLS
+   boundaries. The code trace is recorded in
    [the tenant call-site audit](mobile-tenant-rls-callsite-audit.md).
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.

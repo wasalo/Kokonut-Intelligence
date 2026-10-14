@@ -93,6 +93,13 @@ not bind a scheduled module or event handler to a database role or tenant.
   portability worker uses its app connection configuration. No worker-specific
   database principal or worker tenant-context setter is currently present in
   these dispatch paths.
+- The four cache invalidation handlers now require and canonicalize a valid
+  location UUID before selecting the cache adapter. Missing/malformed scope
+  fails before provider construction, preventing an event from becoming an
+  all-location invalidation. The durable bus records the handler failure and
+  applies its existing bounded retry/dead-letter policy. This narrows one
+  worker side effect but still does not establish signed DB tenant context or
+  a worker-specific database role.
 
 Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a

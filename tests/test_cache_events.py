@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from services.cache.events import (
-    handle_metric_computed,
     handle_crisp_scored,
-    handle_sensor_reading,
     handle_harvest_recorded,
+    handle_metric_computed,
+    handle_sensor_reading,
 )
+
+LOCATION_1 = "11111111-1111-4111-8111-111111111111"
+LOCATION_2 = "22222222-2222-4222-8222-222222222222"
 
 
 @patch("services.cache.cache.ComputationCache")
@@ -24,11 +24,11 @@ def test_handle_metric_computed_invalidates_analytics(MockCache):
     cache_instance.invalidate.return_value = 2
     MockCache.return_value = cache_instance
 
-    handle_metric_computed("metric_computed", {"location_id": "loc-1"})
+    handle_metric_computed("metric_computed", {"location_id": LOCATION_1})
 
     cache_instance.invalidate.assert_called_once_with(
         computation_type="analytics",
-        location_id="loc-1",
+        location_id=LOCATION_1,
         reason="metric_computed:metric_computed",
     )
 
@@ -40,11 +40,11 @@ def test_handle_crisp_scored_invalidates_crisp(MockCache):
     cache_instance.invalidate.return_value = 1
     MockCache.return_value = cache_instance
 
-    handle_crisp_scored("crisp_scored", {"location_id": "loc-42"})
+    handle_crisp_scored("crisp_scored", {"location_id": LOCATION_2})
 
     cache_instance.invalidate.assert_called_once_with(
         computation_type="crisp",
-        location_id="loc-42",
+        location_id=LOCATION_2,
         reason="crisp_scored:crisp_scored",
     )
 
@@ -56,11 +56,11 @@ def test_handle_sensor_reading_invalidates_metric(MockCache):
     cache_instance.invalidate.return_value = 5
     MockCache.return_value = cache_instance
 
-    handle_sensor_reading("sensor_reading", {"location_id": "loc-7"})
+    handle_sensor_reading("sensor_reading", {"location_id": LOCATION_1})
 
     cache_instance.invalidate.assert_called_once_with(
         computation_type="metric",
-        location_id="loc-7",
+        location_id=LOCATION_1,
         reason="sensor_reading:sensor_reading",
     )
 
@@ -72,29 +72,32 @@ def test_handle_harvest_recorded_invalidates_metric(MockCache):
     cache_instance.invalidate.return_value = 3
     MockCache.return_value = cache_instance
 
-    handle_harvest_recorded("harvest_recorded", {"location_id": "loc-99"})
+    handle_harvest_recorded("harvest_recorded", {"location_id": LOCATION_2})
 
     cache_instance.invalidate.assert_called_once_with(
         computation_type="metric",
-        location_id="loc-99",
+        location_id=LOCATION_2,
         reason="harvest_recorded:harvest_recorded",
     )
 
 
+@pytest.mark.parametrize(
+    ("handler", "event_type"),
+    [
+        (handle_metric_computed, "metric_computed"),
+        (handle_crisp_scored, "crisp_scored"),
+        (handle_sensor_reading, "sensor_reading"),
+        (handle_harvest_recorded, "harvest_recorded"),
+    ],
+)
+@pytest.mark.parametrize("payload", [{}, {"location_id": "not-a-uuid"}, {"location_id": None}])
 @patch("services.cache.cache.ComputationCache")
-def test_handle_event_missing_location_id(MockCache):
-    """Events without location_id still invalidate (location_id=None)."""
-    cache_instance = MagicMock()
-    cache_instance.invalidate.return_value = 0
-    MockCache.return_value = cache_instance
-
-    handle_metric_computed("metric_computed", {})
-
-    cache_instance.invalidate.assert_called_once_with(
-        computation_type="analytics",
-        location_id=None,
-        reason="metric_computed:metric_computed",
-    )
+def test_unscoped_or_invalid_location_never_invalidates_cache(
+    MockCache, handler, event_type, payload
+):
+    with pytest.raises(ValueError, match="valid location_id"):
+        handler(event_type, payload)
+    MockCache.assert_not_called()
 
 
 if __name__ == "__main__":

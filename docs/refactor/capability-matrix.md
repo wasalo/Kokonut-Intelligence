@@ -392,6 +392,14 @@ acceptance remain open.
 
 ## Progress snapshot — 13 October 2026
 
+**CAP-047 event-effect slice — 14 October 2026:** cache invalidation handlers
+require a valid location UUID and fail closed instead of issuing an all-location
+cache invalidation when event scope is absent or malformed. Focused cache,
+architecture, and durable event-delivery checks pass (59 tests); Ruff and
+syntax checks pass. This does not complete the platform-integrity acceptance
+row or provide worker DB isolation; see the source audit in
+[`mobile-tenant-rls-callsite-audit.md`](mobile-tenant-rls-callsite-audit.md).
+
 Current focus: **Phase 7, native public API reads**. CAP-053's tenant preflight
 now gates counts on schema completeness; the guard passed against a populated
 archived restore, reported 11 missing columns, and skipped lineage counts; its
