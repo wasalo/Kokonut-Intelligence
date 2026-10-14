@@ -106,6 +106,15 @@ pre-context device/enrollment lookups and non-OIDC mutation paths must be
 closed at both application and database-role boundaries before enabling row
 policies.
 
+**14 October 2026 tenant readiness source slice (CAP-053 / CAP-047):** the
+aggregate tenant preflight now compares schema sources with the applied ledger,
+reports connected-role privilege/RLS indicators, and validates enabled
+scheduler arguments using counts only, and requires a dedicated read-only
+preflight role before running after RLS is enabled. Four new focused source
+checks plus six existing tenant-preflight tests pass with Ruff. No database was
+queried and no migration was applied; this does not establish worker isolation
+or RLS readiness ([evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json)).
+
 **14 October 2026 seed-ledger preflight (CAP-053):** the migration runner
 previously omitted the range-prefixed `064-068_impact_network.sql`; source
 discovery now includes all 121 candidate-pending seeds and validates 503 total

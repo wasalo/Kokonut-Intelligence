@@ -11,6 +11,11 @@ import hashlib
 from uuid import UUID
 
 from services.common.cli import get_connection, print_json, run
+from services.migration.cli import MigrationError, _discover_files, _validate_sources
+from services.security.scheduled_command_contracts import (
+    ScheduledCommandRejected,
+    validate_scheduled_command,
+)
 
 _INVENTORY_SQL = """
 WITH active_org_relationships AS (
@@ -404,12 +409,13 @@ _REQUIRED_COLUMNS = (
     ("dashboard_dataset", "location_id"),
 )
 
-_SCHEMA_COVERAGE_SQL = """
+_SCHEMA_COVERAGE_SQL = (
+    """
 WITH required(relation_name, column_name) AS (
     VALUES
-""" + ",\n".join(
-    f"        ('{relation}', '{column}')" for relation, column in _REQUIRED_COLUMNS
-) + """
+"""
+    + ",\n".join(f"        ('{relation}', '{column}')" for relation, column in _REQUIRED_COLUMNS)
+    + """
 ), missing AS (
     SELECT required.relation_name, required.column_name
       FROM required
@@ -426,6 +432,7 @@ SELECT (SELECT COUNT(*)::int FROM required) AS required_column_count,
        ) AS missing_columns
   FROM missing
 """
+)
 
 
 def _schema_state(conn) -> tuple[dict, dict]:
@@ -441,7 +448,8 @@ def _schema_state(conn) -> tuple[dict, dict]:
         """
     ).first()
     missing_functions = (
-        [] if function_coverage and function_coverage["present"]
+        []
+        if function_coverage and function_coverage["present"]
         else ["public.operator_scope_grant_allows(uuid,text,text,uuid)"]
     )
     schema_coverage = {
@@ -454,9 +462,7 @@ def _schema_state(conn) -> tuple[dict, dict]:
         "missing_functions": missing_functions,
     }
 
-    migration_table_row = conn.execute(
-        "SELECT to_regclass('public.schema_migration') IS NOT NULL AS present"
-    ).first()
+    migration_table_row = conn.execute("SELECT to_regclass('public.schema_migration') IS NOT NULL AS present").first()
     migration_table_exists = bool(migration_table_row and migration_table_row["present"])
     applied_migration = None
     ordering_basis = "unavailable"
@@ -518,19 +524,216 @@ def _schema_state(conn) -> tuple[dict, dict]:
                 applied_migration = latest_migration["version"] if latest_migration else None
                 ordering_basis = "applied_at_fallback" if latest_migration else "unavailable"
 
+    migration_preflight = _migration_preflight(conn, migration_table_exists)
     return schema_coverage, {
         "migration_history_available": bool(migration_table_exists),
         "latest_applied_migration": applied_migration,
         "migration_ordering_basis": ordering_basis,
+        "migration_preflight": migration_preflight,
+    }
+
+
+def _migration_preflight(conn, migration_table_exists: bool) -> dict:
+    """Compare local schema migration sources with the applied ledger, by counts only."""
+    if not migration_table_exists:
+        return {"status": "not_available", "reason": "migration_ledger_missing"}
+
+    columns = conn.execute(
+        """
+        SELECT COUNT(*)::int AS available_column_count
+          FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'schema_migration'
+           AND column_name = ANY(:required_columns)
+        """,
+        {"required_columns": ["migration_id", "checksum", "status"]},
+    ).first()
+    if not columns or columns["available_column_count"] != 3:
+        return {"status": "not_available", "reason": "migration_ledger_incomplete"}
+
+    try:
+        sources = _discover_files(include_seeds=False)
+        _validate_sources(sources)
+    except (OSError, MigrationError):
+        return {"status": "not_available", "reason": "migration_sources_invalid"}
+
+    records = conn.execute(
+        """
+        SELECT migration_id, checksum, status
+          FROM schema_migration
+         WHERE migration_id IS NOT NULL
+           AND left(migration_id, 7) = 'schema:'
+        """
+    ).all()
+    applied_by_id = {row["migration_id"]: row for row in records if row["status"] == "applied"}
+    source_by_id = {source["id"]: source for source in sources}
+    pending_count = sum(1 for migration_id in source_by_id if migration_id not in applied_by_id)
+    checksum_drift_count = sum(
+        1
+        for migration_id, source in source_by_id.items()
+        if migration_id in applied_by_id and applied_by_id[migration_id]["checksum"] != source["checksum"]
+    )
+    unmatched_applied_count = sum(1 for migration_id in applied_by_id if migration_id not in source_by_id)
+    return {
+        "status": (
+            "drift_detected"
+            if checksum_drift_count or unmatched_applied_count
+            else "pending_migrations"
+            if pending_count
+            else "current"
+        ),
+        "source_migration_count": len(sources),
+        "applied_source_migration_count": len(applied_by_id.keys() & source_by_id.keys()),
+        "pending_source_migration_count": pending_count,
+        "checksum_drift_count": checksum_drift_count,
+        "applied_ledger_rows_without_source_count": unmatched_applied_count,
+        "identifiers_emitted": False,
+    }
+
+
+def _runtime_role_preflight(conn) -> dict:
+    row = conn.execute(
+        """
+        WITH runtime_role AS (
+            SELECT rolsuper, rolcreatedb, rolcreaterole,
+                   rolreplication, rolbypassrls
+              FROM pg_roles
+             WHERE rolname = current_user
+        ), public_relations AS (
+            SELECT relation.oid,
+                   relation.relrowsecurity AS rls_enabled,
+                   relation.relforcerowsecurity AS rls_forced,
+                   pg_has_role(current_user, relation.relowner, 'USAGE')
+                       AS can_use_owner_privileges,
+                   (
+                       has_table_privilege(current_user, relation.oid, 'INSERT')
+                       OR has_table_privilege(current_user, relation.oid, 'UPDATE')
+                       OR has_table_privilege(current_user, relation.oid, 'DELETE')
+                       OR has_table_privilege(current_user, relation.oid, 'TRUNCATE')
+                   ) AS has_dml
+              FROM pg_class AS relation
+              JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'public'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+        )
+        SELECT runtime_role.rolsuper AS superuser,
+               runtime_role.rolcreatedb AS can_create_database,
+               runtime_role.rolcreaterole AS can_create_roles,
+               runtime_role.rolreplication AS replication_role,
+               runtime_role.rolbypassrls AS bypasses_rls,
+               (SELECT COUNT(*)::int FROM public_relations) AS public_relation_count,
+               (SELECT COUNT(*)::int FROM public_relations WHERE rls_enabled) AS rls_enabled_relation_count,
+               (SELECT COUNT(*)::int FROM public_relations WHERE rls_forced) AS rls_forced_relation_count,
+               (SELECT COUNT(*)::int FROM public_relations WHERE has_dml) AS dml_relation_count,
+               (SELECT COUNT(*)::int FROM public_relations WHERE has_dml AND NOT rls_enabled)
+                   AS dml_relation_without_rls_count,
+               (SELECT COUNT(*)::int FROM public_relations
+                 WHERE has_dml AND NOT rls_enabled
+                    OR has_dml AND rls_enabled AND NOT rls_forced
+                       AND can_use_owner_privileges)
+                   AS dml_relation_with_rls_bypass_risk_count
+          FROM runtime_role
+        """
+    ).first()
+    if row is None:
+        return {"status": "not_available"}
+
+    unsafe_attributes = any(
+        row[field]
+        for field in (
+            "superuser",
+            "can_create_database",
+            "can_create_roles",
+            "replication_role",
+            "bypasses_rls",
+        )
+    )
+    status = (
+        "unsafe_role_attributes"
+        if unsafe_attributes
+        else "dml_with_rls_bypass_risk"
+        if (row["dml_relation_without_rls_count"] or row["dml_relation_with_rls_bypass_risk_count"])
+        else "review_required"
+    )
+    return {
+        "status": status,
+        "superuser": row["superuser"],
+        "can_create_database": row["can_create_database"],
+        "can_create_roles": row["can_create_roles"],
+        "replication_role": row["replication_role"],
+        "bypasses_rls": row["bypasses_rls"],
+        "public_relation_count": row["public_relation_count"],
+        "rls_enabled_relation_count": row["rls_enabled_relation_count"],
+        "rls_forced_relation_count": row["rls_forced_relation_count"],
+        "dml_relation_count": row["dml_relation_count"],
+        "dml_relation_without_rls_count": row["dml_relation_without_rls_count"],
+        "dml_relation_with_rls_bypass_risk_count": row["dml_relation_with_rls_bypass_risk_count"],
+        "role_name_emitted": False,
+    }
+
+
+def _scheduled_task_preflight(conn) -> dict:
+    table = conn.execute("SELECT to_regclass('public.scheduled_task') IS NOT NULL AS present").first()
+    if not table or not table["present"]:
+        return {"status": "not_available", "reason": "scheduled_task_table_missing"}
+
+    columns = conn.execute(
+        """
+        SELECT COUNT(*)::int AS available_column_count
+          FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'scheduled_task'
+           AND column_name = ANY(:required_columns)
+        """,
+        {"required_columns": ["is_enabled", "module_path", "command_args"]},
+    ).first()
+    if not columns or columns["available_column_count"] != 3:
+        return {"status": "not_available", "reason": "scheduled_task_schema_incomplete"}
+
+    tasks = conn.execute(
+        """
+        SELECT module_path, command_args
+          FROM scheduled_task
+         WHERE is_enabled IS TRUE
+        """
+    ).all()
+    valid_count = rejected_count = unbounded_count = 0
+    for task in tasks:
+        try:
+            args = validate_scheduled_command(task["module_path"], task["command_args"])
+        except (ScheduledCommandRejected, TypeError):
+            rejected_count += 1
+            continue
+        valid_count += 1
+        if (task["module_path"] == "services.metrics" and "--all-locations" in args) or (
+            task["module_path"] == "services.export.dataset_refresh" and "--all" in args
+        ):
+            unbounded_count += 1
+
+    return {
+        "status": "review_required" if tasks else "no_enabled_tasks",
+        "enabled_task_count": len(tasks),
+        "contract_valid_count": valid_count,
+        "contract_rejected_count": rejected_count,
+        "known_unbounded_scope_task_count": unbounded_count,
+        "enabled_tasks_without_signed_tenant_context_count": len(tasks),
+        "tenant_context_support": "not_implemented",
+        "identifiers_and_arguments_emitted": False,
+    }
+
+
+def _database_readiness_preflight(conn) -> dict:
+    return {
+        "execution_identity_policy": "dedicated_read_only_preflight_role_required_before_rls",
+        "runtime_role": _runtime_role_preflight(conn),
+        "scheduled_tasks": _scheduled_task_preflight(conn),
     }
 
 
 def _opaque_reference(value: object, entity: str) -> str | None:
     if value is None:
         return None
-    return hashlib.sha256(
-        f"kokonut-tenant-preflight-v1:{entity}:{value}".encode("utf-8")
-    ).hexdigest()[:16]
+    return hashlib.sha256(f"kokonut-tenant-preflight-v1:{entity}:{value}".encode("utf-8")).hexdigest()[:16]
 
 
 def _ownership_status(assigned_organization_id: object, candidate_ids: list[object]) -> str:
@@ -564,6 +767,7 @@ def collect_inventory(location_id: str | None = None) -> dict:
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         conn.execute("SET LOCAL statement_timeout = '15s'")
         schema_coverage, schema_state = _schema_state(conn)
+        database_readiness = _database_readiness_preflight(conn)
         if schema_coverage["status"] == "complete":
             rows = conn.execute(
                 _INVENTORY_SQL,
@@ -579,11 +783,11 @@ def collect_inventory(location_id: str | None = None) -> dict:
             "location_filter_applied": normalized_location_id is not None,
             "schema_coverage": schema_coverage,
             "schema_state": schema_state,
+            "database_readiness": database_readiness,
             "limitations": [
                 "No ownership or lineage rows were queried because one or more "
-            "required inventory columns or authorization functions are unavailable.",
-                "Apply and verify the ordered migrations on an isolated copy "
-                "before requesting a complete inventory.",
+                "required inventory columns or authorization functions are unavailable.",
+                "Apply and verify the ordered migrations on an isolated copy before requesting a complete inventory.",
             ],
         }
 
@@ -595,42 +799,28 @@ def collect_inventory(location_id: str | None = None) -> dict:
         elif isinstance(raw_candidate_ids, (list, tuple)):
             candidate_ids = list(raw_candidate_ids)
         else:
-            raise RuntimeError(
-                "database driver returned an unsupported organization array representation"
-            )
+            raise RuntimeError("database driver returned an unsupported organization array representation")
         status = _ownership_status(row["assigned_organization_id"], candidate_ids)
         locations.append(
             {
                 "location_ref": _opaque_reference(row["location_id"], "location"),
                 "location_status": row["location_status"],
-                "assigned_organization_ref": _opaque_reference(
-                    row["assigned_organization_id"], "organization"
-                ),
+                "assigned_organization_ref": _opaque_reference(row["assigned_organization_id"], "organization"),
                 "owned_primary_organization_refs": sorted(
                     reference
                     for candidate_id in candidate_ids
-                    if (
-                        reference := _opaque_reference(candidate_id, "organization")
-                    ) is not None
+                    if (reference := _opaque_reference(candidate_id, "organization")) is not None
                 ),
                 "ownership_review_status": status,
-                "active_organization_relationship_count": row[
-                    "active_organization_relationship_count"
-                ],
+                "active_organization_relationship_count": row["active_organization_relationship_count"],
                 "active_organization_count": row["active_organization_count"],
-                "multiple_active_organization_relationships": (
-                    row["active_organization_relationship_count"] > 1
-                ),
-                "records": {
-                    field.removesuffix("_count"): row[field] for field in _COUNT_FIELDS
-                },
+                "multiple_active_organization_relationships": (row["active_organization_relationship_count"] > 1),
+                "records": {field.removesuffix("_count"): row[field] for field in _COUNT_FIELDS},
                 "mobile_tenant_binding": {
-                    field.removesuffix("_count"): row[field]
-                    for field in _TENANT_BINDING_COUNT_FIELDS
+                    field.removesuffix("_count"): row[field] for field in _TENANT_BINDING_COUNT_FIELDS
                 },
                 "operator_access": {
-                    field.removesuffix("_count"): row[field]
-                    for field in _OPERATOR_ACCESS_COUNT_FIELDS
+                    field.removesuffix("_count"): row[field] for field in _OPERATOR_ACCESS_COUNT_FIELDS
                 },
             }
         )
@@ -641,33 +831,25 @@ def collect_inventory(location_id: str | None = None) -> dict:
         status_counts[status] = status_counts.get(status, 0) + 1
 
     totals = {
-        field.removesuffix("_count"): sum(
-            location["records"][field.removesuffix("_count")] for location in locations
-        )
+        field.removesuffix("_count"): sum(location["records"][field.removesuffix("_count")] for location in locations)
         for field in _COUNT_FIELDS
     }
     tenant_binding_totals = {
         field.removesuffix("_count"): sum(
-            location["mobile_tenant_binding"][field.removesuffix("_count")]
-            for location in locations
+            location["mobile_tenant_binding"][field.removesuffix("_count")] for location in locations
         )
         for field in _TENANT_BINDING_COUNT_FIELDS
     }
     operator_access_totals = {
         field.removesuffix("_count"): sum(
-            location["operator_access"][field.removesuffix("_count")]
-            for location in locations
+            location["operator_access"][field.removesuffix("_count")] for location in locations
         )
         for field in _OPERATOR_ACCESS_COUNT_FIELDS
     }
     unlocated = {
         "mobile_device": int(unlocated_rows[0]["mobile_device_count"]),
-        "active_unlocated_device": int(
-            unlocated_rows[0]["active_unlocated_device_count"]
-        ),
-        "pending_unlocated_unbound_enrollment": int(
-            unlocated_rows[0]["pending_unlocated_unbound_enrollment_count"]
-        ),
+        "active_unlocated_device": int(unlocated_rows[0]["active_unlocated_device_count"]),
+        "pending_unlocated_unbound_enrollment": int(unlocated_rows[0]["pending_unlocated_unbound_enrollment_count"]),
         "mobile_collection": int(unlocated_rows[0]["mobile_collection_count"]),
         "report_snapshot": int(unlocated_rows[0]["report_snapshot_count"]),
         "dashboard_dataset": int(unlocated_rows[0]["dashboard_dataset_count"]),
@@ -678,6 +860,7 @@ def collect_inventory(location_id: str | None = None) -> dict:
         "location_filter_applied": normalized_location_id is not None,
         "schema_coverage": schema_coverage,
         "schema_state": schema_state,
+        "database_readiness": database_readiness,
         "records_without_location_scope": "database_wide",
         "location_count": len(locations),
         "ownership_review_status_counts": dict(sorted(status_counts.items())),
@@ -685,9 +868,7 @@ def collect_inventory(location_id: str | None = None) -> dict:
             location["multiple_active_organization_relationships"] for location in locations
         ),
         "known_relation_rows_at_locations_without_direct_organization_assignment": sum(
-            sum(location["records"].values())
-            for location in locations
-            if location["assigned_organization_ref"] is None
+            sum(location["records"].values()) for location in locations if location["assigned_organization_ref"] is None
         ),
         "record_totals_by_known_relation": totals,
         "tenant_binding_totals_at_locations": tenant_binding_totals,
@@ -700,8 +881,7 @@ def collect_inventory(location_id: str | None = None) -> dict:
         "records_without_location": unlocated,
         "locations": locations,
         "limitations": [
-            "Organization relationships are review evidence, not authorization "
-            "or automatic owner assignment.",
+            "Organization relationships are review evidence, not authorization or automatic owner assignment.",
             "Opaque references are stable only for this inventory format; no "
             "location or organization identifiers are returned.",
             "Counts cover listed direct relations only and do not prove complete "

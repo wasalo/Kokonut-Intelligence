@@ -4992,3 +4992,26 @@ included ClickHouse service is absent. Shell syntax and `git diff --check`
 pass. No Docker service or database was used. Private media, external object
 stores, and provider-managed state remain separate recovery scopes. See
 [`provider-aware-backup-restore.json`](builds/2026-10-14-recovery/provider-aware-backup-restore.json).
+
+### Tenant database-readiness preflight extension — 14 October 2026
+
+Extended `python3 -m services.cli mobile-tenant-preflight` with aggregate-only
+database readiness indicators. When the migration ledger has the required
+columns, it compares local schema sources with applied ledger checksums and
+reports source, pending, drifted, and unmatched-applied counts only. It reports
+the current database role's elevated attributes, public relation/RLS counts,
+and relations where its DML privileges could bypass an RLS boundary. Enabled
+scheduled commands are checked against the shared module/argument contracts;
+the result reports accepted, rejected, explicitly known unbounded-scope counts,
+plus the number that lack signed tenant context. It states that a dedicated
+read-only preflight role is required before running after RLS is enabled. Task
+names, command arguments, role names, migration IDs, checksums, ownership IDs,
+and credential fields are not returned.
+
+Four new focused source checks and six existing tenant-preflight checks passed
+(10 total), with Ruff and formatting clean. The tests used mocked connection
+results only: no candidate, legacy, or disposable database was queried, and no
+migration was applied. The CLI still connects with its configured identity; a
+dedicated read-only preflight role and authorization to run it after RLS remain
+open. These indicators do not establish worker isolation or settle tenant
+ownership. See the [sanitized check record](builds/2026-10-14-recovery/tenant-database-readiness-check.json).

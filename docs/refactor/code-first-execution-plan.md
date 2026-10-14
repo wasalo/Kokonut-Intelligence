@@ -162,13 +162,19 @@ before protected reads and writes, and make direct database access fail closed.
    existing handlers still work through their narrow grants/functions.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
-   printing personal or secret values. **Partial:** the static-only first pass
-   confirms all 17 allowlisted roots and imports, reports the shared runtime
-   identity and 21 SQL functions outside current worker-root graphs, and keeps
-   RLS blocked. Live role/grant attributes, migration ledger/drift, active
-   schedules, and pending tenant ownership are explicitly `not_assessed`; the
-   preflight database role and those read-only inputs remain open
-   ([report](worker-boundary-preflight.json); [evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
+  printing personal or secret values. **Partial:** the static-only worker
+  preflight confirms all 17 allowlisted roots and imports, reports the shared
+  runtime identity and 21 SQL functions outside current worker-root graphs,
+  and keeps RLS blocked. The complementary aggregate tenant preflight now
+  reports pending/current-source checksum drift counts, connected-role
+  superuser/BYPASSRLS and public DML/RLS indicators, and enabled scheduler
+  contract and known-unbounded-scope counts without returning identifiers, task
+  names, or arguments. Four focused source tests pass with the existing
+  tenant-preflight suites (10 total); no database was queried. The output also
+  encodes that a dedicated read-only preflight role is required before the CLI
+  runs after RLS. These reports do not prove worker isolation. Owner mapping,
+  runtime role restriction, active-schedule reconciliation, and complete worker context remain open
+  ([static report](worker-boundary-preflight.json); [focused evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json); [test evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
 5. Keep application RLS disabled until all code paths and data ownership inputs
    pass. Isolated forced-RLS fixtures can prove policy behavior; they do not
    authorize turning it on in the candidate or a populated deployment.
