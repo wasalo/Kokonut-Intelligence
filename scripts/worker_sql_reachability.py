@@ -26,11 +26,13 @@ def build_inventory() -> dict:
     sql_inventory = worker_sql_inventory.build_inventory()
     operation_functions: dict[str, set[tuple[str, str]]] = {}
     operation_site_ids: dict[str, set[str]] = {}
+    all_graph_functions: set[tuple[str, str]] = set()
     for operation in function_graph["operations"]:
         reference = f"{operation['kind']}:{operation['name']}"
         operation_functions[reference] = {
             (function["source"], function["qualname"]) for function in operation["reachable_functions"]
         }
+        all_graph_functions.update(operation_functions[reference])
         operation_site_ids[reference] = set()
 
     sites = []
@@ -42,6 +44,7 @@ def build_inventory() -> dict:
         )
         for reference in matched_operations:
             operation_site_ids[reference].add(site["id"])
+        in_any_graph = (site["source"], site["scope"]) in all_graph_functions
         sites.append(
             {
                 "id": site["id"],
@@ -55,6 +58,14 @@ def build_inventory() -> dict:
                 "import_closure_operations": site["operation_refs"],
                 "statically_reachable_operations": matched_operations,
                 "static_link_status": "linked" if matched_operations else "no_static_function_match",
+                "function_in_any_worker_graph": in_any_graph,
+                "review_status": (
+                    "linked_to_operation"
+                    if matched_operations
+                    else "function_reachable_elsewhere_without_matching_operation"
+                    if in_any_graph
+                    else "function_not_reached_by_any_static_worker_root"
+                ),
             }
         )
 
@@ -86,6 +97,11 @@ def build_inventory() -> dict:
             ),
             "unique_sites_with_static_operation_path": len(linked),
             "sites_without_static_function_match": len(sites) - len(linked),
+            "unmatched_functions_absent_from_all_worker_graphs": sum(
+                not site["function_in_any_worker_graph"]
+                for site in sites
+                if not site["statically_reachable_operations"]
+            ),
             "sites_reached_by_multiple_operations": sum(
                 len(site["statically_reachable_operations"]) > 1 for site in sites
             ),

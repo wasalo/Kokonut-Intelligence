@@ -69,9 +69,10 @@ data effects, and an idempotency/retry note.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
   joins those 196 sites to the operation graph without including SQL text or
   values. It links 175 unique sites across 216 operation/site memberships;
-  21 sites have no current static function match. That status does not prove
-  unreachability: unresolved dispatch, uncalled helpers, and generic database
-  adapters remain in review. Use
+  21 sites have no current static function match, and each belongs to a
+  function absent from all current worker-root graphs. That status does not
+  prove the code is dead: external or unmodeled dynamic callers may still
+  invoke it. Generic database adapters and other effects remain in review. Use
   `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
   to check the report.
 - A source review grouped those 30 dynamic/composed sites: 21 use fixed

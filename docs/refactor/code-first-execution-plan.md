@@ -36,8 +36,9 @@ MAN-CAP checks open until each has its own retained evidence.
   query. The worker graph now connects 31 executed/allowlisted entry functions
   to 341 function memberships across the same 17 operations, with 483 direct
   calls and 20 explicit metric-registry dispatches. A companion report links
-  175 of 196 SQL sites to a static operation path; 21 remain without a static
-  function match and are not labeled unreachable. Other dynamic dispatch,
+  175 of 196 SQL sites to a static operation path; the remaining 21 belong to
+  functions absent from all current worker-root graphs and are not labeled dead
+  code. Other dynamic dispatch,
   callbacks, external calls, enabled legacy rows, and worker identity/context
   remain open.
   The metrics entry now references all 20 registered calculator modules with a

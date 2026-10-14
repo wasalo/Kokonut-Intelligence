@@ -8,6 +8,7 @@
     "statically_reachable_site_memberships": 216,
     "unique_sites_with_static_operation_path": 175,
     "sites_without_static_function_match": 21,
+    "unmatched_functions_absent_from_all_worker_graphs": 21,
     "sites_reached_by_multiple_operations": 29
   },
   "operations": [
@@ -382,7 +383,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:90:8",
@@ -402,7 +405,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:103:8",
@@ -423,7 +428,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:130:8",
@@ -444,7 +451,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:158:8",
@@ -464,7 +473,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:174:8",
@@ -483,7 +494,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:203:12",
@@ -500,7 +513,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:204:12",
@@ -517,7 +532,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:205:12",
@@ -534,7 +551,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/analytics/reporting_reader.py:206:12",
@@ -551,7 +570,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/cache/cache.py:51:16",
@@ -569,7 +590,9 @@
         "event_handler:services.cache.events.handle_metric_computed"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/cache/cache.py:67:20",
@@ -587,7 +610,9 @@
         "event_handler:services.cache.events.handle_metric_computed"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/cache/cache.py:76:16",
@@ -605,7 +630,9 @@
         "event_handler:services.cache.events.handle_metric_computed"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/cache/cache.py:119:16",
@@ -624,7 +651,9 @@
         "event_handler:services.cache.events.handle_metric_computed"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/cache/cache.py:178:16",
@@ -645,7 +674,9 @@
         "event_handler:services.cache.events.handle_crisp_scored",
         "event_handler:services.cache.events.handle_metric_computed"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/cache/cache.py:202:16",
@@ -663,7 +694,9 @@
         "event_handler:services.cache.events.handle_metric_computed"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/cache/cache.py:223:16",
@@ -681,7 +714,9 @@
         "event_handler:services.cache.events.handle_metric_computed"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/cache/cache.py:238:16",
@@ -699,7 +734,9 @@
         "event_handler:services.cache.events.handle_metric_computed"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/common/database.py:71:15",
@@ -730,7 +767,9 @@
         "scheduled_module:services.metrics"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/common/database.py:74:8",
@@ -761,7 +800,9 @@
         "scheduled_module:services.metrics"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/common/database.py:132:12",
@@ -792,7 +833,9 @@
         "scheduled_module:services.metrics"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/events/bus.py:75:16",
@@ -816,7 +859,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:92:12",
@@ -841,7 +886,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:142:12",
@@ -865,7 +912,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:161:16",
@@ -888,7 +937,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:173:16",
@@ -912,7 +963,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:189:16",
@@ -935,7 +988,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:194:16",
@@ -958,7 +1013,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:229:12",
@@ -981,7 +1038,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:244:12",
@@ -1004,7 +1063,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:253:16",
@@ -1029,7 +1090,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:269:12",
@@ -1056,7 +1119,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:306:12",
@@ -1079,7 +1144,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:318:12",
@@ -1102,7 +1169,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/bus.py:325:12",
@@ -1125,7 +1194,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/cli.py:95:12",
@@ -1144,7 +1215,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/cli.py:124:12",
@@ -1163,7 +1236,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/fork_detector.py:36:8",
@@ -1182,7 +1257,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/fork_detector.py:59:8",
@@ -1201,7 +1278,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/fork_detector.py:133:12",
@@ -1220,7 +1299,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/insight_transfer.py:45:8",
@@ -1239,7 +1320,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/insight_transfer.py:59:12",
@@ -1258,7 +1341,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/insight_transfer.py:103:8",
@@ -1277,7 +1362,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/insight_transfer.py:143:8",
@@ -1297,7 +1384,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/insight_transfer.py:170:8",
@@ -1316,7 +1405,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/insight_transfer.py:206:8",
@@ -1333,7 +1424,9 @@
         "scheduled_module:services.events"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/events/insight_transfer.py:254:8",
@@ -1350,7 +1443,9 @@
         "scheduled_module:services.events"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/events/insight_transfer.py:276:8",
@@ -1369,7 +1464,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/insight_transfer.py:292:12",
@@ -1388,7 +1485,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:183:12",
@@ -1414,7 +1513,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:198:12",
@@ -1440,7 +1541,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:221:8",
@@ -1464,7 +1567,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:232:8",
@@ -1487,7 +1592,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:269:8",
@@ -1512,7 +1619,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:297:12",
@@ -1535,7 +1644,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:382:8",
@@ -1558,7 +1669,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:406:8",
@@ -1581,7 +1694,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:468:8",
@@ -1604,7 +1719,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:470:8",
@@ -1628,7 +1745,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:511:8",
@@ -1651,7 +1770,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:541:8",
@@ -1674,7 +1795,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:552:8",
@@ -1697,7 +1820,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:564:8",
@@ -1720,7 +1845,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:592:8",
@@ -1743,7 +1870,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:603:8",
@@ -1766,7 +1895,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/events/notification_outbox.py:612:8",
@@ -1789,7 +1920,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.events"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/export/dataset_refresh.py:35:8",
@@ -1808,7 +1941,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/export/dataset_refresh.py:40:8",
@@ -1827,7 +1962,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/export/dataset_refresh.py:55:4",
@@ -1846,7 +1983,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/export/dataset_refresh.py:90:8",
@@ -1865,7 +2004,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.export.dataset_refresh"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:183:8",
@@ -1886,7 +2027,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:190:8",
@@ -1907,7 +2050,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:200:12",
@@ -1928,7 +2073,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:245:8",
@@ -1949,7 +2096,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:288:8",
@@ -1970,7 +2119,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:314:8",
@@ -1991,7 +2142,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:372:8",
@@ -2012,7 +2165,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:397:8",
@@ -2033,7 +2188,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:411:12",
@@ -2056,7 +2213,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:437:16",
@@ -2077,7 +2236,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:558:8",
@@ -2098,7 +2259,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:607:8",
@@ -2121,7 +2284,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:641:16",
@@ -2143,7 +2308,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:662:12",
@@ -2165,7 +2332,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:693:20",
@@ -2186,7 +2355,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:704:20",
@@ -2207,7 +2378,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:736:24",
@@ -2228,7 +2401,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:755:24",
@@ -2249,7 +2424,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:768:28",
@@ -2270,7 +2447,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:802:24",
@@ -2291,7 +2470,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:824:28",
@@ -2312,7 +2493,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:881:12",
@@ -2332,7 +2515,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:909:16",
@@ -2352,7 +2537,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:934:20",
@@ -2372,7 +2559,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:948:20",
@@ -2393,7 +2582,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/anomaly_detector.py:1017:12",
@@ -2414,7 +2605,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/base.py:156:12",
@@ -2448,7 +2641,9 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/base.py:204:12",
@@ -2480,7 +2675,9 @@
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/base.py:233:12",
@@ -2509,7 +2706,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.gnosis_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:38:8",
@@ -2537,7 +2736,9 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:70:8",
@@ -2558,7 +2759,9 @@
         "scheduled_module:services.ingestion.weather"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:88:8",
@@ -2581,7 +2784,9 @@
         "scheduled_module:services.ingestion.weather"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:112:8",
@@ -2602,7 +2807,9 @@
         "scheduled_module:services.ingestion.weather"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:198:8",
@@ -2623,7 +2830,9 @@
         "scheduled_module:services.ingestion.weather"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:219:12",
@@ -2647,7 +2856,9 @@
         "scheduled_module:services.ingestion.weather"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:266:8",
@@ -2668,7 +2879,9 @@
         "scheduled_module:services.ingestion.weather"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/climate_data.py:35:4",
@@ -2688,7 +2901,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.climate_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/climate_data.py:63:4",
@@ -2707,7 +2922,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.climate_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/climate_data.py:99:4",
@@ -2727,7 +2944,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.climate_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:54:8",
@@ -2746,7 +2965,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:59:8",
@@ -2765,7 +2986,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:73:4",
@@ -2784,7 +3007,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:104:8",
@@ -2801,7 +3026,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:114:4",
@@ -2818,7 +3045,9 @@
         "scheduled_module:services.ingestion.data_freshness"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/data_freshness.py:167:4",
@@ -2837,7 +3066,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:180:4",
@@ -2856,7 +3087,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:190:4",
@@ -2875,7 +3108,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:216:4",
@@ -2894,7 +3129,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:232:4",
@@ -2913,7 +3150,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:249:4",
@@ -2932,7 +3171,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:258:8",
@@ -2952,7 +3193,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:280:4",
@@ -2971,7 +3214,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:390:12",
@@ -2988,7 +3233,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:402:16",
@@ -3005,7 +3252,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:472:20",
@@ -3024,7 +3273,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:478:16",
@@ -3043,7 +3294,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:484:16",
@@ -3060,7 +3313,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/data_freshness.py:527:4",
@@ -3079,7 +3334,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.data_freshness"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/eas_indexer.py:107:12",
@@ -3098,7 +3355,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.eas_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/eas_indexer.py:113:16",
@@ -3117,7 +3376,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.eas_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/eas_indexer.py:125:8",
@@ -3136,7 +3397,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.eas_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/eas_indexer.py:191:8",
@@ -3155,7 +3418,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.eas_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/eas_indexer.py:211:12",
@@ -3174,7 +3439,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.eas_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gee_climate.py:97:8",
@@ -3193,7 +3460,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.climate_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gee_climate.py:160:8",
@@ -3212,7 +3481,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.climate_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gee_climate.py:229:8",
@@ -3231,7 +3502,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.climate_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gee_climate.py:299:8",
@@ -3250,7 +3523,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.climate_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gnosis_indexer.py:113:8",
@@ -3269,7 +3544,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.gnosis_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gnosis_indexer.py:124:8",
@@ -3288,7 +3565,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.gnosis_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gnosis_indexer.py:156:8",
@@ -3307,7 +3586,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.gnosis_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gnosis_indexer.py:332:8",
@@ -3326,7 +3607,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.gnosis_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gnosis_indexer.py:343:8",
@@ -3345,7 +3628,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.gnosis_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/gnosis_indexer.py:585:20",
@@ -3364,7 +3649,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.gnosis_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/market_data.py:351:8",
@@ -3383,7 +3670,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.market_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/market_data.py:376:8",
@@ -3402,7 +3691,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.market_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/market_data.py:393:12",
@@ -3421,7 +3712,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.market_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/market_data.py:448:12",
@@ -3440,7 +3733,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.market_data"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/ml_anomaly_detector.py:213:4",
@@ -3460,7 +3755,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/ml_anomaly_detector.py:248:4",
@@ -3480,7 +3777,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/ml_anomaly_detector.py:489:4",
@@ -3498,7 +3797,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/ml_anomaly_detector.py:563:8",
@@ -3518,7 +3819,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/mqtt_actuator.py:104:4",
@@ -3539,7 +3842,9 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/mqtt_actuator.py:148:4",
@@ -3557,7 +3862,9 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/rpc_indexer.py:59:12",
@@ -3576,7 +3883,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.rpc_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/rpc_indexer.py:64:12",
@@ -3595,7 +3904,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.rpc_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/rpc_indexer.py:120:8",
@@ -3614,7 +3925,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.rpc_indexer"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/sensor_ingester.py:87:12",
@@ -3633,7 +3946,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/sensor_ingester.py:100:8",
@@ -3653,7 +3968,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/sensor_ingester.py:113:8",
@@ -3673,7 +3990,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/sensor_ingester.py:132:8",
@@ -3693,7 +4012,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/sensor_ingester.py:154:8",
@@ -3712,7 +4033,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/sensor_ingester.py:178:12",
@@ -3731,7 +4054,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/sensor_ingester.py:465:8",
@@ -3750,7 +4075,9 @@
         "scheduled_module:services.ingestion.sensor_ingester"
       ],
       "statically_reachable_operations": [],
-      "static_link_status": "no_static_function_match"
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/sensor_ingester.py:508:12",
@@ -3771,7 +4098,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/weather.py:86:8",
@@ -3790,7 +4119,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/weather.py:175:12",
@@ -3809,7 +4140,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/ingestion/weather.py:180:12",
@@ -3828,7 +4161,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/allocated_shared_cost.py:30:4",
@@ -3848,7 +4183,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/attestation_coverage.py:31:4",
@@ -3867,7 +4204,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/attestation_coverage.py:44:4",
@@ -3886,7 +4225,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/baseline_asset_value.py:20:4",
@@ -3905,7 +4246,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/baseline_cash_flow.py:20:4",
@@ -3924,7 +4267,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/baseline_cost.py:20:4",
@@ -3943,7 +4288,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/baseline_revenue.py:20:4",
@@ -3962,7 +4309,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/biodiversity_delta.py:35:4",
@@ -3981,7 +4330,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/crop_revenue.py:30:4",
@@ -4000,7 +4351,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/digital_lego.py:31:4",
@@ -4020,7 +4373,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/digital_lego.py:45:4",
@@ -4039,7 +4394,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/direct_crop_cost.py:30:4",
@@ -4058,7 +4415,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/first_time_through_yield.py:39:4",
@@ -4080,7 +4439,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/governed_lead_time.py:40:4",
@@ -4102,7 +4463,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/loss_rate_pct.py:35:4",
@@ -4121,7 +4484,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/net_crop_revenue.py:30:4",
@@ -4140,7 +4505,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/rework_rate.py:50:8",
@@ -4162,7 +4529,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/soil_carbon_delta.py:22:4",
@@ -4182,7 +4551,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/value_flowed.py:31:4",
@@ -4201,7 +4572,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/value_flowed.py:54:4",
@@ -4220,7 +4593,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/wallet_retention.py:34:4",
@@ -4240,7 +4615,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/calculators/wallet_retention.py:45:4",
@@ -4260,7 +4637,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/cli.py:43:21",
@@ -4282,7 +4661,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/cli.py:113:16",
@@ -4301,7 +4682,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/cli.py:138:20",
@@ -4320,7 +4703,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/engine.py:46:8",
@@ -4339,7 +4724,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/engine.py:74:8",
@@ -4358,7 +4745,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/engine.py:116:4",
@@ -4377,7 +4766,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     },
     {
       "id": "services/metrics/engine.py:177:8",
@@ -4396,7 +4787,9 @@
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
       ],
-      "static_link_status": "linked"
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
     }
   ]
 }

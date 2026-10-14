@@ -21,6 +21,11 @@ def test_sql_reachability_covers_every_inventory_site_without_query_text():
     report = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
     source_inventory = build_sql_inventory()
     graph = build_function_graph()
+    graph_functions = {
+        (function["source"], function["qualname"])
+        for operation in graph["operations"]
+        for function in operation["reachable_functions"]
+    }
     sites = report["execution_sites"]
     source_sites = source_inventory["execution_sites"]
 
@@ -31,6 +36,14 @@ def test_sql_reachability_covers_every_inventory_site_without_query_text():
         assert set(site["statically_reachable_operations"]) <= set(site["import_closure_operations"])
         assert site["static_link_status"] == (
             "linked" if site["statically_reachable_operations"] else "no_static_function_match"
+        )
+        assert site["function_in_any_worker_graph"] == ((site["source"], site["scope"]) in graph_functions)
+        assert site["review_status"] == (
+            "linked_to_operation"
+            if site["statically_reachable_operations"]
+            else "function_reachable_elsewhere_without_matching_operation"
+            if site["function_in_any_worker_graph"]
+            else "function_not_reached_by_any_static_worker_root"
         )
         assert "sql" not in site and "query" not in site
         if site["statically_reachable_operations"]:
@@ -55,7 +68,10 @@ def test_unmatched_sites_are_not_labeled_unreachable():
 
     assert unmatched
     assert all(site["static_link_status"] == "no_static_function_match" for site in unmatched)
+    assert all(not site["function_in_any_worker_graph"] for site in unmatched)
+    assert all(site["review_status"] == "function_not_reached_by_any_static_worker_root" for site in unmatched)
     assert report["summary"]["sites_without_static_function_match"] == len(unmatched)
+    assert report["summary"]["unmatched_functions_absent_from_all_worker_graphs"] == len(unmatched)
 
 
 def test_metric_calculator_sql_sites_follow_the_explicit_registry_edges():

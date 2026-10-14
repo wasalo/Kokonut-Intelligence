@@ -286,8 +286,9 @@ Module-specific argument schemas now validate scheduler operations at
 activation and dispatch, excluding unsupported human/destructive operations.
 The source graph now follows locally inferred instance methods and all 20
 literal metrics-registry entries. Its SQL join has a static function path for
-175 of 196 unique execution sites; the remaining 21 are not classified as
-unreachable. This improves code review but is not an authorization boundary:
+175 of 196 unique execution sites; the remaining 21 belong to functions absent
+from all current worker-root graphs, which does not prove they are dead code.
+This improves code review but is not an authorization boundary:
 other dynamic calls, existing task reconciliation, worker-specific identity,
 and RLS remain open. No MAN-CAP status or acceptance count changes
 ([map](worker-operation-map.md); [function graph](worker-function-reachability.json); [SQL reachability](worker-sql-reachability.json); [worker check evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json); [SQL join evidence](builds/2026-10-14-recovery/worker-sql-reachability-check.json); [inventory evidence](builds/2026-10-14-recovery/worker-operation-map-check.json); [argument-contract evidence](builds/2026-10-14-recovery/scheduled-command-contract-check.json)).

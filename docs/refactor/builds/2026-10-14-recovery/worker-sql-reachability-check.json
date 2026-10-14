@@ -8,6 +8,7 @@
   "statically_reachable_site_memberships": 216,
   "unique_sites_with_static_operation_path": 175,
   "sites_without_static_function_match": 21,
+  "unmatched_functions_absent_from_all_worker_graphs": 21,
   "sites_reached_by_multiple_operations": 29,
   "focused_test_command": "./.venv/bin/python -m pytest tests/test_worker_function_reachability.py tests/test_worker_sql_reachability.py tests/test_worker_source_closure.py tests/test_worker_sql_inventory.py tests/test_worker_operation_map.py -q",
   "focused_tests": {
@@ -20,7 +21,7 @@
     "diff_check": "passed"
   },
   "limits": [
-    "A site without a static function match is not proven unreachable; unresolved callbacks, dispatch, and instance types may still reach it.",
+    "All 21 unmatched sites belong to functions absent from every current worker graph; this is not proof of dead code because dynamic or external entry paths may still call them.",
     "Candidate relations are inventory hints and do not define grants, tenant authorization, or a complete read/write set.",
     "No database was accessed and no migration was required."
   ]

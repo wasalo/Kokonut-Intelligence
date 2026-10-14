@@ -23,8 +23,9 @@ an explicit graph for the 20 functions in the literal metrics calculator
 registry. Across 17 operations it resolves 31 entry functions, 341 function
 memberships, 483 direct-call edges and 20 registry-dispatch edges over 69
 source files. The companion SQL reachability report links 175 unique SQL sites
-across 216 operation/site memberships; the other 21 are marked
-`no_static_function_match`, not unreachable. The focused worker source/graph/map
+across 216 operation/site memberships; the other 21 belong to functions absent
+from all current worker graphs and are marked `no_static_function_match`, not
+dead code. The focused worker source/graph/map
 suite passes 31 tests, with Ruff checks passing. Remaining dynamic callbacks,
 unknown instance types, extension/provider and database behavior, worker
 identity and authorization are still open ([source closure](worker-source-closure.json),
