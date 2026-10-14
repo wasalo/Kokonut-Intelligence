@@ -357,6 +357,7 @@ class FakeWriteCursor:
 
 class FakeWriteConnection:
     def __init__(self, row=None, error=None):
+        self.autocommit = False
         self.cursor_instance = FakeWriteCursor(row, error)
         self.committed = False
         self.rolled_back = False
@@ -383,7 +384,9 @@ def event_body():
     }
 
 
-def test_review_event_is_append_only_scoped_and_does_not_update_collection():
+def test_review_event_sets_same_tenant_context_before_append_only_insert(
+    _tenant_context_spy,
+):
     event = {
         "id": UUID("44444444-4444-4444-8444-444444444444"),
         "collection_id": UUID(COLLECTION_ID),
@@ -408,12 +411,24 @@ def test_review_event_is_append_only_scoped_and_does_not_update_collection():
     assert result["actor_operator_id"] == OPERATOR_ID
     assert result["created_at"] == COLLECTED_AT.isoformat()
     assert connection.committed and connection.closed and not connection.rolled_back
+    assert len(_tenant_context_spy) == 1
+    context_connection, context = _tenant_context_spy[0]
+    assert context_connection is connection
+    assert context == {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "mobile_collection_review",
+        "action": "review",
+        "required_scopes": (("mobile_collection_review", "read_detail"),),
+    }
     insert = next(
         statement
         for statement in connection.cursor_instance.statements
         if "INSERT INTO mobile_collection_review_event" in statement[0]
     )
     sql, params = insert
+    statements = connection.cursor_instance.statements
+    assert statements.index(("SET TENANT CONTEXT", context)) < statements.index(insert)
     assert "INSERT INTO mobile_collection_review_event" in sql
     assert "grant_row.action = 'review'" in sql
     assert "detail_grant.action = 'read_detail'" in sql

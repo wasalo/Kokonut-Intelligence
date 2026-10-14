@@ -580,6 +580,13 @@ reporting views.
   with Ruff clean. This does not complete retention or erasure disposition
   ([contract](mobile-tenant-isolation.md),
   [evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
+- [x] Bind append-only Field Collector reviewer-note writes to one tenant using
+  both `mobile_collection_review:review` and
+  `mobile_collection_review:read_detail` before the INSERT. Context is set on
+  the same transaction/connection, and cross-tenant denial maps to HTTP 403.
+  Thirteen mobile-review service tests, eleven tenant-context tests, and three
+  focused auth-route tests pass; Ruff and `git diff --check` pass. Candidate and
+  legacy databases were untouched.
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.

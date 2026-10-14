@@ -438,6 +438,14 @@ def record_mobile_review_event(
         with conn.cursor() as cur:
             cur.execute("SET LOCAL statement_timeout = '5s'")
             cur.execute("SET LOCAL lock_timeout = '2s'")
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=location_id,
+                resource="mobile_collection_review",
+                action="review",
+                required_scopes=(("mobile_collection_review", "read_detail"),),
+            )
             cur.execute(
                 """INSERT INTO mobile_collection_review_event (
                           collection_id, location_id, actor_operator_id,

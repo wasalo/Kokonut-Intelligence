@@ -994,6 +994,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_mobile_review import record_mobile_review_event
 
         try:
@@ -1003,6 +1004,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 collection_id,
                 location_id,
                 body,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"error": str(exc)})

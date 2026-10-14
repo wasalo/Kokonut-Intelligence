@@ -4125,3 +4125,14 @@ individually valid grants from different tenants are rejected. Ruff and syntax
 checks pass. Candidate and legacy databases were untouched. Human
 retention/erasure disposition, other Gateway routes, workers, direct-database
 boundaries, and RLS remain open.
+
+The append-only reviewer-note write now applies the same pattern before its
+INSERT: `mobile_collection_review:review` and `mobile_collection_review:read_detail`
+must resolve to one verified tenant, and context is set on the connection that
+performs the write. A denied context returns HTTP 403 with no-store headers.
+Thirteen mobile-review service tests, eleven tenant-context tests, and three
+focused auth-route tests pass; Ruff is clean. The service check confirms
+context precedes the INSERT, while helper tests cover same-tenant acceptance,
+cross-tenant rejection, and transaction-local cleanup. Candidate and legacy
+databases were not accessed. Broader Gateway/worker integration, affiliation
+reconciliation, direct-database boundaries, and RLS remain open.

@@ -1033,6 +1033,61 @@ def test_mobile_review_event_route_requires_csrf_and_returns_no_store(monkeypatc
     assert audit_records[-1]["location_id"] == LOCATION_ID
 
 
+def test_mobile_review_event_route_denies_cross_tenant_context(monkeypatch):
+    from services.common.tenant_context import TenantContextDenied
+
+    provider = _ReviewProvider(allowed_actions={"review", "read_detail"})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda *_args: None,
+    )
+    event_writer = MagicMock(
+        side_effect=TenantContextDenied(
+            "required tenant-qualified grants resolve to different tenants"
+        )
+    )
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.record_mobile_review_event",
+        event_writer,
+    )
+
+    with TestClient(create_app()) as client:
+        client.cookies.set(
+            operator_auth.SESSION_COOKIE,
+            "valid-session",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        client.cookies.set(
+            operator_auth.CSRF_COOKIE,
+            "valid-csrf",
+            path=operator_auth.SESSION_COOKIE_PATH,
+        )
+        response = client.post(
+            "/operator/api/mobile-collection-review-queue/22222222-2222-4222-8222-222222222222/events",
+            params={"location_id": LOCATION_ID},
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json={
+                "decision": "reviewed",
+                "reason": "Checked the evidence.",
+                "evidence": [{"source": "field-review", "basis": "Observed the submitted entry."}],
+            },
+        )
+
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    event_writer.assert_called_once()
+
+
 @pytest.mark.parametrize(
     ("session", "scope", "csrf", "status"),
     [

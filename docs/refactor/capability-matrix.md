@@ -72,6 +72,14 @@ multi-grant behavior for the content-free disposition inventory. Human
 retention/erasure decisions, other Gateway and worker paths, direct-database
 boundaries, and RLS remain open; tenant isolation remains partial.
 
+Append-only reviewer-note writes now set context before the INSERT on the same
+connection and require the `review` and `read_detail` grants to resolve to one
+tenant. Thirteen mobile-review service checks, eleven tenant-context checks,
+and three focused auth-route checks pass, including transaction completion and
+HTTP 403 on cross-tenant denial. Candidate and legacy databases were not used.
+This closes only the reviewer-note write path; remaining Gateway/worker paths
+and RLS are still open.
+
 The tenant-aware source foundation is now present in migrations 388–389:
 explicit operator organization memberships, verified seed-location ownership,
 revocable organization shares, tenant-qualified resource/action grants, and
