@@ -12,13 +12,14 @@ Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
 **Last CI-verified head (CAP-001 / CAP-047 / CAP-053):** PR #68 is now
-pushed through `c1c9fd1` with CI pending. The last passing head was
+pushed through `26edad1`; its fresh CI status has not yet been checked. The last passing head was
 `7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI run [#308](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258026)
 and Security run [#32](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258017)
-both passed on this head. CI #307 failed because its OIDC Compose test fixture
+both passed on that earlier head. CI #307 failed because its OIDC Compose test fixture
 did not provide the required test-only operator-auth password before checking
 the missing issuer; commit `7953afe` corrects the fixture. The release CI gate
-is closed for this pushed head; the named MAN-CAP checks remain open.
+passed on `7953afe`; this does not cover the newer `26edad1` push. The named
+MAN-CAP checks remain open.
 See [the code-first execution plan](code-first-execution-plan.md) for the
 remaining work order and the Raspberry Pi code-only assessment scope.
 

@@ -1,18 +1,18 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `c1c9fd1` (CI pending). The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–396 have isolated PostgreSQL acceptance and remain gated from candidate rollout. The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `26edad1`; its new GitHub CI status has not yet been checked. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–396 have isolated PostgreSQL acceptance and remain gated from candidate rollout. The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
 Do not treat CI #308 and Security #32 as coverage for commits after their
-verified head. The pushed batch through `c1c9fd1` includes the Compose ARM64
-build platform fix, code-only ARM64 runtime acceptance, and Gateway credential
-tenant context in migration 396; CI is pending for that batch. The current
-local, unpushed batch retires the unscoped legacy mobile-offline CLI and tenant-
-binds protected Gateway Data Stream creation. Its mobile/API/form slice passed
-67 tests plus five command subtests; the Data Stream and tenant-context slice
-passed 55 focused tests plus disposable forced-RLS checks. It has not been
-pushed, so it has no remote CI result. The root implementation plan
+verified head. The pushed batch through `26edad1` includes the Compose ARM64
+build platform fix, code-only ARM64 runtime acceptance, migration 396 Gateway
+credential context, retirement of the unscoped legacy mobile-offline CLI, and
+tenant-bound Gateway Data Stream creation. The latter two slices passed 67
+mobile/API/form tests plus five command subtests and 55 focused Data Stream and
+tenant-context tests plus disposable forced-RLS checks. The eight-suite
+platform-integrity set passed 290 tests on local commit `238e2ef`; fresh CI for
+`26edad1` has not been checked. The root implementation plan
 remains intentionally ignored; this ledger and the
 [capability matrix](capability-matrix.md) provide repository-visible progress
 alongside it. Remaining implementation is ordered in the

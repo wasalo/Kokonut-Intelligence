@@ -16,8 +16,9 @@ MAN-CAP checks open until each has its own retained evidence.
 ## Current accounting
 
 - The execution checklist has 296 checked and 20 open items (316 total).
-- The latest pushed implementation batch is `c1c9fd1`; CI is pending. The last
-  CI-verified head remains `7953afe` (CI #308 and Security #32 passed).
+- The latest pushed implementation batch is `26edad1`; its fresh GitHub CI
+  status has not yet been checked. The last CI-verified head remains `7953afe`
+  (CI #308 and Security #32 passed).
 - The local batch retires the unscoped legacy mobile-offline CLI and adds
   transaction-bound tenant context to the protected Data Stream create route.
   Focused source/disposable checks pass; remote CI has not run for these changes.
