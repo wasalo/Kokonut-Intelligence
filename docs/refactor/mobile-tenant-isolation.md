@@ -130,9 +130,14 @@ two offline-shell Node checks, Ruff, Python syntax, dependency alignment, and
 provider-boundary checks. Migration 391 replayed twice in a disposable
 PostgreSQL 16 database; old rows stayed unbound, owner mismatch inserts and
 binding updates failed, and a former-owner device no longer matched the
-protected-access predicate after transfer. No candidate or legacy database
-was used and migration 391 has not been rolled out. Live-browser acceptance,
-human retention and erasure disposition remain separate open decisions.
+protected-access predicate after transfer. Candidate rollout then applied
+migration 391 after a fresh age-encrypted checkpoint; only the app was recreated,
+health returned 200, and anonymous farm-activity/review routes returned 401.
+The empty candidate had no location, transfer, device, or enrollment records, so
+this verifies deployment and route protection rather than populated ownership
+or re-enrollment behavior. Restore was not rehearsed; see the
+[rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json).
+Live-browser acceptance and human retention/erasure disposition remain open.
 
 ## Ordered implementation and acceptance
 
@@ -171,8 +176,8 @@ human retention and erasure disposition remain separate open decisions.
    Kokonut Adelphi and Kokonut Genesis on 2026-10-13. This decision applies only
    to those two repository seed locations; it does not assign owners to other
    locations or resolve unlocated report/dashboard rows. Explicit-sharing
-   semantics are implemented. The candidate now has all 381 schema migrations
-   through 390 applied and zero pending schemas; 120 numbered seed files remain
+   semantics are implemented. The candidate now has all 382 schema migrations
+   through 391 applied and zero pending schemas; 120 numbered seed files remain
    pending in the migration ledger. Its location table is empty, so migration 387
    created the canonical Kokonut Network organization without creating
    location ownership evidence. Five mobile-form rows and ten revisions are
@@ -195,10 +200,12 @@ human retention and erasure disposition remain separate open decisions.
    trigger stack and 11 registered activity/workflow triggers
    ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
    The replay excluded archived data and pilot seeds. Candidate migrations
-   387–390 have now been applied after an age-encrypted checkpoint; only the
-   app was rebuilt/recreated. The app, database, and Metabase are healthy, and
-   anonymous farm-activity and mobile-review routes return 401. See the rollout
-   evidence above; RLS is not enabled.
+   387–391 have now been applied after a fresh age-encrypted checkpoint; only
+   the app was rebuilt/recreated. The app, database, and Metabase are healthy,
+   the proxy remains running, and anonymous farm-activity and mobile-review
+   routes return 401. The candidate has no locations, transfers, devices, or
+   enrollments; seed reconciliation and populated owner/device acceptance remain
+   open. See the [tenant-binding rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json); RLS is not enabled.
 4. Migration 390 defines two-party audited owner transfers. Fourteen focused
    disposable PostgreSQL 16 checks passed for request/approval, stale and
    conflicting ownership, cancellation, atomic rollback, prior-access
@@ -273,8 +280,9 @@ lineage. The clean-schema replay of all 380 migrations, including the
 384–385–389 trigger stack, has now passed; this did not include archived data
 or pilot seeds. Migration 390 and the local CLI now implement a two-party
 transfer workflow; focused acceptance and the separately approved local
-candidate rollout have passed. The candidate has 381 applied schemas through
-390 and 120 pending seeds, but still has no location rows. Least-privilege
+candidate rollouts through migration 391 have passed. The candidate has 382
+applied schemas through 391 and 120 pending seeds, but still has no location
+rows. Least-privilege
 worker behavior and RLS remain open. The operator CLI
 membership/share lifecycle and legacy-grant conversion passed separate
 disposable acceptance; RLS is not enabled by this ownership reconciliation

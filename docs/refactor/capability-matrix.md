@@ -7,15 +7,13 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 All named MAN-CAP acceptance checks below remain **not run**; implementation and deployment progress are tracked separately in the new progress column. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links and audit history before/after the provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** commit
-`258e46fa84e66e610f4d1f124a036e1443b7a2cf` is the current PR #68 head. The
-approved platform-integrity suite passed 279 tests, covering migrations,
-Gateway authorization, durable scheduler/event delivery, credits, and advisory
-workflows. The focused reviewer-note service/auth slice also passed 14 service
-and three route tests, including rollback/connection cleanup on tenant denial.
-CI run #295 is pending; Security run #19 passed. Directus parity, device-token
-tenant binding, worker/direct-database isolation, RLS, and the named manual
-acceptance checks remain open; these results do not establish complete
-capability parity.
+`cfe65140b17dc66314fb6875fa8439a12220da88` is the latest pushed PR #68 head.
+The approved platform-integrity suite passed 279 tests on the older commit
+`258e46f`; CI run #298 is in progress and Security run #22 passed. The focused
+reviewer-note service/auth slice also passed 14 service and three route tests,
+including rollback/connection cleanup on tenant denial. Directus parity,
+worker/direct-database isolation, RLS, and the named manual acceptance checks
+remain open; no full capability acceptance is implied.
 
 **13 October 2026 local source update (CAP-053):** migration 391 and the
 working tree now pin new mobile device enrollments to the current verified
@@ -27,8 +25,10 @@ unbound and require re-enrollment. Sixty-seven focused Python checks, two
 offline-shell Node checks, Ruff, Python syntax, dependency alignment, and
 provider-boundary checks passed. A disposable PostgreSQL 16 fixture replayed
 migration 391 twice and checked legacy NULL preservation, wrong-owner rejection,
-binding immutability, and old-owner denial after transfer. Candidate rollout
-and live-browser acceptance remain open; RLS remains disabled.
+binding immutability, and old-owner denial after transfer. The candidate rollout
+completed on 14 October after an encrypted checkpoint; live-browser acceptance
+remains open and RLS remains disabled
+([rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)).
 
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,
@@ -65,12 +65,15 @@ including the 384–385–389 trigger stack
 Migration 390 transfer and tenant-context acceptance passed 14 disposable
 PostgreSQL checks, and eight context unit tests passed
 ([acceptance](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
-The candidate rollout applied migrations 387–390 after a fresh age-encrypted
-checkpoint; all 381 schema migrations are applied with zero pending, while 120 seed files remain pending in the ledger. Five mobile-form rows and
+The ownership/transfer rollout applied migrations 387–390 after a fresh
+age-encrypted checkpoint; the follow-up device-binding rollout applied 391 from
+a separate checkpoint. All 382 schema migrations are now applied with zero
+pending, while 120 seed files remain pending in the ledger. Five mobile-form rows and
 ten revisions exist without applied seed history and require reconciliation
-before any seed rollout. Only the app was recreated; app/database/Metabase are
-healthy and anonymous protected routes return 401
-([rollout](builds/2026-10-14-recovery/candidate-tenant-transfer-rollout.json)).
+before any seed rollout. Only the app was recreated in each rollout;
+app/database/Metabase are healthy and anonymous protected routes return 401
+([ownership rollout](builds/2026-10-14-recovery/candidate-tenant-transfer-rollout.json),
+[device-binding rollout](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)).
 Worker isolation, RLS, and MAN-CAP-001 / MAN-CAP-053 remain open.
 This mapping does not establish user access or end-to-end tenant isolation.
 

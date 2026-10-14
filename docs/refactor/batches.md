@@ -1,7 +1,7 @@
 # Kernel execution checklist
 
-Updated: 13 October 2026. Current architecture focus remains Phase 7; batch
-numbers group work across phases and do not replace the phase acceptance gates.
+Updated: 14 October 2026. Current architecture focus is Phase 8 acceptance;
+batch numbers group work across phases and do not replace the phase gates.
 
 ## Working agreement
 
@@ -614,7 +614,18 @@ reporting views.
   migration 391 twice, preserved legacy NULL bindings, rejected wrong-owner
   inserts and binding edits, denied the former owner's device after transfer,
   and accepted a device re-enrolled by the new owner. Candidate and legacy
-  databases were not accessed. Live browser and candidate rollout remain open.
+  databases were not accessed for these focused checks. The separately approved
+  candidate rollout is recorded below; legacy and live-browser acceptance remain
+  open.
+- [x] Roll out migration 391 to the local candidate after a fresh age-encrypted
+  PostgreSQL checkpoint. The ordered runner applied one schema migration with
+  zero failures; 382 schemas are applied with none pending, while 120 seed files
+  remain pending and existing mobile-form seed history still needs reconciliation.
+  Only the app was rebuilt/recreated. App/database/Metabase are healthy, the proxy
+  remains running, and anonymous health/protected-route checks return 200/401.
+  No location, transfer, device, or enrollment rows were present; RLS remains
+  disabled, the legacy stack was untouched, and checkpoint restore was not
+  rehearsed ([evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)).
 - [x] Bind OIDC participant-reference creation and revocation to tenant
   context before the party lookup or link mutation. The new same-origin
   `/operator/api/mobile/.../participants` routes use the OIDC cookie path,
@@ -731,7 +742,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Rerun the snapshot-aware PostGIS build and locked inventory comparison on both architectures and retain the passing result ([CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973): 229 AMD64 and 228 ARM64 packages, with the single documented architecture-specific difference).
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
-- [ ] Review capability matrix and obtain passing release CI for the current branch head. PR #68 is at `cfe65140b17dc66314fb6875fa8439a12220da88`; CI run [#298](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38504514028) is in progress. Security run [#22](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38504514023) passed after the exact evidence-file allowlist repair; the pinned Gitleaks 8.30.1 full-history scan also passes locally. The prior CI #297 was cancelled when this commit was pushed. The approved eight-suite platform-integrity run passed 279 tests on commit `258e46f`; that older run does not cover current-head changes.
+- [ ] Review capability matrix and obtain passing release CI for the current branch head. PR #68's latest pushed commit is `cfe65140b17dc66314fb6875fa8439a12220da88`; CI run [#298](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38504514028) was in progress at last check. Security run [#22](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38504514023) passed after the exact evidence-file allowlist repair; the pinned Gitleaks 8.30.1 full-history scan also passes locally. The prior CI #297 was cancelled when this commit was pushed. The approved eight-suite platform-integrity run passed 279 tests on commit `258e46f`; that older run does not cover current-head changes.
 - [x] Align the active `Main branch protection` ruleset (ID `18234835`) with `CI / ci` and `Security / gitleaks`. GitHub API verification confirms the obsolete `Python checks`, `Directus hooks`, and `Foundry contracts` contexts were removed; pull-request/review, CODEOWNERS, thread-resolution, strict up-to-date, linear-history, deletion, force-push, and bypass settings remain. The separate active version-tag ruleset (ID `18234836`) was not changed ([settings audit](../github-actions.md#current-required-check-audit--14-october-2026)).
 - [ ] Execute a reviewed cutover and retire dependencies only after their gates close.
 
