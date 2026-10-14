@@ -1,8 +1,9 @@
 # Kernel worker operation map
 
 **Reviewed:** 14 October 2026  
-**Status:** entrypoint inventory and scheduler argument contracts implemented;
-transitive scope and authorization boundaries remain open.
+**Status:** entrypoint inventory, scheduler argument contracts, and static
+local-import closure implemented; runtime effects and authorization boundaries
+remain open.
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
 the exact 12 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
@@ -29,6 +30,19 @@ data effects, and an idempotency/retry note.
   provider/effect boundary, and known replay behavior. The five event handlers
   also have detailed concurrency and replay evidence in
   [event-handler-concurrency.md](event-handler-concurrency.md).
+- A generated [static source closure](worker-source-closure.json) records the
+  local `services.*` import edges and source files reachable from each of the
+  12 scheduled modules and five allowlisted handler modules. It covers 69
+  distinct local source files across 17 operation roots, with 407 import edges,
+  no unresolved local modules, and the EventBus's one dynamic handler-import
+  site. That site is dispatched through `validate_event_handler` and the exact
+  allowlist. Package `__main__.py` entrypoints are included.
+- Regenerate or verify the source closure with
+  `python3 scripts/worker_source_closure.py --output docs/refactor/worker-source-closure.json`
+  or `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`.
+  The inventory follows imports conservatively, including imports under
+  conditional branches; it is not a function-level call graph and does not
+  establish that imported code executes for a particular operation.
 - The `services.events` operation entry includes the optional notification
   processor's outbox/attempt writes; the `services.metrics` entry includes the
   code-owned NOI snapshot reconciliation view and natural-key upsert. It now
@@ -53,12 +67,12 @@ data effects, and an idempotency/retry note.
 
 ## What remains open
 
-This map and its argument schemas are not an ACL, tenant policy, or complete
-dynamic call graph. The metrics calculator read set is source-reviewed, but
-other imported helpers, dynamic SQL fragments, database functions/views,
-provider implementations, and external effects remain to be traced. The map
-also does not prove that external Prefect/host schedules are inactive or that
-effects are replay-safe on populated data.
+This map, import closure, and argument schemas are not an ACL, tenant policy,
+or complete dynamic call graph. Imported helpers still need function-level
+effect tracing; dynamic SQL fragments, database functions/views, provider
+implementations, and external effects remain to be traced. The map also does
+not prove that external Prefect/host schedules are inactive or that effects
+are replay-safe on populated data.
 
 Before worker RLS or runtime-grant reduction:
 
@@ -73,7 +87,8 @@ Before worker RLS or runtime-grant reduction:
    PostgreSQL, then repeat lease/retry/effect tests. Candidate rollout and RLS
    remain separate gates.
 
-The inventory-only contract test is `tests/test_worker_operation_map.py`.
+The source-closure regression is `tests/test_worker_source_closure.py`; the
+inventory-only contract test is `tests/test_worker_operation_map.py`.
 The focused source, scheduler and event checks pass 37 tests; the retained
 [check record](builds/2026-10-14-recovery/worker-operation-map-check.json)
 contains that inventory test evidence. The separate

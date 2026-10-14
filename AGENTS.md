@@ -84,6 +84,7 @@ Commands:
 
 - Check Kernel dependency group alignment: `python3 scripts/check-requirement-groups.py`
 - Check optional provider import boundaries: `python3 scripts/check-provider-boundaries.py`
+- Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
 - Capture static Kernel inventory: `python3 scripts/kernel-inventory.py --output docs/refactor/repository-inventory.json`
 - Start services with encrypted secrets: `source scripts/load-secrets.sh && docker compose up -d`
 - Start services (plaintext .env fallback): `docker compose up -d`

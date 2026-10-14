@@ -1,30 +1,28 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `26edad1`; CI #310 was the latest recorded run at the last plan review. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–397 passed ordered PostgreSQL 16 application and runner replay on an age-encrypted candidate-checkpoint restore; the candidate remains at 391 and rollout remains open. This is populated-restore evidence, not clean `template0` bootstrap evidence ([record](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)). The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `c5b703c`; CI #311 is in progress and Security #35 passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–397 passed ordered PostgreSQL 16 application and runner replay on an age-encrypted candidate-checkpoint restore; the candidate remains at 391 and rollout remains open. This is populated-restore evidence, not clean `template0` bootstrap evidence ([record](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)). The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
 Do not treat CI #308 and Security #32 as coverage for commits after their
-verified head. The pushed batch through `26edad1` includes the Compose ARM64
-build platform fix, code-only ARM64 runtime acceptance, migration 396 Gateway
-credential context, retirement of the unscoped legacy mobile-offline CLI, and
-tenant-bound Gateway Data Stream creation. CI #310 is currently running and
-Security #34 passed for this batch. The latter two slices passed 67
-mobile/API/form tests plus five command subtests and 55 focused Data Stream and
-tenant-context tests plus disposable forced-RLS checks. The eight-suite
-platform-integrity set passed 290 tests on local commit `238e2ef`. The root implementation plan
+verified head. The pushed batch through `c5b703c` includes provider-aware
+backup/restore, gRPC auth-context lifecycle fixes, and focused RPC policy and
+optional-provider inventories. CI #311 is in progress and Security #35 passed
+for that batch. The eight-suite platform-integrity set passed 290 tests on
+local commit `238e2ef`. The root implementation plan
 remains intentionally ignored; this ledger and the
 [capability matrix](capability-matrix.md) provide repository-visible progress
 alongside it. Remaining implementation is ordered in the
 [code-first execution plan](code-first-execution-plan.md); owner decisions and
 external inputs are collected in [Open Follow Ups](open-follow-ups.md).
 
-Current local work, not yet pushed, includes the event-driven cache invalidation
-scope guard and persistent native public API SDK parity tests. The cache change
-passes 59 focused cache, architecture, and event-delivery tests. The SDK
-regression suites pass 6 Python and 6 TypeScript tests, plus the TypeScript
-build and Ruff; both use isolated local/fake adapters. The shared worker
-database identity remains open; see the worker call-site audit.
+The current unpushed slice adds a deterministic local-import closure for every
+allowlisted scheduled module and event-handler module. It records 69 distinct
+local source files, 407 source edges, no unresolved local modules, and the
+EventBus's single dynamic handler-import site. Thirteen focused source-inventory
+tests pass in the project virtual environment; the report does not close the
+function-level effect trace, shared worker identity, or authorization boundary
+([inventory](worker-source-closure.json); [check record](builds/2026-10-14-recovery/worker-source-closure-check.json)).
 
 The current source-only telemetry slice keeps freshness-query identifiers in
 fixed maps, binds location values, and records unsupported configured sources
