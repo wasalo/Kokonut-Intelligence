@@ -14,6 +14,7 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 from services.common.database import get_db
+from services.common.tenant_context import set_operator_tenant_context
 from services.mobile.form_validation import FormPayloadInvalid, FormSchemaUnavailable, validate_form_payload
 
 try:
@@ -626,9 +627,51 @@ async def create_enrollment(
     body: EnrollmentCreateRequest,
 ):
     """Issue a short-lived, single-use device enrollment code."""
+    return await _create_enrollment(
+        location_id,
+        request,
+        body,
+        operator_id=None,
+    )
+
+
+async def create_operator_enrollment(
+    location_id: UUID,
+    request: Request,
+    body: EnrollmentCreateRequest,
+    *,
+    operator_id: str,
+):
+    """Issue an enrollment code in a tenant-qualified OIDC operator transaction."""
+    return await _create_enrollment(
+        location_id,
+        request,
+        body,
+        operator_id=operator_id,
+    )
+
+
+async def _create_enrollment(
+    location_id: UUID,
+    request: Request,
+    body: EnrollmentCreateRequest,
+    *,
+    operator_id: str | None,
+):
     code = secrets.token_urlsafe(32)
     conn = get_db()
     try:
+        if operator_id is not None:
+            with conn.cursor() as cur:
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute("SET LOCAL lock_timeout = '2s'")
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=str(location_id),
+                resource="mobile_device",
+                action="enroll",
+            )
         cur = conn.cursor()
         cur.execute(
             """
@@ -736,8 +779,42 @@ async def register_device(request: RegisterRequest):
 @router.delete("/locations/{location_id}/enrollments/{enrollment_id}")
 async def revoke_enrollment(location_id: UUID, enrollment_id: UUID):
     """Revoke an unused enrollment code within its location."""
+    return await _revoke_enrollment(location_id, enrollment_id, operator_id=None)
+
+
+async def revoke_operator_enrollment(
+    location_id: UUID,
+    enrollment_id: UUID,
+    *,
+    operator_id: str,
+):
+    """Revoke an enrollment in a tenant-qualified OIDC operator transaction."""
+    return await _revoke_enrollment(
+        location_id,
+        enrollment_id,
+        operator_id=operator_id,
+    )
+
+
+async def _revoke_enrollment(
+    location_id: UUID,
+    enrollment_id: UUID,
+    *,
+    operator_id: str | None,
+):
     conn = get_db()
     try:
+        if operator_id is not None:
+            with conn.cursor() as cur:
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute("SET LOCAL lock_timeout = '2s'")
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=str(location_id),
+                resource="mobile_device",
+                action="revoke",
+            )
         cur = conn.cursor()
         cur.execute(
             """
@@ -765,8 +842,38 @@ async def revoke_enrollment(location_id: UUID, enrollment_id: UUID):
 @router.post("/locations/{location_id}/devices/{device_id}/revoke")
 async def revoke_device(location_id: UUID, device_id: str):
     """Revoke one active device token, scoped to the authorized location."""
+    return await _revoke_device(location_id, device_id, operator_id=None)
+
+
+async def revoke_operator_device(
+    location_id: UUID,
+    device_id: str,
+    *,
+    operator_id: str,
+):
+    """Revoke a device in a tenant-qualified OIDC operator transaction."""
+    return await _revoke_device(location_id, device_id, operator_id=operator_id)
+
+
+async def _revoke_device(
+    location_id: UUID,
+    device_id: str,
+    *,
+    operator_id: str | None,
+):
     conn = get_db()
     try:
+        if operator_id is not None:
+            with conn.cursor() as cur:
+                cur.execute("SET LOCAL statement_timeout = '5s'")
+                cur.execute("SET LOCAL lock_timeout = '2s'")
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=str(location_id),
+                resource="mobile_device",
+                action="revoke",
+            )
         cur = conn.cursor()
         cur.execute(
             """

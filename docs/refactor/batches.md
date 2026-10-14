@@ -594,6 +594,11 @@ reporting views.
   confirm context precedes queries/writes on the same connection and that detail
   grants are included in the same-tenant context. Ruff, syntax, and diff checks
   pass; no database was accessed.
+- [x] Bind the OIDC mobile-device enrollment and revocation routes to tenant
+  context inside their PostgreSQL write transaction. The public API-key
+  enrollment handler remains on its existing Gateway authorization path.
+  Ten focused operator-route tests and the public enrollment authorization
+  test pass; Ruff and syntax checks pass. No database was accessed.
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.

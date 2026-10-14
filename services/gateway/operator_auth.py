@@ -635,7 +635,11 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from fastapi.responses import JSONResponse, RedirectResponse
     from starlette.concurrency import run_in_threadpool
 
-    from services.mobile.api import create_enrollment, revoke_device, revoke_enrollment
+    from services.mobile.api import (
+        create_operator_enrollment,
+        revoke_operator_device,
+        revoke_operator_enrollment,
+    )
 
     router = APIRouter()
 
@@ -1529,7 +1533,21 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         """Issue a one-time collector code to an authorized OIDC operator."""
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
-        result = await create_enrollment(location_id, request, body)
+        from services.common.tenant_context import TenantContextDenied
+
+        try:
+            result = await create_operator_enrollment(
+                location_id,
+                request,
+                body,
+                operator_id=request.state.operator_session.operator.operator_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         return JSONResponse(
             status_code=201,
             content=result,
@@ -1539,11 +1557,26 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     @router.delete(
         "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}"
     )
-    async def operator_revoke_mobile_enrollment(location_id: UUID, enrollment_id: UUID):
+    async def operator_revoke_mobile_enrollment(
+        location_id: UUID, enrollment_id: UUID, request: Request
+    ):
         """Revoke an unused collector code within an authorized location."""
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
-        result = await revoke_enrollment(location_id, enrollment_id)
+        from services.common.tenant_context import TenantContextDenied
+
+        try:
+            result = await revoke_operator_enrollment(
+                location_id,
+                enrollment_id,
+                operator_id=request.state.operator_session.operator.operator_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         return JSONResponse(
             content=result,
             headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
@@ -1552,11 +1585,26 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     @router.post(
         "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke"
     )
-    async def operator_revoke_mobile_device(location_id: UUID, device_id: str):
+    async def operator_revoke_mobile_device(
+        location_id: UUID, device_id: str, request: Request
+    ):
         """Revoke an active collector device within an authorized location."""
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
-        result = await revoke_device(location_id, device_id)
+        from services.common.tenant_context import TenantContextDenied
+
+        try:
+            result = await revoke_operator_device(
+                location_id,
+                device_id,
+                operator_id=request.state.operator_session.operator.operator_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         return JSONResponse(
             content=result,
             headers={"Cache-Control": "no-store", "Pragma": "no-cache"},

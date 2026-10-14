@@ -4148,3 +4148,11 @@ including all seven farm-activity route denial mappings. Two older CORS header
 assertions were corrected to issue the requests with the configured `Origin`;
 the focused route slice now passes. Ruff, Python syntax compilation, and diff
 checks pass, and no database was accessed.
+
+The OIDC operator paths for creating enrollments, revoking unused enrollment
+codes, and revoking active devices now set tenant context before their SQL
+write using `mobile_device:enroll` or `mobile_device:revoke`. The public
+API-key enrollment endpoint still uses its existing Gateway capability check
+and does not attempt OIDC tenant context. Ten focused operator-route checks
+and one public enrollment authorization check pass; Ruff and syntax checks
+pass. No database was accessed.

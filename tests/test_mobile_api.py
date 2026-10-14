@@ -895,12 +895,18 @@ def test_existing_device_id_cannot_be_reassigned_by_registration(monkeypatch):
     connection.rollback.assert_called()
 
 
-def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch):
+def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path):
     location_id = "11111111-1111-4111-8111-111111111111"
+    monkeypatch.setenv(
+        "KOKONUT_GATEWAY_AUDIT_SPOOL_PATH",
+        str(tmp_path / "gateway-audit.sqlite3"),
+    )
     connection = MagicMock()
     cursor = connection.cursor.return_value
     cursor.fetchone.return_value = ("claim-1", "2030-01-01T00:00:00+00:00")
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    tenant_context = MagicMock()
+    monkeypatch.setattr(mobile_api, "set_operator_tenant_context", tenant_context)
     monkeypatch.setenv("KOKONUT_API_KEYS", "enroller-secret:field-enroller")
     monkeypatch.setenv(
         "KOKONUT_API_KEY_SCOPES",
@@ -924,6 +930,7 @@ def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch):
     assert len(body["enrollment_code"]) >= 32
     assert "enrollment_code" not in str(cursor.execute.call_args_list)
     assert f"{location_id}" in str(cursor.execute.call_args_list)
+    tenant_context.assert_not_called()
 
 
 def test_location_specific_forms_require_a_registered_device(monkeypatch):

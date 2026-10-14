@@ -65,6 +65,22 @@ class _FakeProvider:
         return None
 
 
+class _MobileDeviceProvider(_FakeProvider):
+    def __init__(self, *, allowed_actions=()):
+        super().__init__(allowed=False)
+        self.allowed_actions = set(allowed_actions)
+        self.scopes_seen = []
+
+    def has_scope(self, operator_id, resource, action, location_id):
+        self.scopes_seen.append((operator_id, resource, action, location_id))
+        return (
+            operator_id == OPERATOR_ID
+            and resource == "mobile_device"
+            and action in self.allowed_actions
+            and location_id == LOCATION_ID
+        )
+
+
 def test_operator_mobile_routes_require_location_scoped_actions():
     create_policy = operator_auth.auth_route_policy(
         "POST",
@@ -1223,6 +1239,11 @@ def test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf(
         "2030-01-01T00:00:00+00:00",
     )
     monkeypatch.setattr("services.mobile.api.get_db", lambda: connection)
+    context_calls = []
+    monkeypatch.setattr(
+        "services.mobile.api.set_operator_tenant_context",
+        lambda conn, **kwargs: context_calls.append((conn, kwargs)),
+    )
     audit_records = []
     monkeypatch.setattr(
         "services.gateway.audit.GatewayAudit.reserve_mutation",
@@ -1267,9 +1288,160 @@ def test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf(
             LOCATION_ID,
             f"operator:{OPERATOR_ID}",
         )
+        assert context_calls == [
+            (
+                connection,
+                {
+                    "operator_id": OPERATOR_ID,
+                    "location_id": LOCATION_ID,
+                    "resource": "mobile_device",
+                    "action": "enroll",
+                },
+            )
+        ]
         connection.commit.assert_called_once()
         assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
         assert audit_records[-1]["location_id"] == LOCATION_ID
     else:
         connection.cursor.assert_not_called()
         connection.commit.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "action", "body", "row"),
+    [
+        (
+            "POST",
+            f"/operator/api/mobile/locations/{LOCATION_ID}/enrollments",
+            "enroll",
+            {"user_id": "collector-17", "expires_in_minutes": 60},
+            ("33333333-3333-4333-8333-333333333333", "2030-01-01T00:00:00+00:00"),
+        ),
+        (
+            "DELETE",
+            f"/operator/api/mobile/locations/{LOCATION_ID}/enrollments/22222222-2222-4222-8222-222222222222",
+            "revoke",
+            None,
+            ("22222222-2222-4222-8222-222222222222",),
+        ),
+        (
+            "POST",
+            f"/operator/api/mobile/locations/{LOCATION_ID}/devices/collector-17/revoke",
+            "revoke",
+            None,
+            ("collector-17",),
+        ),
+    ],
+)
+def test_operator_mobile_mutations_set_tenant_context(
+    monkeypatch, method, path, action, body, row
+):
+    provider = _MobileDeviceProvider(allowed_actions={action})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = row
+    monkeypatch.setattr("services.mobile.api.get_db", lambda: connection)
+    context_calls = []
+    monkeypatch.setattr(
+        "services.mobile.api.set_operator_tenant_context",
+        lambda conn, **kwargs: context_calls.append((conn, kwargs)),
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda *_args: None,
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=True)
+        response = client.request(
+            method,
+            path,
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json=body,
+        )
+
+    assert response.status_code == (201 if action == "enroll" else 200), response.text
+    assert context_calls == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "mobile_device",
+                "action": action,
+            },
+        )
+    ]
+    assert connection.commit.call_count == 1
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "action", "body"),
+    [
+        (
+            "POST",
+            f"/operator/api/mobile/locations/{LOCATION_ID}/enrollments",
+            "enroll",
+            {"user_id": "collector-17", "expires_in_minutes": 60},
+        ),
+        (
+            "DELETE",
+            f"/operator/api/mobile/locations/{LOCATION_ID}/enrollments/22222222-2222-4222-8222-222222222222",
+            "revoke",
+            None,
+        ),
+        (
+            "POST",
+            f"/operator/api/mobile/locations/{LOCATION_ID}/devices/collector-17/revoke",
+            "revoke",
+            None,
+        ),
+    ],
+)
+def test_operator_mobile_mutations_deny_unverified_tenant_context(
+    monkeypatch, method, path, action, body
+):
+    from services.common.tenant_context import TenantContextDenied
+
+    provider = _MobileDeviceProvider(allowed_actions={action})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    connection = MagicMock()
+    monkeypatch.setattr("services.mobile.api.get_db", lambda: connection)
+    monkeypatch.setattr(
+        "services.mobile.api.set_operator_tenant_context",
+        MagicMock(side_effect=TenantContextDenied("tenant-qualified grant required")),
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda *_args: None,
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=True)
+        response = client.request(
+            method,
+            path,
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json=body,
+        )
+
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+    assert "Cookie" in response.headers["vary"]
+    connection.commit.assert_not_called()

@@ -90,6 +90,13 @@ database was accessed. CAP-001 and CAP-053 remain partial pending the other
 Gateway/worker paths, tenant ownership reconciliation, and direct-database/RLS
 gates.
 
+OIDC operator enrollment and revocation for mobile devices now validate the
+`mobile_device:enroll` or `mobile_device:revoke` tenant-qualified grant in the
+same transaction as the write. The public API-key enrollment contract stays
+unchanged. Ten focused operator-route tests and the public enrollment
+authorization test pass; Ruff and syntax checks pass. Remaining operator/API
+and worker paths still need a bounded tenant-context review.
+
 The tenant-aware source foundation is now present in migrations 388–389:
 explicit operator organization memberships, verified seed-location ownership,
 revocable organization shares, tenant-qualified resource/action grants, and
