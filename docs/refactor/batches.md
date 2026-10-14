@@ -539,18 +539,26 @@ reporting views.
   NULL-tenant grants; see the [transfer contract](tenant-owner-transfer-contract.md).
 - [x] Run focused disposable PostgreSQL acceptance for transfer request,
   independent approval, stale/conflicting owner rejection, atomic owner-link
-  change, all-grant/share revocation, cancellation, replay, and rollback before
-  considering a candidate rollout. All ten CLI/SQL checks passed against the
-  actual migrations 387–390 on synthetic PostgreSQL 16; the candidate and
-  legacy databases were untouched, and the loopback-only disposable database,
-  bridge, and temporary source copy were removed
-  ([evidence](builds/2026-10-13-recovery/tenant-owner-transfer-disposable.json)).
-- [ ] Perform migration 390's separately gated candidate rollout after a fresh
-  encrypted checkpoint; verify ordered migration status, service health, and
-  protected routes before accepting the candidate state.
+  change, all-grant/share revocation, cancellation, replay, and rollback.
+  Fourteen CLI/SQL/context checks passed against actual migrations 387–390 on
+  synthetic PostgreSQL 16; eight focused context unit checks also passed. The
+  candidate and legacy databases were untouched by the acceptance run, and
+  its temporary database, bridge, and source copy were removed
+  ([evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
+- [x] Roll out migrations 387–390 to the local candidate after a fresh
+  age-encrypted checkpoint; the archive authentication and PostgreSQL listing
+  passed, 381 schemas are applied with zero pending, and 120 seed files remain
+  pending in the migration ledger. Five mobile-form rows and ten revision rows
+  already exist without applied seed history and need reconciliation before any
+  seed rollout. Only the candidate app was rebuilt/recreated;
+  app/database/Metabase health and anonymous 401 responses on both protected
+  routes passed ([rollout evidence](builds/2026-10-14-recovery/candidate-tenant-transfer-rollout.json)).
 - [ ] Reconcile other locations and legacy operator grants, add transaction-
   local context, and establish least-privilege worker/direct-database
-  boundaries before RLS.
+  boundaries before RLS. Initial transaction-local operator-context source is
+  in `services/common/tenant_context.py`; eight unit checks and disposable
+  context checks passed, but integration across request/worker connection
+  paths remains open.
 - [x] Audit repository-owned downstream consumers of Field Collector data;
   the source review found an unguarded process-interface elapsed-time lookup
   and added the shared eligibility predicate. Reporting, export, metric,

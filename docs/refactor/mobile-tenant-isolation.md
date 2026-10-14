@@ -1,6 +1,6 @@
 # Field Collector tenant and row-isolation boundary
 
-Updated: 13 October 2026. This is the target security contract for tenant
+Updated: 14 October 2026. This is the target security contract for tenant
 isolation. The current Field Collector remains location-scoped and does not yet
 have database-enforced tenant RLS.
 
@@ -54,9 +54,11 @@ access. No current mobile route claims general database RLS protection.
    rows, RLS may resolve the tenant through the location only after ownership
    immutability or audited transfer semantics are in place. Migration 390 and
    the local operator CLI now implement a pending/accepted/cancelled transfer
-   with separate source and target administrators. Its focused database
-   acceptance and candidate rollout remain open; see the
-   [transfer contract](tenant-owner-transfer-contract.md).
+   with separate source and target administrators. Fourteen focused disposable
+   PostgreSQL transfer/context checks passed, and the candidate rollout applied
+   migrations 387–390 after a fresh encrypted checkpoint. See the
+   [transfer contract](tenant-owner-transfer-contract.md) and
+   [rollout evidence](builds/2026-10-14-recovery/candidate-tenant-transfer-rollout.json).
 
 ## RLS and connection-context requirements
 
@@ -110,8 +112,13 @@ verification:
    Kokonut Adelphi and Kokonut Genesis on 2026-10-13. This decision applies only
    to those two repository seed locations; it does not assign owners to other
    locations or resolve unlocated report/dashboard rows. Explicit-sharing
-   semantics are implemented. Migration 390 defines audited organization-
-   transfer semantics; acceptance and candidate rollout remain open before RLS.
+   semantics are implemented. The candidate now has all 381 schema migrations
+   through 390 applied and zero pending schemas; 120 numbered seed files remain
+   pending in the migration ledger. Its location table is empty, so migration 387
+   created the canonical Kokonut Network organization without creating
+   location ownership evidence. Five mobile-form rows and ten revisions are
+   present without applied seed history, so seed rollout requires reconciliation
+   first. Worker isolation and RLS remain open.
 3. Add server-managed organization membership and tenant-aware grants while
    preserving existing location-grant compatibility. Source foundation is in
    migration 388: tenant grants require an active operator membership plus a
@@ -128,16 +135,31 @@ verification:
    migrations with zero pending or failed, including the combined 384–385–389
    trigger stack and 11 registered activity/workflow triggers
    ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
-   The replay excluded archived data and pilot seeds; candidate rollout remains
-   separately gated, and RLS is not enabled.
-4. Migration 390 defines two-party audited owner transfers; run focused
-   disposable PostgreSQL acceptance before any rollout. Unassigned/conflicted
-   locations still require an accountable ownership decision and cannot use
-   the transfer workflow. The transfer revokes prior shares and all active
-   location grants so access must be reissued under the new owner.
+   The replay excluded archived data and pilot seeds. Candidate migrations
+   387–390 have now been applied after an age-encrypted checkpoint; only the
+   app was rebuilt/recreated. The app, database, and Metabase are healthy, and
+   anonymous farm-activity and mobile-review routes return 401. See the rollout
+   evidence above; RLS is not enabled.
+4. Migration 390 defines two-party audited owner transfers. Fourteen focused
+   disposable PostgreSQL 16 checks passed for request/approval, stale and
+   conflicting ownership, cancellation, atomic rollback, prior-access
+   revocation, fresh grant issuance, audit immutability, and replay
+   plus owner/shared context, ambiguous-grant uniqueness, legacy-grant denial,
+   and transaction reset
+   ([evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
+   Unassigned/conflicted locations still require an accountable ownership
+   decision and cannot use the transfer workflow. The transfer revokes prior shares and all active location
+   grants so access must be reissued under the new owner.
 5. Add transaction-local context to each service/worker connection path, then
    add additive RLS policies and indexes through new ordered migrations. Keep
-   existing migrations immutable.
+   existing migrations immutable. Initial source groundwork is in
+   `services/common/tenant_context.py`: it clears previous local values, derives
+   tenant/location/actor from an active tenant-qualified grant, verifies that
+   grant through the migration-388 database predicate, and sets the values with
+   transaction-local `set_config`. Eight unit tests and the disposable database
+   context checks pass, including legacy-grant denial, context clearing on
+   denial, and reset at commit. The helper is not yet integrated into all
+   request or worker transactions, and RLS remains disabled.
 6. Verify through the same least-privilege role used by the application:
    missing context denies; organization A cannot select or mutate organization
    B; same-location partner access requires an explicit share; revoked grants
@@ -191,8 +213,10 @@ snapshots on the retained archive clone; it does not claim complete downstream
 lineage. The clean-schema replay of all 380 migrations, including the
 384–385–389 trigger stack, has now passed; this did not include archived data
 or pilot seeds. Migration 390 and the local CLI now implement a two-party
-transfer workflow, but focused acceptance and candidate rollout remain open.
-Least-privilege worker behavior and RLS remain open. The operator CLI
+transfer workflow; focused acceptance and the separately approved local
+candidate rollout have passed. The candidate has 381 applied schemas through
+390 and 120 pending seeds, but still has no location rows. Least-privilege
+worker behavior and RLS remain open. The operator CLI
 membership/share lifecycle and legacy-grant conversion passed separate
 disposable acceptance; RLS is not enabled by this ownership reconciliation
 ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json); [replay evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json); [transfer contract](tenant-owner-transfer-contract.md)).
@@ -234,8 +258,9 @@ Legacy NULL-tenant grants continue to use the existing explicit
 location-scoped contract until each identity is reconciled. Tenant grants are
 not a claim of row-level isolation: transaction-local context, worker scoping,
 transfer workflow, and direct database privilege boundaries remain open.
-Clean full ordered replay has passed, but candidate rollout remains separately
-gated. The operator CLI lifecycle and legacy-grant conversion passed separate
+Clean full ordered replay has passed, and migrations 387–390 are now applied
+to the local candidate after a fresh encrypted checkpoint. No location rows or
+pilot seeds were present there. The operator CLI lifecycle and legacy-grant conversion passed separate
 disposable acceptance. Focused
 predicate and trigger acceptance has passed on a minimal
 compatible disposable PostgreSQL schema. RLS remains disabled.
@@ -272,5 +297,9 @@ archive data or pilot seeds. See
 [`tenant-grants-full-schema-replay.json`](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)
 and the separate operator CLI evidence
 [`tenant-grants-cli-disposable.json`](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
-Candidate rollout and migration-390 transfer acceptance, transaction-local
-tenant context, arbitrary direct-SQL isolation, and RLS remain open.
+Migration-390 transfer and context acceptance passed against a disposable
+database (14 database checks plus eight context unit tests). Its candidate
+rollout applied four pending schemas, recreated only the app, and verified
+service health and protected routes. Initial transaction-local operator-context
+helper source is present and tested, but integration into Gateway/worker
+connection paths, arbitrary direct-SQL isolation, and RLS remain open.

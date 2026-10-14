@@ -1,6 +1,6 @@
 # Tenant owner transfer contract
 
-Updated: 13 October 2026.
+Updated: 14 October 2026.
 
 This workflow changes Kokonut's verified organization tenant for one location.
 It is an access and data-governance action. It does not establish or transfer
@@ -61,11 +61,20 @@ references, not attached evidence or private documents.
 
 ## Limits and rollout
 
-This source implementation is migration 390 and is not deployed to the local
-candidate. It does not resolve unassigned/conflicted locations, determine who
+Migration 390 is deployed to the local candidate after an encrypted database
+checkpoint. The rollout applied migrations 387–390 in order; the ledger has
+zero pending schemas and 120 pending seed files. The app alone was recreated;
+the app and database are healthy, and anonymous protected routes return 401.
+The candidate has no location records, so migration 387 created the canonical
+Kokonut Network organization but no location ownership evidence. Five
+mobile-form rows and ten revisions exist without applied seed history and must
+be reconciled before any seed rollout.
+See the [rollout evidence](builds/2026-10-14-recovery/candidate-tenant-transfer-rollout.json).
+
+The workflow does not resolve unassigned/conflicted locations, determine who
 may lawfully transfer land or farms, or change location-bound Field Collector
 device enrollment. Old grants are revoked so pending mobile work cannot gain
 new-owner authority implicitly; any subsequent access requires fresh grants.
-Focused disposable database acceptance and a candidate rollout are separate
-gates. RLS remains disabled until owner mappings, operator affiliations,
-transaction-local context, worker scope, and downstream lineage are resolved.
+RLS remains disabled until owner mappings, operator affiliations,
+transaction-local context integration, worker scope, and downstream lineage
+are resolved.

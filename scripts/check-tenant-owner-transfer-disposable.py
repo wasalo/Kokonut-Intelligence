@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Accept migration 390 and operator CLI behavior in disposable PostgreSQL."""
+"""Accept tenant transfer and transaction-local context in disposable PostgreSQL."""
 
 from __future__ import annotations
 
@@ -23,8 +23,8 @@ EVIDENCE = (
     / "docs"
     / "refactor"
     / "builds"
-    / "2026-10-13-recovery"
-    / "tenant-owner-transfer-disposable.json"
+    / "2026-10-14-recovery"
+    / "tenant-owner-transfer-context-disposable.json"
 )
 
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
@@ -33,6 +33,7 @@ UNVERIFIED_LOCATION_ID = "a0000000-0000-0000-0000-000000000003"
 OWNER_ORG_ID = "a0000000-0000-0000-0000-000000000701"
 PARTNER_ORG_ID = "a0000000-0000-0000-0000-000000000800"
 TARGET_ORG_ID = "a0000000-0000-0000-0000-000000000801"
+ALTERNATE_ORG_ID = "a0000000-0000-0000-0000-000000000802"
 OWNER_ADMIN_ID = "a0000000-0000-0000-0000-000000000901"
 PARTNER_ADMIN_ID = "a0000000-0000-0000-0000-000000000902"
 LEGACY_OPERATOR_ID = "a0000000-0000-0000-0000-000000000903"
@@ -128,6 +129,136 @@ def invoke_cli(
             f"{result.stdout}\n{result.stderr}"
         )
     return result.stdout
+
+
+def run_context_acceptance(cli_root: Path, environment: dict[str, str]) -> list[str]:
+    source = f'''
+import json
+import psycopg2
+from services.common.database import get_db
+from services.common.tenant_context import TenantContextDenied, set_operator_tenant_context
+
+conn = get_db()
+try:
+    owner = set_operator_tenant_context(
+        conn, operator_id='{OWNER_ADMIN_ID}', location_id='{LOCATION_ID}',
+        resource='farm_activity', action='read'
+    )
+    with conn.cursor() as cur:
+        cur.execute("SELECT current_setting('kokonut.tenant_id', true), current_setting('kokonut.location_id', true), current_setting('kokonut.actor_id', true), current_setting('kokonut.actor_type', true)")
+        owner_settings = cur.fetchone()
+
+    partner = set_operator_tenant_context(
+        conn, operator_id='{PARTNER_ADMIN_ID}', location_id='{LOCATION_ID}',
+        resource='farm_activity', action='review'
+    )
+    with conn.cursor() as cur:
+        cur.execute("SELECT current_setting('kokonut.tenant_id', true), current_setting('kokonut.location_id', true), current_setting('kokonut.actor_id', true), current_setting('kokonut.actor_type', true)")
+        partner_settings = cur.fetchone()
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO organization
+                   (id, org_key, name, org_type, status, source_system, source_id, source_raw)
+               VALUES (%s, 'synthetic-alternate-tenant', 'Synthetic Alternate Tenant',
+                       'collective', 'active', 'acceptance', 'alternate-tenant', '{{}}')""",
+            ('{ALTERNATE_ORG_ID}',),
+        )
+        cur.execute(
+            """INSERT INTO operator_organization_membership
+                   (operator_id, organization_id, membership_role, granted_by)
+               VALUES (%s, %s, 'operator', 'synthetic acceptance')""",
+            ('{PARTNER_ADMIN_ID}', '{ALTERNATE_ORG_ID}'),
+        )
+        cur.execute(
+            """INSERT INTO location_organization_share
+                   (location_id, organization_id, granted_by_operator_id, reason)
+               VALUES (%s, %s, %s, 'synthetic alternate tenant context')""",
+            ('{LOCATION_ID}', '{ALTERNATE_ORG_ID}', '{OWNER_ADMIN_ID}'),
+        )
+    with conn.cursor() as cur:
+        cur.execute("SAVEPOINT tenant_grant_ambiguity")
+        try:
+            cur.execute(
+                """INSERT INTO operator_scope_grant
+                       (operator_id, resource, action, location_id, organization_id, granted_by)
+                   VALUES (%s, 'farm_activity', 'review', %s, %s, 'synthetic alternate tenant')""",
+                ('{PARTNER_ADMIN_ID}', '{LOCATION_ID}', '{ALTERNATE_ORG_ID}'),
+            )
+        except psycopg2.errors.UniqueViolation as exc:
+            duplicate_grant_rejected = (
+                exc.diag.constraint_name == 'uq_operator_scope_grant_active'
+            )
+            cur.execute("ROLLBACK TO SAVEPOINT tenant_grant_ambiguity")
+        else:
+            duplicate_grant_rejected = False
+        cur.execute("RELEASE SAVEPOINT tenant_grant_ambiguity")
+        cur.execute("SELECT current_setting('kokonut.tenant_id', true), current_setting('kokonut.location_id', true), current_setting('kokonut.actor_id', true), current_setting('kokonut.actor_type', true)")
+        after_duplicate_settings = cur.fetchone()
+
+    try:
+        set_operator_tenant_context(
+            conn, operator_id='{LEGACY_OPERATOR_ID}', location_id='{LOCATION_ID}',
+            resource='farm_activity', action='legacy_read'
+        )
+    except TenantContextDenied:
+        denied = True
+    else:
+        denied = False
+    with conn.cursor() as cur:
+        cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+        denied_settings = cur.fetchone()
+
+    set_operator_tenant_context(
+        conn, operator_id='{OWNER_ADMIN_ID}', location_id='{LOCATION_ID}',
+        resource='farm_activity', action='read'
+    )
+    conn.commit()
+    with conn.cursor() as cur:
+        cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+        committed_settings = cur.fetchone()
+finally:
+    conn.rollback()
+    conn.close()
+
+expected_owner = ('{OWNER_ORG_ID}', '{LOCATION_ID}', '{OWNER_ADMIN_ID}', 'operator')
+expected_partner = ('{PARTNER_ORG_ID}', '{LOCATION_ID}', '{PARTNER_ADMIN_ID}', 'operator')
+empty = ('', '', '', '')
+if owner.tenant_id != '{OWNER_ORG_ID}' or owner_settings != expected_owner:
+    raise RuntimeError(f'owner context mismatch: {{owner!r}} {{owner_settings!r}}')
+if partner.tenant_id != '{PARTNER_ORG_ID}' or partner_settings != expected_partner:
+    raise RuntimeError(f'partner context mismatch: {{partner!r}} {{partner_settings!r}}')
+if not duplicate_grant_rejected or after_duplicate_settings != expected_partner:
+    raise RuntimeError(f'database failed to reject an ambiguous grant without changing context: {{duplicate_grant_rejected!r}} {{after_duplicate_settings!r}}')
+if not denied or denied_settings != empty:
+    raise RuntimeError(f'legacy grant was not denied with cleared context: {{denied!r}} {{denied_settings!r}}')
+if committed_settings != empty:
+    raise RuntimeError(f'transaction-local context survived commit: {{committed_settings!r}}')
+print(json.dumps({{'result': 'passed', 'owner': owner_settings, 'partner': partner_settings, 'ambiguous_grant_rejected': duplicate_grant_rejected, 'after_duplicate': after_duplicate_settings, 'denied_context': denied_settings, 'after_commit': committed_settings}}))
+'''
+    result = subprocess.run(
+        [sys.executable, "-c", source],
+        cwd=cli_root,
+        env=environment,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(
+            "tenant-context acceptance failed\n"
+            f"{result.stdout}\n{result.stderr}"
+        )
+    report = json.loads(result.stdout)
+    if report.get("result") != "passed":
+        raise RuntimeError(f"unexpected tenant-context result: {report!r}")
+    return [
+        "owner and explicitly shared tenant-qualified grants set database-derived context",
+        "database uniqueness guard prevents ambiguous tenant-grant context",
+        "legacy NULL-tenant grants are denied and previous local context is cleared",
+        "transaction-local tenant context resets at commit on the reused connection",
+    ]
 
 
 def wait_ready(container: str) -> None:
@@ -227,6 +358,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     if not {"identities", "grants", "memberships", "shares", "tenant_transfers"}.issubset(listing):
         raise RuntimeError("operator list did not include all expected sections")
     checks.append("operator CLI lists tenant-transfer history")
+    checks.extend(run_context_acceptance(cli_root, env))
 
     for operator_id, resource, action in (
         (OWNER_ADMIN_ID, "farm_activity", "read"),
@@ -381,7 +513,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     assert_sql(container, f"SELECT organization_id FROM location WHERE id = '{LOCATION_ID}'", OWNER_ORG_ID, "failed acceptance rolls back location owner")
     assert_sql(container, f"SELECT count(*) FROM location_tenant_owner_verification WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL AND organization_id = '{OWNER_ORG_ID}'", "1", "failed acceptance rolls back owner verification")
     assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "3", "failed acceptance rolls back every grant revocation")
-    assert_sql(container, f"SELECT count(*) FROM location_organization_share WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "1", "failed acceptance rolls back share revocation")
+    assert_sql(container, f"SELECT count(*) FROM location_organization_share WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "2", "failed acceptance rolls back share revocation")
     docker_sql(
         container,
         "DROP TRIGGER zzz_acceptance_abort_owner_transfer ON location_tenant_transfer;\n"
@@ -405,7 +537,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     assert_sql(container, f"SELECT count(*) FROM organization_member WHERE location_id = '{LOCATION_ID}' AND organization_id = '{OWNER_ORG_ID}' AND membership_type = 'owned' AND status = 'active'", "0", "accepted transfer deactivates source owner relationships")
     assert_sql(container, f"SELECT count(*) FROM organization_member WHERE location_id = '{LOCATION_ID}' AND organization_id = '{TARGET_ORG_ID}' AND membership_type = 'owned' AND role = 'primary' AND status = 'active' AND farm_id = '{FARM_ID}'", "1", "accepted transfer preserves farm link in new owner relationship")
     assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "3", "accepted transfer records and revokes each location grant")
-    assert_sql(container, f"SELECT count(*) FROM location_organization_share WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by_operator_id = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "1", "accepted transfer records and revokes each location share")
+    assert_sql(container, f"SELECT count(*) FROM location_organization_share WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by_operator_id = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "2", "accepted transfer records and revokes each location share")
     for operator_id, resource, action in (
         (OWNER_ADMIN_ID, "farm_activity", "read"),
         (PARTNER_ADMIN_ID, "farm_activity", "review"),
