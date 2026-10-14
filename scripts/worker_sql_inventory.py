@@ -37,6 +37,13 @@ STATEMENT_PATTERN = re.compile(
 def _query_template(node: ast.AST) -> tuple[str, str]:
     if isinstance(node, ast.Constant) and isinstance(node.value, str):
         return node.value, "literal"
+    if isinstance(node, ast.Call) and node.args:
+        if isinstance(node.func, ast.Attribute) and node.func.attr in {"text", "SQL"}:
+            # SQLAlchemy text() and psycopg composable SQL() wrap a query
+            # template; inspect only the first string argument, never values.
+            return _query_template(node.args[0])
+        if isinstance(node.func, ast.Name) and node.func.id in {"text", "SQL"}:
+            return _query_template(node.args[0])
     if isinstance(node, ast.JoinedStr):
         pieces = []
         has_dynamic = False

@@ -855,13 +855,20 @@ reporting views.
   mobile sync-status returned 401. The temporary recovery container, network,
   and volume were removed. The encrypted checkpoint remains in ignored local
   backups. No seed SQL ran and this rollout does not enable RLS ([restore replay](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json); [fresh checkpoint and candidate rollout](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
-- [x] Generate a reproducible direct-SQL inventory across all 802 Python
-  service modules to support the remaining runtime-role review. It records
-  3,747 execution sites and 975 regex-derived relation candidates without SQL
-  bodies or runtime values; focused coverage (4 tests), Ruff, reproducibility,
-  and the existing worker inventory check pass. This is not an authorization
-  map or grant allowlist; 410 unknown statements, 22 `WITH` statements, dynamic
-  SQL, and indirect ORM/provider paths remain subject to review ([inventory](runtime-sql-inventory.json); [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+- [x] Generate and refine a reproducible direct-SQL inventory across all 802
+  Python service modules to support the remaining runtime-role review. It
+  records 3,747 execution sites and 1,028 regex-derived relation candidates
+  without SQL bodies or runtime values. Literal SQLAlchemy `text()` and
+  psycopg `SQL()` wrappers are now unwrapped; 92 statement kinds, 22 `WITH`
+  statements, 305 sites without relation candidates, and 436 non-literal sites
+  still need review. Its 67 package summaries show analytics is the largest
+  surface (1,417 sites); `credit_class` has 29 relation candidates and 10
+  non-literal sites, while `data_stream` has nine and six. Five runtime-
+  specific tests and 19 combined worker/runtime inventory tests, Ruff,
+  reproducibility, and unchanged worker inventory checks pass. This is not an
+  authorization map or grant allowlist; dynamic SQL and indirect ORM/provider
+  paths remain subject to review ([inventory](runtime-sql-inventory.json);
+  [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 - [x] Apply all 388 schema migrations from an empty PostgreSQL database through
   `verify-clean-bootstrap.sh` using a dedicated internal-only Compose project;
   verify zero failures, keep all seeds and application data out of scope, and

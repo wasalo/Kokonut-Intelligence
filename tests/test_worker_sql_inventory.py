@@ -7,7 +7,13 @@ import json
 import re
 
 from scripts.worker_source_closure import build_inventory as build_source_closure
-from scripts.worker_sql_inventory import ROOT, _local_statement_kind, _serialize, build_inventory
+from scripts.worker_sql_inventory import (
+    ROOT,
+    _local_statement_kind,
+    _query_template,
+    _serialize,
+    build_inventory,
+)
 
 INVENTORY_PATH = ROOT / "docs" / "refactor" / "worker-sql-inventory.json"
 
@@ -73,6 +79,26 @@ def test_dynamic_statement_kinds_are_inferred_only_from_consistent_local_assignm
     assert _local_statement_kind(select_function, "statement") == "SELECT"
     assert _local_statement_kind(mixed_function, "statement") == "UNKNOWN"
     assert _local_statement_kind(parameter_function, "statement") == "UNKNOWN"
+
+
+def test_static_sqlalchemy_text_and_psycopg_sql_wrappers_are_unwrapped():
+    sqlalchemy_query = ast.parse(
+        "def run(conn):\n"
+        "    conn.execute(conn.text('SELECT id FROM public.location'))\n"
+    ).body[0].body[0].value.args[0]
+    psycopg_query = ast.parse(
+        "def run(cur):\n"
+        "    cur.execute(SQL('UPDATE public.location SET name = %s'))\n"
+    ).body[0].body[0].value.args[0]
+
+    assert _query_template(sqlalchemy_query) == (
+        "SELECT id FROM public.location",
+        "literal",
+    )
+    assert _query_template(psycopg_query) == (
+        "UPDATE public.location SET name = %s",
+        "literal",
+    )
 
 
 def test_only_generic_database_adapter_wrappers_remain_unknown():

@@ -50,10 +50,13 @@ MAN-CAP checks open until each has its own retained evidence.
   Data-freshness queries use fixed table/timestamp maps, bind location values,
   and report unknown configured sources as errors; 29 focused source tests pass.
   A new whole-services SQL inventory records 3,747 direct execution sites
-  across 802 Python modules and 975 regex-derived relation-name candidates,
-  without storing SQL text or runtime values. This is a review input, not a
-  grant allowlist; dynamic statements and indirect ORM/provider paths remain
-  open ([inventory](runtime-sql-inventory.json); [check record](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+  across 802 Python modules and 1,028 regex-derived relation-name candidates,
+  without storing SQL text or runtime values. It safely unwraps literal
+  SQLAlchemy `text()` and psycopg `SQL()` query wrappers; 92 statement kinds
+  remain unknown. Its 67 package summaries isolate the largest service
+  surfaces and dynamic-heavy modules. This is a review input, not a grant
+  allowlist; dynamic statements and indirect ORM/provider paths remain open
+  ([inventory](runtime-sql-inventory.json); [check record](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
   The climate compatibility path stores schema-aligned `latitude_proxy_v1`
   estimates; migrations 392–397 passed ordered PostgreSQL 16 application and
   replay on a restored candidate checkpoint, including migration 397's
@@ -178,9 +181,12 @@ before protected reads and writes, and make direct database access fail closed.
    and proved a table/sequence created after provisioning is inaccessible to
    the runtime login. A new whole-services SQL inventory covers all 802 Python
    service modules and identifies direct execution sites and candidate relation
-   names without becoming an ACL. The next review classifies its API, worker,
-   CLI, and indirect-query surfaces before deriving explicit grants; worker,
-   Directus, and RLS boundaries remain open ([role evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json); [SQL inventory](runtime-sql-inventory.json); [inventory check](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+   names without becoming an ACL. Literal query wrappers are unwrapped while
+   parameter values remain unobserved; the report now has 92 unknown statement
+   kinds, 22 `WITH` statements, 305 sites without relation candidates, and 436
+   non-literal sites. The next review classifies API, worker, CLI, and
+   indirect-query surfaces before deriving explicit grants; worker, Directus,
+   and RLS boundaries remain open ([role evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json); [SQL inventory](runtime-sql-inventory.json); [inventory check](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker

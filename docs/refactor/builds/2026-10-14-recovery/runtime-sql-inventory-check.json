@@ -1,6 +1,6 @@
 {
   "record_type": "static_runtime_sql_inventory",
-  "generated_at": "2026-10-14T22:50:00Z",
+  "generated_at": "2026-10-14T23:00:00Z",
   "generator": "scripts/runtime_sql_inventory.py",
   "artifact": "docs/refactor/runtime-sql-inventory.json",
   "scope": "Direct Python SQL execution calls in all services/**/*.py modules, including API, worker, and CLI sources.",
@@ -8,33 +8,41 @@
     "source_files": 802,
     "execution_sites": 3747,
     "worker_operation_roots": 17,
+    "service_packages": 67,
     "sites_with_worker_operation_refs": 196,
     "sites_without_worker_operation_refs": 3551,
-    "candidate_relation_names": 975,
-    "sites_without_relation_candidates": 620,
+    "candidate_relation_names": 1028,
+    "sites_without_relation_candidates": 305,
     "statement_kinds": {
       "CREATE": 1,
-      "DELETE": 33,
-      "INSERT": 611,
+      "DELETE": 47,
+      "INSERT": 666,
       "RELEASE": 2,
       "ROLLBACK": 3,
       "SAVEPOINT": 2,
-      "SELECT": 2228,
-      "SET": 61,
-      "UNKNOWN": 410,
-      "UPDATE": 374,
+      "SELECT": 2418,
+      "SET": 62,
+      "UNKNOWN": 92,
+      "UPDATE": 432,
       "WITH": 22
     },
     "expression_kinds": {
       "composed": 4,
-      "composed_or_variable": 484,
-      "fstring": 239,
-      "literal": 3020
+      "composed_or_variable": 164,
+      "fstring": 268,
+      "literal": 3311
     },
-    "artifact_bytes": 1834247
+    "artifact_lines": 5631,
+    "artifact_bytes": 1886311,
+    "package_examples": {
+      "analytics": {"execution_sites": 1417, "candidate_relation_names": 516},
+      "credit_class": {"execution_sites": 159, "candidate_relation_names": 29, "non_literal_sites": 10},
+      "data_stream": {"execution_sites": 27, "candidate_relation_names": 9, "non_literal_sites": 6}
+    }
   },
   "verification": {
-    "runtime_inventory_regression_tests": "4 passed",
+    "runtime_inventory_regression_tests": "5 passed",
+    "combined_worker_and_runtime_inventory_tests": "19 passed",
     "ruff": "passed",
     "runtime_inventory_reproducibility": "passed",
     "worker_inventory_unchanged": "passed",
@@ -42,7 +50,8 @@
   },
   "interpretation": [
     "Relation candidates are regex-derived names, not SQL-parser results or verified ACL requirements.",
-    "The 410 UNKNOWN, 22 WITH, 620 no-relation, and 727 non-literal execution sites require conservative review; absence from worker refs does not mean dead or unreachable code.",
+    "The 92 UNKNOWN, 22 WITH, 305 no-relation, and 436 non-literal execution sites require conservative review; absence from worker refs does not mean dead or unreachable code.",
+    "The scanner now unwraps literal SQLAlchemy text() and psycopg SQL() strings without reading parameter values. Package summaries identify analytics as the largest direct-SQL surface; remaining dynamic credit_class and data_stream sites still require review.",
     "No runtime role privileges, migrations, candidate data, or legacy data were changed by this inventory."
   ],
   "next_review": "Classify each source surface and relation candidate, reconcile dynamic SQL and indirect ORM/provider paths, then derive narrow role grants and verify actual handlers under those grants before enabling RLS."

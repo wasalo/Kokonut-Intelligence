@@ -13,6 +13,7 @@ def test_runtime_sql_inventory_scans_api_worker_and_cli_sources():
     assert any(source.startswith("services/gateway/") for source in sources)
     assert any(source.startswith("services/events/") for source in sources)
     assert any(source.startswith("services/") and source.endswith("cli.py") for source in sources)
+    assert inventory["service_packages"]["gateway"]["execution_sites"] > 0
 
 
 def test_runtime_sql_inventory_records_metadata_without_sql_text(tmp_path: Path):
@@ -21,7 +22,7 @@ def test_runtime_sql_inventory_records_metadata_without_sql_text(tmp_path: Path)
     path.write_text(
         """
 def write(conn, dynamic):
-    conn.execute(\"INSERT INTO public.example_record (name) VALUES (%s)\", (dynamic,))
+    conn.execute(conn.text(\"INSERT INTO public.example_record (name) VALUES (%s)\"), (dynamic,))
     conn.execute(dynamic)
 """,
         encoding="utf-8",
@@ -34,6 +35,7 @@ def write(conn, dynamic):
         "unknown_requires_manual_review",
     ]
     assert sites[0]["candidate_relations"] == ["public.example_record"]
+    assert sites[0]["expression_kind"] == "literal"
     assert sites[0]["operation_refs"] == ["scheduled_module:services.example"]
     assert "sql" not in sites[0]
     assert "static_sql_sha256" in sites[0]
@@ -52,6 +54,16 @@ def test_runtime_sql_inventory_groups_relation_candidates_without_query_values()
         assert relation
         assert summary["execution_site_count"] > 0
         assert summary["statement_groups"]
+
+
+def test_runtime_sql_inventory_surfaces_remaining_dynamic_queries():
+    packages = build_inventory()["service_packages"]
+
+    assert packages["analytics"]["execution_sites"] > packages["gateway"]["execution_sites"]
+    assert packages["credit_class"]["candidate_relation_names"] == 29
+    assert packages["credit_class"]["non_literal_sites"] == 10
+    assert packages["data_stream"]["candidate_relation_names"] == 9
+    assert packages["data_stream"]["non_literal_sites"] == 6
 
 
 def test_runtime_sql_inventory_serializes_compact_json_lines():

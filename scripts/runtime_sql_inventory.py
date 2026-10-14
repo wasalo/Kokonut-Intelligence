@@ -52,6 +52,11 @@ def _scan_source(source: str, path: Path, operation_refs: list[str]) -> list[dic
     return visitor.sites
 
 
+def _service_package(source: str) -> str:
+    parts = source.split("/")
+    return parts[1] if len(parts) > 2 and parts[0] == "services" else "<root>"
+
+
 def build_inventory() -> dict:
     services_root = ROOT / "services"
     sources = sorted(services_root.rglob("*.py"))
@@ -70,6 +75,32 @@ def build_inventory() -> dict:
 
     statement_kinds = Counter(site["statement_kind"] for site in sites)
     expression_kinds = Counter(site["expression_kind"] for site in sites)
+    package_sources: dict[str, set[str]] = defaultdict(set)
+    for path in sources:
+        source = path.relative_to(ROOT).as_posix()
+        package_sources[_service_package(source)].add(source)
+    package_sites: dict[str, list[dict]] = defaultdict(list)
+    for site in sites:
+        package_sites[_service_package(site["source"])].append(site)
+    service_packages = {}
+    for package in sorted(package_sources):
+        package_rows = package_sites[package]
+        service_packages[package] = {
+            "source_files": len(package_sources[package]),
+            "execution_sites": len(package_rows),
+            "statement_groups": dict(sorted(Counter(
+                row["statement_group"] for row in package_rows
+            ).items())),
+            "candidate_relation_names": len({
+                relation for row in package_rows for relation in row["candidate_relations"]
+            }),
+            "sites_without_relation_candidates": sum(
+                not row["candidate_relations"] for row in package_rows
+            ),
+            "non_literal_sites": sum(row["expression_kind"] != "literal" for row in package_rows),
+            "sites_with_worker_operation_refs": sum(bool(row["operation_refs"]) for row in package_rows),
+        }
+
     relations: dict[str, dict] = {}
     relation_sites: dict[str, list[dict]] = defaultdict(list)
     for site in sites:
@@ -103,7 +134,9 @@ def build_inventory() -> dict:
             "expression_kinds": dict(sorted(expression_kinds.items())),
             "relation_candidates": len(relations),
             "sites_without_relation_candidates": sum(not site["candidate_relations"] for site in sites),
+            "service_packages": len(service_packages),
         },
+        "service_packages": service_packages,
         "relation_candidates": relations,
         "execution_sites": sites,
     }

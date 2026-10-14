@@ -31,10 +31,12 @@ Directus/view, ownership, and all named MAN-CAP checks remain open
 ([evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
 The companion runtime SQL inventory covers 3,747 direct execution sites across
-802 service modules and identifies 975 regex-derived relation-name candidates.
-Its 410 unknown statement kinds, 22 `WITH` statements, and dynamic or indirect
-paths require review before narrowing runtime grants. The report is not an ACL
-and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
+802 service modules, includes summaries for 67 packages, and identifies 1,028
+regex-derived relation-name candidates. Literal SQLAlchemy `text()` and
+psycopg `SQL()` wrappers are unwrapped; 92 statement kinds, 22 `WITH`
+statements, 305 sites without relation candidates, 436 non-literal sites, and
+dynamic or indirect paths require review before narrowing runtime grants. The
+report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
 [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
 **Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053):** PR #68 was
