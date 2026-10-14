@@ -210,10 +210,20 @@ def test_oidc_compose_overlay_is_opt_in_and_requires_provider_settings() -> None
     for compose_file in oidc_files:
         command.extend(["-f", compose_file])
     command.extend(["config", "--format", "json"])
+    missing_issuer_env = {
+        **TEST_ENV,
+        "KOKONUT_OPERATOR_OIDC_CLIENT_ID": "compose-contract",
+        "KOKONUT_OPERATOR_OIDC_CLIENT_SECRET": "compose-test-only",
+        "KOKONUT_OPERATOR_OIDC_REDIRECT_URI": (
+            "https://localhost:8448/operator/auth/callback"
+        ),
+        "KOKONUT_OPERATOR_OIDC_STATE_SECRET": "compose-test-only-state-secret-32-bytes",
+    }
+    missing_issuer_env.pop("KOKONUT_OPERATOR_OIDC_ISSUER", None)
     missing_settings = subprocess.run(
         command,
         cwd=ROOT,
-        env=TEST_ENV,
+        env=missing_issuer_env,
         capture_output=True,
         text=True,
         check=False,

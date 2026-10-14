@@ -6,13 +6,22 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All named MAN-CAP acceptance checks below remain **not run**; implementation and deployment progress are tracked separately in the new progress column. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links and audit history before/after the provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+The repository owner authorized ongoing focused test execution. Current
+owner-only decisions and external acceptance inputs are listed in [Open Follow
+Ups](open-follow-ups.md). Passing source tests do not close the named manual
+acceptance rows.
+
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** seed
 replay/bootstrap evidence is at PR #68 head
 `8aa33e24f169f15afb249a53ae3d281ed8d843a2`. CI run [#304](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715581)
-is queued behind still-running CI #303, and Security run [#28](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715446)
-passed. The current local documentation update is not part of those checks.
-The approved eight-suite platform-integrity suite passed all 279 tests locally
-on the earlier pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
+completed with 5 failures, 4,632 passed tests, and 75 passed subtests; the
+failure causes are tracked in the current local fix batch. Security run [#28](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715446)
+passed. The current local updates are not part of those checks.
+The approved eight-suite platform-integrity suite passed 288 tests locally
+on commit `1c0084513b157bb99468d4c650e269c57e243c96`. CI #304 failed five
+cases; the local fix batch passes the targeted regressions and full operator
+auth/Compose suites, but has not yet been pushed or covered by CI
+([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus
@@ -33,6 +42,15 @@ binding immutability, and old-owner denial after transfer. The candidate rollout
 completed on 14 October after an encrypted checkpoint; live authenticated
 re-enrollment remains open and RLS remains disabled
 ([rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)). An isolated Chrome browser check also passed actual client-offline behavior: `navigator.onLine=false`, service-worker shell reopen, encrypted note capture, preservation through a synthetic 503, and queue clearing after a synthetic retry success. Because all mobile API calls were intercepted, live authenticated sync and MAN-CAP-053 remain open ([browser evidence](builds/2026-10-14-recovery/field-collector-browser-offline-client.json)).
+
+**14 October 2026 local registration guard (CAP-053):** the legacy
+`services.analytics.mobile_offline register` command now fails closed before
+database writes and directs operators to owner-issued, single-use enrollment
+and `POST /api/mobile/register`. Sixteen offline registration/queue checks and
+50 mobile API/form-validation checks passed; Ruff and Python syntax checks are
+clean. The legacy queue and sync path remains transport-only and unassessed.
+MAN-CAP-053 stays partial pending live OIDC and reconnect, human disposition,
+tenant/RLS, and retention acceptance.
 
 **14 October 2026 seed-ledger preflight (CAP-053):** the migration runner
 previously omitted the range-prefixed `064-068_impact_network.sql`; source

@@ -51,3 +51,13 @@ secret workflow.
 When ready, reply with the ID and answer, or edit this file directly. Names and
 IDs are enough for ownership mapping; do not provide secret values here. Any item
 that remains undecided stays fail-closed and is not treated as accepted.
+
+## Additional candidate operation
+
+| ID | Needed from owner | Why it blocks closure |
+| --- | --- | --- |
+| OFU-17 | Approve or defer applying the remaining 30 curated reference seeds to the local candidate. | This writes reference data to the candidate. The exact list and rollback procedure are prepared in [candidate rollout preflight](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json). A fresh age-encrypted checkpoint was restored into an isolated `template0` database with matching migration and extension fingerprints and selected row counts. The candidate remains unchanged. Recommended scope: apply only the 30 listed seeds, leave the other 90 sources pending, exclude `seed:064-068_impact_network.sql`, and do not rerun `seed:140_mobile_forms.sql`. If any selected seed fails after earlier transactions commit, restore the verified checkpoint. |
+
+The owner’s 14 October instruction authorizes test execution and directs
+unanswered decisions into this document. No candidate seed SQL has run; the
+operation remains deferred pending the owner’s answer to OFU-17.

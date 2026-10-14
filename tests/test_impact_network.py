@@ -101,7 +101,7 @@ def test_tenant_ownership_migration_is_limited_to_confirmed_demo_locations() -> 
 
 def test_pilot_ownership_seed_runs_after_genesis_and_is_idempotent() -> None:
     script = Path("scripts/seed-pilot.sh").read_text()
-    assert script.index("schema:387_kokonut_network_tenant_ownership.sql") < script.index(
+    assert script.index("schema:388_tenant_aware_operator_grants.sql") < script.index(
         '"$SEED_DIR/001_pilot_farm.sql"'
     )
     assert script.index("098_multi_farm.sql") < script.index(
@@ -160,7 +160,7 @@ def test_seed_has_office() -> None:
 # ---------------------------------------------------------------------------
 
 def test_orchestrator_import() -> None:
-    from services.office import run_full_cycle, run_bounty_cycle, run_funding_cycle, run_landscape_refresh
+    from services.office import run_bounty_cycle, run_full_cycle, run_funding_cycle, run_landscape_refresh
     assert callable(run_full_cycle)
     assert callable(run_bounty_cycle)
     assert callable(run_funding_cycle)

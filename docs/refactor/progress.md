@@ -7,7 +7,23 @@ Collector acceptance continues on `feat/mobile-offline-acceptance` in open PR #6
 based on the updated main branch. No merge or passing release CI is recorded. The
 root implementation plan remains intentionally
 ignored; this ledger and the [capability matrix](capability-matrix.md) provide
-repository-visible progress alongside it.
+repository-visible progress alongside it. Owner-only decisions and external
+acceptance inputs are collected in [Open Follow Ups](open-follow-ups.md).
+
+The prescribed platform-integrity suite was rerun on local commit `1c00845`
+after the owner authorized ongoing verification: 288 tests passed across
+migration discovery/transactions, Gateway authorization, durable scheduler and
+event delivery, credits, threatcasting, backcasting, and Delphi. This confirms
+the focused source contracts; real-provider outage recovery, physical hardware,
+and the remaining manual acceptance gates are still open ([run evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json)).
+
+GitHub CI #304 on PR #68 completed with 4,632 passed tests, 75 passed subtests,
+and five failures. The local fix batch updates tenant-aware test contracts,
+makes operator enrollment denials explicitly non-cacheable, and corrects seed
+ordering and OIDC Compose assertions. The five CI regressions pass locally; the
+full operator-auth and Compose suites pass 72 tests, and Ruff/Python syntax
+checks are clean. Security run #28 passed. These local changes have not yet
+been pushed or checked by CI ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 ## Phase ledger
 
@@ -4409,3 +4425,13 @@ selected form/service row counts matched, and its scratch project and volume
 were removed. The exact 30-seed scope, 90 deferred sources, candidate
 baseline, and rollback path are recorded. No seed SQL has run on the candidate
 during this preflight ([bootstrap evidence](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json); [rollout preflight](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json)).
+
+### Legacy mobile registration guard — 14 October 2026
+
+Disabled direct device creation in the older `services.analytics.mobile_offline`
+CLI, which did not require the location owner's single-use enrollment. The
+guard rejects before database writes and points operators to the governed
+enrollment and registration endpoints. Sixteen focused offline tests and 50
+mobile API/form-validation tests passed; Ruff and Python syntax checks are
+clean. Legacy queue/sync admission remains transport-only and requires separate
+assessment. MAN-CAP-053 remains partial.

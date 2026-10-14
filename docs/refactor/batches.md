@@ -11,6 +11,12 @@ the batch boundary to report completed items and unresolved gates. No capability
 is accepted solely because source exists or an image starts. Verification work
 below requires an explicit request before adding or running test suites.
 
+The repository owner authorized focused test execution for this ongoing refactor
+on 14 October 2026. Owner-only decisions and external access needed for
+remaining gates are collected in [Open Follow Ups](open-follow-ups.md);
+implementation and verification continue on independent work while answers are
+pending.
+
 ## Batch 1 — Identify matching release artifacts (Phases 1, 8)
 
 - [x] Embed a deterministic inventory of bundled Python/SQL/requirements/protobuf
@@ -125,7 +131,7 @@ these new tags are build candidates only.
 - [x] Run the focused migration suite after the transaction change: 17 passed; statically preflight all 488 schema and seed sources for wrapper compatibility.
 - [x] Review all 25 pending migrations in order and apply them through the transactional runner to a separate network-isolated clone; verify zero pending, expected defaults/empty optional tables, and unchanged original-column fingerprints for 16 populated tables. The retained archived clone remains unchanged at 25 pending ([review](pending-migration-compatibility-review.md); [replay evidence](builds/2026-10-11-recovery/application-migration-populated-clone-replay.json); [fingerprints](builds/2026-10-11-recovery/application-migration-review-fingerprints.json)).
 - [x] Configure optional Metabase against the reviewed views, build Kokonut-specific cards, and compare card outputs to independent/native reference fixtures before profile promotion. Batch 4e completed source isolation, three first-party cards, populated-fixture output parity, and encrypted metadata restore ([reporting contract](metabase-reporting-contract.md); [card parity](builds/2026-10-11-recovery/metabase-card-output-parity.json); [Batch 4e](batches.md#batch-4e--kokonut-source-registration-and-card-parity-phase-3)). The candidate remains empty and optional; broader analytics and MAN-CAP-007 acceptance remain open.
-- [ ] Complete remaining provider recovery, external delivery, and runtime recovery acceptance. The approved eight-suite platform-integrity suite now passes all 279 tests on pushed commit `33dcc55`; its Gateway tests use a private temporary audit journal on the host. Live provider state, external delivery, and broader runtime recovery remain open.
+- [ ] Complete remaining provider recovery, external delivery, and runtime recovery acceptance. The approved eight-suite platform-integrity suite passes 288 tests on local commit `1c00845`; its Gateway tests use a private temporary audit journal on the host. Live provider state, external delivery, and broader runtime recovery remain open.
 - [x] Retain and compare a local development mirror (user-selected scope); defer independent R2 production backup to Batch 6.
 
 Preparation evidence: [recovery record](recovery-preparation.md). Batch 2 remains
@@ -254,7 +260,11 @@ index and event evidence.
 - [x] Inspect archived dashboard/report metadata in an isolated read-only transaction without returning or executing stored query text. Found 43 datasets, none previously refreshed, zero eligible for the `--all` selector, and three unlocated draft report snapshots; owner labels were counted but not retained ([sanitized evidence](builds/2026-10-13-recovery/reporting-archive-inventory.json)).
 - [x] Review direct location lineage for the 38 unlocated dashboard definitions and three unlocated report snapshots on the retained isolated archive clone. No dashboard query/metadata references either known location or confirms Kokonut Network as owner; report location fields/lists do not match either location, and narrative mentions do not establish one owning location. Keep all 41 rows unassigned; no backfill was made ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
 - [ ] Have accountable capability owners select retained report types and dashboards, confirm audience/scope and measures, and provide reference fixtures. The source registry is not an ownership or usage inventory.
-- [ ] With verification authorization, exercise leases, retries, idempotency and outages.
+- [ ] Complete live worker recovery acceptance for leases, retries, idempotency,
+  and transport/database outages. The prescribed focused platform-integrity
+  suite now passes 288 tests, including scheduler lease ownership/expiry,
+  event lease reclaim, stale-worker rejection, idempotent delivery, and bounded
+  retry/dead-letter handling ([evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json)); these are source/unit checks and do not close real-provider outage, worker-process recovery, or long-duration acceptance.
 
 Gate: every migrated flow has durable recovery and output parity evidence.
 Rollback: disable new schedules before restoring legacy ownership; avoid dual writers.
@@ -443,6 +453,7 @@ reporting views.
 - [x] Record owner-delegated policy decisions for all five built-in operational forms as `not_required`, with explicit location scope, category, purpose, recipient, evidence, minimization guidance, and immutable `1.1.0` source revisions ([decision record](mobile-form-classification-review.md)).
 - [x] Add the `140_mobile_forms.sql` seed after the ordered migration step and align the offline browser fallback with the same policy and form revisions.
 - [x] Validate new sync payloads against the exact immutable form revision schema, reject undeclared fields in the five built-in `1.2.0` schemas, prevent remote `$ref` fetching, and return non-echoing validation errors ([validator](../../services/mobile/form_validation.py)). Focused mobile/schema acceptance: 60 passed; dependency groups and Ruff checks pass.
+- [x] Disable legacy direct device registration in `services.analytics.mobile_offline`; direct inserts could bypass owner-issued, single-use enrollment. The guard fails before opening a cursor or committing. Focused checks passed: 16 offline service tests and 50 mobile API/form-validation tests; Ruff and Python syntax checks are clean. Legacy queue/sync remains transport-only and unassessed; this does not close MAN-CAP-053.
 - [x] Checkpoint the `1.1.0` candidate, restore it into a fresh template0-derived database, compare 372 migration fingerprints plus extensions/schemas, seed immutable `1.2.0` revisions, rebuild only the app, and verify health and public/auth-denial endpoints ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)).
 - [x] Exercise the current app's sync route over HTTP against an isolated checkpoint clone: an unknown field returned 422 with no value echo or stored row, and a valid `1.2.0` payload was accepted; remove the synthetic device/location/collection fixture afterward ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)).
 - [x] Exercise scoped enrollment through device registration, authenticated retrieval of five active `1.2.0` forms, and one valid field-note sync over loopback HTTP against the restored clone. Verify that identity/location come from the enrollment, synced data remains `transport_pending` and ineligible, then remove synthetic rows and stop/detach the recovery database ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)).
@@ -753,7 +764,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Rerun the snapshot-aware PostGIS build and locked inventory comparison on both architectures and retain the passing result ([CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973): 229 AMD64 and 228 ARM64 packages, with the single documented architecture-specific difference).
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
-- [ ] Review capability matrix and obtain passing release CI for the current branch head. Pushed commit `8aa33e24f169f15afb249a53ae3d281ed8d843a2` has CI run [#304](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715581) queued behind still-running run [#303](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38510013935); Security run [#28](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715446) passed. The current local documentation update is not covered. The approved eight-suite platform-integrity run passed all 279 tests locally on earlier commit 33dcc55.
+- [ ] Review capability matrix and obtain passing release CI for the current branch head. Pushed commit `8aa33e24f169f15afb249a53ae3d281ed8d843a2` has CI run [#304](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715581) completed with five failures, 4,632 passed tests, and 75 passed subtests; Security run [#28](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715446) passed. The five failing cases exposed stale migration-order and tenant-parameter assertions, a `Vary` header assertion that ignored CORS, missing `no-store` on tenant-denied enrollment, and an OIDC Compose test that did not isolate the missing issuer setting. The updated assertions/handler pass 10 focused cases; full operator-auth and Compose suites pass 72. Mobile API/form validation passes 50 and offline transport passes 16. Changes are local and need a new CI run after the batch push ([evidence](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)). The approved eight-suite platform-integrity run passed 288 tests locally on commit `1c00845`.
 - [x] Align the active `Main branch protection` ruleset (ID `18234835`) with `CI / ci` and `Security / gitleaks`. GitHub API verification confirms the obsolete `Python checks`, `Directus hooks`, and `Foundry contracts` contexts were removed; pull-request/review, CODEOWNERS, thread-resolution, strict up-to-date, linear-history, deletion, force-push, and bypass settings remain. The separate active version-tag ruleset (ID `18234836`) was not changed ([settings audit](../github-actions.md#current-required-check-audit--14-october-2026)).
 - [ ] Execute a reviewed cutover and retire dependencies only after their gates close.
 

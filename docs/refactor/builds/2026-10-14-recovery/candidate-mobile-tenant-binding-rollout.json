@@ -160,5 +160,16 @@
     "RLS remains disabled; migration 391 does not claim database-enforced tenant isolation.",
     "Live-browser re-enrollment acceptance and human retention/erasure disposition remain open.",
     "The restore rehearsal validates the single candidate PostgreSQL database only; it excludes roles/grants, other databases, Docker volumes, external media, and provider state."
-  ]
+  ],
+  "latest_read_only_runtime_recheck": {
+    "checked_at_utc": "2026-10-14T14:01:51Z",
+    "candidate_app": "healthy",
+    "candidate_database": "healthy",
+    "candidate_metabase": "healthy",
+    "candidate_proxy": "running",
+    "health_http_status": 200,
+    "anonymous_mobile_review_queue_http_status": 401,
+    "migration_391_checksum": "7888012b4165fa6e81f4c91f9a0881d3800ae3523f54d7ffd81a2bdb1cdd1be3",
+    "scope": "Read-only Docker status and HTTP checks after owner approval; no database or container changes made."
+  }
 }

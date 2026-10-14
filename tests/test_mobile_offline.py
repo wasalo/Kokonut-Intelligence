@@ -3,24 +3,25 @@
 Tests for Mobile / Offline Data Collection
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
-from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
+from unittest.mock import MagicMock
 
 from services.analytics.mobile_offline import (
-    register_device,
+    _format_devices,
+    _format_status,
+    get_pending_collections,
+    get_sync_status,
     list_devices,
     queue_collection,
-    get_pending_collections,
-    sync_collections,
+    register_device,
     resolve_conflict,
-    get_sync_status,
-    _format_status,
-    _format_devices,
+    sync_collections,
 )
 
 
@@ -33,18 +34,11 @@ class TestDeviceRegistration(unittest.TestCase):
         self.mock_cursor.fetchone.return_value = ("dev-001",)
         self.mock_cursor.description = [("id",)]
 
-    def test_register_new_device(self):
-        result = register_device(self.conn, "phone-001", "Field Phone", user_id="worker1")
-        self.assertEqual(result["device_id"], "phone-001")
-        self.assertEqual(result["status"], "registered")
-
-    def test_register_with_location(self):
-        result = register_device(self.conn, "phone-002", location_id="loc-001")
-        self.assertEqual(result["device_id"], "phone-002")
-
-    def test_register_upsert(self):
-        result = register_device(self.conn, "phone-001", "Updated Name")
-        self.assertEqual(result["device_id"], "phone-001")
+    def test_direct_registration_requires_owner_issued_enrollment(self):
+        with self.assertRaisesRegex(RuntimeError, "single-use enrollment"):
+            register_device(self.conn, "phone-001", "Field Phone", user_id="worker1")
+        self.conn.cursor.assert_not_called()
+        self.conn.commit.assert_not_called()
 
 
 class TestDeviceListing(unittest.TestCase):

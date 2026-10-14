@@ -90,12 +90,14 @@ and idempotent sync. Collections remain in `offline_collection`; this path does
 other canonical field rows.
 
 The older `python3 -m services.analytics.mobile_offline` command is a
-transport/admin utility. It does not validate form revisions, participant
-links, or consent, and its sync status alone never permits reporting or
-publication. After migration 381, rows created through that CLI are unassessed
-and fail `v_mobile_collection_use_eligibility`. Any downstream use of mobile
-collections must read that eligibility view and still follow the governed
-review/publication lifecycle.
+transport/admin utility. Direct device registration through its `register`
+subcommand is disabled because it bypasses owner-issued, single-use enrollment;
+use the operator enrollment flow and `POST /api/mobile/register` instead. Its
+legacy queue and sync functions do not validate form revisions, participant
+links, or consent, and sync status alone never permits reporting or
+publication. Rows created through that legacy queue remain unassessed and fail
+`v_mobile_collection_use_eligibility`. Any downstream use must read that
+eligibility view and still follow the governed review/publication lifecycle.
 
 The local candidate received migrations 380 and 381 and the curated form seed
 on 12 October 2026. It currently has five active version `1.2.0` policies

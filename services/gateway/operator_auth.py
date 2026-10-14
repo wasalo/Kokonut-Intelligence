@@ -1594,6 +1594,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Tenant-qualified operator access is required"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"error": exc.detail},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         return JSONResponse(
             status_code=201,
             content=result,

@@ -11,21 +11,22 @@ transport only and is not an authorization to report or publish a collection.
 Device registration, offline queue management, sync coordination,
 and conflict resolution for field workers.
 
+Direct device registration is intentionally disabled. Use the owner-issued,
+single-use enrollment flow and ``POST /api/mobile/register``.
+
 Usage:
-    python -m services.analytics.mobile_offline register --device-id sensor-phone-001 --name "Field Phone 1"
     python -m services.analytics.mobile_offline queue --device-id sensor-phone-001 --type soil_reading --location-id UUID
     python -m services.analytics.mobile_offline sync --device-id sensor-phone-001
     python -m services.analytics.mobile_offline status
     python -m services.analytics.mobile_offline devices
 """
 
-import hashlib
 import json
 import uuid
-from datetime import datetime, timezone, timedelta
-from typing import Optional
+from datetime import datetime, timezone
 
 from services.common.commands import CommandLine
+
 from ..common.logging import get_logger
 
 logger = get_logger("analytics.mobile_offline")
@@ -50,35 +51,12 @@ def register_device(
     has_gps: bool = True,
     has_offline: bool = True,
 ) -> dict:
-    """Register or update a mobile device."""
-    cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO mobile_device
-            (id, device_id, device_name, device_type, os, os_version,
-             app_version, user_id, location_id, push_token,
-             has_camera, has_gps, has_offline, status, last_seen_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'active', NOW())
-        ON CONFLICT (device_id) DO UPDATE SET
-            device_name = COALESCE(EXCLUDED.device_name, mobile_device.device_name),
-            os = COALESCE(EXCLUDED.os, mobile_device.os),
-            os_version = COALESCE(EXCLUDED.os_version, mobile_device.os_version),
-            app_version = COALESCE(EXCLUDED.app_version, mobile_device.app_version),
-            push_token = COALESCE(EXCLUDED.push_token, mobile_device.push_token),
-            last_seen_at = NOW(),
-            updated_at = NOW()
-        RETURNING id
-        """,
-        (
-            str(uuid.uuid4()), device_id, device_name, device_type,
-            os, os_version, app_version, user_id, location_id,
-            push_token, has_camera, has_gps, has_offline,
-        ),
+    """Reject legacy direct registration that bypasses owner-issued enrollment."""
+    raise RuntimeError(
+        "Direct mobile-device registration is disabled. Issue a single-use "
+        "enrollment through the operator console, then register with "
+        "POST /api/mobile/register."
     )
-    conn.commit()
-    cur.close()
-
-    return {"device_id": device_id, "status": "registered"}
 
 
 def list_devices(conn, user_id: str = None, location_id: str = None) -> list:
@@ -420,7 +398,7 @@ def _cmd_queue(db, a):
     )
 
 
-cli.subcommand("register", "Register device") \
+cli.subcommand("register", "Disabled; use owner-issued Field Collector enrollment") \
     .add("--device-id", required=True) \
     .add("--name") \
     .add("--type", default="phone") \

@@ -1396,7 +1396,7 @@ def test_mobile_review_event_route_denies_cross_tenant_context(monkeypatch):
 
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
-    assert response.headers["vary"] == "Cookie"
+    assert "Cookie" in {value.strip() for value in response.headers["vary"].split(",")}
     event_writer.assert_called_once()
 
 
@@ -1465,9 +1465,10 @@ def test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf(
     if status == 201:
         assert response.headers["cache-control"] == "no-store"
         assert len(response.json()["enrollment_code"]) >= 32
-        assert cursor.execute.call_args.args[1][1:4] == (
+        assert cursor.execute.call_args.args[1][1:5] == (
             "collector-17",
             LOCATION_ID,
+            "33333333-3333-4333-8333-333333333333",
             f"operator:{OPERATOR_ID}",
         )
         assert context_calls == [
