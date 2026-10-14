@@ -682,12 +682,30 @@ reporting views.
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.
   Eight helper unit checks and fourteen disposable migration/context checks
-  passed; a source audit now identifies pre-context credential lookups,
-  unscoped legacy CLI paths, and an unverified Directus/view boundary that still
-  need an explicit role or scope contract. Gateway mobile-device mutations now
-  set transaction-local application scope but still need the final database
-  role boundary before RLS. Full request/worker/Directus coverage remains open
+  passed; the source audit identified pre-context credential lookups, now
+  closed by migration 392's bounded functions. Unscoped legacy CLI paths and
+  an unverified Directus/view boundary still need an explicit role or scope
+  contract. Gateway mobile-device mutations now set transaction-local
+  application scope but still need the final database role boundary before
+  RLS. Full request/worker/Directus coverage remains open
   ([audit](mobile-tenant-rls-callsite-audit.md)).
+- [x] Move Field Collector token lookup and one-time enrollment redemption
+  behind the bounded database API in migration 392. The dedicated credential
+  function owner is NOLOGIN/NOBYPASSRLS and receives only table/column rights
+  required for identity lookup, owner row locks, device creation, and code
+  consumption. The existing tenant-binding trigger now has a fixed search path
+  and qualified relation names. The disposable PostgreSQL 16 check applied 391
+  and 392, replayed 392, denied direct credential-table reads/writes to a
+  constrained app role, checked current/legacy/unknown tokens, conflict and
+  single-use enrollment, concurrent redemption (one device/code consumption),
+  expiry, and owner transfer; all checks passed. The
+  mobile API/tenant suites passed 56 tests; Ruff and syntax/whitespace checks
+  passed. No candidate or legacy database was touched; RLS remains disabled
+  ([evidence](builds/2026-10-14-recovery/mobile-credential-functions-disposable.json)).
+- [ ] Roll out migration 392 to the local candidate only after a fresh encrypted
+  checkpoint and restore rehearsal; recreate only the candidate app and verify
+  health, migration state, and protected routes. Candidate remains at migration
+  391 until separately authorized. This rollout alone will not enable RLS.
 - [x] Audit repository-owned downstream consumers of Field Collector data;
   the source review found an unguarded process-interface elapsed-time lookup
   and added the shared eligibility predicate. Reporting, export, metric,

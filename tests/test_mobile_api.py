@@ -104,6 +104,56 @@ def _client(monkeypatch):
     return TestClient(create_app())
 
 
+def test_device_token_resolution_uses_narrow_database_function_and_hash(monkeypatch):
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.fetchone.return_value = (
+        "device-1", "worker-1", "11111111-1111-4111-8111-111111111111", True,
+    )
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    token = "opaque-high-entropy-device-token"
+
+    result = mobile_api._device_for_token(token)
+
+    assert result == (
+        "device-1", "worker-1", "11111111-1111-4111-8111-111111111111",
+    )
+    sql, params = cursor.execute.call_args.args
+    assert "kokonut_security.resolve_mobile_device_token" in sql
+    assert params == (mobile_api._token_hash(token),)
+    assert token not in str(params)
+    cursor.close.assert_called_once()
+    connection.close.assert_called_once()
+
+
+def test_device_token_resolution_requires_current_owner_binding(monkeypatch):
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = (
+        "device-1", "worker-1", "11111111-1111-4111-8111-111111111111", False,
+    )
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+
+    with pytest.raises(mobile_api.HTTPException) as error:
+        mobile_api._device_for_token("opaque-high-entropy-device-token")
+
+    assert error.value.status_code == 403
+    assert error.value.detail == mobile_api.DEVICE_REENROLLMENT_REQUIRED_DETAIL
+    connection.close.assert_called_once()
+
+
+def test_unknown_device_token_is_unauthorized(monkeypatch):
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = None
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+
+    with pytest.raises(mobile_api.HTTPException) as error:
+        mobile_api._device_for_token("opaque-high-entropy-device-token")
+
+    assert error.value.status_code == 401
+    assert error.value.detail == "Invalid device token"
+    connection.close.assert_called_once()
+
+
 def test_mobile_routes_are_explicitly_public_for_device_auth():
     assert get_route_policy("GET", "/mobile")["public"] is True
     assert get_route_policy("GET", "/mobile/")["public"] is True
@@ -1057,16 +1107,7 @@ def test_anonymous_registration_requires_enrollment_code(monkeypatch):
 def test_existing_device_id_cannot_be_reassigned_by_registration(monkeypatch):
     connection = MagicMock()
     cursor = connection.cursor.return_value
-    cursor.fetchone.side_effect = [
-        (
-            "claim-1",
-            "worker-1",
-            "11111111-1111-4111-8111-111111111111",
-            "a0000000-0000-0000-0000-000000000801",
-        ),
-        ("a0000000-0000-0000-0000-000000000801",),
-        None,
-    ]
+    cursor.fetchone.return_value = ("device_conflict", None)
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
 
     with _client(monkeypatch) as client:
@@ -1080,34 +1121,17 @@ def test_existing_device_id_cannot_be_reassigned_by_registration(monkeypatch):
         )
 
     assert response.status_code == 409
-    sql = "\n".join(call.args[0] for call in cursor.execute.call_args_list)
-    assert "ON CONFLICT (device_id) DO UPDATE" not in sql
+    sql = cursor.execute.call_args.args[0].lower()
+    assert "kokonut_security.redeem_mobile_enrollment" in sql
+    assert "on conflict (device_id) do update" not in sql
     connection.commit.assert_not_called()
     connection.rollback.assert_called()
 
 
-@pytest.mark.parametrize(
-    ("enrollment_tenant", "current_tenant", "reads_current_owner"),
-    [
-        (None, None, False),
-        (
-            "a0000000-0000-0000-0000-000000000801",
-            "a0000000-0000-0000-0000-000000000802",
-            True,
-        ),
-    ],
-    ids=("legacy-unbound-code", "former-owner-code"),
-)
-def test_registration_rejects_legacy_or_stale_owner_enrollment(
-    monkeypatch, enrollment_tenant, current_tenant, reads_current_owner
-):
-    location_id = "11111111-1111-4111-8111-111111111111"
+def test_registration_maps_database_owner_change_to_reenrollment_required(monkeypatch):
     connection = MagicMock()
     cursor = connection.cursor.return_value
-    enrollment = ("claim-1", "server-worker", location_id, enrollment_tenant)
-    cursor.fetchone.side_effect = (
-        [enrollment, (current_tenant,)] if reads_current_owner else [enrollment]
-    )
+    cursor.fetchone.return_value = ("owner_changed", None)
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
 
     with _client(monkeypatch) as client:
@@ -1118,13 +1142,10 @@ def test_registration_rejects_legacy_or_stale_owner_enrollment(
 
     assert response.status_code == 403
     assert response.json()["detail"] == mobile_api.DEVICE_REENROLLMENT_REQUIRED_DETAIL
-    assert cursor.execute.call_count == (2 if reads_current_owner else 1)
+    assert cursor.execute.call_count == 1
     assert connection.rollback.called
     assert not connection.commit.called
-    assert not any(
-        "insert into mobile_device " in call.args[0].lower()
-        for call in cursor.execute.call_args_list
-    )
+    assert "kokonut_security.redeem_mobile_enrollment" in cursor.execute.call_args.args[0]
 
 
 def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path):
@@ -1444,7 +1465,7 @@ def test_device_revocation_is_location_scoped_and_clears_token_hash(monkeypatch)
 def test_invalid_enrollment_code_cannot_create_a_device(monkeypatch):
     connection = MagicMock()
     cursor = connection.cursor.return_value
-    cursor.fetchone.return_value = None
+    cursor.fetchone.return_value = ("invalid", None)
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
 
     with _client(monkeypatch) as client:
@@ -1455,7 +1476,7 @@ def test_invalid_enrollment_code_cannot_create_a_device(monkeypatch):
 
     assert response.status_code == 401
     assert cursor.execute.call_count == 1
-    assert "mobile_device_enrollment" in cursor.execute.call_args.args[0]
+    assert "kokonut_security.redeem_mobile_enrollment" in cursor.execute.call_args.args[0]
     connection.rollback.assert_called_once()
     connection.commit.assert_not_called()
 
@@ -1465,16 +1486,7 @@ def test_registration_derives_worker_and_location_from_enrollment_claim(monkeypa
     enrollment_code = "E" * 43
     connection = MagicMock()
     cursor = connection.cursor.return_value
-    cursor.fetchone.side_effect = [
-        (
-            "claim-1",
-            "server-worker",
-            location_id,
-            "a0000000-0000-0000-0000-000000000801",
-        ),
-        ("a0000000-0000-0000-0000-000000000801",),
-        ("browser-3",),
-    ]
+    cursor.fetchone.return_value = ("registered", location_id)
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
 
     with _client(monkeypatch) as client:
@@ -1486,12 +1498,14 @@ def test_registration_derives_worker_and_location_from_enrollment_claim(monkeypa
     assert response.status_code == 200
     assert response.json()["location_id"] == location_id
     assert response.json()["device_token"] != enrollment_code
-    device_insert = cursor.execute.call_args_list[2].args
-    assert device_insert[1][6] == "server-worker"
-    assert device_insert[1][7] == location_id
-    assert device_insert[1][8] == "a0000000-0000-0000-0000-000000000801"
-    assert "tenant_organization_id" in device_insert[0]
-    assert "ON CONFLICT (device_id) DO NOTHING" in device_insert[0]
+    redemption = cursor.execute.call_args
+    assert "kokonut_security.redeem_mobile_enrollment" in redemption.args[0]
+    assert redemption.args[1][0] == mobile_api._token_hash(enrollment_code)
+    assert redemption.args[1][1] == "browser-3"
+    assert redemption.args[1][2] is None
+    assert redemption.args[1][3] == "phone"
+    assert len(redemption.args[1][7]) == 64
+    assert enrollment_code not in str(redemption.args[1])
     connection.commit.assert_called_once()
 
 

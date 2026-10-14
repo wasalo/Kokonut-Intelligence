@@ -11,17 +11,16 @@ owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
-**Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** seed
-replay/bootstrap evidence is at PR #68 head
-`7b155cb705cb03895bba9a16b3ab07937502bb68`. CI run [#305](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38577274192)
-is in progress and Security run [#29](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38577274372)
-passed. The preceding CI #304 on `8aa33e24f169f15afb249a53ae3d281ed8d843a2`
-completed with five failures, 4,632 passed tests, and 75 passed subtests; the
-local fix batch passes 10 targeted regression cases and 72 full operator-auth
-and Compose tests. The approved eight-suite platform-integrity suite passed
-288 tests locally on `1c0084513b157bb99468d4c650e269c57e243c96`. Capability
-completion remains open until CI #305 passes
-([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
+**Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** PR #68 is
+at `333507e844cd3937761087f1e7e03f895c509250`. CI run [#306](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311928)
+is in progress and Security run [#30](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311940)
+passed. CI #305 was superseded by the newer push. The preceding CI #304 on
+`8aa33e24f169f15afb249a53ae3d281ed8d843a2` completed with five failures,
+4,632 passed tests, and 75 passed subtests; the local fix batch passes 10
+targeted regression cases and 72 full operator-auth and Compose tests. The
+approved eight-suite platform-integrity suite passed 288 tests locally on
+`1c0084513b157bb99468d4c650e269c57e243c96`. Capability completion remains
+open until CI #306 passes ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus
@@ -38,6 +37,18 @@ Ruff and Python compilation passed. This closes those application call paths,
 not a database identity boundary: the ordinary app role can still set custom
 PostgreSQL context values, so worker/direct-database isolation and RLS remain
 open ([audit](mobile-tenant-rls-callsite-audit.md); [evidence](builds/2026-10-14-recovery/gateway-mobile-tenant-context.json)).
+
+**14 October 2026 mobile credential lookup boundary (CAP-053):** the local
+migration 392 source moves token-hash resolution and single-use enrollment
+redemption behind narrow PostgreSQL functions owned by a dedicated
+NOLOGIN/NOBYPASSRLS role. The existing owner-binding trigger now uses a fixed
+search path and schema-qualified relations. A network-isolated PostgreSQL 16
+acceptance passed direct-table denial, migration replay, current/legacy/unknown
+token outcomes, enrollment conflict/expiry/single-use behavior, a concurrent
+redemption race (exactly one device/code consumption), and owner transfer. The
+56-test mobile API/tenant suite and Ruff pass. Migration 392 has
+not been applied to the candidate; RLS and MAN-CAP-053 remain open
+([audit](mobile-tenant-rls-callsite-audit.md); [evidence](builds/2026-10-14-recovery/mobile-credential-functions-disposable.json)).
 
 **13 October 2026 local source update (CAP-053):** migration 391 and the
 working tree now pin new mobile device enrollments to the current verified

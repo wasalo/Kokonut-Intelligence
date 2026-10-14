@@ -392,9 +392,8 @@ def _device_for_token(token: str | None) -> tuple[str, str | None, str | None]:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT device_id, user_id, location_id::text
-            FROM mobile_device
-            WHERE device_token_hash = %s AND status = 'active'
+            SELECT device_id, user_id, location_id, owner_binding_current
+              FROM kokonut_security.resolve_mobile_device_token(%s)
             """,
             (_token_hash(token),),
         )
@@ -404,6 +403,8 @@ def _device_for_token(token: str | None) -> tuple[str, str | None, str | None]:
         conn.close()
     if not row:
         raise HTTPException(status_code=401, detail="Invalid device token")
+    if not row[3]:
+        raise _device_reenrollment_error()
     return row[0], row[1], row[2]
 
 
@@ -881,61 +882,34 @@ async def register_device(request: RegisterRequest):
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id::text, user_id, location_id::text, tenant_organization_id::text
-            FROM mobile_device_enrollment
-            WHERE code_hash = %s
-              AND used_at IS NULL
-              AND revoked_at IS NULL
-              AND expires_at > NOW()
-            FOR UPDATE
-            """,
-            (_token_hash(request.enrollment_code),),
-        )
-        enrollment = cur.fetchone()
-        if not enrollment:
-            raise HTTPException(status_code=401, detail="Invalid or expired enrollment code")
-
-        enrollment_id, user_id, location_id, enrollment_tenant_id = enrollment
-        if enrollment_tenant_id is None:
-            raise HTTPException(status_code=403, detail=DEVICE_REENROLLMENT_REQUIRED_DETAIL)
-        current_tenant_id = _verified_location_tenant(cur, location_id)
-        if str(enrollment_tenant_id) != current_tenant_id:
-            raise HTTPException(status_code=403, detail=DEVICE_REENROLLMENT_REQUIRED_DETAIL)
-        cur.execute(
-            """
-            INSERT INTO mobile_device
-                (device_id, device_name, device_type, os, os_version,
-                 app_version, user_id, location_id, tenant_organization_id, device_token_hash,
-                 has_camera, has_gps, has_offline, status, last_seen_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::uuid, %s::uuid, %s,
-                    TRUE, TRUE, TRUE, 'active', NOW())
-            ON CONFLICT (device_id) DO NOTHING
-            RETURNING device_id
+            SELECT result, registered_location_id::text
+              FROM kokonut_security.redeem_mobile_enrollment(
+                  %s, %s, %s, %s, %s, %s, %s, %s
+              )
             """,
             (
+                _token_hash(request.enrollment_code),
                 request.device_id,
                 request.device_name,
                 request.device_type,
                 request.os,
                 request.os_version,
                 request.app_version,
-                user_id,
-                location_id,
-                current_tenant_id,
                 _token_hash(token),
             ),
         )
-        registered = cur.fetchone()
-        if not registered:
+        registration = cur.fetchone()
+        if not registration:
+            raise HTTPException(status_code=401, detail="Invalid or expired enrollment code")
+        result, location_id = registration
+        if result == "invalid":
+            raise HTTPException(status_code=401, detail="Invalid or expired enrollment code")
+        if result == "owner_changed":
+            raise HTTPException(status_code=403, detail=DEVICE_REENROLLMENT_REQUIRED_DETAIL)
+        if result == "device_conflict":
             raise HTTPException(status_code=409, detail="Device is already registered")
-        cur.execute(
-            """
-            UPDATE mobile_device_enrollment
-            SET used_at = NOW(), consumed_device_id = %s
-            WHERE id = %s AND used_at IS NULL
-            """,
-            (request.device_id, enrollment_id),
-        )
+        if result != "registered" or location_id is None:
+            raise HTTPException(status_code=500, detail="Enrollment redemption failed")
         conn.commit()
         cur.close()
     except HTTPException:

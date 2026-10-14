@@ -4467,3 +4467,31 @@ boundary, pre-context device/enrollment credential paths, legacy CLI, workers,
 and Directus/view review. Focused tenant-context, mobile API, and operator-auth
 checks passed 126 tests; Ruff and Python compilation passed. No database or
 container was accessed ([evidence](builds/2026-10-14-recovery/gateway-mobile-tenant-context.json)).
+
+### Mobile credential lookup boundary — 14 October 2026
+
+Added migration 392 to move mobile device-token lookup and one-time enrollment
+redemption behind `kokonut_security` functions owned by a dedicated
+`NOLOGIN`, `NOBYPASSRLS` role. Token resolution accepts only the presented
+SHA-256 token hash and returns minimal device identity plus whether the current
+owner binding still matches. Redemption locks the unused enrollment and
+current owner, registers one device, and consumes the code in one transaction.
+The role has no direct application login; column-level `UPDATE(id)` grants
+exist only to allow PostgreSQL row locks on owner records, and do not grant
+updates to their business state. The migration also replaces migration 391's
+trigger body with a fixed search path and qualified public relations so the
+trigger remains valid inside restricted credential functions.
+
+The network-disabled PostgreSQL 16 acceptance applied migrations 391 and 392,
+replayed 392, and passed constrained-role direct-table denial, token current,
+legacy, and unknown outcomes, device conflict, one-time success/reuse, expiry,
+owner transfer, concurrent redemption (one device and one code consumption),
+and credential-owner attribute checks. The focused mobile API and tenant suite
+passed 56 tests; Ruff, Python compilation, and whitespace
+checks passed. The disposable container and synthetic rows were removed.
+Candidate and legacy databases were untouched; the candidate remains at
+migration 391 and RLS remains disabled. Migration 392 needs its separately
+gated candidate checkpoint/rollout; legacy CLI, workers, Directus/views, final
+app-role boundaries, and forced-RLS acceptance remain open. See the
+[call-site audit](mobile-tenant-rls-callsite-audit.md) and
+[disposable evidence](builds/2026-10-14-recovery/mobile-credential-functions-disposable.json).
