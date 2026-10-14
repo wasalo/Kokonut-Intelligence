@@ -1,0 +1,49 @@
+{
+  "record_type": "static_runtime_sql_inventory",
+  "generated_at": "2026-10-14T22:50:00Z",
+  "generator": "scripts/runtime_sql_inventory.py",
+  "artifact": "docs/refactor/runtime-sql-inventory.json",
+  "scope": "Direct Python SQL execution calls in all services/**/*.py modules, including API, worker, and CLI sources.",
+  "summary": {
+    "source_files": 802,
+    "execution_sites": 3747,
+    "worker_operation_roots": 17,
+    "sites_with_worker_operation_refs": 196,
+    "sites_without_worker_operation_refs": 3551,
+    "candidate_relation_names": 975,
+    "sites_without_relation_candidates": 620,
+    "statement_kinds": {
+      "CREATE": 1,
+      "DELETE": 33,
+      "INSERT": 611,
+      "RELEASE": 2,
+      "ROLLBACK": 3,
+      "SAVEPOINT": 2,
+      "SELECT": 2228,
+      "SET": 61,
+      "UNKNOWN": 410,
+      "UPDATE": 374,
+      "WITH": 22
+    },
+    "expression_kinds": {
+      "composed": 4,
+      "composed_or_variable": 484,
+      "fstring": 239,
+      "literal": 3020
+    },
+    "artifact_bytes": 1834247
+  },
+  "verification": {
+    "runtime_inventory_regression_tests": "4 passed",
+    "ruff": "passed",
+    "runtime_inventory_reproducibility": "passed",
+    "worker_inventory_unchanged": "passed",
+    "git_diff_check": "passed"
+  },
+  "interpretation": [
+    "Relation candidates are regex-derived names, not SQL-parser results or verified ACL requirements.",
+    "The 410 UNKNOWN, 22 WITH, 620 no-relation, and 727 non-literal execution sites require conservative review; absence from worker refs does not mean dead or unreachable code.",
+    "No runtime role privileges, migrations, candidate data, or legacy data were changed by this inventory."
+  ],
+  "next_review": "Classify each source surface and relation candidate, reconcile dynamic SQL and indirect ORM/provider paths, then derive narrow role grants and verify actual handlers under those grants before enabling RLS."
+}

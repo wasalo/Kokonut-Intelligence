@@ -91,6 +91,7 @@ Commands:
 - Check static worker boundary preflight: `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
 - Exercise aggregate tenant-preflight SQL with synthetic roles on disposable PostgreSQL: `python3 scripts/check-tenant-preflight-disposable.py`
 - Check worker SQL call inventory: `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
+- Check all service SQL execution sites: `python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json`
 - Capture static Kernel inventory: `python3 scripts/kernel-inventory.py --output docs/refactor/repository-inventory.json`
 - Start services with encrypted secrets: `source scripts/load-secrets.sh && docker compose up -d`
 - Start services (plaintext .env fallback): `docker compose up -d`

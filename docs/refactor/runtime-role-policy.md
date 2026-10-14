@@ -5,8 +5,10 @@ session and mobile credential boundaries passed disposable PostgreSQL 16 role
 checks, including forced RLS for the session functions; the synthetic and
 populated-restore role fixtures use the second credential. Separate Directus, Metabase metadata, and
 analytics-source role boundaries also passed on isolated populated copies. No
-live candidate, portability, or legacy database was modified. Metabase
-dashboard/source parity and full domain-workflow acceptance remain open; see
+candidate or legacy ACL was changed by these role fixtures. Separately, schema
+migrations 392–397 were applied to the local candidate after a fresh encrypted
+checkpoint and restore rehearsal; its application-table RLS remains disabled.
+Metabase dashboard/source parity and full domain-workflow acceptance remain open; see
 [optional consumer roles](optional-database-roles.md).
 
 ## Role boundary
@@ -61,6 +63,14 @@ review rules. Workers, the legacy CLI, Directus, views, and all other public
 tables still need separately reviewed grants before RLS. Do not run this
 bootstrap against the legacy stack or a database shared with unrelated
 applications.
+
+The [runtime SQL inventory](runtime-sql-inventory.json) records direct
+execution sites across the whole `services/` tree to support that review. It
+contains 3,747 call sites from 802 Python files and 975 regex-derived relation
+candidates. Dynamic query construction, `WITH` semantics, ORM/provider code,
+columns, actual request reachability, and external Directus usage remain outside
+its proof. It is a review map, not a grant list; convert no candidate relation
+into an ACL until the call path, runtime principal, and operation are confirmed.
 
 The grant boundary is for the native Kernel app and its workers. The current
 legacy `docker-compose.yml` runs Directus with `DB_USER=kokonut` and

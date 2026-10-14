@@ -672,7 +672,7 @@ reporting views.
 - [x] Replay all 31 curated seeds in order against an isolated restore of the candidate checkpoint. All applied, a second ordered invocation skipped the completed ledger entries, and representative counts matched the expected inserts. The scratch database volume was removed; the live candidate remained at 382 schemas and one applied seed ([evidence](builds/2026-10-14-recovery/curated-seed-disposable-replay.json)).
 - [x] Validate a fresh template0 bootstrap through all 382 ordered schema migrations and the exact 31-seed curated list, including migration 391; zero failures and expected representative counts. The isolated database and volume were removed ([evidence](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json)).
 - [x] Create and restore-rehearse a fresh age-encrypted candidate checkpoint in an isolated `template0` database. The applied-migration and extension fingerprints and selected form/service counts matched; the scratch project and volume were removed ([checkpoint and parity](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json)).
-- [ ] Await separate approval before applying only the 30 curated seeds still pending on the candidate. Keep the other 90 seed files unselected and exclude `064-068_impact_network.sql` because it contains pilot upserts and a location-owner update; the live candidate has not been changed by seed SQL ([scope and rollback](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json)).
+- [ ] Await separate approval before applying only the 30 curated seeds still pending on the candidate. Because the existing seed preflight checkpoint predates migrations 392–397, first take and restore-rehearse a fresh age-encrypted checkpoint of the current migration-397 candidate; use that checkpoint for rollback. Keep the other 90 seed files unselected and exclude `064-068_impact_network.sql` because it contains pilot upserts and a location-owner update. No candidate seed SQL has run ([prior seed scope](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json)).
 - [x] Bind OIDC participant-reference creation and revocation to tenant
   context before the party lookup or link mutation. The new same-origin
   `/operator/api/mobile/.../participants` routes use the OIDC cookie path,
@@ -845,18 +845,23 @@ reporting views.
   narrows one side effect only: the event worker still inherits the shared
   runtime DB identity and has no signed worker tenant context. No database or
   candidate was changed.
-- [ ] Roll out migrations 392–397 to the local candidate only after a fresh encrypted
-  checkpoint and restore rehearsal; recreate only the candidate app and verify
-  health, migration state, and protected routes. Candidate remains at migration
-  391 until separately authorized. Existing environment keys need reviewed
-  matching database hash/scope rows before tenant-bound mobile writes can pass.
-  Migrations 392–396 have isolated PostgreSQL acceptance; migration 397 also
-  passes isolated PostgreSQL acceptance against a synthetic schema fixture.
-  The ordered 392–397 replay and second no-op pass now also succeed on a restored
-  encrypted candidate checkpoint ([evidence](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)).
-  A clean `template0` bootstrap of all 388 schema sources also passed in a
-  disposable internal-only Compose project; only candidate rollout remains
-  open. This rollout alone will not enable RLS.
+- [x] Roll out migrations 392–397 to the local candidate after a fresh
+  age-encrypted checkpoint and isolated `template0` restore rehearsal. The
+  ordered schema-only runner applied all six checksummed migrations; the clone
+  replayed cleanly and its second pass had zero pending work. The candidate now
+  has 388 applied schemas through 397, one curated seed, zero pending/failed
+  migrations, no RLS-enabled application tables, and no WorldClim baseline
+  rows. Only the candidate app was recreated; health returned 200 and anonymous
+  mobile sync-status returned 401. The temporary recovery container, network,
+  and volume were removed. The encrypted checkpoint remains in ignored local
+  backups. No seed SQL ran and this rollout does not enable RLS ([restore replay](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json); [fresh checkpoint and candidate rollout](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
+- [x] Generate a reproducible direct-SQL inventory across all 802 Python
+  service modules to support the remaining runtime-role review. It records
+  3,747 execution sites and 975 regex-derived relation candidates without SQL
+  bodies or runtime values; focused coverage (4 tests), Ruff, reproducibility,
+  and the existing worker inventory check pass. This is not an authorization
+  map or grant allowlist; 410 unknown statements, 22 `WITH` statements, dynamic
+  SQL, and indirect ORM/provider paths remain subject to review ([inventory](runtime-sql-inventory.json); [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 - [x] Apply all 388 schema migrations from an empty PostgreSQL database through
   `verify-clean-bootstrap.sh` using a dedicated internal-only Compose project;
   verify zero failures, keep all seeds and application data out of scope, and

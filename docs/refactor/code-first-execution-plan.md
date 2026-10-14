@@ -15,9 +15,10 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 318 checked and 20 open items (338 total).
-- The latest pushed implementation batch is `de5bd4e`; CI #312 is in progress
-  and Security #36 passed. The last CI-verified head remains `7953afe` (CI #308
+- The execution checklist has 320 checked and 19 open items (339 total).
+- The latest pushed implementation batch is `de5bd4e`; at the last recorded
+  check CI #312 was in progress and Security #36 had passed. The last
+  CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
 - The latest pushed batch adds provider-aware PostgreSQL-only backup/restore,
   gRPC streaming-auth lifecycle fixes, and focused RPC policy and
@@ -48,11 +49,19 @@ MAN-CAP checks open until each has its own retained evidence.
   open.
   Data-freshness queries use fixed table/timestamp maps, bind location values,
   and report unknown configured sources as errors; 29 focused source tests pass.
+  A new whole-services SQL inventory records 3,747 direct execution sites
+  across 802 Python modules and 975 regex-derived relation-name candidates,
+  without storing SQL text or runtime values. This is a review input, not a
+  grant allowlist; dynamic statements and indirect ORM/provider paths remain
+  open ([inventory](runtime-sql-inventory.json); [check record](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
   The climate compatibility path stores schema-aligned `latitude_proxy_v1`
   estimates; migrations 392–397 passed ordered PostgreSQL 16 application and
   replay on a restored candidate checkpoint, including migration 397's
   location fallback and duplicate rollback. A clean `template0` bootstrap of
-  all 388 schema sources also passed; candidate rollout remains open.
+  all 388 schema sources also passed. The candidate rollout is now complete
+  after a fresh encrypted checkpoint and restore rehearsal; the candidate has
+  388 applied schemas through 397, one curated seed, zero pending migrations,
+  and application-table RLS remains disabled.
   The registered native and Field Collector API routes now have an exact
   resource/action/public-policy inventory and unknown route/method cases are
   verified protected; broader tenant, OIDC, transport, and SDK parity remain.
@@ -70,13 +79,15 @@ MAN-CAP checks open until each has its own retained evidence.
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
-- Candidate migrations 392–397 and the remaining curated seeds are prepared
-  but have not been applied to the local candidate. Migrations 392–397 passed
-  ordered application on an encrypted-checkpoint restore, with a clean second
-  migration-runner pass. All 388 schema sources also passed on an empty
-  PostgreSQL database through the isolated clean-bootstrap verifier. The
-  candidate remains at migration 391; candidate rollout and curated seeds
-  remain separately gated under OFU-17 and OFU-18.
+- Candidate migrations 392–397 were applied schema-only after a fresh
+  age-encrypted checkpoint was restore-rehearsed in an isolated `template0`
+  database. The clone and candidate both have 388 applied schemas through 397,
+  one curated seed, zero pending/failed migrations, and no application-table
+  RLS. Only the candidate app was recreated; health returned 200 and anonymous
+  mobile sync-status returned 401. Evidence is retained in
+  [the candidate rollout record](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json).
+  The separate 30-seed candidate rollout remains approval-gated under OFU-17;
+  the other 90 sources were not selected.
 - Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
   confirmed as exclusive to Kokonut Network. Do not ask for that mapping again.
 - There is no Raspberry Pi available. The code-only ARM64 assessment passed
@@ -165,9 +176,11 @@ before protected reads and writes, and make direct database access fail closed.
    `public`-schema default privileges for future tables and sequences. The
    disposable PostgreSQL 16 role acceptance still passed current-handler SQL
    and proved a table/sequence created after provisioning is inaccessible to
-   the runtime login. This prevents silent privilege expansion as migrations
-   add objects; it does not close the existing-table grant inventory, worker,
-   Directus, or RLS boundaries ([evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json)).
+   the runtime login. A new whole-services SQL inventory covers all 802 Python
+   service modules and identifies direct execution sites and candidate relation
+   names without becoming an ACL. The next review classifies its API, worker,
+   CLI, and indirect-query surfaces before deriving explicit grants; worker,
+   Directus, and RLS boundaries remain open ([role evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json); [SQL inventory](runtime-sql-inventory.json); [inventory check](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
@@ -196,7 +209,9 @@ before protected reads and writes, and make direct database access fail closed.
 
 **Acceptance:** disposable PostgreSQL tests cover owner/shared scope, denial,
 revocation, stale context, cleanup, least-privilege grants, worker/CLI behavior,
-and migration replay. Candidate rollout remains a separate OFU-18 operation.
+and migration replay. The separately gated candidate rollout of migrations
+392–397 is complete; worker, remaining runtime-role, Directus/view, ownership,
+and RLS gates remain open.
 Non-demo location owners and legacy OIDC affiliations are human inputs under
 OFU-01/02; use only the already-confirmed Kokonut Network demo mapping in
 synthetic tests.
@@ -331,9 +346,12 @@ restore/preflight, enabled backup/restore, and missing-service fail-fast
 **Migration replay (14 October 2026):** ordered migrations 392–397 and the
 runner's no-op replay passed on a restored, age-encrypted candidate checkpoint
 using PostgreSQL 16.4. The same 388 current schema sources also passed from an
-empty PostgreSQL database in a separate internal-only Compose project. These
-records verify clean bootstrap and populated upgrade paths; candidate rollout
-remains separately gated ([restore replay](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json); [clean bootstrap](builds/2026-10-14-recovery/clean-bootstrap-388-migrations.json)).
+empty PostgreSQL database in a separate internal-only Compose project. The
+candidate then received migrations 392–397 through the ordered schema-only
+runner after a fresh encrypted checkpoint and restore rehearsal. The app alone
+was recreated; candidate health and anonymous route protection passed, and the
+temporary restore project was removed. RLS stayed disabled and no seed SQL ran
+([restore replay](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json); [clean bootstrap](builds/2026-10-14-recovery/clean-bootstrap-388-migrations.json); [candidate rollout](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and
@@ -400,11 +418,9 @@ deployment or semantic acceptance:
 - **Provider setup:** production OIDC inputs and test identities (OFU-07), R2
   bucket/credentials/policy (OFU-08), browser vault and trusted local HTTPS
   certificate when browser acceptance is scheduled (OFU-10/11).
-- **Candidate-only writes:** approval to apply the 30 curated seeds (OFU-17)
-  and a separate approval to roll out migrations 392–397 (OFU-18). Migration
-  397 has isolated PostgreSQL acceptance against a synthetic schema fixture;
-  full-bootstrap acceptance is still open. Neither rollout is implied by
-  code/test approval.
+- **Candidate-only writes:** approval to apply the 30 curated seeds (OFU-17).
+  Migration 392–397 rollout (OFU-18) is complete. The candidate still has only
+  its original curated seed ledger entry; no new seed SQL was applied.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only
 scope and lack of hardware. If the owner later supplies a Pi, add a separate

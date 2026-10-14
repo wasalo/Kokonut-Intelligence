@@ -20,10 +20,28 @@ inaccessible to the runtime login. Broad grants on existing public tables,
 worker identity, and RLS remain open; this does not accept either MAN-CAP row
 ([evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json)).
 
-**Last CI-verified head (CAP-001 / CAP-047 / CAP-053):** PR #68 is now
-pushed through `de5bd4e322d0dbba730568b88a9054be3af0db34`; CI run [#312](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190755)
-is in progress and Security run [#36](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190773)
-passed. The last passing head was `7953afe4d5267b040392a8fe52e1ae38c236cfd4`.
+**14 October 2026 candidate schema rollout (CAP-047 / CAP-053):** migrations
+392–397 are now applied to the local candidate after a fresh encrypted
+checkpoint and isolated restore rehearsal. The candidate has 388 applied
+schemas through 397, one curated seed, zero pending/failed migrations, and no
+application-table RLS. The candidate app alone was recreated; health returned
+200 and the anonymous protected sync-status route returned 401. This advances
+implementation/deployment tracking only: worker, remaining runtime-role,
+Directus/view, ownership, and all named MAN-CAP checks remain open
+([evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
+
+The companion runtime SQL inventory covers 3,747 direct execution sites across
+802 service modules and identifies 975 regex-derived relation-name candidates.
+Its 410 unknown statement kinds, 22 `WITH` statements, and dynamic or indirect
+paths require review before narrowing runtime grants. The report is not an ACL
+and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
+[evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+
+**Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053):** PR #68 was
+pushed through `de5bd4e322d0dbba730568b88a9054be3af0db34`; at the last recorded
+check CI run [#312](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190755)
+was in progress and Security run [#36](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190773)
+had passed. The last passing head was `7953afe4d5267b040392a8fe52e1ae38c236cfd4`.
 CI run [#308](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258026)
 and Security run [#32](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258017)
 both passed on that earlier head. CI #307 failed because its OIDC Compose test fixture
