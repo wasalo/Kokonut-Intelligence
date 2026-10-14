@@ -47,6 +47,13 @@ response checks pass with the explicit origin and credential headers; this is
 in-process acceptance and does not close browser or external-ingress checks
 ([evidence](builds/2026-10-14-recovery/gateway-cors-patch-preflight.json)).
 
+The operator-auth router now has exact source regression coverage for every
+registered method/path policy: 28 tuples pin resource, action, public status,
+scope requirement, direct location scope, and any required secondary grants.
+The six lifecycle actions are enumerated individually; unknown operator paths
+and method mismatches remain protected. Two focused checks pass
+([evidence](builds/2026-10-14-recovery/operator-route-policy-inventory.json)).
+
 The worker-operation inventory now links every registered metrics calculator
 to its source file, with a test ensuring the 20-module list stays aligned with
 the runtime registry. It also records each calculator's direct read tables,
