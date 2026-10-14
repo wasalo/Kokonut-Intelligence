@@ -167,7 +167,10 @@ def test_farm_activity_intake_routes_require_oidc_and_separate_detail_grants():
         {"resource": "mobile_collection_review", "action": "read_detail"}
     ]
     assert draft_policy["action"] == "create_draft"
-    assert draft_policy["additional_scopes"] == detail_policy["additional_scopes"]
+    assert draft_policy["additional_scopes"] == [
+        {"resource": "farm_activity", "action": "read_detail"},
+        {"resource": "mobile_collection_review", "action": "read_detail"},
+    ]
     assert operator_auth.auth_route_policy(
         "POST",
         "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222/draft",
@@ -282,6 +285,7 @@ def _set_operator_cookies(client, *, csrf=False):
 
 
 def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
     provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "read")})
     monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
     monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
@@ -291,11 +295,12 @@ def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatc
         queue_reader,
     )
 
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(), base_url="https://operator.example") as client:
         _set_operator_cookies(client)
         response = client.get(
             "/operator/api/farm-activity-intake-queue",
             params={"location_id": LOCATION_ID, "limit": 9},
+            headers={"Origin": "https://operator.example"},
         )
 
     assert response.status_code == 200, response.text
@@ -435,6 +440,7 @@ def test_farm_activity_draft_route_requires_scope_csrf_and_review_acknowledgemen
     provider = _FarmActivityProvider(
         allowed_scopes={
             ("farm_activity", "create_draft"),
+            ("farm_activity", "read_detail"),
             ("mobile_collection_review", "read_detail"),
         }
     )
@@ -484,6 +490,110 @@ def test_farm_activity_draft_route_requires_scope_csrf_and_review_acknowledgemen
         assert audit_records[-1]["location_id"] == LOCATION_ID
     else:
         draft_writer.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "scopes", "service_path", "body"),
+    [
+        (
+            "GET",
+            "/operator/api/farm-activity-intake-queue",
+            {("farm_activity", "read")},
+            "services.gateway.farm_activity_workflow.list_farm_activity_intake",
+            None,
+        ),
+        (
+            "GET",
+            "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222",
+            {
+                ("farm_activity", "read_detail"),
+                ("mobile_collection_review", "read_detail"),
+            },
+            "services.gateway.farm_activity_workflow.get_farm_activity_intake",
+            None,
+        ),
+        (
+            "POST",
+            "/operator/api/farm-activity-intake-queue/22222222-2222-4222-8222-222222222222/draft",
+            {
+                ("farm_activity", "create_draft"),
+                ("farm_activity", "read_detail"),
+                ("mobile_collection_review", "read_detail"),
+            },
+            "services.gateway.farm_activity_workflow.create_farm_activity_draft",
+            {"content_reviewed": True},
+        ),
+        (
+            "GET",
+            "/operator/api/farm-activities",
+            {("farm_activity", "read")},
+            "services.gateway.farm_activity_lifecycle.list_farm_activities",
+            None,
+        ),
+        (
+            "GET",
+            "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333",
+            {
+                ("farm_activity", "read_detail"),
+                ("mobile_collection_review", "read_detail"),
+            },
+            "services.gateway.farm_activity_lifecycle.get_farm_activity",
+            None,
+        ),
+        (
+            "POST",
+            "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/reject",
+            {("farm_activity", "reject")},
+            "services.gateway.farm_activity_lifecycle.transition_farm_activity",
+            {"reason": "Reviewed the source and rejected it for rework."},
+        ),
+        (
+            "PATCH",
+            "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/draft",
+            {
+                ("farm_activity", "edit_draft"),
+                ("farm_activity", "read_detail"),
+                ("mobile_collection_review", "read_detail"),
+            },
+            "services.gateway.farm_activity_lifecycle.edit_farm_activity_draft",
+            {"content": {"activity_type": "planting"}, "reason": "Corrected after review."},
+        ),
+    ],
+)
+def test_farm_activity_context_denial_returns_403(
+    monkeypatch, method, path, scopes, service_path, body
+):
+    from services.common.tenant_context import TenantContextDenied
+
+    provider = _FarmActivityProvider(allowed_scopes=scopes)
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.reserve_mutation",
+        lambda _self: "test-reservation",
+    )
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.release_mutation",
+        lambda *_args: None,
+    )
+    service = MagicMock(side_effect=TenantContextDenied("grants resolve to different tenants"))
+    monkeypatch.setattr(service_path, service)
+
+    headers = {"X-CSRF-Token": "valid-csrf"} if method != "GET" else {}
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=method != "GET")
+        response = client.request(
+            method,
+            path,
+            params={"location_id": LOCATION_ID},
+            headers=headers,
+            json=body,
+        )
+
+    assert response.status_code == 403, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert "Cookie" in {value.strip() for value in response.headers["vary"].split(",")}
+    service.assert_called_once()
 
 
 def test_farm_activity_lifecycle_route_requires_scope_csrf_and_passes_reason(monkeypatch):
@@ -579,6 +689,7 @@ def test_farm_activity_lifecycle_route_rejects_unknown_body_fields(monkeypatch):
 
 
 def test_farm_activity_draft_edit_route_requires_scope_csrf_and_passes_reason(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
     provider = _FarmActivityProvider(
         allowed_scopes={
             ("farm_activity", "edit_draft"),
@@ -603,12 +714,15 @@ def test_farm_activity_draft_edit_route_requires_scope_csrf_and_passes_reason(mo
     )
 
     path = "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/draft"
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(), base_url="https://operator.example") as client:
         _set_operator_cookies(client, csrf=True)
         response = client.patch(
             path,
             params={"location_id": LOCATION_ID},
-            headers={"X-CSRF-Token": "valid-csrf"},
+            headers={
+                "X-CSRF-Token": "valid-csrf",
+                "Origin": "https://operator.example",
+            },
             json={
                 "content": {"activity_type": "planting"},
                 "reason": "Corrected after review",

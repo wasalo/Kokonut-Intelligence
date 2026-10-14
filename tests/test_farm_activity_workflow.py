@@ -8,6 +8,7 @@ from uuid import UUID
 
 import pytest
 
+from services.gateway import farm_activity_workflow as workflow
 from services.gateway.farm_activity_workflow import (
     FarmActivityIntakeInvalid,
     FarmActivityPayloadTooLarge,
@@ -29,6 +30,18 @@ PAYLOAD = {
     "labor_hours": 2.5,
     "notes": "No worker names included.",
 }
+
+
+@pytest.fixture(autouse=True)
+def _tenant_context_spy(monkeypatch):
+    calls = []
+
+    def set_context(connection, **kwargs):
+        calls.append((connection, kwargs))
+        connection.cursor_instance.statements.append(("SET TENANT CONTEXT", kwargs))
+
+    monkeypatch.setattr(workflow, "set_operator_tenant_context", set_context)
+    return calls
 SCHEMA = {
     "type": "object",
     "required": ["activity_type", "activity_date"],
@@ -68,6 +81,7 @@ class ReadCursor:
 
 class ReadConnection:
     def __init__(self, rows):
+        self.autocommit = False
         self.cursor_instance = ReadCursor(rows)
         self.rolled_back = False
         self.closed = False
@@ -102,7 +116,7 @@ def _read_row(**overrides):
     return row
 
 
-def test_intake_queue_is_scoped_and_does_not_return_free_text():
+def test_intake_queue_sets_tenant_context_before_scoped_query(_tenant_context_spy):
     queue_row = _read_row()
     for private_column in ("payload", "payload_size", "photo_count", "collection_type"):
         queue_row.pop(private_column)
@@ -117,6 +131,14 @@ def test_intake_queue_is_scoped_and_does_not_return_free_text():
     assert rows[0]["activity_type"] == "weeding"
     assert "payload" not in rows[0]
     query, params = connection.cursor_instance.statements[-1]
+    context = {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "farm_activity",
+        "action": "read",
+    }
+    assert _tenant_context_spy == [(connection, context)]
+    assert connection.cursor_instance.statements.index(("SET TENANT CONTEXT", context)) < connection.cursor_instance.statements.index((query, params))
     assert "JOIN mobile_form_version AS revision" in query
     assert "revision.status = 'active'" in query
     assert "eligibility.eligible_for_use = TRUE" in query
@@ -128,7 +150,7 @@ def test_intake_queue_is_scoped_and_does_not_return_free_text():
     assert connection.rolled_back and connection.closed
 
 
-def test_intake_detail_requires_two_location_grants_and_bounds_private_payload():
+def test_intake_detail_sets_both_grants_in_tenant_context_and_bounds_payload(_tenant_context_spy):
     connection = ReadConnection([_read_row()])
     result = get_farm_activity_intake(
         OPERATOR_ID,
@@ -137,6 +159,15 @@ def test_intake_detail_requires_two_location_grants_and_bounds_private_payload()
         connection_factory=lambda: connection,
     )
     query = connection.cursor_instance.statements[-1][0]
+    context = {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "farm_activity",
+        "action": "read_detail",
+        "required_scopes": (("mobile_collection_review", "read_detail"),),
+    }
+    assert _tenant_context_spy == [(connection, context)]
+    assert connection.cursor_instance.statements.index(("SET TENANT CONTEXT", context)) < connection.cursor_instance.statements.index((query, (COLLECTION_ID, LOCATION_ID, OPERATOR_ID, OPERATOR_ID)))
     assert result["payload"] == PAYLOAD
     assert "JOIN mobile_form_version AS revision" in query
     assert "revision.status = 'active'" in query
@@ -237,6 +268,7 @@ class WriteConnection:
             ("mobile_collection_review", "read_detail"),
         ),
     ):
+        self.autocommit = False
         self.cursor_instance = WriteCursor(
             intake=intake,
             activity=activity,
@@ -292,7 +324,7 @@ def _activity_tuple():
     )
 
 
-def test_draft_promotion_maps_allowlisted_fields_and_records_digest():
+def test_draft_promotion_sets_three_grant_context_before_writing(_tenant_context_spy):
     connection = WriteConnection(intake=_intake_tuple(), activity=_activity_tuple())
     result = create_farm_activity_draft(
         OPERATOR_ID,
@@ -301,6 +333,23 @@ def test_draft_promotion_maps_allowlisted_fields_and_records_digest():
         content_reviewed=True,
         connection_factory=lambda: connection,
     )
+
+    context = {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "farm_activity",
+        "action": "create_draft",
+        "required_scopes": (
+            ("farm_activity", "read_detail"),
+            ("mobile_collection_review", "read_detail"),
+        ),
+    }
+    assert _tenant_context_spy == [(connection, context)]
+    statements = connection.cursor_instance.statements
+    first_protected_query = next(
+        statement for statement in statements if "FROM offline_collection AS oc" in statement[0]
+    )
+    assert statements.index(("SET TENANT CONTEXT", context)) < statements.index(first_protected_query)
 
     assert result == {
         "id": ACTIVITY_ID,

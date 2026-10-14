@@ -587,6 +587,13 @@ reporting views.
   Thirteen mobile-review service tests, eleven tenant-context tests, and three
   focused auth-route tests pass; Ruff and `git diff --check` pass. Candidate and
   legacy databases were untouched.
+- [x] Verify tenant-aware Field Collector farm-activity intake and canonical
+  activity read/write paths. The workflow service suite passed 10 tests, the
+  lifecycle suite passed 31, and 26 focused OIDC/auth route tests passed,
+  including all seven HTTP 403 tenant-context denial paths. Service assertions
+  confirm context precedes queries/writes on the same connection and that detail
+  grants are included in the same-tenant context. Ruff, syntax, and diff checks
+  pass; no database was accessed.
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.

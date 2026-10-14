@@ -9,6 +9,8 @@ from functools import partial
 from typing import Callable
 from uuid import UUID
 
+from services.common.tenant_context import set_operator_tenant_context
+
 
 class FarmActivityTransitionInvalid(ValueError):
     """Raised when a requested human decision is malformed."""
@@ -56,11 +58,31 @@ def _normalize_operator_location(operator_id: str, location_id: str) -> tuple[st
         raise ValueError("Invalid operator or location identifier") from exc
 
 
-def _read_query(conn, sql: str, params: tuple) -> list[dict]:
+def _read_query(
+    conn,
+    sql: str,
+    params: tuple,
+    *,
+    tenant_scope: tuple[str, str, str, str] | None = None,
+    required_tenant_scopes: tuple[tuple[str, str], ...] = (),
+) -> list[dict]:
     with conn.cursor() as cur:
         cur.execute("SET TRANSACTION READ ONLY")
         cur.execute("SET LOCAL statement_timeout = '5s'")
         cur.execute("SET LOCAL lock_timeout = '2s'")
+        if tenant_scope is not None:
+            operator_id, location_id, resource, action = tenant_scope
+            context_options = {}
+            if required_tenant_scopes:
+                context_options["required_scopes"] = required_tenant_scopes
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=location_id,
+                resource=resource,
+                action=action,
+                **context_options,
+            )
         cur.execute(sql, params)
         columns = [description.name for description in cur.description]
         return [dict(zip(columns, row)) for row in cur.fetchall()]
@@ -133,6 +155,7 @@ def list_farm_activities(
                     ORDER BY activity.updated_at DESC, activity.id DESC
                     LIMIT %s""",
             (location_id, operator_id, limit),
+            tenant_scope=(operator_id, location_id, "farm_activity", "read"),
         )
         for row in rows:
             row["id"] = str(row["id"])
@@ -246,6 +269,8 @@ def get_farm_activity(
                       )
                     LIMIT 1""",
             (activity_id, location_id, operator_id, operator_id),
+            tenant_scope=(operator_id, location_id, "farm_activity", "read_detail"),
+            required_tenant_scopes=(("mobile_collection_review", "read_detail"),),
         )
         if not rows:
             return None
@@ -299,6 +324,17 @@ def edit_farm_activity_draft(
         with conn.cursor() as cur:
             cur.execute("SET LOCAL statement_timeout = '5s'")
             cur.execute("SET LOCAL lock_timeout = '2s'")
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=location_id,
+                resource="farm_activity",
+                action="edit_draft",
+                required_scopes=(
+                    ("farm_activity", "read_detail"),
+                    ("mobile_collection_review", "read_detail"),
+                ),
+            )
             cur.execute(
                 "SELECT set_config('kokonut.actor_id', %s, true), "
                 "set_config('kokonut.actor_type', 'operator', true), "
@@ -547,6 +583,13 @@ def transition_farm_activity(
         with conn.cursor() as cur:
             cur.execute("SET LOCAL statement_timeout = '5s'")
             cur.execute("SET LOCAL lock_timeout = '2s'")
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=location_id,
+                resource="farm_activity",
+                action=grant_action,
+            )
             cur.execute(
                 "SELECT set_config('kokonut.actor_id', %s, true), "
                 "set_config('kokonut.actor_type', 'operator', true), "

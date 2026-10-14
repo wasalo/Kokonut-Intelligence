@@ -80,6 +80,16 @@ HTTP 403 on cross-tenant denial. Candidate and legacy databases were not used.
 This closes only the reviewer-note write path; remaining Gateway/worker paths
 and RLS are still open.
 
+The farm-activity intake and canonical list/detail reads, draft promotion,
+draft correction, and lifecycle transitions now establish transaction-local
+context before protected queries or writes. Multi-grant operations require all
+grants to resolve to the same tenant; route handlers map context denials to
+HTTP 403. The workflow service suite passed 10 tests, the lifecycle suite 31,
+and 26 focused auth-route checks passed. Ruff and syntax checks pass; no
+database was accessed. CAP-001 and CAP-053 remain partial pending the other
+Gateway/worker paths, tenant ownership reconciliation, and direct-database/RLS
+gates.
+
 The tenant-aware source foundation is now present in migrations 388–389:
 explicit operator organization memberships, verified seed-location ownership,
 revocable organization shares, tenant-qualified resource/action grants, and

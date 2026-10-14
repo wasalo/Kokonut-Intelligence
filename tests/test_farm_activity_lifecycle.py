@@ -5,6 +5,7 @@ from decimal import Decimal
 
 import pytest
 
+from services.gateway import farm_activity_lifecycle as lifecycle
 from services.gateway.farm_activity_lifecycle import (
     FarmActivityDraftEditConflict,
     FarmActivityDraftEditInvalid,
@@ -18,6 +19,18 @@ OPERATOR_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 ACTIVITY_ID = "33333333-3333-4333-8333-333333333333"
 COLLECTION_ID = "44444444-4444-4444-8444-444444444444"
+
+
+@pytest.fixture(autouse=True)
+def _tenant_context_spy(monkeypatch):
+    calls = []
+
+    def set_context(connection, **kwargs):
+        calls.append((connection, kwargs))
+        connection.cursor_instance.statements.append(("SET TENANT CONTEXT", kwargs))
+
+    monkeypatch.setattr(lifecycle, "set_operator_tenant_context", set_context)
+    return calls
 
 TRANSITIONS = [
     ("submit", "draft", "submitted", "submitted", "submit", None),
@@ -80,6 +93,7 @@ class TransitionCursor:
 
 class TransitionConnection:
     def __init__(self, cursor):
+        self.autocommit = False
         self.cursor_instance = cursor
         self.committed = False
         self.rolled_back = False
@@ -188,6 +202,48 @@ class DraftEditConnection(TransitionConnection):
     pass
 
 
+class ActivityReadCursor:
+    def __init__(self, row):
+        self.row = row
+        self.rows = []
+        self.description = []
+        self.statements = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def execute(self, sql, params=()):
+        self.statements.append((sql, params))
+        if "FROM farm_activity AS activity" in sql:
+            self.rows = [self.row]
+            self.description = [
+                type("Column", (), {"name": name})() for name in self.row
+            ]
+
+    def fetchall(self):
+        return [tuple(row.values()) for row in self.rows]
+
+
+class ActivityReadConnection:
+    def __init__(self, row):
+        self.autocommit = False
+        self.cursor_instance = ActivityReadCursor(row)
+        self.rolled_back = False
+        self.closed = False
+
+    def cursor(self):
+        return self.cursor_instance
+
+    def rollback(self):
+        self.rolled_back = True
+
+    def close(self):
+        self.closed = True
+
+
 def _run_draft_edit(cursor, *, content_patch=None, reason="Corrected the activity details"):
     connection = DraftEditConnection(cursor)
     result = edit_farm_activity_draft(
@@ -201,9 +257,102 @@ def _run_draft_edit(cursor, *, content_patch=None, reason="Corrected the activit
     return connection, result
 
 
-def test_draft_edit_validates_exact_revision_locks_all_grants_and_records_event():
+def test_farm_activity_queue_sets_tenant_context_before_query(_tenant_context_spy):
+    from services.gateway.farm_activity_lifecycle import list_farm_activities
+
+    row = {
+        "id": ACTIVITY_ID,
+        "location_id": LOCATION_ID,
+        "activity_type": "weeding",
+        "activity_date": date(2026, 10, 12),
+        "status": "draft",
+        "created_at": datetime(2026, 10, 13, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 10, 13, tzinfo=timezone.utc),
+        "eligible_for_use": True,
+        "eligibility_reason": "eligible",
+        "exception_closed": False,
+    }
+    connection = ActivityReadConnection(row)
+
+    result = list_farm_activities(
+        OPERATOR_ID,
+        LOCATION_ID,
+        connection_factory=lambda: connection,
+    )
+
+    context = {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "farm_activity",
+        "action": "read",
+    }
+    query = next(statement for statement in connection.cursor_instance.statements if "FROM farm_activity AS activity" in statement[0])
+    assert result[0]["id"] == ACTIVITY_ID
+    assert _tenant_context_spy == [(connection, context)]
+    assert connection.cursor_instance.statements.index(("SET TENANT CONTEXT", context)) < connection.cursor_instance.statements.index(query)
+    assert connection.rolled_back and connection.closed
+
+
+def test_farm_activity_detail_requires_same_tenant_review_grant(_tenant_context_spy):
+    from services.gateway.farm_activity_lifecycle import get_farm_activity
+
+    row = {
+        "id": ACTIVITY_ID,
+        "location_id": LOCATION_ID,
+        "activity_type": "weeding",
+        "activity_date": date(2026, 10, 12),
+        "description": "Removed weeds.",
+        "labor_hours": Decimal("2.00"),
+        "notes": "No names included.",
+        "status": "draft",
+        "created_at": datetime(2026, 10, 13, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 10, 13, tzinfo=timezone.utc),
+        "eligible_for_use": True,
+        "eligibility_reason": "eligible",
+        "workflow_events_truncated": False,
+        "workflow_events": [],
+    }
+    connection = ActivityReadConnection(row)
+
+    result = get_farm_activity(
+        OPERATOR_ID,
+        ACTIVITY_ID,
+        LOCATION_ID,
+        connection_factory=lambda: connection,
+    )
+
+    context = {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "farm_activity",
+        "action": "read_detail",
+        "required_scopes": (("mobile_collection_review", "read_detail"),),
+    }
+    query = next(statement for statement in connection.cursor_instance.statements if "FROM farm_activity AS activity" in statement[0])
+    assert result["description"] == "Removed weeds."
+    assert _tenant_context_spy == [(connection, context)]
+    assert connection.cursor_instance.statements.index(("SET TENANT CONTEXT", context)) < connection.cursor_instance.statements.index(query)
+    assert connection.rolled_back and connection.closed
+
+
+def test_draft_edit_sets_three_grant_context_before_update(_tenant_context_spy):
     cursor = DraftEditCursor()
     connection, result = _run_draft_edit(cursor)
+
+    context = {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "farm_activity",
+        "action": "edit_draft",
+        "required_scopes": (
+            ("farm_activity", "read_detail"),
+            ("mobile_collection_review", "read_detail"),
+        ),
+    }
+    assert _tenant_context_spy == [(connection, context)]
+    assert cursor.statements.index(("SET TENANT CONTEXT", context)) < next(
+        index for index, (sql, _params) in enumerate(cursor.statements) if "FOR UPDATE" in sql
+    )
 
     assert result == {
         "event_id": "event-id",
@@ -371,7 +520,7 @@ def test_draft_edit_rejects_malformed_request_before_opening_database(
     TRANSITIONS,
 )
 def test_transition_records_the_authorized_human_decision(
-    action, from_status, to_status, event_action, grant_action, reason
+    action, from_status, to_status, event_action, grant_action, reason, _tenant_context_spy
 ):
     cursor = TransitionCursor(current_status=from_status)
     connection = TransitionConnection(cursor)
@@ -383,6 +532,17 @@ def test_transition_records_the_authorized_human_decision(
         action,
         reason,
         connection_factory=lambda: connection,
+    )
+
+    context = {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "farm_activity",
+        "action": grant_action,
+    }
+    assert _tenant_context_spy == [(connection, context)]
+    assert cursor.statements.index(("SET TENANT CONTEXT", context)) < next(
+        index for index, (sql, _params) in enumerate(cursor.statements) if "FOR UPDATE" in sql
     )
 
     assert result["action"] == event_action

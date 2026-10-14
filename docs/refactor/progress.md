@@ -4136,3 +4136,15 @@ context precedes the INSERT, while helper tests cover same-tenant acceptance,
 cross-tenant rejection, and transaction-local cleanup. Candidate and legacy
 databases were not accessed. Broader Gateway/worker integration, affiliation
 reconciliation, direct-database boundaries, and RLS remain open.
+
+Next, the Field Collector farm-activity intake and canonical activity
+list/detail reads, draft promotion, draft correction, and lifecycle transitions
+were updated to establish tenant context before protected queries and writes
+on the same connection. Multi-grant operations require all grants to resolve
+to one tenant, and the OIDC draft-promotion policy now lists both detail grants
+that its service already requires. Denial maps to HTTP 403. Ten workflow
+service tests, 31 lifecycle tests, and 26 focused auth-route tests pass,
+including all seven farm-activity route denial mappings. Two older CORS header
+assertions were corrected to issue the requests with the configured `Origin`;
+the focused route slice now passes. Ruff, Python syntax compilation, and diff
+checks pass, and no database was accessed.

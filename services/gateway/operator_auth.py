@@ -448,8 +448,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "resource": "farm_activity",
             "action": action,
             **(
-                {"additional_scopes": [{"resource": "mobile_collection_review", "action": "read_detail"}]}
-                if action in {"read_detail", "create_draft"}
+                {
+                    "additional_scopes": [
+                        {"resource": "mobile_collection_review", "action": "read_detail"}
+                    ]
+                }
+                if action == "read_detail"
+                else {
+                    "additional_scopes": [
+                        {"resource": "farm_activity", "action": "read_detail"},
+                        {"resource": "mobile_collection_review", "action": "read_detail"},
+                    ]
+                }
+                if action == "create_draft"
                 else {}
             ),
             "public": False,
@@ -1041,6 +1052,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     async def farm_activity_intake_queue(request: Request, location_id: str, limit: int = 50):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.farm_activity_workflow import list_farm_activity_intake
 
         try:
@@ -1049,6 +1061,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 location_id,
                 limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
             return JSONResponse(
@@ -1080,6 +1098,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.farm_activity_workflow import (
             FarmActivityPayloadTooLarge,
             get_farm_activity_intake,
@@ -1091,6 +1110,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 collection_id,
                 location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except FarmActivityPayloadTooLarge:
             return JSONResponse(
@@ -1148,6 +1173,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Explicit content review is required"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        from services.common.tenant_context import TenantContextDenied
         try:
             row = await run_in_threadpool(
                 create_farm_activity_draft,
@@ -1155,6 +1181,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 collection_id,
                 location_id,
                 content_reviewed=True,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except FarmActivityIntakeInvalid as exc:
             return JSONResponse(
@@ -1224,6 +1256,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Transition body accepts only an optional text reason"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.farm_activity_lifecycle import (
             FarmActivityTransitionConflict,
             FarmActivityTransitionInvalid,
@@ -1238,6 +1271,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 location_id,
                 action,
                 body.get("reason"),
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except FarmActivityTransitionInvalid as exc:
             return JSONResponse(
@@ -1298,6 +1337,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Operator OIDC is disabled"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.farm_activity_lifecycle import list_farm_activities
 
         try:
@@ -1306,6 +1346,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 location_id,
                 limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
             return JSONResponse(
@@ -1339,6 +1385,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Operator OIDC is disabled"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.farm_activity_lifecycle import get_farm_activity
 
         try:
@@ -1347,6 +1394,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 activity_id,
                 location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
             return JSONResponse(
@@ -1394,6 +1447,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Draft edit body requires content and a correction reason"},
                 headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.farm_activity_lifecycle import (
             FarmActivityDraftEditConflict,
             FarmActivityDraftEditInvalid,
@@ -1408,6 +1462,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 location_id,
                 body["content"],
                 body["reason"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except FarmActivityDraftEditInvalid as exc:
             return JSONResponse(
