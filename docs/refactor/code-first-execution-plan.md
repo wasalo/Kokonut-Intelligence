@@ -28,7 +28,9 @@ MAN-CAP checks open until each has its own retained evidence.
   call effects, enabled legacy rows and worker identity/context remain open.
   The metrics entry now references all 20 registered calculator modules with a
   registry-parity test and records direct query tables and composed calculator
-  calls; broader helper/provider effects and worker identity remain open.
+  calls. The freshness operation's seven source tables are also tied to its
+  fixed query map; broader helper/provider effects and worker identity remain
+  open.
   Data-freshness queries use fixed table/timestamp maps, bind location values,
   and report unknown configured sources as errors; 29 focused source tests pass.
   Focused source/disposable checks pass;

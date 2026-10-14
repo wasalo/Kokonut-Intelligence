@@ -37,7 +37,8 @@ to its source file, with a test ensuring the 20-module list stays aligned with
 the runtime registry. It also records each calculator's direct read tables,
 composition edges, and the relations behind the Field Collector consent
 eligibility function. The other worker/provider effects remain in the open
-transitive audit.
+transitive audit. A second registry check confirms all seven data-freshness
+source tables are represented in the operation map.
 
 The prescribed platform-integrity suite passed 290 tests on local commit
 `238e2ef`, including the tenant-bound Data Stream route regression. The earlier

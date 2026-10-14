@@ -36,7 +36,9 @@ data effects, and an idempotency/retry note.
   against registry drift by `tests/test_worker_operation_map.py`. Its
   per-calculator direct SQL reads, composed calculator calls, and the consent
   eligibility function's referenced relations are recorded; they still do not
-  establish least-privilege grants or tenant context.
+  establish least-privilege grants or tenant context. The freshness operation
+  also maps all seven fixed source-table identifiers to required reads, with a
+  regression test tying that list to the code map.
 - The legacy schedule seed contains known mismatches: the sensor task has no
   declared input source, and its empty argument list does not create a sensor
   reading; the climate CLI requires one `--location-id`, while the old seed
@@ -67,7 +69,7 @@ Before worker RLS or runtime-grant reduction:
    remain separate gates.
 
 The inventory-only contract test is `tests/test_worker_operation_map.py`.
-The focused source, scheduler and event checks pass 36 tests; the retained
+The focused source, scheduler and event checks pass 37 tests; the retained
 [check record](builds/2026-10-14-recovery/worker-operation-map-check.json)
 contains that inventory test evidence. The separate
 [scheduler argument contract check](builds/2026-10-14-recovery/scheduled-command-contract-check.json)

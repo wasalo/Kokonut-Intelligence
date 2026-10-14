@@ -182,12 +182,12 @@
     {
       "module": "services.ingestion.data_freshness",
       "scope": "--check scans configured sources and all locations unless --source narrows the configuration set.",
-      "reads": ["public.data_freshness_config", "public.location", "public.sensor_device", "public.sensor_reading", "public.ingestion_log", "public.v_data_freshness_summary"],
+      "reads": ["public.attestation_record", "public.data_freshness_alert_history", "public.data_freshness_alert_state", "public.data_freshness_config", "public.governance_event", "public.ingestion_log", "public.location", "public.price_observation", "public.remote_sensing_observation", "public.sensor_device", "public.sensor_reading", "public.v_data_freshness_summary", "public.wallet_activity_event", "public.weather_observation"],
       "writes": ["public.data_freshness_check", "public.data_freshness_alert_state", "public.data_freshness_alert_history", "public.data_freshness_alert_delivery_attempt"],
       "external_effects": ["Configured email/webhook alert delivery"],
       "idempotency": "Alert state is locked per source/location and transitions use cooldown logic; every check and provider attempt is retained. End-to-end provider delivery is at-least-once.",
       "retry_boundary": "Database state is durable; external delivery needs receiver idempotency or operator reconciliation.",
-      "sources": ["services/ingestion/data_freshness.py", "services/ingestion/base.py"]
+      "sources": ["services/ingestion/data_freshness.py", "services/ingestion/base.py", "services/common/http.py", "schemas/postgres/077_telemetry_infrastructure.sql", "schemas/seeds/077_telemetry_infrastructure.sql", "schemas/postgres/341_freshness_alert_durability.sql"]
     },
     {
       "module": "services.export.dataset_refresh",

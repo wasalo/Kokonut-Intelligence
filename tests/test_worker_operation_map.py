@@ -114,3 +114,17 @@ def test_metrics_worker_map_covers_calculator_and_database_function_reads():
     for metric_key in function_effect["called_by"]:
         calculator_source = getsourcefile(CALCULATORS[metric_key])
         assert function.rsplit(".", 1)[-1] in Path(calculator_source).read_text(encoding="utf-8")
+
+
+def test_freshness_worker_map_covers_fixed_source_table_map():
+    from services.ingestion.data_freshness import FRESHNESS_SOURCE_TABLES
+
+    freshness = next(
+        entry for entry in _load_map()["scheduled_modules"] if entry["module"] == "services.ingestion.data_freshness"
+    )
+    mapped_reads = set(freshness["reads"])
+    source_tables = {f"public.{table}" for table in FRESHNESS_SOURCE_TABLES.values()}
+
+    assert len(FRESHNESS_SOURCE_TABLES) == 7
+    assert source_tables <= mapped_reads
+    assert {"public.data_freshness_config", "public.location", "public.sensor_device"} <= mapped_reads
