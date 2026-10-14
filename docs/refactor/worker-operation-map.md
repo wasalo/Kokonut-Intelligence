@@ -52,6 +52,15 @@ data effects, and an idempotency/retry note.
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
+- A source review grouped those 30 dynamic/composed sites: 21 use fixed
+  application-owned fragments with bound values (including two timeout
+  constants); three use the fixed `freshness_scope` savepoint name; one builds
+  table names from the fixed freshness-source map; one adds fixed optional
+  predicates to the anomaly query; and one wraps saved dashboard SQL through
+  the separately restricted read-only analytics reader. Three generic
+  `services.common.database` wrappers forward SQL supplied by their callers;
+  their caller flows remain untraced and are still open. No user-derived SQL
+  identifier interpolation was found in the reviewed source-built fragments.
 - The `services.events` operation entry includes the optional notification
   processor's outbox/attempt writes; the `services.metrics` entry includes the
   code-owned NOI snapshot reconciliation view and natural-key upsert. It now
@@ -77,12 +86,13 @@ data effects, and an idempotency/retry note.
 ## What remains open
 
 This map, import closure, SQL inventory, and argument schemas are not an ACL,
-tenant policy, or complete dynamic call graph. The 30 composed/variable SQL
-sites and eight unclassified statements need source review; function-level
-reachability, database functions/views, provider implementations, and external
-effects remain to be traced. The map also does not prove that external
-Prefect/host schedules are inactive or that effects are replay-safe on
-populated data.
+tenant policy, or complete dynamic call graph. The 30 composed/variable sites
+have source-pattern review, but the three generic SQL wrappers still need
+caller-level tracing; eight statements remain unclassified by the scanner.
+Function-level reachability, database functions/views, provider
+implementations, and external effects remain to be traced. The map also does
+not prove that external Prefect/host schedules are inactive or that effects
+are replay-safe on populated data.
 
 Before worker RLS or runtime-grant reduction:
 

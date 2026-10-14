@@ -21,10 +21,12 @@ allowlisted scheduled module and event-handler module. It records 69 distinct
 local source files, 407 source edges, no unresolved local modules, and the
 EventBus's single dynamic handler-import site. The direct-SQL inventory covers
 196 execute sites, including 30 composed/variable statements and eight
-unclassified statement kinds; it retains no query text. Sixteen focused worker
-inventory tests pass in the project virtual environment. These reports do not
-close function-level effect tracing, shared worker identity, or authorization
-([source closure](worker-source-closure.json), [SQL inventory](worker-sql-inventory.json); [source closure evidence](builds/2026-10-14-recovery/worker-source-closure-check.json)).
+unclassified statement kinds; it retains no query text. The 30 dynamic sites
+have source-pattern review; three generic SQL wrappers still need caller
+tracing. Seventeen focused worker-inventory tests pass in the project virtual
+environment. These reports do not close function-level effect tracing, shared
+worker identity, or authorization ([source closure](worker-source-closure.json),
+[SQL inventory](worker-sql-inventory.json); [source closure evidence](builds/2026-10-14-recovery/worker-source-closure-check.json)).
 
 The current source-only telemetry slice keeps freshness-query identifiers in
 fixed maps, binds location values, and records unsupported configured sources

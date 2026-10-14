@@ -50,3 +50,37 @@ def test_dynamic_sql_call_sites_are_visible_without_persisting_query_text():
     assert inventory["summary"]["composed_or_variable_sites"] == len(dynamic)
     assert all(site["static_sql_sha256"] is None for site in dynamic)
     assert all(site["statement_kind"] for site in dynamic)
+
+
+def test_dynamic_sql_review_categories_remain_explicit():
+    inventory = _load_inventory()
+    dynamic = [site for site in inventory["execution_sites"] if site["expression_kind"] != "literal"]
+    by_source: dict[str, list[dict]] = {}
+    for site in dynamic:
+        by_source.setdefault(site["source"], []).append(site)
+
+    assert {source: len(sites) for source, sites in by_source.items()} == {
+        "services/analytics/reporting_reader.py": 3,
+        "services/cache/cache.py": 1,
+        "services/common/database.py": 3,
+        "services/events/fork_detector.py": 1,
+        "services/events/insight_transfer.py": 2,
+        "services/ingestion/data_freshness.py": 5,
+        "services/ingestion/ml_anomaly_detector.py": 1,
+        "services/metrics/calculators/allocated_shared_cost.py": 1,
+        "services/metrics/calculators/attestation_coverage.py": 2,
+        "services/metrics/calculators/crop_revenue.py": 1,
+        "services/metrics/calculators/digital_lego.py": 2,
+        "services/metrics/calculators/direct_crop_cost.py": 1,
+        "services/metrics/calculators/first_time_through_yield.py": 1,
+        "services/metrics/calculators/governed_lead_time.py": 1,
+        "services/metrics/calculators/loss_rate_pct.py": 1,
+        "services/metrics/calculators/net_crop_revenue.py": 1,
+        "services/metrics/calculators/rework_rate.py": 1,
+        "services/metrics/calculators/value_flowed.py": 2,
+    }
+    assert {site["expression_kind"] for site in by_source["services/common/database.py"]} == {"composed_or_variable"}
+    assert (
+        sum(site["expression_kind"] == "composed" for site in by_source["services/analytics/reporting_reader.py"]) == 1
+    )
+    assert sum(site["expression_kind"] == "fstring" for site in by_source["services/ingestion/data_freshness.py"]) == 4
