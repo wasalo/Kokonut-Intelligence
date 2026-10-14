@@ -63,3 +63,14 @@ def test_anomaly_handler_records_database_effects_without_claiming_mqtt_delivery
     assert "public.actuation_log" in handler["writes"]
     assert "public.ingestion_log" in handler["writes"]
     assert all("actuator_command" not in table for table in handler["writes"])
+
+
+def test_scheduled_operation_map_covers_contract_permitted_side_effects():
+    scheduled = {entry["module"]: entry for entry in _load_map()["scheduled_modules"]}
+    metrics = scheduled["services.metrics"]
+    events = scheduled["services.events"]
+
+    assert "public.noi_snapshot" in metrics["writes"]
+    assert "public.v_crop_cycle_noi" in metrics["reads"]
+    assert "public.notification_outbox" in events["reads"]
+    assert "public.notification_outbox_attempt" in events["writes"]

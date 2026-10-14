@@ -5,12 +5,13 @@
   "scope": {
     "scheduled_modules": 12,
     "event_handler_pairs": 5,
+    "contracted_operation_effects": 2,
     "database_or_candidate_touched": false,
     "raspberry_pi_hardware_used": false
   },
   "pytest": {
     "command": ".venv/bin/python -m pytest tests/test_worker_operation_map.py tests/test_security_allowlist.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py -q",
-    "passed": 31,
+    "passed": 32,
     "failed": 0
   },
   "static_checks": {

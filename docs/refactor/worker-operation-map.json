@@ -81,13 +81,13 @@
     },
     {
       "module": "services.metrics",
-      "scope": "A single location per invocation; --all-locations fans out across all locations.",
-      "reads": ["public.metric_definition", "domain tables selected by each registered calculator"],
-      "writes": ["public.metric_value", "public.platform_event"],
+      "scope": "Metric compute supports one location or an --all-locations fanout; the separately contracted NOI snapshot reconciliation is global.",
+      "reads": ["public.metric_definition", "domain tables selected by each registered calculator", "public.v_crop_cycle_noi", "public.crop_cycle"],
+      "writes": ["public.metric_value", "public.noi_snapshot", "public.platform_event"],
       "external_effects": [],
-      "idempotency": "Each compute inserts a new metric_value with verified=false; repeated calculations are not deduplicated by the engine. Recalculation remains a draft write, never human verification.",
-      "retry_boundary": "A scheduler retry may create another draft for the same location/period; human review state remains separate.",
-      "sources": ["services/metrics/cli.py", "services/metrics/engine.py", "services/metrics/calculators/crop_revenue.py"]
+      "idempotency": "Each compute inserts a new metric_value with verified=false; repeated calculations are not deduplicated by the engine. NOI snapshot reconciliation upserts by crop_cycle_id. Recalculation remains a draft write, never human verification.",
+      "retry_boundary": "A scheduler retry may create another metric draft for the same location/period; snapshot reconciliation updates its natural-key row. Human review state remains separate.",
+      "sources": ["services/metrics/cli.py", "services/metrics/engine.py", "services/metrics/calculators/crop_revenue.py", "schemas/postgres/004_finance.sql", "schemas/postgres/353_crop_cycle_noi_view.sql"]
     },
     {
       "module": "services.ingestion.data_freshness",
@@ -121,13 +121,13 @@
     },
     {
       "module": "services.events",
-      "scope": "Global event queue; each event's child handler may be tenant-scoped, global, or external as recorded in the handler inventory.",
-      "reads": ["public.platform_event", "public.event_handler", "public.event_handler_delivery"],
-      "writes": ["public.platform_event", "public.event_handler_delivery", "public.event_handler_log", "public.event_dead_letter"],
-      "external_effects": ["Delegated to registered event handlers; notifications use the durable notification outbox"],
-      "idempotency": "Per-event/per-handler receipts suppress already-successful handlers. Delivery is at-least-once; a handler can run twice after lease expiry or crash after side effect.",
-      "retry_boundary": "Durable lease, bounded retry, dead-letter, operator replay and disposal; cleanup retention is still an owner decision.",
-      "sources": ["services/events/bus.py", "services/events/handlers.py", "docs/refactor/event-handler-concurrency.md"]
+      "scope": "--process claims the global event queue; --notification-process claims the global notification outbox. Event handlers may be tenant-scoped, global, or external as recorded below.",
+      "reads": ["public.platform_event", "public.event_handler", "public.event_handler_delivery", "public.notification_outbox"],
+      "writes": ["public.platform_event", "public.event_handler_delivery", "public.event_handler_log", "public.event_dead_letter", "public.notification_outbox", "public.notification_outbox_attempt"],
+      "external_effects": ["Delegated to registered event handlers; --notification-process may deliver email, webhook, or Directus notifications"],
+      "idempotency": "Per-event/per-handler receipts suppress already-successful handlers. Outbox enqueue uses stable source/channel/destination keys. Event and provider delivery remain at-least-once across lease expiry or a crash after an external effect.",
+      "retry_boundary": "Event and notification queues use durable leases and bounded retries. Dead-letter replay/disposal and event cleanup are excluded from scheduled operation contracts; cleanup retention remains an owner decision.",
+      "sources": ["services/events/bus.py", "services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
     }
   ],
   "event_handlers": [

@@ -4848,7 +4848,7 @@ worker grants/RLS: existing enabled-task reconciliation, imported
 calculator/provider paths, external schedule ownership, and populated-data
 replay remain open. The historical sensor, climate, and cleanup schedule-seed
 arguments are called out; the seed remains excluded from normal bootstrap. The focused inventory,
-allowlist, scheduler durability and event durability suites pass 31 tests;
+allowlist, scheduler durability and event durability suites pass 32 tests;
 Ruff, format, JSON, syntax and diff checks pass. Evidence:
 [`worker-operation-map-check.json`](builds/2026-10-14-recovery/worker-operation-map-check.json).
 See
@@ -4866,6 +4866,6 @@ Human metric verification, event dead-letter actions, unbounded event workers,
 retention-sensitive event cleanup, and recurring sensor ingestion without an
 input-source contract are rejected. Existing active task rows are not rewritten
 automatically, and their external schedule ownership still needs reconciliation.
-Focused contracts, scheduler, map, allowlist, and event tests pass (76), with
+Focused contracts, scheduler, map, allowlist, and event tests pass (77), with
 Ruff, format, compilation, and diff checks passing. Evidence:
 [`scheduled-command-contract-check.json`](builds/2026-10-14-recovery/scheduled-command-contract-check.json).
