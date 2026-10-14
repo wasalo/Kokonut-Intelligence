@@ -12,20 +12,21 @@ Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** PR #68 is
-open at `35bf8b31ced47f8a35a7692f305c70bc0ea577c0`. CI run [#306](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311928)
-and Security run [#30](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311940)
-passed on the earlier head `333507e844cd3937761087f1e7e03f895c509250`. The
-connected GitHub status endpoint returned no check contexts for `35bf8b3` at
-last inspection, so current-head CI is unverified. Local work after that pushed
-head includes the session-role commit and the ongoing mobile credential grant
-batch; neither is covered by CI #306.
-CI #305 was superseded by the newer push. The preceding CI #304 on
-`8aa33e24f169f15afb249a53ae3d281ed8d843a2` completed with five failures,
-4,632 passed tests, and 75 passed subtests; the local fix batch passes 10
-targeted regression cases and 72 full operator-auth and Compose tests. The
-approved eight-suite platform-integrity suite passed 288 tests locally on
-`1c0084513b157bb99468d4c650e269c57e243c96`. Capability completion remains
-open until current branch work receives passing CI ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
+open at `7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI run [#308](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258026)
+is in progress and Security run [#32](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258017)
+passed on this head. CI #307 failed because its OIDC Compose test fixture did
+not provide the required test-only operator-auth password before checking the
+missing issuer; commit `7953afe` corrects the fixture. Capability completion
+remains open until CI #308 passes and the named MAN-CAP checks are completed.
+See [the code-first execution plan](code-first-execution-plan.md) for the
+remaining work order and the Raspberry Pi code-only assessment scope.
+
+The preceding CI #304 on `8aa33e24f169f15afb249a53ae3d281ed8d843a2`
+completed with five failures, 4,632 passed tests, and 75 passed subtests; its
+local fix batch passed the focused regression, operator-auth, and Compose
+checks. The approved eight-suite platform-integrity suite passed 288 tests
+locally on `1c0084513b157bb99468d4c650e269c57e243c96`
+([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus
