@@ -22,12 +22,27 @@ SCHEMA_DIR = PROJECT_DIR / "schemas" / "postgres"
 SEED_DIR = PROJECT_DIR / "schemas" / "seeds"
 SEED_VERSION_PREFIX = re.compile(r"^\d+(?:-\d+)?$")
 MOBILE_FORM_SEED_ID = "seed:140_mobile_forms.sql"
-MOBILE_FORM_SEED_IDS = (
-    "farm_activity_v1",
-    "harvest_v1",
-    "expense_v1",
-    "field_note_v1",
-    "soil_sample_v1",
+MOBILE_FORM_SEED_COLUMNS = (
+    "form_id",
+    "name",
+    "description",
+    "form_schema",
+    "ui_schema",
+    "version",
+    "collection_type",
+    "status",
+    "consent_policy_status",
+    "consent_data_category",
+    "consent_purpose",
+    "consent_scope_type",
+    "consent_scope_id",
+    "consent_recipient_type",
+    "consent_recipient_party_id",
+    "consent_recipient_name",
+    "consent_version",
+    "consent_policy_reviewed_by",
+    "consent_policy_reviewed_at",
+    "consent_policy_evidence",
 )
 # Canonical KI tables and migration tracking live in public; exclude "$user" so
 # a role-named schema cannot shadow public objects during migrations.
@@ -453,32 +468,91 @@ def _migration_body_without_transaction(migration_id: str, sql_content: str) -> 
     ) + "\n"
 
 
-def _assert_no_existing_mobile_seed_rows() -> None:
-    """Do not record a non-destructive no-op as historical seed provenance."""
-    form_variables = {
-        f"mobile_form_id_{index}": form_id
-        for index, form_id in enumerate(MOBILE_FORM_SEED_IDS)
-    }
-    form_refs = ", ".join(
-        f":'mobile_form_id_{index}'" for index in range(len(MOBILE_FORM_SEED_IDS))
-    )
-    result = _psql(
-        f"""
-SELECT count(*)
-FROM public.mobile_form
-WHERE form_id = ANY(ARRAY[{form_refs}]::text[]);
-""",
-        form_variables,
-    )
+def _mobile_form_seed_state_query(seed_path: Path) -> str:
+    """Build a source-derived check for empty or exactly matching form state."""
+    sql_source = seed_path.read_text()
+    values_marker = "FROM (VALUES"
+    alias_marker = ") AS seed ("
     try:
-        existing_forms = int(result.stdout.strip())
-    except (AttributeError, ValueError) as exc:
-        raise MigrationError("could not verify existing mobile-form seed state") from exc
-    if existing_forms:
+        values_start = sql_source.index(values_marker) + len(values_marker)
+        values_end = sql_source.index(alias_marker, values_start)
+        columns_start = values_end + len(alias_marker)
+        columns_end = sql_source.index(")", columns_start)
+    except ValueError as exc:
         raise MigrationError(
-            "refusing to apply seed:140_mobile_forms.sql over existing seeded forms "
-            "without an applied ledger row; reconcile the complete form and revision state first"
+            "mobile form seed source no longer matches the reviewed VALUES layout"
+        ) from exc
+
+    columns = tuple(
+        column.strip()
+        for column in sql_source[columns_start:columns_end].split(",")
+    )
+    if columns != MOBILE_FORM_SEED_COLUMNS:
+        raise MigrationError(
+            "mobile form seed columns changed; update and review its parity guard first"
         )
+    values = sql_source[values_start:values_end].strip()
+    if not values:
+        raise MigrationError("mobile form seed has no source rows")
+
+    actual_form_differences = ", ".join(
+        f"CASE WHEN actual.{column} IS DISTINCT FROM expected.{column} "
+        f"THEN '{column}' END"
+        for column in columns
+        if column != "form_id"
+    )
+    active_revision_differences = ", ".join(
+        f"CASE WHEN revision.{column} IS DISTINCT FROM expected.{column} "
+        f"THEN '{column}' END"
+        for column in columns
+        if column not in {"form_id", "version"}
+    )
+    return f"""
+WITH expected ({", ".join(columns)}) AS (
+    VALUES
+{values}
+)
+SELECT CASE
+    WHEN NOT EXISTS (
+        SELECT 1
+        FROM expected
+        JOIN public.mobile_form AS actual USING (form_id)
+    )
+    AND NOT EXISTS (
+        SELECT 1
+        FROM expected
+        JOIN public.mobile_form_version AS revision USING (form_id)
+    ) THEN 'empty'
+    WHEN EXISTS (
+        SELECT 1
+        FROM expected
+        LEFT JOIN public.mobile_form AS actual USING (form_id)
+        LEFT JOIN public.mobile_form_version AS revision
+          ON revision.form_id = expected.form_id
+         AND revision.version = expected.version
+         AND revision.status = expected.status
+        WHERE actual.form_id IS NULL
+           OR concat_ws(',', {actual_form_differences}) <> ''
+           OR revision.form_id IS NULL
+           OR concat_ws(',', {active_revision_differences}) <> ''
+    ) THEN 'mismatch'
+    ELSE 'matched'
+END
+"""
+
+
+def _assert_mobile_form_seed_matches_source(seed_path: Path) -> str:
+    """Allow a clean insert or a verified no-op; reject partial or divergent rows."""
+    result = _psql(_mobile_form_seed_state_query(seed_path))
+    state = result.stdout.strip()
+    if state not in {"empty", "matched"}:
+        if state == "mismatch":
+            raise MigrationError(
+                "existing mobile form or active revision differs from "
+                "seed:140_mobile_forms.sql; reconcile it before recording this seed"
+            )
+        raise MigrationError("could not verify existing mobile-form seed state")
+    return state
 
 
 def _apply_files(files: list[dict]) -> None:
@@ -499,21 +573,18 @@ def _apply_files(files: list[dict]) -> None:
         logger.info("Applying migration %s...", migration_id)
         precondition_sql = ""
         if migration_id == MOBILE_FORM_SEED_ID:
-            form_ids = ", ".join(
-                "'" + form_id.replace("'", "''") + "'"
-                for form_id in MOBILE_FORM_SEED_IDS
-            )
+            state_query = _mobile_form_seed_state_query(file_info["path"]).strip().rstrip(";")
             precondition_sql = f"""
 LOCK TABLE public.mobile_form IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE public.mobile_form_version IN SHARE ROW EXCLUSIVE MODE;
 DO $$
+DECLARE
+    seed_state TEXT;
 BEGIN
-    IF EXISTS (
-        SELECT 1
-        FROM public.mobile_form
-        WHERE form_id = ANY(ARRAY[{form_ids}]::text[])
-    ) THEN
+    SELECT ({state_query}) INTO seed_state;
+    IF seed_state = 'mismatch' THEN
         RAISE EXCEPTION USING MESSAGE =
-            'refusing to apply seed:140_mobile_forms.sql over existing seeded forms without an applied ledger row; reconcile the complete form and revision state first';
+            'existing mobile form or active revision differs from seed:140_mobile_forms.sql; reconcile it before recording this seed';
     END IF;
 END;
 $$;
@@ -615,8 +686,11 @@ def cmd_migrate(
         and any(item["id"] == MOBILE_FORM_SEED_ID for item in pending)
     ):
         # Refuse before earlier members of a curated batch can run; _apply_files
-        # repeats the check under a table lock immediately before this seed.
-        _assert_no_existing_mobile_seed_rows()
+        # repeats the source comparison under table locks before the seed body.
+        seed_file = next(
+            item for item in pending if item["id"] == MOBILE_FORM_SEED_ID
+        )
+        _assert_mobile_form_seed_matches_source(seed_file["path"])
     if not pending:
         print("All migrations already applied.")
         return

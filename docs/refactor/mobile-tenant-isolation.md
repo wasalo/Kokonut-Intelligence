@@ -288,9 +288,10 @@ lineage. The clean-schema replay of all 380 migrations, including the
 or pilot seeds. Migration 390 and the local CLI now implement a two-party
 transfer workflow; focused acceptance and the separately approved local
 candidate rollouts through migration 391 have passed. The candidate has 382
-applied schemas through 391 and 121 pending seeds, but still has no location
-rows. Least-privilege
-worker behavior and RLS remain open. The operator CLI
+applied schemas through 391 and 120 pending seeds; `seed:140_mobile_forms.sql`
+is recorded after exact source parity, with no business-row changes. The
+candidate still has no location rows. Least-privilege worker behavior and RLS
+remain open. The operator CLI
 membership/share lifecycle and legacy-grant conversion passed separate
 disposable acceptance; RLS is not enabled by this ownership reconciliation
 ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json); [replay evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json); [transfer contract](tenant-owner-transfer-contract.md)).

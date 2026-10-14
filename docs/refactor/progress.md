@@ -4308,8 +4308,9 @@ populated ownership/transfer behavior, human retention/erasure disposition,
 RLS, seed-ledger reconciliation, and media/role/external-provider recovery
 remain open. The approved eight-suite platform-integrity suite passed all 279
 tests locally on pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
-Immediately before the current local batch, pushed commit
-`daf69fa4f6af2be1ffd906ef153c3e0b8916741f` had Security #25 pass and CI #301
+Immediately before this local seed-reconciliation update, pushed commit
+`90918664b1a418774fb35b7dcf65f2e9f8a02ea1` had Security run [#26](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38508910133)
+pass and CI run [#302](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38508910126)
 in progress; those checks do not cover this local batch.
 
 ### Isolated Field Collector browser offline acceptance — 14 October 2026
@@ -4351,12 +4352,16 @@ validates each ID against the discovered sources, rejects duplicates and
 unknown IDs before applying anything, and preserves the supplied order. The
 curated `seed.sh` path now sends its existing reference-seed list through that
 transactional checksum-tracked runner; reference-only mode still omits the
-mobile-form seed. A pending 140_mobile_forms.sql refuses to claim pre-existing
-seed-form rows as its provenance, checking before a selected batch and again
-under a table lock in the seed transaction. The script was not executed against
-the candidate. Its five active forms and ten existing revisions still lack
-exact row-to-source parity and a ledger record, so that candidate state remains
-unadopted and no seed SQL was applied. Focused migration/upgrade checks and
-shell syntax validation are recorded with this source batch. The focused
-migration/upgrade suites passed 43 tests; Ruff, shell syntax, migration source
-validation for 503 files, and diff checks passed.
+mobile-form seed. A pending 140_mobile_forms.sql accepts only empty state or
+a full match against the current source columns and active revision snapshots;
+it checks before a selected batch and again under table locks in the seed
+transaction. A read-only comparison found all five active 1.2.0 forms and their
+active revisions match all 20 seed columns; five retired 1.1.0 revisions are
+preserved. After a fresh encrypted checkpoint and the guarded source-derived
+parity check, the candidate applied only `seed:140_mobile_forms.sql` as a
+verified no-op for form data. Its ledger now records one applied seed; 120
+other seeds remain pending. The before/after form and revision fingerprints
+match, and the candidate app, database, Metabase, and proxy remain healthy.
+Focused migration/upgrade suites passed 44 tests; Ruff, shell syntax, migration
+source validation for 503 files, and diff checks passed. See
+[reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json).

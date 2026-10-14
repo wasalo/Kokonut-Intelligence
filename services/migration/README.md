@@ -43,10 +43,11 @@ unknown or duplicate selected ID before applying, and preserves the order of
 the supplied IDs. Omit the option to use the regular schema-first full plan.
 Selection does not resolve dependencies: apply required schema migrations
 first. The curated seed script does that in its schema-only pass.
-When the selected list includes seed:140_mobile_forms.sql, existing rows for
-its five form IDs block the selected batch before any member runs. The seed is
-checked again under a table lock in its transaction, so an existing form is
-never silently treated as historical evidence that the seed was applied.
+When the selected list includes seed:140_mobile_forms.sql, the runner allows
+either no matching form/revision rows or a full match of all source columns and
+active revision snapshots. Partial or divergent state blocks the selected
+batch before any member runs and is checked again under table locks in the seed
+transaction. This records a verified no-op without rewriting a governed form.
 
 ## Audited historical checksum repair
 
