@@ -4219,10 +4219,39 @@ tests and three route authorization tests; tenant-scope denial rolls back and
 closes the write transaction before any INSERT. Ruff and `git diff --check`
 passed for that slice. No candidate or legacy database was used.
 
-GitHub CI run #295 is pending on the pushed head; Security run #19 passed.
+The latest observed GitHub Actions state on pushed commit
+`79757675b2b562019e57209ef17138ab80f45fcd` is CI run #296 in progress and
+Security run #20 passed. This is a point-in-time check; the local preflight
+batch described below is not part of that run.
 At that pushed revision, OIDC operator APIs set tenant context in their
 service transactions, while device-token APIs lacked owner binding. The
 repository owner has since approved the re-enrollment rule, and its local
 implementation is documented above. The Directus runtime parity gate remains
 partial: the archived schema lacks the legacy `directus_users.location_id`
 field referenced by its policies.
+
+### Aggregate operator grant preflight — 13 October 2026
+
+Extended the read-only tenant preflight with database-wide operator identity
+and active organization-membership totals, plus per-location counts for active
+legacy and tenant-qualified grants. Tenant-qualified grant counts are split by
+the same `operator_scope_grant_allows` predicate used by authorization, so the
+preflight distinguishes currently accepted grants from stale or mismatched
+ones. It returns aggregate counts only, with no operator identity claims,
+contact fields, or raw operator, organization, and location IDs.
+
+Five focused Python checks passed, along with Ruff, syntax compilation, and
+`git diff --check`. A schema-targeted disposable PostgreSQL 16 database applied
+the actual migrations 388 and 391. Synthetic owner and shared-partner grants,
+an unaffiliated operator, a disabled operator, and a legacy grant produced the
+expected per-location and global counts. Identifier-leak checks passed, and
+post-run cleanup queries found zero synthetic rows across grants, shares,
+memberships, owner records, locations, organizations, and identities. The
+disposable database was removed. Candidate and legacy databases were not
+accessed.
+
+This preflight sizes remaining operator-mapping work but does not identify the
+real organization for any operator, convert legacy grants, backfill tenant
+data, or enable RLS. Worker coverage, direct-database isolation, populated
+archive acceptance against the expanded schema, and RLS remain open. See the
+[sanitized acceptance record](builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable.json).

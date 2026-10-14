@@ -111,6 +111,50 @@ mobile_enrollments AS (
      WHERE (:location_id::uuid IS NULL OR enrollment.location_id = :location_id::uuid)
      GROUP BY enrollment.location_id
 ),
+operator_grant_state AS (
+    SELECT grant_row.location_id,
+           grant_row.operator_id,
+           grant_row.organization_id,
+           grant_row.revoked_at,
+           CASE WHEN grant_row.organization_id IS NOT NULL THEN
+               operator_scope_grant_allows(
+                   grant_row.operator_id,
+                   grant_row.resource,
+                   grant_row.action,
+                   grant_row.location_id
+               )
+           END AS currently_authorized
+      FROM operator_scope_grant AS grant_row
+     WHERE grant_row.revoked_at IS NULL
+       AND (:location_id::uuid IS NULL OR grant_row.location_id = :location_id::uuid)
+),
+operator_access AS (
+    SELECT grant_row.location_id,
+           COUNT(*)::int AS active_operator_grant_count,
+           COUNT(*) FILTER (
+               WHERE grant_row.organization_id IS NULL
+           )::int AS active_legacy_operator_grant_count,
+           COUNT(*) FILTER (
+               WHERE grant_row.organization_id IS NOT NULL
+           )::int AS active_tenant_qualified_operator_grant_count,
+           COUNT(*) FILTER (
+               WHERE grant_row.organization_id IS NOT NULL
+                 AND grant_row.currently_authorized
+           )::int AS authorized_tenant_qualified_operator_grant_count,
+           COUNT(*) FILTER (
+               WHERE grant_row.organization_id IS NOT NULL
+                 AND NOT grant_row.currently_authorized
+           )::int AS invalid_tenant_qualified_operator_grant_count,
+           COUNT(DISTINCT grant_row.operator_id) FILTER (
+               WHERE grant_row.organization_id IS NULL
+           )::int AS operators_with_active_legacy_grant_count,
+           COUNT(DISTINCT grant_row.operator_id) FILTER (
+               WHERE grant_row.organization_id IS NOT NULL
+                 AND grant_row.currently_authorized
+           )::int AS operators_with_authorized_tenant_grant_count
+      FROM operator_grant_state AS grant_row
+     GROUP BY grant_row.location_id
+),
 mobile_collections AS (
     SELECT collection.location_id,
            COUNT(*)::int AS collection_count,
@@ -191,6 +235,20 @@ SELECT location.id AS location_id,
            AS pending_unbound_enrollment_count,
        COALESCE(enrollments.owner_mismatch_enrollment_count, 0)
            AS owner_mismatch_enrollment_count,
+       COALESCE(operator_access.active_operator_grant_count, 0)
+           AS active_operator_grant_count,
+       COALESCE(operator_access.active_legacy_operator_grant_count, 0)
+           AS active_legacy_operator_grant_count,
+       COALESCE(operator_access.active_tenant_qualified_operator_grant_count, 0)
+           AS active_tenant_qualified_operator_grant_count,
+       COALESCE(operator_access.authorized_tenant_qualified_operator_grant_count, 0)
+           AS authorized_tenant_qualified_operator_grant_count,
+       COALESCE(operator_access.invalid_tenant_qualified_operator_grant_count, 0)
+           AS invalid_tenant_qualified_operator_grant_count,
+       COALESCE(operator_access.operators_with_active_legacy_grant_count, 0)
+           AS operators_with_active_legacy_grant_count,
+       COALESCE(operator_access.operators_with_authorized_tenant_grant_count, 0)
+           AS operators_with_authorized_tenant_grant_count,
        COALESCE(collections.collection_count, 0) AS mobile_collection_count,
        COALESCE(collections.ineligible_collection_count, 0)
            AS ineligible_mobile_collection_count,
@@ -207,6 +265,7 @@ SELECT location.id AS location_id,
     ON relationships.location_id = location.id
   LEFT JOIN mobile_devices AS devices ON devices.location_id = location.id
   LEFT JOIN mobile_enrollments AS enrollments ON enrollments.location_id = location.id
+  LEFT JOIN operator_access ON operator_access.location_id = location.id
   LEFT JOIN mobile_collections AS collections ON collections.location_id = location.id
   LEFT JOIN private_media AS media ON media.location_id = location.id
   LEFT JOIN canonical_activity AS activity ON activity.location_id = location.id
@@ -264,6 +323,41 @@ _TENANT_BINDING_COUNT_FIELDS = (
     "owner_mismatch_enrollment_count",
 )
 
+_OPERATOR_ACCESS_COUNT_FIELDS = (
+    "active_operator_grant_count",
+    "active_legacy_operator_grant_count",
+    "active_tenant_qualified_operator_grant_count",
+    "authorized_tenant_qualified_operator_grant_count",
+    "invalid_tenant_qualified_operator_grant_count",
+    "operators_with_active_legacy_grant_count",
+    "operators_with_authorized_tenant_grant_count",
+)
+
+_OPERATOR_GLOBAL_SQL = """
+SELECT (SELECT COUNT(*)::int FROM operator_identity) AS operator_identity_count,
+       (SELECT COUNT(*)::int FROM operator_identity WHERE enabled)
+           AS enabled_operator_identity_count,
+       (SELECT COUNT(*)::int FROM operator_identity WHERE NOT enabled)
+           AS disabled_operator_identity_count,
+       (SELECT COUNT(*)::int FROM operator_organization_membership
+         WHERE revoked_at IS NULL) AS active_operator_organization_membership_count,
+       (SELECT COUNT(*)::int
+          FROM operator_organization_membership AS membership
+          JOIN operator_identity AS identity ON identity.id = membership.operator_id
+         WHERE membership.revoked_at IS NULL AND identity.enabled)
+           AS active_membership_for_enabled_operator_count,
+       (SELECT COUNT(*)::int
+          FROM operator_organization_membership AS membership
+          JOIN operator_identity AS identity ON identity.id = membership.operator_id
+         WHERE membership.revoked_at IS NULL AND NOT identity.enabled)
+           AS active_membership_for_disabled_operator_count,
+       (SELECT COUNT(DISTINCT membership.operator_id)::int
+          FROM operator_organization_membership AS membership
+          JOIN operator_identity AS identity ON identity.id = membership.operator_id
+         WHERE membership.revoked_at IS NULL AND identity.enabled)
+           AS enabled_operators_with_active_membership_count
+"""
+
 _REQUIRED_COLUMNS = (
     ("location", "id"),
     ("location", "status"),
@@ -286,6 +380,17 @@ _REQUIRED_COLUMNS = (
     ("location_tenant_owner_verification", "location_id"),
     ("location_tenant_owner_verification", "organization_id"),
     ("location_tenant_owner_verification", "revoked_at"),
+    ("operator_identity", "id"),
+    ("operator_identity", "enabled"),
+    ("operator_scope_grant", "operator_id"),
+    ("operator_scope_grant", "resource"),
+    ("operator_scope_grant", "action"),
+    ("operator_scope_grant", "location_id"),
+    ("operator_scope_grant", "organization_id"),
+    ("operator_scope_grant", "revoked_at"),
+    ("operator_organization_membership", "operator_id"),
+    ("operator_organization_membership", "organization_id"),
+    ("operator_organization_membership", "revoked_at"),
     ("organization", "id"),
     ("organization", "status"),
     ("offline_collection", "id"),
@@ -331,11 +436,25 @@ def _schema_state(conn) -> tuple[dict, dict]:
     if coverage is None:
         raise RuntimeError("schema coverage query returned no result")
     missing_columns = list(coverage["missing_columns"] or [])
+    function_coverage = conn.execute(
+        """
+        SELECT to_regprocedure(
+            'public.operator_scope_grant_allows(uuid,text,text,uuid)'
+        ) IS NOT NULL AS present
+        """
+    ).first()
+    missing_functions = (
+        [] if function_coverage and function_coverage["present"]
+        else ["public.operator_scope_grant_allows(uuid,text,text,uuid)"]
+    )
     schema_coverage = {
-        "status": "incomplete" if missing_columns else "complete",
+        "status": "incomplete" if missing_columns or missing_functions else "complete",
         "required_column_count": coverage["required_column_count"],
         "available_column_count": coverage["required_column_count"] - len(missing_columns),
         "missing_columns": missing_columns,
+        "required_function_count": 1,
+        "available_function_count": 1 - len(missing_functions),
+        "missing_functions": missing_functions,
     }
 
     migration_table_row = conn.execute(
@@ -454,6 +573,7 @@ def collect_inventory(location_id: str | None = None) -> dict:
                 {"location_id": normalized_location_id},
             ).all()
             unlocated_rows = conn.execute(_UNLOCATED_SQL).all()
+            operator_globals = conn.execute(_OPERATOR_GLOBAL_SQL).first()
 
     if schema_coverage["status"] != "complete":
         return {
@@ -464,7 +584,7 @@ def collect_inventory(location_id: str | None = None) -> dict:
             "schema_state": schema_state,
             "limitations": [
                 "No ownership or lineage rows were queried because one or more "
-                "required inventory columns are unavailable.",
+            "required inventory columns or authorization functions are unavailable.",
                 "Apply and verify the ordered migrations on an isolated copy "
                 "before requesting a complete inventory.",
             ],
@@ -511,6 +631,10 @@ def collect_inventory(location_id: str | None = None) -> dict:
                     field.removesuffix("_count"): row[field]
                     for field in _TENANT_BINDING_COUNT_FIELDS
                 },
+                "operator_access": {
+                    field.removesuffix("_count"): row[field]
+                    for field in _OPERATOR_ACCESS_COUNT_FIELDS
+                },
             }
         )
 
@@ -531,6 +655,13 @@ def collect_inventory(location_id: str | None = None) -> dict:
             for location in locations
         )
         for field in _TENANT_BINDING_COUNT_FIELDS
+    }
+    operator_access_totals = {
+        field.removesuffix("_count"): sum(
+            location["operator_access"][field.removesuffix("_count")]
+            for location in locations
+        )
+        for field in _OPERATOR_ACCESS_COUNT_FIELDS
     }
     unlocated = {
         "mobile_device": int(unlocated_rows[0]["mobile_device_count"]),
@@ -563,6 +694,12 @@ def collect_inventory(location_id: str | None = None) -> dict:
         ),
         "record_totals_by_known_relation": totals,
         "tenant_binding_totals_at_locations": tenant_binding_totals,
+        "operator_affiliations_and_grants": {
+            "scope": "database_wide_operator_counts_and_location_scoped_grant_totals",
+            "identity_and_membership_counts": dict(operator_globals),
+            "grant_counts_at_locations": operator_access_totals,
+            "identifiers_emitted": False,
+        },
         "records_without_location": unlocated,
         "locations": locations,
         "limitations": [

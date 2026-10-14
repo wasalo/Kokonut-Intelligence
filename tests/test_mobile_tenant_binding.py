@@ -62,12 +62,24 @@ class _PreflightConnection:
                 "required_column_count": len(tenant_preflight._REQUIRED_COLUMNS),
                 "missing_columns": [],
             }])
+        if "to_regprocedure(" in normalized:
+            return _Result([{"present": True}])
         if "to_regclass('public.schema_migration')" in normalized:
             return _Result([{"present": False}])
         if normalized.startswith("with active_org_relationships as"):
             return _Result([self.location_row])
         if normalized.startswith("select (select count(*)::int from mobile_device"):
             return _Result([self.unlocated_row])
+        if normalized.startswith("select (select count(*)::int from operator_identity)"):
+            return _Result([{
+                "operator_identity_count": 0,
+                "enabled_operator_identity_count": 0,
+                "disabled_operator_identity_count": 0,
+                "active_operator_organization_membership_count": 0,
+                "active_membership_for_enabled_operator_count": 0,
+                "active_membership_for_disabled_operator_count": 0,
+                "enabled_operators_with_active_membership_count": 0,
+            }])
         return _Result([])
 
 
@@ -83,6 +95,7 @@ def test_preflight_reports_device_binding_counts_without_leaking_identifiers(mon
         "owned_primary_organization_ids": [owner_id],
         **{field: 0 for field in tenant_preflight._COUNT_FIELDS},
         **{field: 0 for field in tenant_preflight._TENANT_BINDING_COUNT_FIELDS},
+        **{field: 0 for field in tenant_preflight._OPERATOR_ACCESS_COUNT_FIELDS},
         "tenant_unbound_device_count": 1,
         "active_unbound_token_device_count": 1,
         "owner_mismatch_device_count": 1,

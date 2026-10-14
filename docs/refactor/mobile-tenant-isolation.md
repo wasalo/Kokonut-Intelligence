@@ -157,6 +157,15 @@ human retention and erasure disposition remain separate open decisions.
    that candidate does not establish populated ownership. The earlier local
    candidate inventory found zero locations and zero rows
    ([candidate evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json)).
+   The current source additionally requires 46 columns and the shared
+   `operator_scope_grant_allows` database predicate before querying inventory.
+   It reports aggregate enabled/disabled operator and membership totals plus
+   per-location legacy and tenant-qualified grant state, without operator or
+   tenant IDs. A schema-targeted disposable fixture using actual migrations
+   388 and 391 passed focused checks and verified cleanup; see the
+   [aggregate evidence](builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable.json).
+   These database-wide identity counts are sizing information only; they do not
+   resolve the real affiliation mapping or convert any legacy grant.
 2. Resolve the seed-location ownership map before tenant backfill. The
    repository owner confirmed Kokonut Network as the exclusive owner of both
    Kokonut Adelphi and Kokonut Genesis on 2026-10-13. This decision applies only

@@ -625,6 +625,17 @@ reporting views.
   context-before-SQL, transaction completion, and HTTP 403 before SQL on tenant
   denial. Candidate and legacy databases were untouched; real-provider browser
   acceptance remains open.
+- [x] Extend the read-only tenant preflight with aggregate operator affiliation
+  and grant counts. It distinguishes legacy NULL-tenant grants from authorized
+  and currently invalid tenant-qualified grants by location, and counts enabled
+  operator identities and active organization memberships without returning
+  identity fields or UUIDs. Five focused Python checks and Ruff pass; actual
+  migrations 388 and 391 passed against a schema-targeted disposable PostgreSQL
+  fixture, with exact expected counts and zero synthetic rows remaining after
+  cleanup ([evidence](builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable.json)).
+  Neither the candidate nor legacy database was accessed. This identifies the
+  size and state of affiliation/grant work; it does not map specific operators
+  to organizations, infer ownership, backfill grants, or enable RLS.
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.

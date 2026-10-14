@@ -1124,3 +1124,19 @@ all 11 relevant 384–385–389 activity/workflow triggers; candidate rollout an
 populated/archive replay remain open
 ([replay evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
 See the [consumer audit](field-collector-downstream-source-audit.md).
+
+### CAP-053 aggregate operator preflight — 13 October 2026
+
+The ownership preflight now reports database-wide counts of enabled and
+disabled operator identities and active organization memberships, plus
+location-scoped active grants split into legacy, tenant-qualified, currently
+authorized, and invalid counts. It evaluates tenant-qualified grants with the
+shared `operator_scope_grant_allows` predicate and returns aggregate counts
+without operator identity attributes or raw IDs. Five focused checks and Ruff
+passed; actual migrations 388 and 391 passed on a schema-targeted disposable
+PostgreSQL fixture with exact synthetic counts and verified zero-row cleanup
+([evidence](builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable.json)).
+This helps quantify the operator affiliation migration but does not map real
+operators to organizations or convert legacy grants. CAP-053 remains partial;
+worker integration, direct-database isolation, populated production lineage,
+retention/disposition, and RLS remain open.
