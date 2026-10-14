@@ -19,16 +19,14 @@ its containers and volumes down when it exits.
 
 ### Current required-check audit — 14 October 2026
 
-The active `Main branch protection` ruleset (ID `18234835`) currently requires
-the legacy contexts `Python checks`, `Directus hooks`, and `Foundry contracts`.
-The migrated workflows now emit `CI / ci` and `Security / gitleaks`. Update only
-the required status-check list to those two current contexts before merging;
-preserve the existing pull-request, review, CODEOWNERS, thread-resolution,
-linear-history, and deletion protections. Leave the separate version-tag
-ruleset unchanged. This mismatch was read from the active ruleset, not inferred
-from this runbook. The current GitHub browser session is signed out and the
-connected GitHub API is read-only, so the ruleset update remains an open
-repository-admin action.
+The active `Main branch protection` ruleset (ID `18234835`) was updated on
+14 October to require only the migrated workflow contexts `CI / ci` and
+`Security / gitleaks`; GitHub's API confirmed the saved values. The old
+`Python checks`, `Directus hooks`, and `Foundry contracts` contexts were
+removed. The one-review and CODEOWNERS requirements, stale-review dismissal,
+thread resolution, up-to-date check policy, linear history, deletion and
+force-push protections, and bypass entries remain in place. The separate
+`Version tag protection` ruleset (ID `18234836`) remains active and unchanged.
 
 After the workflows are merged:
 

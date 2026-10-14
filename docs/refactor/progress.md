@@ -4258,21 +4258,21 @@ archive acceptance against the expanded schema, and RLS remain open. See the
 
 ### Phase 8 current-head security and required-check audit — 14 October 2026
 
-On pushed commit `cf3acab7e9a6ee011f28694e755fe1ca1b671a3d`, CI run #297 is still
-in progress. Security run #21 failed because full-history Gitleaks 8.30.1
-classified two 64-character SHA-256 source digests in the sanitized disposable
-preflight evidence as generic API keys. Review found only source fingerprints,
-not deployment credentials. The existing rule-specific allowlist now includes
-only that exact evidence path and SHA-256 line shape. The official Darwin x64
-archive checksum matched, and a local invocation of the same pinned Gitleaks
-version and full-history command scanned 869 commits (about 74.31 MB) with no
-leaks. A new pushed Security run is still needed to retain CI evidence.
+On pushed commit `cf3acab7e9a6ee011f28694e755fe1ca1b671a3d`, Security run #21
+failed because full-history Gitleaks 8.30.1 classified two 64-character
+SHA-256 source digests in the sanitized disposable preflight evidence as
+generic API keys. Review found only source fingerprints, not deployment
+credentials. The existing rule-specific allowlist now includes only that exact
+evidence path and SHA-256 line shape. The official Darwin x64 archive checksum
+matched, and the pinned local full-history command scanned 869 commits (about
+74.31 MB) with no leaks.
 
-A read-only audit of active ruleset `18234835` found required contexts
-`Python checks`, `Directus hooks`, and `Foundry contracts`; the migrated
-workflows emit `CI / ci` and `Security / gitleaks`. The approved exact context
-update has not been applied: the available browser session is signed out and
-the connected GitHub API permits GET only. The separate version-tag ruleset
-was not changed. The runbook and Batch 6 checklist now carry this exact
-repository-admin action. The older 279-test platform-integrity run and CI #297
-do not certify the current source head.
+The allowlist repair and exact context audit were pushed as
+`cfe65140b17dc66314fb6875fa8439a12220da88`. Security run [#22](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38504514023)
+passed; CI [#298](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38504514028)
+is in progress. CI #297 was cancelled when the newer commit was pushed. Active
+ruleset `18234835` now requires `CI / ci` and `Security / gitleaks`; GitHub API
+verification confirms its review, CODEOWNERS, strict up-to-date, linear-history,
+deletion, force-push, and bypass settings remain. The active version-tag
+ruleset `18234836` is unchanged. The older 279-test platform-integrity run and
+the current in-progress CI run do not yet certify the current source head.
