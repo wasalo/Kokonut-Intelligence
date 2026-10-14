@@ -43,6 +43,26 @@ def test_discovery_uses_kind_and_full_filename_and_orders_schema_first(tmp_path,
     ]
 
 
+def test_discovery_includes_range_prefixed_seed_file(tmp_path, monkeypatch):
+    schemas = tmp_path / "postgres"
+    seeds = tmp_path / "seeds"
+    schemas.mkdir()
+    seeds.mkdir()
+    _sql_file(schemas / "001_initial.sql")
+    _sql_file(seeds / "064-068_impact_network.sql")
+    monkeypatch.setattr(cli, "SCHEMA_DIR", schemas)
+    monkeypatch.setattr(cli, "SEED_DIR", seeds)
+
+    files = cli._discover_files()
+
+    assert [item["id"] for item in files] == [
+        "schema:001_initial.sql",
+        "seed:064-068_impact_network.sql",
+    ]
+    assert files[1]["version"] == "064-068"
+    cli._validate_sources(files)
+
+
 def test_discovery_rejects_duplicate_ids(tmp_path, monkeypatch):
     directory = tmp_path / "sql"
     directory.mkdir()

@@ -30,6 +30,15 @@ completed on 14 October after an encrypted checkpoint; live authenticated
 re-enrollment remains open and RLS remains disabled
 ([rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)). An isolated Chrome browser check also passed actual client-offline behavior: `navigator.onLine=false`, service-worker shell reopen, encrypted note capture, preservation through a synthetic 503, and queue clearing after a synthetic retry success. Because all mobile API calls were intercepted, live authenticated sync and MAN-CAP-053 remain open ([browser evidence](builds/2026-10-14-recovery/field-collector-browser-offline-client.json)).
 
+**14 October 2026 seed-ledger preflight (CAP-053):** the migration runner
+previously omitted the range-prefixed `064-068_impact_network.sql`; source
+discovery now includes all 121 candidate-pending seeds and validates 503 total
+migration files. The existing candidate has five active mobile forms and ten
+revision rows without a `140_mobile_forms.sql` ledger row, while the curated
+`seed.sh` path currently executes its SQL outside the ledger. No seed was run
+or adopted because exact row-to-source parity has not been established; see the
+[preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json).
+
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,
 analytics, process metrics, repository-owned dashboards, and exports; ineligible rows stay visible to
@@ -68,7 +77,7 @@ PostgreSQL checks, and eight context unit tests passed
 The ownership/transfer rollout applied migrations 387–390 after a fresh
 age-encrypted checkpoint; the follow-up device-binding rollout applied 391 from
 a separate checkpoint. All 382 schema migrations are now applied with zero
-pending, while 120 seed files remain pending in the ledger. Five mobile-form rows and
+pending, while 121 seed files remain pending in the ledger. Five mobile-form rows and
 ten revisions exist without applied seed history and require reconciliation
 before any seed rollout. Only the app was recreated in each rollout;
 app/database/Metabase are healthy and anonymous protected routes return 401

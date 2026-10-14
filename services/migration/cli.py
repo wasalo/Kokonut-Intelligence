@@ -20,6 +20,7 @@ logger = get_logger("migration")
 PROJECT_DIR = Path(__file__).parent.parent.parent
 SCHEMA_DIR = PROJECT_DIR / "schemas" / "postgres"
 SEED_DIR = PROJECT_DIR / "schemas" / "seeds"
+SEED_VERSION_PREFIX = re.compile(r"^\d+(?:-\d+)?$")
 # Canonical KI tables and migration tracking live in public; exclude "$user" so
 # a role-named schema cannot shadow public objects during migrations.
 MIGRATION_SEARCH_PATH = "public, topology, tiger"
@@ -148,7 +149,10 @@ def _discover_files(*, include_seeds: bool = True) -> list[dict]:
         directories.append((SEED_DIR, "seed"))
     for directory, kind in directories:
         for path in sorted(directory.glob("*.sql"), key=lambda item: item.name):
-            if not path.stem.split("_", 1)[0].isdigit():
+            version = path.stem.split("_", 1)[0]
+            if kind == "schema" and not version.isdigit():
+                continue
+            if kind == "seed" and not SEED_VERSION_PREFIX.fullmatch(version):
                 continue
             migration_id = f"{kind}:{path.name}"
             if migration_id in seen_ids:
@@ -156,7 +160,7 @@ def _discover_files(*, include_seeds: bool = True) -> list[dict]:
             seen_ids.add(migration_id)
             files.append({
                 "id": migration_id,
-                "version": path.stem.split("_", 1)[0],
+                "version": version,
                 "name": path.stem,
                 "kind": kind,
                 "path": path,

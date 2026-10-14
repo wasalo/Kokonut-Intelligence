@@ -184,7 +184,7 @@ human retention/erasure disposition remain open. RLS remains disabled.
    to those two repository seed locations; it does not assign owners to other
    locations or resolve unlocated report/dashboard rows. Explicit-sharing
    semantics are implemented. The candidate now has all 382 schema migrations
-   through 391 applied and zero pending schemas; 120 numbered seed files remain
+   through 391 applied and zero pending schemas; 121 seed files remain
    pending in the migration ledger. Its location table is empty, so migration 387
    created the canonical Kokonut Network organization without creating
    location ownership evidence. Five mobile-form rows and ten revisions are
@@ -288,7 +288,7 @@ lineage. The clean-schema replay of all 380 migrations, including the
 or pilot seeds. Migration 390 and the local CLI now implement a two-party
 transfer workflow; focused acceptance and the separately approved local
 candidate rollouts through migration 391 have passed. The candidate has 382
-applied schemas through 391 and 120 pending seeds, but still has no location
+applied schemas through 391 and 121 pending seeds, but still has no location
 rows. Least-privilege
 worker behavior and RLS remain open. The operator CLI
 membership/share lifecycle and legacy-grant conversion passed separate

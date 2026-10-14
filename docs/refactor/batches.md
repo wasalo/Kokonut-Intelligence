@@ -619,7 +619,7 @@ reporting views.
   open.
 - [x] Roll out migration 391 to the local candidate after a fresh age-encrypted
   PostgreSQL checkpoint. The ordered runner applied one schema migration with
-  zero failures; 382 schemas are applied with none pending, while 120 seed files
+  zero failures; 382 schemas are applied with none pending, while 121 seed files
   remain pending and existing mobile-form seed history still needs reconciliation.
   Only the app was rebuilt/recreated. App/database/Metabase are healthy, the proxy
   remains running, and anonymous health/protected-route checks return 200/401.
@@ -629,6 +629,8 @@ reporting views.
   fingerprints, extension versions, and selected aggregate counts. The recovery
   container is stopped and its volume retained
   ([evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)).
+- [x] Fix migration discovery for the range-prefixed seed `064-068_impact_network.sql`; the candidate read-only plan now reports 121 pending seeds instead of silently omitting one. Migration source validation covers 503 files and the focused runner suite passes 23 tests. No seed SQL was run.
+- [ ] Reconcile untracked curated seed state before any seed rollout. The candidate has five active 1.2.0 forms and ten historical/current revisions without a `seed:140_mobile_forms.sql` ledger row; the seed runner's current curated path applies SQL directly with `psql_exec`. Compare complete values and history, then add a tracked no-op/adoption path only when exact source parity is proven. The 064–068 seed contains pilot upserts and a location-owner update and remains unapplied ([preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json)).
 - [x] Bind OIDC participant-reference creation and revocation to tenant
   context before the party lookup or link mutation. The new same-origin
   `/operator/api/mobile/.../participants` routes use the OIDC cookie path,
