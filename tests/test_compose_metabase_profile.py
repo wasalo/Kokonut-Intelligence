@@ -19,6 +19,7 @@ TEST_ENV = {
     "DIRECTUS_SECRET": "compose-test-only",
     "ADMIN_EMAIL": "compose-test@example.invalid",
     "ADMIN_PASSWORD": "compose-test-only",
+    "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-auth-password",
     "CLICKHOUSE_PASSWORD": "compose-test-only",
     "CADDY_DOMAIN": "localhost",
     "PUBLIC_URL": "https://example.invalid",
