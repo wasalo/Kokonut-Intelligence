@@ -1,7 +1,7 @@
 """Climate data ingestion service.
 
-Fetches WorldClim, NCEP, MODIS, SMAP, and Sentinel-1 data
-for SOC prediction and climate risk scoring.
+Builds a latitude-based bioclimatic proxy for WorldClim-shaped fields and
+fetches ERA5, MODIS, SMAP, and Sentinel-1 data through Google Earth Engine.
 
 Usage:
     python3 -m services.ingestion.climate_data --worldclim --location-id UUID
@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -31,7 +32,8 @@ logger = get_logger("ingestion.climate_data")
 def _query_location_bbox(conn, location_id: str) -> Optional[Dict[str, Any]]:
     """Get location bounding box from plot geometries."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT
             ST_XMin(ST_Extent(p.geometry)) AS west,
             ST_YMin(ST_Extent(p.geometry)) AS south,
@@ -40,7 +42,9 @@ def _query_location_bbox(conn, location_id: str) -> Optional[Dict[str, Any]]:
         FROM plot p
         JOIN farm f ON p.farm_id = f.id
         WHERE f.location_id = %s AND p.geometry IS NOT NULL
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     row = cur.fetchone()
     cur.close()
     if row and row["west"] is not None:
@@ -56,10 +60,13 @@ def _query_location_bbox(conn, location_id: str) -> Optional[Dict[str, Any]]:
 def _query_location_centroid(conn, location_id: str) -> Optional[Dict[str, float]]:
     """Get location centroid."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute("""
+    cur.execute(
+        """
         SELECT ST_Y(centroid) AS lat, ST_X(centroid) AS lon
         FROM location WHERE id = %s AND centroid IS NOT NULL
-    """, (location_id,))
+    """,
+        (location_id,),
+    )
     row = cur.fetchone()
     cur.close()
     if row and row["lat"] is not None:
@@ -68,10 +75,11 @@ def _query_location_centroid(conn, location_id: str) -> Optional[Dict[str, float
 
 
 def fetch_worldclim(conn, location_id: str) -> Dict[str, Any]:
-    """Fetch WorldClim v2 bioclimatic variables for a location.
+    """Store latitude-derived bioclimatic estimates for a location.
 
-    WorldClim provides 19 bioclimatic variables as a static baseline (1970-2000).
-    Data is fetched from the WorldClim API at ~1km resolution.
+    This compatibility path does not download WorldClim rasters. It records
+    the existing latitude formula as a proxy, with explicit provenance and no
+    claimed spatial resolution.
     """
     centroid = _query_location_centroid(conn, location_id)
     if not centroid:
@@ -80,79 +88,62 @@ def fetch_worldclim(conn, location_id: str) -> Dict[str, Any]:
 
     lat, lon = centroid["lat"], centroid["lon"]
 
-    # WorldClim v2 bio variables at 2.5min resolution (~5km)
-    bio_variables = {}
-    for bio in range(1, 20):
-        url = (
-            f"https://biogeo.ucdavis.edu/data/worldclim/v2.1/base/"
-            f"wc2.1_2.5m_bio_{bio}.tif"
-        )
-        try:
-            # WorldClim doesn't have a point query API;
-            # we use the CHELSA/climond API as an alternative
-            # For now, compute approximate values from latitude
-            bio_variables[f"bio_{bio}"] = _estimate_bioclim(lat, lon, bio)
-        except Exception as e:
-            logger.warning("WorldClim bio_%d fetch failed: %s", bio, e)
+    bio_variables = {f"bio_{bio}": _estimate_bioclim(lat, lon, bio) for bio in range(1, 20)}
 
-    # Insert into worldclim_climate table
+    metadata = {
+        "estimation_method": "latitude_proxy_v1",
+        "reference_period": "1970-2000",
+        "estimated_bioclimatic_variables": bio_variables,
+    }
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         INSERT INTO worldclim_climate
-            (location_id, bio01_temp_mean_annual, bio02_temp_range_mean,
-             bio03_isothermality, bio04_temp_seasonality,
-             bio05_max_temp_warmest_month, bio06_min_temp_coldest_month,
-             bio07_temp_range_annual, bio08_mean_temp_wettest_quarter,
-             bio09_mean_temp_driest_quarter, bio10_mean_temp_warmest_quarter,
-             bio11_mean_temp_coldest_quarter, bio12_precip_annual,
-             bio13_precip_wettest_month, bio14_precip_driest_month,
-             bio15_precip_seasonality, bio16_precip_wettest_quarter,
-             bio17_precip_driest_quarter, bio18_precip_warmest_quarter,
-             bio19_precip_coldest_quarter, source, reference_period)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (location_id) DO UPDATE SET
-            bio01_temp_mean_annual = EXCLUDED.bio01_temp_mean_annual,
-            bio02_temp_range_mean = EXCLUDED.bio02_temp_range_mean,
-            bio03_isothermality = EXCLUDED.bio03_isothermality,
-            bio04_temp_seasonality = EXCLUDED.bio04_temp_seasonality,
-            bio05_max_temp_warmest_month = EXCLUDED.bio05_max_temp_warmest_month,
-            bio06_min_temp_coldest_month = EXCLUDED.bio06_min_temp_coldest_month,
-            bio07_temp_range_annual = EXCLUDED.bio07_temp_range_annual,
-            bio08_mean_temp_wettest_quarter = EXCLUDED.bio08_mean_temp_wettest_quarter,
-            bio09_mean_temp_driest_quarter = EXCLUDED.bio09_mean_temp_driest_quarter,
-            bio10_mean_temp_warmest_quarter = EXCLUDED.bio10_mean_temp_warmest_quarter,
-            bio11_mean_temp_coldest_quarter = EXCLUDED.bio11_mean_temp_coldest_quarter,
-            bio12_precip_annual = EXCLUDED.bio12_precip_annual,
-            bio13_precip_wettest_month = EXCLUDED.bio13_precip_wettest_month,
-            bio14_precip_driest_month = EXCLUDED.bio14_precip_driest_month,
+            (location_id, bio1_mean_annual_temp, bio4_temp_seasonality,
+             bio5_max_temp_warmest_month, bio6_min_temp_coldest_month,
+             bio12_annual_precipitation, bio15_precip_seasonality,
+             bio16_precip_wettest_quarter, bio17_precip_driest_quarter,
+             temp_range, source, resolution_m, metadata)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                'latitude_proxy_v1', NULL, %s::jsonb)
+        ON CONFLICT (location_id) WHERE plot_id IS NULL DO UPDATE SET
+            bio1_mean_annual_temp = EXCLUDED.bio1_mean_annual_temp,
+            bio4_temp_seasonality = EXCLUDED.bio4_temp_seasonality,
+            bio5_max_temp_warmest_month = EXCLUDED.bio5_max_temp_warmest_month,
+            bio6_min_temp_coldest_month = EXCLUDED.bio6_min_temp_coldest_month,
+            bio12_annual_precipitation = EXCLUDED.bio12_annual_precipitation,
             bio15_precip_seasonality = EXCLUDED.bio15_precip_seasonality,
             bio16_precip_wettest_quarter = EXCLUDED.bio16_precip_wettest_quarter,
             bio17_precip_driest_quarter = EXCLUDED.bio17_precip_driest_quarter,
-            bio18_precip_warmest_quarter = EXCLUDED.bio18_precip_warmest_quarter,
-            bio19_precip_coldest_quarter = EXCLUDED.bio19_precip_coldest_quarter,
+            temp_range = EXCLUDED.temp_range,
+            source = EXCLUDED.source,
+            resolution_m = EXCLUDED.resolution_m,
+            metadata = EXCLUDED.metadata,
             updated_at = NOW()
         RETURNING id
-    """, (
-        location_id,
-        bio_variables.get("bio_1"), bio_variables.get("bio_2"),
-        bio_variables.get("bio_3"), bio_variables.get("bio_4"),
-        bio_variables.get("bio_5"), bio_variables.get("bio_6"),
-        bio_variables.get("bio_7"), bio_variables.get("bio_8"),
-        bio_variables.get("bio_9"), bio_variables.get("bio_10"),
-        bio_variables.get("bio_11"), bio_variables.get("bio_12"),
-        bio_variables.get("bio_13"), bio_variables.get("bio_14"),
-        bio_variables.get("bio_15"), bio_variables.get("bio_16"),
-        bio_variables.get("bio_17"), bio_variables.get("bio_18"),
-        bio_variables.get("bio_19"),
-        "worldclim_v2", "1970-2000",
-    ))
+    """,
+        (
+            location_id,
+            bio_variables["bio_1"],
+            bio_variables["bio_4"],
+            bio_variables["bio_5"],
+            bio_variables["bio_6"],
+            bio_variables["bio_12"],
+            bio_variables["bio_15"],
+            bio_variables["bio_16"],
+            bio_variables["bio_17"],
+            bio_variables["bio_7"],
+            json.dumps(metadata),
+        ),
+    )
     record_id = str(cur.fetchone()[0])
     cur.close()
+    conn.commit()
 
     log_ingestion(
-        source_system="worldclim",
+        source_system="latitude_proxy",
         source_table="worldclim_climate",
-        source_id="v2_2.5min",
+        source_id="latitude_proxy_v1",
         target_table="worldclim_climate",
         target_id=record_id,
         operation="upsert",
@@ -161,7 +152,13 @@ def fetch_worldclim(conn, location_id: str) -> Dict[str, Any]:
         rows_affected=1,
     )
 
-    return {"status": "success", "record_id": record_id, "variables": len(bio_variables)}
+    return {
+        "status": "success",
+        "record_id": record_id,
+        "variables": len(bio_variables),
+        "source": "latitude_proxy_v1",
+        "estimated": True,
+    }
 
 
 def _estimate_bioclim(lat: float, lon: float, bio: int) -> Optional[float]:
@@ -214,10 +211,15 @@ def fetch_ncep(conn, location_id: str) -> Dict[str, Any]:
         centroid = _query_location_centroid(conn, location_id)
         if not centroid:
             return {"status": "skipped", "reason": "no_geometry"}
-        bbox = {"west": centroid["lon"] - 0.05, "south": centroid["lat"] - 0.05,
-                "east": centroid["lon"] + 0.05, "north": centroid["lat"] + 0.05}
+        bbox = {
+            "west": centroid["lon"] - 0.05,
+            "south": centroid["lat"] - 0.05,
+            "east": centroid["lon"] + 0.05,
+            "north": centroid["lat"] + 0.05,
+        }
 
     from .gee_climate import fetch_era5_land
+
     return fetch_era5_land(conn, location_id, bbox)
 
 
@@ -228,10 +230,15 @@ def fetch_modis(conn, location_id: str) -> Dict[str, Any]:
         centroid = _query_location_centroid(conn, location_id)
         if not centroid:
             return {"status": "skipped", "reason": "no_geometry"}
-        bbox = {"west": centroid["lon"] - 0.05, "south": centroid["lat"] - 0.05,
-                "east": centroid["lon"] + 0.05, "north": centroid["lat"] + 0.05}
+        bbox = {
+            "west": centroid["lon"] - 0.05,
+            "south": centroid["lat"] - 0.05,
+            "east": centroid["lon"] + 0.05,
+            "north": centroid["lat"] + 0.05,
+        }
 
     from .gee_climate import fetch_modis_lst
+
     return fetch_modis_lst(conn, location_id, bbox)
 
 
@@ -242,10 +249,15 @@ def fetch_smap(conn, location_id: str) -> Dict[str, Any]:
         centroid = _query_location_centroid(conn, location_id)
         if not centroid:
             return {"status": "skipped", "reason": "no_geometry"}
-        bbox = {"west": centroid["lon"] - 0.05, "south": centroid["lat"] - 0.05,
-                "east": centroid["lon"] + 0.05, "north": centroid["lat"] + 0.05}
+        bbox = {
+            "west": centroid["lon"] - 0.05,
+            "south": centroid["lat"] - 0.05,
+            "east": centroid["lon"] + 0.05,
+            "north": centroid["lat"] + 0.05,
+        }
 
     from .gee_climate import fetch_smap_moisture
+
     return fetch_smap_moisture(conn, location_id, bbox)
 
 
@@ -256,10 +268,15 @@ def fetch_sentinel1(conn, location_id: str) -> Dict[str, Any]:
         centroid = _query_location_centroid(conn, location_id)
         if not centroid:
             return {"status": "skipped", "reason": "no_geometry"}
-        bbox = {"west": centroid["lon"] - 0.05, "south": centroid["lat"] - 0.05,
-                "east": centroid["lon"] + 0.05, "north": centroid["lat"] + 0.05}
+        bbox = {
+            "west": centroid["lon"] - 0.05,
+            "south": centroid["lat"] - 0.05,
+            "east": centroid["lon"] + 0.05,
+            "north": centroid["lat"] + 0.05,
+        }
 
     from .gee_climate import fetch_sentinel1_sar
+
     return fetch_sentinel1_sar(conn, location_id, bbox)
 
 

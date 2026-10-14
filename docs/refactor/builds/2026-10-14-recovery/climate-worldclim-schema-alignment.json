@@ -1,0 +1,41 @@
+{
+  "check": "climate_worldclim_schema_alignment",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "candidate_or_legacy_database_touched": false,
+    "disposable_postgres_migration_applied": false,
+    "migration": "397_worldclim_location_baseline_key.sql",
+    "existing_rows_deleted_or_rewritten": false,
+    "worldclim_network_fetch_claimed": false,
+    "latitude_proxy_provenance_explicit": true,
+    "location_baseline_plot_fallback_added": true,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": [
+    {
+      "command": ".venv/bin/python -m pytest tests/test_climate_data.py tests/test_migration.py -q",
+      "passed": 51,
+      "failed": 0
+    },
+    {
+      "command": ".venv/bin/python -m pytest tests/test_worker_operation_map.py tests/test_security_allowlist.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py -q",
+      "passed": 38,
+      "failed": 0
+    }
+  ],
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "py_compile": "passed",
+    "migration_discovery_tests": "passed",
+    "worker_map_json_parse": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The Docker daemon is inaccessible in this session, so migration 397 was not applied to a disposable PostgreSQL database; its SQL parse, partial-index inference, and behavior against existing data are unverified at runtime.",
+    "Migration 397 fails transactionally if duplicate location-level baselines exist and does not delete or select among them; any such rows need reviewed reconciliation before rollout.",
+    "The WorldClim compatibility command computes latitude_proxy_v1 estimates and does not fetch WorldClim rasters. Google Earth Engine provider output and duplicate replay behavior were not exercised.",
+    "No Raspberry Pi hardware was available or used; physical-device behavior remains unverified."
+  ]
+}

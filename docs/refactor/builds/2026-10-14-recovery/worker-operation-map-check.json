@@ -15,7 +15,7 @@
   },
   "pytest": {
     "command": ".venv/bin/python -m pytest tests/test_worker_operation_map.py tests/test_security_allowlist.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py -q",
-    "passed": 37,
+    "passed": 38,
     "failed": 0
   },
   "static_checks": {

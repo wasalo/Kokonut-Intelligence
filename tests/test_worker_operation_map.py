@@ -128,3 +128,21 @@ def test_freshness_worker_map_covers_fixed_source_table_map():
     assert len(FRESHNESS_SOURCE_TABLES) == 7
     assert source_tables <= mapped_reads
     assert {"public.data_freshness_config", "public.location", "public.sensor_device"} <= mapped_reads
+
+
+def test_climate_worker_map_names_current_schema_and_provider_effects():
+    climate = next(
+        entry for entry in _load_map()["scheduled_modules"] if entry["module"] == "services.ingestion.climate_data"
+    )
+
+    assert set(climate["reads"]) == {"public.location", "public.plot", "public.farm"}
+    assert set(climate["writes"]) == {
+        "public.worldclim_climate",
+        "public.ncep_weather_summary",
+        "public.modis_lst_summary",
+        "public.smap_soil_moisture",
+        "public.sentinel1_sar_summary",
+        "public.ingestion_log",
+    }
+    assert "latitude_proxy_v1" in " ".join(climate["external_effects"])
+    assert "schemas/postgres/397_worldclim_location_baseline_key.sql" in climate["sources"]

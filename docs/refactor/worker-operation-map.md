@@ -39,6 +39,11 @@ data effects, and an idempotency/retry note.
   establish least-privilege grants or tenant context. The freshness operation
   also maps all seven fixed source-table identifiers to required reads, with a
   regression test tying that list to the code map.
+- The climate worker entry names all five provider-output relations and records
+  that `--worldclim` is a latitude proxy, while four other branches call Google
+  Earth Engine. The proxy upsert and location fallback have focused source and
+  migration-discovery coverage; actual PostgreSQL/provider acceptance remains
+  open.
 - The legacy schedule seed contains known mismatches: the sensor task has no
   declared input source, and its empty argument list does not create a sensor
   reading; the climate CLI requires one `--location-id`, while the old seed

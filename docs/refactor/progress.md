@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `26edad1`; CI #310 is in progress and Security #34 passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–396 have isolated PostgreSQL acceptance and remain gated from candidate rollout. The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `26edad1`; CI #310 is in progress and Security #34 passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–396 have isolated PostgreSQL acceptance and remain gated from candidate rollout; migration 397 has source and migration-discovery checks only and has not run against PostgreSQL. The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
@@ -39,6 +39,15 @@ composition edges, and the relations behind the Field Collector consent
 eligibility function. The other worker/provider effects remain in the open
 transitive audit. A second registry check confirms all seven data-freshness
 source tables are represented in the operation map.
+
+The climate `--worldclim` compatibility path had referred to columns that do
+not exist in its schema, used a conflict target without a unique index, and
+closed without committing. It now stores only canonical columns, retains all
+19 latitude estimates with explicit proxy provenance, commits the upsert, and
+feeds location baselines into plot-level consumers. Migration 397 refuses to
+choose among duplicate legacy rows. Climate plus migration-discovery tests
+pass 51 checks and the worker bundle passes 38; a disposable PostgreSQL apply
+and candidate rollout remain open ([evidence](builds/2026-10-14-recovery/climate-worldclim-schema-alignment.json)).
 
 The prescribed platform-integrity suite passed 290 tests on local commit
 `238e2ef`, including the tenant-bound Data Stream route regression. The earlier
@@ -4679,8 +4688,8 @@ Machine evidence is
 This does not run every HTTP handler through the dedicated runtime login or
 close runtime DML on other public tables. Worker, legacy CLI, Directus/view,
 ownership, and final RLS gates remain open. No candidate or legacy database was
-changed; migrations 392–396 remain under separately gated candidate rollout
-OFU-18.
+changed; migrations 392–397 remain under separately gated candidate rollout
+OFU-18. Migration 397 still needs isolated PostgreSQL acceptance.
 
 ### Gateway credential tenant context — 14 October 2026
 

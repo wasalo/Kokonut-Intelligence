@@ -203,11 +203,11 @@
       "module": "services.ingestion.climate_data",
       "scope": "Exactly one required --location-id per process; --all means all climate providers for that location, not all locations.",
       "reads": ["public.location", "public.plot", "public.farm"],
-      "writes": ["public.worldclim_climate", "provider-specific climate/remote-sensing tables", "public.ingestion_log"],
-      "external_effects": ["WorldClim-derived baseline, NCEP, MODIS, SMAP and optional Google Earth Engine provider adapters"],
-      "idempotency": "worldclim_climate upserts by location_id. Each other provider has its own persistence path; aggregate idempotency is not established by this entrypoint.",
-      "retry_boundary": "Per-location retry is the intended unit; the historical seed's --all argument is invalid because --location-id is required.",
-      "sources": ["services/ingestion/climate_data.py", "services/ingestion/gee_climate.py", "services/ingestion/base.py"]
+      "writes": ["public.worldclim_climate", "public.ncep_weather_summary", "public.modis_lst_summary", "public.smap_soil_moisture", "public.sentinel1_sar_summary", "public.ingestion_log"],
+      "external_effects": ["ERA5 Land (--ncep), MODIS, SMAP, and Sentinel-1 requests through Google Earth Engine; the worldclim command makes no network request and records a latitude_proxy_v1 estimate"],
+      "idempotency": "worldclim_climate uses a partial unique key for one location-level row (plot_id IS NULL); migration 397 refuses duplicate legacy rows without deleting them. GEE summary tables have no matching unique key and provider retries may insert duplicates.",
+      "retry_boundary": "Per-location retry is the intended unit; GEE writes commit before ingestion_log writes, so a crash can leave an unlogged provider row. The historical seed's --all argument is invalid because --location-id is required.",
+      "sources": ["services/ingestion/climate_data.py", "services/ingestion/gee_climate.py", "services/ingestion/base.py", "schemas/postgres/074_dsm_soc_prediction.sql", "schemas/postgres/397_worldclim_location_baseline_key.sql"]
     },
     {
       "module": "services.events",
