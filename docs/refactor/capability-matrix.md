@@ -13,14 +13,16 @@ acceptance rows.
 
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** PR #68 is
 at `333507e844cd3937761087f1e7e03f895c509250`. CI run [#306](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311928)
-is in progress and Security run [#30](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311940)
-passed. CI #305 was superseded by the newer push. The preceding CI #304 on
+passed and Security run [#30](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38580311940)
+passed. The local branch contains commit `be26be7` and the migration-393 batch;
+those unpushed changes are not covered by CI #306.
+CI #305 was superseded by the newer push. The preceding CI #304 on
 `8aa33e24f169f15afb249a53ae3d281ed8d843a2` completed with five failures,
 4,632 passed tests, and 75 passed subtests; the local fix batch passes 10
 targeted regression cases and 72 full operator-auth and Compose tests. The
 approved eight-suite platform-integrity suite passed 288 tests locally on
 `1c0084513b157bb99468d4c650e269c57e243c96`. Capability completion remains
-open until CI #306 passes ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
+open until the unpushed local commit and migration-393 batch receive their own passing CI run ([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus
@@ -49,6 +51,22 @@ redemption race (exactly one device/code consumption), and owner transfer. The
 56-test mobile API/tenant suite and Ruff pass. Migration 392 has
 not been applied to the candidate; RLS and MAN-CAP-053 remain open
 ([audit](mobile-tenant-rls-callsite-audit.md); [evidence](builds/2026-10-14-recovery/mobile-credential-functions-disposable.json)).
+
+**14 October 2026 signed mobile tenant context (CAP-053):** migration 393
+replaces trust in caller-set mobile tenant labels with a database-signed HMAC
+proof bound to the PostgreSQL backend and transaction. Its private key is
+unreadable by the application role, and `current_tenant_context()` verifies
+the signature before returning tenant scope. Narrow definer-role row-lock
+policies were required for forced RLS and are dormant until an operator enables
+RLS separately. PostgreSQL 16 disposable acceptance applied and replayed
+migrations 392–393, forced RLS only on its synthetic tables, and passed
+cross-tenant filtering, forged/tampered context rejection, invalid-token
+clearing, transaction cleanup, key/table denial, and credential operations
+under forced RLS. Seventy-six focused Python tests, Ruff, Python compilation,
+and ordered migration validation (505 source files) pass. The candidate remains
+at migration 391 and RLS remains disabled; operator/Gateway context, worker,
+legacy CLI, Directus/view access, candidate rollout, and MAN-CAP-053 remain
+open ([audit](mobile-tenant-rls-callsite-audit.md); [evidence](builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json)).
 
 **13 October 2026 local source update (CAP-053):** migration 391 and the
 working tree now pin new mobile device enrollments to the current verified

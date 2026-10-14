@@ -462,6 +462,7 @@ async def upload_private_media(
             policy_conn,
             device_id=device_id,
             location_id=location_id,
+            device_token_hash=_token_hash(x_device_token),
         )
         policy_cur = policy_conn.cursor()
         _validate_media_upload_policy(
@@ -515,6 +516,7 @@ async def upload_private_media(
             conn,
             device_id=device_id,
             location_id=location_id,
+            device_token_hash=_token_hash(x_device_token),
         )
         cur = conn.cursor()
         cur.execute(
@@ -601,6 +603,7 @@ async def list_forms(
                 conn,
                 device_id=registered_device_id,
                 location_id=registered_location_id,
+                device_token_hash=_token_hash(x_device_token),
             )
         cur = conn.cursor()
         if x_device_token:
@@ -1145,6 +1148,7 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
             conn,
             device_id=device_id,
             location_id=registered_location_id,
+            device_token_hash=_token_hash(x_device_token),
         )
         cur = conn.cursor()
         for item in request.collections:
@@ -1426,6 +1430,7 @@ async def sync_status(x_device_token: str | None = Header(default=None)):
             conn,
             device_id=device_id,
             location_id=location_id,
+            device_token_hash=_token_hash(x_device_token),
         )
         cur = conn.cursor()
         cur.execute(

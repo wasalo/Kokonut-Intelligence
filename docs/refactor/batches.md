@@ -702,7 +702,20 @@ reporting views.
   mobile API/tenant suites passed 56 tests; Ruff and syntax/whitespace checks
   passed. No candidate or legacy database was touched; RLS remains disabled
   ([evidence](builds/2026-10-14-recovery/mobile-credential-functions-disposable.json)).
-- [ ] Roll out migration 392 to the local candidate only after a fresh encrypted
+- [x] Replace forgeable mobile-device context GUC trust with migration 393's
+  database-signed HMAC context, bound to the current PostgreSQL backend and
+  transaction. `set_mobile_device_context` now validates the bearer-token hash
+  and current owner, while `current_tenant_context` verifies the private-key
+  signature before RLS can read scope. Narrow lock policies make the owner and
+  credential definer roles work under forced RLS without broad application
+  access. Disposable PostgreSQL 16 acceptance applied 391–393, replayed 392
+  and 393, forced RLS only in the disposable database, and passed context
+  tampering, invalid-token cleanup, cross-tenant filtering, direct key/table
+  denial, enrollment/resolution under forced RLS, and transaction cleanup.
+  Seventy-six focused Python tests, Ruff, syntax, and the 505-file migration
+  validation pass. Candidate and legacy databases were untouched; RLS remains
+  disabled ([evidence](builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json)).
+- [ ] Roll out migrations 392–393 to the local candidate only after a fresh encrypted
   checkpoint and restore rehearsal; recreate only the candidate app and verify
   health, migration state, and protected routes. Candidate remains at migration
   391 until separately authorized. This rollout alone will not enable RLS.

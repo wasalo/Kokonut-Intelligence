@@ -68,8 +68,10 @@ verification:
 
 - Set tenant, location, actor ID, and actor type with transaction-local
   settings after authentication. Validate them against stored membership and
-  grants in the same transaction. Never use session-wide settings that can
-  leak through pooled connections.
+  grants in the same transaction. The mobile-device path now uses migration
+  393's database-signed context accessor; custom GUC labels alone remain
+  untrusted. Never use session-wide settings that can leak through pooled
+  connections.
 - Policies fail closed when context is absent, malformed, revoked, or
   inconsistent with the row's tenant/location. Read and write policies are
   distinct; a location grant alone cannot satisfy an organization boundary.
@@ -113,6 +115,19 @@ and owner rows until the transaction ends. Owner transfer therefore waits for
 in-flight protected work and makes old-owner devices fail closed afterward.
 An unused enrollment code is also rejected if its pinned owner is no longer
 current.
+
+Migration 393 signs the mobile context with a database-private HMAC key and
+binds it to the current PostgreSQL backend and transaction. RLS policies for
+this path must read `kokonut_security.current_tenant_context()`; setting
+`kokonut.tenant_id` or related labels directly does not establish access. A
+network-disabled PostgreSQL 16 disposable acceptance applied and replayed
+migrations 392–393, forced RLS on synthetic tables, and passed owner scoping,
+cross-tenant filtering, signature-tampering denial, invalid-token cleanup,
+key-table denial, and transaction reset. The migration adds only dormant
+policies and does not enable application-table RLS. The candidate remains at
+migration 391; OIDC operator and Gateway context still need an equivalent
+database-verifiable boundary. See the [RLS call-site audit](mobile-tenant-rls-callsite-audit.md)
+and [acceptance evidence](builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json).
 
 The browser recognizes the dedicated re-enrollment denial, removes only the
 old device credential and cached forms, and flags the existing encrypted queue

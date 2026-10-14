@@ -1,4 +1,4 @@
--- Empty PostgreSQL substrate for migrations 391-392 credential acceptance.
+-- Empty PostgreSQL substrate for migrations 391-393 credential/context acceptance.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE public.organization (

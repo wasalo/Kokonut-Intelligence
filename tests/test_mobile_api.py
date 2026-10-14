@@ -263,7 +263,11 @@ def test_forms_set_mobile_tenant_context_before_query_on_the_same_connection(mon
     assert events[0] == (
         "context",
         connection,
-        {"device_id": "device-1", "location_id": "11111111-1111-4111-8111-111111111111"},
+        {
+            "device_id": "device-1",
+            "location_id": "11111111-1111-4111-8111-111111111111",
+            "device_token_hash": mobile_api._token_hash("opaque-device-token"),
+        },
     )
     assert events[1][0] == "query"
     connection.commit.assert_called_once()

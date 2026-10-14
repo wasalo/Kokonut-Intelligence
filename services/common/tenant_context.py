@@ -19,6 +19,8 @@ _CONTEXT_SETTINGS = (
     "kokonut.location_id",
     "kokonut.actor_id",
     "kokonut.actor_type",
+    "kokonut.context_payload",
+    "kokonut.context_signature",
 )
 
 
@@ -107,13 +109,14 @@ def set_mobile_device_tenant_context(
     *,
     device_id: str,
     location_id: str,
+    device_token_hash: str,
 ) -> MobileDeviceTenantContext:
-    """Set context only for a device enrolled under the current verified owner.
+    """Set signed, transaction-bound context for a verified mobile device.
 
-    The active location owner is locked until the caller ends its transaction.
-    An owner transfer therefore serializes with protected device work; after
-    transfer, a device pinned to the former owner fails closed and must be
-    enrolled again. Legacy devices without a tenant binding are denied.
+    PostgreSQL validates the token hash and current owner, locks the relevant
+    rows, and signs a backend/transaction-bound context proof. A custom GUC by
+    itself is forgeable; RLS policies must read the signed
+    ``kokonut_security.current_tenant_context()`` accessor instead.
     """
     if getattr(connection, "autocommit", True):
         raise ValueError("tenant context requires a non-autocommit transaction")
@@ -126,46 +129,25 @@ def set_mobile_device_tenant_context(
     ):
         raise ValueError("device-id must be a non-empty identifier of at most 200 characters")
     requested_location_id = _normalize_uuid(location_id, "location-id")
+    if not isinstance(device_token_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", device_token_hash):
+        raise ValueError("device-token-hash must be a SHA-256 hex digest")
 
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT device.tenant_organization_id::text,
-                   device.location_id::text,
-                   device.id::text
-              FROM mobile_device AS device
-              JOIN location AS loc ON loc.id = device.location_id
-              JOIN location_tenant_owner_verification AS owner
-                ON owner.location_id = loc.id
-               AND owner.organization_id = loc.organization_id
-               AND owner.revoked_at IS NULL
-              JOIN organization AS tenant
-                ON tenant.id = owner.organization_id
-               AND tenant.status = 'active'
-             WHERE device.device_id = %s
-               AND device.location_id = %s::uuid
-               AND loc.status = 'active'
-               AND device.status = 'active'
-               AND device.device_token_hash IS NOT NULL
-               AND device.tenant_organization_id IS NOT NULL
-               AND device.tenant_organization_id = loc.organization_id
-             FOR SHARE OF device, loc, owner, tenant
+            SELECT tenant_id::text, location_id::text, actor_id::text, actor_type
+              FROM kokonut_security.set_mobile_device_context(%s, %s, %s::uuid)
             """,
-            (device_id, requested_location_id),
+            (device_token_hash, device_id, requested_location_id),
         )
         row = cursor.fetchone()
         if row is None:
             raise TenantContextDenied(
                 "device is not enrolled under the current verified location owner"
             )
-        tenant_id, validated_location_id, actor_id = map(str, row)
-        _set_transaction_tenant_context(
-            connection,
-            tenant_id=tenant_id,
-            location_id=validated_location_id,
-            actor_id=actor_id,
-            actor_type="mobile_device",
-        )
+        tenant_id, validated_location_id, actor_id, actor_type = map(str, row)
+        if actor_type != "mobile_device":
+            raise TenantContextDenied("database returned an invalid mobile context")
 
     return MobileDeviceTenantContext(
         tenant_id=tenant_id,

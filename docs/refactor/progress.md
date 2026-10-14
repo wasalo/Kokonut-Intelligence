@@ -4495,3 +4495,42 @@ gated candidate checkpoint/rollout; legacy CLI, workers, Directus/views, final
 app-role boundaries, and forced-RLS acceptance remain open. See the
 [call-site audit](mobile-tenant-rls-callsite-audit.md) and
 [disposable evidence](builds/2026-10-14-recovery/mobile-credential-functions-disposable.json).
+
+### Signed mobile tenant context — 14 October 2026
+
+Migration 393 adds a dedicated `NOLOGIN`, `NOBYPASSRLS` context-function role,
+a private random HMAC key, and database functions that validate the presented
+device-token hash/current owner and sign the resulting context for the current
+PostgreSQL backend and transaction. `current_tenant_context()` accepts only a
+valid signature for that backend/transaction. The application role cannot read
+the signing key. Dormant SELECT/UPDATE policies and key-column-only update
+privileges let the restricted credential/context functions lock current-owner
+rows under forced RLS; the migrations do not enable RLS on application tables.
+
+The network-disabled PostgreSQL 16 acceptance applied migration 391, applied
+and replayed 392–393, and forced RLS only in the disposable database. It passed
+valid mobile context, cross-tenant filtering, caller-GUC and payload/signature
+tampering denial, invalid-token clearing, context reset at transaction end,
+private-key and direct-table denial, single-use enrollment, owner transfer,
+and concurrent redemption. The test also confirmed both definer roles are
+non-login, non-bypass, without role memberships, and that application-table RLS
+remains disabled after migration replay. The disposable container and all
+synthetic rows were removed. Seventy-six focused tests passed; Ruff, Python
+compilation, and ordered migration validation (505 files) passed. Evidence is
+at `docs/refactor/builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json`.
+
+The test uncovered PostgreSQL's requirement for an UPDATE policy on rows read
+with `FOR SHARE` under forced RLS. Migration 393 now adds matching dormant
+policies for the narrowly scoped no-login roles while preserving column-level
+update grants. The disposable runner's readiness probe also waits for a stable
+postmaster start time so it cannot mistake the temporary initdb server for the
+final PostgreSQL process.
+
+Migrations 392–393 were not applied to the candidate or legacy database. The
+candidate remains at migration 391, and application-table RLS stays disabled.
+The OFU-18 checkpoint, ordered rollout, candidate-app rebuild, and protected
+route verification remain separately gated. Operator/Gateway signed context,
+legacy CLI reads/sync, worker and Directus/view boundaries, and broader tenant
+RLS remain open. CI #306 and Security #30 passed on pushed head
+`333507e844cd3937761087f1e7e03f895c509250`; they do not cover this unpushed
+migration-393 batch or the local commit ahead of that head.
