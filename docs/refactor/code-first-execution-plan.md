@@ -2,8 +2,8 @@
 
 **Updated:** 14 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Last pushed code head:** `7953afe4d5267b040392a8fe52e1ae38c236cfd4`
-**Current release checks:** CI #308 and Security #32 passed on pushed head
+**Last CI-verified pushed head:** `7953afe4d5267b040392a8fe52e1ae38c236cfd4`
+**Last passing release checks:** CI #308 and Security #32 passed on pushed head
 `7953afe4d5267b040392a8fe52e1ae38c236cfd4`.
 
 This plan orders the remaining work so repository changes and reproducible
@@ -15,18 +15,19 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 291 checked and 22 open items (313 total).
+- The execution checklist has 294 checked and 20 open items (314 total).
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
-- Candidate migrations 392–395 and the remaining curated seeds are prepared
+- Candidate migrations 392–396 and the remaining curated seeds are prepared
   but have not been applied to the local candidate. They remain separately
   approval-gated under OFU-17 and OFU-18.
 - Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
   confirmed as exclusive to Kokonut Network. Do not ask for that mapping again.
-- There is no Raspberry Pi available. ARM64 feasibility will be assessed with
-  build, emulation, constrained-container, bootstrap, restore, migration, and
-  health checks. No physical performance, thermal, storage, power-loss, or
-  on-device restart result will be claimed.
+- There is no Raspberry Pi available. The code-only ARM64 assessment passed
+  Buildx/QEMU build, constrained-container startup, bootstrap, restore,
+  migration, health, and restart checks. Physical performance, thermal,
+  storage, power-loss, network, and on-device restart behavior remain
+  unverified; no hardware result is claimed.
 
 ## Work order
 
@@ -66,8 +67,17 @@ before protected reads and writes, and make direct database access fail closed.
 
 **Code tasks:**
 
-1. Add database-backed authorization checks for Gateway API-key requests,
-   proving scope is bound to the same transaction and cleared on denial/end.
+1. **Complete for tenant-bound mobile-device writes:** migration 396 verifies
+   API-key and capability-token activity, expiry/revocation, exact
+   resource/action/location scope, and current location ownership before
+   signing context for that transaction. Scope denial clears prior context;
+   credential and owner rows stay locked until transaction end. API keys with
+   wildcard or location-free scopes fail closed. The runtime role can read only
+   reviewed authentication columns and cannot manage API keys. Focused Gateway,
+   mobile, tenant-context, and role tests plus isolated forced-RLS acceptance
+   pass. This source-only slice does not cover other Gateway routes, shared
+   organization affiliation for API keys, candidate credential provisioning,
+   or application RLS.
 2. Trace each worker and legacy CLI query to its service identity and tenant
    context. Give workers only the database functions/columns they require;
    reject unscoped paths before mutation.
@@ -226,7 +236,7 @@ deployment or semantic acceptance:
   bucket/credentials/policy (OFU-08), browser vault and trusted local HTTPS
   certificate when browser acceptance is scheduled (OFU-10/11).
 - **Candidate-only writes:** approval to apply the 30 curated seeds (OFU-17)
-  and a separate approval to roll out migrations 392–395 (OFU-18). Neither is
+  and a separate approval to roll out migrations 392–396 (OFU-18). Neither is
   implied by code/test approval.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only

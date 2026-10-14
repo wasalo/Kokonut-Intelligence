@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
@@ -116,18 +117,22 @@ def _set_gateway_mobile_device_context(conn, request: Request, location_id: str,
         expected_location = str(UUID(str(location_id)))
         authorized_location = str(UUID(str(authorization.get("location_id"))))
     except (AttributeError, TypeError, ValueError):
-        raise TenantContextDenied("verified Gateway route authorization is required") from None
+        raise TenantContextDenied("database-verifiable Gateway credential is required") from None
     if (
         not isinstance(authorization, dict)
         or authorization.get("resource") != "mobile_device"
         or authorization.get("action") != action
         or authorized_location != expected_location
+        or authorization.get("credential_type") not in {"api_key", "capability_token"}
+        or not isinstance(authorization.get("credential_hash"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", authorization.get("credential_hash", "")) is None
     ):
-        raise TenantContextDenied("verified Gateway route authorization is required")
+        raise TenantContextDenied("database-verifiable Gateway credential is required")
     try:
         return set_gateway_tenant_context(
             conn,
-            gateway_caller=getattr(request.state, "caller", None),
+            credential_type=authorization.get("credential_type"),
+            credential_hash=authorization.get("credential_hash"),
             location_id=expected_location,
             resource="mobile_device",
             action=action,

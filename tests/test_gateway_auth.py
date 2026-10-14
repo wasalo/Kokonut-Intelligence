@@ -241,6 +241,25 @@ def test_capability_uses_route_resource_and_action():
     )
 
 
+def test_capability_auth_propagates_only_a_hash_for_database_revalidation():
+    import hashlib
+
+    from services.gateway.auth import verify_request
+
+    with patch("services.security.capabilities.CapabilityManager.verify", return_value={"holder": "field-agent", "token_id": "token-id"}):
+        result = verify_request(
+            _FakeRequest({"x-capability-token": "opaque-capability"}),
+            resource="mobile_device",
+            action="revoke",
+            location_id="loc-99",
+        )
+
+    assert result["authenticated"] is True
+    assert result["credential_type"] == "capability_token"
+    assert result["credential_hash"] == hashlib.sha256(b"opaque-capability").hexdigest()
+    assert "opaque-capability" not in str(result)
+
+
 def test_strict_scope_denies_two_part_scope(monkeypatch):
     """In strict mode, a 2-part scope must not match a location-specific request."""
     monkeypatch.setenv("KOKONUT_API_KEYS", "secret-key:my-service")
@@ -328,6 +347,11 @@ def test_scope_checked_returned_on_success(monkeypatch):
 
     assert result["authenticated"] is True
     assert result["scope_checked"] == "data_stream_post:create:loc-99"
+    assert result["credential_type"] == "api_key"
+    assert result["credential_hash"] == __import__("hashlib").sha256(
+        b"secret-key"
+    ).hexdigest()
+    assert "secret-key" not in result["credential_hash"]
 
 
 def test_scope_checked_none_on_denial(monkeypatch):

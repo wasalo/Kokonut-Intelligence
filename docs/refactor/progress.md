@@ -1,12 +1,13 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI #308 and Security #32 passed for this head. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Local migrations 392–395 have isolated PostgreSQL acceptance and remain gated from candidate rollout. The repository owner has no Raspberry Pi available; continue ARM64 assessment with code-only emulation and constrained-container checks, and do not claim physical-device acceptance.
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI #308 and Security #32 passed for this head. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Local migrations 392–396 have isolated PostgreSQL acceptance and remain gated from candidate rollout. The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
-Do not treat the earlier CI result as coverage for the current branch head or
-uncommitted batch. Local unpushed work now includes the Compose ARM64 build
-platform fix and code-only ARM64 runtime acceptance. The root implementation
+Do not treat CI #308 and Security #32 as coverage for commits after their
+verified head. Local unpushed work now includes the Compose ARM64 build
+platform fix, code-only ARM64 runtime acceptance, and Gateway credential
+tenant context in migration 396. The root implementation
 plan remains intentionally ignored; this ledger and the
 [capability matrix](capability-matrix.md) provide repository-visible progress
 alongside it. Remaining implementation is ordered in the
@@ -4570,10 +4571,11 @@ Ruff and Python compilation passed. Evidence is at
 This does not enable RLS or establish the final runtime database boundary.
 Migration 395 below removes direct runtime session-table access. The runtime
 role retains broad DML on other public tables, including mobile device-token
-and enrollment-code hashes; Gateway API-key context,
-worker/legacy CLI integration, and Directus/view access remain explicit RLS
-prerequisites. The candidate remains at migration 391 under OFU-18; no
-candidate or legacy database was touched.
+and enrollment-code hashes. Migration 396 later adds signed Gateway credential
+context for tenant-bound mobile-device writes; worker/legacy CLI integration
+and Directus/view access remain explicit RLS prerequisites. The candidate
+remains at migration 391 under OFU-18; no candidate or legacy database was
+touched.
 
 ### Operator-session runtime-role boundary — 14 October 2026
 
@@ -4600,13 +4602,15 @@ failed immediately. Evidence is at
 The focused Gateway/session and tenant-context tests passed 83 cases; Ruff and
 Python compilation passed.
 
-The bootstrap now requires migration 395 and a separate generated auth
+The bootstrap now requires migrations 395 and 396 plus a separate generated auth
 credential. The repeatable synthetic/populated runtime-role fixtures and OIDC
 Compose configuration are updated. Mobile device/enrollment credential reads
 are now denied by the bootstrap's explicit column grants; this is not candidate
 rollout or complete RLS readiness. Runtime DML remains broad on other public
-tables, and Gateway API-key context, workers, legacy CLI, and Directus/view
-boundaries remain open. Candidate and legacy databases were untouched.
+tables. Migration 396 now covers Gateway credential tenant context for
+tenant-bound mobile-device writes; other Gateway routes, workers, legacy CLI,
+and Directus/view boundaries remain open. Candidate and legacy databases were
+untouched.
 ### Runtime mobile credential column boundary — 14 October 2026
 
 The ordinary Kernel runtime bootstrap no longer leaves table-wide privileges
@@ -4619,7 +4623,7 @@ enrollment hash edits are denied. Future unknown columns remain ungranted until
 the allowlist is updated. The tenant preflight now reports active unbound
 devices without querying token hashes.
 
-The disposable PostgreSQL 16 check replayed migrations 391–395, provisioned
+The disposable PostgreSQL 16 check replayed migrations 391–396, provisioned
 the runtime and operator-auth roles twice through the current bootstrap, forced
 RLS on the operator identity/session fixture, and verified session functions
 plus the mobile column grants. The actual runtime login resolved an owner-bound
@@ -4632,11 +4636,54 @@ migration sources validated.
 Machine evidence is
 [runtime-mobile-credential-role-disposable.json](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).
 
-This does not run the HTTP handlers through the dedicated runtime login, prove
-database authorization for Gateway API-key requests, or close runtime DML on
-other public tables. Worker, legacy CLI, Directus/view, ownership, and final
-RLS gates remain open. No candidate or legacy database was changed; migrations
-392–395 remain under separately gated candidate rollout OFU-18.
+This does not run every HTTP handler through the dedicated runtime login or
+close runtime DML on other public tables. Worker, legacy CLI, Directus/view,
+ownership, and final RLS gates remain open. No candidate or legacy database was
+changed; migrations 392–396 remain under separately gated candidate rollout
+OFU-18.
+
+### Gateway credential tenant context — 14 October 2026
+
+Migration 396 adds `kokonut_security.set_gateway_tenant_context`, which
+revalidates the authenticated API-key or capability-token hash inside the
+protected database transaction. It requires an active, unexpired credential,
+an exact resource/action/location grant, and the location's current verified
+owner. Wildcard and location-free scopes fail closed. Credential, location,
+owner, and organization rows are locked through transaction end; PostgreSQL
+signs the context for the current backend and transaction. A duplicate API-key
+hash is prevented by the unique API-key index; the migration fails atomically
+if historic duplicates require cleanup. Capability usage limits retain the
+existing unlimited meaning for zero and allow the last authorized use after
+Gateway authentication has incremented the counter.
+
+The general runtime role now has only reviewed read columns on `api_key` for
+existing gRPC authentication, with all API-key table and column writes denied.
+The migration's function owner is `NOLOGIN`/`NOBYPASSRLS`, receives only
+credential/owner reads and lock privileges, and establishes context without
+enabling application-table RLS. Existing environment keys used for tenant-
+bound mobile writes need matching reviewed database hash/scope records.
+
+Focused Gateway, mobile, context, and runtime-role source checks passed 98
+tests; Ruff and the migration source validator passed (508 files). The
+network-disabled PostgreSQL 16 fixture replayed migration 396, forced RLS on
+synthetic probes, and passed eleven checks covering API keys, capabilities,
+exact scope, stale credentials, duplicate-key rejection, context tampering,
+capability final-use/over-limit behavior, zero-use-limit semantics, and
+transaction cleanup. A second disposable
+role-bootstrap check replayed migrations 391–396 and passed 13 checks,
+including signed Gateway
+context under the runtime login and denial of API-key writes. The runner now
+waits through PostgreSQL's temporary initdb server before issuing fixture SQL.
+Evidence is at
+[`gateway-tenant-context-disposable.json`](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)
+and
+[`runtime-mobile-credential-role-disposable.json`](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).
+
+The contract covers only tenant-bound mobile-device writes. Other Gateway
+routes, shared-organization API-key affiliation, production credential
+provisioning, workers, legacy CLI, Directus/view boundaries, broad runtime
+grants, and application RLS remain open. Candidate and legacy databases were
+not touched; candidate rollout remains gated under OFU-18.
 
 ### Phase 8 ARM64 code-only QEMU runtime acceptance — 14 October 2026
 

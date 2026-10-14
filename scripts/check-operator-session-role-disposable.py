@@ -24,6 +24,7 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/393_mobile_tenant_context_proof.sql",
     ROOT / "schemas/postgres/394_signed_operator_tenant_context.sql",
     ROOT / "schemas/postgres/395_operator_session_auth_boundary.sql",
+    ROOT / "schemas/postgres/396_signed_gateway_credential_tenant_context.sql",
 )
 DEFAULT_OUTPUT = (
     ROOT
@@ -64,7 +65,9 @@ def docker_sql(container: str, statement: str) -> str:
 
 
 def wait_ready(container: str) -> None:
-    for _ in range(120):
+    deadline = time.monotonic() + 60
+    consecutive_successes = 0
+    while time.monotonic() < deadline:
         result = subprocess.run(
             ["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"],
             text=True,
@@ -72,9 +75,15 @@ def wait_ready(container: str) -> None:
             check=False,
         )
         if result.returncode == 0:
-            return
-        time.sleep(0.25)
-    raise RuntimeError("disposable PostgreSQL did not become ready")
+            consecutive_successes += 1
+            if consecutive_successes >= 4:
+                return
+        else:
+            consecutive_successes = 0
+        # The official image briefly starts a temporary PostgreSQL server during
+        # initdb. Require a stable readiness window before issuing fixture SQL.
+        time.sleep(0.5)
+    raise RuntimeError("disposable PostgreSQL did not become stably ready")
 
 
 def provision_roles(
@@ -171,6 +180,27 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
             if cursor.fetchone()[0] != "role-boundary-device":
                 raise AssertionError("runtime role lost safe mobile-device reads")
             cursor.execute(
+                "SELECT id, key_hash, key_prefix, scopes, is_active "
+                "FROM public.api_key WHERE key_prefix = 'syntheti'"
+            )
+            api_key = cursor.fetchone()
+            if api_key is None or api_key[1] != "c" * 64 or api_key[4] is not True:
+                raise AssertionError("runtime role lost reviewed API-key authentication reads")
+            cursor.execute(
+                """SELECT tenant_id::text, location_id::text, actor_id::text, actor_type
+                     FROM kokonut_security.set_gateway_tenant_context(
+                         'api_key', repeat('c', 64),
+                         'a0000000-0000-0000-0000-000000000001'::uuid,
+                         'mobile_device', 'revoke'
+                     )"""
+            )
+            gateway_context = cursor.fetchone()
+            if gateway_context is None or gateway_context[3] != "gateway_api_key":
+                raise AssertionError("runtime role could not establish database-verified Gateway context")
+            cursor.execute("SELECT actor_type FROM kokonut_security.current_tenant_context()")
+            if cursor.fetchone() != ("gateway_api_key",):
+                raise AssertionError("runtime role could not read its signed Gateway context")
+            cursor.execute(
                 """SELECT device_id, user_id, location_id, owner_binding_current
                      FROM kokonut_security.resolve_mobile_device_token(%s)""",
                 ("a" * 64,),
@@ -251,6 +281,10 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
             "DELETE FROM public.mobile_device WHERE device_id = 'role-boundary-device'",
             "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1",
             "SELECT * FROM public.mobile_device_enrollment LIMIT 1",
+            "SELECT name FROM public.api_key LIMIT 1",
+            "INSERT INTO public.api_key (name, key_hash, key_prefix) VALUES ('runtime', repeat('1', 64), 'runtime')",
+            "UPDATE public.api_key SET is_active = FALSE",
+            "DELETE FROM public.api_key",
             "UPDATE public.mobile_device_enrollment SET code_hash = repeat('d', 64)",
             "DELETE FROM public.mobile_device_enrollment WHERE id = 'a0000000-0000-0000-0000-000000000111'",
             "SELECT session_token_hash FROM public.operator_session LIMIT 1",
@@ -313,6 +347,8 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
         "runtime role cannot SELECT, INSERT, UPDATE, or DELETE operator_session rows or columns",
         "runtime role cannot execute operator-session functions",
         "runtime role cannot read device-token, push, or enrollment-code credentials",
+        "runtime role has read-only API-key authentication columns and cannot manage API keys",
+        "runtime login can establish a signed, database-verified Gateway API-key context",
         "runtime role retains only the mobile device/enrollment columns used by current API handlers",
         "runtime login can call bounded token-resolution and enrollment-redemption functions",
         "operator-auth role has no direct mobile credential table access",
@@ -390,7 +426,8 @@ def main() -> int:
                 "393_mobile_tenant_context_proof.sql",
                 "394_signed_operator_tenant_context.sql",
                 "395_operator_session_auth_boundary.sql",
-                "395_operator_session_auth_boundary.sql (idempotency replay)",
+                "396_signed_gateway_credential_tenant_context.sql",
+                "396_signed_gateway_credential_tenant_context.sql (idempotency replay)",
             ],
             "provisioner_status": role_result["status"],
             "runtime_user": role_result["runtime_user"],
@@ -403,7 +440,7 @@ def main() -> int:
             "candidate_application_table_rls_enabled": False,
             "disposable_operator_table_rls_forced": True,
             "synthetic_rows_remaining": 0,
-            "scope_limit": "Verifies the general runtime role cannot read browser or mobile credential material and retains only declared mobile-table columns required by current API handlers. This is not the final application-table allowlist, database-verified Gateway capability, Directus boundary, or candidate RLS acceptance.",
+            "scope_limit": "Verifies the general runtime role cannot read browser or mobile credential material, cannot manage API keys, and retains only declared mobile/API-key columns required by current handlers. This is not the final application-table allowlist, Directus boundary, or candidate RLS acceptance.",
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n")

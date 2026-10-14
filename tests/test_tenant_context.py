@@ -22,7 +22,9 @@ from services.common.tenant_context import (
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
 OPERATOR_ID = "a0000000-0000-0000-0000-000000000904"
+GATEWAY_API_KEY_ID = "a0000000-0000-0000-0000-000000000910"
 OPERATOR_SESSION_HASH = "b" * 64
+GATEWAY_API_KEY_HASH = "c" * 64
 
 
 @pytest.fixture
@@ -301,44 +303,44 @@ def test_mobile_context_requires_transaction_and_clears_before_input_validation(
     assert "set_config(%s, '', TRUE)" in invalid.calls[0][0]
 
 
-def test_sets_gateway_context_from_current_verified_owner_after_route_auth():
-    connection = FakeConnection((TENANT_ID, LOCATION_ID))
+def test_sets_gateway_context_from_database_verified_api_key_scope():
+    connection = FakeConnection(
+        (TENANT_ID, LOCATION_ID, GATEWAY_API_KEY_ID, "gateway_api_key")
+    )
 
     context = set_gateway_tenant_context(
         connection,
-        gateway_caller="field-enroller",
+        credential_type="api_key",
+        credential_hash=GATEWAY_API_KEY_HASH,
         location_id=LOCATION_ID,
         resource="mobile_device",
         action="enroll",
     )
 
     assert context == GatewayTenantContext(
-        TENANT_ID, LOCATION_ID, "field-enroller", "gateway"
+        TENANT_ID, LOCATION_ID, GATEWAY_API_KEY_ID, "gateway_api_key"
     )
-    assert len(connection.calls) == 3
+    assert len(connection.calls) == 2
     assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
-    owner_sql, owner_params = connection.calls[1]
-    assert "owner.revoked_at IS NULL" in owner_sql
-    assert "tenant.status = 'active'" in owner_sql
-    assert "FOR SHARE OF loc, owner, tenant" in owner_sql
-    assert owner_params == (LOCATION_ID,)
-    context_sql, context_params = connection.calls[2]
-    assert "set_config(%s, %s, TRUE)" in context_sql
+    context_sql, context_params = connection.calls[1]
+    assert "kokonut_security.set_gateway_tenant_context" in context_sql
     assert context_params == (
-        "kokonut.tenant_id", TENANT_ID,
-        "kokonut.location_id", LOCATION_ID,
-        "kokonut.actor_id", "field-enroller",
-        "kokonut.actor_type", "gateway",
+        "api_key",
+        GATEWAY_API_KEY_HASH,
+        LOCATION_ID,
+        "mobile_device",
+        "enroll",
     )
 
 
 def test_gateway_context_denies_missing_verified_owner_after_clear():
     connection = FakeConnection(scope_row=None)
 
-    with pytest.raises(TenantContextDenied, match="current verified owner"):
+    with pytest.raises(TenantContextDenied, match="active credential scope"):
         set_gateway_tenant_context(
             connection,
-            gateway_caller="field-enroller",
+            credential_type="api_key",
+            credential_hash=GATEWAY_API_KEY_HASH,
             location_id=LOCATION_ID,
             resource="mobile_device",
             action="revoke",
@@ -346,28 +348,73 @@ def test_gateway_context_denies_missing_verified_owner_after_clear():
 
     assert len(connection.calls) == 2
     assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
-    assert "FOR SHARE OF loc, owner, tenant" in connection.calls[1][0]
-    assert "set_config(%s, %s, TRUE)" not in connection.calls[1][0]
+    assert "kokonut_security.set_gateway_tenant_context" in connection.calls[1][0]
+
+
+def test_sets_gateway_context_from_database_verified_capability():
+    connection = FakeConnection(
+        (TENANT_ID, LOCATION_ID, GATEWAY_API_KEY_ID, "gateway_capability")
+    )
+
+    context = set_gateway_tenant_context(
+        connection,
+        credential_type="capability_token",
+        credential_hash=GATEWAY_API_KEY_HASH,
+        location_id=LOCATION_ID,
+        resource="mobile_device",
+        action="revoke",
+    )
+
+    assert context == GatewayTenantContext(
+        TENANT_ID, LOCATION_ID, GATEWAY_API_KEY_ID, "gateway_capability"
+    )
+    assert connection.calls[1][1] == (
+        "capability_token",
+        GATEWAY_API_KEY_HASH,
+        LOCATION_ID,
+        "mobile_device",
+        "revoke",
+    )
 
 
 @pytest.mark.parametrize(
-    ("gateway_caller", "resource", "action"),
+    "credential_type",
+    ["unsupported", None],
+)
+def test_gateway_context_rejects_unsupported_credential_types(credential_type):
+    connection = FakeConnection()
+    with pytest.raises(ValueError, match="credential-type"):
+        set_gateway_tenant_context(
+            connection,
+            credential_type=credential_type,
+            credential_hash=GATEWAY_API_KEY_HASH,
+            location_id=LOCATION_ID,
+            resource="mobile_device",
+            action="enroll",
+        )
+    assert len(connection.calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("credential_hash", "resource", "action"),
     [
-        (" ", "mobile_device", "enroll"),
-        ("api\nkey", "mobile_device", "enroll"),
-        ("field-enroller", "Mobile_Device", "enroll"),
-        ("field-enroller", "mobile_device", "revoke:any"),
+        ("bad", "mobile_device", "enroll"),
+        ("c" * 64, "Mobile_Device", "enroll"),
+        ("c" * 64, "mobile_device", "revoke:any"),
     ],
 )
 def test_gateway_context_clears_old_scope_before_rejecting_invalid_inputs(
-    gateway_caller, resource, action
+    credential_hash, resource, action
 ):
-    connection = FakeConnection((TENANT_ID, LOCATION_ID))
+    connection = FakeConnection(
+        (TENANT_ID, LOCATION_ID, GATEWAY_API_KEY_ID, "gateway_api_key")
+    )
 
     with pytest.raises(ValueError):
         set_gateway_tenant_context(
             connection,
-            gateway_caller=gateway_caller,
+            credential_type="api_key",
+            credential_hash=credential_hash,
             location_id=LOCATION_ID,
             resource=resource,
             action=action,

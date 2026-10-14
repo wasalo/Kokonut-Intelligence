@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import os
 
@@ -46,6 +47,8 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
                 "authenticated": True,
                 "caller": result.get("holder", "cap-token"),
                 "capability_token_id": result.get("token_id"),
+                "credential_type": "capability_token",
+                "credential_hash": hashlib.sha256(cap_token.encode("utf-8")).hexdigest(),
                 "resource": resource,
                 "action": action,
                 "location_id": location_id,
@@ -89,6 +92,10 @@ def verify_request(request, resource: str, action: str, location_id: str | None 
             return {
                 "authenticated": True,
                 "caller": key_meta.get("name", "api-key"),
+                # This digest is an internal transaction proof. The raw key is
+                # never propagated past authentication or written to audit.
+                "credential_type": "api_key",
+                "credential_hash": hashlib.sha256(api_key.encode("utf-8")).hexdigest(),
                 "resource": resource,
                 "action": action,
                 "location_id": location_id,

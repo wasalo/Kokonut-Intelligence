@@ -25,6 +25,10 @@ OPERATOR_SESSION_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "schemas/postgres/395_operator_session_auth_boundary.sql"
 )
+GATEWAY_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "schemas/postgres/396_signed_gateway_credential_tenant_context.sql"
+)
 MOBILE_ROLE_FIXTURE = (
     Path(__file__).resolve().parents[2]
     / "tests/fixtures/operator_session_mobile_role_boundary.sql"
@@ -93,6 +97,7 @@ def main() -> None:
                    )"""
             )
             cur.execute(OPERATOR_SESSION_MIGRATION.read_text())
+            cur.execute(GATEWAY_CONTEXT_MIGRATION.read_text())
             cur.execute(MOBILE_ROLE_FIXTURE.read_text())
             cur.execute(
                 """

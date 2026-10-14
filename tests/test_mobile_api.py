@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -37,13 +37,14 @@ def _device_tenant_context_for_route_unit_tests(monkeypatch):
         lambda *_args, **_kwargs: None,
     )
 
-    def gateway_context(_connection, *, gateway_caller, location_id, **_kwargs):
+    def gateway_context(_connection, *, credential_hash, location_id, **_kwargs):
         from uuid import UUID
 
+        assert len(credential_hash) == 64
         return GatewayTenantContext(
             tenant_id="a0000000-0000-0000-0000-000000000801",
             location_id=str(UUID(str(location_id))),
-            actor_id=gateway_caller,
+            actor_id="a0000000-0000-0000-0000-000000000910",
         )
 
     monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", gateway_context)
@@ -1172,7 +1173,7 @@ def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path)
         return GatewayTenantContext(
             "a0000000-0000-0000-0000-000000000801",
             kwargs["location_id"],
-            kwargs["gateway_caller"],
+            "a0000000-0000-0000-0000-000000000910",
         )
 
     gateway_context = MagicMock(side_effect=set_gateway_context)
@@ -1202,7 +1203,8 @@ def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path)
     assert f"{location_id}" in str(cursor.execute.call_args_list)
     gateway_context.assert_called_once_with(
         connection,
-        gateway_caller="field-enroller",
+        credential_type="api_key",
+        credential_hash=__import__("hashlib").sha256(b"enroller-secret").hexdigest(),
         location_id=location_id,
         resource="mobile_device",
         action="enroll",
@@ -1215,6 +1217,57 @@ def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path)
     assert events[context_index][1] is connection
     assert context_index < insert_index
     tenant_context.assert_not_called()
+
+
+def test_capability_enrollment_passes_only_database_revalidation_hash(monkeypatch, tmp_path):
+    import hashlib
+
+    location_id = "11111111-1111-4111-8111-111111111111"
+    monkeypatch.setenv(
+        "KOKONUT_GATEWAY_AUDIT_SPOOL_PATH",
+        str(tmp_path / "gateway-audit.sqlite3"),
+    )
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.execute.side_effect = lambda *_args: None
+    cursor.fetchone.return_value = ("enrollment-1", "2030-01-01T00:00:00+00:00")
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    gateway_context = MagicMock(
+        return_value=GatewayTenantContext(
+            "a0000000-0000-0000-0000-000000000801",
+            location_id,
+            "a0000000-0000-0000-0000-000000000921",
+            "gateway_capability",
+        )
+    )
+    monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", gateway_context)
+
+    with patch(
+        "services.security.capabilities.CapabilityManager.verify",
+        return_value={"holder": "field-reviewer", "token_id": "capability-id"},
+    ) as verify:
+        with _client(monkeypatch) as client:
+            response = client.post(
+                f"/api/mobile/locations/{location_id}/enrollments",
+                headers={"x-capability-token": "opaque-capability"},
+                json={"user_id": "worker-1"},
+            )
+
+    assert response.status_code == 201
+    verify.assert_called_once_with(
+        "opaque-capability",
+        resource="mobile_device",
+        action="enroll",
+        location_id=location_id,
+    )
+    gateway_context.assert_called_once_with(
+        connection,
+        credential_type="capability_token",
+        credential_hash=hashlib.sha256(b"opaque-capability").hexdigest(),
+        location_id=location_id,
+        resource="mobile_device",
+        action="enroll",
+    )
 
 
 @pytest.mark.parametrize(
@@ -1291,11 +1344,15 @@ def test_gateway_mobile_device_mutations_deny_without_current_owner_context(
             "resource": "mobile_device",
             "action": "revoke",
             "location_id": "11111111-1111-4111-8111-111111111111",
+            "credential_type": "api_key",
+            "credential_hash": "a" * 64,
         },
         {
             "resource": "mobile_device",
             "action": "enroll",
             "location_id": "22222222-2222-4222-8222-222222222222",
+            "credential_type": "api_key",
+            "credential_hash": "a" * 64,
         },
     ],
     ids=("missing", "wrong-action", "wrong-location"),
@@ -1314,7 +1371,7 @@ def test_gateway_mobile_context_requires_exact_authenticated_route_marker(
         )
     )
 
-    with pytest.raises(TenantContextDenied, match="verified Gateway route authorization"):
+    with pytest.raises(TenantContextDenied, match="database-verifiable Gateway credential"):
         mobile_api._set_gateway_mobile_device_context(
             MagicMock(),
             request,
@@ -1433,7 +1490,7 @@ def test_device_revocation_is_location_scoped_and_clears_token_hash(monkeypatch)
             or GatewayTenantContext(
                 "a0000000-0000-0000-0000-000000000801",
                 kwargs["location_id"],
-                kwargs["gateway_caller"],
+                "a0000000-0000-0000-0000-000000000910",
             )
         )
     )
@@ -1528,7 +1585,7 @@ def test_enrollment_revocation_is_scoped_to_location(monkeypatch):
             or GatewayTenantContext(
                 "a0000000-0000-0000-0000-000000000801",
                 kwargs["location_id"],
-                kwargs["gateway_caller"],
+                "a0000000-0000-0000-0000-000000000910",
             )
         )
     )

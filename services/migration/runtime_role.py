@@ -23,6 +23,9 @@ _SESSION_FUNCTIONS = (
     "kokonut_security.authenticate_operator_session(text)",
     "kokonut_security.revoke_operator_session(uuid)",
 )
+_GATEWAY_CONTEXT_FUNCTION = (
+    "kokonut_security.set_gateway_tenant_context(text,text,uuid,text,text)"
+)
 _MOBILE_DEVICE_READ_COLUMNS = (
     "id",
     "device_id",
@@ -78,6 +81,15 @@ _MOBILE_CREDENTIAL_COLUMNS = {
     "mobile_device": ("device_token_hash", "push_token"),
     "mobile_device_enrollment": ("code_hash",),
 }
+_API_KEY_COLUMNS = (
+    "id",
+    "key_hash",
+    "key_prefix",
+    "role_id",
+    "scopes",
+    "expires_at",
+    "is_active",
+)
 
 
 def _role_identifier(value: str, label: str) -> sql.Identifier:
@@ -284,6 +296,91 @@ def _verify_mobile_credential_boundary(cur, role_name: str) -> None:
             raise RuntimeError(f"{role_name} retains table-wide {privilege} on {table_name}")
 
 
+def _apply_api_key_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
+    """Keep API-key authentication read-only for the general runtime role."""
+    table_ident = sql.Identifier("public", "api_key")
+    cur.execute(
+        "SELECT attname FROM pg_attribute "
+        "WHERE attrelid = to_regclass('public.api_key') AND attnum > 0 AND NOT attisdropped"
+    )
+    actual_columns = {row[0] for row in cur.fetchall()}
+    missing_columns = sorted(set(_API_KEY_COLUMNS) - actual_columns)
+    if not actual_columns or missing_columns:
+        raise RuntimeError("api_key is missing columns required for the runtime boundary")
+
+    cur.execute(
+        sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
+            table_ident, runtime_ident
+        )
+    )
+    for column_name in sorted(actual_columns):
+        for privilege in ("SELECT", "INSERT", "UPDATE"):
+            cur.execute(
+                sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                    sql.SQL(privilege),
+                    sql.Identifier(column_name),
+                    table_ident,
+                    runtime_ident,
+                )
+            )
+    cur.execute(
+        sql.SQL("GRANT SELECT ({}) ON TABLE {} TO {}").format(
+            sql.SQL(", ").join(sql.Identifier(column) for column in _API_KEY_COLUMNS),
+            table_ident,
+            runtime_ident,
+        )
+    )
+    return {
+        "select": list(_API_KEY_COLUMNS),
+        "insert": [],
+        "update": [],
+        "delete": False,
+    }
+
+
+def _verify_api_key_boundary(cur, role_name: str) -> None:
+    for column_name in _API_KEY_COLUMNS:
+        cur.execute(
+            "SELECT has_column_privilege(%s, 'public.api_key', %s, 'SELECT')",
+            (role_name, column_name),
+        )
+        if cur.fetchone()[0] is not True:
+            raise RuntimeError(f"{role_name} cannot read api_key.{column_name}")
+    for table_name, privilege in (
+        ("public.api_key", "INSERT"),
+        ("public.api_key", "UPDATE"),
+        ("public.api_key", "DELETE"),
+    ):
+        cur.execute(
+            "SELECT has_table_privilege(%s, %s, %s)",
+            (role_name, table_name, privilege),
+        )
+        if cur.fetchone()[0]:
+            raise RuntimeError(f"{role_name} retains table-wide {privilege} on api_key")
+    cur.execute(
+        "SELECT EXISTS (SELECT 1 FROM pg_attribute "
+        "WHERE attrelid = 'public.api_key'::regclass AND attnum > 0 AND NOT attisdropped "
+        "AND attname <> ALL(%s) AND has_column_privilege(%s, 'public.api_key', attname, 'SELECT'))",
+        (list(_API_KEY_COLUMNS), role_name),
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(f"{role_name} can read an unreviewed api_key column")
+    cur.execute(
+        """SELECT EXISTS (
+               SELECT 1 FROM pg_attribute
+                WHERE attrelid = 'public.api_key'::regclass
+                  AND attnum > 0 AND NOT attisdropped
+                  AND (
+                    has_column_privilege(%s, 'public.api_key', attname, 'INSERT')
+                    OR has_column_privilege(%s, 'public.api_key', attname, 'UPDATE')
+                  )
+           )""",
+        (role_name, role_name),
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(f"{role_name} retains column-level API-key write privileges")
+
+
 def provision_runtime_role(
     conn,
     *,
@@ -298,7 +395,7 @@ def provision_runtime_role(
     """Provision a general runtime role plus a session-only auth principal.
 
     The runtime role keeps all-table DML compatibility for the legacy schema,
-    except ``operator_session`` and mobile credential tables, which use
+    except ``operator_session``, mobile credentials, and ``api_key``, which use
     explicit least-privilege grants. The dedicated auth role can only execute
     the three bounded functions from migration 395. This is scoped to a
     dedicated Kernel PostgreSQL instance.
@@ -339,6 +436,9 @@ def provision_runtime_role(
         )
         if any(procedure is None for procedure in cur.fetchone()):
             raise RuntimeError("migration 395 operator-session functions must be applied before role provisioning")
+        cur.execute("SELECT to_regprocedure(%s)", (_GATEWAY_CONTEXT_FUNCTION,))
+        if cur.fetchone()[0] is None:
+            raise RuntimeError("migration 396 Gateway tenant-context function must be applied before role provisioning")
 
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
         _ensure_login_role(
@@ -346,6 +446,11 @@ def provision_runtime_role(
             name=operator_auth_user,
             identifier=auth_ident,
             password=operator_auth_password,
+        )
+        cur.execute(
+            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                sql.SQL(_GATEWAY_CONTEXT_FUNCTION), runtime_ident
+            )
         )
         cur.execute(
             "SELECT datname FROM pg_database WHERE datallowconn OR datname = 'template1'"
@@ -390,6 +495,7 @@ def provision_runtime_role(
             ).format(admin_ident, runtime_ident)
         )
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
+        api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
         cur.execute(
             sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}").format(auth_ident)
         )
@@ -494,6 +600,13 @@ def provision_runtime_role(
             raise RuntimeError("operator-auth role is missing a bounded session function grant")
 
         _verify_mobile_credential_boundary(cur, runtime_user)
+        _verify_api_key_boundary(cur, runtime_user)
+        cur.execute(
+            "SELECT has_function_privilege(%s, %s, 'EXECUTE')",
+            (runtime_user, _GATEWAY_CONTEXT_FUNCTION),
+        )
+        if cur.fetchone()[0] is not True:
+            raise RuntimeError("runtime role is missing the bounded Gateway context function")
 
         cur.execute(
             """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -522,13 +635,16 @@ def provision_runtime_role(
         "operator_auth_connect_grants": auth_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
         "runtime_table_privilege_exceptions": {
+            "api_key": "explicit read-only column allowlist; no insert, update, or delete",
             "mobile_device": "explicit column allowlist; no table-wide INSERT, UPDATE, or DELETE",
             "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
             "operator_session": "bounded functions only",
         },
         "runtime_mobile_credential_privileges": mobile_credential_grants,
+        "runtime_api_key_privileges": api_key_grants,
         "operator_session_access": "bounded functions only",
         "operator_auth_functions": ["create", "authenticate", "revoke"],
+        "runtime_gateway_function": "set_gateway_tenant_context",
         "runtime_owns_relations": False,
         "operator_auth_owns_relations": False,
     }

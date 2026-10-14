@@ -2,8 +2,9 @@
 
 This module is a building block for row-level security, not an RLS rollout.
 Call it inside the same open transaction as the scoped query. Operator access
-refuses legacy NULL-tenant grants; mobile-device access requires a device pinned
-to the location's current verified owner. Both clear prior local context first.
+refuses legacy NULL-tenant grants; mobile-device and Gateway API-key access
+require current database-verified credentials and ownership. Setters clear
+prior local context first.
 """
 
 from __future__ import annotations
@@ -72,17 +73,12 @@ class MobileDeviceTenantContext:
 
 @dataclass(frozen=True)
 class GatewayTenantContext:
-    """Current-owner context for a route already authorized by the Gateway.
-
-    This carries application-verified scope into the transaction. It does not
-    turn a custom PostgreSQL setting into a database credential or replace the
-    Gateway's route authorization.
-    """
+    """Database-verified API-key context for one Gateway transaction."""
 
     tenant_id: str
     location_id: str
     actor_id: str
-    actor_type: str = "gateway"
+    actor_type: str = "gateway_api_key"
 
 
 def _normalize_uuid(value: str, label: str) -> str:
@@ -102,27 +98,6 @@ def clear_operator_tenant_context(connection: Any) -> None:
             "SELECT "
             + ", ".join("set_config(%s, '', TRUE)" for _ in _CONTEXT_SETTINGS),
             _CONTEXT_SETTINGS,
-        )
-
-
-def _set_transaction_tenant_context(
-    connection: Any,
-    *,
-    tenant_id: str,
-    location_id: str,
-    actor_id: str,
-    actor_type: str,
-) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute(
-            "SELECT "
-            + ", ".join("set_config(%s, %s, TRUE)" for _ in _CONTEXT_SETTINGS),
-            (
-                _CONTEXT_SETTINGS[0], tenant_id,
-                _CONTEXT_SETTINGS[1], location_id,
-                _CONTEXT_SETTINGS[2], actor_id,
-                _CONTEXT_SETTINGS[3], actor_type,
-            ),
         )
 
 
@@ -274,29 +249,26 @@ def set_operator_tenant_context(
 def set_gateway_tenant_context(
     connection: Any,
     *,
-    gateway_caller: str,
+    credential_type: str,
+    credential_hash: str,
     location_id: str,
     resource: str,
     action: str,
 ) -> GatewayTenantContext:
-    """Carry a Gateway-authorized route's current-owner scope into its write.
+    """Set signed tenant context after DB verifies the Gateway credential's exact scope.
 
-    Call only after Gateway middleware has authenticated the principal and
-    authorized the route's resource/action/location. This function revalidates
-    and locks the current verified location owner in the same transaction; it
-    does not independently prove that the principal has the Gateway grant.
+    The credential hash is supplied by Gateway authentication middleware and
+    is never logged. PostgreSQL rechecks API-key or capability-token status,
+    expiry, exact location scope, and current owner before signing context.
     """
     if getattr(connection, "autocommit", True):
         raise ValueError("tenant context requires a non-autocommit transaction")
 
     clear_operator_tenant_context(connection)
-    if (
-        not isinstance(gateway_caller, str)
-        or not gateway_caller.strip()
-        or len(gateway_caller) > 200
-        or any(ord(char) < 32 or ord(char) == 127 for char in gateway_caller)
-    ):
-        raise ValueError("gateway-caller must be a non-empty identifier of at most 200 characters")
+    if credential_type not in {"api_key", "capability_token"}:
+        raise ValueError("credential-type must be api_key or capability_token")
+    if not isinstance(credential_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", credential_hash):
+        raise ValueError("credential-hash must be a SHA-256 hex digest")
     if not isinstance(resource, str) or not _IDENTIFIER_RE.fullmatch(resource):
         raise ValueError("resource must be a lowercase identifier")
     if not isinstance(action, str) or not _IDENTIFIER_RE.fullmatch(action):
@@ -306,37 +278,25 @@ def set_gateway_tenant_context(
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT owner.organization_id::text, loc.id::text
-              FROM location AS loc
-              JOIN location_tenant_owner_verification AS owner
-                ON owner.location_id = loc.id
-               AND owner.organization_id = loc.organization_id
-               AND owner.revoked_at IS NULL
-              JOIN organization AS tenant
-                ON tenant.id = owner.organization_id
-               AND tenant.status = 'active'
-             WHERE loc.id = %s::uuid
-               AND loc.status = 'active'
-             FOR SHARE OF loc, owner, tenant
+            SELECT tenant_id::text, location_id::text, actor_id::text, actor_type
+              FROM kokonut_security.set_gateway_tenant_context(
+                  %s, %s, %s::uuid, %s, %s
+              )
             """,
-            (requested_location_id,),
+            (credential_type, credential_hash, requested_location_id, resource, action),
         )
         row = cursor.fetchone()
         if row is None:
             raise TenantContextDenied(
-                "an active location with a current verified owner is required"
+                "active credential scope and current verified location owner are required"
             )
-        tenant_id, validated_location_id = map(str, row)
-        _set_transaction_tenant_context(
-            connection,
-            tenant_id=tenant_id,
-            location_id=validated_location_id,
-            actor_id=gateway_caller.strip(),
-            actor_type="gateway",
-        )
+        tenant_id, validated_location_id, actor_id, actor_type = map(str, row)
+        if actor_type not in {"gateway_api_key", "gateway_capability"}:
+            raise TenantContextDenied("database returned an invalid Gateway context")
 
     return GatewayTenantContext(
         tenant_id=tenant_id,
         location_id=validated_location_id,
-        actor_id=gateway_caller.strip(),
+        actor_id=actor_id,
+        actor_type=actor_type,
     )

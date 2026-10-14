@@ -693,9 +693,10 @@ reporting views.
   removes all runtime-role table/column access to `operator_session`; a distinct
   auth login can create, authenticate, and revoke sessions only through bounded
   functions. Disposable PostgreSQL 16 replay, forced-RLS, and privilege checks
-  passed. The runtime role still has broad DML on other public tables, and
-  legacy CLI paths, Gateway API-key context, workers, and the Directus/view
-  boundary need their own access contracts before RLS. Full request/worker/
+  passed. The runtime role still has broad DML on other public tables. Gateway
+  mobile credential context is now covered in migration 396; other Gateway
+  routes, legacy CLI paths, workers, and the Directus/view boundary need their
+  own access contracts before RLS. Full request/worker/
   Directus coverage remains open
   ([audit](mobile-tenant-rls-callsite-audit.md)).
 - [x] Move Field Collector token lookup and one-time enrollment redemption
@@ -755,12 +756,40 @@ reporting views.
   direct hash reads, hash predicates, and `SELECT *`, while the allowed handler
   statements succeeded; no candidate/legacy DB was touched
   ([evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)).
-  This does not verify the HTTP handlers under the runtime login or close the
-  broader role, Gateway API-key, worker, legacy CLI, Directus, or RLS gates.
-- [ ] Roll out migrations 392–395 to the local candidate only after a fresh encrypted
+  This does not verify every HTTP handler under the runtime login or close the
+  broader app-table role, worker, legacy CLI, Directus, or RLS gates. Gateway
+  credential tenant context is covered in migration 396 below.
+- [x] Bind Gateway API-key and capability-token mobile-device writes to signed
+  database tenant context in migration 396. The database independently checks
+  credential activity/expiry, exact location/resource/action scope, current
+  verified ownership, unique API-key identity, and credential/owner row locks
+  before signing the backend/transaction-bound context. Wildcard and
+  location-free scopes fail closed; application RLS remains disabled. The
+  runtime bootstrap now gives
+  `api_key` read-only reviewed columns and denies key creation/rotation/revoke
+  via the general runtime login, while continuing to permit existing gRPC
+  authentication reads. The focused Gateway, mobile, context, and runtime-role
+  source suites passed 98 tests; Ruff and the 508-file migration source
+  validator passed. Network-disabled PostgreSQL 16 acceptance replayed
+  migration 396, forced RLS on synthetic probe tables, and passed its scope,
+  credential-state, duplicate-key rejection, capability last-use/over-limit,
+  context-tampering, zero-use-limit, and cleanup checks. The role bootstrap
+  acceptance replayed migrations
+  391–396 and confirmed the runtime
+  login can call the signed context function but cannot write API keys. Its
+  disposable PostgreSQL runner now waits through the image's temporary initdb
+  server before applying fixtures. See the
+  [Gateway context contract](gateway-tenant-context-contract.md) and
+  [disposable evidence](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json).
+  No candidate or legacy database was touched. The contract currently binds
+  Gateway credentials to the verified location owner; shared-organization API
+  key affiliation and production credential provisioning remain open.
+- [ ] Roll out migrations 392–396 to the local candidate only after a fresh encrypted
   checkpoint and restore rehearsal; recreate only the candidate app and verify
   health, migration state, and protected routes. Candidate remains at migration
-  391 until separately authorized. This rollout alone will not enable RLS.
+  391 until separately authorized. Existing environment keys need reviewed
+  matching database hash/scope rows before tenant-bound mobile writes can pass.
+  This rollout alone will not enable RLS.
 - [x] Audit repository-owned downstream consumers of Field Collector data;
   the source review found an unguarded process-interface elapsed-time lookup
   and added the shared eligibility predicate. Reporting, export, metric,

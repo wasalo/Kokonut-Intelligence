@@ -1,0 +1,24 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-14T18:26:15.767969+00:00",
+  "database": "PostgreSQL 16 disposable container with Docker network disabled",
+  "migration": "396_signed_gateway_credential_tenant_context.sql",
+  "idempotency_replay": true,
+  "checks": [
+    "migration 396 applies and replays idempotently",
+    "runtime API-key table writes are denied while reviewed gRPC read columns remain available",
+    "exact active owner-scoped API key establishes signed context and forced RLS returns only its tenant row",
+    "location-free, wildcard, wrong-location, expired, and inactive API keys are denied and clear prior context",
+    "duplicate API-key hashes are rejected by the migration's unique index",
+    "exact active location-scoped capability establishes signed context under forced RLS",
+    "wrong-location, expired, and revoked capabilities are denied and clear prior context",
+    "the final allowed capability use passes after usage increment; over-limit is denied",
+    "zero max-usage retains the existing unlimited capability semantics",
+    "caller-forged GUC values fail signed context validation and forced RLS",
+    "transaction end clears the Gateway tenant context"
+  ],
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "rls_enabled_outside_disposable_database": false,
+  "scope_limit": "Uses a minimal compatible schema for Gateway tenant context. It does not replay the full migration chain, exercise every Gateway handler, or enable RLS on candidate/deployed data."
+}

@@ -30,6 +30,10 @@ OPERATOR_SESSION_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "schemas/postgres/395_operator_session_auth_boundary.sql"
 )
+GATEWAY_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "schemas/postgres/396_signed_gateway_credential_tenant_context.sql"
+)
 
 
 def connect(user: str, password: str, database: str = DATABASE):
@@ -80,6 +84,7 @@ def main() -> int:
             if cur.fetchone()[0] != DATABASE:
                 raise AssertionError("connected database does not match the isolated restore target")
             cur.execute(OPERATOR_SESSION_MIGRATION.read_text())
+            cur.execute(GATEWAY_CONTEXT_MIGRATION.read_text())
         admin.commit()
 
         first = provision_runtime_role(

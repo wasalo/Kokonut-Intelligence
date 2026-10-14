@@ -307,6 +307,8 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             "resource": policy["resource"],
             "action": policy["action"],
             "location_id": location_id,
+            "credential_type": auth_result.get("credential_type"),
+            "credential_hash": auth_result.get("credential_hash"),
         }
 
         mutation_reservation = None
