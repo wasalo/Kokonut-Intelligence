@@ -4308,10 +4308,10 @@ populated ownership/transfer behavior, human retention/erasure disposition,
 RLS, seed-ledger reconciliation, and media/role/external-provider recovery
 remain open. The approved eight-suite platform-integrity suite passed all 279
 tests locally on pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
-Immediately before this local seed-reconciliation update, pushed commit
-`90918664b1a418774fb35b7dcf65f2e9f8a02ea1` had Security run [#26](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38508910133)
-pass and CI run [#302](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38508910126)
-in progress; those checks do not cover this local batch.
+After the seed-reconciliation batch was pushed at
+`c26aa32229ebeb5f86f219c8b3ccb9f857bf93ec`, CI run [#303](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38510013935)
+was in progress and Security run [#27](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38510014012)
+passed. Those checks do not cover the current local read-only inventory update.
 
 ### Isolated Field Collector browser offline acceptance — 14 October 2026
 
@@ -4365,3 +4365,15 @@ match, and the candidate app, database, Metabase, and proxy remain healthy.
 Focused migration/upgrade suites passed 44 tests; Ruff, shell syntax, migration
 source validation for 503 files, and diff checks passed. See
 [reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json).
+
+### Curated seed target inventory — 14 October 2026
+
+A read-only transaction inventoried all 52 relations referenced by the curated
+seed SQL in the candidate. Every relation exists; 50 are empty. The two
+non-empty targets are the five mobile forms already tracked by the guarded seed
+reconciliation and 63 existing `service_registry` rows. The four service keys
+that seed 091 would add are absent. No curated SQL ran and no container was
+recreated. This closes the candidate's row-count inventory, not clean-bootstrap
+or cross-seed dependency acceptance; the 120 remaining seed sources stay
+pending pending that review. See
+[candidate inventory evidence](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json).

@@ -6,13 +6,13 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All named MAN-CAP acceptance checks below remain **not run**; implementation and deployment progress are tracked separately in the new progress column. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links and audit history before/after the provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
-**Previous pushed-head verification (CAP-001 / CAP-047 / CAP-053):** before
-this local seed-reconciliation update, PR #68 was at commit
-`90918664b1a418774fb35b7dcf65f2e9f8a02ea1`. CI run [#302](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38508910126)
-was in progress and Security run [#26](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38508910133)
-passed. Those checks do not include the current local source batch. The approved
-eight-suite platform-integrity suite passed all 279 tests locally on the earlier
-pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
+**Previous pushed-head verification (CAP-001 / CAP-047 / CAP-053):** after
+seed reconciliation was pushed, PR #68 was at commit
+`c26aa32229ebeb5f86f219c8b3ccb9f857bf93ec`. CI run [#303](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38510013935)
+was in progress and Security run [#27](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38510014012)
+passed. Those checks do not include the current local read-only inventory
+update. The approved eight-suite platform-integrity suite passed all 279 tests
+locally on the earlier pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus
 parity, worker/direct-database isolation, RLS, and named manual acceptance
@@ -46,7 +46,7 @@ active 1.2.0 forms and five matching active revisions exact, with five retired
 recorded `seed:140_mobile_forms.sql` as applied without changing business rows;
 120 other seed files remain pending. See the
 [preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json)
-and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json).
+and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. Clean-bootstrap/dependency acceptance remains open ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json)).
 
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,
