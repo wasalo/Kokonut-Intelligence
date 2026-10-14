@@ -4918,3 +4918,13 @@ automatically, and their external schedule ownership still needs reconciliation.
 Focused contracts, scheduler, map, allowlist, and event tests pass (77), with
 Ruff, format, compilation, and diff checks passing. Evidence:
 [`scheduled-command-contract-check.json`](builds/2026-10-14-recovery/scheduled-command-contract-check.json).
+
+### Optional gRPC disabled-provider import boundary — 14 October 2026
+
+Added focused checks for the provider-off behavior of the gRPC adapter. Both
+server startup and health checks return the explicit `gRPC provider disabled`
+error before importing optional transport packages or the gRPC server module.
+The two tests pass with Ruff and formatting checks. This verifies the disabled
+provider boundary only; enabled transport/auth parity, streaming, TLS, and
+runtime acceptance remain open. No database or Docker service was used. See
+[`grpc-disabled-provider-import-boundary.json`](builds/2026-10-14-recovery/grpc-disabled-provider-import-boundary.json).

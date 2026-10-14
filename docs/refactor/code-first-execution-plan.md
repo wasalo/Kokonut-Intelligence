@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 305 checked and 20 open items (325 total).
+- The execution checklist has 307 checked and 20 open items (327 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -41,6 +41,9 @@ MAN-CAP checks open until each has its own retained evidence.
   The registered native and Field Collector API routes now have an exact
   resource/action/public-policy inventory and unknown route/method cases are
   verified protected; broader tenant, OIDC, transport, and SDK parity remain.
+  The disabled gRPC adapter now has focused coverage proving `serve()` and
+  health checks fail before importing optional gRPC packages or the server;
+  enabled transport parity remains open.
   Focused source/disposable checks pass;
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
@@ -175,6 +178,10 @@ TypeScript fake-transport regression tests for method/path parity, encoded path
 segments, API-key/accept headers, typed payloads, and normalized failure cases.
 Those checks passed offline. Gateway route/auth and tenant-scope parity remain
 open; see the [acceptance record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
+The gRPC adapter now also has focused tests for the disabled-provider boundary:
+both server startup and health checks return the explicit disabled error before
+loading optional gRPC dependencies. This does not establish enabled transport
+parity or runtime acceptance ([evidence](builds/2026-10-14-recovery/grpc-disabled-provider-import-boundary.json)).
 The native and Field Collector routers now also have a pinned full method/path
 policy inventory. A 27-test focused Gateway run confirms exact resource/action/
 public policy coverage, 401 for every registered private route when anonymous,
