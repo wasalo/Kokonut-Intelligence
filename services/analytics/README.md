@@ -90,7 +90,7 @@ python3 -m services.analytics.cli --help
 - `marketplace` — Digital Marketplace for Agricultural Produce
 - `measurement_schedule` — Measurement schedule: tracking cadence and due dates for forest monitoring.
 - `mitigation` — Mitigation approach management.
-- `mobile_offline` — Mobile / Offline Data Collection
+- `mobile_offline` — Retired legacy CLI; historic commands fail closed. Use `services.mobile.api` through the Gateway.
 - `model_validation` — Validation framework: geographic cross-validation, field-level metrics, MEC computation.
 - `multi_farm` — Multi-farm onboarding — template instantiation, cross-farm portfolio.
 - `nutrient_budget` — Nutrient Budget Tracking

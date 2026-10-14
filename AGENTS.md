@@ -380,12 +380,7 @@ Commands:
 - Digital twin scenario: `python3 -m services.analytics.digital_twin scenario --twin-id UUID --name "High Irrigation" --params '{"irrigation_mm": 30}'`
 - Digital twin compare: `python3 -m services.analytics.digital_twin compare --twin-id UUID`
 - Digital twin list: `python3 -m services.analytics.digital_twin list --location-id UUID`
-- Mobile device register: `python3 -m services.analytics.mobile_offline register --device-id sensor-phone-001 --name "Field Phone 1"`
-- Mobile queue: `python3 -m services.analytics.mobile_offline queue --device-id sensor-phone-001 --type soil_reading --location-id UUID`
-- Mobile sync: `python3 -m services.analytics.mobile_offline sync --device-id sensor-phone-001`
-- Mobile status: `python3 -m services.analytics.mobile_offline status`
-- Mobile devices: `python3 -m services.analytics.mobile_offline devices`
-- `services.analytics.mobile_offline` is a legacy transport/admin CLI: it does not validate form revisions, participant links, or consent. Use the consent-aware Field Collector API for intake; after migration 381, legacy CLI rows remain unassessed and cannot pass `v_mobile_collection_use_eligibility`.
+- Legacy mobile-offline CLI: historic subcommands remain visible but fail closed before database access because they have no authenticated tenant identity. Use the consent-aware Field Collector Gateway and operator console; historic queued rows remain unassessed and cannot pass `v_mobile_collection_use_eligibility`.
 - LLM chat session: `python3 -m services.analytics.llm_chat session --create --location-id UUID --user admin`
 - LLM chat send: `python3 -m services.analytics.llm_chat chat --session-id UUID --message "What was the maize yield?"`
 - LLM chat intents: `python3 -m services.analytics.llm_chat intents`

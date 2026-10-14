@@ -15,7 +15,11 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 294 checked and 20 open items (314 total).
+- The execution checklist has 295 checked and 20 open items (315 total).
+- The latest pushed implementation batch is `c1c9fd1`; CI is pending. The last
+  CI-verified head remains `7953afe` (CI #308 and Security #32 passed).
+- The current local, unpushed batch closes the legacy mobile-offline CLI's
+  unscoped database path; its focused suite passes, and remote CI has not run.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–396 and the remaining curated seeds are prepared
@@ -79,8 +83,12 @@ before protected reads and writes, and make direct database access fail closed.
    organization affiliation for API keys, candidate credential provisioning,
    or application RLS.
 2. Trace each worker and legacy CLI query to its service identity and tenant
-   context. Give workers only the database functions/columns they require;
-   reject unscoped paths before mutation.
+   context. **Closed:** `services.analytics.mobile_offline` helpers and CLI
+   commands now fail before database access because there is no authenticated
+   tenant identity, and no repository runtime caller depends on them. Equivalent
+   capture/sync uses the consent-aware Gateway. Continue the same trace across
+   workers and other CLIs; give workers only required database functions and
+   columns, and reject unscoped paths before mutation.
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe

@@ -11,8 +11,9 @@ owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
-**Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** PR #68 is
-open at `7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI run [#308](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258026)
+**Last CI-verified head (CAP-001 / CAP-047 / CAP-053):** PR #68 is now
+pushed through `c1c9fd1` with CI pending. The last passing head was
+`7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI run [#308](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258026)
 and Security run [#32](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258017)
 both passed on this head. CI #307 failed because its OIDC Compose test fixture
 did not provide the required test-only operator-auth password before checking
@@ -69,7 +70,7 @@ clearing, transaction cleanup, key/table denial, and credential operations
 under forced RLS. Seventy-six focused Python tests, Ruff, Python compilation,
 and ordered migration validation (505 source files) pass. The candidate remains
 at migration 391 and RLS remains disabled; operator/Gateway context, worker,
-legacy CLI, Directus/view access, candidate rollout, and MAN-CAP-053 remain
+Directus/view access, candidate rollout, and MAN-CAP-053 remain
 open ([audit](mobile-tenant-rls-callsite-audit.md); [evidence](builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json)).
 
 **13 October 2026 local source update (CAP-053):** migration 391 and the
@@ -87,12 +88,14 @@ completed on 14 October after an encrypted checkpoint; live authenticated
 re-enrollment remains open and RLS remains disabled
 ([rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)). An isolated Chrome browser check also passed actual client-offline behavior: `navigator.onLine=false`, service-worker shell reopen, encrypted note capture, preservation through a synthetic 503, and queue clearing after a synthetic retry success. Because all mobile API calls were intercepted, live authenticated sync and MAN-CAP-053 remain open ([browser evidence](builds/2026-10-14-recovery/field-collector-browser-offline-client.json)).
 
-**14 October 2026 local registration guard (CAP-053):** the legacy
-`services.analytics.mobile_offline register` command now fails closed before
-database writes and directs operators to owner-issued, single-use enrollment
-and `POST /api/mobile/register`. Sixteen offline registration/queue checks and
-50 mobile API/form-validation checks passed; Ruff and Python syntax checks are
-clean. The legacy queue and sync path remains transport-only and unassessed.
+**14 October 2026 legacy CLI boundary (CAP-053):** all historic
+`services.analytics.mobile_offline` service helpers and CLI commands now fail
+closed before database access because the legacy path has no authenticated
+tenant identity and bypasses form/consent policy. Enrollment, capture and sync
+continue through the consent-aware Gateway. Focused boundary tests cover every
+helper and command and verify no connection is opened. Device inventory and
+global queue statistics still need an authorized operator surface. This source
+change does not accept the named capability check.
 MAN-CAP-053 stays partial pending live OIDC and reconnect, human disposition,
 database-role-backed tenant isolation, and retention acceptance. The source-only
 [tenant/RLS call-site audit](mobile-tenant-rls-callsite-audit.md) records why
@@ -1243,8 +1246,8 @@ RLS: migration 395 now removes session-table access from the general runtime
 role and gives OIDC a separate bounded auth connection. Its isolated forced-RLS
 acceptance verifies read/write/mint denial for the runtime role and bounded
 session lifecycle for auth ([evidence](builds/2026-10-14-recovery/operator-session-role-disposable.json)).
-Gateway API-key context, workers, legacy CLI, Directus/views, broad runtime DML
-on other public tables, and candidate rollout remain open. Candidate stays at
+Gateway API-key context, workers, Directus/views, broad runtime DML on other
+public tables, and candidate rollout remain open. Candidate stays at
 migration 391 under OFU-18.
 
 **14 October 2026 runtime mobile credential grants (CAP-053):** the app runtime
@@ -1258,5 +1261,5 @@ bounded token resolver and one-time enrollment redemption successfully. The
   focused mobile/auth/migration set passed 148 tests; Ruff and 507-source
 migration validation passed. This check did not run the HTTP handlers through
 the runtime login and does not close DML on other public tables,
-database-verified Gateway capabilities, workers, legacy CLI, Directus/views,
+database-verified Gateway capabilities, workers, Directus/views,
 candidate rollout, or RLS ([policy](runtime-role-policy.md); [evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)).

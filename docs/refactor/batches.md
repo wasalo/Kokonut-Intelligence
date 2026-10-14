@@ -456,6 +456,7 @@ reporting views.
 - [x] Add the `140_mobile_forms.sql` seed after the ordered migration step and align the offline browser fallback with the same policy and form revisions.
 - [x] Validate new sync payloads against the exact immutable form revision schema, reject undeclared fields in the five built-in `1.2.0` schemas, prevent remote `$ref` fetching, and return non-echoing validation errors ([validator](../../services/mobile/form_validation.py)). Focused mobile/schema acceptance: 60 passed; dependency groups and Ruff checks pass.
 - [x] Disable legacy direct device registration in `services.analytics.mobile_offline`; direct inserts could bypass owner-issued, single-use enrollment. The guard fails before opening a cursor or committing. Focused checks passed: 16 offline service tests and 50 mobile API/form-validation tests; Ruff and Python syntax checks are clean. Legacy queue/sync remains transport-only and unassessed; this does not close MAN-CAP-053.
+- [x] Retire the remaining `services.analytics.mobile_offline` query/write helpers and CLI commands because they had no authenticated tenant identity and no in-repository runtime callers. Every helper now fails before SQL, and every historic command fails before opening a database connection. Enrollment, collection, and sync continue through the consent-aware Field Collector. Focused mobile/API/form tests passed (67 tests plus five CLI subtests), Ruff, compilation, and diff checks passed ([evidence](builds/2026-10-14-recovery/legacy-mobile-cli-tenant-boundary.json)). Operator device inventory/global queue statistics still need a scoped surface; no candidate or legacy database was touched.
 - [x] Checkpoint the `1.1.0` candidate, restore it into a fresh template0-derived database, compare 372 migration fingerprints plus extensions/schemas, seed immutable `1.2.0` revisions, rebuild only the app, and verify health and public/auth-denial endpoints ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)).
 - [x] Exercise the current app's sync route over HTTP against an isolated checkpoint clone: an unknown field returned 422 with no value echo or stored row, and a valid `1.2.0` payload was accepted; remove the synthetic device/location/collection fixture afterward ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)).
 - [x] Exercise scoped enrollment through device registration, authenticated retrieval of five active `1.2.0` forms, and one valid field-note sync over loopback HTTP against the restored clone. Verify that identity/location come from the enrollment, synced data remains `transport_pending` and ineligible, then remove synthetic rows and stop/detach the recovery database ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json)).
@@ -683,6 +684,13 @@ reporting views.
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.
+  The legacy `services.analytics.mobile_offline` service helpers and historic
+  CLI commands have now been retired: they fail before opening a database
+  connection because they have no authenticated tenant identity. Capture and
+  sync remain available through the consent-aware Field Collector Gateway;
+  operator inventory and global queue statistics still need a scoped surface.
+  Focused tests cover every helper and command path. Worker and remaining CLI
+  review is still open.
   The source audit identified pre-context mobile credential lookups, now
   closed by migration 392's bounded functions. Migration 394 and its
   network-disabled PostgreSQL 16 forced-RLS acceptance now establish signed
@@ -695,7 +703,7 @@ reporting views.
   functions. Disposable PostgreSQL 16 replay, forced-RLS, and privilege checks
   passed. The runtime role still has broad DML on other public tables. Gateway
   mobile credential context is now covered in migration 396; other Gateway
-  routes, legacy CLI paths, workers, and the Directus/view boundary need their
+  routes, workers, and the Directus/view boundary need their
   own access contracts before RLS. Full request/worker/
   Directus coverage remains open
   ([audit](mobile-tenant-rls-callsite-audit.md)).
@@ -736,7 +744,7 @@ reporting views.
   transaction cleanup, share revocation, and grant-revocation locking
   ([evidence](builds/2026-10-14-recovery/operator-tenant-context-disposable.json)).
   This is not candidate rollout or RLS enablement. Non-OIDC callers, workers,
-  legacy CLI, and Directus/view access remain open.
+  and Directus/view access remain open.
 - [x] Add migration 395's operator-session database boundary. The general
   runtime role loses all table/column access to `operator_session` and cannot
   call session functions. OIDC uses a separate auth login that can only call
@@ -757,7 +765,7 @@ reporting views.
   statements succeeded; no candidate/legacy DB was touched
   ([evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)).
   This does not verify every HTTP handler under the runtime login or close the
-  broader app-table role, worker, legacy CLI, Directus, or RLS gates. Gateway
+  broader app-table role, worker, Directus, or RLS gates. Gateway
   credential tenant context is covered in migration 396 below.
 - [x] Bind Gateway API-key and capability-token mobile-device writes to signed
   database tenant context in migration 396. The database independently checks

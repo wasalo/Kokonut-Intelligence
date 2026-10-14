@@ -1,40 +1,30 @@
 #!/usr/bin/env python3
-"""
-Legacy transport/admin CLI for the older mobile offline queue.
+"""Compatibility entry point for the retired mobile-offline CLI.
 
-This module does not validate Field Collector form revisions, participant
-links, or consent. After migration 381, rows staged here remain unassessed and
-cannot pass ``v_mobile_collection_use_eligibility``. Use ``services.mobile.api``
-for consent-aware Field Collector admission; this CLI's sync status describes
-transport only and is not an authorization to report or publish a collection.
-
-Device registration, offline queue management, sync coordination,
-and conflict resolution for field workers.
-
-Direct device registration is intentionally disabled. Use the owner-issued,
-single-use enrollment flow and ``POST /api/mobile/register``.
-
-Usage:
-    python -m services.analytics.mobile_offline queue --device-id sensor-phone-001 --type soil_reading --location-id UUID
-    python -m services.analytics.mobile_offline sync --device-id sensor-phone-001
-    python -m services.analytics.mobile_offline status
-    python -m services.analytics.mobile_offline devices
+This CLI predates the consent-aware Field Collector and has no authenticated
+tenant identity. Its former database helpers could read and mutate records
+across tenant boundaries, so every operation now fails before touching a
+connection. Use the Gateway Field Collector API and the operator console for
+enrollment, device management, capture, and sync.
 """
 
-import json
-import uuid
-from datetime import datetime, timezone
+from __future__ import annotations
+
+from typing import NoReturn
 
 from services.common.commands import CommandLine
 
-from ..common.logging import get_logger
+_DISABLED_MESSAGE = (
+    "The legacy mobile-offline CLI is disabled because it has no authenticated "
+    "tenant identity. Use the consent-aware Field Collector Gateway and "
+    "operator console."
+)
 
-logger = get_logger("analytics.mobile_offline")
 
+def _reject_legacy_access(operation: str) -> NoReturn:
+    """Fail closed before an old CLI path can access tenant records."""
+    raise RuntimeError(f"{operation}: {_DISABLED_MESSAGE}")
 
-# ============================================================
-# Device Management
-# ============================================================
 
 def register_device(
     conn,
@@ -51,48 +41,14 @@ def register_device(
     has_gps: bool = True,
     has_offline: bool = True,
 ) -> dict:
-    """Reject legacy direct registration that bypasses owner-issued enrollment."""
-    raise RuntimeError(
-        "Direct mobile-device registration is disabled. Issue a single-use "
-        "enrollment through the operator console, then register with "
-        "POST /api/mobile/register."
-    )
+    """Reject legacy registration; device enrollment must be owner-issued."""
+    _reject_legacy_access("register device")
 
 
 def list_devices(conn, user_id: str = None, location_id: str = None) -> list:
-    """List registered devices."""
-    cur = conn.cursor()
-    where = "1=1"
-    params = []
-    if user_id:
-        where += " AND user_id = %s"
-        params.append(user_id)
-    if location_id:
-        where += " AND location_id = %s"
-        params.append(location_id)
+    """Reject unscoped device inventory reads."""
+    _reject_legacy_access("list devices")
 
-    cur.execute(
-        f"""
-        SELECT device_id, device_name, device_type, user_id, status,
-               last_sync_at, last_seen_at, app_version,
-               (SELECT COUNT(*) FROM offline_collection oc
-                WHERE oc.device_id = mobile_device.device_id
-                  AND oc.sync_status = 'pending') AS pending_count
-        FROM mobile_device
-        WHERE {where}
-        ORDER BY last_seen_at DESC NULLS LAST
-        """,
-        tuple(params),
-    )
-    cols = [d[0] for d in cur.description]
-    results = [dict(zip(cols, row)) for row in cur.fetchall()]
-    cur.close()
-    return results
-
-
-# ============================================================
-# Offline Queue
-# ============================================================
 
 def queue_collection(
     conn,
@@ -109,172 +65,18 @@ def queue_collection(
     form_version: str = None,
     client_id: str = None,
 ) -> dict:
-    """Queue an offline collection for sync."""
-    cur = conn.cursor()
-    col_id = str(uuid.uuid4())
-
-    # Check for duplicate client_id
-    if client_id:
-        cur.execute(
-            "SELECT id FROM offline_collection WHERE client_id = %s",
-            (client_id,),
-        )
-        if cur.fetchone():
-            cur.close()
-            return {"error": "Duplicate collection", "client_id": client_id, "sync_status": "duplicate"}
-
-    cur.execute(
-        """
-        INSERT INTO offline_collection
-            (id, device_id, user_id, location_id, collection_type,
-             form_id, form_version, payload, photo_refs,
-             latitude, longitude, accuracy_m, client_id, sync_status)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s, %s, %s, %s, 'pending')
-        RETURNING id
-        """,
-        (
-            col_id, device_id, user_id, location_id, collection_type,
-            form_id, form_version, json.dumps(payload),
-            json.dumps(photo_refs or []),
-            latitude, longitude, accuracy_m, client_id,
-        ),
-    )
-    conn.commit()
-    cur.close()
-
-    return {"collection_id": col_id, "sync_status": "pending", "device_id": device_id}
+    """Reject legacy intake that bypasses immutable forms and consent."""
+    _reject_legacy_access("queue collection")
 
 
 def get_pending_collections(conn, device_id: str = None, limit: int = 100) -> list:
-    """Get pending collections for sync."""
-    cur = conn.cursor()
-    if device_id:
-        cur.execute(
-            """
-            SELECT id, device_id, collection_type, payload, latitude, longitude,
-                   collected_at, client_id, server_version, conflict_flag
-            FROM offline_collection
-            WHERE sync_status = 'pending' AND device_id = %s
-            ORDER BY collected_at ASC
-            LIMIT %s
-            """,
-            (device_id, limit),
-        )
-    else:
-        cur.execute(
-            """
-            SELECT id, device_id, collection_type, payload, latitude, longitude,
-                   collected_at, client_id, server_version, conflict_flag
-            FROM offline_collection
-            WHERE sync_status = 'pending'
-            ORDER BY collected_at ASC
-            LIMIT %s
-            """,
-            (limit,),
-        )
-    cols = [d[0] for d in cur.description]
-    results = [dict(zip(cols, row)) for row in cur.fetchall()]
-    cur.close()
-    return results
+    """Reject pending-collection reads without a verified device context."""
+    _reject_legacy_access("read pending collections")
 
-
-# ============================================================
-# Sync
-# ============================================================
 
 def sync_collections(conn, device_id: str) -> dict:
-    """Process pending collections from a device (server-side sync)."""
-    cur = conn.cursor()
-    start_time = datetime.now(timezone.utc)
-
-    # Get pending
-    cur.execute(
-        """
-        SELECT id, collection_type, payload, client_id, server_version, collected_at
-        FROM offline_collection
-        WHERE device_id = %s AND sync_status = 'pending'
-        ORDER BY collected_at ASC
-        LIMIT 50
-        """,
-        (device_id,),
-    )
-    cols = [d[0] for d in cur.description]
-    pending = [dict(zip(cols, row)) for row in cur.fetchall()]
-
-    synced = 0
-    conflicts = 0
-    errors = 0
-
-    for item in pending:
-        try:
-            # Conflict check: if client_id exists, verify version
-            if item["client_id"]:
-                cur.execute(
-                    "SELECT server_version FROM offline_collection WHERE client_id = %s",
-                    (item["client_id"],),
-                )
-                existing = cur.fetchone()
-                if existing and existing[0] > item["server_version"]:
-                    # Conflict detected
-                    cur.execute(
-                        "UPDATE offline_collection SET conflict_flag = TRUE, sync_status = 'conflict' WHERE id = %s",
-                        (item["id"],),
-                    )
-                    conflicts += 1
-                    continue
-
-            # Mark as synced
-            cur.execute(
-                """
-                UPDATE offline_collection
-                SET sync_status = 'synced', synced_at = NOW(),
-                    server_version = server_version + 1, updated_at = NOW()
-                WHERE id = %s
-                """,
-                (item["id"],),
-            )
-            synced += 1
-
-        except Exception as e:
-            logger.error(f"Sync error for {item['id']}: {e}")
-            cur.execute(
-                "UPDATE offline_collection SET sync_status = 'error', sync_error = %s WHERE id = %s",
-                (str(e), item["id"]),
-            )
-            errors += 1
-
-    duration_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
-
-    # Log sync event
-    cur.execute(
-        """
-        INSERT INTO sync_log (id, device_id, sync_action, direction, status,
-                              records_synced, conflict_count, duration_ms)
-        VALUES (%s, %s, 'batch_sync', 'push', %s, %s, %s, %s)
-        """,
-        (
-            str(uuid.uuid4()), device_id,
-            'success' if errors == 0 else 'partial',
-            synced, conflicts, duration_ms,
-        ),
-    )
-
-    # Update device last_sync_at
-    cur.execute(
-        "UPDATE mobile_device SET last_sync_at = NOW() WHERE device_id = %s",
-        (device_id,),
-    )
-    conn.commit()
-    cur.close()
-
-    return {
-        "device_id": device_id,
-        "synced": synced,
-        "conflicts": conflicts,
-        "errors": errors,
-        "duration_ms": duration_ms,
-        "status": "completed",
-    }
+    """Reject legacy sync; only the authenticated Field Collector may sync."""
+    _reject_legacy_access("sync collections")
 
 
 def resolve_conflict(
@@ -283,121 +85,26 @@ def resolve_conflict(
     resolution: str = "keep_server",
     resolved_by: str = None,
 ) -> dict:
-    """Resolve a sync conflict."""
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT id, sync_status, conflict_flag FROM offline_collection WHERE id = %s",
-        (collection_id,),
-    )
-    row = cur.fetchone()
-    if not row:
-        cur.close()
-        return {"error": "Collection not found"}
-    if not row[2]:
-        cur.close()
-        return {"error": "No conflict on this collection"}
+    """Reject conflict writes without a tenant-qualified reviewer identity."""
+    _reject_legacy_access("resolve collection conflict")
 
-    new_status = "synced" if resolution == "keep_server" else "synced"
-    cur.execute(
-        """
-        UPDATE offline_collection
-        SET sync_status = %s, conflict_flag = FALSE, resolved_by = %s, updated_at = NOW()
-        WHERE id = %s
-        """,
-        (new_status, resolved_by, collection_id),
-    )
-    conn.commit()
-    cur.close()
-    return {"collection_id": collection_id, "resolution": resolution, "status": "resolved"}
-
-
-# ============================================================
-# Status / Stats
-# ============================================================
 
 def get_sync_status(conn) -> dict:
-    """Get overall sync status."""
-    cur = conn.cursor()
-    cur.execute(
-        """
-        SELECT sync_status, COUNT(*)
-        FROM offline_collection
-        GROUP BY sync_status
-        """
-    )
-    status_counts = {row[0]: row[1] for row in cur.fetchall()}
-
-    cur.execute(
-        """
-        SELECT COUNT(*) FROM mobile_device WHERE status = 'active'
-        """
-    )
-    active_devices = cur.fetchone()[0]
-
-    cur.execute(
-        """
-        SELECT AVG(duration_ms) FROM sync_log
-        WHERE created_at >= NOW() - INTERVAL '24 hours'
-        """
-    )
-    avg_sync_time = cur.fetchone()[0]
-    cur.close()
-
-    return {
-        "total_collections": sum(status_counts.values()),
-        "by_status": status_counts,
-        "active_devices": active_devices,
-        "avg_sync_time_ms": round(avg_sync_time, 1) if avg_sync_time else 0,
-    }
+    """Reject cross-tenant aggregate statistics through this legacy CLI."""
+    _reject_legacy_access("read sync status")
 
 
-# ============================================================
-# CLI
-# ============================================================
-
-cli = CommandLine("mobile_offline", "Legacy mobile transport queue (no consent eligibility checks)")
+def _disabled(_db, _args):
+    _reject_legacy_access("run command")
 
 
-def _render(result, args, human):
-    print(json.dumps(result, indent=2, default=str) if args.json else human(result))
+cli = CommandLine(
+    "mobile_offline",
+    "Retired legacy CLI; use the consent-aware Field Collector Gateway",
+)
 
-
-def _format_status(r: dict) -> str:
-    lines = [
-        f"Sync Status ({r['active_devices']} active devices)",
-        f"  Total collections: {r['total_collections']}",
-    ]
-    for status, count in r["by_status"].items():
-        lines.append(f"  {status}: {count}")
-    lines.append(f"  Avg sync time: {r['avg_sync_time_ms']:.0f}ms")
-    return "\n".join(lines)
-
-
-def _format_devices(results: list) -> str:
-    if not results:
-        return "No devices registered."
-    lines = [f"Devices ({len(results)}):"]
-    for d in results:
-        lines.append(f"  {d['device_id']:30s} {d['device_type']:10s} pending={d.get('pending_count', 0)}")
-    return "\n".join(lines)
-
-
-def _cmd_register(db, a):
-    return register_device(
-        db, a.device_id, a.name, a.type,
-        user_id=a.user, location_id=a.location_id,
-    )
-
-
-def _cmd_queue(db, a):
-    payload = json.loads(a.payload)
-    return queue_collection(
-        db, a.device_id, a.type, payload,
-        location_id=a.location_id,
-        latitude=a.latitude, longitude=a.longitude,
-    )
-
-
+# Keep the historic syntax discoverable for a clean migration error, but do
+# not open a database connection for any legacy command.
 cli.subcommand("register", "Disabled; use owner-issued Field Collector enrollment") \
     .add("--device-id", required=True) \
     .add("--name") \
@@ -405,10 +112,9 @@ cli.subcommand("register", "Disabled; use owner-issued Field Collector enrollmen
     .add("--user") \
     .add("--location-id") \
     .add("--json", action="store_true") \
-    .run(_cmd_register) \
-    .render_with(lambda r, a: _render(r, a, lambda x: f"Device {x['device_id']}: {x['status']}"))
+    .run(_disabled, needs_db=False)
 
-cli.subcommand("queue", "Queue collection") \
+cli.subcommand("queue", "Disabled; submit through the Field Collector") \
     .add("--device-id", required=True) \
     .add("--type", required=True, help="Collection type") \
     .add("--location-id") \
@@ -416,26 +122,22 @@ cli.subcommand("queue", "Queue collection") \
     .add("--latitude", type=float) \
     .add("--longitude", type=float) \
     .add("--json", action="store_true") \
-    .run(_cmd_queue) \
-    .render_with(lambda r, a: _render(r, a, lambda x: f"Queued: {x.get('collection_id', 'N/A')[:8]}... ({x['sync_status']})"))
+    .run(_disabled, needs_db=False)
 
-cli.subcommand("sync", "Sync pending collections") \
+cli.subcommand("sync", "Disabled; sync through the authenticated Field Collector") \
     .add("--device-id", required=True) \
     .add("--json", action="store_true") \
-    .run(lambda db, a: sync_collections(db, a.device_id)) \
-    .render_with(lambda r, a: _render(r, a, lambda x: f"Synced {x['synced']}, conflicts={x['conflicts']}, errors={x['errors']} ({x['duration_ms']}ms)"))
+    .run(_disabled, needs_db=False)
 
-cli.subcommand("status", "Sync status") \
+cli.subcommand("status", "Disabled; use authenticated device sync status") \
     .add("--json", action="store_true") \
-    .run(lambda db, a: get_sync_status(db)) \
-    .render_with(lambda r, a: _render(r, a, _format_status))
+    .run(_disabled, needs_db=False)
 
-cli.subcommand("devices", "List devices") \
+cli.subcommand("devices", "Disabled; use the operator console") \
     .add("--user") \
     .add("--location-id") \
     .add("--json", action="store_true") \
-    .run(lambda db, a: list_devices(db, a.user, a.location_id)) \
-    .render_with(lambda r, a: _render(r, a, _format_devices))
+    .run(_disabled, needs_db=False)
 
 
 def main(argv=None):

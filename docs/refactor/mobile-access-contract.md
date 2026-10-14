@@ -128,11 +128,12 @@ Other deployments must use the ordered, checksummed migration workflow.
   form and workflow.
 - Existing collection rows receive `unassessed` defaults; the migration does
   not infer identity, consent, or form validity for legacy records.
-- The legacy `services.analytics.mobile_offline` CLI is a transport/admin path,
-  not a consent-aware admission path. It can stage rows and mark transport as
-  synced, but after migration 381 its rows remain unassessed and fail the
-  eligibility view. Do not use that transport status as permission to report
-  or publish the row.
+- The legacy `services.analytics.mobile_offline` CLI and its direct service
+  helpers fail closed before database access because they have no authenticated
+  tenant identity and bypass the immutable-form/consent admission path. Use the
+  consent-aware Field Collector Gateway. Historical rows remain unassessed and
+  fail the eligibility view; transport status alone never permits reporting
+  or publication.
 - `v_mobile_collection_use_eligibility` is the consent/form prerequisite for
   downstream use. It also requires transport status `synced`; unassessed,
   retired, and review-required rows are ineligible. A later
