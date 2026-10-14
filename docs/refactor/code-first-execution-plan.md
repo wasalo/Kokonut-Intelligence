@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 303 checked and 20 open items (323 total).
+- The execution checklist has 304 checked and 20 open items (324 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -33,19 +33,25 @@ MAN-CAP checks open until each has its own retained evidence.
   open.
   Data-freshness queries use fixed table/timestamp maps, bind location values,
   and report unknown configured sources as errors; 29 focused source tests pass.
-  The climate compatibility path now stores schema-aligned `latitude_proxy_v1`
-  estimates, and migration 397 adds a duplicate-guarded partial key plus
-  location-level feature fallback. Source/migration-discovery tests pass, but
-  PostgreSQL execution and candidate rollout remain open.
+  The climate compatibility path stores schema-aligned `latitude_proxy_v1`
+  estimates; migrations 392–397 passed ordered PostgreSQL 16 application and
+  replay on a restored candidate checkpoint, including migration 397's
+  location fallback and duplicate rollback. A clean `template0` bootstrap and
+  candidate rollout remain open.
+  The registered native and Field Collector API routes now have an exact
+  resource/action/public-policy inventory and unknown route/method cases are
+  verified protected; broader tenant, OIDC, transport, and SDK parity remain.
   Focused source/disposable checks pass;
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
-- Candidate migrations 392–396 and the remaining curated seeds are prepared
-  but have not been applied to the local candidate. Migration 397 passed
-  isolated PostgreSQL acceptance against a synthetic schema fixture; full
-  bootstrap acceptance remains open. Migrations 392–397 and the curated seeds
-  remain separately approval-gated under OFU-17 and OFU-18.
+- Candidate migrations 392–397 and the remaining curated seeds are prepared
+  but have not been applied to the local candidate. Migrations 392–397 passed
+  ordered application on an encrypted-checkpoint restore, with a clean second
+  migration-runner pass. The candidate remains at migration 391; candidate
+  rollout and curated seeds remain separately gated under OFU-17 and OFU-18.
+  The retained record distinguishes this populated restore replay from a clean
+  `template0` bootstrap.
 - Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
   confirmed as exclusive to Kokonut Network. Do not ask for that mapping again.
 - There is no Raspberry Pi available. The code-only ARM64 assessment passed
@@ -169,6 +175,10 @@ TypeScript fake-transport regression tests for method/path parity, encoded path
 segments, API-key/accept headers, typed payloads, and normalized failure cases.
 Those checks passed offline. Gateway route/auth and tenant-scope parity remain
 open; see the [acceptance record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
+The native and Field Collector routers now also have a pinned full method/path
+policy inventory. A 26-test focused Gateway run confirms exact resource/action/
+public policy coverage and anonymous 401 for unknown routes, wrong methods, and
+near-miss paths ([route inventory evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json)).
 
 ### Batch D — Complete code-verifiable capability slices and reporting
 
@@ -231,6 +241,12 @@ uses statement/lock timeouts, counts results without fetching them, and refuses
 to write stale refresh metadata if the saved SQL changed during execution. The
 disposable PostgreSQL proof and focused checks are retained in
 [`saved-reporting-reader-disposable.json`](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json).
+
+**Migration replay (14 October 2026):** ordered migrations 392–397 and the
+runner's no-op replay passed on a restored, age-encrypted candidate checkpoint
+using PostgreSQL 16.4. This verifies the populated schema/data upgrade path;
+it does not replace clean `template0` bootstrap or candidate rollout evidence
+([record](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and

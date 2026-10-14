@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `26edad1`; CI #310 is in progress and Security #34 passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–396 have isolated PostgreSQL acceptance and remain gated from candidate rollout; migration 397 now also passes isolated PostgreSQL acceptance against a synthetic schema fixture, while full-bootstrap acceptance and candidate rollout remain open. The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `26edad1`; CI #310 was the latest recorded run at the last plan review. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Migrations 392–397 passed ordered PostgreSQL 16 application and runner replay on an age-encrypted candidate-checkpoint restore; the candidate remains at 391 and rollout remains open. This is populated-restore evidence, not clean `template0` bootstrap evidence ([record](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)). The Raspberry Pi code-only ARM64 assessment passed under Buildx/QEMU; no physical-device acceptance is claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
@@ -31,6 +31,15 @@ fixed maps, binds location values, and records unsupported configured sources
 as errors rather than `no_data`. Its 29 focused tests and Ruff checks pass
 ([evidence](builds/2026-10-14-recovery/freshness-query-contract-check.json));
 it does not claim live-provider or Raspberry Pi hardware acceptance.
+
+The native and Field Collector Gateway routes now have a pinned method/path to
+resource/action/public-policy inventory. The 26 focused authorization and route
+checks pass. Migrations 392–397 also replayed successfully on an isolated restore
+of the encrypted candidate checkpoint, including a no-op second runner pass.
+Afterward, a read-only candidate check confirmed migration 391 remains applied,
+392–397 are absent, and the database, app, and Metabase containers are healthy;
+the temporary restored-copy volume was removed. Candidate rollout and clean
+`template0` bootstrap remain open ([route evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json); [migration evidence](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)).
 
 The worker-operation inventory now links every registered metrics calculator
 to its source file, with a test ensuring the 20-module list stays aligned with

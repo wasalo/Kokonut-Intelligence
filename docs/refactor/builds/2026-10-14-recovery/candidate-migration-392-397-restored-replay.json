@@ -1,0 +1,84 @@
+{
+  "check": "candidate_migration_392_397_restored_replay",
+  "date": "2026-10-14",
+  "result": "passed",
+  "source_checkpoint": {
+    "relative_path": "backups/kernel-candidate-pre-392-397-20261014T201942Z",
+    "database": "kokonut_intelligence",
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "encrypted_archive": "postgres.dump.age",
+    "encrypted_archive_bytes": 5559485,
+    "encrypted_archive_sha256": "57b997927e5c726c84f41714619cb3ec326243b421a44f03a856bfe0deb92a83",
+    "scope": "One PostgreSQL database; ownership and grants excluded; no other databases, volumes, or external media",
+    "restore_method": "Streamed age decryption into pg_restore; no plaintext dump file was written"
+  },
+  "recovery_copy": {
+    "compose_file": "docker-compose.kernel-recovery.yml",
+    "compose_project": "kokonut-kernel-recovery-20261014-392397",
+    "database": "kokonut_restore",
+    "network": "Internal-only Docker network",
+    "postgres_version": "16.4",
+    "pre_migration_schema_count": 382,
+    "pre_migration_seed_ledger_count": 1,
+    "pre_migration_fingerprint": "11ebf1fb37bce34b6c460ad9ea4ba3f7",
+    "pre_migration_extensions": [
+      "btree_gist=1.7",
+      "fuzzystrmatch=1.2",
+      "pg_stat_statements=1.10",
+      "pg_trgm=1.6",
+      "pgcrypto=1.3",
+      "plpgsql=1.0",
+      "postgis=3.4.3",
+      "postgis_tiger_geocoder=3.4.3",
+      "uuid-ossp=1.1"
+    ],
+    "selected_pre_migration_row_counts": {
+      "organizations": 1,
+      "locations": 0,
+      "mobile_forms": 5,
+      "mobile_form_versions": 10,
+      "mobile_devices": 0,
+      "mobile_enrollments": 0
+    }
+  },
+  "ordered_migrations": {
+    "applied": [392, 393, 394, 395, 396, 397],
+    "checksums": {
+      "392": "a204dcf714a46e4683d3412766df48dcfab34ddf6e09680240a7b99e736ac5cc",
+      "393": "a28f77ffb3f3874327c8c3e300474c2edec2dc2ca53c26fd8d7cf7a78b853832",
+      "394": "a7ff00e2b56e614fbba6636d84500d1defd006d30ecb3ddb157b0d15b8f961b5",
+      "395": "f29de9c9dc7dc7f19230b58be593aefe302d6290fc541f83997a906a6a598728",
+      "396": "7c85724bfad5fc4a65e326bf0c3822d2a150ede5baa6835070c69496133be229",
+      "397": "ecb25db9466a91d678a2ebaaa3fe4e8b37fce129e8163bd9c9daff0fee6d2366"
+    },
+    "second_runner_pass": "All migrations already applied",
+    "migration_397_index_and_view_present": true,
+    "post_migration_worldclim_baseline_rows": 0,
+    "post_migration_public_tables_with_rls_enabled": 0
+  },
+  "isolation": {
+    "candidate_database_changed": false,
+    "candidate_post_replay_read_only_check": {
+      "container_health": "database, app, and Metabase healthy; proxy running",
+      "applied_migration_ledger_rows": 383,
+      "migration_391_present": true,
+      "migrations_392_through_397_present": false
+    },
+    "legacy_database_changed": false,
+    "curated_seeds_applied": false,
+    "candidate_rollout": "not_performed; automatic approval review rejected the candidate write before execution",
+    "candidate_last_recorded_migration": 391,
+    "application_table_rls_enabled": false
+  },
+  "recovery_copy_cleanup": {
+    "result": "passed",
+    "action": "Removed only the isolated recovery Compose project, network, and temporary restored-copy volume after retaining evidence",
+    "candidate_and_legacy_projects_touched": false
+  },
+  "limitations": [
+    "This replays schema upgrades on a restored candidate checkpoint, not on a clean template0 database.",
+    "The restored database contains no locations or WorldClim baseline rows; migration 397 behavior for location fallback, duplicate legacy rows, and rollback was separately exercised with a synthetic PostgreSQL fixture.",
+    "Candidate migration rollout, curated seed application, live climate provider calls, and Raspberry Pi hardware behavior are not covered."
+  ]
+}

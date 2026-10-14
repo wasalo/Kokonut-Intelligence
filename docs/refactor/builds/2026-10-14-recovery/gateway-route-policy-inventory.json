@@ -1,0 +1,29 @@
+{
+  "check": "gateway_route_policy_inventory",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "registered_router_sets": [
+      "services.gateway.router.router",
+      "services.mobile.api.router"
+    ],
+    "every_registered_api_method_path_has_reviewed_resource_action_and_public_policy": true,
+    "location_path_parameters_bind_policy_scope": true,
+    "unknown_route_method_mismatch_and_near_miss_are_protected": true,
+    "candidate_or_legacy_database_touched": false,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": {
+    "command": "SOPS_AGE_KEY_FILE=<configured local age identity> .venv/bin/python -m pytest tests/test_gateway_route_policy_inventory.py tests/test_gateway_auth.py -q",
+    "passed": 26,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "This verifies registered route-policy declarations and in-process anonymous default-deny behavior; it does not establish database tenant isolation, live OIDC behavior, gRPC parity, or production ingress acceptance."
+  ]
+}

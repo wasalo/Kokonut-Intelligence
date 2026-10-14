@@ -826,8 +826,15 @@ reporting views.
   matching database hash/scope rows before tenant-bound mobile writes can pass.
   Migrations 392–396 have isolated PostgreSQL acceptance; migration 397 also
   passes isolated PostgreSQL acceptance against a synthetic schema fixture.
-  Full-bootstrap acceptance and candidate rollout remain separate gates. This
-  rollout alone will not enable RLS.
+  The ordered 392–397 replay and second no-op pass now also succeed on a restored
+  encrypted candidate checkpoint ([evidence](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)).
+  Clean `template0` full-bootstrap acceptance and candidate rollout remain
+  separate gates. This rollout alone will not enable RLS.
+- [x] Restore the encrypted pre-392–397 candidate checkpoint into the isolated
+  recovery project and apply migrations 392–397 through the ordered runner;
+  verify exact checksum-ledger entries, a zero-pending second run, unchanged
+  application-table RLS state, and no candidate or legacy database writes
+  ([evidence](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)).
 - [x] Audit repository-owned downstream consumers of Field Collector data;
   the source review found an unguarded process-interface elapsed-time lookup
   and added the shared eligibility predicate. Reporting, export, metric,
@@ -899,6 +906,7 @@ reporting views.
 - [x] Extract the JavaScript REST SDK npm artifact into an isolated consumer, import its ESM entry point, instantiate both clients, and confirm no HTTP calls ([ledger](progress.md#phase-7-javascript-rest-sdk-isolated-package-import-check--11-october-2026)).
 - [x] Compare the five generated v1 reads and Directus pagination across Python and JavaScript with injected fake adapters; cover path encoding, headers, response values, error envelopes and invalid JSON without network calls ([ledger](progress.md#phase-7-pythonjavascript-offline-api-parity--11-october-2026)).
 - [x] Preserve the native public API SDK parity contract in Python and TypeScript regression suites: all five v1 reads, escaped path segments, API-key/accept headers, typed payloads, and normalized HTTP/JSON/envelope failures; fake transports make zero network calls ([evidence](builds/2026-10-14-recovery/sdk-public-api-parity.json); [progress](progress.md#phase-7-persistent-native-public-api-sdk-parity--14-october-2026)).
+- [x] Pin exact resource/action/public policy tuples for every registered native and Field Collector `/api` route. Unknown paths, method mismatches, and near-miss paths remain protected; 26 focused Gateway authorization and route-policy tests pass ([evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json)). This is route/auth source acceptance only; tenant/RLS, live OIDC, gRPC and broader SDK parity remain open.
 - [ ] Complete remaining live route, authorization, tenant-scope and broader SDK parity; publish only after explicit release authorization.
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).
