@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 309 checked and 20 open items (329 total).
+- The execution checklist has 310 checked and 20 open items (330 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -47,7 +47,10 @@ MAN-CAP checks open until each has its own retained evidence.
   scopes, with scope checks before database access. Enabled transport, tenant,
   and native Gateway parity remain open. Streaming RPC auth context now resets
   before each yielded response and on cancellation/errors, covered in all
-  handler cardinalities by the focused gRPC suite.
+  handler cardinalities by the focused gRPC suite. Encrypted checkpoints now
+  support a PostgreSQL-only profile, record provider inclusion, and preflight
+  required services before writing/restoring data; fake-Compose checks cover
+  both ClickHouse-disabled and ClickHouse-enabled paths.
   Focused source/disposable checks pass;
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
@@ -272,6 +275,16 @@ uses statement/lock timeouts, counts results without fetching them, and refuses
 to write stale refresh metadata if the saved SQL changed during execution. The
 disposable PostgreSQL proof and focused checks are retained in
 [`saved-reporting-reader-disposable.json`](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json).
+
+**Provider-aware recovery (14 October 2026):** encrypted Compose checkpoints now
+declare their PostgreSQL and ClickHouse contents. PostgreSQL-only backup and
+restore no longer require ClickHouse credentials or a running ClickHouse
+service. When ClickHouse is selected, backup preflights it before creating
+artifacts, and restore validates the manifest and required services before
+restoring PostgreSQL; rollback runs the same read-only restore preflight before
+stopping app services. Fake-Compose acceptance covers provider-off backup,
+restore/preflight, enabled backup/restore, and missing-service fail-fast
+([evidence](builds/2026-10-14-recovery/provider-aware-backup-restore.json)).
 
 **Migration replay (14 October 2026):** ordered migrations 392–397 and the
 runner's no-op replay passed on a restored, age-encrypted candidate checkpoint

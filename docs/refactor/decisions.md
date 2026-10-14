@@ -82,8 +82,11 @@ be optional or explicitly offloaded, with capability parity retained.
 - Preserve named volumes and old app images; never use down -v during refactor.
 - Take an encrypted checkpoint with scripts/backup.sh and verify with
   scripts/verify-backup.sh; restore only into an isolated rehearsal stack.
-- Existing backup tooling requires ClickHouse running, even when empty.
-  Provider-aware backups need their own acceptance slice.
+- Encrypted upgrade checkpoints record PostgreSQL and ClickHouse inclusion.
+  PostgreSQL-only profiles can checkpoint and restore without ClickHouse;
+  ClickHouse-enabled backups and restores require the service and credentials
+  and preflight it before writes. External media and provider-specific state
+  still need separate backup coverage.
 - Add forward migrations; old and new app versions must coexist on additive
   schema changes until the consumer cutover completes.
 - Revert provider wiring/config before database restoration. Keep legacy

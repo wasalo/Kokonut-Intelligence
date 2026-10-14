@@ -34,6 +34,8 @@ db_query() {
         -v ON_ERROR_STOP=1 -A -t "$@"
 }
 
+"$SCRIPT_DIR/restore.sh" --checkpoint "$CHECKPOINT" --preflight
+
 echo "Stopping application services..."
 COMPOSE_FILE="${COMPOSE_FILE:-$PROJECT_DIR/docker-compose.yml}" \
     docker compose --project-directory "$PROJECT_DIR" stop "${ROLLBACK_SERVICE_ARGS[@]}"

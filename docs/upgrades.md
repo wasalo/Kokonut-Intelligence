@@ -32,7 +32,16 @@ operator-controlled action.
 
 Every normal upgrade creates a checkpoint under `backups/`. The checkpoint has
 a manifest and SHA-256 checksums. PostgreSQL uses custom-format archives and
-ClickHouse uses encrypted schema and table exports.
+ClickHouse uses encrypted schema and table exports when the ClickHouse provider
+is enabled. The manifest records which providers and databases are included.
+
+For a PostgreSQL-only Kernel profile, set `KOKONUT_FEATURE_CLICKHOUSE=false`;
+backup and restore then require only PostgreSQL and its credentials. When
+ClickHouse is enabled, backup refuses to create a checkpoint unless its service
+is running, and restore checks for the required services before applying any
+database archive. Rollback performs this read-only restore preflight before it
+stops application services. These checkpoints do not include private media,
+external object stores, or provider-managed state.
 
 Rollback is never automatic. First preserve logs and inspect the failure, then
 run the explicit operator-confirmed command:

@@ -4958,3 +4958,27 @@ compilation, and `git diff --check` pass. No RPC listener or database was used.
 Live network transport, tenant isolation, and native Gateway policy parity
 remain open. See
 [`grpc-auth-context-lifecycle.json`](builds/2026-10-14-recovery/grpc-auth-context-lifecycle.json).
+
+### Provider-aware encrypted database checkpoints — 14 October 2026
+
+`backup.sh` now follows `KOKONUT_FEATURE_CLICKHOUSE`: a disabled ClickHouse
+profile produces a PostgreSQL-only encrypted checkpoint without requiring a
+ClickHouse password or service. When ClickHouse is enabled, both required
+services are checked before any checkpoint artifact is created. The manifest
+records PostgreSQL database names and ClickHouse inclusion/database; the
+verifier requires the on-disk archive set to match its checksummed inventory.
+
+`restore.sh` restores only providers declared in the checkpoint. It verifies
+the complete manifest and checks required services before any database writes;
+`--preflight` exposes that read-only check, and `rollback.sh` runs it before
+stopping application services. Legacy manifests without provider metadata
+retain the prior ClickHouse behavior when their inventory contains the schema
+archive.
+
+Six fake-Compose provider tests and the existing upgrade/backup suite pass (**19
+tests**). They cover PostgreSQL-only backup, preflight and restore without
+ClickHouse; enabled ClickHouse backup/restore; and fail-fast behavior when an
+included ClickHouse service is absent. Shell syntax and `git diff --check`
+pass. No Docker service or database was used. Private media, external object
+stores, and provider-managed state remain separate recovery scopes. See
+[`provider-aware-backup-restore.json`](builds/2026-10-14-recovery/provider-aware-backup-restore.json).
