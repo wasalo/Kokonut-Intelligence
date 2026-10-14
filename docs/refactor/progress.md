@@ -4388,6 +4388,19 @@ already applied. The scratch ledger retained 382 applied schemas and 31 applied
 seeds, and representative table counts reflected the expected additions. The
 scratch volume was removed after capture. The live candidate remained healthy,
 with 382 applied schemas, one applied seed, 120 pending seed sources, 5 forms,
-63 service-catalog rows, and protected-route 401. This confirms ordered replay
-against the candidate snapshot; an empty-database full bootstrap remains open.
-The legacy stack was not accessed ([replay evidence](builds/2026-10-14-recovery/curated-seed-disposable-replay.json)).
+63 service-catalog rows, and protected-route 401. This confirms ordered replay against the candidate snapshot. The legacy stack
+was not accessed ([replay evidence](builds/2026-10-14-recovery/curated-seed-disposable-replay.json)).
+
+### Fresh curated-seed bootstrap — 14 October 2026
+
+A separate empty database created from `template0` applied all 382 ordered
+schema migrations through 391 and all 31 curated seed migrations with zero
+failures. The ledger contained 382 applied schemas and 31 applied seeds, with
+no non-applied rows. The representative results were 33 business capabilities,
+38 dashboard datasets, 67 service catalog rows, and five current mobile forms
+with five active revisions. The disposable database and volume were removed.
+The live candidate stayed at 382 schemas, one applied seed, 120 pending seed
+sources, and retained health 200/protected route 401. This closes clean-schema
+bootstrap acceptance for the current curated list; applying the 30 missing
+curated seeds to the candidate remains a separately gated rollout. The other
+90 seed sources were not selected ([evidence](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json)).
