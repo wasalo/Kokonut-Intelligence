@@ -4282,8 +4282,10 @@ the current in-progress CI run do not yet certify the current source head.
 ### Candidate migration 391 rollout — 14 October 2026
 
 After explicit approval, I created a fresh age-encrypted checkpoint for the
-local candidate database. Age authentication and `pg_restore --list` passed;
-restore was not rehearsed. The ordered runner applied only
+local candidate database. Age authentication and `pg_restore --list` passed.
+The checkpoint was then restored into a fresh isolated `template0` database;
+all 381 pre-391 migration fingerprints, extension versions, and selected
+aggregate counts matched the candidate. The ordered runner applied only
 `schema:391_mobile_device_tenant_binding.sql` with zero failures. The candidate
 now has 382 applied schema migrations and no pending schemas; all 120 seed files
 remain pending. No seeds were applied.
@@ -4300,10 +4302,25 @@ checkpoint remain available; an owner-unaware app rollback requires mobile
 ingress to stay disabled. Evidence:
 [`candidate-mobile-tenant-binding-rollout.json`](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json).
 
-The local candidate rollout is complete for schema and anonymous-route checks.
-Live-browser re-enrollment, populated ownership/transfer behavior, human
-retention/erasure disposition, RLS, seed-ledger reconciliation, and checkpoint
-restore rehearsal remain open. On the latest pushed commit
-`cfe65140b17dc66314fb6875fa8439a12220da88`, Security #22 passed and CI #298
-was still running; the next push should include the accumulated local docs
-batch rather than be split into another tiny push.
+The local candidate rollout and isolated PostgreSQL restore rehearsal are
+complete for schema and anonymous-route checks. Live-browser re-enrollment,
+populated ownership/transfer behavior, human retention/erasure disposition,
+RLS, seed-ledger reconciliation, and media/role/external-provider recovery
+remain open. The approved eight-suite platform-integrity suite passed all 279
+tests locally on pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
+Security #23 passed and CI #299 is in progress on that same pushed commit.
+
+### Isolated Field Collector browser offline acceptance — 14 October 2026
+
+Ran the current candidate Field Collector shell in Google Chrome 155 using a
+fresh temporary browser context. After the service worker cached the shell, the
+browser switched to Playwright network-offline mode (`navigator.onLine=false`),
+reopened the page from cache, unlocked a synthetic encrypted vault, and saved a
+non-sensitive synthetic field note. The IndexedDB envelope retained ciphertext
+and did not contain the note text. On reconnect, a mocked first sync returned
+503 and the queue remained; a mocked retry returned 200 and removed the accepted
+item. Every `/api/mobile/*` request was intercepted, so this is client/offline
+queue acceptance, not live Gateway, enrollment, consent, or database
+acceptance. The existing user vault, candidate database, and legacy stack were
+not touched. See
+[browser evidence](builds/2026-10-14-recovery/field-collector-browser-offline-client.json).

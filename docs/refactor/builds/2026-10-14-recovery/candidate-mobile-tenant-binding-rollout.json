@@ -32,8 +32,31 @@
     "bytes": 5520202,
     "age_authentication": "passed; plaintext streamed to candidate pg_restore, not written to disk",
     "pg_restore_list": "passed",
-    "restore_rehearsed": false,
-    "scope": "Single PostgreSQL database; excludes roles/grants, other databases, Docker volumes, external media, and provider state."
+    "restore_rehearsed": true,
+    "scope": "Single PostgreSQL database; excludes roles/grants, other databases, Docker volumes, external media, and provider state.",
+    "restore_rehearsal": {
+      "compose_project": "kokonut-kernel-recovery-tenant-391-20261014",
+      "container_id": "549d9cd5f882c39a45b19c76d54f25d29b8aea8a86376f34cb7d4dd4ae813ff5",
+      "target_database": "kokonut_restore",
+      "target_created_from": "template0; public schema was empty before restore",
+      "result": "passed transactionally with age decryption streamed to pg_restore; no plaintext dump written",
+      "restored_schema_migrations": 381,
+      "restored_applied_seeds": 0,
+      "schema_fingerprint_excluding_391": "8340cd473680e3f83d8f2fccdce44184",
+      "candidate_schema_fingerprint_excluding_391": "8340cd473680e3f83d8f2fccdce44184",
+      "extension_versions_match_candidate": true,
+      "aggregate_counts_match_candidate": {
+        "organizations": 1,
+        "locations": 0,
+        "mobile_forms": 5,
+        "mobile_form_versions": 10,
+        "mobile_devices": 0,
+        "mobile_enrollments": 0,
+        "tenant_transfers": 0
+      },
+      "container_stopped": true,
+      "volume_retained": "kokonut-kernel-recovery-tenant-391-20261014_recovery-postgres-data"
+    }
   },
   "migration": {
     "command": "python3 -m services.migration migrate --schemas-only --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-metabase.yml",
@@ -78,7 +101,7 @@
   "rollback": {
     "app_only_tag": "kokonut-kernel-candidate-app:rollback-pre-tenant-binding-20261014T031347Z",
     "database_checkpoint": "backups/kernel-candidate-pre-migration-391-20261014T031347Z",
-    "policy": "Migration 391 is additive; retain its columns. If the owner-aware app must be rolled back, disable mobile ingress until an owner-aware compatible app is restored; do not reopen location-only access after any transfer. Database recovery requires a separately reviewed restore into an isolated target and candidate cutover; restore was not rehearsed."
+    "policy": "Migration 391 is additive; retain its columns. The pre-migration checkpoint was restore-rehearsed into an isolated template0 database and matched all 381 pre-391 schema fingerprints, extension versions, and selected aggregate counts. A candidate recovery still requires a separately reviewed restore and cutover. If an owner-aware app rollback is needed, disable mobile ingress until an owner-aware compatible app is restored; do not reopen location-only access after any transfer."
   },
   "cleanup": {
     "candidate_app_database_metabase_proxy_running": true,
@@ -87,11 +110,31 @@
     "encrypted_checkpoint_retained": true,
     "rollback_image_retained": true
   },
+  "post_approval_verification": {
+    "checked_at_utc": "2026-10-14T03:36:01Z",
+    "candidate_database_ledger": {
+      "applied_schema_migrations": 382,
+      "migration_391": {
+        "status": "applied",
+        "sha256": "7888012b4165fa6e81f4c91f9a0881d3800ae3523f54d7ffd81a2bdb1cdd1be3"
+      },
+      "non_applied_migration_rows": 0,
+      "applied_seed_migrations": 0
+    },
+    "candidate_app_container_checks": {
+      "GET /health": 200,
+      "GET /operator/api/farm-activities without credentials": 401,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401
+    },
+    "method": "Read-only migration-ledger query in the candidate database container; HTTP checks from the candidate app container.",
+    "legacy_stack_touched": false,
+    "verification_performed_writes": false
+  },
   "limitations": [
     "The candidate contained no locations, tenant transfers, mobile devices, or enrollments; rollout validates ordered schema deployment and anonymous route protection, not populated ownership, re-enrollment, or transfer behavior.",
     "All 120 reference and pilot seed migrations remain pending, and existing mobile-form seed history requires reconciliation.",
     "RLS remains disabled; migration 391 does not claim database-enforced tenant isolation.",
-    "The checkpoint is a single-database recovery artifact; its isolated restore has not been rehearsed.",
-    "Live-browser re-enrollment acceptance and human retention/erasure disposition remain open."
+    "Live-browser re-enrollment acceptance and human retention/erasure disposition remain open.",
+    "The restore rehearsal validates the single candidate PostgreSQL database only; it excludes roles/grants, other databases, Docker volumes, external media, and provider state."
   ]
 }

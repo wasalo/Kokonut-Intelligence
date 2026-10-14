@@ -7,13 +7,13 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 All named MAN-CAP acceptance checks below remain **not run**; implementation and deployment progress are tracked separately in the new progress column. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links and audit history before/after the provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** commit
-`cfe65140b17dc66314fb6875fa8439a12220da88` is the latest pushed PR #68 head.
-The approved platform-integrity suite passed 279 tests on the older commit
-`258e46f`; CI run #298 is in progress and Security run #22 passed. The focused
-reviewer-note service/auth slice also passed 14 service and three route tests,
-including rollback/connection cleanup on tenant denial. Directus parity,
-worker/direct-database isolation, RLS, and the named manual acceptance checks
-remain open; no full capability acceptance is implied.
+`33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118` is the latest pushed PR #68 head.
+The approved eight-suite platform-integrity suite passed all 279 tests locally
+on this commit; CI run #299 remains in progress and Security run #23 passed.
+The focused reviewer-note service/auth slice also passed 14 service and three
+route tests, including rollback/connection cleanup on tenant denial. Directus
+parity, worker/direct-database isolation, RLS, and named manual acceptance
+checks remain open; no full capability acceptance is implied.
 
 **13 October 2026 local source update (CAP-053):** migration 391 and the
 working tree now pin new mobile device enrollments to the current verified
@@ -26,9 +26,9 @@ offline-shell Node checks, Ruff, Python syntax, dependency alignment, and
 provider-boundary checks passed. A disposable PostgreSQL 16 fixture replayed
 migration 391 twice and checked legacy NULL preservation, wrong-owner rejection,
 binding immutability, and old-owner denial after transfer. The candidate rollout
-completed on 14 October after an encrypted checkpoint; live-browser acceptance
-remains open and RLS remains disabled
-([rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)).
+completed on 14 October after an encrypted checkpoint; live authenticated
+re-enrollment remains open and RLS remains disabled
+([rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)). An isolated Chrome browser check also passed actual client-offline behavior: `navigator.onLine=false`, service-worker shell reopen, encrypted note capture, preservation through a synthetic 503, and queue clearing after a synthetic retry success. Because all mobile API calls were intercepted, live authenticated sync and MAN-CAP-053 remain open ([browser evidence](builds/2026-10-14-recovery/field-collector-browser-offline-client.json)).
 
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,

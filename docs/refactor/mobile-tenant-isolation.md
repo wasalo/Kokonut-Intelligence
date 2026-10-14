@@ -135,9 +135,16 @@ migration 391 after a fresh age-encrypted checkpoint; only the app was recreated
 health returned 200, and anonymous farm-activity/review routes returned 401.
 The empty candidate had no location, transfer, device, or enrollment records, so
 this verifies deployment and route protection rather than populated ownership
-or re-enrollment behavior. Restore was not rehearsed; see the
+or re-enrollment behavior. The encrypted checkpoint was restore-rehearsed into
+an isolated template0 target, with all 381 pre-391 schema fingerprints,
+extension versions, and selected aggregate counts matching; see the
 [rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json).
-Live-browser acceptance and human retention/erasure disposition remain open.
+An isolated Chrome context has now verified app-shell reopen and encrypted
+queue capture with `navigator.onLine=false`, followed by queue preservation
+through a mocked 503 and clearing after a mocked successful retry. This is
+client offline behavior only; its mobile API calls were intercepted. Live
+authenticated re-enrollment, tenant API sync, populated transfer behavior, and
+human retention/erasure disposition remain open. RLS remains disabled.
 
 ## Ordered implementation and acceptance
 
