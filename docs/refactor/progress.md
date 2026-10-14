@@ -17,21 +17,20 @@ alongside it. Remaining implementation is ordered in the
 [code-first execution plan](code-first-execution-plan.md); owner decisions and
 external inputs are collected in [Open Follow Ups](open-follow-ups.md).
 
-The current unpushed worker slice adds conservative statement-kind inference
-and a direct function-call graph rooted at the executed scheduled modules and
-allowlisted handlers. Across 17 operations it resolves 31 entry functions, 281
-function memberships, and 413 direct call edges over 69 source files. Twenty-five
-focused worker source tests pass in the project virtual environment. The graph
-does not close dynamic dispatch, callback, provider/database effects, shared
-worker identity, or authorization ([source closure](worker-source-closure.json),
-[SQL inventory](worker-sql-inventory.json), [function graph](worker-function-reachability.json); [graph evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json)).
-
-The worker review also has a test-guarded direct-call graph for scheduled
-entrypoints and allowlisted event handlers: 31 entry functions reach 281
-function memberships through 413 static call edges across all 17 operations.
-It does not follow dynamic dispatch, callbacks, unknown-instance methods,
-extensions, or database/provider behavior, so runtime effects and worker
-identity remain open ([graph](worker-function-reachability.json); [check](builds/2026-10-14-recovery/worker-function-reachability-check.json)).
+The current unpushed worker slice adds conservative statement-kind inference,
+instance-method resolution where every candidate type is statically known, and
+an explicit graph for the 20 functions in the literal metrics calculator
+registry. Across 17 operations it resolves 31 entry functions, 341 function
+memberships, 483 direct-call edges and 20 registry-dispatch edges over 69
+source files. The companion SQL reachability report links 175 unique SQL sites
+across 216 operation/site memberships; the other 21 are marked
+`no_static_function_match`, not unreachable. The focused worker source/graph/map
+suite passes 31 tests, with Ruff checks passing. Remaining dynamic callbacks,
+unknown instance types, extension/provider and database behavior, worker
+identity and authorization are still open ([source closure](worker-source-closure.json),
+[SQL inventory](worker-sql-inventory.json), [function graph](worker-function-reachability.json),
+[SQL reachability](worker-sql-reachability.json); [function graph evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json),
+[SQL join evidence](builds/2026-10-14-recovery/worker-sql-reachability-check.json)).
 
 The current source-only telemetry slice keeps freshness-query identifiers in
 fixed maps, binds location values, and records unsupported configured sources

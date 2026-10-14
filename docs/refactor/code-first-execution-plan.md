@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 316 checked and 20 open items (336 total).
+- The execution checklist has 317 checked and 20 open items (337 total).
 - The latest pushed implementation batch is `de5bd4e`; CI #312 is in progress
   and Security #36 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -33,10 +33,13 @@ MAN-CAP checks open until each has its own retained evidence.
   with unknown statement kind after conservative local-prefix inference). The dynamic sites have source-pattern review;
   `query()`/`query_one()` have no direct operation callers, and the only direct
   `DatabaseConnection.execute()` call is the literal metrics reconciliation
-  query. A direct-call graph now connects 31 executed/allowlisted entry
-  functions to 281 function memberships over the same 17 operations; dynamic
-  dispatch, callbacks, external calls, enabled legacy rows, and worker
-  identity/context remain open.
+  query. The worker graph now connects 31 executed/allowlisted entry functions
+  to 341 function memberships across the same 17 operations, with 483 direct
+  calls and 20 explicit metric-registry dispatches. A companion report links
+  175 of 196 SQL sites to a static operation path; 21 remain without a static
+  function match and are not labeled unreachable. Other dynamic dispatch,
+  callbacks, external calls, enabled legacy rows, and worker identity/context
+  remain open.
   The metrics entry now references all 20 registered calculator modules with a
   registry-parity test and records direct query tables and composed calculator
   calls. The freshness operation's seven source tables are also tied to its

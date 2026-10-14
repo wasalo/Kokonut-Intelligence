@@ -1,13 +1,14 @@
 {
   "version": 1,
   "generated_by": "scripts/worker_function_reachability.py",
-  "scope": "Direct statically resolved Python calls from allowlisted operation entry functions within their local services.* import closures. This graph is incomplete: dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
+  "scope": "Direct statically resolved Python calls and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 17,
     "source_files": 69,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 281,
-    "direct_call_edges": 413
+    "function_memberships": 341,
+    "direct_call_edges": 483,
+    "dynamic_dispatch_edges": 20
   },
   "operations": [
     {
@@ -65,12 +66,116 @@
           "line": 33
         },
         {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
+        },
+        {
           "key": "services.events.backend:get_event_store",
           "module": "services.events.backend",
           "qualname": "get_event_store",
           "class_scope": null,
           "source": "services/events/backend.py",
           "line": 8
+        },
+        {
+          "key": "services.events.bus:EventBus._claim",
+          "module": "services.events.bus",
+          "qualname": "EventBus._claim",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 88
+        },
+        {
+          "key": "services.events.bus:EventBus._complete",
+          "module": "services.events.bus",
+          "qualname": "EventBus._complete",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 226
+        },
+        {
+          "key": "services.events.bus:EventBus._get_conn",
+          "module": "services.events.bus",
+          "qualname": "EventBus._get_conn",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 50
+        },
+        {
+          "key": "services.events.bus:EventBus._invoke_handler",
+          "module": "services.events.bus",
+          "qualname": "EventBus._invoke_handler",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 206
+        },
+        {
+          "key": "services.events.bus:EventBus._process_event",
+          "module": "services.events.bus",
+          "qualname": "EventBus._process_event",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 139
+        },
+        {
+          "key": "services.events.bus:EventBus._retry_or_dead_letter",
+          "module": "services.events.bus",
+          "qualname": "EventBus._retry_or_dead_letter",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 239
+        },
+        {
+          "key": "services.events.bus:EventBus.cleanup_old_events",
+          "module": "services.events.bus",
+          "qualname": "EventBus.cleanup_old_events",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 322
+        },
+        {
+          "key": "services.events.bus:EventBus.close",
+          "module": "services.events.bus",
+          "qualname": "EventBus.close",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 56
+        },
+        {
+          "key": "services.events.bus:EventBus.dispose_dead_letter",
+          "module": "services.events.bus",
+          "qualname": "EventBus.dispose_dead_letter",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 297
+        },
+        {
+          "key": "services.events.bus:EventBus.get_stats",
+          "module": "services.events.bus",
+          "qualname": "EventBus.get_stats",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 315
+        },
+        {
+          "key": "services.events.bus:EventBus.process_pending",
+          "module": "services.events.bus",
+          "qualname": "EventBus.process_pending",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 112
+        },
+        {
+          "key": "services.events.bus:EventBus.replay_dead_letter",
+          "module": "services.events.bus",
+          "qualname": "EventBus.replay_dead_letter",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 264
         },
         {
           "key": "services.events.cli:_get_conn",
@@ -273,6 +378,54 @@
           "line": 114
         },
         {
+          "key": "services.events.insight_transfer:InsightTransferEngine._get_conn",
+          "module": "services.events.insight_transfer",
+          "qualname": "InsightTransferEngine._get_conn",
+          "class_scope": "InsightTransferEngine",
+          "source": "services/events/insight_transfer.py",
+          "line": 24
+        },
+        {
+          "key": "services.events.insight_transfer:InsightTransferEngine._update_rule_effectiveness",
+          "module": "services.events.insight_transfer",
+          "qualname": "InsightTransferEngine._update_rule_effectiveness",
+          "class_scope": "InsightTransferEngine",
+          "source": "services/events/insight_transfer.py",
+          "line": 266
+        },
+        {
+          "key": "services.events.insight_transfer:InsightTransferEngine.add_rule",
+          "module": "services.events.insight_transfer",
+          "qualname": "InsightTransferEngine.add_rule",
+          "class_scope": "InsightTransferEngine",
+          "source": "services/events/insight_transfer.py",
+          "line": 87
+        },
+        {
+          "key": "services.events.insight_transfer:InsightTransferEngine.get_pending_transfers",
+          "module": "services.events.insight_transfer",
+          "qualname": "InsightTransferEngine.get_pending_transfers",
+          "class_scope": "InsightTransferEngine",
+          "source": "services/events/insight_transfer.py",
+          "line": 127
+        },
+        {
+          "key": "services.events.insight_transfer:InsightTransferEngine.process_event",
+          "module": "services.events.insight_transfer",
+          "qualname": "InsightTransferEngine.process_event",
+          "class_scope": "InsightTransferEngine",
+          "source": "services/events/insight_transfer.py",
+          "line": 30
+        },
+        {
+          "key": "services.events.insight_transfer:InsightTransferEngine.resolve_transfer",
+          "module": "services.events.insight_transfer",
+          "qualname": "InsightTransferEngine.resolve_transfer",
+          "class_scope": "InsightTransferEngine",
+          "source": "services/events/insight_transfer.py",
+          "line": 158
+        },
+        {
           "key": "services.events.notification_outbox:_configured_channels",
           "module": "services.events.notification_outbox",
           "qualname": "_configured_channels",
@@ -379,6 +532,102 @@
       ],
       "direct_call_edges": [
         {
+          "caller": "services.events.bus:EventBus._claim",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 90
+        },
+        {
+          "caller": "services.events.bus:EventBus._complete",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 227
+        },
+        {
+          "caller": "services.events.bus:EventBus._get_conn",
+          "callee": "services.common.database:get_db",
+          "source": "services/events/bus.py",
+          "line": 53
+        },
+        {
+          "caller": "services.events.bus:EventBus._process_event",
+          "callee": "services.events.bus:EventBus._complete",
+          "source": "services/events/bus.py",
+          "line": 154
+        },
+        {
+          "caller": "services.events.bus:EventBus._process_event",
+          "callee": "services.events.bus:EventBus._complete",
+          "source": "services/events/bus.py",
+          "line": 204
+        },
+        {
+          "caller": "services.events.bus:EventBus._process_event",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 140
+        },
+        {
+          "caller": "services.events.bus:EventBus._process_event",
+          "callee": "services.events.bus:EventBus._invoke_handler",
+          "source": "services/events/bus.py",
+          "line": 183
+        },
+        {
+          "caller": "services.events.bus:EventBus._retry_or_dead_letter",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 240
+        },
+        {
+          "caller": "services.events.bus:EventBus.cleanup_old_events",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 323
+        },
+        {
+          "caller": "services.events.bus:EventBus.dispose_dead_letter",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 304
+        },
+        {
+          "caller": "services.events.bus:EventBus.get_stats",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 316
+        },
+        {
+          "caller": "services.events.bus:EventBus.process_pending",
+          "callee": "services.events.bus:EventBus._claim",
+          "source": "services/events/bus.py",
+          "line": 116
+        },
+        {
+          "caller": "services.events.bus:EventBus.process_pending",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 114
+        },
+        {
+          "caller": "services.events.bus:EventBus.process_pending",
+          "callee": "services.events.bus:EventBus._process_event",
+          "source": "services/events/bus.py",
+          "line": 119
+        },
+        {
+          "caller": "services.events.bus:EventBus.process_pending",
+          "callee": "services.events.bus:EventBus._retry_or_dead_letter",
+          "source": "services/events/bus.py",
+          "line": 129
+        },
+        {
+          "caller": "services.events.bus:EventBus.replay_dead_letter",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 267
+        },
+        {
           "caller": "services.events.cli:_get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/cli.py",
@@ -397,16 +646,46 @@
           "line": 407
         },
         {
+          "caller": "services.events.cli:cmd_add_rule",
+          "callee": "services.events.insight_transfer:InsightTransferEngine.add_rule",
+          "source": "services/events/cli.py",
+          "line": 408
+        },
+        {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
           "line": 80
         },
         {
+          "caller": "services.events.cli:cmd_cleanup",
+          "callee": "services.events.bus:EventBus.cleanup_old_events",
+          "source": "services/events/cli.py",
+          "line": 82
+        },
+        {
+          "caller": "services.events.cli:cmd_cleanup",
+          "callee": "services.events.bus:EventBus.close",
+          "source": "services/events/cli.py",
+          "line": 84
+        },
+        {
           "caller": "services.events.cli:cmd_dispose_dead_letter",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
           "line": 165
+        },
+        {
+          "caller": "services.events.cli:cmd_dispose_dead_letter",
+          "callee": "services.events.bus:EventBus.close",
+          "source": "services/events/cli.py",
+          "line": 173
+        },
+        {
+          "caller": "services.events.cli:cmd_dispose_dead_letter",
+          "callee": "services.events.bus:EventBus.dispose_dead_letter",
+          "source": "services/events/cli.py",
+          "line": 167
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
@@ -541,6 +820,12 @@
           "line": 389
         },
         {
+          "caller": "services.events.cli:cmd_pending_transfers",
+          "callee": "services.events.insight_transfer:InsightTransferEngine.get_pending_transfers",
+          "source": "services/events/cli.py",
+          "line": 390
+        },
+        {
           "caller": "services.events.cli:cmd_process",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
@@ -553,6 +838,18 @@
           "line": 28
         },
         {
+          "caller": "services.events.cli:cmd_process",
+          "callee": "services.events.bus:EventBus.close",
+          "source": "services/events/cli.py",
+          "line": 37
+        },
+        {
+          "caller": "services.events.cli:cmd_process",
+          "callee": "services.events.bus:EventBus.process_pending",
+          "source": "services/events/cli.py",
+          "line": 30
+        },
+        {
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
@@ -563,6 +860,12 @@
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
           "line": 377
+        },
+        {
+          "caller": "services.events.cli:cmd_process_event",
+          "callee": "services.events.insight_transfer:InsightTransferEngine.process_event",
+          "source": "services/events/cli.py",
+          "line": 379
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
@@ -589,6 +892,18 @@
           "line": 153
         },
         {
+          "caller": "services.events.cli:cmd_replay_dead_letter",
+          "callee": "services.events.bus:EventBus.close",
+          "source": "services/events/cli.py",
+          "line": 159
+        },
+        {
+          "caller": "services.events.cli:cmd_replay_dead_letter",
+          "callee": "services.events.bus:EventBus.replay_dead_letter",
+          "source": "services/events/cli.py",
+          "line": 155
+        },
+        {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
@@ -601,10 +916,28 @@
           "line": 398
         },
         {
+          "caller": "services.events.cli:cmd_resolve_transfer",
+          "callee": "services.events.insight_transfer:InsightTransferEngine.resolve_transfer",
+          "source": "services/events/cli.py",
+          "line": 399
+        },
+        {
           "caller": "services.events.cli:cmd_stats",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
           "line": 66
+        },
+        {
+          "caller": "services.events.cli:cmd_stats",
+          "callee": "services.events.bus:EventBus.close",
+          "source": "services/events/cli.py",
+          "line": 70
+        },
+        {
+          "caller": "services.events.cli:cmd_stats",
+          "callee": "services.events.bus:EventBus.get_stats",
+          "source": "services/events/cli.py",
+          "line": 68
         },
         {
           "caller": "services.events.cli:cmd_worker",
@@ -617,6 +950,18 @@
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
           "line": 45
+        },
+        {
+          "caller": "services.events.cli:cmd_worker",
+          "callee": "services.events.bus:EventBus.close",
+          "source": "services/events/cli.py",
+          "line": 60
+        },
+        {
+          "caller": "services.events.cli:cmd_worker",
+          "callee": "services.events.bus:EventBus.process_pending",
+          "source": "services/events/cli.py",
+          "line": 48
         },
         {
           "caller": "services.events.cli:cmd_worker",
@@ -757,6 +1102,54 @@
           "line": 122
         },
         {
+          "caller": "services.events.insight_transfer:InsightTransferEngine._get_conn",
+          "callee": "services.common.database:get_db",
+          "source": "services/events/insight_transfer.py",
+          "line": 27
+        },
+        {
+          "caller": "services.events.insight_transfer:InsightTransferEngine.add_rule",
+          "callee": "services.events.insight_transfer:InsightTransferEngine._get_conn",
+          "source": "services/events/insight_transfer.py",
+          "line": 97
+        },
+        {
+          "caller": "services.events.insight_transfer:InsightTransferEngine.get_pending_transfers",
+          "callee": "services.events.insight_transfer:InsightTransferEngine._get_conn",
+          "source": "services/events/insight_transfer.py",
+          "line": 131
+        },
+        {
+          "caller": "services.events.insight_transfer:InsightTransferEngine.process_event",
+          "callee": "services.events.insight_transfer:InsightTransferEngine._get_conn",
+          "source": "services/events/insight_transfer.py",
+          "line": 41
+        },
+        {
+          "caller": "services.events.insight_transfer:InsightTransferEngine.resolve_transfer",
+          "callee": "services.events.insight_transfer:InsightTransferEngine._get_conn",
+          "source": "services/events/insight_transfer.py",
+          "line": 165
+        },
+        {
+          "caller": "services.events.insight_transfer:InsightTransferEngine.resolve_transfer",
+          "callee": "services.events.insight_transfer:InsightTransferEngine._update_rule_effectiveness",
+          "source": "services/events/insight_transfer.py",
+          "line": 191
+        },
+        {
+          "caller": "services.events.notification_outbox:_configured_channels",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 149
+        },
+        {
+          "caller": "services.events.notification_outbox:_deliver",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 322
+        },
+        {
           "caller": "services.events.notification_outbox:_finish_attempt",
           "callee": "services.events.notification_outbox:_retry_delay_seconds",
           "source": "services/events/notification_outbox.py",
@@ -816,7 +1209,8 @@
           "source": "services/events/notification_outbox.py",
           "line": 535
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -986,7 +1380,8 @@
           "source": "services/export/dataset_refresh.py",
           "line": 51
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -1068,6 +1463,30 @@
           "class_scope": null,
           "source": "services/common/database.py",
           "line": 33
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
+        },
+        {
+          "key": "services.events.bus:EventBus._get_conn",
+          "module": "services.events.bus",
+          "qualname": "EventBus._get_conn",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 50
+        },
+        {
+          "key": "services.events.bus:EventBus.publish",
+          "module": "services.events.bus",
+          "qualname": "EventBus.publish",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 61
         },
         {
           "key": "services.events.notification_outbox:_notification_payloads",
@@ -1384,6 +1803,24 @@
       ],
       "direct_call_edges": [
         {
+          "caller": "services.events.bus:EventBus._get_conn",
+          "callee": "services.common.database:get_db",
+          "source": "services/events/bus.py",
+          "line": 53
+        },
+        {
+          "caller": "services.events.bus:EventBus.publish",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 72
+        },
+        {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 95
+        },
+        {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
@@ -1484,6 +1921,12 @@
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
           "line": 878
+        },
+        {
+          "caller": "services.ingestion.anomaly_detector:run_check",
+          "callee": "services.events.bus:EventBus.publish",
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 844
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
@@ -1755,7 +2198,8 @@
           "source": "services/ingestion/ml_anomaly_detector.py",
           "line": 571
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -2234,7 +2678,8 @@
           "source": "services/ingestion/gee_climate.py",
           "line": 132
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -2482,7 +2927,8 @@
           "source": "services/ingestion/data_freshness.py",
           "line": 393
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -2711,7 +3157,8 @@
           "source": "services/ingestion/eas_indexer.py",
           "line": 238
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -3180,7 +3627,8 @@
           "source": "services/ingestion/gnosis_indexer.py",
           "line": 546
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -3371,7 +3819,8 @@
           "source": "services/ingestion/market_data.py",
           "line": 456
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -3413,6 +3862,14 @@
           "class_scope": null,
           "source": "services/core/adapters/clickhouse.py",
           "line": 8
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -3537,6 +3994,12 @@
       ],
       "direct_call_edges": [
         {
+          "caller": "services.core.adapters.clickhouse:create_client",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 16
+        },
+        {
           "caller": "services.ingestion.base:get_clickhouse",
           "callee": "services.core.adapters.clickhouse:create_client",
           "source": "services/ingestion/base.py",
@@ -3650,7 +4113,8 @@
           "source": "services/ingestion/rpc_indexer.py",
           "line": 259
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -3711,6 +4175,14 @@
           "class_scope": null,
           "source": "services/core/adapters/clickhouse.py",
           "line": 8
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -3890,6 +4362,12 @@
         }
       ],
       "direct_call_edges": [
+        {
+          "caller": "services.core.adapters.clickhouse:create_client",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 16
+        },
         {
           "caller": "services.ingestion.base:get_clickhouse",
           "callee": "services.core.adapters.clickhouse:create_client",
@@ -4148,7 +4626,8 @@
           "source": "services/ingestion/sensor_projection.py",
           "line": 17
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -4190,6 +4669,14 @@
           "class_scope": null,
           "source": "services/core/adapters/clickhouse.py",
           "line": 8
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -4290,6 +4777,12 @@
       ],
       "direct_call_edges": [
         {
+          "caller": "services.core.adapters.clickhouse:create_client",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 16
+        },
+        {
           "caller": "services.ingestion.base:get_clickhouse",
           "callee": "services.core.adapters.clickhouse:create_client",
           "source": "services/ingestion/base.py",
@@ -4385,7 +4878,8 @@
           "source": "services/ingestion/weather.py",
           "line": 200
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "scheduled_module",
@@ -4478,6 +4972,182 @@
           "line": 50
         },
         {
+          "key": "services.metrics.calculators.allocated_shared_cost:compute_allocated_shared_cost",
+          "module": "services.metrics.calculators.allocated_shared_cost",
+          "qualname": "compute_allocated_shared_cost",
+          "class_scope": null,
+          "source": "services/metrics/calculators/allocated_shared_cost.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.attestation_coverage:compute_attestation_coverage",
+          "module": "services.metrics.calculators.attestation_coverage",
+          "qualname": "compute_attestation_coverage",
+          "class_scope": null,
+          "source": "services/metrics/calculators/attestation_coverage.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.baseline_asset_value:compute_baseline_asset_value",
+          "module": "services.metrics.calculators.baseline_asset_value",
+          "qualname": "compute_baseline_asset_value",
+          "class_scope": null,
+          "source": "services/metrics/calculators/baseline_asset_value.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.baseline_cash_flow:compute_baseline_cash_flow",
+          "module": "services.metrics.calculators.baseline_cash_flow",
+          "qualname": "compute_baseline_cash_flow",
+          "class_scope": null,
+          "source": "services/metrics/calculators/baseline_cash_flow.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.baseline_cost:compute_baseline_cost",
+          "module": "services.metrics.calculators.baseline_cost",
+          "qualname": "compute_baseline_cost",
+          "class_scope": null,
+          "source": "services/metrics/calculators/baseline_cost.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.baseline_revenue:compute_baseline_revenue",
+          "module": "services.metrics.calculators.baseline_revenue",
+          "qualname": "compute_baseline_revenue",
+          "class_scope": null,
+          "source": "services/metrics/calculators/baseline_revenue.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.biodiversity_delta:_shannon_index",
+          "module": "services.metrics.calculators.biodiversity_delta",
+          "qualname": "_shannon_index",
+          "class_scope": null,
+          "source": "services/metrics/calculators/biodiversity_delta.py",
+          "line": 15
+        },
+        {
+          "key": "services.metrics.calculators.biodiversity_delta:compute_biodiversity_delta",
+          "module": "services.metrics.calculators.biodiversity_delta",
+          "qualname": "compute_biodiversity_delta",
+          "class_scope": null,
+          "source": "services/metrics/calculators/biodiversity_delta.py",
+          "line": 28
+        },
+        {
+          "key": "services.metrics.calculators.crop_noi:compute_crop_noi",
+          "module": "services.metrics.calculators.crop_noi",
+          "qualname": "compute_crop_noi",
+          "class_scope": null,
+          "source": "services/metrics/calculators/crop_noi.py",
+          "line": 24
+        },
+        {
+          "key": "services.metrics.calculators.crop_revenue:compute_crop_revenue",
+          "module": "services.metrics.calculators.crop_revenue",
+          "qualname": "compute_crop_revenue",
+          "class_scope": null,
+          "source": "services/metrics/calculators/crop_revenue.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.digital_lego:compute_digital_lego_usage",
+          "module": "services.metrics.calculators.digital_lego",
+          "qualname": "compute_digital_lego_usage",
+          "class_scope": null,
+          "source": "services/metrics/calculators/digital_lego.py",
+          "line": 15
+        },
+        {
+          "key": "services.metrics.calculators.direct_crop_cost:compute_direct_crop_cost",
+          "module": "services.metrics.calculators.direct_crop_cost",
+          "qualname": "compute_direct_crop_cost",
+          "class_scope": null,
+          "source": "services/metrics/calculators/direct_crop_cost.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.first_time_through_yield:compute_first_time_through_yield",
+          "module": "services.metrics.calculators.first_time_through_yield",
+          "qualname": "compute_first_time_through_yield",
+          "class_scope": null,
+          "source": "services/metrics/calculators/first_time_through_yield.py",
+          "line": 29
+        },
+        {
+          "key": "services.metrics.calculators.governed_lead_time:compute_governed_lead_time",
+          "module": "services.metrics.calculators.governed_lead_time",
+          "qualname": "compute_governed_lead_time",
+          "class_scope": null,
+          "source": "services/metrics/calculators/governed_lead_time.py",
+          "line": 30
+        },
+        {
+          "key": "services.metrics.calculators.loss_rate_pct:compute_loss_rate_pct",
+          "module": "services.metrics.calculators.loss_rate_pct",
+          "qualname": "compute_loss_rate_pct",
+          "class_scope": null,
+          "source": "services/metrics/calculators/loss_rate_pct.py",
+          "line": 17
+        },
+        {
+          "key": "services.metrics.calculators.net_crop_revenue:compute_net_crop_revenue",
+          "module": "services.metrics.calculators.net_crop_revenue",
+          "qualname": "compute_net_crop_revenue",
+          "class_scope": null,
+          "source": "services/metrics/calculators/net_crop_revenue.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.operating_margin:compute_operating_margin",
+          "module": "services.metrics.calculators.operating_margin",
+          "qualname": "compute_operating_margin",
+          "class_scope": null,
+          "source": "services/metrics/calculators/operating_margin.py",
+          "line": 17
+        },
+        {
+          "key": "services.metrics.calculators.rework_rate:_normalize_id_array",
+          "module": "services.metrics.calculators.rework_rate",
+          "qualname": "_normalize_id_array",
+          "class_scope": null,
+          "source": "services/metrics/calculators/rework_rate.py",
+          "line": 29
+        },
+        {
+          "key": "services.metrics.calculators.rework_rate:compute_rework_rate",
+          "module": "services.metrics.calculators.rework_rate",
+          "qualname": "compute_rework_rate",
+          "class_scope": null,
+          "source": "services/metrics/calculators/rework_rate.py",
+          "line": 39
+        },
+        {
+          "key": "services.metrics.calculators.soil_carbon_delta:compute_soil_carbon_delta",
+          "module": "services.metrics.calculators.soil_carbon_delta",
+          "qualname": "compute_soil_carbon_delta",
+          "class_scope": null,
+          "source": "services/metrics/calculators/soil_carbon_delta.py",
+          "line": 14
+        },
+        {
+          "key": "services.metrics.calculators.value_flowed:compute_value_flowed",
+          "module": "services.metrics.calculators.value_flowed",
+          "qualname": "compute_value_flowed",
+          "class_scope": null,
+          "source": "services/metrics/calculators/value_flowed.py",
+          "line": 15
+        },
+        {
+          "key": "services.metrics.calculators.wallet_retention:compute_wallet_retention",
+          "module": "services.metrics.calculators.wallet_retention",
+          "qualname": "compute_wallet_retention",
+          "class_scope": null,
+          "source": "services/metrics/calculators/wallet_retention.py",
+          "line": 15
+        },
+        {
           "key": "services.metrics.cli:main",
           "module": "services.metrics.cli",
           "qualname": "main",
@@ -4538,6 +5208,60 @@
           "callee": "services.common.database:get_db",
           "source": "services/ingestion/base.py",
           "line": 59
+        },
+        {
+          "caller": "services.metrics.calculators.biodiversity_delta:compute_biodiversity_delta",
+          "callee": "services.metrics.calculators.biodiversity_delta:_shannon_index",
+          "source": "services/metrics/calculators/biodiversity_delta.py",
+          "line": 80
+        },
+        {
+          "caller": "services.metrics.calculators.biodiversity_delta:compute_biodiversity_delta",
+          "callee": "services.metrics.calculators.biodiversity_delta:_shannon_index",
+          "source": "services/metrics/calculators/biodiversity_delta.py",
+          "line": 81
+        },
+        {
+          "caller": "services.metrics.calculators.crop_noi:compute_crop_noi",
+          "callee": "services.metrics.calculators.allocated_shared_cost:compute_allocated_shared_cost",
+          "source": "services/metrics/calculators/crop_noi.py",
+          "line": 31
+        },
+        {
+          "caller": "services.metrics.calculators.crop_noi:compute_crop_noi",
+          "callee": "services.metrics.calculators.direct_crop_cost:compute_direct_crop_cost",
+          "source": "services/metrics/calculators/crop_noi.py",
+          "line": 30
+        },
+        {
+          "caller": "services.metrics.calculators.crop_noi:compute_crop_noi",
+          "callee": "services.metrics.calculators.net_crop_revenue:compute_net_crop_revenue",
+          "source": "services/metrics/calculators/crop_noi.py",
+          "line": 29
+        },
+        {
+          "caller": "services.metrics.calculators.operating_margin:compute_operating_margin",
+          "callee": "services.metrics.calculators.crop_noi:compute_crop_noi",
+          "source": "services/metrics/calculators/operating_margin.py",
+          "line": 22
+        },
+        {
+          "caller": "services.metrics.calculators.operating_margin:compute_operating_margin",
+          "callee": "services.metrics.calculators.net_crop_revenue:compute_net_crop_revenue",
+          "source": "services/metrics/calculators/operating_margin.py",
+          "line": 23
+        },
+        {
+          "caller": "services.metrics.calculators.rework_rate:compute_rework_rate",
+          "callee": "services.metrics.calculators.rework_rate:_normalize_id_array",
+          "source": "services/metrics/calculators/rework_rate.py",
+          "line": 90
+        },
+        {
+          "caller": "services.metrics.calculators.rework_rate:compute_rework_rate",
+          "callee": "services.metrics.calculators.rework_rate:_normalize_id_array",
+          "source": "services/metrics/calculators/rework_rate.py",
+          "line": 91
         },
         {
           "caller": "services.metrics.cli:main",
@@ -4635,6 +5359,188 @@
           "source": "services/metrics/engine.py",
           "line": 124
         }
+      ],
+      "dynamic_dispatch_edges": [
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.allocated_shared_cost:compute_allocated_shared_cost",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "allocated_shared_cost"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.attestation_coverage:compute_attestation_coverage",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "attestation_coverage"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.baseline_asset_value:compute_baseline_asset_value",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "baseline_asset_value"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.baseline_cash_flow:compute_baseline_cash_flow",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "baseline_cash_flow"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.baseline_cost:compute_baseline_cost",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "baseline_cost"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.baseline_revenue:compute_baseline_revenue",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "baseline_revenue"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.biodiversity_delta:compute_biodiversity_delta",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "biodiversity_delta"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.crop_noi:compute_crop_noi",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "crop_noi"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.crop_revenue:compute_crop_revenue",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "crop_revenue"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.digital_lego:compute_digital_lego_usage",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "digital_lego_usage"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.direct_crop_cost:compute_direct_crop_cost",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "direct_crop_cost"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.first_time_through_yield:compute_first_time_through_yield",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "first_time_through_yield_pct"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.governed_lead_time:compute_governed_lead_time",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "governed_lead_time_days"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.loss_rate_pct:compute_loss_rate_pct",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "loss_rate_pct"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.net_crop_revenue:compute_net_crop_revenue",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "net_crop_revenue"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.operating_margin:compute_operating_margin",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "operating_margin_pct"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.rework_rate:compute_rework_rate",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "rework_rate_pct"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.soil_carbon_delta:compute_soil_carbon_delta",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "soil_carbon_delta"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.value_flowed:compute_value_flowed",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "value_flowed"
+        },
+        {
+          "caller": "services.metrics.engine:compute_metric",
+          "callee": "services.metrics.calculators.wallet_retention:compute_wallet_retention",
+          "source": "services/metrics/engine.py",
+          "line": 59,
+          "dispatch": "literal_function_registry",
+          "registry": "services.metrics.calculators.CALCULATORS",
+          "registry_key": "wallet_retention"
+        }
       ]
     },
     {
@@ -4668,6 +5574,22 @@
           "line": 8
         },
         {
+          "key": "services.cache.cache:ComputationCache._get_conn",
+          "module": "services.cache.cache",
+          "qualname": "ComputationCache._get_conn",
+          "class_scope": "ComputationCache",
+          "source": "services/cache/cache.py",
+          "line": 26
+        },
+        {
+          "key": "services.cache.cache:ComputationCache.invalidate",
+          "module": "services.cache.cache",
+          "qualname": "ComputationCache.invalidate",
+          "class_scope": "ComputationCache",
+          "source": "services/cache/cache.py",
+          "line": 156
+        },
+        {
           "key": "services.cache.events:_require_location_id",
           "module": "services.cache.events",
           "qualname": "_require_location_id",
@@ -4682,9 +5604,37 @@
           "class_scope": null,
           "source": "services/cache/events.py",
           "line": 43
+        },
+        {
+          "key": "services.cache.ports:ComputationCacheBackend.invalidate",
+          "module": "services.cache.ports",
+          "qualname": "ComputationCacheBackend.invalidate",
+          "class_scope": "ComputationCacheBackend",
+          "source": "services/cache/ports.py",
+          "line": 28
+        },
+        {
+          "key": "services.common.database:get_db",
+          "module": "services.common.database",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/common/database.py",
+          "line": 33
         }
       ],
       "direct_call_edges": [
+        {
+          "caller": "services.cache.cache:ComputationCache._get_conn",
+          "callee": "services.common.database:get_db",
+          "source": "services/cache/cache.py",
+          "line": 29
+        },
+        {
+          "caller": "services.cache.cache:ComputationCache.invalidate",
+          "callee": "services.cache.cache:ComputationCache._get_conn",
+          "source": "services/cache/cache.py",
+          "line": 163
+        },
         {
           "caller": "services.cache.events:handle_crisp_scored",
           "callee": "services.cache.backend:get_computation_cache",
@@ -4693,11 +5643,24 @@
         },
         {
           "caller": "services.cache.events:handle_crisp_scored",
+          "callee": "services.cache.cache:ComputationCache.invalidate",
+          "source": "services/cache/events.py",
+          "line": 52
+        },
+        {
+          "caller": "services.cache.events:handle_crisp_scored",
           "callee": "services.cache.events:_require_location_id",
           "source": "services/cache/events.py",
           "line": 49
+        },
+        {
+          "caller": "services.cache.events:handle_crisp_scored",
+          "callee": "services.cache.ports:ComputationCacheBackend.invalidate",
+          "source": "services/cache/events.py",
+          "line": 52
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "event_handler",
@@ -4730,6 +5693,22 @@
           "line": 8
         },
         {
+          "key": "services.cache.cache:ComputationCache._get_conn",
+          "module": "services.cache.cache",
+          "qualname": "ComputationCache._get_conn",
+          "class_scope": "ComputationCache",
+          "source": "services/cache/cache.py",
+          "line": 26
+        },
+        {
+          "key": "services.cache.cache:ComputationCache.invalidate",
+          "module": "services.cache.cache",
+          "qualname": "ComputationCache.invalidate",
+          "class_scope": "ComputationCache",
+          "source": "services/cache/cache.py",
+          "line": 156
+        },
+        {
           "key": "services.cache.events:_require_location_id",
           "module": "services.cache.events",
           "qualname": "_require_location_id",
@@ -4744,9 +5723,37 @@
           "class_scope": null,
           "source": "services/cache/events.py",
           "line": 26
+        },
+        {
+          "key": "services.cache.ports:ComputationCacheBackend.invalidate",
+          "module": "services.cache.ports",
+          "qualname": "ComputationCacheBackend.invalidate",
+          "class_scope": "ComputationCacheBackend",
+          "source": "services/cache/ports.py",
+          "line": 28
+        },
+        {
+          "key": "services.common.database:get_db",
+          "module": "services.common.database",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/common/database.py",
+          "line": 33
         }
       ],
       "direct_call_edges": [
+        {
+          "caller": "services.cache.cache:ComputationCache._get_conn",
+          "callee": "services.common.database:get_db",
+          "source": "services/cache/cache.py",
+          "line": 29
+        },
+        {
+          "caller": "services.cache.cache:ComputationCache.invalidate",
+          "callee": "services.cache.cache:ComputationCache._get_conn",
+          "source": "services/cache/cache.py",
+          "line": 163
+        },
         {
           "caller": "services.cache.events:handle_metric_computed",
           "callee": "services.cache.backend:get_computation_cache",
@@ -4755,11 +5762,24 @@
         },
         {
           "caller": "services.cache.events:handle_metric_computed",
+          "callee": "services.cache.cache:ComputationCache.invalidate",
+          "source": "services/cache/events.py",
+          "line": 35
+        },
+        {
+          "caller": "services.cache.events:handle_metric_computed",
           "callee": "services.cache.events:_require_location_id",
           "source": "services/cache/events.py",
           "line": 32
+        },
+        {
+          "caller": "services.cache.events:handle_metric_computed",
+          "callee": "services.cache.ports:ComputationCacheBackend.invalidate",
+          "source": "services/cache/events.py",
+          "line": 35
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "event_handler",
@@ -4789,6 +5809,14 @@
           "class_scope": null,
           "source": "services/common/database.py",
           "line": 169
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
         },
         {
           "key": "services.events.handlers:handle_alert_notification",
@@ -4835,12 +5863,19 @@
           "line": 29
         },
         {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 95
+        },
+        {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
           "line": 176
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "event_handler",
@@ -4870,6 +5905,14 @@
           "class_scope": null,
           "source": "services/common/database.py",
           "line": 169
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
         },
         {
           "key": "services.events.handlers:handle_alert_notification",
@@ -4930,12 +5973,19 @@
           "line": 39
         },
         {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 95
+        },
+        {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
           "line": 176
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     },
     {
       "kind": "event_handler",
@@ -4974,6 +6024,30 @@
           "class_scope": null,
           "source": "services/common/database.py",
           "line": 33
+        },
+        {
+          "key": "services.core.providers:ProviderSettings.from_environment",
+          "module": "services.core.providers",
+          "qualname": "ProviderSettings.from_environment",
+          "class_scope": "ProviderSettings",
+          "source": "services/core/providers.py",
+          "line": 25
+        },
+        {
+          "key": "services.events.bus:EventBus._get_conn",
+          "module": "services.events.bus",
+          "qualname": "EventBus._get_conn",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 50
+        },
+        {
+          "key": "services.events.bus:EventBus.publish",
+          "module": "services.events.bus",
+          "qualname": "EventBus.publish",
+          "class_scope": "EventBus",
+          "source": "services/events/bus.py",
+          "line": 61
         },
         {
           "key": "services.events.notification_outbox:_notification_payloads",
@@ -5146,6 +6220,24 @@
       ],
       "direct_call_edges": [
         {
+          "caller": "services.events.bus:EventBus._get_conn",
+          "callee": "services.common.database:get_db",
+          "source": "services/events/bus.py",
+          "line": 53
+        },
+        {
+          "caller": "services.events.bus:EventBus.publish",
+          "callee": "services.events.bus:EventBus._get_conn",
+          "source": "services/events/bus.py",
+          "line": 72
+        },
+        {
+          "caller": "services.events.notification_outbox:_notification_payloads",
+          "callee": "services.core.providers:ProviderSettings.from_environment",
+          "source": "services/events/notification_outbox.py",
+          "line": 95
+        },
+        {
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
@@ -5210,6 +6302,12 @@
           "callee": "services.ingestion.anomaly_detector:run_check",
           "source": "services/ingestion/anomaly_detector.py",
           "line": 67
+        },
+        {
+          "caller": "services.ingestion.anomaly_detector:run_check",
+          "callee": "services.events.bus:EventBus.publish",
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 844
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
@@ -5319,7 +6417,8 @@
           "source": "services/ingestion/base.py",
           "line": 154
         }
-      ]
+      ],
+      "dynamic_dispatch_edges": []
     }
   ]
 }

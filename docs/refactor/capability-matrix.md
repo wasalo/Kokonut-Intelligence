@@ -12,15 +12,15 @@ Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
 **Last CI-verified head (CAP-001 / CAP-047 / CAP-053):** PR #68 is now
-pushed through `26edad1`; CI run [#310](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38620347645)
-is in progress and Security run [#34](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38620348002)
+pushed through `de5bd4e322d0dbba730568b88a9054be3af0db34`; CI run [#312](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190755)
+is in progress and Security run [#36](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190773)
 passed. The last passing head was `7953afe4d5267b040392a8fe52e1ae38c236cfd4`.
 CI run [#308](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258026)
 and Security run [#32](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258017)
 both passed on that earlier head. CI #307 failed because its OIDC Compose test fixture
 did not provide the required test-only operator-auth password before checking
 the missing issuer; commit `7953afe` corrects the fixture. The release CI gate
-passed on `7953afe`; this does not cover the newer `26edad1` push. The named
+passed on `7953afe`; this does not cover the newer `de5bd4e` push. The named
 MAN-CAP checks remain open.
 See [the code-first execution plan](code-first-execution-plan.md) for the
 remaining work order and the Raspberry Pi code-only assessment scope.
@@ -284,9 +284,13 @@ source-visible data effects, scopes, providers, and replay limits. A regression
 test prevents a new allowlisted entry from appearing without an inventory row.
 Module-specific argument schemas now validate scheduler operations at
 activation and dispatch, excluding unsupported human/destructive operations.
-The map and schemas are not an authorization boundary; transitive dynamic
-calls, existing task reconciliation, worker-specific identity, and RLS remain
-open. No MAN-CAP status or acceptance count changes ([map](worker-operation-map.md); [inventory evidence](builds/2026-10-14-recovery/worker-operation-map-check.json); [argument-contract evidence](builds/2026-10-14-recovery/scheduled-command-contract-check.json)).
+The source graph now follows locally inferred instance methods and all 20
+literal metrics-registry entries. Its SQL join has a static function path for
+175 of 196 unique execution sites; the remaining 21 are not classified as
+unreachable. This improves code review but is not an authorization boundary:
+other dynamic calls, existing task reconciliation, worker-specific identity,
+and RLS remain open. No MAN-CAP status or acceptance count changes
+([map](worker-operation-map.md); [function graph](worker-function-reachability.json); [SQL reachability](worker-sql-reachability.json); [worker check evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json); [SQL join evidence](builds/2026-10-14-recovery/worker-sql-reachability-check.json); [inventory evidence](builds/2026-10-14-recovery/worker-operation-map-check.json); [argument-contract evidence](builds/2026-10-14-recovery/scheduled-command-contract-check.json)).
 
 **13 October 2026 OIDC configuration update (CAP-001 / CAP-053):** the optional
 OIDC overlay remains disabled unless explicitly selected. `.env.example` now

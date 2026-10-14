@@ -46,23 +46,34 @@ data effects, and an idempotency/retry note.
 - A generated [direct function reachability graph](worker-function-reachability.json)
   starts scheduled operations at calls under each executed `__main__` guard and
   event operations at their allowlisted handler. It resolves local/imported
-  function calls, module aliases, and `self`/`cls` methods within the static
-  source closure: 31 entry functions reach 281 function memberships across 17
-  operation roots, with 413 direct call edges and no unresolved operation
-  roots. This captures only statically resolved calls; it omits dynamic
-  dispatch, callbacks, methods on unknown instances, extension code, and
-  database/provider behavior. Use
+  function calls, module aliases, `self`/`cls` methods, and instance methods
+  whose candidate types can be inferred locally. The `services.metrics`
+  operation also records each of the 20 functions from its literal
+  `CALCULATORS` registry as an explicit registry-dispatch edge. Across 17
+  operation roots, 31 entry functions reach 341 function memberships through
+  483 direct-call edges and 20 registry-dispatch edges, with no unresolved
+  operation roots. This remains a conservative source map: callbacks and
+  dynamic dispatch outside the pinned registry, unresolved instance types,
+  extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
 - The direct [SQL execution inventory](worker-sql-inventory.json) finds 196
   Python `.execute` sites in those 69 files. It fingerprints 166 literal
-  statements and flags 30 f-string/composed/variable statements; eight
-  statements have an unknown leading kind. Candidate relation tokens are
+  statements and flags 30 f-string/composed/variable statements; three
+  generic adapter statements have an unknown leading kind. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
+- A generated [SQL-to-function reachability report](worker-sql-reachability.json)
+  joins those 196 sites to the operation graph without including SQL text or
+  values. It links 175 unique sites across 216 operation/site memberships;
+  21 sites have no current static function match. That status does not prove
+  unreachability: unresolved dispatch, uncalled helpers, and generic database
+  adapters remain in review. Use
+  `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
+  to check the report.
 - A source review grouped those 30 dynamic/composed sites: 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds
@@ -98,15 +109,14 @@ data effects, and an idempotency/retry note.
 
 ## What remains open
 
-This map, import closure, SQL inventory, and argument schemas are not an ACL,
+This map, import closure, SQL inventories, and argument schemas are not an ACL,
 tenant policy, or complete dynamic call graph. The 30 composed/variable sites
-have source-pattern review; direct function reachability is now mapped where
-calls resolve statically. The scanner classifies 193 of 196 statement kinds,
-with only the three generic database adapter wrappers remaining unknown.
-Indirect and dynamic helper reachability, database functions/views, provider
-implementations, and external effects remain to be traced. The map also does
-not prove that external Prefect/host schedules are inactive or that effects
-are replay-safe on populated data.
+have source-pattern review; the static call graph follows local instance types
+and the explicit metric registry, but 21 SQL sites still have no direct static
+function match. It does not account for all callback/provider dispatch,
+database functions/views, extension behavior, or external effects. The map
+also does not prove that external Prefect/host schedules are inactive or that
+effects are replay-safe on populated data.
 
 Before worker RLS or runtime-grant reduction:
 

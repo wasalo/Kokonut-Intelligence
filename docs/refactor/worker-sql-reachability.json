@@ -1,0 +1,4402 @@
+{
+  "version": 1,
+  "generated_by": "scripts/worker_sql_reachability.py",
+  "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
+  "summary": {
+    "operation_roots": 17,
+    "sql_execution_sites": 196,
+    "statically_reachable_site_memberships": 216,
+    "unique_sites_with_static_operation_path": 175,
+    "sites_without_static_function_match": 21,
+    "sites_reached_by_multiple_operations": 29
+  },
+  "operations": [
+    {
+      "kind": "scheduled_module",
+      "name": "services.events",
+      "operation_ref": "scheduled_module:services.events",
+      "statically_reachable_sql_site_count": 40,
+      "statically_reachable_sql_site_ids": [
+        "services/events/bus.py:142:12",
+        "services/events/bus.py:161:16",
+        "services/events/bus.py:173:16",
+        "services/events/bus.py:189:16",
+        "services/events/bus.py:194:16",
+        "services/events/bus.py:229:12",
+        "services/events/bus.py:244:12",
+        "services/events/bus.py:253:16",
+        "services/events/bus.py:269:12",
+        "services/events/bus.py:306:12",
+        "services/events/bus.py:318:12",
+        "services/events/bus.py:325:12",
+        "services/events/bus.py:92:12",
+        "services/events/cli.py:124:12",
+        "services/events/cli.py:95:12",
+        "services/events/fork_detector.py:133:12",
+        "services/events/fork_detector.py:36:8",
+        "services/events/fork_detector.py:59:8",
+        "services/events/insight_transfer.py:103:8",
+        "services/events/insight_transfer.py:143:8",
+        "services/events/insight_transfer.py:170:8",
+        "services/events/insight_transfer.py:276:8",
+        "services/events/insight_transfer.py:292:12",
+        "services/events/insight_transfer.py:45:8",
+        "services/events/insight_transfer.py:59:12",
+        "services/events/notification_outbox.py:221:8",
+        "services/events/notification_outbox.py:232:8",
+        "services/events/notification_outbox.py:269:8",
+        "services/events/notification_outbox.py:297:12",
+        "services/events/notification_outbox.py:382:8",
+        "services/events/notification_outbox.py:406:8",
+        "services/events/notification_outbox.py:468:8",
+        "services/events/notification_outbox.py:470:8",
+        "services/events/notification_outbox.py:511:8",
+        "services/events/notification_outbox.py:541:8",
+        "services/events/notification_outbox.py:552:8",
+        "services/events/notification_outbox.py:564:8",
+        "services/events/notification_outbox.py:592:8",
+        "services/events/notification_outbox.py:603:8",
+        "services/events/notification_outbox.py:612:8"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.export.dataset_refresh",
+      "operation_ref": "scheduled_module:services.export.dataset_refresh",
+      "statically_reachable_sql_site_count": 14,
+      "statically_reachable_sql_site_ids": [
+        "services/analytics/reporting_reader.py:103:8",
+        "services/analytics/reporting_reader.py:130:8",
+        "services/analytics/reporting_reader.py:158:8",
+        "services/analytics/reporting_reader.py:174:8",
+        "services/analytics/reporting_reader.py:203:12",
+        "services/analytics/reporting_reader.py:204:12",
+        "services/analytics/reporting_reader.py:205:12",
+        "services/analytics/reporting_reader.py:206:12",
+        "services/analytics/reporting_reader.py:72:8",
+        "services/analytics/reporting_reader.py:90:8",
+        "services/export/dataset_refresh.py:35:8",
+        "services/export/dataset_refresh.py:40:8",
+        "services/export/dataset_refresh.py:55:4",
+        "services/export/dataset_refresh.py:90:8"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.anomaly_detector",
+      "operation_ref": "scheduled_module:services.ingestion.anomaly_detector",
+      "statically_reachable_sql_site_count": 35,
+      "statically_reachable_sql_site_ids": [
+        "services/events/bus.py:75:16",
+        "services/events/notification_outbox.py:183:12",
+        "services/events/notification_outbox.py:198:12",
+        "services/ingestion/anomaly_detector.py:1017:12",
+        "services/ingestion/anomaly_detector.py:183:8",
+        "services/ingestion/anomaly_detector.py:190:8",
+        "services/ingestion/anomaly_detector.py:200:12",
+        "services/ingestion/anomaly_detector.py:245:8",
+        "services/ingestion/anomaly_detector.py:288:8",
+        "services/ingestion/anomaly_detector.py:314:8",
+        "services/ingestion/anomaly_detector.py:372:8",
+        "services/ingestion/anomaly_detector.py:397:8",
+        "services/ingestion/anomaly_detector.py:411:12",
+        "services/ingestion/anomaly_detector.py:437:16",
+        "services/ingestion/anomaly_detector.py:558:8",
+        "services/ingestion/anomaly_detector.py:607:8",
+        "services/ingestion/anomaly_detector.py:641:16",
+        "services/ingestion/anomaly_detector.py:662:12",
+        "services/ingestion/anomaly_detector.py:693:20",
+        "services/ingestion/anomaly_detector.py:704:20",
+        "services/ingestion/anomaly_detector.py:736:24",
+        "services/ingestion/anomaly_detector.py:755:24",
+        "services/ingestion/anomaly_detector.py:768:28",
+        "services/ingestion/anomaly_detector.py:802:24",
+        "services/ingestion/anomaly_detector.py:824:28",
+        "services/ingestion/anomaly_detector.py:881:12",
+        "services/ingestion/anomaly_detector.py:909:16",
+        "services/ingestion/anomaly_detector.py:934:20",
+        "services/ingestion/anomaly_detector.py:948:20",
+        "services/ingestion/base.py:156:12",
+        "services/ingestion/ml_anomaly_detector.py:213:4",
+        "services/ingestion/ml_anomaly_detector.py:248:4",
+        "services/ingestion/ml_anomaly_detector.py:489:4",
+        "services/ingestion/ml_anomaly_detector.py:563:8",
+        "services/ingestion/mqtt_actuator.py:104:4"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.climate_data",
+      "operation_ref": "scheduled_module:services.ingestion.climate_data",
+      "statically_reachable_sql_site_count": 8,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/base.py:156:12",
+        "services/ingestion/climate_data.py:35:4",
+        "services/ingestion/climate_data.py:63:4",
+        "services/ingestion/climate_data.py:99:4",
+        "services/ingestion/gee_climate.py:160:8",
+        "services/ingestion/gee_climate.py:229:8",
+        "services/ingestion/gee_climate.py:299:8",
+        "services/ingestion/gee_climate.py:97:8"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.data_freshness",
+      "operation_ref": "scheduled_module:services.ingestion.data_freshness",
+      "statically_reachable_sql_site_count": 18,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/data_freshness.py:104:8",
+        "services/ingestion/data_freshness.py:167:4",
+        "services/ingestion/data_freshness.py:180:4",
+        "services/ingestion/data_freshness.py:190:4",
+        "services/ingestion/data_freshness.py:216:4",
+        "services/ingestion/data_freshness.py:232:4",
+        "services/ingestion/data_freshness.py:249:4",
+        "services/ingestion/data_freshness.py:258:8",
+        "services/ingestion/data_freshness.py:280:4",
+        "services/ingestion/data_freshness.py:390:12",
+        "services/ingestion/data_freshness.py:402:16",
+        "services/ingestion/data_freshness.py:472:20",
+        "services/ingestion/data_freshness.py:478:16",
+        "services/ingestion/data_freshness.py:484:16",
+        "services/ingestion/data_freshness.py:527:4",
+        "services/ingestion/data_freshness.py:54:8",
+        "services/ingestion/data_freshness.py:59:8",
+        "services/ingestion/data_freshness.py:73:4"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.eas_indexer",
+      "operation_ref": "scheduled_module:services.ingestion.eas_indexer",
+      "statically_reachable_sql_site_count": 8,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/base.py:156:12",
+        "services/ingestion/base.py:204:12",
+        "services/ingestion/clickhouse_outbox.py:38:8",
+        "services/ingestion/eas_indexer.py:107:12",
+        "services/ingestion/eas_indexer.py:113:16",
+        "services/ingestion/eas_indexer.py:125:8",
+        "services/ingestion/eas_indexer.py:191:8",
+        "services/ingestion/eas_indexer.py:211:12"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.gnosis_indexer",
+      "operation_ref": "scheduled_module:services.ingestion.gnosis_indexer",
+      "statically_reachable_sql_site_count": 9,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/base.py:204:12",
+        "services/ingestion/base.py:233:12",
+        "services/ingestion/clickhouse_outbox.py:38:8",
+        "services/ingestion/gnosis_indexer.py:113:8",
+        "services/ingestion/gnosis_indexer.py:124:8",
+        "services/ingestion/gnosis_indexer.py:156:8",
+        "services/ingestion/gnosis_indexer.py:332:8",
+        "services/ingestion/gnosis_indexer.py:343:8",
+        "services/ingestion/gnosis_indexer.py:585:20"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.market_data",
+      "operation_ref": "scheduled_module:services.ingestion.market_data",
+      "statically_reachable_sql_site_count": 4,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/market_data.py:351:8",
+        "services/ingestion/market_data.py:376:8",
+        "services/ingestion/market_data.py:393:12",
+        "services/ingestion/market_data.py:448:12"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.rpc_indexer",
+      "operation_ref": "scheduled_module:services.ingestion.rpc_indexer",
+      "statically_reachable_sql_site_count": 5,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/base.py:204:12",
+        "services/ingestion/clickhouse_outbox.py:38:8",
+        "services/ingestion/rpc_indexer.py:120:8",
+        "services/ingestion/rpc_indexer.py:59:12",
+        "services/ingestion/rpc_indexer.py:64:12"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_ingester",
+      "operation_ref": "scheduled_module:services.ingestion.sensor_ingester",
+      "statically_reachable_sql_site_count": 9,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/base.py:156:12",
+        "services/ingestion/clickhouse_outbox.py:38:8",
+        "services/ingestion/sensor_ingester.py:100:8",
+        "services/ingestion/sensor_ingester.py:113:8",
+        "services/ingestion/sensor_ingester.py:132:8",
+        "services/ingestion/sensor_ingester.py:154:8",
+        "services/ingestion/sensor_ingester.py:178:12",
+        "services/ingestion/sensor_ingester.py:508:12",
+        "services/ingestion/sensor_ingester.py:87:12"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.weather",
+      "operation_ref": "scheduled_module:services.ingestion.weather",
+      "statically_reachable_sql_site_count": 5,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/base.py:156:12",
+        "services/ingestion/clickhouse_outbox.py:38:8",
+        "services/ingestion/weather.py:175:12",
+        "services/ingestion/weather.py:180:12",
+        "services/ingestion/weather.py:86:8"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.metrics",
+      "operation_ref": "scheduled_module:services.metrics",
+      "statically_reachable_sql_site_count": 29,
+      "statically_reachable_sql_site_ids": [
+        "services/metrics/calculators/allocated_shared_cost.py:30:4",
+        "services/metrics/calculators/attestation_coverage.py:31:4",
+        "services/metrics/calculators/attestation_coverage.py:44:4",
+        "services/metrics/calculators/baseline_asset_value.py:20:4",
+        "services/metrics/calculators/baseline_cash_flow.py:20:4",
+        "services/metrics/calculators/baseline_cost.py:20:4",
+        "services/metrics/calculators/baseline_revenue.py:20:4",
+        "services/metrics/calculators/biodiversity_delta.py:35:4",
+        "services/metrics/calculators/crop_revenue.py:30:4",
+        "services/metrics/calculators/digital_lego.py:31:4",
+        "services/metrics/calculators/digital_lego.py:45:4",
+        "services/metrics/calculators/direct_crop_cost.py:30:4",
+        "services/metrics/calculators/first_time_through_yield.py:39:4",
+        "services/metrics/calculators/governed_lead_time.py:40:4",
+        "services/metrics/calculators/loss_rate_pct.py:35:4",
+        "services/metrics/calculators/net_crop_revenue.py:30:4",
+        "services/metrics/calculators/rework_rate.py:50:8",
+        "services/metrics/calculators/soil_carbon_delta.py:22:4",
+        "services/metrics/calculators/value_flowed.py:31:4",
+        "services/metrics/calculators/value_flowed.py:54:4",
+        "services/metrics/calculators/wallet_retention.py:34:4",
+        "services/metrics/calculators/wallet_retention.py:45:4",
+        "services/metrics/cli.py:113:16",
+        "services/metrics/cli.py:138:20",
+        "services/metrics/cli.py:43:21",
+        "services/metrics/engine.py:116:4",
+        "services/metrics/engine.py:177:8",
+        "services/metrics/engine.py:46:8",
+        "services/metrics/engine.py:74:8"
+      ]
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.cache.events.handle_crisp_scored",
+      "operation_ref": "event_handler:services.cache.events.handle_crisp_scored",
+      "statically_reachable_sql_site_count": 1,
+      "statically_reachable_sql_site_ids": [
+        "services/cache/cache.py:178:16"
+      ]
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.cache.events.handle_metric_computed",
+      "operation_ref": "event_handler:services.cache.events.handle_metric_computed",
+      "statically_reachable_sql_site_count": 1,
+      "statically_reachable_sql_site_ids": [
+        "services/cache/cache.py:178:16"
+      ]
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.events.handlers.handle_alert_notification",
+      "operation_ref": "event_handler:services.events.handlers.handle_alert_notification",
+      "statically_reachable_sql_site_count": 2,
+      "statically_reachable_sql_site_ids": [
+        "services/events/notification_outbox.py:183:12",
+        "services/events/notification_outbox.py:198:12"
+      ]
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.events.handlers.handle_stale_data",
+      "operation_ref": "event_handler:services.events.handlers.handle_stale_data",
+      "statically_reachable_sql_site_count": 2,
+      "statically_reachable_sql_site_ids": [
+        "services/events/notification_outbox.py:183:12",
+        "services/events/notification_outbox.py:198:12"
+      ]
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.ingestion.anomaly_detector.handle_sensor_reading",
+      "operation_ref": "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+      "statically_reachable_sql_site_count": 26,
+      "statically_reachable_sql_site_ids": [
+        "services/events/bus.py:75:16",
+        "services/events/notification_outbox.py:183:12",
+        "services/events/notification_outbox.py:198:12",
+        "services/ingestion/anomaly_detector.py:183:8",
+        "services/ingestion/anomaly_detector.py:190:8",
+        "services/ingestion/anomaly_detector.py:200:12",
+        "services/ingestion/anomaly_detector.py:245:8",
+        "services/ingestion/anomaly_detector.py:288:8",
+        "services/ingestion/anomaly_detector.py:314:8",
+        "services/ingestion/anomaly_detector.py:372:8",
+        "services/ingestion/anomaly_detector.py:397:8",
+        "services/ingestion/anomaly_detector.py:411:12",
+        "services/ingestion/anomaly_detector.py:437:16",
+        "services/ingestion/anomaly_detector.py:558:8",
+        "services/ingestion/anomaly_detector.py:607:8",
+        "services/ingestion/anomaly_detector.py:641:16",
+        "services/ingestion/anomaly_detector.py:662:12",
+        "services/ingestion/anomaly_detector.py:693:20",
+        "services/ingestion/anomaly_detector.py:704:20",
+        "services/ingestion/anomaly_detector.py:736:24",
+        "services/ingestion/anomaly_detector.py:755:24",
+        "services/ingestion/anomaly_detector.py:768:28",
+        "services/ingestion/anomaly_detector.py:802:24",
+        "services/ingestion/anomaly_detector.py:824:28",
+        "services/ingestion/base.py:156:12",
+        "services/ingestion/mqtt_actuator.py:104:4"
+      ]
+    }
+  ],
+  "execution_sites": [
+    {
+      "id": "services/analytics/reporting_reader.py:72:8",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 72,
+      "scope": "validate_reporting_connection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "pg_roles"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:90:8",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 90,
+      "scope": "validate_reporting_connection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "pg_auth_members",
+        "pg_roles"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:103:8",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 103,
+      "scope": "validate_reporting_connection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "pg_class",
+        "pg_depend",
+        "pg_namespace"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:130:8",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 130,
+      "scope": "validate_reporting_connection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "pg_class",
+        "pg_depend",
+        "pg_namespace"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:158:8",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 158,
+      "scope": "validate_reporting_connection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "pg_namespace",
+        "pg_proc"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:174:8",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 174,
+      "scope": "validate_reporting_connection",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "pg_database"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:203:12",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 203,
+      "scope": "count_reporting_rows",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:204:12",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 204,
+      "scope": "count_reporting_rows",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:205:12",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 205,
+      "scope": "count_reporting_rows",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/analytics/reporting_reader.py:206:12",
+      "source": "services/analytics/reporting_reader.py",
+      "line": 206,
+      "scope": "count_reporting_rows",
+      "method": "execute",
+      "expression_kind": "composed",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/cache/cache.py:51:16",
+      "source": "services/cache/cache.py",
+      "line": 51,
+      "scope": "ComputationCache.get",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "cache_entry"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/cache/cache.py:67:20",
+      "source": "services/cache/cache.py",
+      "line": 67,
+      "scope": "ComputationCache.get",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "cache_entry"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/cache/cache.py:76:16",
+      "source": "services/cache/cache.py",
+      "line": 76,
+      "scope": "ComputationCache.get",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "cache_entry"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/cache/cache.py:119:16",
+      "source": "services/cache/cache.py",
+      "line": 119,
+      "scope": "ComputationCache.set",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "cache_entry"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/cache/cache.py:178:16",
+      "source": "services/cache/cache.py",
+      "line": 178,
+      "scope": "ComputationCache.invalidate",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "cache_entry"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/cache/cache.py:202:16",
+      "source": "services/cache/cache.py",
+      "line": 202,
+      "scope": "ComputationCache.cleanup_expired",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "DELETE",
+      "candidate_relations": [
+        "cache_entry"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/cache/cache.py:223:16",
+      "source": "services/cache/cache.py",
+      "line": 223,
+      "scope": "ComputationCache.stats",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "cache_entry"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/cache/cache.py:238:16",
+      "source": "services/cache/cache.py",
+      "line": 238,
+      "scope": "ComputationCache.stats",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "cache_entry"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/common/database.py:71:15",
+      "source": "services/common/database.py",
+      "line": 71,
+      "scope": "query",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.export.dataset_refresh",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/common/database.py:74:8",
+      "source": "services/common/database.py",
+      "line": 74,
+      "scope": "query",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.export.dataset_refresh",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/common/database.py:132:12",
+      "source": "services/common/database.py",
+      "line": 132,
+      "scope": "DatabaseConnection.execute",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.export.dataset_refresh",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/events/bus.py:75:16",
+      "source": "services/events/bus.py",
+      "line": 75,
+      "scope": "EventBus.publish",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "platform_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:92:12",
+      "source": "services/events/bus.py",
+      "line": 92,
+      "scope": "EventBus._claim",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "SKIP",
+        "claimable",
+        "platform_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:142:12",
+      "source": "services/events/bus.py",
+      "line": 142,
+      "scope": "EventBus._process_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "event_handler",
+        "event_handler_delivery"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:161:16",
+      "source": "services/events/bus.py",
+      "line": 161,
+      "scope": "EventBus._process_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "platform_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:173:16",
+      "source": "services/events/bus.py",
+      "line": 173,
+      "scope": "EventBus._process_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "event_handler_delivery"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:189:16",
+      "source": "services/events/bus.py",
+      "line": 189,
+      "scope": "EventBus._process_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "event_handler_delivery"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:194:16",
+      "source": "services/events/bus.py",
+      "line": 194,
+      "scope": "EventBus._process_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "event_handler_log"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:229:12",
+      "source": "services/events/bus.py",
+      "line": 229,
+      "scope": "EventBus._complete",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "platform_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:244:12",
+      "source": "services/events/bus.py",
+      "line": 244,
+      "scope": "EventBus._retry_or_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "platform_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:253:16",
+      "source": "services/events/bus.py",
+      "line": 253,
+      "scope": "EventBus._retry_or_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "event_dead_letter",
+        "platform_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:269:12",
+      "source": "services/events/bus.py",
+      "line": 269,
+      "scope": "EventBus.replay_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "OF",
+        "event_dead_letter",
+        "platform_event",
+        "replayable",
+        "reset_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:306:12",
+      "source": "services/events/bus.py",
+      "line": 306,
+      "scope": "EventBus.dispose_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "event_dead_letter"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:318:12",
+      "source": "services/events/bus.py",
+      "line": 318,
+      "scope": "EventBus.get_stats",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "platform_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/bus.py:325:12",
+      "source": "services/events/bus.py",
+      "line": 325,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "DELETE",
+      "candidate_relations": [
+        "platform_event"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/cli.py:95:12",
+      "source": "services/events/cli.py",
+      "line": 95,
+      "scope": "cmd_list_handlers",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "event_handler"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/cli.py:124:12",
+      "source": "services/events/cli.py",
+      "line": 124,
+      "scope": "cmd_list_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "event_dead_letter"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/fork_detector.py:36:8",
+      "source": "services/events/fork_detector.py",
+      "line": 36,
+      "scope": "detect_fork_opportunities",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "insight_transfer"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/fork_detector.py:59:8",
+      "source": "services/events/fork_detector.py",
+      "line": 59,
+      "scope": "detect_fork_opportunities",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "decision_log"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/fork_detector.py:133:12",
+      "source": "services/events/fork_detector.py",
+      "line": 133,
+      "scope": "propose_fork_opportunities",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "tactical_opportunity"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/insight_transfer.py:45:8",
+      "source": "services/events/insight_transfer.py",
+      "line": 45,
+      "scope": "InsightTransferEngine.process_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "cross_domain_rule"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/insight_transfer.py:59:12",
+      "source": "services/events/insight_transfer.py",
+      "line": 59,
+      "scope": "InsightTransferEngine.process_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "insight_transfer"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/insight_transfer.py:103:8",
+      "source": "services/events/insight_transfer.py",
+      "line": 103,
+      "scope": "InsightTransferEngine.add_rule",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "cross_domain_rule"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/insight_transfer.py:143:8",
+      "source": "services/events/insight_transfer.py",
+      "line": 143,
+      "scope": "InsightTransferEngine.get_pending_transfers",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "cross_domain_rule",
+        "insight_transfer"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/insight_transfer.py:170:8",
+      "source": "services/events/insight_transfer.py",
+      "line": 170,
+      "scope": "InsightTransferEngine.resolve_transfer",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "insight_transfer"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/insight_transfer.py:206:8",
+      "source": "services/events/insight_transfer.py",
+      "line": 206,
+      "scope": "InsightTransferEngine.get_transfer_stats",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "insight_transfer"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/events/insight_transfer.py:254:8",
+      "source": "services/events/insight_transfer.py",
+      "line": 254,
+      "scope": "InsightTransferEngine.get_rules",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "cross_domain_rule"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/events/insight_transfer.py:276:8",
+      "source": "services/events/insight_transfer.py",
+      "line": 276,
+      "scope": "InsightTransferEngine._update_rule_effectiveness",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "insight_transfer"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/insight_transfer.py:292:12",
+      "source": "services/events/insight_transfer.py",
+      "line": 292,
+      "scope": "InsightTransferEngine._update_rule_effectiveness",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "cross_domain_rule"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.events"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:183:12",
+      "source": "services/events/notification_outbox.py",
+      "line": 183,
+      "scope": "enqueue_event_notification",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:198:12",
+      "source": "services/events/notification_outbox.py",
+      "line": 198,
+      "scope": "enqueue_event_notification",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:221:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 221,
+      "scope": "_recover_expired_leases",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "notification_outbox",
+        "notification_outbox_attempt"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:232:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 232,
+      "scope": "_recover_expired_leases",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:269:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 269,
+      "scope": "claim_batch",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "SKIP",
+        "candidates",
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:297:12",
+      "source": "services/events/notification_outbox.py",
+      "line": 297,
+      "scope": "claim_batch",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "notification_outbox_attempt"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:382:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 382,
+      "scope": "_finish_attempt",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:406:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 406,
+      "scope": "_finish_attempt",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "notification_outbox_attempt"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:468:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 468,
+      "scope": "get_stats",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:470:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 470,
+      "scope": "get_stats",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "NOW",
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:511:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 511,
+      "scope": "list_dead_letters",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:541:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 541,
+      "scope": "replay_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:552:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 552,
+      "scope": "replay_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:564:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 564,
+      "scope": "replay_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "notification_outbox_operator_audit"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:592:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 592,
+      "scope": "dispose_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:603:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 603,
+      "scope": "dispose_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/events/notification_outbox.py:612:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 612,
+      "scope": "dispose_dead_letter",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "notification_outbox_operator_audit"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/export/dataset_refresh.py:35:8",
+      "source": "services/export/dataset_refresh.py",
+      "line": 35,
+      "scope": "list_datasets",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "dashboard_dataset"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/export/dataset_refresh.py:40:8",
+      "source": "services/export/dataset_refresh.py",
+      "line": 40,
+      "scope": "list_datasets",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "dashboard_dataset"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/export/dataset_refresh.py:55:4",
+      "source": "services/export/dataset_refresh.py",
+      "line": 55,
+      "scope": "refresh_dataset",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "dashboard_dataset"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/export/dataset_refresh.py:90:8",
+      "source": "services/export/dataset_refresh.py",
+      "line": 90,
+      "scope": "refresh_dataset",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "dashboard_dataset"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.export.dataset_refresh"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:183:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 183,
+      "scope": "ensure_alert_rules",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "alert_rule"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:190:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 190,
+      "scope": "ensure_alert_rules",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:200:12",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 200,
+      "scope": "ensure_alert_rules",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "alert_rule"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:245:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 245,
+      "scope": "compute_rate_of_change",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:288:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 288,
+      "scope": "compute_gap_hours",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:314:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 314,
+      "scope": "compute_window_stats",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:372:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 372,
+      "scope": "check_cooldown",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_alert"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:397:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 397,
+      "scope": "create_alert",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "sensor_alert"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:411:12",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 411,
+      "scope": "create_alert",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "mrv_claim",
+        "sensor_device",
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:437:16",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 437,
+      "scope": "create_alert",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "sensor_alert"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:558:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 558,
+      "scope": "send_actuation_commands",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "alert_rule"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:607:8",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 607,
+      "scope": "get_sensor_device_info",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location",
+        "sensor_device",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:641:16",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 641,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "platform_event",
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:662:12",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 662,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "alert_rule",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:693:20",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 693,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:704:20",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 704,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:736:24",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 736,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "sensor_anomaly_effect"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:755:24",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 755,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_device"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:768:28",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 768,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "sensor_anomaly_effect"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:802:24",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 802,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_alert"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:824:28",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 824,
+      "scope": "run_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "sensor_anomaly_effect"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:881:12",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 881,
+      "scope": "run_baseline_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "environmental_baseline"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:909:16",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 909,
+      "scope": "run_baseline_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:934:20",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 934,
+      "scope": "run_baseline_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_device"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:948:20",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 948,
+      "scope": "run_baseline_check",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "alert_rule",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/anomaly_detector.py:1017:12",
+      "source": "services/ingestion/anomaly_detector.py",
+      "line": 1017,
+      "scope": "list_rules",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "alert_rule",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/base.py:156:12",
+      "source": "services/ingestion/base.py",
+      "line": 156,
+      "scope": "log_ingestion",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "ingestion_log"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/base.py:204:12",
+      "source": "services/ingestion/base.py",
+      "line": 204,
+      "scope": "update_indexer_status",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "chain_indexer_status"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/base.py:233:12",
+      "source": "services/ingestion/base.py",
+      "line": 233,
+      "scope": "get_last_synced_block",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "chain_indexer_status"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.data_freshness",
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox.py:38:8",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 38,
+      "scope": "enqueue",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "clickhouse_outbox"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox.py:70:8",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 70,
+      "scope": "_recover_expired",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "clickhouse_outbox"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox.py:88:8",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 88,
+      "scope": "claim_batch",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "SKIP",
+        "candidates",
+        "clickhouse_outbox"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox.py:112:8",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 112,
+      "scope": "_finish",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "clickhouse_outbox"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox.py:198:8",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 198,
+      "scope": "reconcile_pending",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "clickhouse_outbox"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox.py:219:12",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 219,
+      "scope": "_operator_transition",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "clickhouse_outbox",
+        "clickhouse_outbox_operator_audit",
+        "eligible",
+        "transitioned"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/clickhouse_outbox.py:266:8",
+      "source": "services/ingestion/clickhouse_outbox.py",
+      "line": 266,
+      "scope": "list_dead_letters",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "clickhouse_outbox"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/climate_data.py:35:4",
+      "source": "services/ingestion/climate_data.py",
+      "line": 35,
+      "scope": "_query_location_bbox",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "farm",
+        "plot"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/climate_data.py:63:4",
+      "source": "services/ingestion/climate_data.py",
+      "line": 63,
+      "scope": "_query_location_centroid",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/climate_data.py:99:4",
+      "source": "services/ingestion/climate_data.py",
+      "line": 99,
+      "scope": "fetch_worldclim",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "worldclim_climate"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:54:8",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 54,
+      "scope": "_query_freshness_configs",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "data_freshness_config"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:59:8",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 59,
+      "scope": "_query_freshness_configs",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "data_freshness_config"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:73:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 73,
+      "scope": "_location_ids",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:104:8",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 104,
+      "scope": "_query_latest_data_at",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:114:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 114,
+      "scope": "_query_latest_ingestion",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "ingestion_log"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:167:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 167,
+      "scope": "_alert_state",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "data_freshness_alert_state"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:180:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 180,
+      "scope": "_alert_state",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "data_freshness_alert_state"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:190:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 190,
+      "scope": "_alert_state",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "data_freshness_alert_state"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:216:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 216,
+      "scope": "_persist_alert_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "data_freshness_alert_history"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:232:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 232,
+      "scope": "_persist_alert_event",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "data_freshness_alert_state"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:249:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 249,
+      "scope": "_persist_delivery_attempt",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "data_freshness_alert_delivery_attempt"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:258:8",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 258,
+      "scope": "_persist_delivery_attempt",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "data_freshness_alert_history",
+        "data_freshness_alert_state"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:280:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 280,
+      "scope": "_insert_check_result",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "data_freshness_check"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:390:12",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 390,
+      "scope": "check_freshness",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SAVEPOINT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:402:16",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 402,
+      "scope": "check_freshness",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "ROLLBACK",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:472:20",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 472,
+      "scope": "check_freshness",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "data_freshness_alert_state"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:478:16",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 478,
+      "scope": "check_freshness",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "data_freshness_check"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:484:16",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 484,
+      "scope": "check_freshness",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/data_freshness.py:527:4",
+      "source": "services/ingestion/data_freshness.py",
+      "line": 527,
+      "scope": "get_freshness_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_data_freshness_summary"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.data_freshness"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:107:12",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 107,
+      "scope": "insert_attestation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "attestation_schema"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:113:16",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 113,
+      "scope": "insert_attestation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "attestation_schema"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:125:8",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 125,
+      "scope": "insert_attestation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "attestation_record"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:191:8",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 191,
+      "scope": "get_last_attestation_time",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "chain_indexer_status"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:211:12",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 211,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_profile"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gee_climate.py:97:8",
+      "source": "services/ingestion/gee_climate.py",
+      "line": 97,
+      "scope": "fetch_modis_lst",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "modis_lst_summary"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gee_climate.py:160:8",
+      "source": "services/ingestion/gee_climate.py",
+      "line": 160,
+      "scope": "fetch_smap_moisture",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "smap_soil_moisture"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gee_climate.py:229:8",
+      "source": "services/ingestion/gee_climate.py",
+      "line": 229,
+      "scope": "fetch_sentinel1_sar",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "sentinel1_sar_summary"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gee_climate.py:299:8",
+      "source": "services/ingestion/gee_climate.py",
+      "line": 299,
+      "scope": "fetch_era5_land",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "ncep_weather_summary"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.climate_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gnosis_indexer.py:113:8",
+      "source": "services/ingestion/gnosis_indexer.py",
+      "line": 113,
+      "scope": "get_wallet_id",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_profile"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gnosis_indexer.py:124:8",
+      "source": "services/ingestion/gnosis_indexer.py",
+      "line": 124,
+      "scope": "insert_governance_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "governance_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gnosis_indexer.py:156:8",
+      "source": "services/ingestion/gnosis_indexer.py",
+      "line": 156,
+      "scope": "insert_treasury_event",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "treasury_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gnosis_indexer.py:332:8",
+      "source": "services/ingestion/gnosis_indexer.py",
+      "line": 332,
+      "scope": "get_location_from_wallet",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_profile"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gnosis_indexer.py:343:8",
+      "source": "services/ingestion/gnosis_indexer.py",
+      "line": 343,
+      "scope": "insert_dlego_usage",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "digital_lego_usage"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/gnosis_indexer.py:585:20",
+      "source": "services/ingestion/gnosis_indexer.py",
+      "line": 585,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "protocol"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/market_data.py:351:8",
+      "source": "services/ingestion/market_data.py",
+      "line": 351,
+      "scope": "insert_price",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "price_observation"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.market_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.market_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/market_data.py:376:8",
+      "source": "services/ingestion/market_data.py",
+      "line": 376,
+      "scope": "insert_price",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "price_observation"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.market_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.market_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/market_data.py:393:12",
+      "source": "services/ingestion/market_data.py",
+      "line": 393,
+      "scope": "run_seed_data",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "crop"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.market_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.market_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/market_data.py:448:12",
+      "source": "services/ingestion/market_data.py",
+      "line": 448,
+      "scope": "run_world_bank",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "crop"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.market_data"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.market_data"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/ml_anomaly_detector.py:213:4",
+      "source": "services/ingestion/ml_anomaly_detector.py",
+      "line": 213,
+      "scope": "_query_sensor_timeseries",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/ml_anomaly_detector.py:248:4",
+      "source": "services/ingestion/ml_anomaly_detector.py",
+      "line": 248,
+      "scope": "_query_all_sensors_timeseries",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/ml_anomaly_detector.py:489:4",
+      "source": "services/ingestion/ml_anomaly_detector.py",
+      "line": 489,
+      "scope": "run_ml_check",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/ml_anomaly_detector.py:563:8",
+      "source": "services/ingestion/ml_anomaly_detector.py",
+      "line": 563,
+      "scope": "save_models",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/mqtt_actuator.py:104:4",
+      "source": "services/ingestion/mqtt_actuator.py",
+      "line": 104,
+      "scope": "send_actuation_command",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "actuation_log"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/mqtt_actuator.py:148:4",
+      "source": "services/ingestion/mqtt_actuator.py",
+      "line": 148,
+      "scope": "approve_actuation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "actuation_log"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:59:12",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 59,
+      "scope": "get_wallets",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_profile"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:64:12",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 64,
+      "scope": "get_wallets",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_profile"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:120:8",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 120,
+      "scope": "insert_activity",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "wallet_activity_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:87:12",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 87,
+      "scope": "get_sensor_type_ranges",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:100:8",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 100,
+      "scope": "get_active_sensors",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_device",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:113:8",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 113,
+      "scope": "get_sensor_by_id_or_slug",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_device",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:132:8",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 132,
+      "scope": "insert_reading",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "sensor_reading",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:154:8",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 154,
+      "scope": "insert_reading",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:178:12",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 178,
+      "scope": "insert_reading_clickhouse",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sensor_reading"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:465:8",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 465,
+      "scope": "check_calibration_status",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location",
+        "sensor_device",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match"
+    },
+    {
+      "id": "services/ingestion/sensor_ingester.py:508:12",
+      "source": "services/ingestion/sensor_ingester.py",
+      "line": 508,
+      "scope": "list_calibration_status",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location",
+        "sensor_device",
+        "sensor_type"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/weather.py:86:8",
+      "source": "services/ingestion/weather.py",
+      "line": 86,
+      "scope": "insert_weather",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "weather_observation"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/weather.py:175:12",
+      "source": "services/ingestion/weather.py",
+      "line": 175,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/ingestion/weather.py:180:12",
+      "source": "services/ingestion/weather.py",
+      "line": 180,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.weather"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/allocated_shared_cost.py:30:4",
+      "source": "services/metrics/calculators/allocated_shared_cost.py",
+      "line": 30,
+      "scope": "compute_allocated_shared_cost",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "crop_cost_allocation",
+        "expense_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/attestation_coverage.py:31:4",
+      "source": "services/metrics/calculators/attestation_coverage.py",
+      "line": 31,
+      "scope": "compute_attestation_coverage",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "attestation_record"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/attestation_coverage.py:44:4",
+      "source": "services/metrics/calculators/attestation_coverage.py",
+      "line": 44,
+      "scope": "compute_attestation_coverage",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "mrv_claim"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/baseline_asset_value.py:20:4",
+      "source": "services/metrics/calculators/baseline_asset_value.py",
+      "line": 20,
+      "scope": "compute_baseline_asset_value",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/baseline_cash_flow.py:20:4",
+      "source": "services/metrics/calculators/baseline_cash_flow.py",
+      "line": 20,
+      "scope": "compute_baseline_cash_flow",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/baseline_cost.py:20:4",
+      "source": "services/metrics/calculators/baseline_cost.py",
+      "line": 20,
+      "scope": "compute_baseline_cost",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/baseline_revenue.py:20:4",
+      "source": "services/metrics/calculators/baseline_revenue.py",
+      "line": 20,
+      "scope": "compute_baseline_revenue",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/biodiversity_delta.py:35:4",
+      "source": "services/metrics/calculators/biodiversity_delta.py",
+      "line": 35,
+      "scope": "compute_biodiversity_delta",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "species_observation"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/crop_revenue.py:30:4",
+      "source": "services/metrics/calculators/crop_revenue.py",
+      "line": 30,
+      "scope": "compute_crop_revenue",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sales_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/digital_lego.py:31:4",
+      "source": "services/metrics/calculators/digital_lego.py",
+      "line": 31,
+      "scope": "compute_digital_lego_usage",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "digital_lego_usage",
+        "protocol"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/digital_lego.py:45:4",
+      "source": "services/metrics/calculators/digital_lego.py",
+      "line": 45,
+      "scope": "compute_digital_lego_usage",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "digital_lego_usage"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/direct_crop_cost.py:30:4",
+      "source": "services/metrics/calculators/direct_crop_cost.py",
+      "line": 30,
+      "scope": "compute_direct_crop_cost",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "expense_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/first_time_through_yield.py:39:4",
+      "source": "services/metrics/calculators/first_time_through_yield.py",
+      "line": 39,
+      "scope": "compute_first_time_through_yield",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "entity_loc",
+        "lifecycle_transition",
+        "pub",
+        "rej"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/governed_lead_time.py:40:4",
+      "source": "services/metrics/calculators/governed_lead_time.py",
+      "line": 40,
+      "scope": "compute_governed_lead_time",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "entity_loc",
+        "lifecycle_transition",
+        "pub",
+        "start"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/loss_rate_pct.py:35:4",
+      "source": "services/metrics/calculators/loss_rate_pct.py",
+      "line": 35,
+      "scope": "compute_loss_rate_pct",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "harvest_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/net_crop_revenue.py:30:4",
+      "source": "services/metrics/calculators/net_crop_revenue.py",
+      "line": 30,
+      "scope": "compute_net_crop_revenue",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "sales_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/rework_rate.py:50:8",
+      "source": "services/metrics/calculators/rework_rate.py",
+      "line": 50,
+      "scope": "compute_rework_rate",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "entity_loc",
+        "lifecycle_transition",
+        "pub",
+        "rej"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/soil_carbon_delta.py:22:4",
+      "source": "services/metrics/calculators/soil_carbon_delta.py",
+      "line": 22,
+      "scope": "compute_soil_carbon_delta",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "plot",
+        "soil_carbon_measurement"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/value_flowed.py:31:4",
+      "source": "services/metrics/calculators/value_flowed.py",
+      "line": 31,
+      "scope": "compute_value_flowed",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "value_flow_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/value_flowed.py:54:4",
+      "source": "services/metrics/calculators/value_flowed.py",
+      "line": 54,
+      "scope": "compute_value_flowed",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "value_flow_event"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/wallet_retention.py:34:4",
+      "source": "services/metrics/calculators/wallet_retention.py",
+      "line": 34,
+      "scope": "compute_wallet_retention",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_activity_event",
+        "wallet_profile"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/calculators/wallet_retention.py:45:4",
+      "source": "services/metrics/calculators/wallet_retention.py",
+      "line": 45,
+      "scope": "compute_wallet_retention",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_activity_event",
+        "wallet_profile"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/cli.py:43:21",
+      "source": "services/metrics/cli.py",
+      "line": 43,
+      "scope": "main",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "crop_cycle",
+        "noi_snapshot",
+        "v_crop_cycle_noi"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/cli.py:113:16",
+      "source": "services/metrics/cli.py",
+      "line": 113,
+      "scope": "main",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "metric_definition"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/cli.py:138:20",
+      "source": "services/metrics/cli.py",
+      "line": 138,
+      "scope": "main",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/engine.py:46:8",
+      "source": "services/metrics/engine.py",
+      "line": 46,
+      "scope": "compute_metric",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "metric_definition"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/engine.py:74:8",
+      "source": "services/metrics/engine.py",
+      "line": 74,
+      "scope": "compute_metric",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "metric_value"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/engine.py:116:4",
+      "source": "services/metrics/engine.py",
+      "line": 116,
+      "scope": "compute_all",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "metric_definition"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    },
+    {
+      "id": "services/metrics/engine.py:177:8",
+      "source": "services/metrics/engine.py",
+      "line": 177,
+      "scope": "verify_metric_value",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "metric_value"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked"
+    }
+  ]
+}

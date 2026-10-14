@@ -14,7 +14,7 @@ import argparse
 import ast
 import json
 import sys
-from collections import deque
+from collections import defaultdict, deque
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,8 +34,19 @@ class _DefinitionVisitor(ast.NodeVisitor):
         self.scope: list[str] = []
         self.class_scope: list[str] = []
         self.definitions: dict[str, dict] = {}
+        self.classes: dict[str, dict] = {}
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        qualname = ".".join([*self.scope, node.name])
+        key = _function_key(self.module, qualname)
+        self.classes[key] = {
+            "key": key,
+            "module": self.module,
+            "qualname": qualname,
+            "source": self.source,
+            "line": node.lineno,
+            "node": node,
+        }
         self.scope.append(node.name)
         self.class_scope.append(node.name)
         self.generic_visit(node)
@@ -62,11 +73,19 @@ class _DefinitionVisitor(ast.NodeVisitor):
 
 
 class _ImportContextVisitor(ast.NodeVisitor):
-    def __init__(self, module: str, source: str, known_modules: set[str], definitions: dict[str, dict]):
+    def __init__(
+        self,
+        module: str,
+        source: str,
+        known_modules: set[str],
+        definitions: dict[str, dict],
+        classes: dict[str, dict],
+    ):
         self.module = module
         self.source = ROOT / source
         self.known_modules = known_modules
         self.definitions = definitions
+        self.classes = classes
         self.module_aliases: dict[str, str] = {}
         self.symbol_aliases: dict[str, str] = {}
 
@@ -87,7 +106,7 @@ class _ImportContextVisitor(ast.NodeVisitor):
                 continue
             imported_function = _function_key(base, alias.name)
             imported_module = f"{base}.{alias.name}"
-            if imported_function in self.definitions:
+            if imported_function in self.definitions or imported_function in self.classes:
                 self.symbol_aliases[local_name] = imported_function
             elif imported_module in self.known_modules:
                 self.module_aliases[local_name] = imported_module
@@ -128,61 +147,289 @@ def _resolve_module_call(imported_module: str, suffix: str, definitions: dict[st
     return candidate if candidate in definitions else None
 
 
+def _class_key(module: str, qualname: str) -> str:
+    return _function_key(module, qualname)
+
+
+def _resolve_module_class(imported_module: str, suffix: str, classes: dict[str, dict]) -> str | None:
+    parts = suffix.split(".")
+    for module_part_count in range(len(parts), 0, -1):
+        module = ".".join([imported_module, *parts[:module_part_count]])
+        qualname = ".".join(parts[module_part_count:])
+        candidate = _class_key(module, qualname) if qualname else ""
+        if candidate in classes:
+            return candidate
+    candidate = _class_key(imported_module, suffix)
+    return candidate if candidate in classes else None
+
+
+def _resolve_class_target(
+    function: dict,
+    call: ast.Call,
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+) -> str | None:
+    module = function["module"]
+    context = contexts[module]
+    expression = _dotted_name(call.func)
+    if not expression:
+        return None
+    if isinstance(call.func, ast.Name):
+        imported = context.symbol_aliases.get(expression)
+        if imported in classes:
+            return imported
+        local = _class_key(module, expression)
+        return local if local in classes else None
+    prefix, separator, suffix = expression.partition(".")
+    if not separator:
+        return None
+    imported = context.symbol_aliases.get(prefix)
+    if imported in classes:
+        candidate = f"{imported}.{suffix}"
+        return candidate if candidate in classes else None
+    imported_module = context.module_aliases.get(prefix)
+    if imported_module:
+        return _resolve_module_class(imported_module, suffix, classes)
+    candidate = _class_key(module, expression)
+    return candidate if candidate in classes else None
+
+
+def _nested_function_node(node: ast.AST, root: ast.AST) -> bool:
+    return node is not root and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda))
+
+
+def _return_class_targets(
+    function_key: str,
+    definitions: dict[str, dict],
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+    seen: set[str] | None = None,
+) -> set[str]:
+    seen = set() if seen is None else seen
+    if function_key in seen or function_key not in definitions:
+        return set()
+    seen.add(function_key)
+    function = definitions[function_key]
+    targets = set()
+    pending = list(function["node"].body)
+    while pending:
+        node = pending.pop()
+        if _nested_function_node(node, function["node"]):
+            continue
+        if isinstance(node, ast.Return) and isinstance(node.value, ast.Call):
+            class_target = _resolve_class_target(function, node.value, classes, contexts)
+            if class_target:
+                targets.add(class_target)
+            else:
+                called = _resolve_call_target(function, node.value, definitions, contexts)
+                if called:
+                    targets.update(_return_class_targets(called, definitions, classes, contexts, seen))
+        pending.extend(ast.iter_child_nodes(node))
+    return targets
+
+
+def _annotation_class_targets(
+    annotation: ast.AST | None,
+    function: dict,
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+) -> set[str]:
+    if annotation is None or isinstance(annotation, ast.Constant):
+        return set()
+    if isinstance(annotation, ast.BinOp) and isinstance(annotation.op, ast.BitOr):
+        return _annotation_class_targets(annotation.left, function, classes, contexts) | _annotation_class_targets(
+            annotation.right, function, classes, contexts
+        )
+    if isinstance(annotation, ast.Name):
+        context = contexts[function["module"]]
+        imported = context.symbol_aliases.get(annotation.id)
+        if imported in classes:
+            return {imported}
+        local = _class_key(function["module"], annotation.id)
+        return {local} if local in classes else set()
+    if isinstance(annotation, ast.Attribute):
+        expression = _dotted_name(annotation)
+        if expression:
+            prefix, separator, suffix = expression.partition(".")
+            imported_module = contexts[function["module"]].module_aliases.get(prefix)
+            if imported_module and separator:
+                target = _resolve_module_class(imported_module, suffix, classes)
+                return {target} if target else set()
+        return set()
+    if isinstance(annotation, ast.Subscript):
+        targets = set()
+        values = annotation.slice.elts if isinstance(annotation.slice, ast.Tuple) else [annotation.slice]
+        for value in values:
+            targets.update(_annotation_class_targets(value, function, classes, contexts))
+        return targets
+    return set()
+
+
+def _expression_class_targets(
+    expression: ast.AST,
+    function: dict,
+    definitions: dict[str, dict],
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+    local_types: dict[str, set[str]],
+) -> set[str]:
+    if isinstance(expression, ast.Name):
+        if expression.id in local_types:
+            return local_types[expression.id]
+        imported = contexts[function["module"]].symbol_aliases.get(expression.id)
+        return {imported} if imported in classes else set()
+    if isinstance(expression, ast.IfExp):
+        left = _expression_class_targets(expression.body, function, definitions, classes, contexts, local_types)
+        right = _expression_class_targets(expression.orelse, function, definitions, classes, contexts, local_types)
+        return left | right if left and right else set()
+    if isinstance(expression, ast.Call):
+        class_target = _resolve_class_target(function, expression, classes, contexts)
+        if class_target:
+            return {class_target}
+        function_target = _resolve_call_target(function, expression, definitions, contexts)
+        return _return_class_targets(function_target, definitions, classes, contexts) if function_target else set()
+    return set()
+
+
+def _binding_names(target: ast.AST) -> set[str]:
+    if isinstance(target, ast.Name):
+        return {target.id}
+    if isinstance(target, (ast.Tuple, ast.List)):
+        return set().union(*(_binding_names(item) for item in target.elts)) if target.elts else set()
+    return set()
+
+
+def _infer_instance_types(
+    function: dict,
+    definitions: dict[str, dict],
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+) -> dict[str, set[str]]:
+    function_node = function["node"]
+    local_types: dict[str, set[str]] = {}
+    if function.get("class_scope") and function_node.args.args:
+        local_types[function_node.args.args[0].arg] = {_class_key(function["module"], function["class_scope"])}
+    for argument in [*function_node.args.posonlyargs, *function_node.args.args, *function_node.args.kwonlyargs]:
+        targets = _annotation_class_targets(argument.annotation, function, classes, contexts)
+        if targets:
+            local_types[argument.arg] = targets
+
+    assignments: dict[str, list[ast.AST]] = defaultdict(list)
+    pending = list(function_node.body)
+    while pending:
+        node = pending.pop()
+        if _nested_function_node(node, function_node):
+            continue
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                for name in _binding_names(target):
+                    assignments[name].append(node.value)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            annotation_types = _annotation_class_targets(node.annotation, function, classes, contexts)
+            if annotation_types:
+                local_types[node.target.id] = annotation_types
+            if node.value is not None:
+                assignments[node.target.id].append(node.value)
+        pending.extend(ast.iter_child_nodes(node))
+
+    for _ in range(len(assignments) + 1):
+        changed = False
+        for name, expressions in assignments.items():
+            inferred = [
+                _expression_class_targets(expression, function, definitions, classes, contexts, local_types)
+                for expression in expressions
+            ]
+            if inferred and all(inferred):
+                combined = set().union(*inferred)
+                if local_types.get(name) != combined:
+                    local_types[name] = combined
+                    changed = True
+        if not changed:
+            break
+    return local_types
+
+
+def _resolve_call_targets(
+    function: dict,
+    call: ast.Call,
+    definitions: dict[str, dict],
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+    instance_types: dict[str, set[str]],
+) -> list[str]:
+    module = function["module"]
+    qualname = function["qualname"]
+    context = contexts[module]
+    expression = _dotted_name(call.func)
+    if not expression:
+        return []
+
+    if isinstance(call.func, ast.Name):
+        imported = context.symbol_aliases.get(expression)
+        if imported in definitions:
+            return [imported]
+        local = _function_key(module, expression)
+        if local in definitions:
+            return [local]
+        parent = qualname.rpartition(".")[0]
+        while parent:
+            nested = _function_key(module, f"{parent}.{expression}")
+            if nested in definitions:
+                return [nested]
+            parent = parent.rpartition(".")[0]
+        return []
+
+    prefix, separator, suffix = expression.partition(".")
+    if not separator:
+        return []
+
+    if prefix in {"self", "cls"}:
+        class_name = function.get("class_scope")
+        candidate = _function_key(module, f"{class_name}.{suffix}") if class_name else ""
+        return [candidate] if candidate in definitions else []
+
+    if prefix in instance_types:
+        candidates = [f"{class_key}.{suffix}" for class_key in sorted(instance_types[prefix])]
+        if candidates and all(candidate in definitions for candidate in candidates):
+            return candidates
+
+    imported = context.symbol_aliases.get(prefix)
+    if imported:
+        candidate = f"{imported}.{suffix}"
+        return [candidate] if candidate in definitions else []
+
+    imported_module = context.module_aliases.get(prefix)
+    if imported_module:
+        candidate = _resolve_module_call(imported_module, suffix, definitions)
+        return [candidate] if candidate else []
+
+    candidate = _function_key(module, expression)
+    return [candidate] if candidate in definitions else []
+
+
 def _resolve_call_target(
     function: dict,
     call: ast.Call,
     definitions: dict[str, dict],
     import_contexts: dict[str, _ImportContextVisitor],
 ) -> str | None:
-    module = function["module"]
-    qualname = function["qualname"]
-    context = import_contexts[module]
-    expression = _dotted_name(call.func)
-    if not expression:
-        return None
-
-    if isinstance(call.func, ast.Name):
-        imported = context.symbol_aliases.get(expression)
-        if imported in definitions:
-            return imported
-        local = _function_key(module, expression)
-        if local in definitions:
-            return local
-        parent = qualname.rpartition(".")[0]
-        while parent:
-            nested = _function_key(module, f"{parent}.{expression}")
-            if nested in definitions:
-                return nested
-            parent = parent.rpartition(".")[0]
-        return None
-
-    prefix, separator, suffix = expression.partition(".")
-    if not separator:
-        return None
-
-    if prefix in {"self", "cls"}:
-        class_name = function.get("class_scope")
-        candidate = _function_key(module, f"{class_name}.{suffix}") if class_name else ""
-        return candidate if candidate in definitions else None
-
-    imported = context.symbol_aliases.get(prefix)
-    if imported:
-        candidate = f"{imported}.{suffix}"
-        return candidate if candidate in definitions else None
-
-    imported_module = context.module_aliases.get(prefix)
-    if imported_module:
-        return _resolve_module_call(imported_module, suffix, definitions)
-
-    candidate = _function_key(module, expression)
-    return candidate if candidate in definitions else None
+    targets = _resolve_call_targets(function, call, definitions, {}, import_contexts, {})
+    return targets[0] if targets else None
 
 
 class _CallVisitor(ast.NodeVisitor):
-    def __init__(self, function: dict, definitions: dict[str, dict], contexts: dict[str, _ImportContextVisitor]):
+    def __init__(
+        self,
+        function: dict,
+        definitions: dict[str, dict],
+        classes: dict[str, dict],
+        contexts: dict[str, _ImportContextVisitor],
+    ):
         self.function = function
         self.definitions = definitions
+        self.classes = classes
         self.contexts = contexts
+        self.instance_types = _infer_instance_types(function, definitions, classes, contexts)
         self.edges: list[dict] = []
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -193,8 +440,15 @@ class _CallVisitor(ast.NodeVisitor):
     visit_AsyncFunctionDef = visit_FunctionDef
 
     def visit_Call(self, node: ast.Call) -> None:
-        target = _resolve_call_target(self.function, node, self.definitions, self.contexts)
-        if target:
+        targets = _resolve_call_targets(
+            self.function,
+            node,
+            self.definitions,
+            self.classes,
+            self.contexts,
+            self.instance_types,
+        )
+        for target in targets:
             self.edges.append(
                 {
                     "caller": self.function["key"],
@@ -280,43 +534,129 @@ def _operation_roots(
     return [unique[key] for key in sorted(unique)]
 
 
+def _registered_metric_calculators(
+    modules_by_source: dict[str, str],
+    trees: dict[str, ast.Module],
+    contexts: dict[str, _ImportContextVisitor],
+    definitions: dict[str, dict],
+) -> list[dict]:
+    registry_source = "services/metrics/calculators/__init__.py"
+    registry_module = modules_by_source.get(registry_source)
+    caller_key = "services.metrics.engine:compute_metric"
+    if not registry_module or caller_key not in definitions:
+        return []
+
+    registry_values: dict[str, str] = {}
+    for statement in trees[registry_module].body:
+        if not isinstance(statement, (ast.Assign, ast.AnnAssign)):
+            continue
+        targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+        value = statement.value
+        if value is None or not any(isinstance(target, ast.Name) and target.id == "CALCULATORS" for target in targets):
+            continue
+        if not isinstance(value, ast.Dict):
+            continue
+        for key_node, value_node in zip(value.keys, value.values):
+            if not isinstance(key_node, ast.Constant) or not isinstance(key_node.value, str):
+                continue
+            if not isinstance(value_node, ast.Name):
+                continue
+            target = contexts[registry_module].symbol_aliases.get(value_node.id)
+            if target in definitions:
+                registry_values[key_node.value] = target
+
+    caller = definitions[caller_key]
+    dispatch_line = next(
+        (
+            node.lineno
+            for node in ast.walk(caller["node"])
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "calculator"
+        ),
+        caller["line"],
+    )
+    return [
+        {
+            "caller": caller_key,
+            "callee": callee,
+            "source": caller["source"],
+            "line": dispatch_line,
+            "dispatch": "literal_function_registry",
+            "registry": "services.metrics.calculators.CALCULATORS",
+            "registry_key": key,
+        }
+        for key, callee in sorted(registry_values.items())
+    ]
+
+
 def _operation_graph(operation: dict) -> dict:
     source_files = operation["source_files"]
     trees, modules_by_source = _collect_modules(source_files)
     known_modules = set(trees)
     definitions = {}
+    classes = {}
     for source, module in modules_by_source.items():
         visitor = _DefinitionVisitor(module, source)
         visitor.visit(trees[module])
         definitions.update(visitor.definitions)
+        classes.update(visitor.classes)
 
     contexts = {}
     for source, module in modules_by_source.items():
-        visitor = _ImportContextVisitor(module, source, known_modules, definitions)
+        visitor = _ImportContextVisitor(module, source, known_modules, definitions, classes)
         visitor.visit(trees[module])
         contexts[module] = visitor
 
     roots = _operation_roots(operation, modules_by_source, trees, contexts, definitions)
+    registered_edges = _registered_metric_calculators(modules_by_source, trees, contexts, definitions)
+    registered_by_caller: dict[str, list[dict]] = defaultdict(list)
+    for edge in registered_edges:
+        registered_by_caller[edge["caller"]].append(edge)
     queue = deque(root["function"] for root in roots)
     visited: set[str] = set()
     edges = set()
+    reached_registered_edges = set()
     while queue:
         key = queue.popleft()
         if key in visited or key not in definitions:
             continue
         visited.add(key)
         function = definitions[key]
-        visitor = _CallVisitor(function, definitions, contexts)
+        visitor = _CallVisitor(function, definitions, classes, contexts)
         visitor.visit(function["node"])
         for edge in visitor.edges:
             edge_key = (edge["caller"], edge["callee"], edge["source"], edge["line"])
             edges.add(edge_key)
             if edge["callee"] not in visited:
                 queue.append(edge["callee"])
+        for edge in registered_by_caller.get(key, []):
+            edge_key = (
+                edge["caller"],
+                edge["callee"],
+                edge["source"],
+                edge["line"],
+                edge["dispatch"],
+                edge["registry"],
+                edge["registry_key"],
+            )
+            reached_registered_edges.add(edge_key)
+            if edge["callee"] not in visited:
+                queue.append(edge["callee"])
 
     ordered_edges = [
         {"caller": caller, "callee": callee, "source": source, "line": line}
         for caller, callee, source, line in sorted(edges)
+    ]
+    ordered_registered_edges = [
+        {
+            "caller": caller,
+            "callee": callee,
+            "source": source,
+            "line": line,
+            "dispatch": dispatch,
+            "registry": registry,
+            "registry_key": registry_key,
+        }
+        for caller, callee, source, line, dispatch, registry, registry_key in sorted(reached_registered_edges)
     ]
     ordered_functions = [
         {key: value for key, value in definitions[function].items() if key != "node"} for function in sorted(visited)
@@ -328,6 +668,7 @@ def _operation_graph(operation: dict) -> dict:
         "entry_functions": roots,
         "reachable_functions": ordered_functions,
         "direct_call_edges": ordered_edges,
+        "dynamic_dispatch_edges": ordered_registered_edges,
     }
 
 
@@ -339,9 +680,11 @@ def build_inventory() -> dict:
         "version": 1,
         "generated_by": "scripts/worker_function_reachability.py",
         "scope": (
-            "Direct statically resolved Python calls from allowlisted operation entry functions within their local services.* import closures. "
-            "This graph is incomplete: dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior "
-            "are not established. It is not an authorization policy or least-privilege grant list."
+            "Direct statically resolved Python calls and known literal metric-calculator registry dispatches from allowlisted operation "
+            "entry functions within their local services.* import closures. Instance method calls are included only when local type "
+            "inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on "
+            "unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy "
+            "or least-privilege grant list."
         ),
         "summary": {
             "operation_roots": len(operations),
@@ -349,6 +692,7 @@ def build_inventory() -> dict:
             "operations_without_resolved_entry_functions": sum(not item["entry_functions"] for item in operations),
             "function_memberships": sum(len(item["reachable_functions"]) for item in operations),
             "direct_call_edges": sum(len(item["direct_call_edges"]) for item in operations),
+            "dynamic_dispatch_edges": sum(len(item["dynamic_dispatch_edges"]) for item in operations),
         },
         "operations": operations,
     }

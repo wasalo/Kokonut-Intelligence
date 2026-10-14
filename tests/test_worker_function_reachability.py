@@ -50,6 +50,12 @@ def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
             assert edge["callee"] in functions
             assert edge["source"] in sources
             assert edge["line"] > 0
+        for edge in operation["dynamic_dispatch_edges"]:
+            assert edge["caller"] in functions
+            assert edge["callee"] in functions
+            assert edge["source"] in sources
+            assert edge["line"] > 0
+            assert edge["dispatch"] == "literal_function_registry"
 
     event_roots = {
         root["function"]
@@ -58,6 +64,45 @@ def test_worker_function_graph_covers_allowlisted_entrypoints_and_edges():
         for root in operation["entry_functions"]
     }
     assert event_roots == {f"{module}:{function}" for module, function in ALLOWED_EVENT_HANDLERS}
+
+
+def test_graph_tracks_instance_methods_and_literal_metric_registry_dispatch():
+    inventory = json.loads(INVENTORY_PATH.read_text(encoding="utf-8"))
+    by_name = {(operation["kind"], operation["name"]): operation for operation in inventory["operations"]}
+
+    cache_operation = by_name[("event_handler", "services.cache.events.handle_metric_computed")]
+    cache_functions = {function["key"] for function in cache_operation["reachable_functions"]}
+    assert "services.cache.cache:ComputationCache.invalidate" in cache_functions
+
+    event_operation = by_name[("scheduled_module", "services.events")]
+    event_functions = {function["key"] for function in event_operation["reachable_functions"]}
+    assert any(key.startswith("services.events.bus:EventBus.") for key in event_functions)
+
+    metrics_operation = by_name[("scheduled_module", "services.metrics")]
+    registry_edges = metrics_operation["dynamic_dispatch_edges"]
+    assert len(registry_edges) == 20
+    assert {edge["registry_key"] for edge in registry_edges} == {
+        "value_flowed",
+        "wallet_retention",
+        "digital_lego_usage",
+        "attestation_coverage",
+        "soil_carbon_delta",
+        "biodiversity_delta",
+        "operating_margin_pct",
+        "crop_revenue",
+        "net_crop_revenue",
+        "direct_crop_cost",
+        "allocated_shared_cost",
+        "crop_noi",
+        "loss_rate_pct",
+        "baseline_revenue",
+        "baseline_asset_value",
+        "baseline_cash_flow",
+        "baseline_cost",
+        "governed_lead_time_days",
+        "first_time_through_yield_pct",
+        "rework_rate_pct",
+    }
 
 
 def test_direct_call_resolution_handles_module_and_symbol_aliases():
