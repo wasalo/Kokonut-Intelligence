@@ -4255,3 +4255,24 @@ real organization for any operator, convert legacy grants, backfill tenant
 data, or enable RLS. Worker coverage, direct-database isolation, populated
 archive acceptance against the expanded schema, and RLS remain open. See the
 [sanitized acceptance record](builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable.json).
+
+### Phase 8 current-head security and required-check audit — 14 October 2026
+
+On pushed commit `cf3acab7e9a6ee011f28694e755fe1ca1b671a3d`, CI run #297 is still
+in progress. Security run #21 failed because full-history Gitleaks 8.30.1
+classified two 64-character SHA-256 source digests in the sanitized disposable
+preflight evidence as generic API keys. Review found only source fingerprints,
+not deployment credentials. The existing rule-specific allowlist now includes
+only that exact evidence path and SHA-256 line shape. The official Darwin x64
+archive checksum matched, and a local invocation of the same pinned Gitleaks
+version and full-history command scanned 869 commits (about 74.31 MB) with no
+leaks. A new pushed Security run is still needed to retain CI evidence.
+
+A read-only audit of active ruleset `18234835` found required contexts
+`Python checks`, `Directus hooks`, and `Foundry contracts`; the migrated
+workflows emit `CI / ci` and `Security / gitleaks`. The approved exact context
+update has not been applied: the available browser session is signed out and
+the connected GitHub API permits GET only. The separate version-tag ruleset
+was not changed. The runbook and Batch 6 checklist now carry this exact
+repository-admin action. The older 279-test platform-integrity run and CI #297
+do not certify the current source head.

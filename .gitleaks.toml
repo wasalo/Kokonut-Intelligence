@@ -28,7 +28,10 @@ targetRules = ["generic-api-key"]
 condition = "AND"
 regexTarget = "line"
 regexes = ['''^\s*"[^"]+": "[a-fA-F0-9]{64}",?$''']
-paths = ['''^docs/refactor/builds/2026-10-10-batch1/(amd64|arm64)-source\.json$''']
+paths = [
+  '''^docs/refactor/builds/2026-10-10-batch1/(amd64|arm64)-source\.json$''',
+  '''^docs/refactor/builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable\.json$''',
+]
 
 [[allowlists]]
 description = "Generated Kernel locks record public package-artifact SHA-256 checksums, not credentials."

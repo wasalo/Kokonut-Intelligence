@@ -17,6 +17,19 @@ its containers and volumes down when it exits.
 
 ## GitHub repository settings
 
+### Current required-check audit — 14 October 2026
+
+The active `Main branch protection` ruleset (ID `18234835`) currently requires
+the legacy contexts `Python checks`, `Directus hooks`, and `Foundry contracts`.
+The migrated workflows now emit `CI / ci` and `Security / gitleaks`. Update only
+the required status-check list to those two current contexts before merging;
+preserve the existing pull-request, review, CODEOWNERS, thread-resolution,
+linear-history, and deletion protections. Leave the separate version-tag
+ruleset unchanged. This mismatch was read from the active ruleset, not inferred
+from this runbook. The current GitHub browser session is signed out and the
+connected GitHub API is read-only, so the ruleset update remains an open
+repository-admin action.
+
 After the workflows are merged:
 
 1. Enable GitHub Actions for the repository.
