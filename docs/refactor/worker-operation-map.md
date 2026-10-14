@@ -31,7 +31,10 @@ data effects, and an idempotency/retry note.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - The `services.events` operation entry includes the optional notification
   processor's outbox/attempt writes; the `services.metrics` entry includes the
-  code-owned NOI snapshot reconciliation view and natural-key upsert.
+  code-owned NOI snapshot reconciliation view and natural-key upsert. It now
+  links all 20 registered metric calculator implementation files, guarded
+  against registry drift by `tests/test_worker_operation_map.py`; the exact
+  per-calculator SQL table effects remain open.
 - The legacy schedule seed contains known mismatches: the sensor task has no
   declared input source, and its empty argument list does not create a sensor
   reading; the climate CLI requires one `--location-id`, while the old seed
@@ -61,7 +64,7 @@ Before worker RLS or runtime-grant reduction:
    remain separate gates.
 
 The inventory-only contract test is `tests/test_worker_operation_map.py`.
-The focused source, scheduler and event checks pass 32 tests; the retained
+The focused source, scheduler and event checks pass 35 tests; the retained
 [check record](builds/2026-10-14-recovery/worker-operation-map-check.json)
 contains that inventory test evidence. The separate
 [scheduler argument contract check](builds/2026-10-14-recovery/scheduled-command-contract-check.json)

@@ -26,6 +26,8 @@ MAN-CAP checks open until each has its own retained evidence.
   every current scheduled/event allowlist entry. Module-specific scheduler
   argument contracts now fail closed at activation and dispatch; transitive
   call effects, enabled legacy rows and worker identity/context remain open.
+  The metrics entry now references all 20 registered calculator modules with a
+  registry-parity test; their exact SQL effects remain open.
   Data-freshness queries use fixed table/timestamp maps, bind location values,
   and report unknown configured sources as errors; 29 focused source tests pass.
   Focused source/disposable checks pass;

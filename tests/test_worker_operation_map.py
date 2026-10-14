@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+from inspect import getsourcefile
 from pathlib import Path
 
+from services.metrics.calculators import CALCULATORS
 from services.security.execution_allowlist import (
     ALLOWED_EVENT_HANDLERS,
     ALLOWED_SCHEDULED_MODULES,
@@ -74,3 +76,15 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "public.v_crop_cycle_noi" in metrics["reads"]
     assert "public.notification_outbox" in events["reads"]
     assert "public.notification_outbox_attempt" in events["writes"]
+
+
+def test_metrics_worker_map_tracks_registered_calculator_sources():
+    metrics = next(entry for entry in _load_map()["scheduled_modules"] if entry["module"] == "services.metrics")
+    registered_sources = {
+        Path(getsourcefile(calculator)).resolve().relative_to(ROOT.resolve()).as_posix()
+        for calculator in CALCULATORS.values()
+    }
+    mapped_calculators = {source for source in metrics["sources"] if source.startswith("services/metrics/calculators/")}
+
+    assert len(CALCULATORS) == 20
+    assert mapped_calculators == registered_sources

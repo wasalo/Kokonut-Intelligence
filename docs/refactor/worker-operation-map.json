@@ -87,7 +87,32 @@
       "external_effects": [],
       "idempotency": "Each compute inserts a new metric_value with verified=false; repeated calculations are not deduplicated by the engine. NOI snapshot reconciliation upserts by crop_cycle_id. Recalculation remains a draft write, never human verification.",
       "retry_boundary": "A scheduler retry may create another metric draft for the same location/period; snapshot reconciliation updates its natural-key row. Human review state remains separate.",
-      "sources": ["services/metrics/cli.py", "services/metrics/engine.py", "services/metrics/calculators/crop_revenue.py", "schemas/postgres/004_finance.sql", "schemas/postgres/353_crop_cycle_noi_view.sql"]
+      "sources": [
+        "services/metrics/cli.py",
+        "services/metrics/engine.py",
+        "services/metrics/calculators/allocated_shared_cost.py",
+        "services/metrics/calculators/attestation_coverage.py",
+        "services/metrics/calculators/baseline_asset_value.py",
+        "services/metrics/calculators/baseline_cash_flow.py",
+        "services/metrics/calculators/baseline_cost.py",
+        "services/metrics/calculators/baseline_revenue.py",
+        "services/metrics/calculators/biodiversity_delta.py",
+        "services/metrics/calculators/crop_noi.py",
+        "services/metrics/calculators/crop_revenue.py",
+        "services/metrics/calculators/digital_lego.py",
+        "services/metrics/calculators/direct_crop_cost.py",
+        "services/metrics/calculators/first_time_through_yield.py",
+        "services/metrics/calculators/governed_lead_time.py",
+        "services/metrics/calculators/loss_rate_pct.py",
+        "services/metrics/calculators/net_crop_revenue.py",
+        "services/metrics/calculators/operating_margin.py",
+        "services/metrics/calculators/rework_rate.py",
+        "services/metrics/calculators/soil_carbon_delta.py",
+        "services/metrics/calculators/value_flowed.py",
+        "services/metrics/calculators/wallet_retention.py",
+        "schemas/postgres/004_finance.sql",
+        "schemas/postgres/353_crop_cycle_noi_view.sql"
+      ]
     },
     {
       "module": "services.ingestion.data_freshness",

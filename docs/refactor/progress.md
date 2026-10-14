@@ -32,6 +32,11 @@ as errors rather than `no_data`. Its 29 focused tests and Ruff checks pass
 ([evidence](builds/2026-10-14-recovery/freshness-query-contract-check.json));
 it does not claim live-provider or Raspberry Pi hardware acceptance.
 
+The worker-operation inventory now links every registered metrics calculator
+to its source file, with a test ensuring the 20-module list stays aligned with
+the runtime registry. Per-calculator query effects remain part of the open
+transitive audit.
+
 The prescribed platform-integrity suite passed 290 tests on local commit
 `238e2ef`, including the tenant-bound Data Stream route regression. The earlier
 288-test run on `1c00845` remains in [historical evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json);
