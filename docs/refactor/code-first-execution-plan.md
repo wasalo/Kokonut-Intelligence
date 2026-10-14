@@ -179,6 +179,10 @@ The native and Field Collector routers now also have a pinned full method/path
 policy inventory. A 26-test focused Gateway run confirms exact resource/action/
 public policy coverage and anonymous 401 for unknown routes, wrong methods, and
 near-miss paths ([route inventory evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json)).
+The operator console's cookie-authenticated draft edit now passes both its
+credentialed CORS preflight and successful-response checks; PATCH was added to
+the explicit CORS method allowlist. Browser/runtime ingress acceptance remains
+open ([CORS evidence](builds/2026-10-14-recovery/gateway-cors-patch-preflight.json)).
 
 ### Batch D — Complete code-verifiable capability slices and reporting
 

@@ -942,6 +942,8 @@ def test_farm_activity_draft_edit_route_requires_scope_csrf_and_passes_reason(mo
         )
 
     assert response.status_code == 200, response.text
+    assert response.headers["access-control-allow-origin"] == "https://operator.example"
+    assert response.headers["access-control-allow-credentials"] == "true"
     assert response.headers["cache-control"] == "no-store"
     assert {value.strip() for value in response.headers["vary"].split(",")} == {"Cookie", "Origin"}
     assert response.json()["data"]["action"] == "draft_edited"
@@ -957,6 +959,28 @@ def test_farm_activity_draft_edit_route_requires_scope_csrf_and_passes_reason(mo
         {"activity_type": "planting"},
         "Corrected after review",
     )
+
+
+def test_operator_cors_preflight_allows_cookie_authenticated_patch(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
+    provider = _FakeProvider()
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+
+    path = "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333/draft"
+    with TestClient(create_app()) as client:
+        response = client.options(
+            path,
+            headers={
+                "Origin": "https://operator.example",
+                "Access-Control-Request-Method": "PATCH",
+                "Access-Control-Request-Headers": "content-type,x-csrf-token",
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["access-control-allow-origin"] == "https://operator.example"
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert "PATCH" in response.headers["access-control-allow-methods"]
 
 
 @pytest.mark.parametrize(

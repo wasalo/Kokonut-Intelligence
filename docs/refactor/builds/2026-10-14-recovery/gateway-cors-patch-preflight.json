@@ -1,0 +1,30 @@
+{
+  "check": "gateway_cors_cookie_authenticated_patch",
+  "date": "2026-10-14",
+  "result": "passed",
+  "change": {
+    "file": "services/gateway/app.py",
+    "cors_allowed_methods": ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    "reason": "The operator farm-activity draft-edit route uses PATCH; the method was missing from the explicit preflight allowlist."
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest tests/test_operator_auth.py tests/test_gateway_auth.py -q",
+    "passed": 81,
+    "failed": 0
+  },
+  "assertions": {
+    "credentialed_patch_preflight_returns_200": true,
+    "preflight_echoes_explicit_allowed_origin": true,
+    "preflight_allows_credentials": true,
+    "preflight_lists_patch": true,
+    "successful_cookie_authenticated_patch_has_cors_origin_and_credentials": true,
+    "draft_edit_authorization_and_csrf_still_pass": true
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "This is an in-process ASGI check; browser behavior, Caddy/Traefik ingress, and external operator identity configuration remain open."
+  ]
+}

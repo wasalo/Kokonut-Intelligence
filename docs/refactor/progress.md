@@ -41,6 +41,12 @@ Afterward, a read-only candidate check confirmed migration 391 remains applied,
 the temporary restored-copy volume was removed. Candidate rollout and clean
 `template0` bootstrap remain open ([route evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json); [migration evidence](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)).
 
+The operator console's CORS allowlist now includes `PATCH`, matching its
+cookie-authenticated farm-activity draft edit. Focused preflight and successful
+response checks pass with the explicit origin and credential headers; this is
+in-process acceptance and does not close browser or external-ingress checks
+([evidence](builds/2026-10-14-recovery/gateway-cors-patch-preflight.json)).
+
 The worker-operation inventory now links every registered metrics calculator
 to its source file, with a test ensuring the 20-module list stays aligned with
 the runtime registry. It also records each calculator's direct read tables,

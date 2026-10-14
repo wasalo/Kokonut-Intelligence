@@ -488,7 +488,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=[
             "Content-Type", "Authorization", "api-key", "x-api-key",
             "capability-token", "x-capability-token", "x-csrf-token",
