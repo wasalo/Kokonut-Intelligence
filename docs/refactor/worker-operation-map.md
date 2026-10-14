@@ -43,6 +43,15 @@ data effects, and an idempotency/retry note.
   The inventory follows imports conservatively, including imports under
   conditional branches; it is not a function-level call graph and does not
   establish that imported code executes for a particular operation.
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 196
+  Python `.execute` sites in those 69 files. It fingerprints 166 literal
+  statements and flags 30 f-string/composed/variable statements; eight
+  statements have an unknown leading kind. Candidate relation tokens are
+  extracted for review, but the scanner is regex-based and records no query
+  text or values. Use
+  `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
+  to check it. These counts identify review targets and do not establish a
+  complete read/write set or a least-privilege grant list.
 - The `services.events` operation entry includes the optional notification
   processor's outbox/attempt writes; the `services.metrics` entry includes the
   code-owned NOI snapshot reconciliation view and natural-key upsert. It now
@@ -67,12 +76,13 @@ data effects, and an idempotency/retry note.
 
 ## What remains open
 
-This map, import closure, and argument schemas are not an ACL, tenant policy,
-or complete dynamic call graph. Imported helpers still need function-level
-effect tracing; dynamic SQL fragments, database functions/views, provider
-implementations, and external effects remain to be traced. The map also does
-not prove that external Prefect/host schedules are inactive or that effects
-are replay-safe on populated data.
+This map, import closure, SQL inventory, and argument schemas are not an ACL,
+tenant policy, or complete dynamic call graph. The 30 composed/variable SQL
+sites and eight unclassified statements need source review; function-level
+reachability, database functions/views, provider implementations, and external
+effects remain to be traced. The map also does not prove that external
+Prefect/host schedules are inactive or that effects are replay-safe on
+populated data.
 
 Before worker RLS or runtime-grant reduction:
 
@@ -87,8 +97,9 @@ Before worker RLS or runtime-grant reduction:
    PostgreSQL, then repeat lease/retry/effect tests. Candidate rollout and RLS
    remain separate gates.
 
-The source-closure regression is `tests/test_worker_source_closure.py`; the
-inventory-only contract test is `tests/test_worker_operation_map.py`.
+The source-closure regression is `tests/test_worker_source_closure.py`, and
+`tests/test_worker_sql_inventory.py` pins the SQL inventory to those sources;
+the inventory-only contract test is `tests/test_worker_operation_map.py`.
 The focused source, scheduler and event checks pass 37 tests; the retained
 [check record](builds/2026-10-14-recovery/worker-operation-map-check.json)
 contains that inventory test evidence. The separate

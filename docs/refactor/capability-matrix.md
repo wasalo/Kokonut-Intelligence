@@ -1296,3 +1296,16 @@ migration validation passed. This check did not run the HTTP handlers through
 the runtime login and does not close DML on other public tables,
 database-verified Gateway capabilities, workers, Directus/views,
 candidate rollout, or RLS ([policy](runtime-role-policy.md); [evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)).
+
+### CAP-040/047 worker source inspection addendum — 14 October 2026
+
+The worker review now has a deterministic static import closure over all 12
+scheduled modules and five allowlisted event-handler modules, plus a direct SQL
+call-site inventory for the 69 local source files. The SQL inventory records
+196 execution sites: 166 literal statement fingerprints, 30 composed or
+variable statements, and eight unknown statement kinds. The output omits SQL
+text and values; regex-derived relation names are review hints only. This adds
+source navigation and identifies the next manual review targets, but does not
+establish function reachability, complete effects, worker identity, grants, or
+tenant isolation. CAP-040 and CAP-047 remain partial and capability counts do
+not change ([source closure](worker-source-closure.json); [SQL inventory](worker-sql-inventory.json); [evidence](builds/2026-10-14-recovery/worker-sql-inventory-check.json)).

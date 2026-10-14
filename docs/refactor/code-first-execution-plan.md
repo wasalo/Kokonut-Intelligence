@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 311 checked and 20 open items (331 total).
+- The execution checklist has 312 checked and 20 open items (332 total).
 - The latest pushed implementation batch is `c5b703c`; CI #311 is in progress
   and Security #35 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -28,8 +28,10 @@ MAN-CAP checks open until each has its own retained evidence.
   an ACL-verified, read-only reader role. The worker operation inventory covers
   every current scheduled/event allowlist entry. Module-specific scheduler
   argument contracts now fail closed at activation and dispatch; a static local
-  import closure now covers each allowlisted operation. Function-level effects,
-  enabled legacy rows and worker identity/context remain open.
+  import closure now covers each allowlisted operation, and a direct-SQL
+  inventory identifies 196 execution sites (30 composed/variable and eight
+  with unknown statement kind). Function-level effects, enabled legacy rows
+  and worker identity/context remain open.
   The metrics entry now references all 20 registered calculator modules with a
   registry-parity test and records direct query tables and composed calculator
   calls. The freshness operation's seven source tables are also tied to its

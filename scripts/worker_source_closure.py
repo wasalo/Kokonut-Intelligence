@@ -24,8 +24,6 @@ from services.security.execution_allowlist import (  # noqa: E402
     ALLOWED_SCHEDULED_MODULES,
 )
 
-OUTPUT_PATH = ROOT / "docs" / "refactor" / "worker-source-closure.json"
-
 
 def _module_paths(module_name: str) -> list[Path]:
     """Return existing Python source files represented by a module name."""
