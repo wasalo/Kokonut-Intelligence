@@ -1,6 +1,6 @@
 {
   "result": "passed",
-  "checked_at": "2026-10-14T00:58:52.611484+00:00",
+  "checked_at": "2026-10-14T01:15:04.392024+00:00",
   "database": "PostgreSQL 16 on a disposable Docker bridge; host port bound to loopback only",
   "migrations": [
     "387_kokonut_network_tenant_ownership.sql",
@@ -18,6 +18,9 @@
     "database uniqueness guard prevents ambiguous tenant-grant context",
     "legacy NULL-tenant grants are denied and previous local context is cleared",
     "transaction-local tenant context resets at commit on the reused connection",
+    "report-review owner and shared-grant queries set context before protected reads on one connection",
+    "report-review reads clear tenant context after transaction rollback",
+    "legacy location-only report-review grants are denied before query execution",
     "pending transfer preserves owner, shares, and all existing grants",
     "self-approval and non-admin target approval are denied",
     "changed owner-relationship snapshot blocks acceptance and can be cancelled",
@@ -34,5 +37,5 @@
     "temporary_source_copy_removed": true,
     "volume_retained": false
   },
-  "scope_limit": "Synthetic disposable data only; no archive, pilot, candidate, or production records were used. Acceptance verifies database and local CLI behavior, not legal land title or RLS."
+  "scope_limit": "Synthetic disposable data only; no archive, pilot, candidate, or production records were used. Acceptance verifies database, local CLI, and report-review query wiring, not legal land title or RLS."
 }

@@ -81,6 +81,19 @@ CREATE TABLE farm_activity_workflow_event (
     action TEXT NOT NULL
 );
 
+CREATE TABLE report_snapshot (
+    id UUID PRIMARY KEY,
+    report_name TEXT NOT NULL,
+    report_type TEXT,
+    location_id UUID REFERENCES location(id),
+    period_start DATE,
+    period_end DATE,
+    report_data JSONB NOT NULL,
+    snapshot_hash TEXT,
+    status TEXT NOT NULL DEFAULT 'draft',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 INSERT INTO location (id, name, slug) VALUES
     ('a0000000-0000-0000-0000-000000000001', 'Kokonut Adelphi', 'kokonut-adelphi'),
     ('a0000000-0000-0000-0000-000000000002', 'Kokonut Genesis', 'kokonut-genesis');

@@ -40,6 +40,7 @@ LEGACY_OPERATOR_ID = "a0000000-0000-0000-0000-000000000903"
 TARGET_ADMIN_ID = "a0000000-0000-0000-0000-000000000904"
 TARGET_OPERATOR_ID = "a0000000-0000-0000-0000-000000000905"
 FARM_ID = "a0000000-0000-0000-0000-000000000099"
+REPORT_ID = "a0000000-0000-0000-0000-000000000098"
 
 
 def run(command: list[str], *, input_text: str | None = None) -> str:
@@ -137,6 +138,7 @@ import json
 import psycopg2
 from services.common.database import get_db
 from services.common.tenant_context import TenantContextDenied, set_operator_tenant_context
+from services.gateway import operator_review
 
 conn = get_db()
 try:
@@ -217,6 +219,79 @@ try:
     with conn.cursor() as cur:
         cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
         committed_settings = cur.fetchone()
+
+    report_events = []
+    class CursorProxy:
+        def __init__(self, owner, cursor):
+            self.owner = owner
+            self.cursor = cursor
+        def __getattr__(self, name):
+            return getattr(self.cursor, name)
+        def __enter__(self):
+            self.cursor.__enter__()
+            return self
+        def __exit__(self, *args):
+            return self.cursor.__exit__(*args)
+        def execute(self, sql, params=None):
+            report_events.append(('sql', id(self.owner), sql))
+            return self.cursor.execute(sql, params)
+
+    class ConnectionProxy:
+        def __init__(self, connection):
+            self.connection = connection
+        @property
+        def autocommit(self):
+            return self.connection.autocommit
+        def cursor(self, *args, **kwargs):
+            return CursorProxy(self, self.connection.cursor(*args, **kwargs))
+        def rollback(self):
+            return self.connection.rollback()
+        def close(self):
+            # Reuse only this disposable connection between service calls so
+            # transaction-local reset can be inspected after each rollback.
+            return None
+
+    report_conn = ConnectionProxy(get_db())
+    report_contexts = []
+    original_set_context = operator_review.set_operator_tenant_context
+    def capture_context(connection, **kwargs):
+        context = original_set_context(connection, **kwargs)
+        report_contexts.append((id(connection), kwargs))
+        report_events.append(('context', id(connection), kwargs['action']))
+        return context
+    operator_review.set_operator_tenant_context = capture_context
+    try:
+        owner_reports = operator_review.list_submitted_reports(
+            '{OWNER_ADMIN_ID}', '{LOCATION_ID}', connection_factory=lambda: report_conn
+        )
+        with report_conn.cursor() as cur:
+            cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+            after_owner_queue = cur.fetchone()
+        report_conn.rollback()
+
+        partner_report = operator_review.get_submitted_report(
+            '{PARTNER_ADMIN_ID}', '{REPORT_ID}', '{LOCATION_ID}',
+            connection_factory=lambda: report_conn,
+        )
+        with report_conn.cursor() as cur:
+            cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+            after_partner_detail = cur.fetchone()
+        report_conn.rollback()
+
+        try:
+            operator_review.list_submitted_reports(
+                '{LEGACY_OPERATOR_ID}', '{LOCATION_ID}', connection_factory=lambda: report_conn
+            )
+        except TenantContextDenied:
+            legacy_report_denied = True
+        else:
+            legacy_report_denied = False
+        with report_conn.cursor() as cur:
+            cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+            after_legacy_denial = cur.fetchone()
+    finally:
+        report_conn.rollback()
+        report_conn.connection.close()
 finally:
     conn.rollback()
     conn.close()
@@ -234,7 +309,26 @@ if not denied or denied_settings != empty:
     raise RuntimeError(f'legacy grant was not denied with cleared context: {{denied!r}} {{denied_settings!r}}')
 if committed_settings != empty:
     raise RuntimeError(f'transaction-local context survived commit: {{committed_settings!r}}')
-print(json.dumps({{'result': 'passed', 'owner': owner_settings, 'partner': partner_settings, 'ambiguous_grant_rejected': duplicate_grant_rejected, 'after_duplicate': after_duplicate_settings, 'denied_context': denied_settings, 'after_commit': committed_settings}}))
+expected_owner_report = ('{OWNER_ORG_ID}', '{LOCATION_ID}', '{OWNER_ADMIN_ID}', 'operator')
+expected_partner_report = ('{PARTNER_ORG_ID}', '{LOCATION_ID}', '{PARTNER_ADMIN_ID}', 'operator')
+if len(owner_reports) != 1 or owner_reports[0].get('id') != '{REPORT_ID}':
+    raise RuntimeError(f'owner report queue query failed: {{owner_reports!r}}')
+if partner_report is None or partner_report.get('id') != '{REPORT_ID}' or partner_report.get('report_data') != {{'synthetic': True}}:
+    raise RuntimeError(f'explicitly shared report detail query failed: {{partner_report!r}}')
+if [row[1] for row in report_contexts] != [
+    {{'operator_id': '{OWNER_ADMIN_ID}', 'location_id': '{LOCATION_ID}', 'resource': 'report_snapshot_review', 'action': 'read'}},
+    {{'operator_id': '{PARTNER_ADMIN_ID}', 'location_id': '{LOCATION_ID}', 'resource': 'report_snapshot_review', 'action': 'read'}},
+]:
+    raise RuntimeError(f'report context was not set for owner and share: {{report_contexts!r}}')
+if any(row[0] != id(report_conn) for row in report_contexts):
+    raise RuntimeError(f'tenant context used a different connection: {{report_contexts!r}}')
+markers = [index for index, event in enumerate(report_events) if event[0] == 'context']
+queries = [index for index, event in enumerate(report_events) if event[0] == 'sql' and 'FROM report_snapshot AS rs' in event[2]]
+if len(markers) != 2 or len(queries) != 2 or any(marker >= query for marker, query in zip(markers, queries)):
+    raise RuntimeError(f'report context was not set before both protected queries: {{markers!r}} {{queries!r}}')
+if after_owner_queue != empty or after_partner_detail != empty or not legacy_report_denied or after_legacy_denial != empty:
+    raise RuntimeError(f'report query context leaked or legacy grant was accepted: {{after_owner_queue!r}} {{after_partner_detail!r}} {{legacy_report_denied!r}} {{after_legacy_denial!r}}')
+print(json.dumps({{'result': 'passed', 'owner': owner_settings, 'partner': partner_settings, 'ambiguous_grant_rejected': duplicate_grant_rejected, 'after_duplicate': after_duplicate_settings, 'denied_context': denied_settings, 'after_commit': committed_settings, 'report_contexts': [row[1] for row in report_contexts], 'report_cleanup': [after_owner_queue, after_partner_detail, after_legacy_denial], 'legacy_report_denied': legacy_report_denied}}))
 '''
     result = subprocess.run(
         [sys.executable, "-c", source],
@@ -258,6 +352,9 @@ print(json.dumps({{'result': 'passed', 'owner': owner_settings, 'partner': partn
         "database uniqueness guard prevents ambiguous tenant-grant context",
         "legacy NULL-tenant grants are denied and previous local context is cleared",
         "transaction-local tenant context resets at commit on the reused connection",
+        "report-review owner and shared-grant queries set context before protected reads on one connection",
+        "report-review reads clear tenant context after transaction rollback",
+        "legacy location-only report-review grants are denied before query execution",
     ]
 
 
@@ -329,6 +426,15 @@ def add_fixture_rows(container: str) -> None:
           ('{OWNER_ADMIN_ID}', 'farm_activity', 'read', '{LOCATION_ID}', '{OWNER_ORG_ID}', 'fixture'),
           ('{PARTNER_ADMIN_ID}', 'farm_activity', 'review', '{LOCATION_ID}', '{PARTNER_ORG_ID}', 'fixture'),
           ('{LEGACY_OPERATOR_ID}', 'farm_activity', 'legacy_read', '{LOCATION_ID}', NULL, 'fixture');
+        INSERT INTO operator_scope_grant
+            (operator_id, resource, action, location_id, organization_id, granted_by)
+        VALUES
+          ('{OWNER_ADMIN_ID}', 'report_snapshot_review', 'read', '{LOCATION_ID}', '{OWNER_ORG_ID}', 'fixture'),
+          ('{PARTNER_ADMIN_ID}', 'report_snapshot_review', 'read', '{LOCATION_ID}', '{PARTNER_ORG_ID}', 'fixture');
+        INSERT INTO report_snapshot
+            (id, report_name, report_type, location_id, report_data, snapshot_hash, status)
+        VALUES
+          ('{REPORT_ID}', 'Synthetic tenant report', 'impact', '{LOCATION_ID}', '{{"synthetic": true}}', 'synthetic-hash', 'submitted');
         """,
     )
 
@@ -387,7 +493,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     assert_sql(
         container,
         f"SELECT count(*) FROM operator_scope_grant WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL",
-        "3",
+        "5",
         "pending request leaves grants unchanged",
     )
     checks.append("pending transfer preserves owner, shares, and all existing grants")
@@ -512,7 +618,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     )
     assert_sql(container, f"SELECT organization_id FROM location WHERE id = '{LOCATION_ID}'", OWNER_ORG_ID, "failed acceptance rolls back location owner")
     assert_sql(container, f"SELECT count(*) FROM location_tenant_owner_verification WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL AND organization_id = '{OWNER_ORG_ID}'", "1", "failed acceptance rolls back owner verification")
-    assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "3", "failed acceptance rolls back every grant revocation")
+    assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "5", "failed acceptance rolls back every grant revocation")
     assert_sql(container, f"SELECT count(*) FROM location_organization_share WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "2", "failed acceptance rolls back share revocation")
     docker_sql(
         container,
@@ -536,7 +642,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     assert_sql(container, f"SELECT count(*) FROM location_tenant_owner_verification WHERE id = (SELECT source_owner_verification_id FROM location_tenant_transfer WHERE id = '{transfer_id}') AND revoked_at IS NOT NULL", "1", "accepted transfer retires source verification")
     assert_sql(container, f"SELECT count(*) FROM organization_member WHERE location_id = '{LOCATION_ID}' AND organization_id = '{OWNER_ORG_ID}' AND membership_type = 'owned' AND status = 'active'", "0", "accepted transfer deactivates source owner relationships")
     assert_sql(container, f"SELECT count(*) FROM organization_member WHERE location_id = '{LOCATION_ID}' AND organization_id = '{TARGET_ORG_ID}' AND membership_type = 'owned' AND role = 'primary' AND status = 'active' AND farm_id = '{FARM_ID}'", "1", "accepted transfer preserves farm link in new owner relationship")
-    assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "3", "accepted transfer records and revokes each location grant")
+    assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "5", "accepted transfer records and revokes each location grant")
     assert_sql(container, f"SELECT count(*) FROM location_organization_share WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by_operator_id = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "2", "accepted transfer records and revokes each location share")
     for operator_id, resource, action in (
         (OWNER_ADMIN_ID, "farm_activity", "read"),
@@ -674,7 +780,7 @@ def main() -> int:
                 "temporary_source_copy_removed": cli_root_removed,
                 "volume_retained": False,
             },
-            "scope_limit": "Synthetic disposable data only; no archive, pilot, candidate, or production records were used. Acceptance verifies database and local CLI behavior, not legal land title or RLS.",
+            "scope_limit": "Synthetic disposable data only; no archive, pilot, candidate, or production records were used. Acceptance verifies database, local CLI, and report-review query wiring, not legal land title or RLS.",
         }
         EVIDENCE.parent.mkdir(parents=True, exist_ok=True)
         EVIDENCE.write_text(json.dumps(report, indent=2) + "\n")

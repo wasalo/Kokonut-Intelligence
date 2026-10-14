@@ -84,6 +84,16 @@ verification:
   conflicting locations and records have a reviewed disposition. There is no
   automatic default tenant and no broad backfill from `organization_member`.
 
+The first source integration is limited to the optional Gateway report-review
+queue and detail reads. Both set tenant context and execute their existing
+location/grant-filtered query in the same read-only transaction. The routes
+deny legacy NULL-tenant grants until an operator affiliation and tenant grant
+are provisioned. Seventeen disposable PostgreSQL acceptance checks and two
+focused Gateway HTTP denial checks passed, including owner/share reads and
+transaction cleanup ([evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
+This does not cover other Gateway routes, background workers, Directus, or
+direct database consumers and does not enable RLS.
+
 ## Ordered implementation and acceptance
 
 1. Inventory active and inactive locations, `location.organization_id`,

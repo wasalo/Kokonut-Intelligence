@@ -6,6 +6,8 @@ from functools import partial
 from typing import Callable
 from uuid import UUID
 
+from services.common.tenant_context import set_operator_tenant_context
+
 
 class ReportPayloadTooLarge(ValueError):
     """Raised when a report exceeds the browser review response bound."""
@@ -39,6 +41,17 @@ def list_submitted_reports(
             cur.execute("SET TRANSACTION READ ONLY")
             cur.execute("SET LOCAL statement_timeout = '5s'")
             cur.execute("SET LOCAL lock_timeout = '2s'")
+            # Keep tenant authorization and the protected read on this same
+            # transaction so a future RLS policy sees only database-validated
+            # context. Legacy location-only grants are intentionally denied
+            # until an accountable tenant affiliation is provisioned.
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=location_id,
+                resource="report_snapshot_review",
+                action="read",
+            )
             cur.execute(
                 """SELECT rs.id, rs.report_name, rs.report_type, rs.status,
                           rs.period_start, rs.period_end, rs.snapshot_hash,
@@ -103,6 +116,13 @@ def get_submitted_report(
             cur.execute("SET TRANSACTION READ ONLY")
             cur.execute("SET LOCAL statement_timeout = '5s'")
             cur.execute("SET LOCAL lock_timeout = '2s'")
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=location_id,
+                resource="report_snapshot_review",
+                action="read",
+            )
             cur.execute(
                 """SELECT rs.id, rs.report_name, rs.report_type, rs.status,
                           rs.period_start, rs.period_end, rs.snapshot_hash,

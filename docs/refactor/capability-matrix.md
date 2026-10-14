@@ -50,6 +50,19 @@ healthy and anonymous protected routes return 401
 Worker isolation, RLS, and MAN-CAP-001 / MAN-CAP-053 remain open.
 This mapping does not establish user access or end-to-end tenant isolation.
 
+**14 October 2026 Gateway context progress (CAP-001 / CAP-053):** report-review
+queue and detail reads now validate tenant-qualified scope and set transaction-
+local context on the same connection as their protected query. The routes keep
+the existing location/grant predicates and return 403 for legacy NULL-tenant
+grants. Route-specific verification is pending; this is a first bounded
+integration only. Seventeen disposable PostgreSQL acceptance checks and two
+focused Gateway HTTP denial checks passed, including owner/shared reads,
+same-transaction context, legacy denial, and cleanup. The broader operator-auth
+file yielded 33 passed and three older `Vary` assertion failures, which remain
+open for follow-up. Other Gateway/worker paths, direct-database boundaries,
+and RLS remain open, so both capabilities remain partial and their manual
+acceptance checks remain not run.
+
 The tenant-aware source foundation is now present in migrations 388–389:
 explicit operator organization memberships, verified seed-location ownership,
 revocable organization shares, tenant-qualified resource/action grants, and

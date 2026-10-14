@@ -742,6 +742,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     async def report_review_queue(request: Request, location_id: str, limit: int = 50):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_review import list_submitted_reports
 
         try:
@@ -750,6 +751,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 location_id,
                 limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"error": str(exc)})
@@ -775,6 +782,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     async def submitted_report_detail(request: Request, report_id: str, location_id: str):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_review import (
             ReportPayloadTooLarge,
             get_submitted_report,
@@ -786,6 +794,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 report_id,
                 location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ReportPayloadTooLarge:
             return JSONResponse(

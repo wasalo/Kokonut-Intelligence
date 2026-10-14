@@ -332,6 +332,52 @@ def test_farm_activity_detail_requires_both_detail_grants(monkeypatch):
 
 
 @pytest.mark.parametrize(
+    ("path", "service_function"),
+    [
+        ("/operator/api/report-review-queue", "list_submitted_reports"),
+        (
+            "/operator/api/report-review-queue/22222222-2222-4222-8222-222222222222",
+            "get_submitted_report",
+        ),
+    ],
+)
+def test_report_review_routes_require_tenant_qualified_context(
+    monkeypatch, path, service_function
+):
+    from services.common.tenant_context import TenantContextDenied
+
+    provider = _FarmActivityProvider(
+        allowed_scopes={("report_snapshot_review", "read")}
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    reader = MagicMock(side_effect=TenantContextDenied("tenant-qualified grant required"))
+    monkeypatch.setattr(
+        f"services.gateway.operator_review.{service_function}", reader
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            path,
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "error": "Tenant-qualified operator access is required"
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "report_snapshot_review", "read", LOCATION_ID)
+    ]
+    reader.assert_called_once()
+
+
+@pytest.mark.parametrize(
     ("csrf", "content_reviewed", "status"),
     [(False, True, 403), (True, False, 422), (True, True, 201)],
 )

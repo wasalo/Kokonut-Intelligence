@@ -553,12 +553,20 @@ reporting views.
   seed rollout. Only the candidate app was rebuilt/recreated;
   app/database/Metabase health and anonymous 401 responses on both protected
   routes passed ([rollout evidence](builds/2026-10-14-recovery/candidate-tenant-transfer-rollout.json)).
-- [ ] Reconcile other locations and legacy operator grants, add transaction-
-  local context, and establish least-privilege worker/direct-database
-  boundaries before RLS. Initial transaction-local operator-context source is
-  in `services/common/tenant_context.py`; eight unit checks and disposable
-  context checks passed, but integration across request/worker connection
-  paths remains open.
+- [x] Integrate transaction-local tenant context into the Gateway's report
+  review queue/detail read transactions. The helper validates a tenant-qualified
+  location grant on the same connection as the protected query; location-only
+  legacy grants receive 403 on these routes. Route-specific verification is
+  complete: 17 disposable PostgreSQL checks passed across migrations 387–390,
+  including owner/shared reads, same-transaction context, legacy denial, and
+  context cleanup; two focused Gateway HTTP denial checks passed. See
+  [acceptance evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json).
+  This narrow integration does not enable RLS.
+- [ ] Reconcile other locations and legacy operator affiliations, extend the
+  same-transaction context pattern across remaining Gateway routes and worker
+  jobs, and establish least-privilege direct-database boundaries before RLS.
+  Eight helper unit checks and fourteen disposable migration/context checks
+  passed; full request/worker coverage remains open.
 - [x] Audit repository-owned downstream consumers of Field Collector data;
   the source review found an unguarded process-interface elapsed-time lookup
   and added the shared eligibility predicate. Reporting, export, metric,

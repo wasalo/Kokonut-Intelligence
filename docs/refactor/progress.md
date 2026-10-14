@@ -4091,3 +4091,24 @@ integrated into every Gateway or worker transaction; operator-affiliation
 reconciliation, direct-database isolation, worker scoping, downstream lineage,
 and RLS remain open. No seed data, populated archive, production data, or RLS
 policy was changed by the candidate rollout.
+
+### First Gateway tenant-context integration — 14 October 2026
+
+The report review queue and report detail reads now call
+`set_operator_tenant_context` inside the same read-only PostgreSQL transaction
+as their protected query. The context is derived from a tenant-qualified
+operator grant, current membership, and verified owner/share relationship;
+the query retains its existing location and grant predicates as defense in
+depth. A location-only legacy grant receives HTTP 403 on these two routes until
+its operator affiliation and tenant grant are explicitly provisioned. The
+expanded disposable PostgreSQL acceptance passed 17 checks; both focused HTTP
+denial tests passed. It confirmed actual owner and shared-partner queries,
+context-before-query on the same connection, legacy denial, and cleanup after
+success and denial. The full existing operator-auth file also reported three
+`Vary` header assertion failures in older cases (33 passed); these assertions
+are outside the report-review changes and remain to be reconciled. Evidence:
+[`tenant-owner-transfer-context-disposable.json`](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json).
+
+This integrates one bounded read surface only: other Gateway handlers and
+workers remain unintegrated, no RLS policy is enabled, and worker/direct-
+database isolation remains a gate.
