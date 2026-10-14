@@ -83,11 +83,15 @@ Other deployments must use the ordered, checksummed migration workflow.
   `mobile_participant_link`. The link records location, creator, time, and
   evidence. `POST /api/mobile/locations/{location_id}/participants/revoke`
   revokes a reference without deleting the mapping.
-- These routes are protected by location-scoped `mobile_participant:create` or
-  `mobile_participant:revoke`. With OIDC enabled, they require a browser session,
-  matching operator location grant, and CSRF validation. With OIDC disabled,
-  the existing Gateway API key/capability policy applies. Neither route is
-  public, and the collector token cannot manage links.
+- The `/api/mobile/.../participants` routes use location-scoped Gateway API
+  key/capability authorization. OIDC operators use the same-origin
+  `/operator/api/mobile/.../participants` routes with the matching
+  `mobile_participant:create` or `mobile_participant:revoke` grant and CSRF
+  validation. The operator transaction sets tenant context on the same
+  connection before looking up a party or changing a link; legacy or
+  cross-tenant grants fail closed. The create response is no-store and returns
+  the raw reference once. Neither route is public, and the collector token
+  cannot manage links.
 - A form revision has one of three consent classifications: `required`,
   `not_required`, or `unclassified`. The five built-in operational forms are
   classified `not_required` at source and local candidate version `1.2.0`,

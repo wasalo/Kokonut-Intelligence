@@ -1,6 +1,7 @@
 """OIDC operator authorization for Field Collector administration."""
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -11,6 +12,8 @@ from starlette.testclient import TestClient  # noqa: E402
 
 from services.gateway import operator_auth  # noqa: E402
 from services.gateway.app import create_app  # noqa: E402
+from services.gateway.router import get_route_policy  # noqa: E402
+from services.mobile import api as mobile_api  # noqa: E402
 
 LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 OPERATOR_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
@@ -81,6 +84,22 @@ class _MobileDeviceProvider(_FakeProvider):
         )
 
 
+class _MobileParticipantProvider(_FakeProvider):
+    def __init__(self, *, allowed_actions=()):
+        super().__init__(allowed=False)
+        self.allowed_actions = set(allowed_actions)
+        self.scopes_seen = []
+
+    def has_scope(self, operator_id, resource, action, location_id):
+        self.scopes_seen.append((operator_id, resource, action, location_id))
+        return (
+            operator_id == OPERATOR_ID
+            and resource == "mobile_participant"
+            and action in self.allowed_actions
+            and location_id == LOCATION_ID
+        )
+
+
 def test_operator_mobile_routes_require_location_scoped_actions():
     create_policy = operator_auth.auth_route_policy(
         "POST",
@@ -108,6 +127,169 @@ def test_operator_mobile_routes_require_location_scoped_actions():
         f"/operator/api/mobile/locations/{LOCATION_ID}/enrollments",
         enabled=False,
     ) is None
+
+
+def test_operator_participant_routes_require_location_scoped_actions():
+    create_policy = operator_auth.auth_route_policy(
+        "POST",
+        f"/operator/api/mobile/locations/{LOCATION_ID}/participants",
+        enabled=True,
+    )
+    revoke_policy = operator_auth.auth_route_policy(
+        "POST",
+        f"/operator/api/mobile/locations/{LOCATION_ID}/participants/revoke",
+        enabled=True,
+    )
+
+    assert (create_policy["resource"], create_policy["action"]) == (
+        "mobile_participant",
+        "create",
+    )
+    assert (revoke_policy["resource"], revoke_policy["action"]) == (
+        "mobile_participant",
+        "revoke",
+    )
+    assert create_policy["location_id"] == revoke_policy["location_id"] == LOCATION_ID
+    assert operator_auth.auth_route_policy(
+        "POST", f"/api/mobile/locations/{LOCATION_ID}/participants", enabled=True
+    ) is None
+    legacy_policy = get_route_policy(
+        "POST", f"/api/mobile/locations/{LOCATION_ID}/participants"
+    )
+    assert (legacy_policy["resource"], legacy_policy["action"]) == (
+        "mobile_participant",
+        "create",
+    )
+    assert legacy_policy["public"] is False
+
+
+@pytest.mark.parametrize(
+    ("action", "suffix", "body", "fetch_rows", "status_code"),
+    [
+        (
+            "create",
+            "",
+            {
+                "party_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "evidence": {"review": "identity confirmed"},
+            },
+            [(1,), ("link-id", datetime(2026, 10, 13, tzinfo=timezone.utc))],
+            201,
+        ),
+        (
+            "revoke",
+            "/revoke",
+            {"participant_ref": "x" * 40},
+            [("link-id", datetime(2026, 10, 13, tzinfo=timezone.utc))],
+            200,
+        ),
+    ],
+)
+def test_operator_participant_mutation_sets_context_before_sql_and_cleans_transaction(
+    monkeypatch, action, suffix, body, fetch_rows, status_code
+):
+    from services.gateway.audit import GatewayAudit
+
+    provider = _MobileParticipantProvider(allowed_actions={action})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(GatewayAudit, "log", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(GatewayAudit, "reserve_mutation", lambda _self: "reservation")
+    monkeypatch.setattr(GatewayAudit, "release_mutation", lambda *_args: None)
+    database = MagicMock()
+    database.cursor.return_value.fetchone.side_effect = fetch_rows
+    events = []
+    context_calls = []
+
+    def set_context(connection, **kwargs):
+        events.append(("context", kwargs))
+        context_calls.append((connection, kwargs))
+
+    def execute(sql, params=None):
+        events.append(("sql", sql, params))
+
+    database.cursor.return_value.execute.side_effect = execute
+    monkeypatch.setattr(mobile_api, "get_db", lambda: database)
+    monkeypatch.setattr(mobile_api, "set_operator_tenant_context", set_context)
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=True)
+        response = client.post(
+            f"/operator/api/mobile/locations/{LOCATION_ID}/participants{suffix}",
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json=body,
+        )
+
+    assert response.status_code == status_code, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert provider.scopes_seen == [(OPERATOR_ID, "mobile_participant", action, LOCATION_ID)]
+    assert context_calls == [
+        (
+            database,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "mobile_participant",
+                "action": action,
+            },
+        )
+    ]
+    assert events[0][0] == "context"
+    assert any(event[0] == "sql" for event in events)
+    assert database.commit.called
+    assert not database.rollback.called
+    database.close.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("action", "suffix", "body"),
+    [
+        (
+            "create",
+            "",
+            {
+                "party_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "evidence": {"review": "identity confirmed"},
+            },
+        ),
+        ("revoke", "/revoke", {"participant_ref": "x" * 40}),
+    ],
+)
+def test_operator_participant_cross_tenant_denial_returns_403_before_query(
+    monkeypatch, action, suffix, body
+):
+    from services.common.tenant_context import TenantContextDenied
+    from services.gateway.audit import GatewayAudit
+
+    provider = _MobileParticipantProvider(allowed_actions={action})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(GatewayAudit, "log", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(GatewayAudit, "reserve_mutation", lambda _self: "reservation")
+    monkeypatch.setattr(GatewayAudit, "release_mutation", lambda *_args: None)
+    database = MagicMock()
+    context = MagicMock(side_effect=TenantContextDenied("tenant mismatch"))
+    monkeypatch.setattr(mobile_api, "get_db", lambda: database)
+    monkeypatch.setattr(mobile_api, "set_operator_tenant_context", context)
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client, csrf=True)
+        response = client.post(
+            f"/operator/api/mobile/locations/{LOCATION_ID}/participants{suffix}",
+            headers={"X-CSRF-Token": "valid-csrf"},
+            json=body,
+        )
+
+    assert response.status_code == 403, response.text
+    assert response.headers["cache-control"] == "no-store"
+    context.assert_called_once_with(
+        database,
+        operator_id=OPERATOR_ID,
+        location_id=LOCATION_ID,
+        resource="mobile_participant",
+        action=action,
+    )
+    database.cursor.return_value.execute.assert_not_called()
+    database.rollback.assert_called_once()
+    database.close.assert_called_once()
 
 
 def test_mobile_collection_review_routes_use_separate_location_read_actions():

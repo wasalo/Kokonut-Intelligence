@@ -14,12 +14,12 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 from services.common.database import get_db
-from services.common.tenant_context import set_operator_tenant_context
+from services.common.tenant_context import TenantContextDenied, set_operator_tenant_context
 from services.mobile.form_validation import FormPayloadInvalid, FormSchemaUnavailable, validate_form_payload
 
 try:
     from fastapi import APIRouter, Header, HTTPException, Request  # type: ignore[reportAssignmentType]
-    from fastapi.responses import FileResponse
+    from fastapi.responses import FileResponse, JSONResponse
 except ImportError:  # pragma: no cover - gateway requires FastAPI at runtime
     APIRouter = None
     def Header(default=None, **kwargs):
@@ -33,6 +33,7 @@ except ImportError:  # pragma: no cover - gateway requires FastAPI at runtime
 
     Request = None
     FileResponse = None
+    JSONResponse = None
 
 
 APP_PATH = Path(__file__).with_name("field-collector.html")
@@ -83,6 +84,21 @@ class ParticipantLinkCreateRequest(BaseModel):
 
 class ParticipantLinkRevokeRequest(BaseModel):
     participant_ref: str = Field(min_length=32, max_length=128)
+
+
+def _set_participant_operator_context(conn, request: Request, location_id: str, action: str) -> None:
+    """Bind OIDC participant administration to its validated tenant grant."""
+    session = getattr(request.state, "operator_session", None)
+    operator = getattr(session, "operator", None)
+    operator_id = getattr(operator, "operator_id", None)
+    if operator_id is not None:
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="mobile_participant",
+            action=action,
+        )
 
 
 def _token_hash(token: str) -> str:
@@ -541,6 +557,7 @@ async def create_participant_link(
     conn = get_db()
     try:
         cur = conn.cursor()
+        _set_participant_operator_context(conn, request, str(location_id), "create")
         cur.execute("SELECT 1 FROM party WHERE id = %s", (str(body.party_id),))
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="Participant party was not found")
@@ -565,6 +582,12 @@ async def create_participant_link(
     except HTTPException:
         conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified operator access is required",
+        ) from exc
     except Exception as exc:
         conn.rollback()
         if getattr(exc, "pgcode", None) == "23505":
@@ -573,12 +596,16 @@ async def create_participant_link(
         raise HTTPException(status_code=500, detail="Participant link could not be created") from exc
     finally:
         conn.close()
-    return {
-        "link_id": row[0],
-        "location_id": str(location_id),
-        "participant_ref": participant_ref,
-        "created_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
-    }
+    return JSONResponse(
+        status_code=201,
+        content={
+            "link_id": row[0],
+            "location_id": str(location_id),
+            "participant_ref": participant_ref,
+            "created_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
+        },
+        headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+    )
 
 
 @router.post("/locations/{location_id}/participants/revoke")
@@ -591,6 +618,7 @@ async def revoke_participant_link(
     conn = get_db()
     try:
         cur = conn.cursor()
+        _set_participant_operator_context(conn, request, str(location_id), "revoke")
         cur.execute(
             """
             UPDATE mobile_participant_link
@@ -610,14 +638,23 @@ async def revoke_participant_link(
     except HTTPException:
         conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified operator access is required",
+        ) from exc
     finally:
         conn.close()
-    return {
-        "link_id": row[0],
-        "location_id": str(location_id),
-        "status": "revoked",
-        "revoked_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
-    }
+    return JSONResponse(
+        content={
+            "link_id": row[0],
+            "location_id": str(location_id),
+            "status": "revoked",
+            "revoked_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
+        },
+        headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+    )
 
 
 @router.post("/locations/{location_id}/enrollments", status_code=201)

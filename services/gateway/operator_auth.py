@@ -20,7 +20,11 @@ from uuid import UUID
 
 from starlette.requests import Request
 
-from services.mobile.api import EnrollmentCreateRequest
+from services.mobile.api import (
+    EnrollmentCreateRequest,
+    ParticipantLinkCreateRequest,
+    ParticipantLinkRevokeRequest,
+)
 
 SESSION_COOKIE = "kokonut_operator_session"
 CSRF_COOKIE = "kokonut_operator_csrf"
@@ -375,7 +379,7 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
     participant_match = re.fullmatch(
-        r"/api/mobile/locations/([0-9a-fA-F-]{36})/participants(?:/(revoke))?",
+        r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/participants(?:/(revoke))?",
         path,
     )
     if participant_match and method.upper() == "POST" and enabled:
@@ -631,14 +635,16 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from collections.abc import Mapping
 
     import psycopg2
-    from fastapi import APIRouter
+    from fastapi import APIRouter, HTTPException
     from fastapi.responses import JSONResponse, RedirectResponse
     from starlette.concurrency import run_in_threadpool
 
     from services.mobile.api import (
         create_operator_enrollment,
+        create_participant_link,
         revoke_operator_device,
         revoke_operator_enrollment,
+        revoke_participant_link,
     )
 
     router = APIRouter()
@@ -1523,6 +1529,46 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             {"data": jsonable_encoder(result)},
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
+
+    @router.post("/operator/api/mobile/locations/{location_id}/participants", status_code=201)
+    async def operator_create_mobile_participant_link(
+        location_id: UUID,
+        request: Request,
+        body: ParticipantLinkCreateRequest,
+    ):
+        """Create a reviewer-approved participant reference within one tenant."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        try:
+            result = await create_participant_link(location_id, request, body)
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"error": exc.detail},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        result.headers["Vary"] = "Cookie"
+        return result
+
+    @router.post("/operator/api/mobile/locations/{location_id}/participants/revoke")
+    async def operator_revoke_mobile_participant_link(
+        location_id: UUID,
+        request: Request,
+        body: ParticipantLinkRevokeRequest,
+    ):
+        """Revoke a participant reference within one tenant."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        try:
+            result = await revoke_participant_link(location_id, request, body)
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"error": exc.detail},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        result.headers["Vary"] = "Cookie"
+        return result
 
     @router.post("/operator/api/mobile/locations/{location_id}/enrollments", status_code=201)
     async def operator_create_mobile_enrollment(

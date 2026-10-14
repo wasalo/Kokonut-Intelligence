@@ -599,6 +599,15 @@ reporting views.
   enrollment handler remains on its existing Gateway authorization path.
   Ten focused operator-route tests and the public enrollment authorization
   test pass; Ruff and syntax checks pass. No database was accessed.
+- [x] Bind OIDC participant-reference creation and revocation to tenant
+  context before the party lookup or link mutation. The new same-origin
+  `/operator/api/mobile/.../participants` routes use the OIDC cookie path,
+  require location-scoped create/revoke grants plus CSRF, and return no-store
+  responses. The original `/api/mobile/.../participants` routes retain their
+  Gateway API-key/capability authorization. Five focused operator authorization
+  and transaction checks pass, including context-before-SQL, transaction
+  completion, and HTTP 403 before SQL on tenant denial. Candidate and legacy
+  databases were untouched; real-provider browser acceptance remains open.
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.

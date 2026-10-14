@@ -4156,3 +4156,17 @@ API-key enrollment endpoint still uses its existing Gateway capability check
 and does not attempt OIDC tenant context. Ten focused operator-route checks
 and one public enrollment authorization check pass; Ruff and syntax checks
 pass. No database was accessed.
+
+The OIDC participant-link routes now live under `/operator/api/mobile/...`,
+inside the session cookie path. Creation and revocation validate the
+`mobile_participant:create` or `mobile_participant:revoke` grant, require CSRF,
+and set tenant context before the party lookup or link write on the same
+transaction. A context denial returns HTTP 403 before either query; both
+responses are no-store. The existing `/api/mobile/.../participants` endpoints
+remain on Gateway API-key/capability authorization. Five focused operator
+authorization and transaction tests pass. The first wider mobile review/API/
+operator-auth/context run passed 115 tests after isolating the mobile API test
+audit journal under pytest's private temporary directory. Ruff and Python
+syntax checks passed. Candidate and legacy
+databases were not accessed. Real OIDC/browser acceptance, other Gateway and
+worker routes, direct-database boundaries, and RLS remain open.

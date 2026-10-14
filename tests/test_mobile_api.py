@@ -17,6 +17,15 @@ from services.mobile import api as mobile_api  # noqa: E402
 from services.mobile.api import APP_PATH, CollectionRequest  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _private_gateway_audit_spool(monkeypatch, tmp_path):
+    """Keep Gateway mutation tests independent of the user's host journal."""
+    monkeypatch.setenv(
+        "KOKONUT_GATEWAY_AUDIT_SPOOL_PATH",
+        str(tmp_path / "gateway-audit.sqlite3"),
+    )
+
+
 def _active_not_required_form_revision():
     return (
         "revision-1",
