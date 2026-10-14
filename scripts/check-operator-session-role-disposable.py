@@ -153,6 +153,20 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
         user="kokonut_runtime", password=runtime_password, connect_timeout=5,
     )
     try:
+        for statement in (
+            "SELECT value FROM public.runtime_future_default_probe LIMIT 1",
+            "INSERT INTO public.runtime_future_default_probe (value) VALUES ('runtime-denied')",
+            "UPDATE public.runtime_future_default_probe SET value = 'runtime-denied'",
+            "DELETE FROM public.runtime_future_default_probe",
+        ):
+            expect_privilege_denial(runtime, statement)
+        with runtime.cursor() as cursor:
+            cursor.execute(
+                "SELECT has_sequence_privilege(current_user, "
+                "'public.runtime_future_default_probe_id_seq', 'USAGE')"
+            )
+            if cursor.fetchone()[0]:
+                raise AssertionError("runtime role unexpectedly uses a future table sequence")
         with runtime.cursor() as cursor:
             cursor.execute("SELECT value FROM public.operator_session_runtime_probe WHERE id = 1")
             if cursor.fetchone()[0] != "admin-seeded":
@@ -353,6 +367,7 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
         "runtime login can call bounded token-resolution and enrollment-redemption functions",
         "operator-auth role has no direct mobile credential table access",
         "runtime role retains DML and sequence access on other public tables",
+        "tables and sequences created after provisioning receive no automatic runtime privileges",
         "dedicated operator-auth role has no direct operator_session privileges",
         "dedicated operator-auth role authenticates, creates, and revokes via bounded functions",
         "session functions operate under FORCE RLS using their NOLOGIN owner role",
@@ -414,6 +429,15 @@ def main() -> int:
         auth_password = secrets.token_urlsafe(32)
         role_result, host_port = provision_roles(
             container, runtime_password, auth_password, DOCKER_ADMIN_PASSWORD
+        )
+        docker_sql(
+            container,
+            """CREATE TABLE public.runtime_future_default_probe (
+                   id BIGSERIAL PRIMARY KEY,
+                   value TEXT NOT NULL
+               );
+               INSERT INTO public.runtime_future_default_probe (value)
+               VALUES ('admin-seeded-after-provisioning');""",
         )
         checks = assert_roles(host_port, runtime_password, auth_password)
         report = {

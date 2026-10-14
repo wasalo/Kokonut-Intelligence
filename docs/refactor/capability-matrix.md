@@ -11,6 +11,15 @@ owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
+**14 October 2026 runtime default-privilege boundary (CAP-047 / CAP-053):**
+the opt-in runtime bootstrap now removes default table and sequence privileges
+for future public objects while retaining existing-table behavior. The
+disposable PostgreSQL 16 role check passed the existing handler and credential
+checks and confirmed a post-provisioning synthetic table and its sequence are
+inaccessible to the runtime login. Broad grants on existing public tables,
+worker identity, and RLS remain open; this does not accept either MAN-CAP row
+([evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json)).
+
 **Last CI-verified head (CAP-001 / CAP-047 / CAP-053):** PR #68 is now
 pushed through `de5bd4e322d0dbba730568b88a9054be3af0db34`; CI run [#312](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190755)
 is in progress and Security run [#36](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190773)
@@ -111,9 +120,15 @@ aggregate tenant preflight now compares schema sources with the applied ledger,
 reports connected-role privilege/RLS indicators, and validates enabled
 scheduler arguments using counts only, and requires a dedicated read-only
 preflight role before running after RLS is enabled. Four new focused source
-checks plus six existing tenant-preflight tests pass with Ruff. No database was
-queried and no migration was applied; this does not establish worker isolation
-or RLS readiness ([evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json)).
+checks plus six existing tenant-preflight tests pass with Ruff. A separate
+disposable PostgreSQL 16 acceptance ran the actual catalog queries against
+synthetic migration-ledger, privilege, RLS, and scheduled-command rows on an
+internal network with egress blocked and no published ports. Its sanitized
+output detected the expected matched, pending, drifted, and removed-source
+migration states; DML/RLS bypass risks; and valid/rejected/unbounded
+scheduled-command counts. Identifier-leak assertions and cleanup passed. No
+candidate or legacy database was accessed and no migration was applied. This
+does not establish worker isolation or RLS readiness ([source evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json); [PostgreSQL evidence](builds/2026-10-14-recovery/tenant-database-readiness-postgres.json)).
 
 **14 October 2026 seed-ledger preflight (CAP-053):** the migration runner
 previously omitted the range-prefixed `064-068_impact_network.sql`; source

@@ -160,6 +160,14 @@ before protected reads and writes, and make direct database access fail closed.
    [the tenant call-site audit](mobile-tenant-rls-callsite-audit.md).
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.
+   **Partial:** the opt-in bootstrap still grants broad DML on existing public
+   tables outside reviewed exceptions, but it now revokes both global and
+   `public`-schema default privileges for future tables and sequences. The
+   disposable PostgreSQL 16 role acceptance still passed current-handler SQL
+   and proved a table/sequence created after provisioning is inaccessible to
+   the runtime login. This prevents silent privilege expansion as migrations
+   add objects; it does not close the existing-table grant inventory, worker,
+   Directus, or RLS boundaries ([evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json)).
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
@@ -169,12 +177,19 @@ before protected reads and writes, and make direct database access fail closed.
   reports pending/current-source checksum drift counts, connected-role
   superuser/BYPASSRLS and public DML/RLS indicators, and enabled scheduler
   contract and known-unbounded-scope counts without returning identifiers, task
-  names, or arguments. Four focused source tests pass with the existing
-  tenant-preflight suites (10 total); no database was queried. The output also
-  encodes that a dedicated read-only preflight role is required before the CLI
-  runs after RLS. These reports do not prove worker isolation. Owner mapping,
-  runtime role restriction, active-schedule reconciliation, and complete worker context remain open
-  ([static report](worker-boundary-preflight.json); [focused evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json); [test evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
+  names, or arguments. Four focused source tests plus six existing tenant
+  preflight tests pass (10 total). A separate disposable PostgreSQL 16 run
+  exercised the actual catalog queries with synthetic rows on a no-egress,
+  internal-only Docker network: 388 schema sources, two matched ledger rows,
+  one checksum drift, one removed source, a pending migration count, an
+  RLS-disabled DML table, an owned table without FORCE RLS, and valid/rejected
+  scheduled commands. Output-leak assertions passed and the database/network
+  were removed. Neither candidate nor legacy data was touched and no migration
+  was applied. The output also encodes that a dedicated read-only preflight role
+  is required before the CLI runs after RLS. These reports do not prove worker
+  isolation. Owner mapping, remaining runtime role restriction, active-schedule
+  reconciliation, and complete worker context remain open
+  ([static report](worker-boundary-preflight.json); [source evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json); [PostgreSQL evidence](builds/2026-10-14-recovery/tenant-database-readiness-postgres.json); [test evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
 5. Keep application RLS disabled until all code paths and data ownership inputs
    pass. Isolated forced-RLS fixtures can prove policy behavior; they do not
    authorize turning it on in the candidate or a populated deployment.

@@ -5009,9 +5009,34 @@ names, command arguments, role names, migration IDs, checksums, ownership IDs,
 and credential fields are not returned.
 
 Four new focused source checks and six existing tenant-preflight checks passed
-(10 total), with Ruff and formatting clean. The tests used mocked connection
-results only: no candidate, legacy, or disposable database was queried, and no
+(10 total), with Ruff and formatting clean. Then a repeatable acceptance ran
+the real preflight queries against PostgreSQL 16 using synthetic fixtures on an
+internal Docker network with egress blocked and no published ports. It detected
+the expected migration matched/pending/drift/removed-source counts, elevated
+privilege flags, DML access to RLS-disabled and non-forced-RLS relations, and
+scheduler contract/unbounded-scope counts. The output omitted fixture names,
+arguments, role names, migration IDs, and checksums. The disposable database
+and network were removed. No candidate or legacy database was queried and no
 migration was applied. The CLI still connects with its configured identity; a
 dedicated read-only preflight role and authorization to run it after RLS remain
 open. These indicators do not establish worker isolation or settle tenant
-ownership. See the [sanitized check record](builds/2026-10-14-recovery/tenant-database-readiness-check.json).
+ownership. See the [sanitized source check](builds/2026-10-14-recovery/tenant-database-readiness-check.json), [PostgreSQL acceptance](builds/2026-10-14-recovery/tenant-database-readiness-postgres.json), and [repeatable runner](../../scripts/check-tenant-preflight-disposable.py).
+
+### Runtime-role future-object defaults — 14 October 2026
+
+The opt-in `provision_runtime_role()` path previously granted default DML and
+sequence privileges to the runtime role for future public objects. It now
+revokes both global and `public`-schema defaults for the configured migration
+owner and verifies that no direct runtime default ACL remains. Existing public
+tables retain the current grants and the reviewed mobile, API-key, and
+operator-session exceptions.
+
+The 391–396 disposable PostgreSQL 16 role acceptance passed its existing
+session, mobile credential, Gateway context, and allowed-table checks. A
+synthetic table and `BIGSERIAL` sequence created by the migration owner after
+role provisioning were denied to the runtime login for SELECT/INSERT/UPDATE/
+DELETE and sequence use. The fixture uses an isolated bridge with outbound NAT
+disabled and cleaned its container/network; no candidate or legacy database
+was accessed and no new migration was needed. Broad grants on existing public
+tables, grants for worker-specific roles, and candidate rollout remain open.
+See [acceptance evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json).

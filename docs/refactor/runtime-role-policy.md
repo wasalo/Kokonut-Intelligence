@@ -26,7 +26,12 @@ NOREPLICATION NOBYPASSRLS`, and refuses to reuse roles that own database
 objects. It removes their role memberships, revokes `PUBLIC CONNECT` on
 connectable databases and `CREATE` on the `public` schema, then grants both
 roles `CONNECT` only to the selected database. The runtime role receives
-`USAGE` on `public`, default DML on public tables, and sequence use. The two
+`USAGE` on `public`, DML on public tables and sequence use that exist when the
+bootstrap runs. The bootstrap revokes global and `public`-schema default
+privileges for future tables and sequences, so newly created objects fail
+closed until a reviewed grant is added. Do not rerun the broad bootstrap simply
+to grant a new table: it re-grants DML to every public table present at that
+time. The two
 mobile credential tables replace that broad table grant with explicit column
 grants: the app can read non-credential device and enrollment fields and
 perform only the writes used by current mobile handlers. It cannot read
@@ -47,7 +52,7 @@ owner credentials. It is a trusted authentication-service credential because
 its session-creation function can issue sessions for provisioned enabled
 identities.
 
-The remaining runtime DML grant spans public tables other than operator
+The remaining runtime DML grant spans existing public tables other than operator
 sessions and the two mobile credential tables. Mobile enrollment insertion and
 device token revocation remain possible through the shared runtime role, so
 this is not yet a database-verified Gateway capability boundary. It also does
@@ -80,7 +85,7 @@ Add `KOKONUT_RUNTIME_USER`, `KOKONUT_RUNTIME_PASSWORD`, and a separate
 `KOKONUT_OPERATOR_AUTH_PASSWORD` to the encrypted secrets file. Keep the host
 migration environment on the owner identity (`PG_USER=kokonut`, with
 `POSTGRES_PASSWORD`); do not set either service password as the migration
-CLI's `PG_PASSWORD`. Apply ordered migrations through 395 before provisioning
+CLI's `PG_PASSWORD`. Apply ordered migrations through 396 before provisioning
 these roles. OIDC also requires the operator-auth role variables in the app
 environment.
 
@@ -112,8 +117,10 @@ instance-wide database ACLs and is not a Directus or Metabase provisioner.
 ## Isolated evidence and rollback
 
 The internal-only recovery fixtures use a synthetic admin-owned table and a
-second table created after provisioning. They provision twice, verify
-`SELECT`/`INSERT`/`UPDATE`/`DELETE` and sequence use, and confirm denial of
+second table created after provisioning. Existing-table compatibility is
+verified with `SELECT`/`INSERT`/`UPDATE`/`DELETE` and sequence use; the new
+table and sequence are denied to the runtime login after provisioning. The
+fixtures also confirm denial of
 persistent table DDL, role creation, database creation, `SET ROLE` to the admin,
 and connections to `postgres`, `template1`, and another database. A fresh copy
 of the populated legacy application database also passed the runtime-role
@@ -156,4 +163,5 @@ Machine evidence: [synthetic role isolation](builds/2026-10-11-recovery/runtime-
 [populated restore check](builds/2026-10-11-recovery/runtime-role-populated-restore.json),
 [optional consumer role boundaries](builds/2026-10-11-recovery/optional-consumer-db-roles.json),
 [operator-session role boundary](builds/2026-10-14-recovery/operator-session-role-disposable.json),
-[mobile credential role boundary](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).
+[mobile credential role boundary](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json),
+[future-object default-deny boundary](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json).

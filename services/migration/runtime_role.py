@@ -177,6 +177,45 @@ def _verify_role_attributes(cur, role_name: str) -> None:
         raise RuntimeError(f"{role_name} must not own database relations")
 
 
+def _revoke_runtime_default_privileges(
+    cur, admin_ident: sql.Identifier, runtime_ident: sql.Identifier
+) -> None:
+    """Require explicit provisioning before the runtime can use new objects."""
+    for scope in (None, "public"):
+        for object_kind in ("TABLES", "SEQUENCES"):
+            statement = sql.SQL("ALTER DEFAULT PRIVILEGES FOR ROLE {} ").format(admin_ident)
+            if scope is not None:
+                statement += sql.SQL("IN SCHEMA {} ").format(sql.Identifier(scope))
+            statement += sql.SQL("REVOKE ALL PRIVILEGES ON {} FROM {}").format(
+                sql.SQL(object_kind), runtime_ident
+            )
+            cur.execute(statement)
+
+
+def _verify_no_runtime_default_privileges(
+    cur, *, admin_user: str, runtime_user: str
+) -> None:
+    cur.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1
+              FROM pg_default_acl AS defaults
+              CROSS JOIN LATERAL aclexplode(defaults.defaclacl) AS privilege
+             WHERE defaults.defaclrole = (SELECT oid FROM pg_roles WHERE rolname = %s)
+               AND defaults.defaclobjtype IN ('r', 'S')
+               AND (defaults.defaclnamespace = 0 OR defaults.defaclnamespace =
+                    (SELECT oid FROM pg_namespace WHERE nspname = 'public'))
+               AND privilege.grantee = (SELECT oid FROM pg_roles WHERE rolname = %s)
+        )
+        """,
+        (admin_user, runtime_user),
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(
+            "runtime role retains default privileges on future public tables or sequences"
+        )
+
+
 def _apply_mobile_credential_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
     """Replace broad runtime grants on mobile credentials with call-site grants."""
     policies = {
@@ -394,9 +433,10 @@ def provision_runtime_role(
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
-    The runtime role keeps all-table DML compatibility for the legacy schema,
+    The runtime role keeps DML compatibility for existing public tables,
     except ``operator_session``, mobile credentials, and ``api_key``, which use
-    explicit least-privilege grants. The dedicated auth role can only execute
+    explicit least-privilege grants. New public tables and sequences receive no
+    automatic runtime privileges. The dedicated auth role can only execute
     the three bounded functions from migration 395. This is scoped to a
     dedicated Kernel PostgreSQL instance.
     """
@@ -472,6 +512,8 @@ def provision_runtime_role(
             )
         cur.execute(sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(runtime_ident))
 
+        _revoke_runtime_default_privileges(cur, admin_ident, runtime_ident)
+
         cur.execute(
             sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO {}").format(
                 runtime_ident
@@ -481,18 +523,6 @@ def provision_runtime_role(
             sql.SQL("GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO {}").format(
                 runtime_ident
             )
-        )
-        cur.execute(
-            sql.SQL(
-                "ALTER DEFAULT PRIVILEGES FOR ROLE {} IN SCHEMA public "
-                "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}"
-            ).format(admin_ident, runtime_ident)
-        )
-        cur.execute(
-            sql.SQL(
-                "ALTER DEFAULT PRIVILEGES FOR ROLE {} IN SCHEMA public "
-                "GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO {}"
-            ).format(admin_ident, runtime_ident)
         )
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
@@ -601,6 +631,9 @@ def provision_runtime_role(
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
+        _verify_no_runtime_default_privileges(
+            cur, admin_user=admin_user, runtime_user=runtime_user
+        )
         cur.execute(
             "SELECT has_function_privilege(%s, %s, 'EXECUTE')",
             (runtime_user, _GATEWAY_CONTEXT_FUNCTION),
@@ -634,6 +667,8 @@ def provision_runtime_role(
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
+        "runtime_table_privilege_scope": "existing_public_tables_only",
+        "runtime_future_object_privileges": [],
         "runtime_table_privilege_exceptions": {
             "api_key": "explicit read-only column allowlist; no insert, update, or delete",
             "mobile_device": "explicit column allowlist; no table-wide INSERT, UPDATE, or DELETE",

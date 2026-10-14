@@ -1,0 +1,58 @@
+{
+  "result": "passed",
+  "scope": "Actual PostgreSQL 16 system catalogs and synthetic fixture rows on an isolated internal Docker network.",
+  "app_image": "kokonut-kernel-candidate-app:latest",
+  "database_image": "postgis/postgis:16-3.4",
+  "published_ports": false,
+  "network_egress": "blocked",
+  "fixture_rows": "synthetic only",
+  "checks": [
+    "local migration sources compare with matched, drifted, pending, and removed-source ledger rows",
+    "a non-elevated database role reports DML on an RLS-disabled table and an owned RLS table without FORCE RLS",
+    "enabled scheduler arguments use the shared operation contracts and identify known unbounded scope",
+    "task names, command arguments, role names, migration IDs, and checksums are absent from the output"
+  ],
+  "readiness": {
+    "migration": {
+      "status": "drift_detected",
+      "source_migration_count": 388,
+      "applied_source_migration_count": 2,
+      "pending_source_migration_count": 386,
+      "checksum_drift_count": 1,
+      "applied_ledger_rows_without_source_count": 1,
+      "identifiers_emitted": false
+    },
+    "runtime_role": {
+      "status": "dml_with_rls_bypass_risk",
+      "superuser": false,
+      "can_create_database": false,
+      "can_create_roles": false,
+      "replication_role": false,
+      "bypasses_rls": false,
+      "public_relation_count": 7,
+      "rls_enabled_relation_count": 1,
+      "rls_forced_relation_count": 0,
+      "dml_relation_count": 2,
+      "dml_relation_without_rls_count": 1,
+      "dml_relation_with_rls_bypass_risk_count": 2,
+      "role_name_emitted": false
+    },
+    "scheduled_tasks": {
+      "status": "review_required",
+      "enabled_task_count": 2,
+      "contract_valid_count": 1,
+      "contract_rejected_count": 1,
+      "known_unbounded_scope_task_count": 1,
+      "enabled_tasks_without_signed_tenant_context_count": 2,
+      "tenant_context_support": "not_implemented",
+      "identifiers_and_arguments_emitted": false
+    }
+  },
+  "candidate_database_touched": false,
+  "legacy_database_touched": false,
+  "repository_secrets_read": false,
+  "cleanup": {
+    "database_container_removed": true,
+    "internal_network_removed": true
+  }
+}

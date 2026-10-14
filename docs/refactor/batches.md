@@ -699,9 +699,13 @@ reporting views.
   contract and known-unbounded-scope counts without returning identifiers, task
   names, or arguments. Its output states that a dedicated read-only preflight
   role is required before running it after RLS. Ten focused readiness and
-  tenant-preflight checks pass with Ruff; checks use mocked connections only,
-  and no database or migration was touched
-  ([source evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json)).
+  tenant-preflight tests pass with Ruff. A repeatable disposable PostgreSQL 16
+  acceptance additionally exercised actual catalog queries against synthetic
+  migration-ledger, role, relation/RLS, and schedule rows, verified sanitized
+  counts and output-leak protection, and removed its internal-only no-egress
+  network and database. Candidate and legacy databases were untouched; no
+  migration was applied
+  ([source evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json); [PostgreSQL evidence](builds/2026-10-14-recovery/tenant-database-readiness-postgres.json); [runner](../../scripts/check-tenant-preflight-disposable.py)).
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.
@@ -787,7 +791,13 @@ reporting views.
   ([evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)).
   This does not verify every HTTP handler under the runtime login or close the
   broader app-table role, worker, Directus, or RLS gates. Gateway
-  credential tenant context is covered in migration 396 below.
+  credential tenant context is covered in migration 396 below. The bootstrap
+  now revokes its global and `public`-schema default privileges on future
+  tables and sequences. The 391–396 disposable role check still proves current
+  handler/table compatibility and now denies runtime SELECT/INSERT/UPDATE/DELETE
+  plus sequence use on a synthetic relation created after provisioning. No
+  candidate or legacy database was touched
+  ([evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json)).
 - [x] Bind Gateway API-key and capability-token mobile-device writes to signed
   database tenant context in migration 396. The database independently checks
   credential activity/expiry, exact location/resource/action scope, current
