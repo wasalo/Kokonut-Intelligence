@@ -12,7 +12,6 @@ import tempfile
 import uuid
 from pathlib import Path
 
-from ..common.db import PG_DB, PG_USER
 from ..common.logging import get_logger
 
 logger = get_logger("migration")
@@ -118,6 +117,11 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
     through ``docker compose exec -T database psql`` — especially with
     large ``BEGIN``/``COMMIT``-wrapped migrations and ``ON_ERROR_STOP=1``.
     """
+    # Source-only commands such as `validate` must not load SOPS credentials.
+    # Import the configured connection only when a command actually contacts
+    # PostgreSQL.
+    from ..common.db import PG_DB, PG_USER
+
     tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".sql", delete=False)
     try:
         tmp.write(f"SET search_path = {MIGRATION_SEARCH_PATH};\n{input_sql}")

@@ -681,13 +681,17 @@ reporting views.
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.
-  Eight helper unit checks and fourteen disposable migration/context checks
-  passed; the source audit identified pre-context credential lookups, now
-  closed by migration 392's bounded functions. Unscoped legacy CLI paths and
-  an unverified Directus/view boundary still need an explicit role or scope
-  contract. Gateway mobile-device mutations now set transaction-local
-  application scope but still need the final database role boundary before
-  RLS. Full request/worker/Directus coverage remains open
+  The source audit identified pre-context mobile credential lookups, now
+  closed by migration 392's bounded functions. Migration 394 and its
+  network-disabled PostgreSQL 16 forced-RLS acceptance now establish signed
+  OIDC operator context from a live session, tenant-qualified grants, current
+  owner/share state, and consistent additional scopes. The context is bound to
+  the PostgreSQL backend and transaction; denial clears old context and
+  share/grant changes serialize with active transactions. Focused tenant and
+  operator-auth checks pass. The optional runtime role still has broad table
+  grants and can read operator session-token hashes; legacy CLI paths, Gateway
+  API-key context, workers, and the Directus/view boundary need their own
+  access contracts before RLS. Full request/worker/Directus coverage remains open
   ([audit](mobile-tenant-rls-callsite-audit.md)).
 - [x] Move Field Collector token lookup and one-time enrollment redemption
   behind the bounded database API in migration 392. The dedicated credential
@@ -715,7 +719,20 @@ reporting views.
   Seventy-six focused Python tests, Ruff, syntax, and the 505-file migration
   validation pass. Candidate and legacy databases were untouched; RLS remains
   disabled ([evidence](builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json)).
-- [ ] Roll out migrations 392–393 to the local candidate only after a fresh encrypted
+- [x] Add migration 394's signed OIDC operator tenant context. PostgreSQL now
+  validates the active session hash, enabled identity, tenant-qualified
+  location grant, active organization membership, current verified owner or
+  unexpired share, and same-tenant additional scopes; it locks those rows and
+  signs the result for the current backend/transaction. The shared accessor
+  accepts only valid `mobile_device` or `operator` HMAC contexts. Disposable
+  PostgreSQL 16 replay and forced-RLS checks passed owner and shared reads,
+  legacy/mixed-tenant/disabled/revoked/expired denial, payload tampering,
+  transaction cleanup, share revocation, and grant-revocation locking
+  ([evidence](builds/2026-10-14-recovery/operator-tenant-context-disposable.json)).
+  This is not candidate rollout or RLS enablement. Runtime session-token table
+  isolation, non-OIDC callers, workers, legacy CLI, and Directus/view access
+  remain open.
+- [ ] Roll out migrations 392–394 to the local candidate only after a fresh encrypted
   checkpoint and restore rehearsal; recreate only the candidate app and verify
   health, migration state, and protected routes. Candidate remains at migration
   391 until separately authorized. This rollout alone will not enable RLS.

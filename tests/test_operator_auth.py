@@ -33,6 +33,7 @@ class _Session:
     session_id: str = "session-id"
     csrf_token_hash: str = "not-used-by-fake"
     operator: _Principal = _Principal()
+    session_token_hash: str = "a" * 64
 
 
 class _FakeProvider:
@@ -194,15 +195,26 @@ def test_operator_participant_mutation_sets_context_before_sql_and_cleans_transa
     monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
     monkeypatch.setattr(GatewayAudit, "log", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(GatewayAudit, "reserve_mutation", lambda _self: "reservation")
-    monkeypatch.setattr(GatewayAudit, "release_mutation", lambda *_args: None)
+    released_session_hashes = []
+
+    def release_mutation(*_args):
+        from services.common.tenant_context import current_operator_session_token_hash
+
+        released_session_hashes.append(current_operator_session_token_hash())
+
+    monkeypatch.setattr(GatewayAudit, "release_mutation", release_mutation)
     database = MagicMock()
     database.cursor.return_value.fetchone.side_effect = fetch_rows
     events = []
     context_calls = []
+    session_hashes_seen = []
 
     def set_context(connection, **kwargs):
+        from services.common.tenant_context import current_operator_session_token_hash
+
         events.append(("context", kwargs))
         context_calls.append((connection, kwargs))
+        session_hashes_seen.append(current_operator_session_token_hash())
 
     def execute(sql, params=None):
         events.append(("sql", sql, params))
@@ -233,6 +245,8 @@ def test_operator_participant_mutation_sets_context_before_sql_and_cleans_transa
             },
         )
     ]
+    assert session_hashes_seen == ["a" * 64]
+    assert released_session_hashes == [None]
     assert events[0][0] == "context"
     assert any(event[0] == "sql" for event in events)
     assert database.commit.called

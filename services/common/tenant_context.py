@@ -8,12 +8,17 @@ to the location's current verified owner. Both clear prior local context first.
 
 from __future__ import annotations
 
+import json
 import re
+from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 _IDENTIFIER_RE = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+_OPERATOR_SESSION_TOKEN_HASH: ContextVar[str | None] = ContextVar(
+    "kokonut_operator_session_token_hash", default=None
+)
 _CONTEXT_SETTINGS = (
     "kokonut.tenant_id",
     "kokonut.location_id",
@@ -26,6 +31,23 @@ _CONTEXT_SETTINGS = (
 
 class TenantContextDenied(PermissionError):
     """Raised when an operator lacks a verified tenant-qualified grant."""
+
+
+def bind_operator_session_token_hash(token_hash: str) -> Token[str | None]:
+    """Bind the authenticated opaque OIDC session hash to this request context."""
+    if not isinstance(token_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", token_hash):
+        raise ValueError("operator-session-token-hash must be a SHA-256 hex digest")
+    return _OPERATOR_SESSION_TOKEN_HASH.set(token_hash)
+
+
+def reset_operator_session_token_hash(token: Token[str | None]) -> None:
+    """Restore the previous request-local operator session proof."""
+    _OPERATOR_SESSION_TOKEN_HASH.reset(token)
+
+
+def current_operator_session_token_hash() -> str | None:
+    """Return only the hash bound by authenticated OIDC request middleware."""
+    return _OPERATOR_SESSION_TOKEN_HASH.get()
 
 
 @dataclass(frozen=True)
@@ -167,12 +189,13 @@ def set_operator_tenant_context(
 ) -> OperatorTenantContext:
     """Validate and set an operator's tenant context in the current transaction.
 
-    The tenant is read from the active tenant-qualified grant and the database's
-    current owner/share verification. Browser-provided organization IDs are
-    deliberately not accepted. `required_scopes` adds grants that must all
-    resolve to the same tenant as the primary resource/action. The caller owns
-    commit/rollback and must perform its protected work before ending this
-    transaction.
+    PostgreSQL verifies the opaque session-token hash bound by authenticated
+    Gateway middleware, checks the active tenant-qualified grants/current
+    owner or share, locks those rows, and signs context for this transaction.
+    Browser-provided organization IDs are deliberately not accepted.
+    `required_scopes` adds grants that must all resolve to the same tenant as
+    the primary resource/action. The caller owns commit/rollback and must
+    perform its protected work before ending this transaction.
     """
     if getattr(connection, "autocommit", True):
         raise ValueError("tenant context requires a non-autocommit transaction")
@@ -200,96 +223,46 @@ def set_operator_tenant_context(
         for _, scope_action in scope_pairs
     ):
         raise ValueError("action must be a lowercase identifier")
+    if len(scope_pairs) > 17:
+        raise ValueError("at most 16 additional tenant scopes may be required")
     if len(set(scope_pairs)) != len(scope_pairs):
         raise ValueError("required scopes must be unique")
 
     actor_id = _normalize_uuid(operator_id, "operator-id")
     requested_location_id = _normalize_uuid(location_id, "location-id")
+    session_token_hash = current_operator_session_token_hash()
+    if session_token_hash is None:
+        raise TenantContextDenied("an authenticated operator session is required")
 
     with connection.cursor() as cursor:
-        if len(scope_pairs) == 1:
-            cursor.execute(
-                """SELECT grant_row.organization_id::text,
-                          grant_row.location_id::text,
-                          grant_row.operator_id::text
-                     FROM operator_scope_grant AS grant_row
-                    WHERE grant_row.operator_id = %s::uuid
-                      AND grant_row.location_id = %s::uuid
-                      AND grant_row.resource = %s
-                      AND grant_row.action = %s
-                      AND grant_row.organization_id IS NOT NULL
-                      AND grant_row.revoked_at IS NULL
-                      AND operator_scope_grant_allows(
-                          grant_row.operator_id, grant_row.resource,
-                          grant_row.action, grant_row.location_id
-                      )
-                    LIMIT 2""",
-                (actor_id, requested_location_id, resource, action),
-            )
-            row = cursor.fetchone()
-            if row is None:
-                raise TenantContextDenied(
-                    "active tenant-qualified operator grant was not found"
-                )
-            if cursor.fetchone() is not None:
-                raise TenantContextDenied(
-                    "multiple active tenant-qualified grants make the requested scope ambiguous"
-                )
-            tenant_id, validated_location_id, validated_actor_id = row
-        else:
-            requested_values = ", ".join("(%s, %s)" for _ in scope_pairs)
-            requested_params = tuple(value for pair in scope_pairs for value in pair)
-            cursor.execute(
-                f"""WITH requested_scope(resource, action) AS (
-                        VALUES {requested_values}
-                    )
-                    SELECT requested_scope.resource,
-                           requested_scope.action,
-                           grant_row.organization_id::text,
-                           grant_row.location_id::text,
-                           grant_row.operator_id::text
-                      FROM requested_scope
-                      JOIN operator_scope_grant AS grant_row
-                        ON grant_row.resource = requested_scope.resource
-                       AND grant_row.action = requested_scope.action
-                     WHERE grant_row.operator_id = %s::uuid
-                       AND grant_row.location_id = %s::uuid
-                       AND grant_row.organization_id IS NOT NULL
-                       AND grant_row.revoked_at IS NULL
-                       AND operator_scope_grant_allows(
-                           grant_row.operator_id, grant_row.resource,
-                           grant_row.action, grant_row.location_id
-                       )
-                     ORDER BY requested_scope.resource, requested_scope.action
-                     LIMIT %s""",
-                (
-                    *requested_params,
-                    actor_id,
-                    requested_location_id,
-                    len(scope_pairs) + 1,
+        cursor.execute(
+            """SELECT tenant_id::text, location_id::text, actor_id::text, actor_type
+                 FROM kokonut_security.set_operator_tenant_context(
+                     %s, %s::uuid, %s::uuid, %s, %s, %s::jsonb
+                 )""",
+            (
+                session_token_hash,
+                actor_id,
+                requested_location_id,
+                resource,
+                action,
+                json.dumps(
+                    [
+                        {"resource": required_resource, "action": required_action}
+                        for required_resource, required_action in required_scopes
+                    ],
+                    separators=(",", ":"),
                 ),
-            )
-            rows = cursor.fetchall()
-            actual_pairs = {(row[0], row[1]) for row in rows}
-            tenant_ids = {row[2] for row in rows}
-            if (
-                len(rows) != len(scope_pairs)
-                or actual_pairs != set(scope_pairs)
-                or len(tenant_ids) != 1
-            ):
-                raise TenantContextDenied(
-                    "required tenant-qualified grants are missing, ambiguous, "
-                    "or resolve to different tenant scopes"
-                )
-            tenant_id, validated_location_id, validated_actor_id = rows[0][2:]
-
-        _set_transaction_tenant_context(
-            connection,
-            tenant_id=str(tenant_id),
-            location_id=str(validated_location_id),
-            actor_id=str(validated_actor_id),
-            actor_type="operator",
+            ),
         )
+        row = cursor.fetchone()
+        if row is None:
+            raise TenantContextDenied(
+                "operator session or tenant-qualified grants are no longer active"
+            )
+        tenant_id, validated_location_id, validated_actor_id, actor_type = map(str, row)
+        if actor_type != "operator":
+            raise TenantContextDenied("database returned an invalid operator context")
 
     return OperatorTenantContext(
         tenant_id=str(tenant_id),

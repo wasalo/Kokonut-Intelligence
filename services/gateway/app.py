@@ -319,6 +319,17 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
                     headers={"Retry-After": "30"},
                 )
 
+        operator_session_context_token = None
+        if operator_policy is not None and auth_result.get("authenticated"):
+            operator_session = getattr(request.state, "operator_session", None)
+            session_token_hash = getattr(operator_session, "session_token_hash", None)
+            if session_token_hash is not None:
+                from services.common.tenant_context import bind_operator_session_token_hash
+
+                operator_session_context_token = bind_operator_session_token_hash(
+                    session_token_hash
+                )
+
         # Process and audit the request before releasing reserved spool headroom.
         try:
             try:
@@ -368,6 +379,10 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             )
             return response
         finally:
+            if operator_session_context_token is not None:
+                from services.common.tenant_context import reset_operator_session_token_hash
+
+                reset_operator_session_token_hash(operator_session_context_token)
             if mutation_reservation is not None:
                 await run_in_threadpool(audit.release_mutation, mutation_reservation)
 

@@ -12,7 +12,7 @@ import hmac
 import os
 import re
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Protocol
 from urllib.parse import urlsplit
@@ -73,12 +73,12 @@ class OIDCSettings:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_OIDC_STATE_SECRET must be at least 32 bytes"
             )
-        for field, variable in (("issuer", "KOKONUT_OPERATOR_OIDC_ISSUER"),
-                                ("redirect_uri", "KOKONUT_OPERATOR_OIDC_REDIRECT_URI")):
-            parsed = urlsplit(values[field])
+        for setting, variable in (("issuer", "KOKONUT_OPERATOR_OIDC_ISSUER"),
+                                  ("redirect_uri", "KOKONUT_OPERATOR_OIDC_REDIRECT_URI")):
+            parsed = urlsplit(values[setting])
             if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
                 raise OperatorAuthConfigurationError(f"{variable} must be an HTTPS URL")
-            if parsed.fragment or (field == "issuer" and parsed.query):
+            if parsed.fragment or (setting == "issuer" and parsed.query):
                 raise OperatorAuthConfigurationError(f"{variable} must not include a query or fragment")
         redirect = urlsplit(values["redirect_uri"])
         if redirect.path != "/operator/auth/callback" or redirect.query:
@@ -112,6 +112,7 @@ class OperatorSession:
     session_id: str
     csrf_token_hash: str
     operator: OperatorPrincipal
+    session_token_hash: str = field(repr=False)
 
 
 class OperatorIdentityProvider(Protocol):
@@ -226,6 +227,7 @@ class OIDCOperatorProvider:
         token = request.cookies.get(SESSION_COOKIE)
         if not token:
             return None
+        session_token_hash = _digest(token)
         conn = _get_db()
         try:
             with conn.cursor() as cur:
@@ -237,7 +239,7 @@ class OIDCOperatorProvider:
                         WHERE s.session_token_hash = %s
                           AND s.revoked_at IS NULL AND s.expires_at > NOW()
                           AND o.enabled = TRUE""",
-                    (_digest(token),),
+                    (session_token_hash,),
                 )
                 row = cur.fetchone()
                 if row is None:
@@ -260,6 +262,7 @@ class OIDCOperatorProvider:
                 session_id=str(session_id),
                 csrf_token_hash=csrf_hash.strip(),
                 operator=principal,
+                session_token_hash=session_token_hash,
             )
         finally:
             conn.close()
@@ -576,6 +579,14 @@ def authorize_auth_request(
     operator_session = provider.authenticate_request(request)
     if operator_session is None:
         return {"authenticated": False, "reason": "operator_session_required", **policy}
+    session_token_hash = getattr(operator_session, "session_token_hash", None)
+    if not isinstance(session_token_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", session_token_hash):
+        return {
+            "authenticated": False,
+            "caller": f"operator:{operator_session.operator.operator_id}",
+            "reason": "operator_session_proof_unavailable",
+            **policy,
+        }
     request.state.operator_session = operator_session
     scope_checked = False
     if policy.get("scope_required"):

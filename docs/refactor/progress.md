@@ -4534,3 +4534,37 @@ legacy CLI reads/sync, worker and Directus/view boundaries, and broader tenant
 RLS remain open. CI #306 and Security #30 passed on pushed head
 `333507e844cd3937761087f1e7e03f895c509250`; they do not cover this unpushed
 migration-393 batch or the local commit ahead of that head.
+
+### Signed OIDC operator tenant context — 14 October 2026
+
+Migration 394 adds a dedicated `NOLOGIN`, `NOBYPASSRLS` operator-context
+definer role. The Gateway binds the SHA-256 hash of its authenticated opaque
+OIDC session to request-local context, then each protected transaction passes
+that proof to PostgreSQL. The function checks the active, unexpired,
+nonrevoked session and enabled operator; current location; tenant-qualified
+resource/action grants; active organization membership; current verified
+location owner or unexpired explicit share; and that all additional scopes
+resolve to the same organization. It share-locks the validated rows and signs
+the resulting tenant/location/operator tuple for the current backend and
+transaction. The shared `current_tenant_context()` accessor now accepts only
+valid signatures for `mobile_device` and `operator` actors. Middleware resets
+the request-local session proof after the response.
+
+Disposable PostgreSQL 16 acceptance applied migration 394 twice, forced RLS
+only on the synthetic source/probe tables, and verified owner and shared
+tenant visibility; cross-tenant multi-scope, legacy NULL-tenant grant,
+disabled identity, revoked/expired session, unknown token, and expired/revoked
+share denial; forged diagnostic GUC and modified HMAC-payload rejection;
+denial cleanup; grant-revocation blocking while a signed transaction holds its
+scope; transaction-end cleanup; and private signing-key denial. The focused
+tenant-context and OIDC operator-auth suites passed 20 tests (one skipped);
+Ruff and Python compilation passed. Evidence is at
+`docs/refactor/builds/2026-10-14-recovery/operator-tenant-context-disposable.json`.
+
+This does not enable RLS or establish the final runtime database boundary.
+`provision_runtime_role()` currently grants broad DML across public tables,
+including read access to `operator_session.session_token_hash`; that undermines
+the session-proof boundary if the constrained role is used. Session-table
+isolation, Gateway API-key context, worker/legacy CLI integration, and
+Directus/view access remain explicit RLS prerequisites. The candidate remains
+at migration 391 under OFU-18; no candidate or legacy database was touched.

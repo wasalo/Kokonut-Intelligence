@@ -11,7 +11,9 @@ from services.common.tenant_context import (
     MobileDeviceTenantContext,
     OperatorTenantContext,
     TenantContextDenied,
+    bind_operator_session_token_hash,
     clear_operator_tenant_context,
+    reset_operator_session_token_hash,
     set_gateway_tenant_context,
     set_mobile_device_tenant_context,
     set_operator_tenant_context,
@@ -20,6 +22,16 @@ from services.common.tenant_context import (
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
 LOCATION_ID = "a0000000-0000-0000-0000-000000000001"
 OPERATOR_ID = "a0000000-0000-0000-0000-000000000904"
+OPERATOR_SESSION_HASH = "b" * 64
+
+
+@pytest.fixture
+def operator_session_proof():
+    token = bind_operator_session_token_hash(OPERATOR_SESSION_HASH)
+    try:
+        yield
+    finally:
+        reset_operator_session_token_hash(token)
 
 
 class FakeCursor:
@@ -58,8 +70,8 @@ class FakeConnection:
         yield FakeCursor(self)
 
 
-def test_sets_database_derived_context_transaction_locally():
-    connection = FakeConnection((TENANT_ID, LOCATION_ID, OPERATOR_ID))
+def test_sets_database_derived_context_transaction_locally(operator_session_proof):
+    connection = FakeConnection((TENANT_ID, LOCATION_ID, OPERATOR_ID, "operator"))
 
     context = set_operator_tenant_context(
         connection,
@@ -70,25 +82,23 @@ def test_sets_database_derived_context_transaction_locally():
     )
 
     assert context == OperatorTenantContext(TENANT_ID, LOCATION_ID, OPERATOR_ID)
-    assert len(connection.calls) == 3
-    validation_sql, validation_params = connection.calls[1]
-    assert "organization_id IS NOT NULL" in validation_sql
-    assert "operator_scope_grant_allows" in validation_sql
-    assert validation_params == (OPERATOR_ID, LOCATION_ID, "report_snapshot_review", "read")
-    set_sql, set_params = connection.calls[2]
-    assert "set_config(%s, %s, TRUE)" in set_sql
-    assert set_params == (
-        "kokonut.tenant_id", TENANT_ID,
-        "kokonut.location_id", LOCATION_ID,
-        "kokonut.actor_id", OPERATOR_ID,
-        "kokonut.actor_type", "operator",
+    assert len(connection.calls) == 2
+    context_sql, context_params = connection.calls[1]
+    assert "kokonut_security.set_operator_tenant_context" in context_sql
+    assert context_params == (
+        OPERATOR_SESSION_HASH,
+        OPERATOR_ID,
+        LOCATION_ID,
+        "report_snapshot_review",
+        "read",
+        "[]",
     )
 
 
-def test_denied_or_legacy_scope_is_cleared_and_never_set():
+def test_denied_or_legacy_scope_is_cleared_and_never_set(operator_session_proof):
     connection = FakeConnection(scope_row=None)
 
-    with pytest.raises(TenantContextDenied, match="tenant-qualified operator grant"):
+    with pytest.raises(TenantContextDenied, match="session or tenant-qualified grants"):
         set_operator_tenant_context(
             connection,
             operator_id=OPERATOR_ID,
@@ -99,19 +109,13 @@ def test_denied_or_legacy_scope_is_cleared_and_never_set():
 
     assert len(connection.calls) == 2
     assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
-    assert "set_config(%s, %s, TRUE)" not in connection.calls[1][0]
+    assert "kokonut_security.set_operator_tenant_context" in connection.calls[1][0]
 
 
-def test_ambiguous_tenant_scope_is_denied_and_cleared():
-    other_tenant = "a0000000-0000-0000-0000-000000000802"
-    connection = FakeConnection(
-        scope_rows=[
-            (TENANT_ID, LOCATION_ID, OPERATOR_ID),
-            (other_tenant, LOCATION_ID, OPERATOR_ID),
-        ]
-    )
+def test_database_denial_clears_context(operator_session_proof):
+    connection = FakeConnection(scope_row=None)
 
-    with pytest.raises(TenantContextDenied, match="scope ambiguous"):
+    with pytest.raises(TenantContextDenied, match="session or tenant-qualified grants"):
         set_operator_tenant_context(
             connection,
             operator_id=OPERATOR_ID,
@@ -122,16 +126,12 @@ def test_ambiguous_tenant_scope_is_denied_and_cleared():
 
     assert len(connection.calls) == 2
     assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
-    assert "LIMIT 2" in connection.calls[1][0]
-    assert "set_config(%s, %s, TRUE)" not in connection.calls[1][0]
+    assert "kokonut_security.set_operator_tenant_context" in connection.calls[1][0]
 
 
-def test_multiple_required_scopes_must_resolve_to_one_tenant():
+def test_multiple_required_scopes_must_resolve_to_one_tenant(operator_session_proof):
     connection = FakeConnection(
-        scope_rows=[
-            ("mobile_collection_retention", "inventory", TENANT_ID, LOCATION_ID, OPERATOR_ID),
-            ("mobile_collection_review", "read", TENANT_ID, LOCATION_ID, OPERATOR_ID),
-        ]
+        scope_row=(TENANT_ID, LOCATION_ID, OPERATOR_ID, "operator")
     )
 
     context = set_operator_tenant_context(
@@ -145,39 +145,21 @@ def test_multiple_required_scopes_must_resolve_to_one_tenant():
 
     assert context == OperatorTenantContext(TENANT_ID, LOCATION_ID, OPERATOR_ID)
     validation_sql, validation_params = connection.calls[1]
-    assert "WITH requested_scope(resource, action)" in validation_sql
-    assert "operator_scope_grant_allows" in validation_sql
+    assert "kokonut_security.set_operator_tenant_context" in validation_sql
     assert validation_params == (
-        "mobile_collection_retention", "inventory",
-        "mobile_collection_review", "read",
-        OPERATOR_ID, LOCATION_ID, 3,
+        OPERATOR_SESSION_HASH,
+        OPERATOR_ID,
+        LOCATION_ID,
+        "mobile_collection_retention",
+        "inventory",
+        '[{"resource":"mobile_collection_review","action":"read"}]',
     )
-    assert "set_config(%s, %s, TRUE)" in connection.calls[2][0]
 
 
-@pytest.mark.parametrize(
-    "scope_rows",
-    [
-        [
-            ("mobile_collection_retention", "inventory", TENANT_ID, LOCATION_ID, OPERATOR_ID),
-        ],
-        [
-            ("mobile_collection_retention", "inventory", TENANT_ID, LOCATION_ID, OPERATOR_ID),
-            (
-                "mobile_collection_review",
-                "read",
-                "a0000000-0000-0000-0000-000000000802",
-                LOCATION_ID,
-                OPERATOR_ID,
-            ),
-        ],
-    ],
-    ids=("missing-required-grant", "different-tenant-grants"),
-)
-def test_multiple_required_scopes_fail_closed(scope_rows):
-    connection = FakeConnection(scope_rows=scope_rows)
+def test_multiple_required_scopes_fail_closed(operator_session_proof):
+    connection = FakeConnection(scope_row=None)
 
-    with pytest.raises(TenantContextDenied, match="required tenant-qualified grants"):
+    with pytest.raises(TenantContextDenied, match="session or tenant-qualified grants"):
         set_operator_tenant_context(
             connection,
             operator_id=OPERATOR_ID,
@@ -189,7 +171,25 @@ def test_multiple_required_scopes_fail_closed(scope_rows):
 
     assert len(connection.calls) == 2
     assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
-    assert "set_config(%s, %s, TRUE)" not in connection.calls[1][0]
+    assert "kokonut_security.set_operator_tenant_context" in connection.calls[1][0]
+
+
+def test_required_scope_limit_clears_prior_context(operator_session_proof):
+    connection = FakeConnection()
+    required_scopes = tuple((f"resource_{index}", "read") for index in range(17))
+
+    with pytest.raises(ValueError, match="at most 16 additional"):
+        set_operator_tenant_context(
+            connection,
+            operator_id=OPERATOR_ID,
+            location_id=LOCATION_ID,
+            resource="primary_resource",
+            action="read",
+            required_scopes=required_scopes,
+        )
+
+    assert len(connection.calls) == 1
+    assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
 
 
 @pytest.mark.parametrize(
@@ -204,7 +204,7 @@ def test_multiple_required_scopes_fail_closed(scope_rows):
 def test_invalid_context_inputs_clear_old_scope_without_authorization_query(
     operator_id, location_id, resource, action
 ):
-    connection = FakeConnection((TENANT_ID, LOCATION_ID, OPERATOR_ID))
+    connection = FakeConnection((TENANT_ID, LOCATION_ID, OPERATOR_ID, "operator"))
 
     with pytest.raises(ValueError):
         set_operator_tenant_context(
@@ -213,6 +213,22 @@ def test_invalid_context_inputs_clear_old_scope_without_authorization_query(
             location_id=location_id,
             resource=resource,
             action=action,
+        )
+
+    assert len(connection.calls) == 1
+    assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
+
+
+def test_operator_context_requires_authenticated_session_proof():
+    connection = FakeConnection((TENANT_ID, LOCATION_ID, OPERATOR_ID, "operator"))
+
+    with pytest.raises(TenantContextDenied, match="authenticated operator session"):
+        set_operator_tenant_context(
+            connection,
+            operator_id=OPERATOR_ID,
+            location_id=LOCATION_ID,
+            resource="report_snapshot_review",
+            action="read",
         )
 
     assert len(connection.calls) == 1
