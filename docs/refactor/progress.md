@@ -4164,9 +4164,10 @@ and set tenant context before the party lookup or link write on the same
 transaction. A context denial returns HTTP 403 before either query; both
 responses are no-store. The existing `/api/mobile/.../participants` endpoints
 remain on Gateway API-key/capability authorization. Five focused operator
-authorization and transaction tests pass. The first wider mobile review/API/
-operator-auth/context run passed 115 tests after isolating the mobile API test
-audit journal under pytest's private temporary directory. Ruff and Python
-syntax checks passed. Candidate and legacy
+authorization and transaction tests pass, along with one API-key regression
+check confirming the original route still uses Gateway scope and skips OIDC
+context. The wider mobile review/API/operator-auth/context run passed 116 tests
+after isolating the mobile API test audit journal under pytest's private
+temporary directory. Ruff and Python syntax checks passed. Candidate and legacy
 databases were not accessed. Real OIDC/browser acceptance, other Gateway and
 worker routes, direct-database boundaries, and RLS remain open.

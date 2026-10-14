@@ -942,6 +942,43 @@ def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path)
     tenant_context.assert_not_called()
 
 
+def test_participant_link_api_key_route_keeps_gateway_scope_and_skips_oidc_context(monkeypatch):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.side_effect = [
+        (1,),
+        ("link-id", datetime(2026, 10, 13, tzinfo=timezone.utc)),
+    ]
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    tenant_context = MagicMock()
+    monkeypatch.setattr(mobile_api, "set_operator_tenant_context", tenant_context)
+    monkeypatch.setenv("KOKONUT_API_KEYS", "participant-secret:field-reviewer")
+    monkeypatch.setenv(
+        "KOKONUT_API_KEY_SCOPES",
+        f"field-reviewer:mobile_participant:create:{location_id}",
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            f"/api/mobile/locations/{location_id}/participants",
+            headers={"x-api-key": "participant-secret"},
+            json={
+                "party_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                "evidence": {"review": "identity confirmed"},
+            },
+        )
+
+    assert response.status_code == 201, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.json()["link_id"] == "link-id"
+    insert = next(
+        call for call in connection.cursor.return_value.execute.call_args_list
+        if "INSERT INTO mobile_participant_link" in call.args[0]
+    )
+    assert insert.args[1][3] == "field-reviewer"
+    tenant_context.assert_not_called()
+
+
 def test_location_specific_forms_require_a_registered_device(monkeypatch):
     connection = MagicMock()
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)

@@ -86,8 +86,9 @@ sent to the endpoint. Each route requires its location-scoped action and CSRF;
 its service transaction sets tenant context before the party lookup or link
 write. Tenant denial returns 403 before those queries. The original
 `/api/mobile/.../participants` endpoints retain Gateway API-key/capability
-authorization. Five focused operator route and transaction tests pass, and
-both success and error responses are no-store. Real OIDC/browser acceptance,
+authorization. Five focused operator route and transaction tests plus one
+API-key regression check pass, and both success and error responses are
+no-store. Real OIDC/browser acceptance,
 other Gateway and worker paths, direct-database boundaries, and RLS remain open.
 
 The farm-activity intake and canonical list/detail reads, draft promotion,
