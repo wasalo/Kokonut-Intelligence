@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 314 checked and 20 open items (334 total).
+- The execution checklist has 315 checked and 20 open items (335 total).
 - The latest pushed implementation batch is `c5b703c`; CI #311 is in progress
   and Security #35 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -29,8 +29,8 @@ MAN-CAP checks open until each has its own retained evidence.
   every current scheduled/event allowlist entry. Module-specific scheduler
   argument contracts now fail closed at activation and dispatch; a static local
   import closure now covers each allowlisted operation, and a direct-SQL
-  inventory identifies 196 execution sites (30 composed/variable and eight
-  with unknown statement kind). The dynamic sites have source-pattern review;
+  inventory identifies 196 execution sites (30 composed/variable and three
+  with unknown statement kind after conservative local-prefix inference). The dynamic sites have source-pattern review;
   `query()`/`query_one()` have no direct operation callers, and the only direct
   `DatabaseConnection.execute()` call is the literal metrics reconciliation
   query. Function-level effects, enabled legacy rows and worker

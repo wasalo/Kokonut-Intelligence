@@ -2211,7 +2211,7 @@
       "scope": "_query_latest_data_at",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
@@ -2380,7 +2380,7 @@
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SAVEPOINT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
@@ -2395,7 +2395,7 @@
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "ROLLBACK",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
@@ -2444,7 +2444,7 @@
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "RELEASE",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
@@ -2835,7 +2835,7 @@
       "scope": "run_ml_check",
       "method": "execute",
       "expression_kind": "composed_or_variable",
-      "statement_kind": "UNKNOWN",
+      "statement_kind": "SELECT",
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [

@@ -29,7 +29,7 @@ RELATION_PATTERN = re.compile(
     re.IGNORECASE,
 )
 STATEMENT_PATTERN = re.compile(
-    r"^\s*(?:--[^\n]*\n\s*)*(SELECT|INSERT|UPDATE|DELETE|WITH|MERGE|CREATE|ALTER|DROP|TRUNCATE|CALL|COPY|SET|DO)\b",
+    r"^\s*(?:--[^\n]*\n\s*)*(SELECT|INSERT|UPDATE|DELETE|WITH|MERGE|CREATE|ALTER|DROP|TRUNCATE|CALL|COPY|SET|DO|SAVEPOINT|ROLLBACK|RELEASE)\b",
     re.IGNORECASE,
 )
 
@@ -73,16 +73,74 @@ def _statement_kind(query: str) -> str:
     return match.group(1).upper() if match else "UNKNOWN"
 
 
+def _local_statement_kind(function: ast.FunctionDef | ast.AsyncFunctionDef, name: str) -> str:
+    """Infer a local SQL variable's leading statement when all assignments agree."""
+    parameters = [*function.args.posonlyargs, *function.args.args, *function.args.kwonlyargs]
+    if function.args.vararg:
+        parameters.append(function.args.vararg)
+    if function.args.kwarg:
+        parameters.append(function.args.kwarg)
+    if any(parameter.arg == name for parameter in parameters):
+        return "UNKNOWN"
+
+    assigned_templates = []
+    pending = list(function.body)
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            continue
+        targets = []
+        value = None
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+            value = node.value
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+            value = node.value
+        elif isinstance(node, ast.NamedExpr):
+            targets = [node.target]
+            value = node.value
+        elif isinstance(node, (ast.For, ast.AsyncFor)) and _target_binds_name(node.target, name):
+            assigned_templates.append("UNKNOWN")
+        elif isinstance(node, (ast.With, ast.AsyncWith)) and any(
+            item.optional_vars and _target_binds_name(item.optional_vars, name) for item in node.items
+        ):
+            assigned_templates.append("UNKNOWN")
+        elif isinstance(node, ast.AugAssign) and _target_binds_name(node.target, name):
+            if not isinstance(node.op, ast.Add):
+                assigned_templates.append("UNKNOWN")
+        elif isinstance(node, ast.ExceptHandler) and node.name == name:
+            assigned_templates.append("UNKNOWN")
+        if value is not None and any(isinstance(target, ast.Name) and target.id == name for target in targets):
+            query, _ = _query_template(value)
+            assigned_templates.append(_statement_kind(query))
+        pending.extend(ast.iter_child_nodes(node))
+
+    kinds = set(assigned_templates)
+    return next(iter(kinds)) if assigned_templates and len(kinds) == 1 and "UNKNOWN" not in kinds else "UNKNOWN"
+
+
+def _target_binds_name(target: ast.expr, name: str) -> bool:
+    if isinstance(target, ast.Name):
+        return target.id == name
+    if isinstance(target, (ast.Tuple, ast.List)):
+        return any(_target_binds_name(element, name) for element in target.elts)
+    return False
+
+
 class _SQLCallVisitor(ast.NodeVisitor):
     def __init__(self, source: str, operations: list[str]):
         self.source = source
         self.operations = operations
         self.scope: list[str] = []
+        self.functions: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         self.sites: list[dict] = []
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         self.scope.append(node.name)
+        self.functions.append(node)
         self.generic_visit(node)
+        self.functions.pop()
         self.scope.pop()
 
     visit_AsyncFunctionDef = visit_FunctionDef
@@ -111,6 +169,9 @@ class _SQLCallVisitor(ast.NodeVisitor):
             query_node = ast.Constant(value="")
         query, expression_kind = _query_template(query_node)
         normalized = _normalized_query(query)
+        statement_kind = _statement_kind(query)
+        if statement_kind == "UNKNOWN" and isinstance(query_node, ast.Name) and self.functions:
+            statement_kind = _local_statement_kind(self.functions[-1], query_node.id)
         fingerprint = None
         if expression_kind == "literal" and normalized:
             fingerprint = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
@@ -122,7 +183,7 @@ class _SQLCallVisitor(ast.NodeVisitor):
             "scope": ".".join(self.scope) if self.scope else "module",
             "method": method,
             "expression_kind": expression_kind,
-            "statement_kind": _statement_kind(query),
+            "statement_kind": statement_kind,
             "candidate_relations": _candidate_relations(query),
             "static_sql_sha256": fingerprint,
             "operation_refs": self.operations,

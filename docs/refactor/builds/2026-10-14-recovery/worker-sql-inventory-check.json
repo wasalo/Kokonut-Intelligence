@@ -8,12 +8,24 @@
   "execution_sites": 196,
   "static_literal_sites": 166,
   "composed_or_variable_sites": 30,
-  "unknown_statement_kind_sites": 8,
+  "statement_kind_counts": {
+    "DELETE": 2,
+    "INSERT": 40,
+    "RELEASE": 1,
+    "ROLLBACK": 1,
+    "SAVEPOINT": 1,
+    "SELECT": 109,
+    "SET": 3,
+    "UNKNOWN": 3,
+    "UPDATE": 28,
+    "WITH": 8
+  },
+  "unknown_statement_kind_sites": 3,
   "stored_query_text": false,
   "stored_runtime_values": false,
   "focused_test_command": "./.venv/bin/python -m pytest tests/test_worker_sql_inventory.py tests/test_worker_source_closure.py tests/test_worker_operation_map.py -q",
   "focused_tests": {
-    "passed": 18,
+    "passed": 21,
     "failed": 0
   },
   "limits": [

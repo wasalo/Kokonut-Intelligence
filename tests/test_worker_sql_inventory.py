@@ -7,7 +7,7 @@ import json
 import re
 
 from scripts.worker_source_closure import build_inventory as build_source_closure
-from scripts.worker_sql_inventory import ROOT, _serialize, build_inventory
+from scripts.worker_sql_inventory import ROOT, _local_statement_kind, _serialize, build_inventory
 
 INVENTORY_PATH = ROOT / "docs" / "refactor" / "worker-sql-inventory.json"
 
@@ -51,6 +51,49 @@ def test_dynamic_sql_call_sites_are_visible_without_persisting_query_text():
     assert inventory["summary"]["composed_or_variable_sites"] == len(dynamic)
     assert all(site["static_sql_sha256"] is None for site in dynamic)
     assert all(site["statement_kind"] for site in dynamic)
+
+
+def test_dynamic_statement_kinds_are_inferred_only_from_consistent_local_assignments():
+    select_function = ast.parse(
+        "def run(flag):\n"
+        "    if flag:\n"
+        "        statement = f'SELECT * FROM {table}'\n"
+        "    else:\n"
+        "        statement = 'SELECT id FROM fixed_table'\n"
+    ).body[0]
+    mixed_function = ast.parse(
+        "def run(flag):\n"
+        "    if flag:\n"
+        "        statement = 'SELECT id FROM fixed_table'\n"
+        "    else:\n"
+        "        statement = 'DELETE FROM fixed_table'\n"
+    ).body[0]
+    parameter_function = ast.parse("def run(statement):\n    pass\n").body[0]
+
+    assert _local_statement_kind(select_function, "statement") == "SELECT"
+    assert _local_statement_kind(mixed_function, "statement") == "UNKNOWN"
+    assert _local_statement_kind(parameter_function, "statement") == "UNKNOWN"
+
+
+def test_only_generic_database_adapter_wrappers_remain_unknown():
+    unknown = [site for site in _load_inventory()["execution_sites"] if site["statement_kind"] == "UNKNOWN"]
+
+    assert [(site["source"], site["line"]) for site in unknown] == [
+        ("services/common/database.py", 71),
+        ("services/common/database.py", 74),
+        ("services/common/database.py", 132),
+    ]
+
+
+def test_dynamic_and_transaction_control_statement_kinds_are_classified():
+    inventory = _load_inventory()
+    by_location = {(site["source"], site["line"]): site["statement_kind"] for site in inventory["execution_sites"]}
+
+    assert by_location[("services/ingestion/data_freshness.py", 104)] == "SELECT"
+    assert by_location[("services/ingestion/data_freshness.py", 390)] == "SAVEPOINT"
+    assert by_location[("services/ingestion/data_freshness.py", 402)] == "ROLLBACK"
+    assert by_location[("services/ingestion/data_freshness.py", 484)] == "RELEASE"
+    assert by_location[("services/ingestion/ml_anomaly_detector.py", 489)] == "SELECT"
 
 
 def test_dynamic_sql_review_categories_remain_explicit():

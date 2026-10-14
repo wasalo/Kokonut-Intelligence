@@ -89,11 +89,12 @@ data effects, and an idempotency/retry note.
 
 This map, import closure, SQL inventory, and argument schemas are not an ACL,
 tenant policy, or complete dynamic call graph. The 30 composed/variable sites
-have source-pattern review; eight statements remain unclassified by the
-scanner. Function-level reachability across all worker helpers, database
-functions/views, provider implementations, and external effects remain to be
-traced. The map also does not prove that external Prefect/host schedules are
-inactive or that effects are replay-safe on populated data.
+have source-pattern review; the scanner classifies 193 of 196 statement kinds,
+with only the three generic database adapter wrappers remaining unknown.
+Function-level reachability across all worker helpers, database functions/views,
+provider implementations, and external effects remain to be traced. The map
+also does not prove that external Prefect/host schedules are inactive or that
+effects are replay-safe on populated data.
 
 Before worker RLS or runtime-grant reduction:
 

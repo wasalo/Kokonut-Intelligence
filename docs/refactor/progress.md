@@ -20,11 +20,12 @@ The current unpushed slice adds a deterministic local-import closure for every
 allowlisted scheduled module and event-handler module. It records 69 distinct
 local source files, 407 source edges, no unresolved local modules, and the
 EventBus's single dynamic handler-import site. The direct-SQL inventory covers
-196 execute sites, including 30 composed/variable statements and eight
-unclassified statement kinds; it retains no query text. The 30 dynamic sites
-have source-pattern review; current worker callsites of the shared SQL helpers
-are traced and regression-pinned. Eighteen focused worker-inventory tests pass
-in the project virtual environment. These reports do not close function-level
+196 execute sites, including 30 composed/variable statements; only the three
+generic adapter calls remain unclassified by statement kind, and no query text
+is retained. The 30 dynamic sites have source-pattern review; current worker
+callsites of the shared SQL helpers are traced and regression-pinned. Twenty-one
+focused worker-inventory tests pass in the project virtual environment. These
+reports do not close function-level
 effect tracing, shared worker identity, or authorization ([source closure](worker-source-closure.json),
 [SQL inventory](worker-sql-inventory.json); [source closure evidence](builds/2026-10-14-recovery/worker-source-closure-check.json)).
 

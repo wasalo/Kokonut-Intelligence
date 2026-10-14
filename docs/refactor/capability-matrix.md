@@ -1303,9 +1303,11 @@ The worker review now has a deterministic static import closure over all 12
 scheduled modules and five allowlisted event-handler modules, plus a direct SQL
 call-site inventory for the 69 local source files. The SQL inventory records
 196 execution sites: 166 literal statement fingerprints, 30 composed or
-variable statements, and eight unknown statement kinds. The output omits SQL
-text and values; regex-derived relation names are review hints only. This adds
-source navigation and identifies the remaining function-level effect targets;
+variable statements, and three unknown statement kinds. The scanner infers
+fixed local query prefixes and savepoint-control statements; the remaining
+unknowns are generic adapter calls that accept SQL from their callers. The
+output omits SQL text and values; regex-derived relation names are review hints
+only. This adds source navigation and identifies the remaining function-level effect targets;
 the 30 dynamic sites have source-pattern review, and a source regression traces
 the generic wrappers currently used by the worker closure. It does not
 establish full function reachability, complete effects, worker identity,
