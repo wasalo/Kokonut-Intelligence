@@ -70,11 +70,47 @@ See PostgreSQL’s
 [custom options](https://www.postgresql.org/docs/current/runtime-config-custom.html)
 and [configuration-setting functions](https://www.postgresql.org/docs/current/config-setting.html).
 
+## Worker execution and database identity trace — 14 October 2026
+
+The supported execution allowlist is a code-execution boundary only. It does
+not bind a scheduled module or event handler to a database role or tenant.
+
+- In the standard Kernel profile, `services.core.runtime` starts the scheduler
+  and event worker as child processes. Compose gives the shared worker
+  `PG_USER=${KOKONUT_RUNTIME_USER:-kokonut}` and one runtime password.
+- `services.scheduler.engine.SchedulerEngine._execute_task` validates the
+  configured module against `ALLOWED_SCHEDULED_MODULES`, then runs it as a
+  subprocess without an explicit environment. The module inherits the
+  scheduler's full environment and database identity.
+- `services.events.bus.EventBus._invoke_handler` starts each allowlisted
+  handler in a spawned process. The allowlist narrows module/function names,
+  but the child inherits the event worker's environment. Handlers such as
+  `services.ingestion.anomaly_detector.handle_sensor_reading` can initiate
+  tenant data reads and draft/alert/claim writes; notification handlers write
+  the global durable notification outbox; cache handlers route through the
+  configured cache provider.
+- The legacy worker overlay also defaults `PG_USER` to `kokonut`. The
+  portability worker uses its app connection configuration. No worker-specific
+  database principal or worker tenant-context setter is currently present in
+  these dispatch paths.
+
+Therefore, the current allowlists protect against arbitrary module/function
+dispatch but do not make worker SQL safe under application RLS. Do not assign a
+single inferred tenant to a cross-location batch job, and do not enable RLS or
+remove runtime grants on this evidence. The next code-only step is to map each
+allowlisted scheduled module and event handler to its transitive queries,
+read/write tables, cross-location behavior, and idempotency boundary. A later
+role/context change needs a non-forgeable system-worker identity and narrow
+operation grants. Active provider schedules, operational owners, and any
+production identity mapping remain separate owner inputs under OFU-16/02.
+
 ## Required sequence before RLS
 
 1. Inventory every table, view, trigger, worker, CLI, API-key route, OIDC route,
    Directus role/hook, and maintenance command that reads or writes the tenant
-   tables. Record the database role and whether it bypasses RLS.
+   tables. Record the database role and whether it bypasses RLS. The source
+   trace above confirms that execution allowlists do not create worker
+   isolation.
 2. Close the token and enrollment credential lookup paths without weakening
    token hashing, one-time use, owner-transfer serialization, or revocation.
    Migrations 392–393 implement bounded credential paths and signed mobile

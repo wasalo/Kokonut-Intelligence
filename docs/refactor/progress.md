@@ -19,12 +19,14 @@ alongside it. Remaining implementation is ordered in the
 [code-first execution plan](code-first-execution-plan.md); owner decisions and
 external inputs are collected in [Open Follow Ups](open-follow-ups.md).
 
-The prescribed platform-integrity suite was rerun on local commit `1c00845`
-after the owner authorized ongoing verification: 288 tests passed across
-migration discovery/transactions, Gateway authorization, durable scheduler and
-event delivery, credits, threatcasting, backcasting, and Delphi. This confirms
-the focused source contracts; real-provider outage recovery, physical hardware acceptance,
-and the remaining manual acceptance gates are still open ([run evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json)).
+The prescribed platform-integrity suite passed 290 tests on local commit
+`238e2ef`, including the tenant-bound Data Stream route regression. The earlier
+288-test run on `1c00845` remains in [historical evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json);
+the latest [run record](builds/2026-10-14-recovery/platform-integrity-290-tests.json)
+covers migration discovery/transactions, Gateway authorization, durable
+scheduler and event delivery, credits, threatcasting, backcasting, and Delphi.
+This confirms focused source contracts; real-provider outage recovery, physical
+hardware acceptance, and the remaining manual acceptance gates are still open.
 
 GitHub CI #304 on PR #68 completed with 4,632 passed tests, 75 passed subtests,
 and five failures. The local fix batch updates tenant-aware test contracts,
@@ -4756,3 +4758,21 @@ This closes only the Data Stream create path. Search, file/proof operations,
 other Gateway handlers, shared-organization API-key affiliation, production
 credential provisioning, worker/Directus boundaries, broad runtime grants,
 and application RLS remain open.
+
+### Scheduler and event-worker tenant boundary trace — 14 October 2026
+
+The scheduler and event handler allowlists limit which modules/functions are
+eligible for dispatch, but they are not database authorization boundaries.
+The standard worker, scheduler subprocesses, and spawned event handlers inherit
+the same `PG_USER`/password; the default is `kokonut` unless a runtime-role
+override is configured. No worker-specific PostgreSQL principal or signed
+worker tenant-context setter appears in these execution paths. The anomaly
+handler performs tenant data work; the notification handler writes global
+outbox state; cache handlers use the selected cache provider.
+
+I left grants and RLS unchanged because assigning one location to cross-farm
+jobs would be unsafe. The next code-only step is a transitive per-entrypoint
+query/table/effect and idempotency map, followed by a non-forgeable system
+worker identity and narrow grants. Active schedule ownership and production
+identity semantics remain owner inputs. The source trace is in
+[`mobile-tenant-rls-callsite-audit.md`](mobile-tenant-rls-callsite-audit.md).

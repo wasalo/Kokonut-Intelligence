@@ -25,9 +25,9 @@ remaining work order and the Raspberry Pi code-only assessment scope.
 The preceding CI #304 on `8aa33e24f169f15afb249a53ae3d281ed8d843a2`
 completed with five failures, 4,632 passed tests, and 75 passed subtests; its
 local fix batch passed the focused regression, operator-auth, and Compose
-checks. The approved eight-suite platform-integrity suite passed 288 tests
-locally on `1c0084513b157bb99468d4c650e269c57e243c96`
-([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
+checks. The approved eight-suite platform-integrity suite now passes 290 tests
+on local commit `238e2ef` ([verification record](builds/2026-10-14-recovery/platform-integrity-290-tests.json));
+the earlier 288-test record remains historical.
 
 The focused reviewer-note service/auth slice also passed 14 service and three
 route tests, including rollback/connection cleanup on tenant denial. Directus

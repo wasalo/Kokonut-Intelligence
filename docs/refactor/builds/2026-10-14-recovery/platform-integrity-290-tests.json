@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-14",
+  "source_commit": "238e2ef",
+  "command": ".venv/bin/python -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -q",
+  "result": {
+    "passed": 290,
+    "failed": 0,
+    "duration_seconds": 3.85,
+    "python": "3.11.15",
+    "pytest": "9.1.1"
+  },
+  "coverage_summary": [
+    "Ordered migration discovery, checksum/drift handling, and transaction behavior",
+    "Gateway authorization, route scopes, limits, CORS policy, and tenant-bound Data Stream route behavior",
+    "Scheduler lease ownership, expiry, and retry after spawn failure",
+    "Event delivery lease recovery, stale-worker rejection, replay state, and bounded disposition",
+    "Carbon-credit custody and lifecycle invariants",
+    "Threatcasting, backcasting, and Delphi advisory behavior"
+  ],
+  "limits": [
+    "Focused source/unit suite only; no full CI, release build, live-provider, hardware, or long-duration runtime claim.",
+    "This result does not certify physical power-loss recovery, external transport availability, or cross-process behavior beyond the test assertions."
+  ]
+}

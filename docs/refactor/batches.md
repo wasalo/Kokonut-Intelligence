@@ -133,7 +133,7 @@ these new tags are build candidates only.
 - [x] Run the focused migration suite after the transaction change: 17 passed; statically preflight all 488 schema and seed sources for wrapper compatibility.
 - [x] Review all 25 pending migrations in order and apply them through the transactional runner to a separate network-isolated clone; verify zero pending, expected defaults/empty optional tables, and unchanged original-column fingerprints for 16 populated tables. The retained archived clone remains unchanged at 25 pending ([review](pending-migration-compatibility-review.md); [replay evidence](builds/2026-10-11-recovery/application-migration-populated-clone-replay.json); [fingerprints](builds/2026-10-11-recovery/application-migration-review-fingerprints.json)).
 - [x] Configure optional Metabase against the reviewed views, build Kokonut-specific cards, and compare card outputs to independent/native reference fixtures before profile promotion. Batch 4e completed source isolation, three first-party cards, populated-fixture output parity, and encrypted metadata restore ([reporting contract](metabase-reporting-contract.md); [card parity](builds/2026-10-11-recovery/metabase-card-output-parity.json); [Batch 4e](batches.md#batch-4e--kokonut-source-registration-and-card-parity-phase-3)). The candidate remains empty and optional; broader analytics and MAN-CAP-007 acceptance remain open.
-- [ ] Complete remaining provider recovery, external delivery, and runtime recovery acceptance. The approved eight-suite platform-integrity suite passes 288 tests on local commit `1c00845`; its Gateway tests use a private temporary audit journal on the host. Live provider state, external delivery, and broader runtime recovery remain open.
+- [ ] Complete remaining provider recovery, external delivery, and runtime recovery acceptance. The approved eight-suite platform-integrity suite now passes 290 tests on local commit `238e2ef` ([evidence](builds/2026-10-14-recovery/platform-integrity-290-tests.json)); its Gateway tests use a private temporary audit journal on the host. Live provider state, external delivery, and broader runtime recovery remain open.
 - [x] Retain and compare a local development mirror (user-selected scope); defer independent R2 production backup to Batch 6.
 
 Preparation evidence: [recovery record](recovery-preparation.md). Batch 2 remains
@@ -264,9 +264,9 @@ index and event evidence.
 - [ ] Have accountable capability owners select retained report types and dashboards, confirm audience/scope and measures, and provide reference fixtures. The source registry is not an ownership or usage inventory.
 - [ ] Complete live worker recovery acceptance for leases, retries, idempotency,
   and transport/database outages. The prescribed focused platform-integrity
-  suite now passes 288 tests, including scheduler lease ownership/expiry,
+  suite now passes 290 tests, including scheduler lease ownership/expiry,
   event lease reclaim, stale-worker rejection, idempotent delivery, and bounded
-  retry/dead-letter handling ([evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json)); these are source/unit checks and do not close real-provider outage, worker-process recovery, or long-duration acceptance.
+  retry/dead-letter handling ([evidence](builds/2026-10-14-recovery/platform-integrity-290-tests.json)); these are source/unit checks and do not close real-provider outage, worker-process recovery, or long-duration acceptance.
 
 Gate: every migrated flow has durable recovery and output parity evidence.
 Rollback: disable new schedules before restoring legacy ownership; avoid dual writers.

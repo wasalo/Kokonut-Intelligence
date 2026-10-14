@@ -88,12 +88,16 @@ before protected reads and writes, and make direct database access fail closed.
    Gateway routes, shared organization affiliation for API keys, candidate
    credential provisioning, or application RLS.
 2. Trace each worker and legacy CLI query to its service identity and tenant
-   context. **Closed:** `services.analytics.mobile_offline` helpers and CLI
+   context. **Partial:** `services.analytics.mobile_offline` helpers and CLI
    commands now fail before database access because there is no authenticated
    tenant identity, and no repository runtime caller depends on them. Equivalent
    capture/sync uses the consent-aware Gateway. Continue the same trace across
    workers and other CLIs; give workers only required database functions and
-   columns, and reject unscoped paths before mutation.
+   columns, and reject unscoped paths before mutation. The current scheduler
+   and event allowlists constrain executable modules but inherit the shared
+   runtime environment; they are not DB-identity or RLS boundaries. The code
+   trace is recorded in
+   [the tenant call-site audit](mobile-tenant-rls-callsite-audit.md).
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
