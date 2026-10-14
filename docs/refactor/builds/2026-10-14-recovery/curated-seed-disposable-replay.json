@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T04:19:11Z",
+  "operation": "Ordered curated seed replay against an isolated restored candidate snapshot",
+  "source": {
+    "branch": "feat/mobile-offline-acceptance",
+    "commit": "c26aa32229ebeb5f86f219c8b3ccb9f857bf93ec",
+    "migration_runner_sha256": "df87c91265e22f146e0ffb274b072f384d3665b6aaf5ae62816f5e5e055ba295",
+    "seed_script": "scripts/seed.sh",
+    "seed_script_sha256": "ceb488eae94b64d4261956d9aba9d832ff07eb7a9d773a521bad0e9edb992777",
+    "focused_test_file_sha256": "900ad6c57c5d57d0eec4f97fa5e21f80bb4717a89ec9cb027cf000a6e9132567",
+    "curated_migrations_selected": 31
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-seed-140-20261014T040257Z",
+    "archive": "postgres.dump.age",
+    "sha256": "5abbad478647733fb7153d0d2a2bda62ae54f7d94e3241e1c596c7e0001d1cfa",
+    "bytes": 5530467,
+    "age_decryption": "streamed directly to pg_restore; passed",
+    "restore_target": "new template0 database in a dedicated disposable PostgreSQL project"
+  },
+  "disposable_replay": {
+    "compose_project": "kokonut-seed-validation",
+    "baseline": {
+      "applied_schemas": 382,
+      "applied_seeds": 0,
+      "mobile_forms": 5,
+      "service_registry": 63
+    },
+    "result": {
+      "curated_migrations_applied": 31,
+      "failures": 0,
+      "second_ordered_invocation": "all migrations already applied; no seed SQL repeated",
+      "applied_schemas_after": 382,
+      "applied_seeds_after": 31,
+      "non_applied_ledger_rows": 0,
+      "representative_counts": {
+        "business_capability": 33,
+        "dashboard_dataset": 38,
+        "service_registry": 67,
+        "mobile_form": 5
+      }
+    },
+    "database_volume_removed_after_capture": true
+  },
+  "live_candidate_unchanged": {
+    "applied_schemas": 382,
+    "applied_seeds": 1,
+    "applied_seed": "seed:140_mobile_forms.sql",
+    "pending_seed_sources": 120,
+    "mobile_forms": 5,
+    "service_registry": 63,
+    "non_applied_ledger_rows": 0,
+    "containers": {
+      "app": "running/healthy",
+      "database": "running/healthy",
+      "metabase": "running/healthy",
+      "proxy": "running"
+    },
+    "http": {
+      "health": 200,
+      "anonymous_protected_review_queue": 401
+    },
+    "seed_sql_executed": false
+  },
+  "legacy_stack_accessed": false,
+  "result": "Passed against an isolated restored candidate snapshot. This validates the exact curated order and repeat skip behavior on the snapshot; it is not a fresh empty-database bootstrap test. The candidate and legacy stack were not modified."
+}

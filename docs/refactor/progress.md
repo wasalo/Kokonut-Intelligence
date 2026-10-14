@@ -4374,6 +4374,20 @@ non-empty targets are the five mobile forms already tracked by the guarded seed
 reconciliation and 63 existing `service_registry` rows. The four service keys
 that seed 091 would add are absent. No curated SQL ran and no container was
 recreated. This closes the candidate's row-count inventory, not clean-bootstrap
-or cross-seed dependency acceptance; the 120 remaining seed sources stay
-pending pending that review. See
+or fresh-database bootstrap acceptance; 120 seed sources stay pending while
+that review continues. See
 [candidate inventory evidence](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json).
+
+### Curated seed disposable replay — 14 October 2026
+
+Restored the encrypted pre-reconciliation candidate checkpoint into a new
+`template0` database in a database-only disposable Compose project. Age
+plaintext streamed directly to `pg_restore`. The ordered runner applied all 31
+curated seeds with zero failures; a second invocation reported all migrations
+already applied. The scratch ledger retained 382 applied schemas and 31 applied
+seeds, and representative table counts reflected the expected additions. The
+scratch volume was removed after capture. The live candidate remained healthy,
+with 382 applied schemas, one applied seed, 120 pending seed sources, 5 forms,
+63 service-catalog rows, and protected-route 401. This confirms ordered replay
+against the candidate snapshot; an empty-database full bootstrap remains open.
+The legacy stack was not accessed ([replay evidence](builds/2026-10-14-recovery/curated-seed-disposable-replay.json)).

@@ -46,7 +46,7 @@ active 1.2.0 forms and five matching active revisions exact, with five retired
 recorded `seed:140_mobile_forms.sql` as applied without changing business rows;
 120 other seed files remain pending. See the
 [preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json)
-and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. Clean-bootstrap/dependency acceptance remains open ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json)).
+and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. The full 31-seed ordered list then applied to an isolated checkpoint restore and skipped cleanly on a second invocation; fresh empty-database bootstrap acceptance remains open ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json); [disposable replay](builds/2026-10-14-recovery/curated-seed-disposable-replay.json)).
 
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,
