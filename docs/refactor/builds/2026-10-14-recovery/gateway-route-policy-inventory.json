@@ -10,12 +10,13 @@
     "every_registered_api_method_path_has_reviewed_resource_action_and_public_policy": true,
     "location_path_parameters_bind_policy_scope": true,
     "unknown_route_method_mismatch_and_near_miss_are_protected": true,
+    "every_registered_private_route_returns_401_to_anonymous_requests": true,
     "candidate_or_legacy_database_touched": false,
     "raspberry_pi_hardware_used": false
   },
   "pytest": {
     "command": "SOPS_AGE_KEY_FILE=<configured local age identity> .venv/bin/python -m pytest tests/test_gateway_route_policy_inventory.py tests/test_gateway_auth.py -q",
-    "passed": 26,
+    "passed": 27,
     "failed": 0
   },
   "static_checks": {

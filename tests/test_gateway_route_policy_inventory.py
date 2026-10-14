@@ -79,6 +79,33 @@ def test_registered_api_routes_have_exact_reviewed_policy_coverage():
     assert actual == _EXPECTED_ROUTE_POLICIES
 
 
+def test_registered_private_api_routes_reject_anonymous_requests(tmp_path, monkeypatch):
+    monkeypatch.setenv(
+        "KOKONUT_GATEWAY_AUDIT_SPOOL_PATH",
+        str(tmp_path / "gateway-audit.sqlite3"),
+    )
+    monkeypatch.setenv("KOKONUT_API_KEYS", "")
+    monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "")
+    monkeypatch.setenv("KOKONUT_OPERATOR_OIDC_ENABLED", "false")
+
+    private_routes = []
+    with TestClient(create_app()) as client:
+        for route in (gateway_router, mobile_router):
+            for registered_route in route.routes:
+                for method in registered_route.methods or ():
+                    path = "/api" + registered_route.path
+                    concrete_path = _concrete_path(path)
+                    policy = get_route_policy(method, concrete_path)
+                    if policy["public"]:
+                        continue
+                    body = {"location_id": _LOCATION_ID} if path == "/api/data-stream/post" else None
+                    response = client.request(method, concrete_path, json=body)
+                    private_routes.append((method, concrete_path, response.status_code))
+
+    assert private_routes
+    assert all(status_code == 401 for _, _, status_code in private_routes), private_routes
+
+
 @pytest.mark.parametrize(
     ("method", "path"),
     [

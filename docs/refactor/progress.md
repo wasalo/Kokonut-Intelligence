@@ -33,8 +33,9 @@ as errors rather than `no_data`. Its 29 focused tests and Ruff checks pass
 it does not claim live-provider or Raspberry Pi hardware acceptance.
 
 The native and Field Collector Gateway routes now have a pinned method/path to
-resource/action/public-policy inventory. The 26 focused authorization and route
-checks pass. Migrations 392–397 also replayed successfully on an isolated restore
+resource/action/public-policy inventory. The 27 focused authorization and route
+checks pass, including anonymous 401s for every registered private route.
+Migrations 392–397 also replayed successfully on an isolated restore
 of the encrypted candidate checkpoint, including a no-op second runner pass.
 Afterward, a read-only candidate check confirmed migration 391 remains applied,
 392–397 are absent, and the database, app, and Metabase containers are healthy;

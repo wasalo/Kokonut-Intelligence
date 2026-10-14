@@ -176,9 +176,9 @@ segments, API-key/accept headers, typed payloads, and normalized failure cases.
 Those checks passed offline. Gateway route/auth and tenant-scope parity remain
 open; see the [acceptance record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
 The native and Field Collector routers now also have a pinned full method/path
-policy inventory. A 26-test focused Gateway run confirms exact resource/action/
-public policy coverage and anonymous 401 for unknown routes, wrong methods, and
-near-miss paths ([route inventory evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json)).
+policy inventory. A 27-test focused Gateway run confirms exact resource/action/
+public policy coverage, 401 for every registered private route when anonymous,
+and 401 for unknown routes, wrong methods, and near-miss paths ([route inventory evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json)).
 The OIDC operator router now has a separate exact inventory for all 28 registered
 method/path policies, including scoped grants, secondary grants, public login
 endpoints, and six governed farm-activity actions. Unknown operator paths and
