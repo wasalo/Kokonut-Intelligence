@@ -828,8 +828,14 @@ reporting views.
   passes isolated PostgreSQL acceptance against a synthetic schema fixture.
   The ordered 392–397 replay and second no-op pass now also succeed on a restored
   encrypted candidate checkpoint ([evidence](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)).
-  Clean `template0` full-bootstrap acceptance and candidate rollout remain
-  separate gates. This rollout alone will not enable RLS.
+  A clean `template0` bootstrap of all 388 schema sources also passed in a
+  disposable internal-only Compose project; only candidate rollout remains
+  open. This rollout alone will not enable RLS.
+- [x] Apply all 388 schema migrations from an empty PostgreSQL database through
+  `verify-clean-bootstrap.sh` using a dedicated internal-only Compose project;
+  verify zero failures, keep all seeds and application data out of scope, and
+  remove the scratch database, container, network, and volume afterward
+  ([evidence](builds/2026-10-14-recovery/clean-bootstrap-388-migrations.json)).
 - [x] Restore the encrypted pre-392–397 candidate checkpoint into the isolated
   recovery project and apply migrations 392–397 through the ordered runner;
   verify exact checksum-ledger entries, a zero-pending second run, unchanged

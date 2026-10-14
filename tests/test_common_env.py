@@ -11,6 +11,7 @@ def _reset_loader(monkeypatch, tmp_path):
     monkeypatch.setattr(env, "_PROJECT_ROOT", tmp_path)
     monkeypatch.setattr(env, "_LOADED", False)
     monkeypatch.delenv("KOKONUT_ALLOW_PLAINTEXT_ENV", raising=False)
+    monkeypatch.delenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", raising=False)
     monkeypatch.delenv("KOKONUT_ENV", raising=False)
     monkeypatch.delenv("FALLBACK_SECRET", raising=False)
     monkeypatch.delenv("LOADED_SECRET", raising=False)
@@ -26,14 +27,42 @@ def test_sops_failure_does_not_fall_back_in_production(monkeypatch, tmp_path):
     monkeypatch.setattr(
         env.subprocess,
         "run",
-        lambda *args, **kwargs: (_ for _ in ()).throw(
-            subprocess.CalledProcessError(1, "sops")
-        ),
+        lambda *args, **kwargs: (_ for _ in ()).throw(subprocess.CalledProcessError(1, "sops")),
     )
 
     with pytest.raises(env.SecretLoadError, match="SOPS decryption failed"):
         env.load_dotenv()
     assert "FALLBACK_SECRET" not in env.os.environ
+    assert env._LOADED is False
+
+
+def test_loader_reuses_secrets_exported_by_load_secrets_script(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "true")
+    monkeypatch.setenv("LOADED_SECRET", "already-exported")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("Python tried to decrypt secrets a second time"),
+    )
+
+    env.load_dotenv()
+
+    assert env.os.environ["LOADED_SECRET"] == "already-exported"
+    assert env._LOADED is True
+
+
+def test_script_loaded_marker_keeps_production_environment_validation(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "true")
+    monkeypatch.setenv("PG_HOST", "database")
+    monkeypatch.setenv("PG_DB", "kokonut_intelligence")
+    monkeypatch.setenv("PG_USER", "kokonut")
+
+    with pytest.raises(env.SecretLoadError, match="required environment variable is missing: PG_PASSWORD"):
+        env.load_dotenv()
     assert env._LOADED is False
 
 
@@ -105,9 +134,7 @@ def test_production_rejects_placeholder_credentials(monkeypatch, tmp_path):
     monkeypatch.setenv("PG_USER", "kokonut")
     monkeypatch.setenv("PG_PASSWORD", "replace-with-strong-password-min-24-chars")
     (tmp_path / ".env.sops").write_text("encrypted")
-    monkeypatch.setattr(env.subprocess, "run", lambda *args, **kwargs: type(
-        "Result", (), {"stdout": ""}
-    )())
+    monkeypatch.setattr(env.subprocess, "run", lambda *args, **kwargs: type("Result", (), {"stdout": ""})())
 
     with pytest.raises(env.SecretLoadError, match="placeholder"):
         env.load_dotenv()

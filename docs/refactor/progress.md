@@ -38,8 +38,10 @@ checks pass. Migrations 392–397 also replayed successfully on an isolated rest
 of the encrypted candidate checkpoint, including a no-op second runner pass.
 Afterward, a read-only candidate check confirmed migration 391 remains applied,
 392–397 are absent, and the database, app, and Metabase containers are healthy;
-the temporary restored-copy volume was removed. Candidate rollout and clean
-`template0` bootstrap remain open ([route evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json); [migration evidence](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json)).
+the temporary restored-copy volume was removed. Candidate rollout remains open.
+The clean-bootstrap verifier separately applied
+all 388 schema migrations to an empty PostgreSQL database with zero failures,
+then removed its scratch Compose project and volume ([route evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json); [restore replay](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json); [clean bootstrap](builds/2026-10-14-recovery/clean-bootstrap-388-migrations.json)).
 
 The operator console's CORS allowlist now includes `PATCH`, matching its
 cookie-authenticated farm-activity draft edit. Focused preflight and successful
