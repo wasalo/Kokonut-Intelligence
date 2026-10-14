@@ -33,8 +33,10 @@ data effects, and an idempotency/retry note.
   processor's outbox/attempt writes; the `services.metrics` entry includes the
   code-owned NOI snapshot reconciliation view and natural-key upsert. It now
   links all 20 registered metric calculator implementation files, guarded
-  against registry drift by `tests/test_worker_operation_map.py`; the exact
-  per-calculator SQL table effects remain open.
+  against registry drift by `tests/test_worker_operation_map.py`. Its
+  per-calculator direct SQL reads, composed calculator calls, and the consent
+  eligibility function's referenced relations are recorded; they still do not
+  establish least-privilege grants or tenant context.
 - The legacy schedule seed contains known mismatches: the sensor task has no
   declared input source, and its empty argument list does not create a sensor
   reading; the climate CLI requires one `--location-id`, while the old seed
@@ -45,10 +47,11 @@ data effects, and an idempotency/retry note.
 ## What remains open
 
 This map and its argument schemas are not an ACL, tenant policy, or complete
-dynamic call graph. They do not trace every calculator, imported helper,
-dynamic SQL fragment, provider implementation, or prove that external
-Prefect/host schedules are inactive or effects are replay-safe on populated
-data.
+dynamic call graph. The metrics calculator read set is source-reviewed, but
+other imported helpers, dynamic SQL fragments, database functions/views,
+provider implementations, and external effects remain to be traced. The map
+also does not prove that external Prefect/host schedules are inactive or that
+effects are replay-safe on populated data.
 
 Before worker RLS or runtime-grant reduction:
 
@@ -64,7 +67,7 @@ Before worker RLS or runtime-grant reduction:
    remain separate gates.
 
 The inventory-only contract test is `tests/test_worker_operation_map.py`.
-The focused source, scheduler and event checks pass 35 tests; the retained
+The focused source, scheduler and event checks pass 36 tests; the retained
 [check record](builds/2026-10-14-recovery/worker-operation-map-check.json)
 contains that inventory test evidence. The separate
 [scheduler argument contract check](builds/2026-10-14-recovery/scheduled-command-contract-check.json)

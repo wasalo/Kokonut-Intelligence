@@ -34,7 +34,9 @@ it does not claim live-provider or Raspberry Pi hardware acceptance.
 
 The worker-operation inventory now links every registered metrics calculator
 to its source file, with a test ensuring the 20-module list stays aligned with
-the runtime registry. Per-calculator query effects remain part of the open
+the runtime registry. It also records each calculator's direct read tables,
+composition edges, and the relations behind the Field Collector consent
+eligibility function. The other worker/provider effects remain in the open
 transitive audit.
 
 The prescribed platform-integrity suite passed 290 tests on local commit

@@ -88,3 +88,29 @@ def test_metrics_worker_map_tracks_registered_calculator_sources():
 
     assert len(CALCULATORS) == 20
     assert mapped_calculators == registered_sources
+
+
+def test_metrics_worker_map_covers_calculator_and_database_function_reads():
+    metrics = next(entry for entry in _load_map()["scheduled_modules"] if entry["module"] == "services.metrics")
+    effects = metrics["calculator_effects"]
+    mapped_reads = set(metrics["reads"])
+    calculator_reads = {relation for effect in effects.values() for relation in effect["reads"]}
+    function_reads = {relation for effect in metrics["database_functions"].values() for relation in effect["reads"]}
+
+    assert set(effects) == set(CALCULATORS)
+    assert calculator_reads | function_reads <= mapped_reads
+    for effect in effects.values():
+        assert effect["reads"]
+        assert all(relation.startswith("public.") for relation in effect["reads"])
+        assert set(effect["calculator_calls"]) <= set(CALCULATORS)
+
+    function = "public.farm_activity_source_eligible_for_use"
+    function_effect = metrics["database_functions"][function]
+    assert set(function_effect["called_by"]) == {
+        key for key, effect in effects.items() if function in effect["database_function_calls"]
+    }
+    for source in function_effect["sources"]:
+        assert source in metrics["sources"]
+    for metric_key in function_effect["called_by"]:
+        calculator_source = getsourcefile(CALCULATORS[metric_key])
+        assert function.rsplit(".", 1)[-1] in Path(calculator_source).read_text(encoding="utf-8")
