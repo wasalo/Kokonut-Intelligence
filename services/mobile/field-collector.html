@@ -120,6 +120,17 @@
     const settings = () => vaultState?.settings || { apiBase:"", deviceName:"" };
     const queue = () => vaultState?.queue || [];
     const forms = () => vaultState?.forms?.length ? vaultState.forms : FALLBACK_FORMS;
+    const reenrollmentDetail = "Field Collector device must be re-enrolled by the current verified location owner";
+    const quarantineQueueForOwnerReview = async () => {
+      const previousDevice = read(STORAGE.device, null);
+      await write(STORAGE.queue, current => window.FieldCollectorVault.quarantineQueueForOwnerReview(
+        current,
+        previousDevice?.device_id,
+      ));
+      await write(STORAGE.settings, current => ({...current, ownerReenrollmentRequired:true}));
+      await write(STORAGE.device, null);
+      await write(STORAGE.forms, []);
+    };
     const legacyStorage = () => { try { return window.localStorage; } catch (_) { return null; } };
     const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
     const isMediaId = value => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -205,7 +216,10 @@
     const renderHome = () => {
       if (!vault?.isUnlocked() || !vaultState) { void renderVaultGate(); return; }
       currentForm = null;
-      const items = forms().map((form, index) => `<button class="form-card" data-form="${esc(form.form_id)}"><span class="form-mark">${index + 1}</span><span><strong>${esc(form.name)}</strong><small>${esc(form.description || "Field record")}</small></span><span class="arrow">&rsaquo;</span></button>`).join("");
+      const blockedForOwnerReview = settings().ownerReenrollmentRequired && !read(STORAGE.device, null)?.device_token;
+      const items = blockedForOwnerReview
+        ? `<div class="notice error">This browser needs a new owner-approved enrollment. Existing queued records are preserved for review and will not be uploaded under the new enrollment.</div>`
+        : forms().map((form, index) => `<button class="form-card" data-form="${esc(form.form_id)}"><span class="form-mark">${index + 1}</span><span><strong>${esc(form.name)}</strong><small>${esc(form.description || "Field record")}</small></span><span class="arrow">&rsaquo;</span></button>`).join("");
       const count = queue().length;
       const enrolledDevice = read(STORAGE.device, null);
       const deviceSummary = enrolledDevice?.location_id ? `Enrolled for location ${enrolledDevice.location_id}` : "Enter a single-use enrollment code";
@@ -284,7 +298,7 @@
         if (value === "") continue;
         payload[key] = event.target.elements[key].type === "number" ? Number(value) : value;
       }
-      const item = { client_id:uid(), collection_type:currentForm.collection_type, form_id:currentForm.form_id, form_version:currentForm.version || "1.0.0", participant_ref:participantRef, payload, photo_refs:[], offline_photos:currentPhotos.map(photo => ({name:photo.name,data:photo.data})), ...currentLocation, collected_at:new Date().toISOString(), sync_status:"pending" };
+      const item = { client_id:uid(), origin_device_id:read(STORAGE.device, null)?.device_id || null, collection_type:currentForm.collection_type, form_id:currentForm.form_id, form_version:currentForm.version || "1.0.0", participant_ref:participantRef, payload, photo_refs:[], offline_photos:currentPhotos.map(photo => ({name:photo.name,data:photo.data})), ...currentLocation, collected_at:new Date().toISOString(), sync_status:"pending" };
       try { await write(STORAGE.queue, items => [...(Array.isArray(items) ? items : []), item]); renderHome(); notify("Saved on this device. It will sync when online."); void syncQueue(false); } catch (_) { notify("Encrypted storage could not save this record. Keep this page open and try again.", true); }
     };
     const ensureDevice = async (oneTimeCode = enrollmentCode) => {
@@ -295,7 +309,10 @@
       const config = settings();
       const response = await fetch(`${base}/register`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ device_id:`browser-${uid()}`, enrollment_code:code, device_name:config.deviceName || "Field browser", app_version:"1.0.0", os:navigator.platform }) });
       if (!response.ok) throw new Error(`Device registration failed (${response.status})`);
-      device = await response.json(); enrollmentCode = ""; await write(STORAGE.device, device); return device;
+      device = await response.json(); enrollmentCode = ""; await write(STORAGE.device, device);
+      await write(STORAGE.settings, current => ({...current, ownerReenrollmentRequired:false}));
+      await loadForms();
+      return device;
     };
     const migrateQueueMedia = async items => {
       const migrated = items.map(item => {
@@ -327,12 +344,28 @@
     const syncQueue = async manual => {
       if (!vault?.isUnlocked() || !vaultState) return;
       if (!navigator.onLine) { if (manual) notify("You are offline. Records remain safely on this device."); return; }
+      if (settings().ownerReenrollmentRequired && !read(STORAGE.device, null)?.device_token) {
+        if (manual) notify("Request a new owner-approved enrollment. Existing queued records remain preserved for review and will not sync under a different owner.", true);
+        return;
+      }
       try {
         let items = await migrateQueueMedia(queue());
         if (!items.length) { if (manual) notify("Nothing is waiting to sync."); return; }
         const device = await ensureDevice(); const base = apiBase();
-        const syncableItems = []; let unrecoverable = 0; let mediaReview = 0;
+        const syncableItems = []; let unrecoverable = 0; let mediaReview = 0; let tenantReview = 0;
         for (let item of items) {
+          if (window.FieldCollectorVault.requiresOwnerReview(item, device.device_id)) {
+            tenantReview++;
+            if (!item.tenant_review_required) {
+              await write(STORAGE.queue, current => current.map(candidate => candidate.client_id === item.client_id
+                ? window.FieldCollectorVault.quarantineQueueForOwnerReview(
+                  [candidate],
+                  candidate.origin_device_id,
+                )[0]
+                : candidate));
+            }
+            continue;
+          }
           const existingRefs = Array.isArray(item.photo_refs) ? item.photo_refs : [];
           const existingPhotos = Array.isArray(item.offline_photos) ? item.offline_photos : [];
           if (item.media_review_required || existingRefs.length + existingPhotos.length > 5) { mediaReview++; continue; }
@@ -348,7 +381,11 @@
               headers:uploadHeaders,
               body:dataURLToBlob(photo.data),
             });
-            if (!upload.ok) { const error = new Error(`Photo upload failed (${upload.status})`); error.status = upload.status; throw error; }
+            if (!upload.ok) {
+              const error = new Error(`Photo upload failed (${upload.status})`); error.status = upload.status;
+              try { error.detail = (await upload.clone().json()).detail; } catch (_) {}
+              throw error;
+            }
             const uploaded = await upload.json();
             if (!isMediaId(uploaded.media_id)) throw new Error("Photo upload returned an invalid media reference.");
             refs.push(uploaded.media_id); photos = photos.slice(1);
@@ -360,6 +397,7 @@
         if (!syncableItems.length) {
           if (manual) {
             const warnings = [];
+            if (tenantReview) warnings.push(`${tenantReview} record(s) require owner review and remain encrypted; they were not uploaded.`);
             if (mediaReview) warnings.push(`${mediaReview} record(s) have more than five photos; they remain encrypted and were not uploaded.`);
             if (unrecoverable) warnings.push(`${unrecoverable} record(s) have legacy photo names but no local photo data; they remain encrypted and were not synced.`);
             notify(warnings.join(" ") || "Nothing is ready to sync.", warnings.length > 0);
@@ -377,27 +415,35 @@
             collected_at:item.collected_at,
           }))}),
         });
-        if (!response.ok) { const error = new Error(`Sync failed (${response.status})`); error.status = response.status; throw error; }
+        if (!response.ok) {
+          const error = new Error(`Sync failed (${response.status})`); error.status = response.status;
+          try { error.detail = (await response.clone().json()).detail; } catch (_) {}
+          throw error;
+        }
         const result = await response.json(); const accepted = Number(result.accepted || 0); const acceptedIds = new Set(result.accepted_client_ids || []); const duplicateIds = new Set(result.duplicate_client_ids || []);
         await write(STORAGE.queue, current => current.filter(item => !acceptedIds.has(item.client_id) && !duplicateIds.has(item.client_id)));
         await write(STORAGE.settings, current => ({...current, lastSyncAt:new Date().toISOString()}));
         if (manual) {
           renderHome();
           const warnings = [];
+          if (tenantReview) warnings.push(`${tenantReview} record(s) require owner review and remain encrypted; they were not uploaded.`);
           if (unrecoverable) warnings.push(`${unrecoverable} record(s) with legacy photo names remain queued for recovery.`);
           if (mediaReview) warnings.push(`${mediaReview} record(s) exceed the five-photo limit; their encrypted local images were not uploaded.`);
           notify(`${accepted} record${accepted === 1 ? "" : "s"} uploaded.${warnings.length ? ` ${warnings.join(" ")}` : ""}`, warnings.length > 0);
         } else refreshPendingSummary();
       } catch (error) {
-        if (error.status === 401 && vault?.isUnlocked() && vaultState) {
+        if (error.status === 403 && error.detail === reenrollmentDetail && vault?.isUnlocked() && vaultState) {
+          await quarantineQueueForOwnerReview(); renderSettings();
+          notify("Location ownership changed. The old device is blocked; queued records remain encrypted for review. Request a new enrollment from the current owner.", true);
+        } else if (error.status === 401 && vault?.isUnlocked() && vaultState) {
           await write(STORAGE.device, null); await write(STORAGE.forms, []); renderSettings();
           notify("Device access was revoked. Request a new enrollment code; queued records remain encrypted on this browser.", true);
         } else if (manual) notify(error.message || "Sync unavailable. Records remain queued.", true);
       }
     };
-    const renderQueue = () => { const items = queue(); screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Local queue</p><h2>${items.length} pending</h2><p class="intro">These records are stored encrypted in this browser until the server accepts them.</p>${items.length ? `<div class="panel">${items.map((item, index) => `<div class="queue-item"><span class="badge">${index + 1}</span><div><strong>${esc(item.collection_type)}</strong><small>${new Date(item.collected_at).toLocaleString()}${item.latitude ? ` | GPS ${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}` : ""}</small>${item.media_review_required ? `<small style="color:var(--danger)">This record exceeds the five-photo limit. It remains encrypted and cannot sync; remove and recollect with no more than five photos.</small>` : ""}</div><button class="remove" data-remove="${esc(item.client_id)}">Remove</button></div>`).join("")}</div><button class="button" id="syncButton">Sync now</button>` : `<div class="empty">No pending records.</div>`}`; document.getElementById("backButton").addEventListener("click", renderHome); document.querySelectorAll("[data-remove]").forEach(button => button.addEventListener("click", async () => { await write(STORAGE.queue, current => current.filter(item => item.client_id !== button.dataset.remove)); renderQueue(); })); const sync = document.getElementById("syncButton"); if (sync) sync.addEventListener("click", () => syncQueue(true)); };
-    const renderSettings = () => { const config = settings(); const device = read(STORAGE.device, null); const enrollmentField = device?.device_token ? `<div class="location">This browser is enrolled. Its location is assigned by the server.</div>` : `<label class="required">Single-use enrollment code<input name="enrollmentCode" autocomplete="one-time-code" required></label>`; screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Device setup</p><h2>Settings</h2><p class="intro">Records can be collected offline. Enrollment is required before location forms or sync are available.</p><form id="settingsForm"><label>API URL<input name="apiBase" value="${esc(config.apiBase)}" placeholder="https://data.example.org"></label><label>Device name<input name="deviceName" value="${esc(config.deviceName)}" placeholder="Field phone 1"></label>${enrollmentField}<button class="button" type="submit">${device?.device_token ? "Save settings" : "Save settings and enroll"}</button></form><button class="button ghost" id="queueButton">View pending queue</button>`; document.getElementById("backButton").addEventListener("click", renderHome); document.getElementById("queueButton").addEventListener("click", renderQueue); document.getElementById("settingsForm").addEventListener("submit", async event => { event.preventDefault(); const values = Object.fromEntries(new FormData(event.target).entries()); enrollmentCode = String(values.enrollmentCode || "").trim(); delete values.enrollmentCode; await write(STORAGE.settings, values); if (device?.device_token) { notify("Settings saved. Device enrollment remains server-managed."); return; } if (!enrollmentCode) { notify("Enter a single-use enrollment code to register this browser.", true); return; } if (navigator.onLine && values.apiBase) { try { await ensureDevice(enrollmentCode); notify("Settings saved and device enrolled."); renderHome(); } catch (error) { notify(error.message, true); } } else notify("Settings saved. Connect to the network to complete enrollment."); }); };
-    const loadForms = async () => { if (!vault?.isUnlocked() || !vaultState) return; const base = apiBase(); if (!base || !navigator.onLine) return; try { const device = read(STORAGE.device, null); const headers = device?.device_token ? {"X-Device-Token":device.device_token} : {}; const response = await fetch(`${base}/forms`, {headers}); if (response.status === 401 && device?.device_token) { await write(STORAGE.device, null); await write(STORAGE.forms, []); renderHome(); notify("Device access was revoked. Request a new enrollment code.", true); return; } if (response.ok) { const fetched = (await response.json()).forms || []; await write(STORAGE.forms, fetched); } } catch (_) {} };
+    const renderQueue = () => { const items = queue(); screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Local queue</p><h2>${items.length} pending</h2><p class="intro">These records are stored encrypted in this browser until the server accepts them.</p>${items.length ? `<div class="panel">${items.map((item, index) => `<div class="queue-item"><span class="badge">${index + 1}</span><div><strong>${esc(item.collection_type)}</strong><small>${new Date(item.collected_at).toLocaleString()}${item.latitude ? ` | GPS ${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}` : ""}</small>${item.tenant_review_required ? `<small style="color:var(--danger)">Owner review required. This encrypted record will not sync under another device or tenant.</small>` : ""}${item.media_review_required ? `<small style="color:var(--danger)">This record exceeds the five-photo limit. It remains encrypted and cannot sync; remove and recollect with no more than five photos.</small>` : ""}</div><button class="remove" data-remove="${esc(item.client_id)}">Remove</button></div>`).join("")}</div><button class="button" id="syncButton">Sync now</button>` : `<div class="empty">No pending records.</div>`}`; document.getElementById("backButton").addEventListener("click", renderHome); document.querySelectorAll("[data-remove]").forEach(button => button.addEventListener("click", async () => { await write(STORAGE.queue, current => current.filter(item => item.client_id !== button.dataset.remove)); renderQueue(); })); const sync = document.getElementById("syncButton"); if (sync) sync.addEventListener("click", () => syncQueue(true)); };
+    const renderSettings = () => { const config = settings(); const device = read(STORAGE.device, null); const ownerReviewCount = queue().filter(item => item.tenant_review_required).length; const enrollmentField = device?.device_token ? `<div class="location">This browser is enrolled. Its location is assigned by the server.</div>` : `<label class="required">Single-use enrollment code<input name="enrollmentCode" autocomplete="one-time-code" required></label>`; const reviewNotice = ownerReviewCount ? `<div class="notice error">${ownerReviewCount} queued record(s) are preserved for owner review and will not be sent with the new enrollment.</div>` : ""; screen.innerHTML = `<button class="back" id="backButton">&lsaquo; Back to home</button><p class="eyebrow">Device setup</p><h2>Settings</h2><p class="intro">Records can be collected offline. Enrollment is required before location forms or sync are available.</p>${reviewNotice}<form id="settingsForm"><label>API URL<input name="apiBase" value="${esc(config.apiBase)}" placeholder="https://data.example.org"></label><label>Device name<input name="deviceName" value="${esc(config.deviceName)}" placeholder="Field phone 1"></label>${enrollmentField}<button class="button" type="submit">${device?.device_token ? "Save settings" : "Save settings and enroll"}</button></form><button class="button ghost" id="queueButton">View pending queue</button>`; document.getElementById("backButton").addEventListener("click", renderHome); document.getElementById("queueButton").addEventListener("click", renderQueue); document.getElementById("settingsForm").addEventListener("submit", async event => { event.preventDefault(); const values = Object.fromEntries(new FormData(event.target).entries()); enrollmentCode = String(values.enrollmentCode || "").trim(); delete values.enrollmentCode; await write(STORAGE.settings, current => ({...current, ...values})); if (device?.device_token) { notify("Settings saved. Device enrollment remains server-managed."); return; } if (!enrollmentCode) { notify("Enter a single-use enrollment code to register this browser.", true); return; } if (navigator.onLine && values.apiBase) { try { await ensureDevice(enrollmentCode); notify("Settings saved and device enrolled."); renderHome(); } catch (error) { notify(error.message, true); } } else notify("Settings saved. Connect to the network to complete enrollment."); }); };
+    const loadForms = async () => { if (!vault?.isUnlocked() || !vaultState) return; const base = apiBase(); if (!base || !navigator.onLine) return; try { const device = read(STORAGE.device, null); const headers = device?.device_token ? {"X-Device-Token":device.device_token} : {}; const response = await fetch(`${base}/forms`, {headers}); if (response.status === 403 && device?.device_token) { let detail = ""; try { detail = (await response.clone().json()).detail; } catch (_) {} if (detail === reenrollmentDetail) { await quarantineQueueForOwnerReview(); renderHome(); notify("Location ownership changed. Your queued records remain encrypted for review. Request a new enrollment from the current owner.", true); return; } } if (response.status === 401 && device?.device_token) { await write(STORAGE.device, null); await write(STORAGE.forms, []); renderHome(); notify("Device access was revoked. Request a new enrollment code.", true); return; } if (response.ok) { const fetched = (await response.json()).forms || []; await write(STORAGE.forms, fetched); } } catch (_) {} };
 
     const renderVaultGate = async (message = "") => {
       if (!vault || !vaultAdapter) {

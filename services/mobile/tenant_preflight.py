@@ -12,7 +12,6 @@ from uuid import UUID
 
 from services.common.cli import get_connection, print_json, run
 
-
 _INVENTORY_SQL = """
 WITH active_org_relationships AS (
     SELECT member.location_id,
@@ -39,7 +38,35 @@ mobile_devices AS (
            COUNT(*)::int AS device_count,
            COUNT(*) FILTER (
                WHERE device.status = 'active' AND device.revoked_at IS NULL
-           )::int AS active_device_count
+           )::int AS active_device_count,
+           COUNT(*) FILTER (
+               WHERE device.tenant_organization_id IS NOT NULL
+           )::int AS tenant_bound_device_count,
+           COUNT(*) FILTER (
+               WHERE device.tenant_organization_id IS NULL
+           )::int AS tenant_unbound_device_count,
+           COUNT(*) FILTER (
+               WHERE device.status = 'active' AND device.revoked_at IS NULL
+                 AND device.device_token_hash IS NOT NULL
+                 AND device.tenant_organization_id IS NULL
+           )::int AS active_unbound_token_device_count,
+           COUNT(*) FILTER (
+               WHERE device.tenant_organization_id IS NOT NULL
+                 AND NOT EXISTS (
+                     SELECT 1
+                       FROM location AS loc
+                       JOIN location_tenant_owner_verification AS owner
+                         ON owner.location_id = loc.id
+                        AND owner.organization_id = loc.organization_id
+                        AND owner.revoked_at IS NULL
+                       JOIN organization AS tenant
+                         ON tenant.id = owner.organization_id
+                        AND tenant.status = 'active'
+                      WHERE loc.id = device.location_id
+                        AND loc.status = 'active'
+                        AND owner.organization_id = device.tenant_organization_id
+                 )
+           )::int AS owner_mismatch_device_count
       FROM mobile_device AS device
      WHERE device.location_id IS NOT NULL
        AND (:location_id::uuid IS NULL OR device.location_id = :location_id::uuid)
@@ -51,7 +78,35 @@ mobile_enrollments AS (
            COUNT(*) FILTER (
                WHERE enrollment.used_at IS NULL AND enrollment.revoked_at IS NULL
                  AND enrollment.expires_at > NOW()
-           )::int AS pending_enrollment_count
+           )::int AS pending_enrollment_count,
+           COUNT(*) FILTER (
+               WHERE enrollment.tenant_organization_id IS NOT NULL
+           )::int AS tenant_bound_enrollment_count,
+           COUNT(*) FILTER (
+               WHERE enrollment.tenant_organization_id IS NULL
+           )::int AS tenant_unbound_enrollment_count,
+           COUNT(*) FILTER (
+               WHERE enrollment.used_at IS NULL AND enrollment.revoked_at IS NULL
+                 AND enrollment.expires_at > NOW()
+                 AND enrollment.tenant_organization_id IS NULL
+           )::int AS pending_unbound_enrollment_count,
+           COUNT(*) FILTER (
+               WHERE enrollment.tenant_organization_id IS NOT NULL
+                 AND NOT EXISTS (
+                     SELECT 1
+                       FROM location AS loc
+                       JOIN location_tenant_owner_verification AS owner
+                         ON owner.location_id = loc.id
+                        AND owner.organization_id = loc.organization_id
+                        AND owner.revoked_at IS NULL
+                       JOIN organization AS tenant
+                         ON tenant.id = owner.organization_id
+                        AND tenant.status = 'active'
+                      WHERE loc.id = enrollment.location_id
+                        AND loc.status = 'active'
+                        AND owner.organization_id = enrollment.tenant_organization_id
+                 )
+           )::int AS owner_mismatch_enrollment_count
       FROM mobile_device_enrollment AS enrollment
      WHERE (:location_id::uuid IS NULL OR enrollment.location_id = :location_id::uuid)
      GROUP BY enrollment.location_id
@@ -121,8 +176,21 @@ SELECT location.id AS location_id,
            AS owned_primary_organization_ids,
        COALESCE(devices.device_count, 0) AS mobile_device_count,
        COALESCE(devices.active_device_count, 0) AS active_mobile_device_count,
+       COALESCE(devices.tenant_bound_device_count, 0) AS tenant_bound_device_count,
+       COALESCE(devices.tenant_unbound_device_count, 0) AS tenant_unbound_device_count,
+       COALESCE(devices.active_unbound_token_device_count, 0)
+           AS active_unbound_token_device_count,
+       COALESCE(devices.owner_mismatch_device_count, 0) AS owner_mismatch_device_count,
        COALESCE(enrollments.enrollment_count, 0) AS enrollment_count,
        COALESCE(enrollments.pending_enrollment_count, 0) AS pending_enrollment_count,
+       COALESCE(enrollments.tenant_bound_enrollment_count, 0)
+           AS tenant_bound_enrollment_count,
+       COALESCE(enrollments.tenant_unbound_enrollment_count, 0)
+           AS tenant_unbound_enrollment_count,
+       COALESCE(enrollments.pending_unbound_enrollment_count, 0)
+           AS pending_unbound_enrollment_count,
+       COALESCE(enrollments.owner_mismatch_enrollment_count, 0)
+           AS owner_mismatch_enrollment_count,
        COALESCE(collections.collection_count, 0) AS mobile_collection_count,
        COALESCE(collections.ineligible_collection_count, 0)
            AS ineligible_mobile_collection_count,
@@ -153,6 +221,14 @@ SELECT location.id AS location_id,
 _UNLOCATED_SQL = """
 SELECT (SELECT COUNT(*)::int FROM mobile_device WHERE location_id IS NULL)
            AS mobile_device_count,
+       (SELECT COUNT(*)::int FROM mobile_device
+         WHERE location_id IS NULL AND device_token_hash IS NOT NULL
+           AND status = 'active' AND revoked_at IS NULL)
+           AS active_unlocated_token_device_count,
+       (SELECT COUNT(*)::int FROM mobile_device_enrollment
+         WHERE location_id IS NULL AND tenant_organization_id IS NULL AND used_at IS NULL
+           AND revoked_at IS NULL AND expires_at > NOW())
+           AS pending_unlocated_unbound_enrollment_count,
        (SELECT COUNT(*)::int FROM offline_collection WHERE location_id IS NULL)
            AS mobile_collection_count,
        (SELECT COUNT(*)::int FROM report_snapshot WHERE location_id IS NULL)
@@ -177,6 +253,17 @@ _COUNT_FIELDS = (
     "dashboard_dataset_count",
 )
 
+_TENANT_BINDING_COUNT_FIELDS = (
+    "tenant_bound_device_count",
+    "tenant_unbound_device_count",
+    "active_unbound_token_device_count",
+    "owner_mismatch_device_count",
+    "tenant_bound_enrollment_count",
+    "tenant_unbound_enrollment_count",
+    "pending_unbound_enrollment_count",
+    "owner_mismatch_enrollment_count",
+)
+
 _REQUIRED_COLUMNS = (
     ("location", "id"),
     ("location", "status"),
@@ -187,12 +274,20 @@ _REQUIRED_COLUMNS = (
     ("organization_member", "membership_type"),
     ("organization_member", "role"),
     ("mobile_device", "location_id"),
+    ("mobile_device", "device_token_hash"),
     ("mobile_device", "status"),
     ("mobile_device", "revoked_at"),
+    ("mobile_device", "tenant_organization_id"),
     ("mobile_device_enrollment", "location_id"),
+    ("mobile_device_enrollment", "tenant_organization_id"),
     ("mobile_device_enrollment", "used_at"),
     ("mobile_device_enrollment", "revoked_at"),
     ("mobile_device_enrollment", "expires_at"),
+    ("location_tenant_owner_verification", "location_id"),
+    ("location_tenant_owner_verification", "organization_id"),
+    ("location_tenant_owner_verification", "revoked_at"),
+    ("organization", "id"),
+    ("organization", "status"),
     ("offline_collection", "id"),
     ("offline_collection", "location_id"),
     ("v_mobile_collection_use_eligibility", "collection_id"),
@@ -412,6 +507,10 @@ def collect_inventory(location_id: str | None = None) -> dict:
                 "records": {
                     field.removesuffix("_count"): row[field] for field in _COUNT_FIELDS
                 },
+                "mobile_tenant_binding": {
+                    field.removesuffix("_count"): row[field]
+                    for field in _TENANT_BINDING_COUNT_FIELDS
+                },
             }
         )
 
@@ -426,8 +525,21 @@ def collect_inventory(location_id: str | None = None) -> dict:
         )
         for field in _COUNT_FIELDS
     }
+    tenant_binding_totals = {
+        field.removesuffix("_count"): sum(
+            location["mobile_tenant_binding"][field.removesuffix("_count")]
+            for location in locations
+        )
+        for field in _TENANT_BINDING_COUNT_FIELDS
+    }
     unlocated = {
         "mobile_device": int(unlocated_rows[0]["mobile_device_count"]),
+        "active_unlocated_token_device": int(
+            unlocated_rows[0]["active_unlocated_token_device_count"]
+        ),
+        "pending_unlocated_unbound_enrollment": int(
+            unlocated_rows[0]["pending_unlocated_unbound_enrollment_count"]
+        ),
         "mobile_collection": int(unlocated_rows[0]["mobile_collection_count"]),
         "report_snapshot": int(unlocated_rows[0]["report_snapshot_count"]),
         "dashboard_dataset": int(unlocated_rows[0]["dashboard_dataset_count"]),
@@ -450,6 +562,7 @@ def collect_inventory(location_id: str | None = None) -> dict:
             if location["assigned_organization_ref"] is None
         ),
         "record_totals_by_known_relation": totals,
+        "tenant_binding_totals_at_locations": tenant_binding_totals,
         "records_without_location": unlocated,
         "locations": locations,
         "limitations": [

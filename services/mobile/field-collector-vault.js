@@ -42,8 +42,24 @@
         apiBase: typeof settings.apiBase === "string" ? settings.apiBase : "",
         deviceName: typeof settings.deviceName === "string" ? settings.deviceName : "",
         ...(typeof settings.lastSyncAt === "string" ? { lastSyncAt: settings.lastSyncAt } : {}),
+        ...(settings.ownerReenrollmentRequired === true
+          ? { ownerReenrollmentRequired: true }
+          : {}),
       },
     };
+  }
+
+  function quarantineQueueForOwnerReview(queue, previousDeviceId) {
+    return (Array.isArray(queue) ? queue : []).map(item => ({
+      ...item,
+      origin_device_id: item.origin_device_id || previousDeviceId || null,
+      tenant_review_required: true,
+    }));
+  }
+
+  function requiresOwnerReview(item, currentDeviceId) {
+    return item?.tenant_review_required === true
+      || Boolean(item?.origin_device_id && item.origin_device_id !== currentDeviceId);
   }
 
   function clone(value) {
@@ -316,6 +332,8 @@
     createIndexedDbAdapter,
     createStateWriter,
     defaultVaultState,
+    quarantineQueueForOwnerReview,
+    requiresOwnerReview,
     LEGACY_STORAGE_KEYS,
   };
 });

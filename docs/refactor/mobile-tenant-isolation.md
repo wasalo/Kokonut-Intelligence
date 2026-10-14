@@ -96,10 +96,43 @@ checks passed, including owner/shared reads, context-before-query, cleanup,
 same-tenant multi-grant acceptance, cross-tenant denial, and pre-query legacy
 denial
 ([evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
-This covers only these bounded read surfaces; other Gateway routes, background
-workers, Directus, direct database consumers, and RLS remain open. The
-candidate and legacy databases were not changed by these checks. Human
-retention and erasure disposition remain separate open decisions.
+Source now also applies transaction-local context to canonical farm-activity
+intake, list/detail, draft promotion/correction, and lifecycle operations; OIDC
+mobile-device enrollment/revocation; OIDC participant-link creation/revocation;
+and append-only mobile reviewer-note writes. The public API-key enrollment and
+participant endpoints retain their separate Gateway capability checks.
+
+Migration 391 pins each new enrollment code and registered device to the
+location's active verified owner. It deliberately leaves existing rows NULL;
+there is no safe evidence in a legacy device row to infer which owner enrolled
+it. Device-token forms, private-media policy and metadata writes, collection
+sync, and sync-status now set the tenant context in the same transaction as
+their protected query. The context validates the active device, current owner
+verification, and pinned organization, and holds a share lock on the location
+and owner rows until the transaction ends. Owner transfer therefore waits for
+in-flight protected work and makes old-owner devices fail closed afterward.
+An unused enrollment code is also rejected if its pinned owner is no longer
+current.
+
+The browser recognizes the dedicated re-enrollment denial, removes only the
+old device credential and cached forms, and flags the existing encrypted queue
+for owner review. It preserves each queued payload and photo and excludes those
+records from later sync, including after a new owner-approved device enrollment.
+New records collected after that enrollment belong to the new device. Existing
+legacy device rows and pending enrollment codes require fresh enrollment;
+synced server records remain unchanged for reviewer disposition. No ownership
+or collection rows are automatically retagged or deleted.
+
+This covers only the bounded operator surfaces listed above; remaining Gateway
+routes, background workers, Directus, direct database consumers, and RLS remain
+open. The 13 October owner-bound device slice passed 67 focused Python checks,
+two offline-shell Node checks, Ruff, Python syntax, dependency alignment, and
+provider-boundary checks. Migration 391 replayed twice in a disposable
+PostgreSQL 16 database; old rows stayed unbound, owner mismatch inserts and
+binding updates failed, and a former-owner device no longer matched the
+protected-access predicate after transfer. No candidate or legacy database
+was used and migration 391 has not been rolled out. Live-browser acceptance,
+human retention and erasure disposition remain separate open decisions.
 
 ## Ordered implementation and acceptance
 

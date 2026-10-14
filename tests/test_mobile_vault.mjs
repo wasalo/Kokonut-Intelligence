@@ -3,7 +3,14 @@ import { webcrypto } from "node:crypto";
 import { test } from "node:test";
 import vaultModule from "../services/mobile/field-collector-vault.js";
 
-const { EncryptedVault, createIndexedDbAdapter, createStateWriter, defaultVaultState } = vaultModule;
+const {
+  EncryptedVault,
+  createIndexedDbAdapter,
+  createStateWriter,
+  defaultVaultState,
+  quarantineQueueForOwnerReview,
+  requiresOwnerReview,
+} = vaultModule;
 const PASSPHRASE = "field notes stay private";
 
 class MemoryAdapter {
@@ -159,6 +166,42 @@ test("serialized state updates preserve concurrent queue additions", async () =>
     writeState(state => ({ ...state, queue: [...state.queue, "second"] })),
   ]);
   assert.deepEqual(vault.getState().queue, ["first", "second"]);
+});
+
+test("owner transfer quarantines queued records without changing payloads or photos", async () => {
+  const originalQueue = [{
+    client_id: "old-device-record",
+    origin_device_id: null,
+    payload: { observation: "private field note" },
+    offline_photos: [{ name: "soil.jpg", data: "data:image/jpeg;base64,cGhvdG8=" }],
+    photo_refs: ["8aa53daa-c1e9-4be4-b68d-3799eefcf910"],
+  }];
+  const queue = quarantineQueueForOwnerReview(originalQueue, "old-device");
+
+  assert.deepEqual(queue[0].payload, originalQueue[0].payload);
+  assert.deepEqual(queue[0].offline_photos, originalQueue[0].offline_photos);
+  assert.deepEqual(queue[0].photo_refs, originalQueue[0].photo_refs);
+  assert.equal(queue[0].origin_device_id, "old-device");
+  assert.equal(queue[0].tenant_review_required, true);
+  assert.equal(requiresOwnerReview(queue[0], "new-owner-device"), true);
+  assert.equal(requiresOwnerReview({ origin_device_id: "old-device" }, "new-owner-device"), true);
+  assert.equal(requiresOwnerReview({ origin_device_id: "new-owner-device" }, "new-owner-device"), false);
+
+  const adapter = new MemoryAdapter();
+  const vault = makeVault(adapter);
+  await vault.unlock(PASSPHRASE);
+  await vault.saveState({
+    ...defaultVaultState(),
+    device: null,
+    queue,
+    settings: { apiBase: "https://api.example", deviceName: "Field phone", ownerReenrollmentRequired: true },
+  });
+  vault.lock();
+
+  const reopened = makeVault(adapter);
+  await reopened.unlock(PASSPHRASE);
+  assert.deepEqual(reopened.getState().queue, queue);
+  assert.equal(reopened.getState().settings.ownerReenrollmentRequired, true);
 });
 
 test("legacy localStorage data migrates only after encrypted persistence verifies", async () => {

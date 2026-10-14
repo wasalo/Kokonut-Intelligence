@@ -6,6 +6,30 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All named MAN-CAP acceptance checks below remain **not run**; implementation and deployment progress are tracked separately in the new progress column. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links and audit history before/after the provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** commit
+`258e46fa84e66e610f4d1f124a036e1443b7a2cf` is the current PR #68 head. The
+approved platform-integrity suite passed 279 tests, covering migrations,
+Gateway authorization, durable scheduler/event delivery, credits, and advisory
+workflows. The focused reviewer-note service/auth slice also passed 14 service
+and three route tests, including rollback/connection cleanup on tenant denial.
+CI run #295 is pending; Security run #19 passed. Directus parity, device-token
+tenant binding, worker/direct-database isolation, RLS, and the named manual
+acceptance checks remain open; these results do not establish complete
+capability parity.
+
+**13 October 2026 local source update (CAP-053):** migration 391 and the
+working tree now pin new mobile device enrollments to the current verified
+owner. Device forms, media writes, sync, and sync-status validate that identity
+inside their PostgreSQL transaction. After owner transfer the old device is
+denied until re-enrollment; its local encrypted queue is preserved and
+quarantined from upload under a replacement device. Legacy rows remain
+unbound and require re-enrollment. Sixty-seven focused Python checks, two
+offline-shell Node checks, Ruff, Python syntax, dependency alignment, and
+provider-boundary checks passed. A disposable PostgreSQL 16 fixture replayed
+migration 391 twice and checked legacy NULL preservation, wrong-owner rejection,
+binding immutability, and old-owner denial after transfer. Candidate rollout
+and live-browser acceptance remain open; RLS remains disabled.
+
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,
 analytics, process metrics, repository-owned dashboards, and exports; ineligible rows stay visible to

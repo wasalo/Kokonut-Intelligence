@@ -26,6 +26,16 @@ def _private_gateway_audit_spool(monkeypatch, tmp_path):
     )
 
 
+@pytest.fixture(autouse=True)
+def _device_tenant_context_for_route_unit_tests(monkeypatch):
+    """Keep route behavior tests independent of PostgreSQL context resolution."""
+    monkeypatch.setattr(
+        mobile_api,
+        "set_mobile_device_tenant_context",
+        lambda *_args, **_kwargs: None,
+    )
+
+
 def _active_not_required_form_revision():
     return (
         "revision-1",
@@ -94,6 +104,156 @@ def test_media_upload_route_is_public_for_its_own_device_token_auth():
     assert policy["public"] is True
     assert policy["resource"] == "mobile_media"
     assert policy["action"] == "upload"
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "request_kwargs"),
+    [
+        ("get", "/api/mobile/forms", {}),
+        ("get", "/api/mobile/sync/status", {}),
+        (
+            "post",
+            "/api/mobile/sync",
+            {
+                "json": {
+                    "device_id": "device-1",
+                    "collections": [{
+                        "client_id": "client-stale-owner",
+                        "collection_type": "field_note",
+                    }],
+                }
+            },
+        ),
+        (
+            "post",
+            "/api/mobile/media/uploads",
+            {
+                "headers": {
+                    "x-collection-client-id": "client-1",
+                    "x-collection-type": "field_note",
+                    "x-form-id": "field-note",
+                    "x-form-version": "v1",
+                    "content-type": "image/jpeg",
+                },
+                "content": b"\xff\xd8\xff\xdbsynthetic-jpeg",
+            },
+        ),
+    ],
+    ids=("forms", "sync-status", "sync-write", "media-policy"),
+)
+def test_mobile_device_routes_fail_closed_for_a_stale_owner_binding(
+    monkeypatch, method, path, request_kwargs
+):
+    from services.common.tenant_context import TenantContextDenied
+
+    connection = MagicMock()
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", "11111111-1111-4111-8111-111111111111"),
+    )
+
+    def deny_stale_device(*_args, **_kwargs):
+        raise TenantContextDenied("device was enrolled by a former owner")
+
+    monkeypatch.setattr(mobile_api, "set_mobile_device_tenant_context", deny_stale_device)
+    store = MagicMock()
+    monkeypatch.setattr(mobile_api, "get_media_store", lambda: store, raising=False)
+
+    route_kwargs = dict(request_kwargs)
+    headers = {"x-device-token": "opaque-device-token"}
+    headers.update(route_kwargs.pop("headers", {}))
+    with _client(monkeypatch) as client:
+        response = getattr(client, method)(path, headers=headers, **route_kwargs)
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == mobile_api.DEVICE_REENROLLMENT_REQUIRED_DETAIL
+    connection.rollback.assert_called_once()
+    connection.cursor.assert_not_called()
+    store.put_private.assert_not_called()
+
+
+def test_forms_set_mobile_tenant_context_before_query_on_the_same_connection(monkeypatch):
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    cursor.description = []
+    cursor.fetchall.return_value = []
+    events = []
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", "11111111-1111-4111-8111-111111111111"),
+    )
+    monkeypatch.setattr(
+        mobile_api,
+        "set_mobile_device_tenant_context",
+        lambda actual_connection, **scope: events.append(("context", actual_connection, scope)),
+    )
+    cursor.execute.side_effect = lambda sql, params=None: events.append(("query", sql, params))
+
+    with _client(monkeypatch) as client:
+        response = client.get("/api/mobile/forms", headers={"x-device-token": "opaque-device-token"})
+
+    assert response.status_code == 200
+    assert events[0] == (
+        "context",
+        connection,
+        {"device_id": "device-1", "location_id": "11111111-1111-4111-8111-111111111111"},
+    )
+    assert events[1][0] == "query"
+    connection.commit.assert_called_once()
+
+
+def test_media_owner_change_after_object_write_cleans_up_private_blob(monkeypatch):
+    from services.common.tenant_context import TenantContextDenied
+
+    policy_connection = MagicMock()
+    policy_connection.cursor.return_value.fetchone.return_value = _active_not_required_form_revision()
+    metadata_connection = MagicMock()
+    connections = iter((policy_connection, metadata_connection))
+    contexts = []
+    store = MagicMock()
+    monkeypatch.setattr(mobile_api, "get_db", lambda: next(connections))
+    monkeypatch.setattr(
+        mobile_api,
+        "_device_for_token",
+        lambda token: ("device-1", "worker-1", "11111111-1111-4111-8111-111111111111"),
+    )
+    monkeypatch.setattr(mobile_api, "get_media_store", lambda: store, raising=False)
+
+    def transfer_between_stages(connection, **_scope):
+        contexts.append(connection)
+        if connection is metadata_connection:
+            raise TenantContextDenied("owner changed before media metadata commit")
+
+    monkeypatch.setattr(mobile_api, "set_mobile_device_tenant_context", transfer_between_stages)
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            "/api/mobile/media/uploads",
+            headers={
+                "x-device-token": "opaque-device-token",
+                "x-collection-client-id": "client-owner-transfer",
+                "x-collection-type": "field_note",
+                "x-form-id": "field-note",
+                "x-form-version": "v1",
+                "content-type": "image/jpeg",
+            },
+            content=b"\xff\xd8\xff\xdbsynthetic-jpeg",
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == mobile_api.DEVICE_REENROLLMENT_REQUIRED_DETAIL
+    assert contexts == [policy_connection, metadata_connection]
+    store.put_private.assert_called_once()
+    store.delete_private.assert_called_once_with(store.put_private.call_args.args[0])
+    metadata_connection.rollback.assert_called_once()
+    assert not any(
+        "insert into mobile_media_upload" in call.args[0].lower()
+        for call in metadata_connection.cursor.return_value.execute.call_args_list
+    )
 
 
 def test_media_upload_is_device_authenticated_and_stores_private_jpeg(monkeypatch):
@@ -295,6 +455,9 @@ def test_retired_required_media_upload_rejects_withdrawn_consent_before_storage(
         def fetchone(self):
             value, self.one = self.one, None
             return value
+
+        def close(self):
+            pass
 
     connection = MagicMock()
     connection.cursor.return_value = Cursor()
@@ -882,7 +1045,13 @@ def test_existing_device_id_cannot_be_reassigned_by_registration(monkeypatch):
     connection = MagicMock()
     cursor = connection.cursor.return_value
     cursor.fetchone.side_effect = [
-        ("claim-1", "worker-1", "11111111-1111-4111-8111-111111111111"),
+        (
+            "claim-1",
+            "worker-1",
+            "11111111-1111-4111-8111-111111111111",
+            "a0000000-0000-0000-0000-000000000801",
+        ),
+        ("a0000000-0000-0000-0000-000000000801",),
         None,
     ]
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
@@ -902,6 +1071,47 @@ def test_existing_device_id_cannot_be_reassigned_by_registration(monkeypatch):
     assert "ON CONFLICT (device_id) DO UPDATE" not in sql
     connection.commit.assert_not_called()
     connection.rollback.assert_called()
+
+
+@pytest.mark.parametrize(
+    ("enrollment_tenant", "current_tenant", "reads_current_owner"),
+    [
+        (None, None, False),
+        (
+            "a0000000-0000-0000-0000-000000000801",
+            "a0000000-0000-0000-0000-000000000802",
+            True,
+        ),
+    ],
+    ids=("legacy-unbound-code", "former-owner-code"),
+)
+def test_registration_rejects_legacy_or_stale_owner_enrollment(
+    monkeypatch, enrollment_tenant, current_tenant, reads_current_owner
+):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    connection = MagicMock()
+    cursor = connection.cursor.return_value
+    enrollment = ("claim-1", "server-worker", location_id, enrollment_tenant)
+    cursor.fetchone.side_effect = (
+        [enrollment, (current_tenant,)] if reads_current_owner else [enrollment]
+    )
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            "/api/mobile/register",
+            json={"device_id": "browser-reenrollment", "enrollment_code": "E" * 43},
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == mobile_api.DEVICE_REENROLLMENT_REQUIRED_DETAIL
+    assert cursor.execute.call_count == (2 if reads_current_owner else 1)
+    assert connection.rollback.called
+    assert not connection.commit.called
+    assert not any(
+        "insert into mobile_device " in call.args[0].lower()
+        for call in cursor.execute.call_args_list
+    )
 
 
 def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path):
@@ -1088,7 +1298,13 @@ def test_registration_derives_worker_and_location_from_enrollment_claim(monkeypa
     connection = MagicMock()
     cursor = connection.cursor.return_value
     cursor.fetchone.side_effect = [
-        ("claim-1", "server-worker", location_id),
+        (
+            "claim-1",
+            "server-worker",
+            location_id,
+            "a0000000-0000-0000-0000-000000000801",
+        ),
+        ("a0000000-0000-0000-0000-000000000801",),
         ("browser-3",),
     ]
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
@@ -1102,9 +1318,11 @@ def test_registration_derives_worker_and_location_from_enrollment_claim(monkeypa
     assert response.status_code == 200
     assert response.json()["location_id"] == location_id
     assert response.json()["device_token"] != enrollment_code
-    device_insert = cursor.execute.call_args_list[1].args
+    device_insert = cursor.execute.call_args_list[2].args
     assert device_insert[1][6] == "server-worker"
     assert device_insert[1][7] == location_id
+    assert device_insert[1][8] == "a0000000-0000-0000-0000-000000000801"
+    assert "tenant_organization_id" in device_insert[0]
     assert "ON CONFLICT (device_id) DO NOTHING" in device_insert[0]
     connection.commit.assert_called_once()
 

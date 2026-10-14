@@ -71,10 +71,16 @@ mobile-form rows and ten revisions exist without applied seed history and must
 be reconciled before any seed rollout.
 See the [rollout evidence](builds/2026-10-14-recovery/candidate-tenant-transfer-rollout.json).
 
-The workflow does not resolve unassigned/conflicted locations, determine who
-may lawfully transfer land or farms, or change location-bound Field Collector
-device enrollment. Old grants are revoked so pending mobile work cannot gain
-new-owner authority implicitly; any subsequent access requires fresh grants.
-RLS remains disabled until owner mappings, operator affiliations,
-transaction-local context integration, worker scope, and downstream lineage
-are resolved.
+The workflow does not resolve unassigned/conflicted locations or determine who
+may lawfully transfer land or farms. It leaves the historical device and
+enrollment rows intact, but migration 391 binds new enrollments to the verified
+owner and device-token routes require that binding to match the current owner.
+After transfer, old-owner device credentials therefore lose protected access
+until the new owner issues a fresh enrollment and the device registers again.
+Legacy device rows and unused legacy enrollment codes without a tenant binding
+fail closed; they are not automatically attributed to the current owner.
+Pending synced records remain unchanged for reviewer disposition. The browser
+quarantines its encrypted unsynced queue on the dedicated denial and never
+uploads those old records under the replacement device identity. RLS remains
+disabled until owner mappings, operator affiliations, transaction-local
+context integration, worker scope, and downstream lineage are resolved.

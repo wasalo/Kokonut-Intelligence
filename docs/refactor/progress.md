@@ -4171,3 +4171,58 @@ after isolating the mobile API test audit journal under pytest's private
 temporary directory. Ruff and Python syntax checks passed. Candidate and legacy
 databases were not accessed. Real OIDC/browser acceptance, other Gateway and
 worker routes, direct-database boundaries, and RLS remain open.
+
+### Field Collector owner-bound device access — 13 October 2026
+
+Following the repository owner's transfer policy decision, new device
+enrollments and registrations now store the location's verified organization
+owner in additive migration 391. No legacy owner is inferred or backfilled.
+Device-token form reads, upload policy and metadata writes, sync, and sync
+status use `set_mobile_device_tenant_context` in their protected database
+transaction. It validates the pinned owner against the active verified owner
+and holds row locks until transaction end, so a transfer cannot race past
+authorization. Stale enrollment codes and old-owner devices fail closed.
+
+The Field Collector detects the dedicated owner-change response, clears only
+the obsolete device token and cached forms, and marks existing encrypted queue
+items for owner review. Those payloads and photos remain in the local vault
+and are excluded from sync after a replacement device enrolls; newly captured
+records use the new device identity. Already-synced records are not rewritten.
+The ownership preflight requires the migration's two new tenant columns and
+reports unbound, active-token, pending-enrollment, and stale-owner counts.
+
+After the repository owner approved focused checks, 67 Python checks passed
+across tenant-context setup, mobile API authorization, registration, media
+cleanup, vault persistence, and preflight inventory. The two offline-shell Node
+checks passed. Ruff, Python syntax compilation, requirement-group alignment,
+provider-boundary checks, and `git diff --check` passed. A disposable PostgreSQL
+16 database applied migration 391 twice; legacy rows remained NULL, wrong-owner
+device and enrollment inserts were rejected, owner bindings were immutable,
+and the former owner's device stopped matching the protected-access predicate
+after transfer. A fresh owner-bound device insert succeeded. The disposable
+container was removed. No candidate or legacy database was accessed.
+
+Migration 391 has not been applied to the candidate, and live-browser
+acceptance remains open. Rollback must retain migration 391's additive columns
+and keep mobile ingress disabled until an owner-aware compatible image is
+restored; reverting only the app would restore location-only access following a
+completed transfer.
+
+### Pushed commit 258e46f platform-integrity verification — 13 October 2026
+
+Before the local owner-bound device slice, commit
+`258e46fa84e66e610f4d1f124a036e1443b7a2cf` was pushed to PR #68. The
+approved focused platform-integrity suite passed all 279 tests across
+migrations, Gateway auth, durable scheduler/event workers, credit custody, and
+advisory workflows. The reviewer-note slice passed 14 mobile-review service
+tests and three route authorization tests; tenant-scope denial rolls back and
+closes the write transaction before any INSERT. Ruff and `git diff --check`
+passed for that slice. No candidate or legacy database was used.
+
+GitHub CI run #295 is pending on the pushed head; Security run #19 passed.
+At that pushed revision, OIDC operator APIs set tenant context in their
+service transactions, while device-token APIs lacked owner binding. The
+repository owner has since approved the re-enrollment rule, and its local
+implementation is documented above. The Directus runtime parity gate remains
+partial: the archived schema lacks the legacy `directus_users.location_id`
+field referenced by its policies.

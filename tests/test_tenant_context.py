@@ -7,9 +7,11 @@ from contextlib import contextmanager
 import pytest
 
 from services.common.tenant_context import (
+    MobileDeviceTenantContext,
     OperatorTenantContext,
     TenantContextDenied,
     clear_operator_tenant_context,
+    set_mobile_device_tenant_context,
     set_operator_tenant_context,
 )
 
@@ -222,3 +224,68 @@ def test_autocommit_connection_is_rejected_before_setting_context():
         clear_operator_tenant_context(connection)
 
     assert connection.calls == []
+
+
+def test_sets_mobile_context_only_from_current_verified_owner_transaction():
+    connection = FakeConnection((TENANT_ID, LOCATION_ID, "device-row-1"))
+
+    context = set_mobile_device_tenant_context(
+        connection,
+        device_id="field-device-1",
+        location_id=LOCATION_ID,
+    )
+
+    assert context == MobileDeviceTenantContext(TENANT_ID, LOCATION_ID, "device-row-1")
+    assert len(connection.calls) == 3
+    assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
+    validation_sql, validation_params = connection.calls[1]
+    assert "device.tenant_organization_id = loc.organization_id" in validation_sql
+    assert "owner.revoked_at IS NULL" in validation_sql
+    assert "tenant.status = 'active'" in validation_sql
+    assert "FOR SHARE OF device, loc, owner, tenant" in validation_sql
+    assert validation_params == ("field-device-1", LOCATION_ID)
+    context_sql, context_params = connection.calls[2]
+    assert "set_config(%s, %s, TRUE)" in context_sql
+    assert context_params == (
+        "kokonut.tenant_id", TENANT_ID,
+        "kokonut.location_id", LOCATION_ID,
+        "kokonut.actor_id", "device-row-1",
+        "kokonut.actor_type", "mobile_device",
+    )
+
+
+def test_stale_or_legacy_mobile_device_is_denied_after_context_clear():
+    connection = FakeConnection(scope_row=None)
+
+    with pytest.raises(TenantContextDenied, match="current verified location owner"):
+        set_mobile_device_tenant_context(
+            connection,
+            device_id="former-owner-device",
+            location_id=LOCATION_ID,
+        )
+
+    assert len(connection.calls) == 2
+    assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
+    assert "FOR SHARE OF device, loc, owner, tenant" in connection.calls[1][0]
+    assert "set_config(%s, %s, TRUE)" not in connection.calls[1][0]
+
+
+def test_mobile_context_requires_transaction_and_clears_before_input_validation():
+    autocommit = FakeConnection(autocommit=True)
+    with pytest.raises(ValueError, match="non-autocommit transaction"):
+        set_mobile_device_tenant_context(
+            autocommit,
+            device_id="field-device-1",
+            location_id=LOCATION_ID,
+        )
+    assert autocommit.calls == []
+
+    invalid = FakeConnection((TENANT_ID, LOCATION_ID, "device-row-1"))
+    with pytest.raises(ValueError, match="device-id must be a non-empty"):
+        set_mobile_device_tenant_context(
+            invalid,
+            device_id=" ",
+            location_id=LOCATION_ID,
+        )
+    assert len(invalid.calls) == 1
+    assert "set_config(%s, '', TRUE)" in invalid.calls[0][0]

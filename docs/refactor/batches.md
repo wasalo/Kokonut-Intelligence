@@ -125,7 +125,7 @@ these new tags are build candidates only.
 - [x] Run the focused migration suite after the transaction change: 17 passed; statically preflight all 488 schema and seed sources for wrapper compatibility.
 - [x] Review all 25 pending migrations in order and apply them through the transactional runner to a separate network-isolated clone; verify zero pending, expected defaults/empty optional tables, and unchanged original-column fingerprints for 16 populated tables. The retained archived clone remains unchanged at 25 pending ([review](pending-migration-compatibility-review.md); [replay evidence](builds/2026-10-11-recovery/application-migration-populated-clone-replay.json); [fingerprints](builds/2026-10-11-recovery/application-migration-review-fingerprints.json)).
 - [x] Configure optional Metabase against the reviewed views, build Kokonut-specific cards, and compare card outputs to independent/native reference fixtures before profile promotion. Batch 4e completed source isolation, three first-party cards, populated-fixture output parity, and encrypted metadata restore ([reporting contract](metabase-reporting-contract.md); [card parity](builds/2026-10-11-recovery/metabase-card-output-parity.json); [Batch 4e](batches.md#batch-4e--kokonut-source-registration-and-card-parity-phase-3)). The candidate remains empty and optional; broader analytics and MAN-CAP-007 acceptance remain open.
-- [ ] Complete remaining provider recovery and broader event-handler/platform-integrity acceptance. The repository's focused eight-suite source check now passes 279 tests; its Gateway tests use a private temporary audit journal on the host. Live provider state, external delivery, and broader runtime recovery remain open.
+- [ ] Complete remaining provider recovery and broader event-handler/platform-integrity acceptance. The approved eight-suite source check passed all 279 tests against pushed commit `258e46f`; its Gateway tests use a private temporary audit journal on the host. Live provider state, external delivery, and broader runtime recovery remain open.
 - [x] Retain and compare a local development mirror (user-selected scope); defer independent R2 production backup to Batch 6.
 
 Preparation evidence: [recovery record](recovery-preparation.md). Batch 2 remains
@@ -601,6 +601,20 @@ reporting views.
   enrollment handler remains on its existing Gateway authorization path.
   Ten focused operator-route tests and the public enrollment authorization
   test pass; Ruff and syntax checks pass. No database was accessed.
+- [x] Pin new mobile enrollment codes and devices to the verified owner and
+  require device-token forms, media uploads, sync, and sync-status to validate
+  that binding in-transaction. Migration 391 leaves legacy device/enrollment
+  tenant IDs NULL instead of inferring ownership. Owner transfer serializes
+  against protected device transactions; old devices then receive a specific
+  re-enrollment denial. The browser preserves and quarantines its encrypted
+  queue for review, and will not upload those records under a replacement
+  device identity. The focused Python suite passed 67 checks; two offline-shell
+  Node checks passed; Ruff, Python syntax, dependency-group alignment, and
+  provider-boundary checks passed. A disposable PostgreSQL 16 database applied
+  migration 391 twice, preserved legacy NULL bindings, rejected wrong-owner
+  inserts and binding edits, denied the former owner's device after transfer,
+  and accepted a device re-enrolled by the new owner. Candidate and legacy
+  databases were not accessed. Live browser and candidate rollout remain open.
 - [x] Bind OIDC participant-reference creation and revocation to tenant
   context before the party lookup or link mutation. The new same-origin
   `/operator/api/mobile/.../participants` routes use the OIDC cookie path,
@@ -706,7 +720,7 @@ capability impact. Rollback: restore adapter selection and retained legacy inter
 - [x] Rerun the snapshot-aware PostGIS build and locked inventory comparison on both architectures and retain the passing result ([CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973): 229 AMD64 and 228 ARM64 packages, with the single documented architecture-specific difference).
 - [ ] With verification authorization, exercise ARM bootstrap/restore and a real 4 GB Pi/SSD.
 - [ ] With verification authorization, complete 24-hour recovery and scale concurrency checks.
-- [ ] Review capability matrix, submit branch PR and obtain passing release CI for the current local head. CI run 291 and Security run 15 passed on PR #68 remote head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; 17 local commits will be ahead of that remote head after this batch commit, including tenant ownership, lineage, grant-foundation, database-trigger, downstream eligibility, and migration-388/389 disposable acceptance work. Those local changes still need CI after the next batch push. Current local source checks pass: release-input lock matches, provider boundaries pass for 17 vendor import sites, and 12 dependency groups/32 requirements align; no OCI archives were supplied to the local release checker.
+- [ ] Review capability matrix and obtain passing release CI for the current branch head. PR #68 now includes commit `258e46fa84e66e610f4d1f124a036e1443b7a2cf`; CI run [#295](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38499050577) is pending and Security run [#19](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38499050585) passed. The approved eight-suite platform-integrity run passed 279 tests on that head. Current branch-head CI is still required; the older run 287 does not cover these changes.
 - [ ] Execute a reviewed cutover and retire dependencies only after their gates close.
 
 Gate: all required deployment profiles and selected capability acceptance criteria
