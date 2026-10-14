@@ -19,11 +19,12 @@ alongside it. Remaining implementation is ordered in the
 [code-first execution plan](code-first-execution-plan.md); owner decisions and
 external inputs are collected in [Open Follow Ups](open-follow-ups.md).
 
-The latest local slice, not yet pushed, makes event-driven cache invalidation
-require a valid location UUID instead of allowing a missing scope to invalidate
-every location. It passes 59 focused cache, architecture, and event-delivery
-tests plus Ruff and syntax checks. The shared worker database identity remains
-open; see the worker call-site audit.
+Current local work, not yet pushed, includes the event-driven cache invalidation
+scope guard and persistent native public API SDK parity tests. The cache change
+passes 59 focused cache, architecture, and event-delivery tests. The SDK
+regression suites pass 6 Python and 6 TypeScript tests, plus the TypeScript
+build and Ruff; both use isolated local/fake adapters. The shared worker
+database identity remains open; see the worker call-site audit.
 
 The prescribed platform-integrity suite passed 290 tests on local commit
 `238e2ef`, including the tenant-bound Data Stream route regression. The earlier
@@ -4738,6 +4739,22 @@ the app build architecture. The portability manifest now passes the selected
 platform through `build.platforms` as well, and its focused Compose contract
 check passed. Full evidence, image IDs, limits, and restoration fingerprints:
 [arm64-qemu-runtime-acceptance.json](builds/2026-10-14-recovery/arm64-qemu-runtime-acceptance.json).
+
+### Phase 7 persistent native public API SDK parity — 14 October 2026
+
+Added durable offline contract tests for both native public API clients. The
+Python and TypeScript suites each exercise location list/detail, metric summary,
+published CRISP assessment, and location summary through injected fake
+transports. They assert the shared operation paths, strict escaping of special
+path characters, `Accept` and API-key headers, representative typed payloads,
+and matching HTTP, invalid-JSON, and invalid-envelope errors. No live Gateway
+request is made.
+
+The focused Python suite passed **6 tests**; the focused Vitest suite passed
+**6 tests**; the JavaScript SDK TypeScript build and Ruff passed. The tests add
+regression protection for client behavior only: live Gateway route/auth,
+tenant-scope, Directus, and broader SDK parity remain open. Capability statuses
+and MAN-CAP acceptance counts do not change. See the [machine record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
 
 ### Gateway Data Stream write tenant boundary — 14 October 2026
 

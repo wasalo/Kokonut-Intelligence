@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-14",
+  "scope": "Offline regression tests for the native public API Python and TypeScript SDK clients",
+  "network_calls": 0,
+  "operations": [
+    "listPublicLocationsV1",
+    "getPublicLocationV1",
+    "getPublicMetricSummaryV1",
+    "getPublicCrispAssessmentV1",
+    "getPublicLocationSummaryV1"
+  ],
+  "assertions": [
+    "operation paths match the generated OpenAPI contract",
+    "path parameters use strict URL-component escaping",
+    "Accept and configured API-key headers are sent consistently",
+    "representative response payloads retain the documented fields and types",
+    "HTTP errors, invalid JSON, and invalid response envelopes are normalized"
+  ],
+  "results": {
+    "python": {
+      "command": ".venv/bin/python -m pytest tests/test_public_api_sdk.py -q",
+      "passed": 6
+    },
+    "typescript": {
+      "command": "npm test -- --run src/__tests__/public-api.test.ts",
+      "passed": 6
+    },
+    "typescript_build": {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    "ruff": {
+      "command": ".venv/bin/ruff check tests/test_public_api_sdk.py",
+      "result": "passed"
+    }
+  },
+  "limitations": [
+    "does not exercise live Gateway routes or route authorization",
+    "does not certify tenant-scope or Directus parity",
+    "does not certify broader SDK release parity or publication"
+  ],
+  "candidate_or_legacy_database_touched": false
+}

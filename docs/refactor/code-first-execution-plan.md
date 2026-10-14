@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 297 checked and 20 open items (317 total).
+- The execution checklist has 298 checked and 20 open items (318 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -138,6 +138,12 @@ make a disabled-provider response explicit.
 same allow/deny decisions, schema, and error behavior across each supported
 transport. Live identity-provider login and delivery of enrollment codes stay
 under OFU-07 and OFU-10.
+
+**Progress:** the five generated native v1 reads now have durable Python and
+TypeScript fake-transport regression tests for method/path parity, encoded path
+segments, API-key/accept headers, typed payloads, and normalized failure cases.
+Those checks passed offline. Gateway route/auth and tenant-scope parity remain
+open; see the [acceptance record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
 
 ### Batch D — Complete code-verifiable capability slices and reporting
 

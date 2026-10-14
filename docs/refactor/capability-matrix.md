@@ -433,6 +433,9 @@ artifact also imported from an extracted tarball; both clients instantiated and
 the HTTP guard recorded zero calls. An offline fake-adapter parity slice now
 covers the five generated v1 reads and Directus pagination across both SDKs,
 including route encoding, headers, response values and error handling. This
+slice is now locked by persistent Python and TypeScript tests (6 passing in each
+suite), including typed response payloads and stable malformed-response errors.
+The fake transports make no network calls. This
 partial evidence applies to CAP-001, CAP-007, CAP-014 and the adjacent CAP-031
 public summary slice; live route/auth, tenant scope and broader SDK parity remain
 unassessed. The 6 D / 4 P / 56 B / 0 accepted counts do not change.
