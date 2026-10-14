@@ -38,8 +38,13 @@ definitions or three report snapshots, so those records remain unassigned
 The clean full-schema replay of all 380 ordered migrations has passed,
 including the 384–385–389 trigger stack
 ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
-Candidate rollout and focused acceptance for the migration-390 transfer
-workflow, worker isolation, RLS, and MAN-CAP-001 / MAN-CAP-053 remain open.
+Migration 390's separate disposable PostgreSQL 16 acceptance has now passed:
+request and independent approval, stale/conflicting/unverified ownership
+rejection, cancellation, rollback, grant/share revocation, regrant isolation,
+append-only audit history, and idempotent replay all passed
+([evidence](builds/2026-10-13-recovery/tenant-owner-transfer-disposable.json)).
+Candidate rollout, worker isolation, RLS, and MAN-CAP-001 / MAN-CAP-053 remain
+open.
 This mapping does not establish user access or end-to-end tenant isolation.
 
 The tenant-aware source foundation is now present in migrations 388–389:
@@ -53,13 +58,17 @@ Legacy NULL-tenant grants remain compatible and unbackfilled. The operator CLI
 membership/share lifecycle and in-place legacy owner-grant conversion passed
 against disposable migrations 387–389
 ([evidence](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json)). A
+separate migration-390 CLI/database acceptance passed its ten transfer,
+authorization, rollback, cancellation, revocation, audit immutability, and
+replay checks with synthetic records only
+([evidence](builds/2026-10-13-recovery/tenant-owner-transfer-disposable.json)). A
 clean full-schema replay then validated and applied all 380 ordered migrations
 with zero pending or failed, including the combined 384–385–389 trigger stack
 (11 registered activity/workflow triggers); the candidate remained healthy and
 untouched ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
-This was not a populated/archive or pilot-seed replay. Candidate rollout and focused acceptance for the migration-390 transfer
-workflow, worker/direct-database isolation, RLS, and MAN-CAP-001 / MAN-CAP-053
-remain open.
+This was not a populated/archive or pilot-seed replay. Candidate rollout,
+worker/direct-database isolation, RLS, and MAN-CAP-001 / MAN-CAP-053 remain
+open.
 
 The Directus source inventory and isolated runtime probe map the CAP-001/CAP-053
 boundary, but do not establish API parity. The archived `directus_users` table

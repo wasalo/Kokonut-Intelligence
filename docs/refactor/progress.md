@@ -4030,6 +4030,29 @@ cancel them with a reason. Conflicted/unassigned ownership is rejected. The
 [transfer contract](tenant-owner-transfer-contract.md) records that this is a
 platform tenant assignment, not legal land-title evidence.
 
-Ruff and Python syntax checks pass for the changed CLI. Focused disposable
-PostgreSQL acceptance and candidate rollout have not been performed; migration
-390 remains source-only.
+Ruff and Python syntax checks pass for the changed CLI. At this source-only
+checkpoint, focused disposable PostgreSQL acceptance and candidate rollout were
+still pending; acceptance results are recorded in the following entry.
+
+### Migration 390 disposable transfer acceptance — 13 October 2026
+
+Ran the approved acceptance against PostgreSQL 16 using synthetic organizations,
+operators, grants, shares, locations, and a farm relationship. The actual
+ordered migrations 387–390 applied successfully. All ten checks passed:
+operator history listing; pending-request access preservation; self-approval
+and non-admin rejection; stale ownership snapshot rejection and cancellation;
+conflicting and unverified owner rejection; transaction rollback after an
+injected failure; transfer of the tenant and owned-primary farm relationship;
+revocation of owner, partner, and legacy NULL-tenant grants/shares; post-transfer
+access only after a separate tenant-qualified grant; immutable request history;
+and idempotent migration-390 replay.
+
+The PostgreSQL port was bound to loopback. Docker bridge egress was available,
+but the check made no external requests. The repository's encrypted secrets
+were not read; CLI source ran from a temporary copy with synthetic database
+credentials. The database container, named network, and temporary copy were
+removed. Neither the local candidate nor legacy database was accessed. This
+does not validate archive/pilot ownership mappings, legal title, RLS, worker
+isolation, or candidate rollout. Migration 390 remains source-only pending the
+separately gated candidate rollout. Evidence:
+[`tenant-owner-transfer-disposable.json`](builds/2026-10-13-recovery/tenant-owner-transfer-disposable.json).

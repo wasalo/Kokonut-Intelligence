@@ -537,10 +537,17 @@ reporting views.
   transfer request/accept/cancel workflow and local operator CLI. Acceptance
   revokes existing shares and all active location grants, including legacy
   NULL-tenant grants; see the [transfer contract](tenant-owner-transfer-contract.md).
-- [ ] Run focused disposable PostgreSQL acceptance for transfer request,
+- [x] Run focused disposable PostgreSQL acceptance for transfer request,
   independent approval, stale/conflicting owner rejection, atomic owner-link
   change, all-grant/share revocation, cancellation, replay, and rollback before
-  considering a candidate rollout.
+  considering a candidate rollout. All ten CLI/SQL checks passed against the
+  actual migrations 387–390 on synthetic PostgreSQL 16; the candidate and
+  legacy databases were untouched, and the loopback-only disposable database,
+  bridge, and temporary source copy were removed
+  ([evidence](builds/2026-10-13-recovery/tenant-owner-transfer-disposable.json)).
+- [ ] Perform migration 390's separately gated candidate rollout after a fresh
+  encrypted checkpoint; verify ordered migration status, service health, and
+  protected routes before accepting the candidate state.
 - [ ] Reconcile other locations and legacy operator grants, add transaction-
   local context, and establish least-privilege worker/direct-database
   boundaries before RLS.
