@@ -1,0 +1,48 @@
+{
+  "result": "passed",
+  "checked_at": "2026-10-14 00:19:40 UTC",
+  "acceptance": "full current ordered PostgreSQL schema replay",
+  "compose_project": "kokonut-kernel-tenant-fullreplay4-20261014",
+  "database_image": "postgis/postgis:16-3.4",
+  "network": "dedicated internal Compose network; no ports published",
+  "schema_sources_validated": 380,
+  "schema_migrations": {
+    "applied": 380,
+    "pending": 0,
+    "failed": 0,
+    "latest": "schema:389_tenant_aware_field_collector_write_guards.sql"
+  },
+  "trigger_stack": {
+    "migrations": [
+      "384_farm_activity_lifecycle_guards.sql",
+      "385_farm_activity_draft_edit_events.sql",
+      "389_tenant_aware_field_collector_write_guards.sql"
+    ],
+    "registered_trigger_count": 11,
+    "registered_triggers": [
+      "farm_activity:trg_guard_farm_activity_field_collector_insert:guard_farm_activity_field_collector_insert",
+      "farm_activity:trg_guard_farm_activity_field_collector_update:guard_farm_activity_field_collector_update",
+      "farm_activity:trg_guard_farm_activity_native_draft_edit:guard_farm_activity_native_draft_edit",
+      "farm_activity:trg_guard_farm_activity_workflow_status_update:guard_farm_activity_workflow_status_update",
+      "farm_activity:trg_guard_tenant_scope_field_collector_activity_insert:guard_tenant_scope_field_collector_activity_insert",
+      "farm_activity:trg_guard_tenant_scope_field_collector_activity_update:guard_tenant_scope_field_collector_activity_update",
+      "farm_activity:trg_record_farm_activity_native_draft_edit:record_farm_activity_native_draft_edit",
+      "farm_activity:trg_record_farm_activity_workflow_transition:record_farm_activity_workflow_transition",
+      "farm_activity_workflow_event:trg_guard_farm_activity_draft_edit_event_insert:guard_farm_activity_draft_edit_event_insert",
+      "farm_activity_workflow_event:trg_guard_farm_activity_workflow_event_insert:guard_farm_activity_workflow_event_insert",
+      "farm_activity_workflow_event:trg_guard_tenant_scope_field_collector_workflow_event:guard_tenant_scope_field_collector_workflow_event"
+    ]
+  },
+  "candidate": {
+    "database_touched": false,
+    "database_health_after_replay": "healthy",
+    "app_health_after_replay": "healthy"
+  },
+  "legacy_database_touched": false,
+  "cleanup": {
+    "disposable_container_removed": true,
+    "internal_network_removed": true,
+    "data_volume_removed": true
+  },
+  "scope_limit": "Clean-bootstrap full schema replay; no archived data or curated/pilot seeds were included. Trigger behavior was separately exercised by the focused migrations 387-389 acceptance."
+}

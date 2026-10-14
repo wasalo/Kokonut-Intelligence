@@ -105,9 +105,13 @@ exercises idempotent membership/share granting, role-change refusal until
 revocation, owner-only share controls, partner-scope denial and enablement,
 dependent grant revocation, and in-place conversion of an owner NULL-tenant
 grant. See the [CLI acceptance evidence](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
-Migration 388 is not rolled out to the candidate. Full replay with the 384–385
-trigger stack, audited ownership transfers, transaction-local context,
-direct-database isolation, and RLS remain open.
+The clean full-schema replay passed all 380 ordered migrations with zero
+pending or failed, including the combined 384–385–389 trigger stack; all 11
+activity/workflow triggers were registered and the candidate remained healthy
+and untouched ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
+This replay did not include archived data or pilot seeds. Migration 388 is not
+rolled out to the candidate. Audited ownership transfers, transaction-local
+context, direct-database isolation, and RLS remain open.
 
 The browser session response includes only the signed-in operator's active
 grant tuples so the page can offer assigned locations. The report review grant

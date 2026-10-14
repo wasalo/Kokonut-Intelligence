@@ -3992,11 +3992,25 @@ the CLI; its database adapter returns named mappings. Ruff 0.15.22 and Python
 syntax checks pass. Sanitized evidence is in
 [`tenant-grants-cli-disposable.json`](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
 
-The database used a dedicated disposable Docker bridge with a loopback-only
-published port and synthetic rows; the candidate and legacy databases were
-untouched, and the temporary database/network were removed. This remains a
-minimum compatible schema check: the full repository migration chain and
-interaction with migrations 384–385 are not yet exercised, and migration 388
-has not been rolled out to the candidate. Transfer controls, operator
-affiliation reconciliation, transaction-local tenant context, direct-database
-isolation, and RLS remain open.
+The CLI run used a minimum compatible schema on a disposable Docker bridge;
+the candidate and legacy databases were untouched, and its temporary database
+and network were removed. It did not itself exercise the full migration chain
+or migrations 384–385. A separate clean full-schema replay subsequently passed
+and is recorded below. Migration 388 has not been rolled out to the candidate.
+Transfer controls, operator affiliation reconciliation, transaction-local
+tenant context, direct-database isolation, and RLS remain open.
+
+### Tenant grants full ordered schema replay — 13 October 2026
+
+Closed the clean-bootstrap replay gate for the tenant-aware grant slice. All
+380 migration source files validated and applied in order to disposable
+PostGIS 16 with zero pending or failed. The catalog confirmed 11 registered
+activity/workflow triggers across migrations 384, 385, and 389. Candidate app
+and database health remained good; the candidate and legacy databases were not
+modified. The disposable database, internal network, and volume were removed.
+This did not include archived data or curated/pilot seeds, so populated replay
+and candidate rollout remain separate gates. Evidence:
+[`tenant-grants-full-schema-replay.json`](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json).
+
+Ruff 0.15.22 is available in `.venv`; `pip check` reports no broken
+requirements and the repository dependency-group alignment check passes.

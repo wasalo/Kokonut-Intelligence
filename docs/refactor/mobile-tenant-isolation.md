@@ -119,8 +119,12 @@ verification:
    migrations 387–389, including idempotent replay of 388–389 and positive and
    negative Field Collector trigger cases. A second disposable run exercised
    CLI membership/share lifecycle, dependent revocation, and legacy-grant
-   conversion. Full ordered replay with the 384–385 trigger stack remains open
-   before any candidate rollout or RLS.
+   conversion. A separate clean full-schema replay applied all 380 ordered
+   migrations with zero pending or failed, including the combined 384–385–389
+   trigger stack and 11 registered activity/workflow triggers
+   ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
+   The replay excluded archived data and pilot seeds; candidate rollout remains
+   separately gated, and RLS is not enabled.
 4. Add transaction-local context to each service/worker connection path, then
    add additive RLS policies and indexes through new ordered migrations. Keep
    existing migrations immutable.
@@ -174,10 +178,12 @@ and dashboard rows remain unassigned after a read-only lineage review found no
 location or confirmed-tenant reference that establishes their owner. This
 review covers the 38 unlocated dashboard definitions and three unlocated draft
 snapshots on the retained archive clone; it does not claim complete downstream
-lineage. Least-privilege worker behavior, audited transfer semantics, full
-migration replay, and candidate rollout remain open. The operator CLI lifecycle
-and legacy-grant conversion passed separate disposable acceptance; RLS is not
-enabled by this ownership reconciliation ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
+lineage. The clean-schema replay of all 380 migrations, including the
+384–385–389 trigger stack, has now passed; this did not include archived data
+or pilot seeds. Candidate rollout, least-privilege worker behavior, and audited
+transfer semantics remain open. The operator CLI lifecycle and legacy-grant
+conversion passed separate disposable acceptance; RLS is not enabled by this
+ownership reconciliation ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json); [replay evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
 
 ## Confirmed seed-location owner mapping — 13 October 2026
 
@@ -215,9 +221,10 @@ The migration does not infer operator affiliations from old location grants.
 Legacy NULL-tenant grants continue to use the existing explicit
 location-scoped contract until each identity is reconciled. Tenant grants are
 not a claim of row-level isolation: transaction-local context, worker scoping,
-transfer workflow, direct database privilege boundaries, full ordered replay,
-and candidate rollout remain open. The operator CLI lifecycle and
-legacy-grant conversion passed separate disposable acceptance. Focused
+transfer workflow, and direct database privilege boundaries remain open.
+Clean full ordered replay has passed, but candidate rollout remains separately
+gated. The operator CLI lifecycle and legacy-grant conversion passed separate
+disposable acceptance. Focused
 predicate and trigger acceptance has passed on a minimal
 compatible disposable PostgreSQL schema. RLS remains disabled.
 
@@ -243,10 +250,15 @@ records outside the targeted form identity remained unaffected. Sanitized
 evidence is in
 [`tenant-grants-migrations-disposable.json`](builds/2026-10-13-recovery/tenant-grants-migrations-disposable.json).
 
-This uses a minimal compatible schema. It does not replay the full repository
-migration chain or test interaction with the existing 384–385 triggers. A
-separate run exercised the actual operator CLI membership/share lifecycle and
-legacy-grant conversion against the same disposable migrations; see
+The authorization and CLI behavior runs used a minimal compatible schema.
+A separate clean-bootstrap replay then applied the full ordered repository
+chain: all 380 migrations succeeded with zero pending or failed, and the
+384–385–389 trigger stack registered all 11 expected activity/workflow
+triggers. The candidate remained healthy and untouched; the disposable
+container, network, and volume were removed. This does not verify populated
+archive data or pilot seeds. See
+[`tenant-grants-full-schema-replay.json`](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)
+and the separate operator CLI evidence
 [`tenant-grants-cli-disposable.json`](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
-Candidate rollout, transaction-local tenant context, arbitrary direct-SQL
-isolation, and RLS remain open. No candidate database was changed.
+Candidate rollout, transfer controls, transaction-local tenant context,
+arbitrary direct-SQL isolation, and RLS remain open.

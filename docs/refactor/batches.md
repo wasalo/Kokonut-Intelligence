@@ -526,8 +526,13 @@ reporting views.
   conversion against disposable PostgreSQL migrations 387–389
   ([evidence](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json)).
   Ruff and Python syntax checks pass.
-- [ ] Replay migrations 387–389 against the complete earlier 384–385 trigger
-  stack or full ordered schema before considering a candidate rollout.
+- [x] Replay the full ordered schema after migrations 387–389. All 380 source
+  migrations validated and applied with zero pending or failed; migrations
+  384, 385, and 389 coexist with 11 registered activity/workflow triggers.
+  Candidate database and app remained healthy and untouched; the disposable
+  database, internal network, and volume were removed
+  ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
+  This was a clean-schema replay, not a populated/archive or pilot-seed replay.
 - [ ] Define and implement audited owner-transfer controls, reconcile other
   locations and legacy operator grants, add transaction-local context, and
   establish least-privilege worker/direct-database boundaries before RLS.
