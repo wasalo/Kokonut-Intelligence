@@ -84,15 +84,22 @@ verification:
   conflicting locations and records have a reviewed disposition. There is no
   automatic default tenant and no broad backfill from `organization_member`.
 
-The first source integration is limited to the optional Gateway report-review
-queue and detail reads. Both set tenant context and execute their existing
-location/grant-filtered query in the same read-only transaction. The routes
-deny legacy NULL-tenant grants until an operator affiliation and tenant grant
-are provisioned. Seventeen disposable PostgreSQL acceptance checks and two
-focused Gateway HTTP denial checks passed, including owner/share reads and
-transaction cleanup ([evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
-This does not cover other Gateway routes, background workers, Directus, or
-direct database consumers and does not enable RLS.
+The first source integrations cover the optional Gateway report-review and
+Field Collector review queue/detail reads. Each validates a tenant-qualified
+grant and sets transaction-local context on the same connection and read-only
+transaction as the protected query. The content-free disposition inventory
+validates its retention and review grants together and rejects them if they
+resolve to different tenants. Legacy NULL-tenant grants receive HTTP 403 until
+operator affiliation and tenant grants are provisioned. Twenty-two synthetic
+disposable PostgreSQL checks and 31 focused context, mobile service, and route
+checks passed, including owner/shared reads, context-before-query, cleanup,
+same-tenant multi-grant acceptance, cross-tenant denial, and pre-query legacy
+denial
+([evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
+This covers only these bounded read surfaces; other Gateway routes, background
+workers, Directus, direct database consumers, and RLS remain open. The
+candidate and legacy databases were not changed by these checks. Human
+retention and erasure disposition remain separate open decisions.
 
 ## Ordered implementation and acceptance
 

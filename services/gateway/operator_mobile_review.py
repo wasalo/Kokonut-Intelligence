@@ -7,6 +7,8 @@ from functools import partial
 from typing import Callable
 from uuid import UUID
 
+from services.common.tenant_context import set_operator_tenant_context
+
 
 class MobileCollectionPayloadTooLarge(ValueError):
     """Raised when a collection exceeds the browser review response bound."""
@@ -36,11 +38,31 @@ def _normalize_ids(operator_id: str, location_id: str) -> tuple[str, str]:
         raise ValueError("Invalid operator or location identifier") from exc
 
 
-def _read_rows(conn, sql: str, params: tuple) -> list[dict]:
+def _read_rows(
+    conn,
+    sql: str,
+    params: tuple,
+    *,
+    tenant_scope: tuple[str, str, str, str] | None = None,
+    required_tenant_scopes: tuple[tuple[str, str], ...] = (),
+) -> list[dict]:
     with conn.cursor() as cur:
         cur.execute("SET TRANSACTION READ ONLY")
         cur.execute("SET LOCAL statement_timeout = '5s'")
         cur.execute("SET LOCAL lock_timeout = '2s'")
+        if tenant_scope is not None:
+            operator_id, location_id, resource, action = tenant_scope
+            context_options = {}
+            if required_tenant_scopes:
+                context_options["required_scopes"] = required_tenant_scopes
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=location_id,
+                resource=resource,
+                action=action,
+                **context_options,
+            )
         cur.execute(sql, params)
         columns = [description.name for description in cur.description]
         return [dict(zip(columns, row)) for row in cur.fetchall()]
@@ -110,6 +132,7 @@ def list_mobile_collections(
                     ORDER BY oc.collected_at DESC, oc.id DESC
                     LIMIT %s""",
             (location_id, operator_id, limit),
+            tenant_scope=(operator_id, location_id, "mobile_collection_review", "read"),
         )
         return [_isoformat(row, ("collected_at", "synced_at")) for row in rows]
     finally:
@@ -176,6 +199,7 @@ def get_mobile_collection(
                       )
                     LIMIT 1""",
             (collection_id, location_id, operator_id),
+            tenant_scope=(operator_id, location_id, "mobile_collection_review", "read_detail"),
         )
         if not rows:
             return None
@@ -349,6 +373,13 @@ def get_mobile_collection_disposition_inventory(
                       )
                     LIMIT 1""",
             (collection_id, location_id, operator_id, operator_id),
+            tenant_scope=(
+                operator_id,
+                location_id,
+                "mobile_collection_retention",
+                "inventory",
+            ),
+            required_tenant_scopes=(("mobile_collection_review", "read"),),
         )
         if not rows:
             return None

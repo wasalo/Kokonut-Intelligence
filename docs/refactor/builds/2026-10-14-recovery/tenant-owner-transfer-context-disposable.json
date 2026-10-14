@@ -1,6 +1,6 @@
 {
   "result": "passed",
-  "checked_at": "2026-10-14T01:15:04.392024+00:00",
+  "checked_at": "2026-10-14T01:29:01.255834+00:00",
   "database": "PostgreSQL 16 on a disposable Docker bridge; host port bound to loopback only",
   "migrations": [
     "387_kokonut_network_tenant_ownership.sql",
@@ -21,6 +21,11 @@
     "report-review owner and shared-grant queries set context before protected reads on one connection",
     "report-review reads clear tenant context after transaction rollback",
     "legacy location-only report-review grants are denied before query execution",
+    "Field Collector owner queue and shared-detail reads set same-connection tenant context",
+    "Field Collector list, detail, and audit reads clear tenant context after rollback",
+    "legacy location-only Field Collector grants are denied before collection query execution",
+    "multiple disposition grants set context only when they resolve to the same tenant",
+    "individually valid grants from different tenants are denied with context cleared",
     "pending transfer preserves owner, shares, and all existing grants",
     "self-approval and non-admin target approval are denied",
     "changed owner-relationship snapshot blocks acceptance and can be cancelled",
@@ -37,5 +42,5 @@
     "temporary_source_copy_removed": true,
     "volume_retained": false
   },
-  "scope_limit": "Synthetic disposable data only; no archive, pilot, candidate, or production records were used. Acceptance verifies database, local CLI, and report-review query wiring, not legal land title or RLS."
+  "scope_limit": "Synthetic disposable data only; no archive, pilot, candidate, or production records were used. Acceptance verifies database, local CLI, report-review and Field Collector review queue/detail/disposition-context wiring, not legal land title, human retention/erasure outcomes, other Gateway routes, worker isolation, direct-database boundaries, or RLS."
 }

@@ -833,6 +833,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     async def mobile_collection_review_queue(request: Request, location_id: str, limit: int = 50):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_mobile_review import list_mobile_collections
 
         try:
@@ -841,6 +842,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 location_id,
                 limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"error": str(exc)})
@@ -868,6 +875,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     ):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_mobile_review import (
             MobileCollectionPayloadTooLarge,
             get_mobile_collection,
@@ -879,6 +887,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 collection_id,
                 location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except MobileCollectionPayloadTooLarge:
             return JSONResponse(
@@ -920,6 +934,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 content={"error": "Operator OIDC is disabled"},
                 headers={"Cache-Control": "no-store"},
             )
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_mobile_review import (
             get_mobile_collection_disposition_inventory,
         )
@@ -930,6 +945,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 collection_id,
                 location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
             return JSONResponse(

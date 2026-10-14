@@ -63,6 +63,15 @@ open for follow-up. Other Gateway/worker paths, direct-database boundaries,
 and RLS remain open, so both capabilities remain partial and their manual
 acceptance checks remain not run.
 
+The Field Collector review queue and detail query paths now set tenant context
+within their read transaction and map legacy-grant denial to HTTP 403. Twenty-
+two synthetic disposable PostgreSQL checks and 31 focused context, mobile
+service, and route checks pass, including owner/shared reads, same-connection
+context, cleanup, pre-query legacy denial, and same-tenant/cross-tenant
+multi-grant behavior for the content-free disposition inventory. Human
+retention/erasure decisions, other Gateway and worker paths, direct-database
+boundaries, and RLS remain open; tenant isolation remains partial.
+
 The tenant-aware source foundation is now present in migrations 388–389:
 explicit operator organization memberships, verified seed-location ownership,
 revocable organization shares, tenant-qualified resource/action grants, and

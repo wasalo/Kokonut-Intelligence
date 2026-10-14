@@ -4112,3 +4112,16 @@ are outside the report-review changes and remain to be reconciled. Evidence:
 This integrates one bounded read surface only: other Gateway handlers and
 workers remain unintegrated, no RLS policy is enabled, and worker/direct-
 database isolation remains a gate.
+
+The Field Collector review queue and detail service functions now use the same
+helper in their read-only transactions; missing tenant-qualified scope maps to
+HTTP 403. The content-free disposition inventory validates its retention and
+review grants together and sets context only when both resolve to one tenant.
+Twenty-two synthetic disposable PostgreSQL checks and 31 focused context,
+mobile service, and route checks passed. Owner queue/shared detail queries set
+context on the same connection before protected reads, rollback clears context,
+legacy location-only grants are denied before collection data is queried, and
+individually valid grants from different tenants are rejected. Ruff and syntax
+checks pass. Candidate and legacy databases were untouched. Human
+retention/erasure disposition, other Gateway routes, workers, direct-database
+boundaries, and RLS remain open.

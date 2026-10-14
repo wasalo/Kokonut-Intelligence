@@ -7,6 +7,7 @@ from uuid import UUID
 
 import pytest
 
+from services.gateway import operator_mobile_review
 from services.gateway.operator_mobile_review import (
     MobileCollectionPayloadTooLarge,
     MobileReviewEventInvalid,
@@ -52,6 +53,7 @@ class FakeCursor:
 
 class FakeConnection:
     def __init__(self, rows):
+        self.autocommit = False
         self.cursor_instance = FakeCursor(rows)
         self.rolled_back = False
         self.closed = False
@@ -64,6 +66,22 @@ class FakeConnection:
 
     def close(self):
         self.closed = True
+
+
+@pytest.fixture(autouse=True)
+def _tenant_context_spy(monkeypatch):
+    calls = []
+
+    def set_context(connection, **kwargs):
+        calls.append((connection, kwargs))
+        connection.cursor_instance.statements.append(("SET TENANT CONTEXT", kwargs))
+
+    monkeypatch.setattr(
+        operator_mobile_review,
+        "set_operator_tenant_context",
+        set_context,
+    )
+    return calls
 
 
 def _row(**overrides):
@@ -89,7 +107,7 @@ def _row(**overrides):
     return row
 
 
-def test_mobile_collection_list_is_bounded_scoped_and_minimized():
+def test_mobile_collection_list_is_bounded_scoped_and_minimized(_tenant_context_spy):
     connection = FakeConnection([_row()])
     rows = list_mobile_collections(
         OPERATOR_ID,
@@ -109,6 +127,24 @@ def test_mobile_collection_list_is_bounded_scoped_and_minimized():
     assert "mobile_collection_review" in query[0]
     assert "grant_row.action = 'read'" in query[0]
     assert query[1] == (LOCATION_ID, OPERATOR_ID, 50)
+    assert _tenant_context_spy == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "mobile_collection_review",
+                "action": "read",
+            },
+        )
+    ]
+    statements = connection.cursor_instance.statements
+    context_index = statements.index(("SET TENANT CONTEXT", _tenant_context_spy[0][1]))
+    protected_query_index = next(
+        index for index, (sql, _params) in enumerate(statements)
+        if "FROM offline_collection AS oc" in sql
+    )
+    assert statements.index(("SET TRANSACTION READ ONLY", ())) < context_index < protected_query_index
     assert connection.rolled_back and connection.closed
     assert any("SET TRANSACTION READ ONLY" in sql for sql, _params in connection.cursor_instance.statements)
 
@@ -131,7 +167,9 @@ def test_mobile_collection_list_rejects_invalid_bounds_before_connection():
     assert not opened
 
 
-def test_mobile_collection_detail_requires_distinct_detail_grant_and_hides_identity():
+def test_mobile_collection_detail_requires_distinct_detail_grant_and_hides_identity(
+    _tenant_context_spy,
+):
     connection = FakeConnection(
         [
             _row(
@@ -163,6 +201,24 @@ def test_mobile_collection_detail_requires_distinct_detail_grant_and_hides_ident
     assert "oc.device_id" not in query[0]
     assert "participant_link_id" not in query[0]
     assert query[1] == (COLLECTION_ID, LOCATION_ID, OPERATOR_ID)
+    assert _tenant_context_spy == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "mobile_collection_review",
+                "action": "read_detail",
+            },
+        )
+    ]
+    statements = connection.cursor_instance.statements
+    context_index = statements.index(("SET TENANT CONTEXT", _tenant_context_spy[0][1]))
+    protected_query_index = next(
+        index for index, (sql, _params) in enumerate(statements)
+        if "FROM offline_collection AS oc" in sql
+    )
+    assert statements.index(("SET TRANSACTION READ ONLY", ())) < context_index < protected_query_index
     assert connection.rolled_back and connection.closed
 
 
@@ -186,7 +242,9 @@ def test_mobile_collection_detail_rejects_large_payload_and_returns_no_content()
     ) is None
 
 
-def test_disposition_inventory_is_read_only_location_scoped_and_content_free():
+def test_disposition_inventory_is_read_only_location_scoped_and_content_free(
+    _tenant_context_spy,
+):
     row = {
         "collection_id": UUID(COLLECTION_ID),
         "location_id": UUID(LOCATION_ID),
@@ -234,6 +292,18 @@ def test_disposition_inventory_is_read_only_location_scoped_and_content_free():
     assert "grant_row.action = 'inventory'" in query
     assert "review_grant.resource = 'mobile_collection_review'" in query
     assert "review_grant.action = 'read'" in query
+    assert _tenant_context_spy == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "mobile_collection_retention",
+                "action": "inventory",
+                "required_scopes": (("mobile_collection_review", "read"),),
+            },
+        )
+    ]
     assert "upload.location_id = oc.location_id" in query
     assert "farm.location_id = oc.location_id" in query
     assert "upload.object_key" not in query

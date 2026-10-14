@@ -562,6 +562,24 @@ reporting views.
   context cleanup; two focused Gateway HTTP denial checks passed. See
   [acceptance evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json).
   This narrow integration does not enable RLS.
+- [x] Extend same-transaction context to the Field Collector collection list
+  and detail reads. Actual migrations 387–390 passed 22 synthetic disposable
+  PostgreSQL checks, including owner queue access, explicitly shared detail
+  access, context-before-query on the same connection, rollback cleanup, and
+  legacy-grant denial before collection reads. Twenty-four focused tenant
+  context/mobile service checks and seven route checks passed, including HTTP
+  403 behavior; Ruff and syntax checks pass. Candidate and legacy databases
+  were untouched
+  ([evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
+- [x] Bind the two-grant Field Collector disposition inventory to one tenant
+  context. Both `mobile_collection_retention:inventory` and
+  `mobile_collection_review:read` must resolve to the same tenant; individually
+  valid grants from different tenants fail closed and the route returns 403.
+  Disposable PostgreSQL acceptance passed same-tenant and cross-tenant cases;
+  24 tenant-context/mobile service checks and seven focused route checks passed
+  with Ruff clean. This does not complete retention or erasure disposition
+  ([contract](mobile-tenant-isolation.md),
+  [evidence](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
 - [ ] Reconcile other locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.

@@ -36,6 +36,10 @@ class FakeCursor:
     def fetchone(self):
         return self.rows.pop(0) if self.rows else None
 
+    def fetchall(self):
+        rows, self.rows = self.rows, []
+        return rows
+
 
 class FakeConnection:
     def __init__(self, scope_row=None, *, scope_rows=None, autocommit=False):
@@ -115,6 +119,72 @@ def test_ambiguous_tenant_scope_is_denied_and_cleared():
     assert len(connection.calls) == 2
     assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
     assert "LIMIT 2" in connection.calls[1][0]
+    assert "set_config(%s, %s, TRUE)" not in connection.calls[1][0]
+
+
+def test_multiple_required_scopes_must_resolve_to_one_tenant():
+    connection = FakeConnection(
+        scope_rows=[
+            ("mobile_collection_retention", "inventory", TENANT_ID, LOCATION_ID, OPERATOR_ID),
+            ("mobile_collection_review", "read", TENANT_ID, LOCATION_ID, OPERATOR_ID),
+        ]
+    )
+
+    context = set_operator_tenant_context(
+        connection,
+        operator_id=OPERATOR_ID,
+        location_id=LOCATION_ID,
+        resource="mobile_collection_retention",
+        action="inventory",
+        required_scopes=(("mobile_collection_review", "read"),),
+    )
+
+    assert context == OperatorTenantContext(TENANT_ID, LOCATION_ID, OPERATOR_ID)
+    validation_sql, validation_params = connection.calls[1]
+    assert "WITH requested_scope(resource, action)" in validation_sql
+    assert "operator_scope_grant_allows" in validation_sql
+    assert validation_params == (
+        "mobile_collection_retention", "inventory",
+        "mobile_collection_review", "read",
+        OPERATOR_ID, LOCATION_ID, 3,
+    )
+    assert "set_config(%s, %s, TRUE)" in connection.calls[2][0]
+
+
+@pytest.mark.parametrize(
+    "scope_rows",
+    [
+        [
+            ("mobile_collection_retention", "inventory", TENANT_ID, LOCATION_ID, OPERATOR_ID),
+        ],
+        [
+            ("mobile_collection_retention", "inventory", TENANT_ID, LOCATION_ID, OPERATOR_ID),
+            (
+                "mobile_collection_review",
+                "read",
+                "a0000000-0000-0000-0000-000000000802",
+                LOCATION_ID,
+                OPERATOR_ID,
+            ),
+        ],
+    ],
+    ids=("missing-required-grant", "different-tenant-grants"),
+)
+def test_multiple_required_scopes_fail_closed(scope_rows):
+    connection = FakeConnection(scope_rows=scope_rows)
+
+    with pytest.raises(TenantContextDenied, match="required tenant-qualified grants"):
+        set_operator_tenant_context(
+            connection,
+            operator_id=OPERATOR_ID,
+            location_id=LOCATION_ID,
+            resource="mobile_collection_retention",
+            action="inventory",
+            required_scopes=(("mobile_collection_review", "read"),),
+        )
+
+    assert len(connection.calls) == 2
+    assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
     assert "set_config(%s, %s, TRUE)" not in connection.calls[1][0]
 
 

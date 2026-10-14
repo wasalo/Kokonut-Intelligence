@@ -63,13 +63,16 @@ def set_operator_tenant_context(
     location_id: str,
     resource: str,
     action: str,
+    required_scopes: tuple[tuple[str, str], ...] = (),
 ) -> OperatorTenantContext:
     """Validate and set an operator's tenant context in the current transaction.
 
     The tenant is read from the active tenant-qualified grant and the database's
     current owner/share verification. Browser-provided organization IDs are
-    deliberately not accepted. The caller owns commit/rollback and must perform
-    its protected work before ending this transaction.
+    deliberately not accepted. `required_scopes` adds grants that must all
+    resolve to the same tenant as the primary resource/action. The caller owns
+    commit/rollback and must perform its protected work before ending this
+    transaction.
     """
     if getattr(connection, "autocommit", True):
         raise ValueError("tenant context requires a non-autocommit transaction")
@@ -79,43 +82,106 @@ def set_operator_tenant_context(
     # active in the same transaction.
     clear_operator_tenant_context(connection)
 
-    if not isinstance(resource, str) or not _IDENTIFIER_RE.fullmatch(resource):
+    if not isinstance(required_scopes, (tuple, list)):
+        raise ValueError("required-scopes must be a sequence of resource/action pairs")
+    scope_pairs = [(resource, action)]
+    for scope in required_scopes:
+        if not isinstance(scope, (tuple, list)) or len(scope) != 2:
+            raise ValueError("each required scope must contain a resource and action")
+        scope_pairs.append((scope[0], scope[1]))
+    if any(
+        not isinstance(scope_resource, str)
+        or not _IDENTIFIER_RE.fullmatch(scope_resource)
+        for scope_resource, _ in scope_pairs
+    ):
         raise ValueError("resource must be a lowercase identifier")
-    if not isinstance(action, str) or not _IDENTIFIER_RE.fullmatch(action):
+    if any(
+        not isinstance(scope_action, str) or not _IDENTIFIER_RE.fullmatch(scope_action)
+        for _, scope_action in scope_pairs
+    ):
         raise ValueError("action must be a lowercase identifier")
+    if len(set(scope_pairs)) != len(scope_pairs):
+        raise ValueError("required scopes must be unique")
 
     actor_id = _normalize_uuid(operator_id, "operator-id")
     requested_location_id = _normalize_uuid(location_id, "location-id")
 
     with connection.cursor() as cursor:
-        cursor.execute(
-            """SELECT grant_row.organization_id::text,
-                      grant_row.location_id::text,
-                      grant_row.operator_id::text
-                 FROM operator_scope_grant AS grant_row
-                WHERE grant_row.operator_id = %s::uuid
-                  AND grant_row.location_id = %s::uuid
-                  AND grant_row.resource = %s
-                  AND grant_row.action = %s
-                  AND grant_row.organization_id IS NOT NULL
-                  AND grant_row.revoked_at IS NULL
-                  AND operator_scope_grant_allows(
-                      grant_row.operator_id, grant_row.resource,
-                      grant_row.action, grant_row.location_id
-                  )
-                LIMIT 2""",
-            (actor_id, requested_location_id, resource, action),
-        )
-        row = cursor.fetchone()
-        if row is None:
-            raise TenantContextDenied(
-                "active tenant-qualified operator grant was not found"
+        if len(scope_pairs) == 1:
+            cursor.execute(
+                """SELECT grant_row.organization_id::text,
+                          grant_row.location_id::text,
+                          grant_row.operator_id::text
+                     FROM operator_scope_grant AS grant_row
+                    WHERE grant_row.operator_id = %s::uuid
+                      AND grant_row.location_id = %s::uuid
+                      AND grant_row.resource = %s
+                      AND grant_row.action = %s
+                      AND grant_row.organization_id IS NOT NULL
+                      AND grant_row.revoked_at IS NULL
+                      AND operator_scope_grant_allows(
+                          grant_row.operator_id, grant_row.resource,
+                          grant_row.action, grant_row.location_id
+                      )
+                    LIMIT 2""",
+                (actor_id, requested_location_id, resource, action),
             )
-        if cursor.fetchone() is not None:
-            raise TenantContextDenied(
-                "multiple active tenant-qualified grants make the requested scope ambiguous"
+            row = cursor.fetchone()
+            if row is None:
+                raise TenantContextDenied(
+                    "active tenant-qualified operator grant was not found"
+                )
+            if cursor.fetchone() is not None:
+                raise TenantContextDenied(
+                    "multiple active tenant-qualified grants make the requested scope ambiguous"
+                )
+            tenant_id, validated_location_id, validated_actor_id = row
+        else:
+            requested_values = ", ".join("(%s, %s)" for _ in scope_pairs)
+            requested_params = tuple(value for pair in scope_pairs for value in pair)
+            cursor.execute(
+                f"""WITH requested_scope(resource, action) AS (
+                        VALUES {requested_values}
+                    )
+                    SELECT requested_scope.resource,
+                           requested_scope.action,
+                           grant_row.organization_id::text,
+                           grant_row.location_id::text,
+                           grant_row.operator_id::text
+                      FROM requested_scope
+                      JOIN operator_scope_grant AS grant_row
+                        ON grant_row.resource = requested_scope.resource
+                       AND grant_row.action = requested_scope.action
+                     WHERE grant_row.operator_id = %s::uuid
+                       AND grant_row.location_id = %s::uuid
+                       AND grant_row.organization_id IS NOT NULL
+                       AND grant_row.revoked_at IS NULL
+                       AND operator_scope_grant_allows(
+                           grant_row.operator_id, grant_row.resource,
+                           grant_row.action, grant_row.location_id
+                       )
+                     ORDER BY requested_scope.resource, requested_scope.action
+                     LIMIT %s""",
+                (
+                    *requested_params,
+                    actor_id,
+                    requested_location_id,
+                    len(scope_pairs) + 1,
+                ),
             )
-        tenant_id, validated_location_id, validated_actor_id = row
+            rows = cursor.fetchall()
+            actual_pairs = {(row[0], row[1]) for row in rows}
+            tenant_ids = {row[2] for row in rows}
+            if (
+                len(rows) != len(scope_pairs)
+                or actual_pairs != set(scope_pairs)
+                or len(tenant_ids) != 1
+            ):
+                raise TenantContextDenied(
+                    "required tenant-qualified grants are missing, ambiguous, "
+                    "or resolve to different tenant scopes"
+                )
+            tenant_id, validated_location_id, validated_actor_id = rows[0][2:]
 
         cursor.execute(
             "SELECT "

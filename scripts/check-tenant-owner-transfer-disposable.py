@@ -39,8 +39,11 @@ PARTNER_ADMIN_ID = "a0000000-0000-0000-0000-000000000902"
 LEGACY_OPERATOR_ID = "a0000000-0000-0000-0000-000000000903"
 TARGET_ADMIN_ID = "a0000000-0000-0000-0000-000000000904"
 TARGET_OPERATOR_ID = "a0000000-0000-0000-0000-000000000905"
+MULTI_SCOPE_OPERATOR_ID = "a0000000-0000-0000-0000-000000000906"
 FARM_ID = "a0000000-0000-0000-0000-000000000099"
 REPORT_ID = "a0000000-0000-0000-0000-000000000098"
+MOBILE_COLLECTION_ID = "a0000000-0000-0000-0000-000000000097"
+MOBILE_FORM_REVISION_ID = "a0000000-0000-0000-0000-000000000096"
 
 
 def run(command: list[str], *, input_text: str | None = None) -> str:
@@ -138,6 +141,7 @@ import json
 import psycopg2
 from services.common.database import get_db
 from services.common.tenant_context import TenantContextDenied, set_operator_tenant_context
+from services.gateway import operator_mobile_review
 from services.gateway import operator_review
 
 conn = get_db()
@@ -220,6 +224,51 @@ try:
         cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
         committed_settings = cur.fetchone()
 
+    same_tenant_context = set_operator_tenant_context(
+        conn, operator_id='{MULTI_SCOPE_OPERATOR_ID}', location_id='{LOCATION_ID}',
+        resource='mobile_collection_retention', action='inventory',
+        required_scopes=(('mobile_collection_review', 'read'),)
+    )
+    with conn.cursor() as cur:
+        cur.execute("SELECT current_setting('kokonut.tenant_id', true), current_setting('kokonut.location_id', true), current_setting('kokonut.actor_id', true), current_setting('kokonut.actor_type', true)")
+        same_tenant_settings = cur.fetchone()
+    conn.rollback()
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """UPDATE operator_scope_grant
+                  SET organization_id = %s::uuid
+                WHERE operator_id = %s::uuid
+                  AND resource = 'mobile_collection_review'
+                  AND action = 'read'
+                  AND location_id = %s::uuid""",
+            ('{PARTNER_ORG_ID}', '{MULTI_SCOPE_OPERATOR_ID}', '{LOCATION_ID}'),
+        )
+        cur.execute(
+            """SELECT operator_scope_grant_allows(
+                          %s::uuid, 'mobile_collection_retention', 'inventory', %s::uuid
+                      )
+                      AND operator_scope_grant_allows(
+                          %s::uuid, 'mobile_collection_review', 'read', %s::uuid
+                      )""",
+            ('{MULTI_SCOPE_OPERATOR_ID}', '{LOCATION_ID}', '{MULTI_SCOPE_OPERATOR_ID}', '{LOCATION_ID}'),
+        )
+        both_cross_tenant_grants_allowed = cur.fetchone()[0]
+    try:
+        set_operator_tenant_context(
+            conn, operator_id='{MULTI_SCOPE_OPERATOR_ID}', location_id='{LOCATION_ID}',
+            resource='mobile_collection_retention', action='inventory',
+            required_scopes=(('mobile_collection_review', 'read'),)
+        )
+    except TenantContextDenied:
+        cross_tenant_denied = True
+    else:
+        cross_tenant_denied = False
+    with conn.cursor() as cur:
+        cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+        after_cross_tenant_denial = cur.fetchone()
+    conn.rollback()
+
     report_events = []
     class CursorProxy:
         def __init__(self, owner, cursor):
@@ -233,12 +282,13 @@ try:
         def __exit__(self, *args):
             return self.cursor.__exit__(*args)
         def execute(self, sql, params=None):
-            report_events.append(('sql', id(self.owner), sql))
+            self.owner.events.append(('sql', id(self.owner), sql))
             return self.cursor.execute(sql, params)
 
     class ConnectionProxy:
-        def __init__(self, connection):
+        def __init__(self, connection, events):
             self.connection = connection
+            self.events = events
         @property
         def autocommit(self):
             return self.connection.autocommit
@@ -251,7 +301,7 @@ try:
             # transaction-local reset can be inspected after each rollback.
             return None
 
-    report_conn = ConnectionProxy(get_db())
+    report_conn = ConnectionProxy(get_db(), report_events)
     report_contexts = []
     original_set_context = operator_review.set_operator_tenant_context
     def capture_context(connection, **kwargs):
@@ -292,6 +342,50 @@ try:
     finally:
         report_conn.rollback()
         report_conn.connection.close()
+
+    mobile_events = []
+    mobile_conn = ConnectionProxy(get_db(), mobile_events)
+    mobile_contexts = []
+    original_mobile_context = operator_mobile_review.set_operator_tenant_context
+    def capture_mobile_context(connection, **kwargs):
+        context = original_mobile_context(connection, **kwargs)
+        mobile_contexts.append((id(connection), kwargs))
+        mobile_events.append(('context', id(connection), kwargs['action']))
+        return context
+    operator_mobile_review.set_operator_tenant_context = capture_mobile_context
+    try:
+        owner_collections = operator_mobile_review.list_mobile_collections(
+            '{OWNER_ADMIN_ID}', '{LOCATION_ID}', connection_factory=lambda: mobile_conn
+        )
+        with mobile_conn.cursor() as cur:
+            cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+            mobile_after_owner_queue = cur.fetchone()
+        mobile_conn.rollback()
+
+        partner_collection = operator_mobile_review.get_mobile_collection(
+            '{PARTNER_ADMIN_ID}', '{MOBILE_COLLECTION_ID}', '{LOCATION_ID}',
+            connection_factory=lambda: mobile_conn,
+        )
+        with mobile_conn.cursor() as cur:
+            cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+            mobile_after_partner_detail = cur.fetchone()
+        mobile_conn.rollback()
+
+        legacy_mobile_event_start = len(mobile_events)
+        try:
+            operator_mobile_review.list_mobile_collections(
+                '{LEGACY_OPERATOR_ID}', '{LOCATION_ID}', connection_factory=lambda: mobile_conn
+            )
+        except TenantContextDenied:
+            legacy_mobile_denied = True
+        else:
+            legacy_mobile_denied = False
+        with mobile_conn.cursor() as cur:
+            cur.execute("SELECT COALESCE(NULLIF(current_setting('kokonut.tenant_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.location_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_id', true), ''), ''), COALESCE(NULLIF(current_setting('kokonut.actor_type', true), ''), '')")
+            mobile_after_legacy_denial = cur.fetchone()
+    finally:
+        mobile_conn.rollback()
+        mobile_conn.connection.close()
 finally:
     conn.rollback()
     conn.close()
@@ -309,6 +403,12 @@ if not denied or denied_settings != empty:
     raise RuntimeError(f'legacy grant was not denied with cleared context: {{denied!r}} {{denied_settings!r}}')
 if committed_settings != empty:
     raise RuntimeError(f'transaction-local context survived commit: {{committed_settings!r}}')
+expected_multi_scope = ('{OWNER_ORG_ID}', '{LOCATION_ID}', '{MULTI_SCOPE_OPERATOR_ID}', 'operator')
+if (same_tenant_context.tenant_id != '{OWNER_ORG_ID}'
+        or same_tenant_settings != expected_multi_scope):
+    raise RuntimeError(f'same-tenant required scopes failed to set context: {{same_tenant_context!r}} {{same_tenant_settings!r}}')
+if not both_cross_tenant_grants_allowed or not cross_tenant_denied or after_cross_tenant_denial != empty:
+    raise RuntimeError(f'individually valid cross-tenant grants were not denied with cleared context: {{both_cross_tenant_grants_allowed!r}} {{cross_tenant_denied!r}} {{after_cross_tenant_denial!r}}')
 expected_owner_report = ('{OWNER_ORG_ID}', '{LOCATION_ID}', '{OWNER_ADMIN_ID}', 'operator')
 expected_partner_report = ('{PARTNER_ORG_ID}', '{LOCATION_ID}', '{PARTNER_ADMIN_ID}', 'operator')
 if len(owner_reports) != 1 or owner_reports[0].get('id') != '{REPORT_ID}':
@@ -328,7 +428,28 @@ if len(markers) != 2 or len(queries) != 2 or any(marker >= query for marker, que
     raise RuntimeError(f'report context was not set before both protected queries: {{markers!r}} {{queries!r}}')
 if after_owner_queue != empty or after_partner_detail != empty or not legacy_report_denied or after_legacy_denial != empty:
     raise RuntimeError(f'report query context leaked or legacy grant was accepted: {{after_owner_queue!r}} {{after_partner_detail!r}} {{legacy_report_denied!r}} {{after_legacy_denial!r}}')
-print(json.dumps({{'result': 'passed', 'owner': owner_settings, 'partner': partner_settings, 'ambiguous_grant_rejected': duplicate_grant_rejected, 'after_duplicate': after_duplicate_settings, 'denied_context': denied_settings, 'after_commit': committed_settings, 'report_contexts': [row[1] for row in report_contexts], 'report_cleanup': [after_owner_queue, after_partner_detail, after_legacy_denial], 'legacy_report_denied': legacy_report_denied}}))
+if len(owner_collections) != 1 or owner_collections[0].get('id') != '{MOBILE_COLLECTION_ID}':
+    raise RuntimeError(f'owner Field Collector queue query failed: {{owner_collections!r}}')
+if partner_collection is None or partner_collection.get('id') != '{MOBILE_COLLECTION_ID}' or partner_collection.get('payload') != {{'note': 'synthetic review fixture'}}:
+    raise RuntimeError(f'shared Field Collector detail query failed: {{partner_collection!r}}')
+if len(partner_collection.get('review_events', [])) != 0:
+    raise RuntimeError(f'unexpected synthetic Field Collector review events: {{partner_collection!r}}')
+if [row[1] for row in mobile_contexts] != [
+    {{'operator_id': '{OWNER_ADMIN_ID}', 'location_id': '{LOCATION_ID}', 'resource': 'mobile_collection_review', 'action': 'read'}},
+    {{'operator_id': '{PARTNER_ADMIN_ID}', 'location_id': '{LOCATION_ID}', 'resource': 'mobile_collection_review', 'action': 'read_detail'}},
+]:
+    raise RuntimeError(f'mobile review context was not set for owner and share: {{mobile_contexts!r}}')
+if any(row[0] != id(mobile_conn) for row in mobile_contexts):
+    raise RuntimeError(f'mobile tenant context used a different connection: {{mobile_contexts!r}}')
+mobile_markers = [index for index, event in enumerate(mobile_events) if event[0] == 'context']
+mobile_queries = [index for index, event in enumerate(mobile_events) if event[0] == 'sql' and 'FROM offline_collection AS oc' in event[2]]
+if len(mobile_markers) != 2 or len(mobile_queries) != 2 or any(marker >= query for marker, query in zip(mobile_markers, mobile_queries)):
+    raise RuntimeError(f'mobile review context was not set before both protected queries: {{mobile_markers!r}} {{mobile_queries!r}}')
+if mobile_after_owner_queue != empty or mobile_after_partner_detail != empty or not legacy_mobile_denied or mobile_after_legacy_denial != empty:
+    raise RuntimeError(f'mobile query context leaked or legacy grant was accepted: {{mobile_after_owner_queue!r}} {{mobile_after_partner_detail!r}} {{legacy_mobile_denied!r}} {{mobile_after_legacy_denial!r}}')
+if any(event[0] == 'sql' and 'FROM offline_collection AS oc' in event[2] for event in mobile_events[legacy_mobile_event_start:]):
+    raise RuntimeError(f'legacy Field Collector grant reached the protected query: {{mobile_events!r}}')
+print(json.dumps({{'result': 'passed', 'owner': owner_settings, 'partner': partner_settings, 'ambiguous_grant_rejected': duplicate_grant_rejected, 'after_duplicate': after_duplicate_settings, 'denied_context': denied_settings, 'after_commit': committed_settings, 'report_contexts': [row[1] for row in report_contexts], 'report_cleanup': [after_owner_queue, after_partner_detail, after_legacy_denial], 'legacy_report_denied': legacy_report_denied, 'mobile_contexts': [row[1] for row in mobile_contexts], 'mobile_cleanup': [mobile_after_owner_queue, mobile_after_partner_detail, mobile_after_legacy_denial], 'legacy_mobile_denied': legacy_mobile_denied}}))
 '''
     result = subprocess.run(
         [sys.executable, "-c", source],
@@ -355,6 +476,11 @@ print(json.dumps({{'result': 'passed', 'owner': owner_settings, 'partner': partn
         "report-review owner and shared-grant queries set context before protected reads on one connection",
         "report-review reads clear tenant context after transaction rollback",
         "legacy location-only report-review grants are denied before query execution",
+        "Field Collector owner queue and shared-detail reads set same-connection tenant context",
+        "Field Collector list, detail, and audit reads clear tenant context after rollback",
+        "legacy location-only Field Collector grants are denied before collection query execution",
+        "multiple disposition grants set context only when they resolve to the same tenant",
+        "individually valid grants from different tenants are denied with context cleared",
     ]
 
 
@@ -399,18 +525,57 @@ def add_fixture_rows(container: str) -> None:
     docker_sql(
         container,
         f"""
+        CREATE TABLE mobile_form_version (
+            id UUID PRIMARY KEY,
+            name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            consent_policy_status TEXT NOT NULL
+        );
+        CREATE TABLE offline_collection (
+            id UUID PRIMARY KEY,
+            location_id UUID NOT NULL REFERENCES location(id),
+            form_id TEXT NOT NULL,
+            form_version TEXT NOT NULL,
+            collection_type TEXT NOT NULL,
+            collected_at TIMESTAMPTZ NOT NULL,
+            synced_at TIMESTAMPTZ,
+            form_validation_status TEXT NOT NULL,
+            consent_validation_status TEXT NOT NULL,
+            form_review_required BOOLEAN NOT NULL,
+            form_revision_id UUID REFERENCES mobile_form_version(id),
+            sync_status TEXT NOT NULL,
+            photo_refs JSONB NOT NULL,
+            payload JSONB NOT NULL
+        );
+        CREATE VIEW v_mobile_collection_use_eligibility AS
+        SELECT id AS collection_id, location_id, FALSE AS eligible_for_use,
+               'synthetic_review_required'::TEXT AS eligibility_reason
+          FROM offline_collection;
+        CREATE TABLE mobile_collection_review_event (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            collection_id UUID NOT NULL REFERENCES offline_collection(id),
+            location_id UUID NOT NULL REFERENCES location(id),
+            actor_operator_id UUID NOT NULL REFERENCES operator_identity(id),
+            decision TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            evidence JSONB NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
         INSERT INTO organization (id, org_key, name, org_type, status)
         VALUES ('{TARGET_ORG_ID}', 'transfer-target', 'Transfer Target', 'collective', 'active');
         INSERT INTO operator_identity (id, issuer, subject, display_name, enabled) VALUES
           ('{TARGET_ADMIN_ID}', 'https://issuer.example.test', 'target-admin', 'Target Admin', TRUE),
-          ('{TARGET_OPERATOR_ID}', 'https://issuer.example.test', 'target-operator', 'Target Operator', TRUE);
+          ('{TARGET_OPERATOR_ID}', 'https://issuer.example.test', 'target-operator', 'Target Operator', TRUE),
+          ('{MULTI_SCOPE_OPERATOR_ID}', 'https://issuer.example.test', 'multi-scope', 'Multi Scope Operator', TRUE);
         INSERT INTO operator_organization_membership
             (operator_id, organization_id, membership_role, granted_by)
         VALUES
           ('{OWNER_ADMIN_ID}', '{OWNER_ORG_ID}', 'tenant_admin', 'disposable acceptance'),
           ('{PARTNER_ADMIN_ID}', '{PARTNER_ORG_ID}', 'tenant_admin', 'disposable acceptance'),
           ('{TARGET_ADMIN_ID}', '{TARGET_ORG_ID}', 'tenant_admin', 'disposable acceptance'),
-          ('{TARGET_OPERATOR_ID}', '{TARGET_ORG_ID}', 'operator', 'disposable acceptance');
+          ('{TARGET_OPERATOR_ID}', '{TARGET_ORG_ID}', 'operator', 'disposable acceptance'),
+          ('{MULTI_SCOPE_OPERATOR_ID}', '{OWNER_ORG_ID}', 'operator', 'disposable acceptance'),
+          ('{MULTI_SCOPE_OPERATOR_ID}', '{PARTNER_ORG_ID}', 'operator', 'disposable acceptance');
         INSERT INTO farm (id) VALUES ('{FARM_ID}');
         UPDATE organization_member
            SET farm_id = '{FARM_ID}'
@@ -431,6 +596,27 @@ def add_fixture_rows(container: str) -> None:
         VALUES
           ('{OWNER_ADMIN_ID}', 'report_snapshot_review', 'read', '{LOCATION_ID}', '{OWNER_ORG_ID}', 'fixture'),
           ('{PARTNER_ADMIN_ID}', 'report_snapshot_review', 'read', '{LOCATION_ID}', '{PARTNER_ORG_ID}', 'fixture');
+        INSERT INTO operator_scope_grant
+            (operator_id, resource, action, location_id, organization_id, granted_by)
+        VALUES
+          ('{OWNER_ADMIN_ID}', 'mobile_collection_review', 'read', '{LOCATION_ID}', '{OWNER_ORG_ID}', 'fixture'),
+          ('{PARTNER_ADMIN_ID}', 'mobile_collection_review', 'read_detail', '{LOCATION_ID}', '{PARTNER_ORG_ID}', 'fixture'),
+          ('{LEGACY_OPERATOR_ID}', 'mobile_collection_review', 'read', '{LOCATION_ID}', NULL, 'fixture'),
+          ('{MULTI_SCOPE_OPERATOR_ID}', 'mobile_collection_retention', 'inventory', '{LOCATION_ID}', '{OWNER_ORG_ID}', 'fixture'),
+          ('{MULTI_SCOPE_OPERATOR_ID}', 'mobile_collection_review', 'read', '{LOCATION_ID}', '{OWNER_ORG_ID}', 'fixture');
+        INSERT INTO mobile_form_version (id, name, status, consent_policy_status)
+        VALUES ('{MOBILE_FORM_REVISION_ID}', 'Synthetic Field Form', 'retired', 'unclassified');
+        INSERT INTO offline_collection (
+            id, location_id, form_id, form_version, collection_type,
+            collected_at, synced_at, form_validation_status,
+            consent_validation_status, form_review_required, form_revision_id,
+            sync_status, photo_refs, payload
+        ) VALUES (
+            '{MOBILE_COLLECTION_ID}', '{LOCATION_ID}', 'synthetic_field_form', '1.0.0',
+            'synthetic_note', NOW() - INTERVAL '1 hour', NOW(), 'retired_review',
+            'unassessed', TRUE, '{MOBILE_FORM_REVISION_ID}', 'synced', '[]',
+            '{{"note": "synthetic review fixture"}}'
+        );
         INSERT INTO report_snapshot
             (id, report_name, report_type, location_id, report_data, snapshot_hash, status)
         VALUES
@@ -493,7 +679,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     assert_sql(
         container,
         f"SELECT count(*) FROM operator_scope_grant WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL",
-        "5",
+        "10",
         "pending request leaves grants unchanged",
     )
     checks.append("pending transfer preserves owner, shares, and all existing grants")
@@ -618,7 +804,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     )
     assert_sql(container, f"SELECT organization_id FROM location WHERE id = '{LOCATION_ID}'", OWNER_ORG_ID, "failed acceptance rolls back location owner")
     assert_sql(container, f"SELECT count(*) FROM location_tenant_owner_verification WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL AND organization_id = '{OWNER_ORG_ID}'", "1", "failed acceptance rolls back owner verification")
-    assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "5", "failed acceptance rolls back every grant revocation")
+    assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "10", "failed acceptance rolls back every grant revocation")
     assert_sql(container, f"SELECT count(*) FROM location_organization_share WHERE location_id = '{LOCATION_ID}' AND revoked_at IS NULL", "2", "failed acceptance rolls back share revocation")
     docker_sql(
         container,
@@ -642,7 +828,7 @@ def run_acceptance(container: str, port: int, cli_root: Path) -> list[str]:
     assert_sql(container, f"SELECT count(*) FROM location_tenant_owner_verification WHERE id = (SELECT source_owner_verification_id FROM location_tenant_transfer WHERE id = '{transfer_id}') AND revoked_at IS NOT NULL", "1", "accepted transfer retires source verification")
     assert_sql(container, f"SELECT count(*) FROM organization_member WHERE location_id = '{LOCATION_ID}' AND organization_id = '{OWNER_ORG_ID}' AND membership_type = 'owned' AND status = 'active'", "0", "accepted transfer deactivates source owner relationships")
     assert_sql(container, f"SELECT count(*) FROM organization_member WHERE location_id = '{LOCATION_ID}' AND organization_id = '{TARGET_ORG_ID}' AND membership_type = 'owned' AND role = 'primary' AND status = 'active' AND farm_id = '{FARM_ID}'", "1", "accepted transfer preserves farm link in new owner relationship")
-    assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "5", "accepted transfer records and revokes each location grant")
+    assert_sql(container, f"SELECT count(*) FROM operator_scope_grant WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "10", "accepted transfer records and revokes each location grant")
     assert_sql(container, f"SELECT count(*) FROM location_organization_share WHERE ownership_transfer_id = '{transfer_id}' AND revoked_by_operator_id = '{TARGET_ADMIN_ID}' AND revoked_at IS NOT NULL", "2", "accepted transfer records and revokes each location share")
     for operator_id, resource, action in (
         (OWNER_ADMIN_ID, "farm_activity", "read"),

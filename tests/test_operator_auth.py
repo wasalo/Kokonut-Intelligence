@@ -378,6 +378,54 @@ def test_report_review_routes_require_tenant_qualified_context(
 
 
 @pytest.mark.parametrize(
+    ("path", "service_function", "scope_action"),
+    [
+        (
+            "/operator/api/mobile-collection-review-queue",
+            "list_mobile_collections",
+            "read",
+        ),
+        (
+            "/operator/api/mobile-collection-review-queue/22222222-2222-4222-8222-222222222222",
+            "get_mobile_collection",
+            "read_detail",
+        ),
+    ],
+)
+def test_mobile_collection_routes_require_tenant_qualified_context(
+    monkeypatch, path, service_function, scope_action
+):
+    from services.common.tenant_context import TenantContextDenied
+
+    provider = _FarmActivityProvider(
+        allowed_scopes={("mobile_collection_review", scope_action)}
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    reader = MagicMock(side_effect=TenantContextDenied("tenant-qualified grant required"))
+    monkeypatch.setattr(
+        f"services.gateway.operator_mobile_review.{service_function}", reader
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(path, params={"location_id": LOCATION_ID})
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "error": "Tenant-qualified operator access is required"
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "mobile_collection_review", scope_action, LOCATION_ID)
+    ]
+    reader.assert_called_once()
+
+
+@pytest.mark.parametrize(
     ("csrf", "content_reviewed", "status"),
     [(False, True, 403), (True, False, 422), (True, True, 201)],
 )
@@ -767,6 +815,7 @@ def test_mobile_collection_detail_uses_separate_grant_and_is_audited(monkeypatch
 
 
 def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
     provider = _DispositionProvider(
         allowed_scopes={
             ("mobile_collection_retention", "inventory"),
@@ -790,7 +839,7 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
         reader,
     )
 
-    with TestClient(create_app()) as client:
+    with TestClient(create_app(), base_url="https://operator.example") as client:
         client.cookies.set(
             operator_auth.SESSION_COOKIE,
             "valid-session",
@@ -800,6 +849,7 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
             "/operator/api/mobile-collection-review-queue/"
             "22222222-2222-4222-8222-222222222222/disposition-inventory",
             params={"location_id": LOCATION_ID},
+            headers={"Origin": "https://operator.example"},
         )
 
     assert response.status_code == 200, response.text
@@ -817,6 +867,46 @@ def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkey
     )
     assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
     assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+def test_mobile_disposition_inventory_denies_when_grants_resolve_to_different_tenants(
+    monkeypatch,
+):
+    from services.common.tenant_context import TenantContextDenied
+
+    provider = _DispositionProvider(
+        allowed_scopes={
+            ("mobile_collection_retention", "inventory"),
+            ("mobile_collection_review", "read"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    reader = MagicMock(
+        side_effect=TenantContextDenied("required grants resolve to different tenants")
+    )
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_collection_disposition_inventory",
+        reader,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            "/operator/api/mobile-collection-review-queue/"
+            "22222222-2222-4222-8222-222222222222/disposition-inventory",
+            params={"location_id": LOCATION_ID},
+        )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "error": "Tenant-qualified operator access is required"
+    }
+    assert response.headers["cache-control"] == "no-store"
+    reader.assert_called_once()
 
 
 @pytest.mark.parametrize(
