@@ -13,11 +13,11 @@ acceptance rows.
 
 **Current pushed-head verification (CAP-001 / CAP-047 / CAP-053):** PR #68 is
 open at `7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI run [#308](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258026)
-is in progress and Security run [#32](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258017)
-passed on this head. CI #307 failed because its OIDC Compose test fixture did
-not provide the required test-only operator-auth password before checking the
-missing issuer; commit `7953afe` corrects the fixture. Capability completion
-remains open until CI #308 passes and the named MAN-CAP checks are completed.
+and Security run [#32](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258017)
+both passed on this head. CI #307 failed because its OIDC Compose test fixture
+did not provide the required test-only operator-auth password before checking
+the missing issuer; commit `7953afe` corrects the fixture. The release CI gate
+is closed for this pushed head; the named MAN-CAP checks remain open.
 See [the code-first execution plan](code-first-execution-plan.md) for the
 remaining work order and the Raspberry Pi code-only assessment scope.
 

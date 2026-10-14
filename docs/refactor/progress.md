@@ -1,15 +1,17 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI #308 is in progress and Security #32 passed for this head. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Local migrations 392–395 have isolated PostgreSQL acceptance and remain gated from candidate rollout. The repository owner has no Raspberry Pi available; continue ARM64 assessment with code-only emulation and constrained-container checks, and do not claim physical-device acceptance.
+**Updated:** 14 October 2026. **Candidate:** last verified at 382 applied schemas through migration 391, zero pending, and one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `7953afe4d5267b040392a8fe52e1ae38c236cfd4`. CI #308 and Security #32 passed for this head. CI #307's OIDC Compose fixture failure was fixed by supplying its test-only operator-auth password before checking the missing issuer. Local migrations 392–395 have isolated PostgreSQL acceptance and remain gated from candidate rollout. The repository owner has no Raspberry Pi available; continue ARM64 assessment with code-only emulation and constrained-container checks, and do not claim physical-device acceptance.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
 Do not treat the earlier CI result as coverage for the current branch head or
-uncommitted batch. The root implementation plan remains intentionally ignored;
-this ledger and the [capability matrix](capability-matrix.md) provide
-repository-visible progress alongside it. Remaining implementation is ordered
-in the [code-first execution plan](code-first-execution-plan.md); owner decisions
-and external inputs are collected in [Open Follow Ups](open-follow-ups.md).
+uncommitted batch. Local unpushed work now includes the Compose ARM64 build
+platform fix and code-only ARM64 runtime acceptance. The root implementation
+plan remains intentionally ignored; this ledger and the
+[capability matrix](capability-matrix.md) provide repository-visible progress
+alongside it. Remaining implementation is ordered in the
+[code-first execution plan](code-first-execution-plan.md); owner decisions and
+external inputs are collected in [Open Follow Ups](open-follow-ups.md).
 
 The prescribed platform-integrity suite was rerun on local commit `1c00845`
 after the owner authorized ongoing verification: 288 tests passed across
@@ -4635,3 +4637,32 @@ database authorization for Gateway API-key requests, or close runtime DML on
 other public tables. Worker, legacy CLI, Directus/view, ownership, and final
 RLS gates remain open. No candidate or legacy database was changed; migrations
 392–395 remain under separately gated candidate rollout OFU-18.
+
+### Phase 8 ARM64 code-only QEMU runtime acceptance — 14 October 2026
+
+The repository owner has no Raspberry Pi available and asked that this target
+be assessed with code tests. Both the minimal Kernel app and pinned PostGIS
+image were built and inspected as `linux/arm64`. The private assessment database
+ran PostgreSQL 16.15 with PostGIS 3.6.4; all 386 ordered schema migrations
+applied with zero failures and the follow-up plan reported zero pending. A
+transactional PostGIS raster pixel query returned the expected value, then
+rolled back the optional extension installation.
+
+The app passed its HTTP healthcheck. A 4.9 MB custom-format backup restored to
+a second database; source and restore matched all 386 migration checksums and
+1,010 public tables, and the Kernel schema-readiness command reported no missing
+or drifted objects. The database returned healthy after an orderly restart and
+retained all migration records. The app returned healthy after simulated
+SIGKILL/container loss followed by Compose start. Both services had no host
+ports. Container limits were 1.5 GiB and two CPUs for PostgreSQL, plus 1 GiB and
+two CPUs for the app; observed memory stayed below 402 MiB per service in the
+captured migration/startup samples.
+
+The assessment used Docker Buildx/QEMU, not Raspberry Pi hardware. QEMU build
+and migration timings are not hardware benchmarks; physical thermal, storage,
+power-loss, network, and sustained-load behavior remain unverified. An initial
+Compose build showed that runtime `platform` alone did not consistently select
+the app build architecture. The portability manifest now passes the selected
+platform through `build.platforms` as well, and its focused Compose contract
+check passed. Full evidence, image IDs, limits, and restoration fingerprints:
+[arm64-qemu-runtime-acceptance.json](builds/2026-10-14-recovery/arm64-qemu-runtime-acceptance.json).

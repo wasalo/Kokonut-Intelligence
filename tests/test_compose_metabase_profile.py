@@ -197,6 +197,19 @@ def test_legacy_dataset_sql_override_reaches_kernel_app_and_worker_profiles() ->
     )
 
 
+def test_portability_profile_builds_images_for_selected_runtime_architecture() -> None:
+    portability = _compose_config(
+        "application",
+        files=("docker-compose.kernel-portability.yml",),
+        extra_env={"KOKONUT_DATABASE_PLATFORM": "linux/arm64"},
+    )
+
+    for service_name in ("database", "app"):
+        service = portability["services"][service_name]
+        assert service["platform"] == "linux/arm64"
+        assert service["build"]["platforms"] == ["linux/arm64"]
+
+
 def test_oidc_compose_overlay_is_opt_in_and_requires_provider_settings() -> None:
     candidate_files = ("docker-compose.kernel-candidate.yml",)
     default_app = _compose_config(files=candidate_files)["services"]["app"]

@@ -35,7 +35,7 @@ secret workflow.
 
 | ID | Needed | Why it blocks closure |
 | --- | --- | --- |
-| OFU-12 | No hardware input is currently needed: the repository owner has no Raspberry Pi available and asked that ARM64 suitability be assessed with code tests only. | Proceed with ARM64 build/emulation, constrained-container, bootstrap, migration, restore, health, and restart checks where supported. Physical performance, thermal, storage, power-loss, network, and device restart behavior remain unverified and must not be claimed. See [code-first execution plan](code-first-execution-plan.md). |
+| OFU-12 | No hardware input is needed for the agreed code-only assessment. The ARM64 minimal app/PostGIS build, 386-schema bootstrap, health, logical restore, and restart checks passed under Buildx/QEMU with constrained containers ([evidence](builds/2026-10-14-recovery/arm64-qemu-runtime-acceptance.json)). | No Raspberry Pi was available. Physical performance, thermal, storage, power-loss, network, and device restart behavior remain unverified and must not be claimed. See [code-first execution plan](code-first-execution-plan.md). |
 | OFU-13 | A controlled 24-hour availability window and resource budget for the recovery/concurrency run; identify whether the candidate may be unavailable during the run. | Short restart/retry checks are not evidence for a 24-hour recovery/scale gate. |
 | OFU-14 | A populated, sanitized reference dataset/exports for each selected report and downstream consumer, with data owner and allowed use. | Synthetic fixtures cover contracts but cannot close semantic parity on real populated outputs. |
 

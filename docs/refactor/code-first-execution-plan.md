@@ -3,7 +3,8 @@
 **Updated:** 14 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Last pushed code head:** `7953afe4d5267b040392a8fe52e1ae38c236cfd4`
-**Current release checks:** CI #308 is in progress; Security #32 passed.
+**Current release checks:** CI #308 and Security #32 passed on pushed head
+`7953afe4d5267b040392a8fe52e1ae38c236cfd4`.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -36,17 +37,15 @@ MAN-CAP checks open until each has its own retained evidence.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** wait for CI #308 on `7953afe` to finish. If it fails, fix the
-specific regression, run its narrow local check, record the evidence, and keep
-the broader suites unchanged unless the failure requires them. Security #32 is
-already green.
+**Action:** CI #308 finished successfully on `7953afe`; Security #32 also
+passed on the same commit. The CI #307 OIDC Compose fixture failure was fixed
+before this run by supplying the test-only operator-auth password before
+checking the missing issuer configuration.
 
-**Acceptance:** CI and Security required checks pass on the same PR head; the
-status and commit are recorded in this plan, `batches.md`, `progress.md`, and
-the capability matrix verification note. Do not count the earlier CI #307
-failure as current-head coverage; its OIDC Compose fixture was corrected by
-providing the test-only operator-auth password before checking missing issuer
-settings.
+**Acceptance:** satisfied for pushed head `7953afe`: CI #308 and Security #32
+both passed. The check status and commit are recorded in this plan,
+`batches.md`, `progress.md`, and the capability-matrix verification note. Do
+not count the earlier CI #307 failure as current-head coverage.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -185,12 +184,21 @@ startup/resource measurements; test orderly restart and simulated process or
 container loss. Keep PostgreSQL and optional stores private. Treat emulation
 and cgroup limits as compatibility checks, not a hardware benchmark.
 
-**Acceptance:** supported ARM64 images build and their bootstrap, migration,
-health and restore path pass in emulation. Publish measured limits and the
-emulator/container conditions. Actual Pi storage wear, thermals, power-loss
-behavior, physical network reliability, and sustained device performance stay
-unverified until hardware is available; no human input is needed to continue
-the code-only assessment.
+**Result (14 October 2026):** the minimal app and PostGIS images built and ran
+as `linux/arm64`; all 386 schema migrations applied with zero failures; PostGIS
+topology/raster functions were available; `/health` returned 200; a 4.9 MB
+logical backup restored to a second database with matching SHA-256 migration
+fingerprint and successful Kernel schema readiness; database restart and
+simulated app-container loss recovered. Container limits were 1.5 GiB for
+PostgreSQL and 1 GiB for the app, two CPUs each, with no host ports. The focused
+Compose architecture contract passed. See the retained
+[acceptance record](builds/2026-10-14-recovery/arm64-qemu-runtime-acceptance.json).
+
+**Acceptance:** passed for the minimal app/PostGIS runtime under QEMU, with
+emulator conditions, resource limits, migration and restore evidence recorded.
+Actual Pi storage wear, thermals, power-loss behavior, physical network
+reliability, and sustained device performance stay unverified until hardware is
+available; no human input is needed for this code-only assessment.
 
 ### Batch G — Reconcile ledgers, then request only owner decisions
 
@@ -221,15 +229,15 @@ deployment or semantic acceptance:
   and a separate approval to roll out migrations 392–395 (OFU-18). Neither is
   implied by code/test approval.
 
-There is no active Raspberry Pi request: OFU-12 records the code-only scope
-and lack of hardware. If the owner later supplies a Pi, add a separate physical
-acceptance record rather than revising emulation evidence.
+There is no active Raspberry Pi request: OFU-12 records the completed code-only
+scope and lack of hardware. If the owner later supplies a Pi, add a separate
+physical acceptance record rather than revising emulation evidence.
 
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. CI #308 is the current remote run; after it concludes, accumulate
-the next coherent batch before pushing so the repository does not start CI for
-each small commit. Never push directly to `main`. Keep each candidate database
+requested. CI #308 passed on pushed head `7953afe`; accumulate the next
+coherent batch before pushing so the repository does not start CI for each
+small commit. Never push directly to `main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable
 acceptance are complete.

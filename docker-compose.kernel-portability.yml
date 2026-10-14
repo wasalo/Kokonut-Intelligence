@@ -8,6 +8,8 @@ services:
       context: .
       dockerfile: Dockerfile.kernel-postgis
       target: kernel-postgis
+      platforms:
+        - ${KOKONUT_DATABASE_PLATFORM:-linux/amd64}
       args:
         POSTGIS_PACKAGE_VERSION: "3.6.4+dfsg-2.pgdg12+1"
         POSTGIS_SCRIPTS_VERSION: "3.6.4+dfsg-2.pgdg12+1"
@@ -37,6 +39,8 @@ services:
       context: .
       dockerfile: Dockerfile.kernel
       target: kernel
+      platforms:
+        - ${KOKONUT_DATABASE_PLATFORM:-linux/amd64}
       args:
         KOKONUT_CLICKHOUSE: "false"
     init: true
