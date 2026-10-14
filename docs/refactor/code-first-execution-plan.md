@@ -26,6 +26,8 @@ MAN-CAP checks open until each has its own retained evidence.
   every current scheduled/event allowlist entry. Module-specific scheduler
   argument contracts now fail closed at activation and dispatch; transitive
   call effects, enabled legacy rows and worker identity/context remain open.
+  Data-freshness queries use fixed table/timestamp maps, bind location values,
+  and report unknown configured sources as errors; 29 focused source tests pass.
   Focused source/disposable checks pass;
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,

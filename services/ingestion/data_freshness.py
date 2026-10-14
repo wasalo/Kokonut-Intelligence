@@ -20,10 +20,31 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
+from services.common.cli import print_json
+
 from ..common.logging import get_logger
 from .base import get_db
-from services.common.cli import print_json
+
 logger = get_logger("ingestion.data_freshness")
+
+FRESHNESS_SOURCE_TABLES = {
+    "weather": "weather_observation",
+    "sensors": "sensor_reading",
+    "remote_sensing": "remote_sensing_observation",
+    "market_data": "price_observation",
+    "eas_indexer": "attestation_record",
+    "rpc_indexer": "wallet_activity_event",
+    "gnosis_indexer": "governance_event",
+}
+FRESHNESS_TABLE_TIMESTAMP_COLUMNS = {
+    "weather_observation": "observation_date",
+    "sensor_reading": "created_at",
+    "remote_sensing_observation": "observation_date",
+    "price_observation": "observation_date",
+    "attestation_record": "attested_at",
+    "wallet_activity_event": "block_timestamp",
+    "governance_event": "block_timestamp",
+}
 
 
 def _query_freshness_configs(conn, source: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -61,34 +82,12 @@ def _query_latest_data_at(
     """Get the most recent data timestamp for a source system."""
     if location_scoped and not location_id:
         raise ValueError("location_id is required for a scoped freshness query")
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    source_table_map = {
-        "weather": "weather_observation",
-        "sensors": "sensor_reading",
-        "remote_sensing": "remote_sensing_observation",
-        "market_data": "price_observation",
-        "eas_indexer": "attestation_record",
-        "rpc_indexer": "wallet_activity_event",
-        "gnosis_indexer": "governance_event",
-    }
-
-    table = source_table_map.get(source_system)
+    table = FRESHNESS_SOURCE_TABLES.get(source_system)
     if not table:
-        cur.close()
-        return None
+        raise ValueError(f"unsupported freshness source: {source_system}")
 
-    # Determine the timestamp column
-    ts_column_map = {
-        "weather_observation": "observation_date",
-        "sensor_reading": "created_at",
-        "remote_sensing_observation": "observation_date",
-        "price_observation": "observation_date",
-        "attestation_record": "attested_at",
-        "wallet_activity_event": "block_timestamp",
-        "governance_event": "block_timestamp",
-    }
-    ts_col = ts_column_map.get(table, "created_at")
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    ts_col = FRESHNESS_TABLE_TIMESTAMP_COLUMNS[table]
 
     query = f"SELECT MAX({ts_col}) AS last_at FROM {table}"
     params = []
@@ -222,8 +221,7 @@ def _persist_alert_event(
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
-        (state["id"], check_id, source_system, location_id, event_type,
-         previous_status, status, gap_minutes, now),
+        (state["id"], check_id, source_system, location_id, event_type, previous_status, status, gap_minutes, now),
     )
     alert_id = str(cur.fetchone()[0])
     count_column = {

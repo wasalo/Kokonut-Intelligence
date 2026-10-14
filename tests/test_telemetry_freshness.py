@@ -46,7 +46,7 @@ def test_freshness_alert_durability_migration() -> None:
 def test_freshness_persists_delivery_attempts() -> None:
     content = Path("services/ingestion/data_freshness.py").read_text()
     assert "_persist_delivery_attempt" in content
-    assert "attempt[\"error\"]" in content
+    assert 'attempt["error"]' in content
 
 
 def test_determine_status_fresh() -> None:
@@ -139,6 +139,71 @@ def test_scoped_freshness_query_requires_location() -> None:
         pass
     else:
         raise AssertionError("scoped freshness query did not require a location")
+
+
+class _FreshnessQueryCursor:
+    def __init__(self) -> None:
+        self.statement = None
+        self.parameters = None
+
+    def execute(self, statement, parameters=None) -> None:
+        self.statement = statement
+        self.parameters = parameters
+
+    def fetchone(self):
+        return {"last_at": None}
+
+    def close(self) -> None:
+        pass
+
+
+class _FreshnessQueryConnection:
+    def __init__(self) -> None:
+        self.query_cursor = _FreshnessQueryCursor()
+
+    def cursor(self, **_kwargs):
+        return self.query_cursor
+
+
+def test_freshness_query_uses_fixed_table_and_column_identifiers() -> None:
+    from services.ingestion.data_freshness import (
+        FRESHNESS_SOURCE_TABLES,
+        FRESHNESS_TABLE_TIMESTAMP_COLUMNS,
+        _query_latest_data_at,
+    )
+
+    assert set(FRESHNESS_SOURCE_TABLES.values()) == set(FRESHNESS_TABLE_TIMESTAMP_COLUMNS)
+    connection = _FreshnessQueryConnection()
+    _query_latest_data_at(connection, "weather", True, "location-id")
+
+    assert connection.query_cursor.statement == (
+        "SELECT MAX(observation_date) AS last_at FROM weather_observation WHERE location_id = %s"
+    )
+    assert connection.query_cursor.parameters == ["location-id"]
+
+
+def test_sensor_freshness_query_binds_location_value() -> None:
+    from services.ingestion.data_freshness import _query_latest_data_at
+
+    connection = _FreshnessQueryConnection()
+    _query_latest_data_at(connection, "sensors", True, "location-id")
+
+    assert connection.query_cursor.statement == (
+        "SELECT MAX(sr.created_at) AS last_at FROM sensor_reading sr "
+        "JOIN sensor_device sd ON sd.id = sr.sensor_id WHERE sd.location_id = %s"
+    )
+    assert connection.query_cursor.parameters == ["location-id"]
+
+
+def test_unsupported_freshness_source_fails_as_configuration_error() -> None:
+    from services.ingestion.data_freshness import _query_latest_data_at
+
+    try:
+        _query_latest_data_at(None, "unconfigured_source", False)
+    except ValueError as exc:
+        assert str(exc) == "unsupported freshness source: unconfigured_source"
+    else:
+        raise AssertionError("unsupported freshness source was reported as no data")
 
 
 def test_freshness_config_defaults() -> None:

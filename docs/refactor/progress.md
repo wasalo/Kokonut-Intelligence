@@ -26,6 +26,12 @@ regression suites pass 6 Python and 6 TypeScript tests, plus the TypeScript
 build and Ruff; both use isolated local/fake adapters. The shared worker
 database identity remains open; see the worker call-site audit.
 
+The current source-only telemetry slice keeps freshness-query identifiers in
+fixed maps, binds location values, and records unsupported configured sources
+as errors rather than `no_data`. Its 29 focused tests and Ruff checks pass
+([evidence](builds/2026-10-14-recovery/freshness-query-contract-check.json));
+it does not claim live-provider or Raspberry Pi hardware acceptance.
+
 The prescribed platform-integrity suite passed 290 tests on local commit
 `238e2ef`, including the tenant-bound Data Stream route regression. The earlier
 288-test run on `1c00845` remains in [historical evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json);
