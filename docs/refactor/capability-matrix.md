@@ -269,6 +269,15 @@ saved-dashboard ownership, query safety, least-privilege
 grants, location scoping, or report parity ([implementation](provider-configuration.md);
 [inventory](reporting-parity-inventory.md)).
 
+**14 October 2026 follow-on:** the first-party legacy saved-query refresher now
+uses a dedicated analytics login restricted to the three curated reporting
+views, with live ACL verification, a read-only bounded transaction, and
+metadata-only writes through the application connection. Its synthetic
+PostgreSQL acceptance passed, and the feature remains disabled by default.
+This narrows the repository-owned runner boundary; external dashboard roles,
+report ownership/reference fixtures, and tenant scope remain open. No
+MAN-CAP status or acceptance count changes ([evidence](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json)).
+
 **13 October 2026 OIDC configuration update (CAP-001 / CAP-053):** the optional
 OIDC overlay remains disabled unless explicitly selected. `.env.example` now
 lists the required provider settings and identifies client/state secrets as

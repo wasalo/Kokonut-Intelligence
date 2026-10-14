@@ -4814,3 +4814,24 @@ query/table/effect and idempotency map, followed by a non-forgeable system
 worker identity and narrow grants. Active schedule ownership and production
 identity semantics remain owner inputs. The source trace is in
 [`mobile-tenant-rls-callsite-audit.md`](mobile-tenant-rls-callsite-audit.md).
+
+### Saved dashboard SQL reader boundary — 14 October 2026
+
+The optional `dashboard_dataset.query_sql` worker no longer executes saved SQL
+on the application connection. It opens a separate analytics login, verifies
+the live identity and grants, and accepts only SELECT access to the three
+reviewed `kokonut_reporting` views. The reader transaction is read-only, has
+bounded statement and lock timeouts, returns only a row count, and rejects
+stale metadata writes if the saved query changed while running. The feature
+gate remains off by default. Compose passes the optional credentials only to
+the worker that runs refreshes.
+
+A synthetic PostgreSQL 16 fixture passed: app-role metadata update without
+report-view access; view-only reader verification; private base-table and
+data-changing CTE denials; and unchanged fixture rows. Focused reader/refresh/
+feature tests passed (30), Compose profile checks passed (15), and Ruff,
+Python compilation, and `git diff --check` passed. The fixture container was
+removed, and candidate/legacy databases were untouched. This closes the
+first-party runner's query-execution boundary only; external dashboard roles,
+retained report ownership, and tenant-scoped parity remain open. Evidence:
+[`saved-reporting-reader-disposable.json`](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json).

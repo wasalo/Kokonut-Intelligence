@@ -15,14 +15,15 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 298 checked and 20 open items (318 total).
+- The execution checklist has 299 checked and 20 open items (319 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
 - The local batch retires the unscoped legacy mobile-offline CLI, tenant-binds
   protected Data Stream creation, and rejects unscoped cache invalidation from
-  event handlers. Focused source/disposable checks pass; remote CI has not run
-  for these newer changes.
+  event handlers. A separate reporting slice now runs opt-in saved SQL through
+  an ACL-verified, read-only reader role. Focused source/disposable checks pass;
+  remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–396 and the remaining curated seeds are prepared
@@ -194,8 +195,18 @@ leases, idempotency, retries and dead-letter operations; prove one-dispatcher
 and duplicate prevention; exercise provider absent/disabled/failure paths;
 cover backup/media restore and outbox behavior with fake endpoints and
 disposable databases. Improve the report/query safety boundary for
-repository-owned surfaces and keep saved SQL disabled unless it has a
-read-only, least-privilege contract.
+repository-owned surfaces. The legacy saved-query runner remains disabled by
+default; when explicitly enabled, a dedicated identity may read only the three
+curated reporting views in a read-only transaction, while the application
+identity updates refresh metadata. External/operator-edited queries, retained
+dashboard selection, and tenant-scoped report parity remain open.
+
+**Progress (14 October 2026):** the saved-query runner is isolated from the
+application database connection, checks its live role attributes and ACLs,
+uses statement/lock timeouts, counts results without fetching them, and refuses
+to write stale refresh metadata if the saved SQL changed during execution. The
+disposable PostgreSQL proof and focused checks are retained in
+[`saved-reporting-reader-disposable.json`](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and
