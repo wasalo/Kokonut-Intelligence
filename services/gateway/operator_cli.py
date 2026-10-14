@@ -98,7 +98,11 @@ def grant_scope(args) -> None:
         ).first()
         if target is None:
             raise ValueError("location was not found")
-        location_organization_id = str(target[0]) if target[0] is not None else None
+        location_organization_id = (
+            str(target["location_organization_id"])
+            if target["location_organization_id"] is not None
+            else None
+        )
         owner = conn.execute(
             """SELECT organization_id
                  FROM location_tenant_owner_verification
@@ -106,7 +110,7 @@ def grant_scope(args) -> None:
                 FOR SHARE""",
             {"location_id": location_id},
         ).first()
-        verified_organization_id = str(owner[0]) if owner is not None else None
+        verified_organization_id = str(owner["organization_id"]) if owner is not None else None
         if verified_organization_id is not None and verified_organization_id != location_organization_id:
             raise ValueError("location ownership verification is stale; resolve ownership before granting access")
         if organization_id is None:
@@ -177,7 +181,9 @@ def grant_scope(args) -> None:
                 },
             ).first()
             existing_organization_id = (
-                str(existing[5]) if existing is not None and existing[5] is not None else None
+                str(existing["organization_id"])
+                if existing is not None and existing["organization_id"] is not None
+                else None
             )
             if existing is not None and existing_organization_id is None and organization_id is not None:
                 row = conn.execute(
@@ -187,7 +193,7 @@ def grant_scope(args) -> None:
                           AND revoked_at IS NULL
                         RETURNING id, operator_id, resource, action, location_id,
                                   organization_id, granted_by""",
-                    {"organization_id": organization_id, "grant_id": existing[0]},
+                    {"organization_id": organization_id, "grant_id": existing["id"]},
                 ).first()
                 if row is None:
                     existing = conn.execute(
@@ -206,8 +212,8 @@ def grant_scope(args) -> None:
                     ).first()
                     if (
                         existing is None
-                        or existing[5] is None
-                        or str(existing[5]) != organization_id
+                        or existing["organization_id"] is None
+                        or str(existing["organization_id"]) != organization_id
                     ):
                         raise ValueError("an active scope grant exists under a different tenant")
                     row = existing
@@ -261,7 +267,7 @@ def grant_organization_membership(args) -> None:
                       AND revoked_at IS NULL""",
                 {"operator_id": operator_id, "organization_id": organization_id},
             ).first()
-            if row is not None and row[3] != args.membership_role:
+            if row is not None and row["membership_role"] != args.membership_role:
                 raise ValueError(
                     "active membership has a different role; revoke it before changing the role"
                 )
@@ -293,7 +299,7 @@ def revoke_organization_membership(args) -> None:
                     WHERE operator_id = :operator_id
                       AND organization_id = :organization_id
                       AND revoked_at IS NULL""",
-                {"operator_id": row[1], "organization_id": row[2]},
+                {"operator_id": row["operator_id"], "organization_id": row["organization_id"]},
             )
     if row is None:
         raise ValueError("active organization membership was not found")
@@ -308,7 +314,8 @@ def grant_location_share(args) -> None:
         raise ValueError("reason is required")
     with get_connection() as conn:
         location = conn.execute(
-            """SELECT loc.organization_id, owner.organization_id
+            """SELECT loc.organization_id AS location_organization_id,
+                      owner.organization_id AS verified_organization_id
                  FROM location AS loc
                  JOIN location_tenant_owner_verification AS owner
                    ON owner.location_id = loc.id AND owner.revoked_at IS NULL
@@ -319,7 +326,7 @@ def grant_location_share(args) -> None:
         ).first()
         if location is None:
             raise ValueError("location needs a current verified owner before it can be shared")
-        owner_organization_id = str(location[0])
+        owner_organization_id = str(location["verified_organization_id"])
         if owner_organization_id == organization_id:
             raise ValueError("the owner organization does not need a share grant")
         target_org = conn.execute(
@@ -377,8 +384,9 @@ def revoke_location_share(args) -> None:
         raise ValueError("reason is required")
     with get_connection() as conn:
         share = conn.execute(
-            """SELECT share.id, share.location_id, share.organization_id,
-                      owner.organization_id
+            """SELECT share.id AS share_id, share.location_id AS location_id,
+                      share.organization_id AS organization_id,
+                      owner.organization_id AS owner_organization_id
                  FROM location_organization_share AS share
                  JOIN location AS loc ON loc.id = share.location_id
                  JOIN location_tenant_owner_verification AS owner
@@ -400,7 +408,10 @@ def revoke_location_share(args) -> None:
                   AND membership.membership_role = 'tenant_admin'
                   AND membership.revoked_at IS NULL
                 FOR SHARE OF identity, membership""",
-            {"operator_id": revoked_by_operator_id, "organization_id": str(share[3])},
+            {
+                "operator_id": revoked_by_operator_id,
+                "organization_id": str(share["owner_organization_id"]),
+            },
         ).first()
         if owner_admin is None:
             raise ValueError("an active owner tenant administrator is required")
@@ -423,7 +434,7 @@ def revoke_location_share(args) -> None:
                 WHERE location_id = :location_id
                   AND organization_id = :organization_id
                   AND revoked_at IS NULL""",
-            {"location_id": share[1], "organization_id": share[2]},
+            {"location_id": share["location_id"], "organization_id": share["organization_id"]},
         )
     print_json(row)
 

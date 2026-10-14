@@ -40,7 +40,10 @@ CREATE TABLE operator_identity (
     issuer TEXT NOT NULL,
     subject TEXT NOT NULL,
     display_name TEXT,
-    enabled BOOLEAN NOT NULL DEFAULT FALSE
+    email TEXT,
+    enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE operator_scope_grant (

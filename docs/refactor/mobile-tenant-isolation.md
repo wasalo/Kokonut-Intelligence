@@ -117,9 +117,10 @@ verification:
    affiliations are not known. Focused migration and authorization checks now
    pass on a network-disabled disposable PostgreSQL 16 database for actual
    migrations 387–389, including idempotent replay of 388–389 and positive and
-   negative Field Collector trigger cases. Operator-CLI membership/share
-   lifecycle, legacy-grant conversion, the full 384–385 trigger stack, and
-   complete ordered replay remain open before any candidate rollout or RLS.
+   negative Field Collector trigger cases. A second disposable run exercised
+   CLI membership/share lifecycle, dependent revocation, and legacy-grant
+   conversion. Full ordered replay with the 384–385 trigger stack remains open
+   before any candidate rollout or RLS.
 4. Add transaction-local context to each service/worker connection path, then
    add additive RLS policies and indexes through new ordered migrations. Keep
    existing migrations immutable.
@@ -148,9 +149,10 @@ which returned zero locations and zero inventoried rows. This confirms only
 that the candidate is empty; it does not establish ownership for a populated
 deployment. These steps prove only known direct lineage and the inventory's
 location-scoped contract. Ownership outside the two confirmed seed locations,
-operator-CLI membership/share lifecycle, legacy-grant conversion, RLS, worker
-isolation, and downstream consumer parity remain open. No RLS migration or
-live data mutation was made.
+RLS, worker isolation, and downstream consumer parity remain open. The
+operator CLI membership/share lifecycle and legacy-grant conversion now have
+separate disposable acceptance evidence. No RLS migration or live data
+mutation was made.
 
 On 13 October 2026 the preflight also ran against a fresh isolated copy of the
 populated archive after the ordered migration runner applied all 32 pending
@@ -172,11 +174,10 @@ and dashboard rows remain unassigned after a read-only lineage review found no
 location or confirmed-tenant reference that establishes their owner. This
 review covers the 38 unlocated dashboard definitions and three unlocated draft
 snapshots on the retained archive clone; it does not claim complete downstream
-lineage. Least-privilege worker behavior, audited transfer semantics, operator
-CLI membership/share lifecycle, legacy-grant conversion, full migration replay,
-and candidate rollout remain open. The tenant-aware grant source has passed
-focused disposable acceptance, but RLS is not enabled by this ownership
-reconciliation ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
+lineage. Least-privilege worker behavior, audited transfer semantics, full
+migration replay, and candidate rollout remain open. The operator CLI lifecycle
+and legacy-grant conversion passed separate disposable acceptance; RLS is not
+enabled by this ownership reconciliation ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
 
 ## Confirmed seed-location owner mapping — 13 October 2026
 
@@ -214,9 +215,10 @@ The migration does not infer operator affiliations from old location grants.
 Legacy NULL-tenant grants continue to use the existing explicit
 location-scoped contract until each identity is reconciled. Tenant grants are
 not a claim of row-level isolation: transaction-local context, worker scoping,
-transfer workflow, direct database privilege boundaries, CLI lifecycle and
-legacy-grant conversion, full ordered replay, and candidate rollout remain
-open. Focused predicate and trigger acceptance has passed on a minimal
+transfer workflow, direct database privilege boundaries, full ordered replay,
+and candidate rollout remain open. The operator CLI lifecycle and
+legacy-grant conversion passed separate disposable acceptance. Focused
+predicate and trigger acceptance has passed on a minimal
 compatible disposable PostgreSQL schema. RLS remains disabled.
 
 ### Field Collector write-trigger follow-up — 13 October 2026
@@ -242,7 +244,9 @@ evidence is in
 [`tenant-grants-migrations-disposable.json`](builds/2026-10-13-recovery/tenant-grants-migrations-disposable.json).
 
 This uses a minimal compatible schema. It does not replay the full repository
-migration chain or test interaction with the existing 384–385 triggers. The
-operator CLI membership/share lifecycle, legacy-grant conversion, candidate
-rollout, transaction-local tenant context, arbitrary direct-SQL isolation, and
-RLS remain open. No candidate database was changed.
+migration chain or test interaction with the existing 384–385 triggers. A
+separate run exercised the actual operator CLI membership/share lifecycle and
+legacy-grant conversion against the same disposable migrations; see
+[`tenant-grants-cli-disposable.json`](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
+Candidate rollout, transaction-local tenant context, arbitrary direct-SQL
+isolation, and RLS remain open. No candidate database was changed.

@@ -100,10 +100,14 @@ python3 -m services.cli operator grant --operator-id UUID --organization-id ORG_
 Membership and share revocations require an operator identifier and reason;
 they also revoke dependent tenant-qualified grants. Existing NULL-tenant
 location grants remain compatible and are not assigned to an organization
-without accountable operator mapping. Migration 388 has not been rolled out;
-focused database acceptance, conversion of legacy grants, audited ownership
-transfers, transaction-local context, direct-database isolation, and RLS remain
-open.
+without accountable operator mapping. Disposable PostgreSQL acceptance now
+exercises idempotent membership/share granting, role-change refusal until
+revocation, owner-only share controls, partner-scope denial and enablement,
+dependent grant revocation, and in-place conversion of an owner NULL-tenant
+grant. See the [CLI acceptance evidence](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
+Migration 388 is not rolled out to the candidate. Full replay with the 384–385
+trigger stack, audited ownership transfers, transaction-local context,
+direct-database isolation, and RLS remain open.
 
 The browser session response includes only the signed-in operator's active
 grant tuples so the page can offer assigned locations. The report review grant

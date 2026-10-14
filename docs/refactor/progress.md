@@ -3976,3 +3976,27 @@ ordered replay, candidate rollout, transfer controls, worker/direct-database
 boundaries, transaction-local context, and RLS remain open. No candidate or
 legacy database was touched. CI run #291 covers the earlier remote PR head,
 not these local changes.
+
+### Migration 388–389 operator CLI acceptance — 13 October 2026
+
+Ran the migration and trigger acceptance plus the real
+`services.gateway.operator_cli` commands against a disposable PostgreSQL 16
+database. The CLI checks covered listing identities and grants, idempotent
+membership and share grants, refusing a role change until the old membership
+is revoked, requiring an owner tenant administrator to share a location,
+denying partner grants without a share, allowing them with a share, and
+revoking dependent grants when either the share or membership is revoked. A
+legacy NULL-tenant owner grant converted in place to the verified owner tenant
+and remained authorized. This run exposed and fixed positional row access in
+the CLI; its database adapter returns named mappings. Ruff 0.15.22 and Python
+syntax checks pass. Sanitized evidence is in
+[`tenant-grants-cli-disposable.json`](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
+
+The database used a dedicated disposable Docker bridge with a loopback-only
+published port and synthetic rows; the candidate and legacy databases were
+untouched, and the temporary database/network were removed. This remains a
+minimum compatible schema check: the full repository migration chain and
+interaction with migrations 384–385 are not yet exercised, and migration 388
+has not been rolled out to the candidate. Transfer controls, operator
+affiliation reconciliation, transaction-local tenant context, direct-database
+isolation, and RLS remain open.

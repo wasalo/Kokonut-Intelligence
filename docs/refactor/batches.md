@@ -522,9 +522,12 @@ reporting views.
   partner/share, legacy NULL-tenant, revoked/expired/inactive, unverified and
   stale-owner cases passed; the 389 draft insert/edit and workflow triggers
   passed positive and denial cases ([evidence](builds/2026-10-13-recovery/tenant-grants-migrations-disposable.json)).
-- [ ] Exercise the operator CLI membership/share lifecycle and legacy-grant
-  conversion, and replay against the complete earlier 384–385 trigger stack or
-  full ordered schema before considering a candidate rollout.
+- [x] Exercise the operator CLI membership/share lifecycle and legacy-grant
+  conversion against disposable PostgreSQL migrations 387–389
+  ([evidence](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json)).
+  Ruff and Python syntax checks pass.
+- [ ] Replay migrations 387–389 against the complete earlier 384–385 trigger
+  stack or full ordered schema before considering a candidate rollout.
 - [ ] Define and implement audited owner-transfer controls, reconcile other
   locations and legacy operator grants, add transaction-local context, and
   establish least-privilege worker/direct-database boundaries before RLS.
