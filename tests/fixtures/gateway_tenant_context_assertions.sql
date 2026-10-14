@@ -23,6 +23,32 @@ CREATE POLICY gateway_context_probe_scope
     );
 ALTER TABLE public.gateway_context_probe ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gateway_context_probe FORCE ROW LEVEL SECURITY;
+GRANT SELECT, INSERT ON public.gateway_data_stream_post_probe TO kokonut_runtime;
+CREATE POLICY gateway_data_stream_post_probe_scope
+    ON public.gateway_data_stream_post_probe
+    FOR ALL TO kokonut_runtime
+    USING (
+        EXISTS (
+            SELECT 1
+              FROM kokonut_security.current_tenant_context() AS context
+             WHERE context.tenant_id = gateway_data_stream_post_probe.tenant_id
+               AND context.location_id = gateway_data_stream_post_probe.location_id
+               AND context.actor_id = gateway_data_stream_post_probe.created_by
+               AND context.actor_type IN ('gateway_api_key', 'gateway_capability')
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1
+              FROM kokonut_security.current_tenant_context() AS context
+             WHERE context.tenant_id = gateway_data_stream_post_probe.tenant_id
+               AND context.location_id = gateway_data_stream_post_probe.location_id
+               AND context.actor_id = gateway_data_stream_post_probe.created_by
+               AND context.actor_type IN ('gateway_api_key', 'gateway_capability')
+        )
+    );
+ALTER TABLE public.gateway_data_stream_post_probe ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.gateway_data_stream_post_probe FORCE ROW LEVEL SECURITY;
 
 SET ROLE kokonut_runtime;
 BEGIN;
@@ -162,6 +188,75 @@ BEGIN
       );
     IF NOT FOUND OR context_row.actor_type <> 'gateway_capability' THEN
         RAISE EXCEPTION 'zero max-usage capability did not retain unlimited semantics';
+    END IF;
+
+    SELECT * INTO context_row
+      FROM kokonut_security.set_gateway_tenant_context(
+          'api_key', repeat('1', 64),
+          'a0000000-0000-0000-0000-000000000001'::UUID,
+          'data_stream_post', 'create'
+      );
+    IF NOT FOUND
+       OR context_row.actor_id <> 'a0000000-0000-0000-0000-000000000917'::UUID
+       OR context_row.actor_type <> 'gateway_api_key' THEN
+        RAISE EXCEPTION 'Data Stream create credential did not establish actor context';
+    END IF;
+    INSERT INTO public.gateway_data_stream_post_probe (
+        tenant_id, location_id, created_by, content
+    )
+    SELECT tenant_id, location_id, actor_id, 'tenant-scoped draft'
+      FROM kokonut_security.current_tenant_context();
+    SELECT count(*) INTO row_count
+      FROM public.gateway_data_stream_post_probe
+     WHERE tenant_id = 'a0000000-0000-0000-0000-000000000801'::UUID
+       AND location_id = 'a0000000-0000-0000-0000-000000000001'::UUID
+       AND created_by = 'a0000000-0000-0000-0000-000000000917'::UUID
+       AND content = 'tenant-scoped draft';
+    IF row_count <> 1 THEN
+        RAISE EXCEPTION 'Data Stream context did not permit the matching tenant/actor insert';
+    END IF;
+
+    denied := FALSE;
+    BEGIN
+        INSERT INTO public.gateway_data_stream_post_probe (
+            tenant_id, location_id, created_by, content
+        ) VALUES (
+            'a0000000-0000-0000-0000-000000000801'::UUID,
+            'a0000000-0000-0000-0000-000000000002'::UUID,
+            'a0000000-0000-0000-0000-000000000917'::UUID,
+            'wrong location'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN
+        denied := TRUE;
+    END;
+    IF denied IS DISTINCT FROM TRUE THEN
+        RAISE EXCEPTION 'Data Stream RLS permitted a write to a different location';
+    END IF;
+
+    SELECT count(*) INTO row_count
+      FROM kokonut_security.set_gateway_tenant_context(
+          'api_key', repeat('1', 64),
+          'a0000000-0000-0000-0000-000000000002'::UUID,
+          'data_stream_post', 'create'
+      );
+    IF row_count <> 0 THEN
+        RAISE EXCEPTION 'Data Stream credential was accepted for a different location';
+    END IF;
+    denied := FALSE;
+    BEGIN
+        INSERT INTO public.gateway_data_stream_post_probe (
+            tenant_id, location_id, created_by, content
+        ) VALUES (
+            'a0000000-0000-0000-0000-000000000801'::UUID,
+            'a0000000-0000-0000-0000-000000000001'::UUID,
+            'a0000000-0000-0000-0000-000000000917'::UUID,
+            'stale context'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN
+        denied := TRUE;
+    END;
+    IF denied IS DISTINCT FROM TRUE THEN
+        RAISE EXCEPTION 'stale Data Stream context permitted a write after denial';
     END IF;
 
     PERFORM set_config('kokonut.tenant_id', 'a0000000-0000-0000-0000-000000000801', TRUE);

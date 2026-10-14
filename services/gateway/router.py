@@ -357,19 +357,26 @@ async def get_public_analytics_summary_v1(location_id: str):
 
 @router.post("/data-stream/post")
 async def create_data_stream_post(request: Request):
-    """Create a data stream post."""
+    """Create a tenant-scoped draft Data Stream post."""
+    from starlette.concurrency import run_in_threadpool
+
     try:
         body = await request.json()
-        from services.data_stream.post import create_post
-        post_id = create_post(
-            location_id=body["location_id"],
-            post_type=body.get("post_type", "monitoring_report"),
-            title=body.get("title", ""),
-            content=body.get("content", ""),
-            created_by=request.state.caller,
+        from services.gateway.data_stream import create_gateway_data_stream_post
+
+        result = await run_in_threadpool(
+            create_gateway_data_stream_post,
+            body,
+            request.state.gateway_authorization,
         )
-        return JSONResponse(content={"post_id": post_id}, status_code=201)
+        return JSONResponse(content={"post_id": result["id"]}, status_code=201)
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
     except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
         return _internal_error(exc)
 
 

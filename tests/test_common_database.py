@@ -29,3 +29,11 @@ def test_context_manager_rolls_back_on_error():
         pass
     raw.rollback.assert_called_once()
     raw.close.assert_called_once()
+
+
+def test_connection_exposes_raw_transaction_mode():
+    raw = MagicMock()
+    raw.autocommit = False
+    assert DatabaseConnection(raw).autocommit is False
+    raw.autocommit = True
+    assert DatabaseConnection(raw).autocommit is True

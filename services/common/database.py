@@ -121,6 +121,11 @@ class DatabaseConnection:
     def text(sql: str) -> str:
         return sql
 
+    @property
+    def autocommit(self) -> bool:
+        """Expose transaction mode to helpers that require transaction-local state."""
+        return self._connection.autocommit
+
     def execute(self, sql: str, params: Optional[dict[str, Any]] = None) -> MappingResult:
         cur = self._connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         try:

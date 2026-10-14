@@ -792,6 +792,18 @@ reporting views.
   No candidate or legacy database was touched. The contract currently binds
   Gateway credentials to the verified location owner; shared-organization API
   key affiliation and production credential provisioning remain open.
+- [x] Bind protected Gateway Data Stream draft creation to signed tenant context.
+  `services/gateway/data_stream.py` opens one managed transaction, asks
+  PostgreSQL to revalidate the exact credential/resource/action/location and
+  current owner, then inserts the draft through that same connection using the
+  database-derived actor UUID. Client-supplied `created_by` is ignored, scope
+  denial maps to HTTP 403, and lifecycle remains `draft`. The focused Gateway,
+  context, and database adapter suites pass (55 tests); Ruff passes. The
+  migration-396 disposable PostgreSQL 16 forced-RLS fixture also passes a
+  matching tenant/location/actor insert, cross-location denial, denial cleanup,
+  and migration replay. No candidate or legacy database was touched. Search,
+  file/proof routes, environment-key database provisioning, and other Gateway
+  handlers remain open ([evidence](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)).
 - [ ] Roll out migrations 392–396 to the local candidate only after a fresh encrypted
   checkpoint and restore rehearsal; recreate only the candidate app and verify
   health, migration state, and protected routes. Candidate remains at migration

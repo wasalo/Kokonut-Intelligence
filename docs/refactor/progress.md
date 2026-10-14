@@ -8,9 +8,11 @@ Do not treat CI #308 and Security #32 as coverage for commits after their
 verified head. The pushed batch through `c1c9fd1` includes the Compose ARM64
 build platform fix, code-only ARM64 runtime acceptance, and Gateway credential
 tenant context in migration 396; CI is pending for that batch. The current
-local, unpushed batch retires the unscoped legacy mobile-offline CLI after 67
-focused mobile/API/form tests plus five command subtests passed. It has not
-been pushed, so it has no remote CI result. The root implementation plan
+local, unpushed batch retires the unscoped legacy mobile-offline CLI and tenant-
+binds protected Gateway Data Stream creation. Its mobile/API/form slice passed
+67 tests plus five command subtests; the Data Stream and tenant-context slice
+passed 55 focused tests plus disposable forced-RLS checks. It has not been
+pushed, so it has no remote CI result. The root implementation plan
 remains intentionally ignored; this ledger and the
 [capability matrix](capability-matrix.md) provide repository-visible progress
 alongside it. Remaining implementation is ordered in the
@@ -4728,3 +4730,29 @@ the app build architecture. The portability manifest now passes the selected
 platform through `build.platforms` as well, and its focused Compose contract
 check passed. Full evidence, image IDs, limits, and restoration fingerprints:
 [arm64-qemu-runtime-acceptance.json](builds/2026-10-14-recovery/arm64-qemu-runtime-acceptance.json).
+
+### Gateway Data Stream write tenant boundary — 14 October 2026
+
+The protected `POST /api/data-stream/post` route previously called the core
+service without its required database connection. It now delegates to a
+Gateway command that opens one managed transaction, revalidates the exact
+credential scope and current owner in PostgreSQL, sets signed tenant context,
+and inserts the draft on the same connection. The database-derived actor UUID
+is used for `created_by`; any client-supplied actor is ignored. The route keeps
+the `post_id` response and draft lifecycle, returns 403 on database scope
+denial, and rejects malformed or mismatched location scope before DB access.
+
+Focused Gateway auth/route, new command, tenant-context, and DB-adapter tests:
+**55 passed**; Ruff passed. The migration-396 disposable PostgreSQL 16 fixture
+was extended with a forced-RLS Data Stream write probe. It replayed migration
+396 and passed 13 checks, including the owner/location/actor-matched insert,
+cross-location write denial, denial cleanup before a follow-up write, and
+transaction cleanup. Docker networking was disabled. Candidate and legacy
+databases were untouched; application RLS remains disabled. See
+[`gateway-tenant-context-disposable.json`](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)
+and [`gateway-tenant-context-contract.md`](gateway-tenant-context-contract.md).
+
+This closes only the Data Stream create path. Search, file/proof operations,
+other Gateway handlers, shared-organization API-key affiliation, production
+credential provisioning, worker/Directus boundaries, broad runtime grants,
+and application RLS remain open.

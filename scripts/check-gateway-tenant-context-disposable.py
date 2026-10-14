@@ -76,6 +76,8 @@ def main() -> int:
         "location-free, wildcard, wrong-location, expired, and inactive API keys are denied and clear prior context",
         "duplicate API-key hashes are rejected by the migration's unique index",
         "exact active location-scoped capability establishes signed context under forced RLS",
+        "exact Data Stream create credential permits an owner/location/actor-matched insert under forced RLS",
+        "Data Stream write to another location is denied, and a scope denial clears context before any follow-up insert",
         "wrong-location, expired, and revoked capabilities are denied and clear prior context",
         "the final allowed capability use passes after usage increment; over-limit is denied",
         "zero max-usage retains the existing unlimited capability semantics",

@@ -1,5 +1,6 @@
 """Focused gateway authorization tests."""
 
+import hashlib
 from unittest.mock import patch
 
 import pytest
@@ -188,16 +189,20 @@ def test_anonymous_write_is_denied():
     assert response.json()["error"] == "Unauthorized"
 
 
-def test_authenticated_write_uses_verified_actor(monkeypatch):
+def test_authenticated_write_passes_verified_middleware_context(monkeypatch):
     monkeypatch.setenv("KOKONUT_API_KEYS", "secret-key:verified-caller")
     monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "verified-caller:data_stream_post:create")
-    with patch("services.data_stream.post.create_post", return_value="post-1") as create_post:
+    location_id = "11111111-1111-4111-8111-111111111111"
+    with patch(
+        "services.gateway.data_stream.create_gateway_data_stream_post",
+        return_value={"id": "post-1"},
+    ) as create_post:
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
                 headers={"x-api-key": "secret-key"},
                 json={
-                    "location_id": "location-1",
+                    "location_id": location_id,
                     "title": "Report",
                     "created_by": "spoofed-actor",
                 },
@@ -205,7 +210,37 @@ def test_authenticated_write_uses_verified_actor(monkeypatch):
 
     assert response.status_code == 201
     assert response.json() == {"post_id": "post-1"}
-    assert create_post.call_args.kwargs["created_by"] == "verified-caller"
+    assert create_post.call_args.args[0]["created_by"] == "spoofed-actor"
+    assert create_post.call_args.args[1] == {
+        "resource": "data_stream_post",
+        "action": "create",
+        "location_id": location_id,
+        "credential_type": "api_key",
+        "credential_hash": hashlib.sha256(b"secret-key").hexdigest(),
+    }
+
+
+def test_database_tenant_denial_returns_forbidden(monkeypatch):
+    from services.common.tenant_context import TenantContextDenied
+
+    monkeypatch.setenv("KOKONUT_API_KEYS", "secret-key:verified-caller")
+    monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "verified-caller:data_stream_post:create")
+    with patch(
+        "services.gateway.data_stream.create_gateway_data_stream_post",
+        side_effect=TenantContextDenied("stale owner scope"),
+    ):
+        with TestClient(create_app()) as client:
+            response = client.post(
+                "/api/data-stream/post",
+                headers={"x-api-key": "secret-key"},
+                json={
+                    "location_id": "11111111-1111-4111-8111-111111111111",
+                    "title": "Report",
+                },
+            )
+
+    assert response.status_code == 403
+    assert response.json() == {"error": "Tenant access denied"}
 
 
 def test_unscoped_api_key_is_denied(monkeypatch):
@@ -214,7 +249,10 @@ def test_unscoped_api_key_is_denied(monkeypatch):
         response = client.post(
             "/api/data-stream/post",
             headers={"x-api-key": "secret-key"},
-            json={"location_id": "location-1", "title": "Report"},
+            json={
+                "location_id": "11111111-1111-4111-8111-111111111111",
+                "title": "Report",
+            },
         )
 
     assert response.status_code == 403
@@ -225,11 +263,14 @@ def test_capability_uses_route_resource_and_action():
     with patch("services.security.capabilities.CapabilityManager.verify") as verify:
         verify.return_value = {"holder": "field-agent"}
         with TestClient(create_app()) as client:
-            with patch("services.data_stream.post.create_post", return_value="post-1"):
+            with patch(
+                "services.gateway.data_stream.create_gateway_data_stream_post",
+                return_value={"id": "post-1"},
+            ):
                 response = client.post(
                     "/api/data-stream/post",
                     headers={"x-capability-token": "token"},
-                    json={"location_id": "location-1"},
+                    json={"location_id": "11111111-1111-4111-8111-111111111111", "title": "Report"},
                 )
 
     assert response.status_code == 201
@@ -237,7 +278,7 @@ def test_capability_uses_route_resource_and_action():
         "token",
         resource="data_stream_post",
         action="create",
-        location_id="location-1",
+        location_id="11111111-1111-4111-8111-111111111111",
     )
 
 
@@ -265,12 +306,12 @@ def test_strict_scope_denies_two_part_scope(monkeypatch):
     monkeypatch.setenv("KOKONUT_API_KEYS", "secret-key:my-service")
     monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "my-service:data_stream_post:create")
     monkeypatch.setenv("KOKONUT_STRICT_LOCATION_SCOPE", "true")
-    with patch("services.data_stream.post.create_post", return_value="post-1"):
+    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": "post-1"}):
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
                 headers={"x-api-key": "secret-key"},
-                json={"location_id": "location-1", "title": "Report"},
+                json={"location_id": "11111111-1111-4111-8111-111111111111", "title": "Report"},
             )
 
     assert response.status_code == 403
@@ -281,15 +322,16 @@ def test_strict_scope_allows_three_part_scope(monkeypatch):
     """In strict mode, a 3-part scope matching the location is allowed."""
     monkeypatch.setenv("KOKONUT_API_KEYS", "secret-key:my-service")
     monkeypatch.setenv(
-        "KOKONUT_API_KEY_SCOPES", "my-service:data_stream_post:create:location-1"
+        "KOKONUT_API_KEY_SCOPES",
+        "my-service:data_stream_post:create:11111111-1111-4111-8111-111111111111",
     )
     monkeypatch.setenv("KOKONUT_STRICT_LOCATION_SCOPE", "true")
-    with patch("services.data_stream.post.create_post", return_value="post-1"):
+    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": "post-1"}):
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
                 headers={"x-api-key": "secret-key"},
-                json={"location_id": "location-1", "title": "Report"},
+                json={"location_id": "11111111-1111-4111-8111-111111111111", "title": "Report"},
             )
 
     assert response.status_code == 201
@@ -302,12 +344,12 @@ def test_strict_scope_allows_wildcard_location(monkeypatch):
         "KOKONUT_API_KEY_SCOPES", "my-service:data_stream_post:create:*"
     )
     monkeypatch.setenv("KOKONUT_STRICT_LOCATION_SCOPE", "true")
-    with patch("services.data_stream.post.create_post", return_value="post-1"):
+    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": "post-1"}):
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
                 headers={"x-api-key": "secret-key"},
-                json={"location_id": "location-1", "title": "Report"},
+                json={"location_id": "11111111-1111-4111-8111-111111111111", "title": "Report"},
             )
 
     assert response.status_code == 201
@@ -318,12 +360,12 @@ def test_strict_scope_off_allows_two_part_scope(monkeypatch):
     monkeypatch.setenv("KOKONUT_API_KEYS", "secret-key:my-service")
     monkeypatch.setenv("KOKONUT_API_KEY_SCOPES", "my-service:data_stream_post:create")
     monkeypatch.setenv("KOKONUT_STRICT_LOCATION_SCOPE", "false")
-    with patch("services.data_stream.post.create_post", return_value="post-1"):
+    with patch("services.gateway.data_stream.create_gateway_data_stream_post", return_value={"id": "post-1"}):
         with TestClient(create_app()) as client:
             response = client.post(
                 "/api/data-stream/post",
                 headers={"x-api-key": "secret-key"},
-                json={"location_id": "location-1", "title": "Report"},
+                json={"location_id": "11111111-1111-4111-8111-111111111111", "title": "Report"},
             )
 
     assert response.status_code == 201

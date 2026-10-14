@@ -52,6 +52,8 @@ async def _request_location(request, policy: dict) -> str | None:
         body = await request.body()
         request._body = body
         payload = json.loads(body or b"{}")
+        if not isinstance(payload, dict):
+            return None
         return payload.get("location_id")
     except (json.JSONDecodeError, UnicodeDecodeError, TypeError):
         return None

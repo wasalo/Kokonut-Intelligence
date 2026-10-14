@@ -98,7 +98,10 @@ INSERT INTO public.api_key (
      NOW() + INTERVAL '1 hour', FALSE, 'revoked-key'),
     ('a0000000-0000-0000-0000-000000000916', repeat('9', 64), 'key-9',
      ARRAY['mobile_device:revoke:a0000000-0000-0000-0000-000000000002'],
-     NOW() + INTERVAL '1 hour', TRUE, 'wrong-location-key');
+     NOW() + INTERVAL '1 hour', TRUE, 'wrong-location-key'),
+    ('a0000000-0000-0000-0000-000000000917', repeat('1', 64), 'key-1',
+     ARRAY['data_stream_post:create:a0000000-0000-0000-0000-000000000001'],
+     NOW() + INTERVAL '1 hour', TRUE, 'data-stream-create-key');
 INSERT INTO public.capability_token (
     id, token_hash, holder, capabilities, expires_at, max_usage, usage_count
 ) VALUES
@@ -133,3 +136,9 @@ CREATE TABLE public.gateway_context_probe (
 INSERT INTO public.gateway_context_probe (tenant_id, value) VALUES
     ('a0000000-0000-0000-0000-000000000801', 'owner-row'),
     ('a0000000-0000-0000-0000-000000000802', 'other-tenant-row');
+CREATE TABLE public.gateway_data_stream_post_probe (
+    tenant_id UUID NOT NULL,
+    location_id UUID NOT NULL,
+    created_by UUID NOT NULL,
+    content TEXT NOT NULL
+);

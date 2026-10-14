@@ -28,7 +28,12 @@ candidate rollout. It does not enable application RLS.
   accepts the resulting `gateway_api_key` or `gateway_capability` actor only
   after HMAC, backend, and transaction validation.
 - The setter and protected query/write must use the same non-autocommit
-  connection. Commit or rollback clears the transaction-local context.
+  connection. Commit or rollback clears the transaction-local context. The
+  `POST /api/data-stream/post` handler now establishes this context before its
+  draft insert, passes the database-derived actor UUID as `created_by`, and maps
+  database scope denial to HTTP 403. The client's `created_by` field is ignored.
+  The route keeps its existing response shape (`post_id`) and does not publish
+  or verify the draft.
 
 ## Runtime role
 
@@ -39,17 +44,22 @@ unknown future columns remain unavailable until reviewed. API-key creation and
 rotation remain administrative operations.
 
 Existing environment-configured Gateway keys used for tenant-bound mobile
-device operations also need a matching `api_key.key_hash` record with the exact
-location scope before those operations can establish tenant context. Database
-context independently revalidates capability tokens already stored in
-`capability_token`. No credential value or hash should be copied into this
-document or acceptance output.
+device operations or Data Stream creation also need a matching
+`api_key.key_hash` record with the exact location scope before those operations
+can establish tenant context. Database context independently revalidates
+capability tokens already stored in `capability_token`. No credential value or
+hash should be copied into this document or acceptance output.
 
 ## Acceptance evidence
 
 - [`gateway-tenant-context-disposable.json`](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)
   records migration replay, forced-RLS API-key/capability behavior, denial and
-  cleanup checks in isolated PostgreSQL 16 with Docker networking disabled.
+  cleanup checks in isolated PostgreSQL 16 with Docker networking disabled,
+  including a synthetic Data Stream create insert constrained by tenant,
+  location, and database-derived actor.
+- `tests/test_gateway_data_stream.py` and the focused Gateway route suite cover
+  same-connection context-before-insert, actor attribution, input/scope
+  rejection, transaction rollback on denial, and HTTP 403 behavior.
 - [`runtime-mobile-credential-role-disposable.json`](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)
   records the repeatable runtime-role bootstrap and API-key write denial.
 

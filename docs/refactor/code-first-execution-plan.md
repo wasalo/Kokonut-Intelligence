@@ -15,11 +15,12 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 295 checked and 20 open items (315 total).
+- The execution checklist has 296 checked and 20 open items (316 total).
 - The latest pushed implementation batch is `c1c9fd1`; CI is pending. The last
   CI-verified head remains `7953afe` (CI #308 and Security #32 passed).
-- The current local, unpushed batch closes the legacy mobile-offline CLI's
-  unscoped database path; its focused suite passes, and remote CI has not run.
+- The local batch retires the unscoped legacy mobile-offline CLI and adds
+  transaction-bound tenant context to the protected Data Stream create route.
+  Focused source/disposable checks pass; remote CI has not run for these changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–396 and the remaining curated seeds are prepared
@@ -71,7 +72,8 @@ before protected reads and writes, and make direct database access fail closed.
 
 **Code tasks:**
 
-1. **Complete for tenant-bound mobile-device writes:** migration 396 verifies
+1. **Complete for tenant-bound mobile-device writes and the Data Stream
+   create route:** migration 396 verifies
    API-key and capability-token activity, expiry/revocation, exact
    resource/action/location scope, and current location ownership before
    signing context for that transaction. Scope denial clears prior context;
@@ -79,9 +81,12 @@ before protected reads and writes, and make direct database access fail closed.
    wildcard or location-free scopes fail closed. The runtime role can read only
    reviewed authentication columns and cannot manage API keys. Focused Gateway,
    mobile, tenant-context, and role tests plus isolated forced-RLS acceptance
-   pass. This source-only slice does not cover other Gateway routes, shared
-   organization affiliation for API keys, candidate credential provisioning,
-   or application RLS.
+   pass. The Data Stream route now uses the same DB-verified transaction
+   context before its draft INSERT, and uses the database-derived actor UUID.
+   Its isolated forced-RLS probe verifies matching owner/location/actor writes
+   and cross-location denial. This source-only slice does not cover other
+   Gateway routes, shared organization affiliation for API keys, candidate
+   credential provisioning, or application RLS.
 2. Trace each worker and legacy CLI query to its service identity and tenant
    context. **Closed:** `services.analytics.mobile_offline` helpers and CLI
    commands now fail before database access because there is no authenticated
