@@ -303,6 +303,11 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             )
 
         request.state.caller = auth_result.get("caller", "anonymous")
+        request.state.gateway_authorization = {
+            "resource": policy["resource"],
+            "action": policy["action"],
+            "location_id": location_id,
+        }
 
         mutation_reservation = None
         if request.method in {"POST", "PUT", "PATCH", "DELETE"} and policy.get("action") != "read":

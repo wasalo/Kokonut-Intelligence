@@ -46,6 +46,21 @@ class MobileDeviceTenantContext:
     actor_type: str = "mobile_device"
 
 
+@dataclass(frozen=True)
+class GatewayTenantContext:
+    """Current-owner context for a route already authorized by the Gateway.
+
+    This carries application-verified scope into the transaction. It does not
+    turn a custom PostgreSQL setting into a database credential or replace the
+    Gateway's route authorization.
+    """
+
+    tenant_id: str
+    location_id: str
+    actor_id: str
+    actor_type: str = "gateway"
+
+
 def _normalize_uuid(value: str, label: str) -> str:
     try:
         return str(UUID(str(value)))
@@ -298,4 +313,75 @@ def set_operator_tenant_context(
         tenant_id=str(tenant_id),
         location_id=str(validated_location_id),
         actor_id=str(validated_actor_id),
+    )
+
+
+def set_gateway_tenant_context(
+    connection: Any,
+    *,
+    gateway_caller: str,
+    location_id: str,
+    resource: str,
+    action: str,
+) -> GatewayTenantContext:
+    """Carry a Gateway-authorized route's current-owner scope into its write.
+
+    Call only after Gateway middleware has authenticated the principal and
+    authorized the route's resource/action/location. This function revalidates
+    and locks the current verified location owner in the same transaction; it
+    does not independently prove that the principal has the Gateway grant.
+    """
+    if getattr(connection, "autocommit", True):
+        raise ValueError("tenant context requires a non-autocommit transaction")
+
+    clear_operator_tenant_context(connection)
+    if (
+        not isinstance(gateway_caller, str)
+        or not gateway_caller.strip()
+        or len(gateway_caller) > 200
+        or any(ord(char) < 32 or ord(char) == 127 for char in gateway_caller)
+    ):
+        raise ValueError("gateway-caller must be a non-empty identifier of at most 200 characters")
+    if not isinstance(resource, str) or not _IDENTIFIER_RE.fullmatch(resource):
+        raise ValueError("resource must be a lowercase identifier")
+    if not isinstance(action, str) or not _IDENTIFIER_RE.fullmatch(action):
+        raise ValueError("action must be a lowercase identifier")
+    requested_location_id = _normalize_uuid(location_id, "location-id")
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT owner.organization_id::text, loc.id::text
+              FROM location AS loc
+              JOIN location_tenant_owner_verification AS owner
+                ON owner.location_id = loc.id
+               AND owner.organization_id = loc.organization_id
+               AND owner.revoked_at IS NULL
+              JOIN organization AS tenant
+                ON tenant.id = owner.organization_id
+               AND tenant.status = 'active'
+             WHERE loc.id = %s::uuid
+               AND loc.status = 'active'
+             FOR SHARE OF loc, owner, tenant
+            """,
+            (requested_location_id,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            raise TenantContextDenied(
+                "an active location with a current verified owner is required"
+            )
+        tenant_id, validated_location_id = map(str, row)
+        _set_transaction_tenant_context(
+            connection,
+            tenant_id=tenant_id,
+            location_id=validated_location_id,
+            actor_id=gateway_caller.strip(),
+            actor_type="gateway",
+        )
+
+    return GatewayTenantContext(
+        tenant_id=tenant_id,
+        location_id=validated_location_id,
+        actor_id=gateway_caller.strip(),
     )

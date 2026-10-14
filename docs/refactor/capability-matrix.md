@@ -28,6 +28,17 @@ route tests, including rollback/connection cleanup on tenant denial. Directus
 parity, worker/direct-database isolation, RLS, and named manual acceptance
 checks remain open; no full capability acceptance is implied.
 
+**14 October 2026 Gateway mobile mutation context (CAP-053):** API-key and
+capability enrollment/revocation handlers now require the authenticated
+Gateway's internal `mobile_device` action/location marker, then establish
+current-owner transaction context before the write. Owner lookup is locked in
+the same transaction; missing/stale owner context fails before mutation. The
+tenant-context, mobile API, and OIDC operator-auth suites passed 126 tests;
+Ruff and Python compilation passed. This closes those application call paths,
+not a database identity boundary: the ordinary app role can still set custom
+PostgreSQL context values, so worker/direct-database isolation and RLS remain
+open ([audit](mobile-tenant-rls-callsite-audit.md); [evidence](builds/2026-10-14-recovery/gateway-mobile-tenant-context.json)).
+
 **13 October 2026 local source update (CAP-053):** migration 391 and the
 working tree now pin new mobile device enrollments to the current verified
 owner. Device forms, media writes, sync, and sync-status validate that identity
@@ -50,10 +61,11 @@ and `POST /api/mobile/register`. Sixteen offline registration/queue checks and
 50 mobile API/form-validation checks passed; Ruff and Python syntax checks are
 clean. The legacy queue and sync path remains transport-only and unassessed.
 MAN-CAP-053 stays partial pending live OIDC and reconnect, human disposition,
-tenant/RLS, and retention acceptance. The source-only
+database-role-backed tenant isolation, and retention acceptance. The source-only
 [tenant/RLS call-site audit](mobile-tenant-rls-callsite-audit.md) records why
 pre-context device/enrollment lookups and non-OIDC mutation paths must be
-closed before enabling row policies.
+closed at both application and database-role boundaries before enabling row
+policies.
 
 **14 October 2026 seed-ledger preflight (CAP-053):** the migration runner
 previously omitted the range-prefixed `064-068_impact_network.sql`; source

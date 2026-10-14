@@ -7,10 +7,11 @@ Updated: 14 October 2026
 Migration 391 pins newly issued enrollment codes and registered devices to the
 verified current location owner and rejects later binding changes. It leaves
 row-level security disabled. The first-party Gateway sets transaction-local
-tenant context for many protected device operations, but credential resolution,
-API-key operator mutations, legacy transport helpers, the preflight CLI, and
-unverified Directus consumers still need an explicit database access design.
-Do not enable RLS until those paths and their database roles are closed.
+tenant context for protected device operations, including enrollment and
+revocation after Gateway authorization. Credential resolution, legacy transport
+helpers, the preflight CLI, and unverified Directus consumers still need an
+explicit database access design. Do not enable RLS until those paths and their
+database roles are closed.
 
 ## Access-path inventory
 
@@ -20,7 +21,7 @@ Do not enable RLS until those paths and their database roles are closed.
 | One-time enrollment redemption: [`register_device`](../../services/mobile/api.py#L834) | Looks up the enrollment-code hash `FOR UPDATE`, checks the active owner, inserts the device, and marks the code used in one transaction. The code is a bearer credential; no tenant context exists before lookup. | Not ready for ordinary RLS. Preserve atomic single-use semantics with a narrow redemption function/role or equivalent verified access path; do not grant broad no-context table reads. Test concurrent redemption and owner transfer. |
 | Device-scoped forms, sync, status, and media-policy reads | After token resolution, these handlers call [`set_mobile_device_tenant_context`](../../services/common/tenant_context.py#L90) on the same connection before protected location/data queries. It validates the active device against the current verified owner and uses transaction-local context. | The protected-query pattern is reusable after token-resolution closure. Review every SQL statement and keep context plus data work in the same transaction. Media object storage remains a separate provider boundary. |
 | OIDC operator enrollment/revocation: [`_create_enrollment`](../../services/mobile/api.py#L762), `_revoke_enrollment`, `_revoke_device` | The OIDC wrappers pass an operator ID; the service sets operator tenant context before location-owner checks and writes. | Source pattern is tenant-aware. Validate with forced-RLS disposable PostgreSQL tests and ensure request failures roll back and clear context. |
-| Capability/API-key enrollment and revocation: [`router.py`](../../services/gateway/router.py#L58) and [`_create_enrollment`](../../services/mobile/api.py#L762) | Gateway checks a location-scoped `mobile_device` capability, but the non-OIDC service calls use `operator_id=None`; the service therefore skips `set_operator_tenant_context`. | Not ready for RLS. Bind the capability identity to a database-verifiable tenant context or retire these mutation routes before RLS. Test scope, current-owner match, denial, and cleanup. |
+| Capability/API-key enrollment and revocation: [`router.py`](../../services/gateway/router.py#L58) and [`_create_enrollment`](../../services/mobile/api.py#L762) | Gateway middleware authorizes the exact `mobile_device` action/location and records an internal request marker. The same write transaction validates and share-locks the current verified owner, sets `actor_type=gateway`, and performs the enrollment/revocation. Missing marker, stale/missing owner, or failed context is denied before the write. | The application source path is closed and focused route/helper checks pass. Still not ready for RLS: the database custom setting is forgeable by any role with arbitrary SQL. The Gateway API-key/capability grant is not independently verified by PostgreSQL; establish a constrained database role or a database-verified capability before claiming a database isolation boundary. |
 | Legacy analytics transport CLI: [`mobile_offline.py`](../../services/analytics/mobile_offline.py) | Direct registration now fails closed. Device listing, collection queue/pending reads, batch sync, conflict resolution, and global sync statistics still use direct SQL without tenant context. | Not ready for RLS. Keep it behind a restricted maintenance role or migrate/disable each command; transport-only status is not a substitute for tenant authorization. |
 | Tenant preflight: [`collect_inventory`](../../services/mobile/tenant_preflight.py#L557) | Runs a read-only repeatable-read aggregate and emits opaque references/counts; it deliberately examines ownership and grants across locations. | Give it an explicit owner/preflight database role and document who may invoke it. Do not run the aggregate with the ordinary app role once RLS is enabled. |
 | Directus and database views | The archived Directus runtime identity and effective grants have not been verified; OFU-09 tracks the required isolated runtime and fixture. Migration 139 also defines legacy mobile sync/device views. | Not ready. Inspect role grants, view ownership/invoker behavior, hooks, saved queries, and all consumers in a matching isolated Directus runtime before choosing RLS policies or retirement scope. |
@@ -28,16 +29,18 @@ Do not enable RLS until those paths and their database roles are closed.
 
 ## Context trust boundary
 
-The current Python helper verifies the device/operator against database rows,
-then sets transaction-local `kokonut.*` values. PostgreSQL accepts custom
-two-part settings and exposes `set_config` for setting them; those settings are
-therefore context values, not proof of identity by themselves. If the ordinary
-application database role can issue arbitrary SQL, it can also choose custom
-context values. Treat the current helper as application query scoping and
-defense in depth until the role boundary is explicit. For an RLS boundary
-against direct SQL from other consumers, establish context through a database
-function/role that verifies the credential or grant itself, or constrain the
-role so callers cannot select arbitrary tenant context. See PostgreSQL’s
+The device and operator helpers verify the caller against database rows before
+setting transaction-local `kokonut.*` values. The Gateway mutation helper
+carries a request identity already authorized by middleware and independently
+verifies the current location owner; it does not validate the Gateway grant in
+PostgreSQL. PostgreSQL accepts custom two-part settings and exposes `set_config`
+for setting them; those settings are context values, not proof of identity by
+themselves. If the ordinary application database role can issue arbitrary SQL,
+it can also choose custom context values. Treat these helpers as application query scoping and defense in depth until the
+role boundary is explicit. For an RLS boundary against direct SQL from other
+consumers, establish context through a database function/role that verifies the
+credential or grant itself, or constrain the role so callers cannot select
+arbitrary tenant context. See PostgreSQL’s
 [custom options](https://www.postgresql.org/docs/current/runtime-config-custom.html)
 and [configuration-setting functions](https://www.postgresql.org/docs/current/config-setting.html).
 
@@ -48,8 +51,9 @@ and [configuration-setting functions](https://www.postgresql.org/docs/current/co
    tables. Record the database role and whether it bypasses RLS.
 2. Close the token and enrollment credential lookup paths without weakening
    token hashing, one-time use, owner-transfer serialization, or revocation.
-3. Add tenant context to capability/API-key mutations, or disable them before
-   enabling policies. Retain OIDC and mobile context cleanup at transaction end.
+3. Keep Gateway capability/API-key mutation context in the same transaction,
+   and validate it under forced RLS with the final role model. Retain OIDC and
+   mobile context cleanup at transaction end.
 4. Separate app, migration, backup, Directus, preflight, and recovery-fixture
    database roles. Verify least privilege and view semantics on PostgreSQL 16.
 5. In disposable PostgreSQL, test owner and explicitly shared access; wrong or
@@ -61,4 +65,5 @@ and [configuration-setting functions](https://www.postgresql.org/docs/current/co
    access path or consumer remains unknown.
 
 This audit is source-based. It does not claim Directus parity, worker isolation,
-database-role hardening, an RLS migration, or a live candidate RLS acceptance.
+database-role hardening, a database-verified Gateway capability, an RLS
+migration, or a live candidate RLS acceptance.

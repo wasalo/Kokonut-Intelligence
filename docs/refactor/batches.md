@@ -608,10 +608,19 @@ reporting views.
   grants are included in the same-tenant context. Ruff, syntax, and diff checks
   pass; no database was accessed.
 - [x] Bind the OIDC mobile-device enrollment and revocation routes to tenant
-  context inside their PostgreSQL write transaction. The public API-key
-  enrollment handler remains on its existing Gateway authorization path.
-  Ten focused operator-route tests and the public enrollment authorization
-  test pass; Ruff and syntax checks pass. No database was accessed.
+  context inside their PostgreSQL write transaction. Ten focused
+  operator-route tests and the public enrollment authorization test pass; Ruff
+  and syntax checks pass. No database was accessed.
+- [x] Carry Gateway authorization into capability/API-key mobile-device
+  enrollment and revocation writes. Middleware marks the exact authorized
+  resource/action/location; the handler checks that marker, then the same
+  transaction locks and validates the current verified owner before writing.
+  Enrollment, enrollment revoke, and device revoke all fail closed on context
+  denial. The helper documents that this is application scope, not a
+  database-verifiable identity for RLS. The tenant-context, mobile API, and
+  operator-auth suites pass (126 tests); Ruff and Python compilation pass.
+  Candidate and legacy databases were not accessed
+  ([source evidence](builds/2026-10-14-recovery/gateway-mobile-tenant-context.json)).
 - [x] Pin new mobile enrollment codes and devices to the verified owner and
   require device-token forms, media uploads, sync, and sync-status to validate
   that binding in-transaction. Migration 391 leaves legacy device/enrollment
@@ -674,8 +683,10 @@ reporting views.
   jobs, and establish least-privilege direct-database boundaries before RLS.
   Eight helper unit checks and fourteen disposable migration/context checks
   passed; a source audit now identifies pre-context credential lookups,
-  API-key mutations, and legacy CLI paths that still need an explicit role or
-  scope contract. Full request/worker/Directus coverage remains open
+  unscoped legacy CLI paths, and an unverified Directus/view boundary that still
+  need an explicit role or scope contract. Gateway mobile-device mutations now
+  set transaction-local application scope but still need the final database
+  role boundary before RLS. Full request/worker/Directus coverage remains open
   ([audit](mobile-tenant-rls-callsite-audit.md)).
 - [x] Audit repository-owned downstream consumers of Field Collector data;
   the source review found an unguarded process-interface elapsed-time lookup

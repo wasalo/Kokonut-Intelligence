@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from services.common.database import get_db
 from services.common.tenant_context import (
     TenantContextDenied,
+    set_gateway_tenant_context,
     set_mobile_device_tenant_context,
     set_operator_tenant_context,
 )
@@ -106,6 +107,39 @@ def _set_participant_operator_context(conn, request: Request, location_id: str, 
             resource="mobile_participant",
             action=action,
         )
+
+
+def _set_gateway_mobile_device_context(conn, request: Request, location_id: str, action: str):
+    """Bind a Gateway-authenticated mobile-device mutation to its owner tenant."""
+    authorization = getattr(request.state, "gateway_authorization", None)
+    try:
+        expected_location = str(UUID(str(location_id)))
+        authorized_location = str(UUID(str(authorization.get("location_id"))))
+    except (AttributeError, TypeError, ValueError):
+        raise TenantContextDenied("verified Gateway route authorization is required") from None
+    if (
+        not isinstance(authorization, dict)
+        or authorization.get("resource") != "mobile_device"
+        or authorization.get("action") != action
+        or authorized_location != expected_location
+    ):
+        raise TenantContextDenied("verified Gateway route authorization is required")
+    try:
+        return set_gateway_tenant_context(
+            conn,
+            gateway_caller=getattr(request.state, "caller", None),
+            location_id=expected_location,
+            resource="mobile_device",
+            action=action,
+        )
+    except ValueError as exc:
+        raise TenantContextDenied("verified Gateway identity is invalid") from exc
+
+
+def _set_mobile_mutation_timeouts(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute("SET LOCAL statement_timeout = '5s'")
+        cur.execute("SET LOCAL lock_timeout = '2s'")
 
 
 def _token_hash(token: str) -> str:
@@ -770,10 +804,9 @@ async def _create_enrollment(
     conn = get_db()
     try:
         operator_context = None
+        gateway_context = None
+        _set_mobile_mutation_timeouts(conn)
         if operator_id is not None:
-            with conn.cursor() as cur:
-                cur.execute("SET LOCAL statement_timeout = '5s'")
-                cur.execute("SET LOCAL lock_timeout = '2s'")
             operator_context = set_operator_tenant_context(
                 conn,
                 operator_id=operator_id,
@@ -781,13 +814,21 @@ async def _create_enrollment(
                 resource="mobile_device",
                 action="enroll",
             )
-        cur = conn.cursor()
-        tenant_id = _verified_location_tenant(cur, str(location_id))
+        else:
+            gateway_context = _set_gateway_mobile_device_context(
+                conn, request, str(location_id), "enroll"
+            )
+        if gateway_context is not None:
+            tenant_id = gateway_context.tenant_id
+        else:
+            cur = conn.cursor()
+            tenant_id = _verified_location_tenant(cur, str(location_id))
         if operator_context is not None and operator_context.tenant_id != tenant_id:
             raise HTTPException(
                 status_code=403,
                 detail="Operator grant does not match the current verified location owner",
             )
+        cur = conn.cursor()
         cur.execute(
             """
             INSERT INTO mobile_device_enrollment
@@ -816,7 +857,7 @@ async def _create_enrollment(
         conn.rollback()
         raise HTTPException(
             status_code=403,
-            detail="Tenant-qualified operator access is required for enrollment",
+            detail="Tenant-qualified access is required for enrollment",
         ) from exc
     except Exception:
         conn.rollback()
@@ -911,9 +952,14 @@ async def register_device(request: RegisterRequest):
 
 
 @router.delete("/locations/{location_id}/enrollments/{enrollment_id}")
-async def revoke_enrollment(location_id: UUID, enrollment_id: UUID):
+async def revoke_enrollment(location_id: UUID, enrollment_id: UUID, request: Request):
     """Revoke an unused enrollment code within its location."""
-    return await _revoke_enrollment(location_id, enrollment_id, operator_id=None)
+    return await _revoke_enrollment(
+        location_id,
+        enrollment_id,
+        operator_id=None,
+        request=request,
+    )
 
 
 async def revoke_operator_enrollment(
@@ -927,6 +973,7 @@ async def revoke_operator_enrollment(
         location_id,
         enrollment_id,
         operator_id=operator_id,
+        request=None,
     )
 
 
@@ -935,13 +982,12 @@ async def _revoke_enrollment(
     enrollment_id: UUID,
     *,
     operator_id: str | None,
+    request: Request | None,
 ):
     conn = get_db()
     try:
+        _set_mobile_mutation_timeouts(conn)
         if operator_id is not None:
-            with conn.cursor() as cur:
-                cur.execute("SET LOCAL statement_timeout = '5s'")
-                cur.execute("SET LOCAL lock_timeout = '2s'")
             set_operator_tenant_context(
                 conn,
                 operator_id=operator_id,
@@ -949,6 +995,10 @@ async def _revoke_enrollment(
                 resource="mobile_device",
                 action="revoke",
             )
+        elif request is not None:
+            _set_gateway_mobile_device_context(conn, request, str(location_id), "revoke")
+        else:
+            raise TenantContextDenied("verified Gateway route authorization is required")
         cur = conn.cursor()
         cur.execute(
             """
@@ -968,15 +1018,28 @@ async def _revoke_enrollment(
     except HTTPException:
         conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        if operator_id is not None:
+            raise
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified access is required to revoke enrollment",
+        ) from exc
     finally:
         conn.close()
     return {"enrollment_id": row[0], "status": "revoked"}
 
 
 @router.post("/locations/{location_id}/devices/{device_id}/revoke")
-async def revoke_device(location_id: UUID, device_id: str):
+async def revoke_device(location_id: UUID, device_id: str, request: Request):
     """Revoke one active device token, scoped to the authorized location."""
-    return await _revoke_device(location_id, device_id, operator_id=None)
+    return await _revoke_device(
+        location_id,
+        device_id,
+        operator_id=None,
+        request=request,
+    )
 
 
 async def revoke_operator_device(
@@ -986,7 +1049,9 @@ async def revoke_operator_device(
     operator_id: str,
 ):
     """Revoke a device in a tenant-qualified OIDC operator transaction."""
-    return await _revoke_device(location_id, device_id, operator_id=operator_id)
+    return await _revoke_device(
+        location_id, device_id, operator_id=operator_id, request=None
+    )
 
 
 async def _revoke_device(
@@ -994,13 +1059,12 @@ async def _revoke_device(
     device_id: str,
     *,
     operator_id: str | None,
+    request: Request | None,
 ):
     conn = get_db()
     try:
+        _set_mobile_mutation_timeouts(conn)
         if operator_id is not None:
-            with conn.cursor() as cur:
-                cur.execute("SET LOCAL statement_timeout = '5s'")
-                cur.execute("SET LOCAL lock_timeout = '2s'")
             set_operator_tenant_context(
                 conn,
                 operator_id=operator_id,
@@ -1008,6 +1072,10 @@ async def _revoke_device(
                 resource="mobile_device",
                 action="revoke",
             )
+        elif request is not None:
+            _set_gateway_mobile_device_context(conn, request, str(location_id), "revoke")
+        else:
+            raise TenantContextDenied("verified Gateway route authorization is required")
         cur = conn.cursor()
         cur.execute(
             """
@@ -1027,6 +1095,14 @@ async def _revoke_device(
     except HTTPException:
         conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        if operator_id is not None:
+            raise
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified access is required to revoke device",
+        ) from exc
     finally:
         conn.close()
     return {"device_id": row[0], "status": "revoked"}

@@ -3,6 +3,7 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,6 +12,7 @@ pytest.importorskip("fastapi")
 
 from starlette.testclient import TestClient  # noqa: E402
 
+from services.common.tenant_context import GatewayTenantContext  # noqa: E402
 from services.gateway.app import create_app  # noqa: E402
 from services.gateway.router import get_route_policy  # noqa: E402
 from services.mobile import api as mobile_api  # noqa: E402
@@ -34,6 +36,17 @@ def _device_tenant_context_for_route_unit_tests(monkeypatch):
         "set_mobile_device_tenant_context",
         lambda *_args, **_kwargs: None,
     )
+
+    def gateway_context(_connection, *, gateway_caller, location_id, **_kwargs):
+        from uuid import UUID
+
+        return GatewayTenantContext(
+            tenant_id="a0000000-0000-0000-0000-000000000801",
+            location_id=str(UUID(str(location_id))),
+            actor_id=gateway_caller,
+        )
+
+    monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", gateway_context)
 
 
 def _active_not_required_form_revision():
@@ -1122,10 +1135,23 @@ def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path)
     )
     connection = MagicMock()
     cursor = connection.cursor.return_value
+    events = []
+    cursor.execute.side_effect = lambda sql, *_args: events.append(("sql", sql))
     cursor.fetchone.return_value = ("claim-1", "2030-01-01T00:00:00+00:00")
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
     tenant_context = MagicMock()
     monkeypatch.setattr(mobile_api, "set_operator_tenant_context", tenant_context)
+
+    def set_gateway_context(conn, **kwargs):
+        events.append(("context", conn, kwargs))
+        return GatewayTenantContext(
+            "a0000000-0000-0000-0000-000000000801",
+            kwargs["location_id"],
+            kwargs["gateway_caller"],
+        )
+
+    gateway_context = MagicMock(side_effect=set_gateway_context)
+    monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", gateway_context)
     monkeypatch.setenv("KOKONUT_API_KEYS", "enroller-secret:field-enroller")
     monkeypatch.setenv(
         "KOKONUT_API_KEY_SCOPES",
@@ -1149,7 +1175,129 @@ def test_enrollment_creation_requires_scoped_gateway_auth(monkeypatch, tmp_path)
     assert len(body["enrollment_code"]) >= 32
     assert "enrollment_code" not in str(cursor.execute.call_args_list)
     assert f"{location_id}" in str(cursor.execute.call_args_list)
+    gateway_context.assert_called_once_with(
+        connection,
+        gateway_caller="field-enroller",
+        location_id=location_id,
+        resource="mobile_device",
+        action="enroll",
+    )
+    context_index = next(index for index, event in enumerate(events) if event[0] == "context")
+    insert_index = next(
+        index for index, event in enumerate(events)
+        if event[0] == "sql" and "INSERT INTO mobile_device_enrollment" in event[1]
+    )
+    assert events[context_index][1] is connection
+    assert context_index < insert_index
     tenant_context.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "action", "body"),
+    [
+        (
+            "post",
+            "/api/mobile/locations/{location_id}/enrollments",
+            "enroll",
+            {"user_id": "worker-1"},
+        ),
+        (
+            "delete",
+            "/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
+            "revoke",
+            None,
+        ),
+        (
+            "post",
+            "/api/mobile/locations/{location_id}/devices/worker-1/revoke",
+            "revoke",
+            None,
+        ),
+    ],
+)
+def test_gateway_mobile_device_mutations_deny_without_current_owner_context(
+    monkeypatch, method, path, action, body
+):
+    from services.common.tenant_context import TenantContextDenied
+
+    location_id = "11111111-1111-4111-8111-111111111111"
+    enrollment_id = "33333333-3333-4333-8333-333333333333"
+    path = path.format(location_id=location_id, enrollment_id=enrollment_id)
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = (enrollment_id,)
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(
+        mobile_api,
+        "set_gateway_tenant_context",
+        MagicMock(side_effect=TenantContextDenied("current owner is not verified")),
+    )
+    monkeypatch.setenv("KOKONUT_API_KEYS", "device-admin-secret:device-admin")
+    monkeypatch.setenv(
+        "KOKONUT_API_KEY_SCOPES",
+        f"device-admin:mobile_device:{action}:{location_id}",
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.request(
+            method,
+            path,
+            headers={"x-api-key": "device-admin-secret"},
+            json=body,
+        )
+
+    assert response.status_code == 403
+    assert connection.rollback.called
+    assert not connection.commit.called
+    assert not any(
+        any(table in call.args[0].lower() for table in (
+            "insert into mobile_device_enrollment",
+            "update mobile_device_enrollment",
+            "update mobile_device",
+        ))
+        for call in connection.cursor.return_value.execute.call_args_list
+    )
+
+
+@pytest.mark.parametrize(
+    "authorization",
+    [
+        None,
+        {
+            "resource": "mobile_device",
+            "action": "revoke",
+            "location_id": "11111111-1111-4111-8111-111111111111",
+        },
+        {
+            "resource": "mobile_device",
+            "action": "enroll",
+            "location_id": "22222222-2222-4222-8222-222222222222",
+        },
+    ],
+    ids=("missing", "wrong-action", "wrong-location"),
+)
+def test_gateway_mobile_context_requires_exact_authenticated_route_marker(
+    monkeypatch, authorization
+):
+    from services.common.tenant_context import TenantContextDenied
+
+    setter = MagicMock()
+    monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", setter)
+    request = SimpleNamespace(
+        state=SimpleNamespace(
+            caller="field-enroller",
+            gateway_authorization=authorization,
+        )
+    )
+
+    with pytest.raises(TenantContextDenied, match="verified Gateway route authorization"):
+        mobile_api._set_gateway_mobile_device_context(
+            MagicMock(),
+            request,
+            "11111111-1111-4111-8111-111111111111",
+            "enroll",
+        )
+
+    setter.assert_not_called()
 
 
 def test_participant_link_api_key_route_keeps_gateway_scope_and_skips_oidc_context(monkeypatch):
@@ -1250,8 +1398,21 @@ def test_device_revocation_is_location_scoped_and_clears_token_hash(monkeypatch)
     location_id = "11111111-1111-4111-8111-111111111111"
     connection = MagicMock()
     cursor = connection.cursor.return_value
+    events = []
+    cursor.execute.side_effect = lambda sql, *_args: events.append(("sql", sql))
     cursor.fetchone.return_value = ("device-1",)
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    gateway_context = MagicMock(
+        side_effect=lambda conn, **kwargs: (
+            events.append(("context", conn, kwargs))
+            or GatewayTenantContext(
+                "a0000000-0000-0000-0000-000000000801",
+                kwargs["location_id"],
+                kwargs["gateway_caller"],
+            )
+        )
+    )
+    monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", gateway_context)
     monkeypatch.setenv("KOKONUT_API_KEYS", "revoker-secret:field-revoker")
     monkeypatch.setenv(
         "KOKONUT_API_KEY_SCOPES",
@@ -1271,6 +1432,13 @@ def test_device_revocation_is_location_scoped_and_clears_token_hash(monkeypatch)
     assert "status = 'revoked'" in sql
     assert cursor.execute.call_args.args[1] == ("device-1", location_id)
     connection.commit.assert_called_once()
+    context_index = next(index for index, event in enumerate(events) if event[0] == "context")
+    update_index = next(
+        index for index, event in enumerate(events)
+        if event[0] == "sql" and "UPDATE mobile_device" in event[1]
+    )
+    assert events[context_index][1] is connection
+    assert context_index < update_index
 
 
 def test_invalid_enrollment_code_cannot_create_a_device(monkeypatch):
@@ -1332,8 +1500,21 @@ def test_enrollment_revocation_is_scoped_to_location(monkeypatch):
     enrollment_id = "33333333-3333-4333-8333-333333333333"
     connection = MagicMock()
     cursor = connection.cursor.return_value
+    events = []
+    cursor.execute.side_effect = lambda sql, *_args: events.append(("sql", sql))
     cursor.fetchone.return_value = (enrollment_id,)
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    gateway_context = MagicMock(
+        side_effect=lambda conn, **kwargs: (
+            events.append(("context", conn, kwargs))
+            or GatewayTenantContext(
+                "a0000000-0000-0000-0000-000000000801",
+                kwargs["location_id"],
+                kwargs["gateway_caller"],
+            )
+        )
+    )
+    monkeypatch.setattr(mobile_api, "set_gateway_tenant_context", gateway_context)
     monkeypatch.setenv("KOKONUT_API_KEYS", "revoker-secret:field-revoker")
     monkeypatch.setenv(
         "KOKONUT_API_KEY_SCOPES",
@@ -1353,6 +1534,13 @@ def test_enrollment_revocation_is_scoped_to_location(monkeypatch):
     assert "used_at is null" in sql
     assert "revoked_at is null" in sql
     connection.commit.assert_called_once()
+    context_index = next(index for index, event in enumerate(events) if event[0] == "context")
+    update_index = next(
+        index for index, event in enumerate(events)
+        if event[0] == "sql" and "UPDATE mobile_device_enrollment" in event[1]
+    )
+    assert events[context_index][1] is connection
+    assert context_index < update_index
 
 
 def test_mobile_app_requests_enrollment_code_instead_of_identity_overrides(monkeypatch):

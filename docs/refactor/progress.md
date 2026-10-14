@@ -4448,3 +4448,22 @@ enrollment and registration endpoints. Sixteen focused offline tests and 50
 mobile API/form-validation tests passed; Ruff and Python syntax checks are
 clean. Legacy queue/sync admission remains transport-only and requires separate
 assessment. MAN-CAP-053 remains partial.
+
+### Gateway mobile-device mutation tenant context — 14 October 2026
+
+Gateway middleware now places its authenticated resource/action/location
+decision on an internal request-state marker. Enrollment, enrollment revoke,
+and device revoke require the exact `mobile_device` route marker and establish
+transaction-local current-owner context before their writes. The context query
+share-locks the active location, owner verification, and organization so a
+transfer serializes with each mutation. OIDC continues to use the
+tenant-qualified operator-grant helper. A denied or stale scope rolls back
+before mutation.
+
+The context value is application-verified scope, not a database-verifiable
+Gateway credential. PostgreSQL custom settings remain forgeable by a role with
+arbitrary SQL; RLS is still disabled pending the database-role/function
+boundary, pre-context device/enrollment credential paths, legacy CLI, workers,
+and Directus/view review. Focused tenant-context, mobile API, and operator-auth
+checks passed 126 tests; Ruff and Python compilation passed. No database or
+container was accessed ([evidence](builds/2026-10-14-recovery/gateway-mobile-tenant-context.json)).
