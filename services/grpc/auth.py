@@ -43,16 +43,20 @@ class APIKeyInterceptor(grpc.ServerInterceptor):
         try:
             conn = self._db_factory()
             try:
-                result = conn.execute(
-                    conn.text(
-                        "SELECT ak.id, ak.is_active, ak.expires_at, ak.scopes, "
-                        "ar.name AS role_name, ar.permissions "
-                        "FROM api_key ak "
-                        "LEFT JOIN app_role ar ON ar.id = ak.role_id "
-                        "WHERE ak.key_hash = :hash"
-                    ),
-                    {"hash": key_hash},
-                ).mappings().first()
+                result = (
+                    conn.execute(
+                        conn.text(
+                            "SELECT ak.id, ak.is_active, ak.expires_at, ak.scopes, "
+                            "ar.name AS role_name, ar.permissions "
+                            "FROM api_key ak "
+                            "LEFT JOIN app_role ar ON ar.id = ak.role_id "
+                            "WHERE ak.key_hash = :hash"
+                        ),
+                        {"hash": key_hash},
+                    )
+                    .mappings()
+                    .first()
+                )
             finally:
                 self._db_factory.release(conn)
         except Exception as e:
@@ -117,10 +121,16 @@ def _authenticated_handler(handler, auth_info):
     """Bind identity during actual invocation, retaining wire codecs/cardinality."""
     if handler.request_streaming:
         behavior = handler.stream_stream if handler.response_streaming else handler.stream_unary
-        builder = grpc.stream_stream_rpc_method_handler if handler.response_streaming else grpc.stream_unary_rpc_method_handler
+        builder = (
+            grpc.stream_stream_rpc_method_handler
+            if handler.response_streaming
+            else grpc.stream_unary_rpc_method_handler
+        )
     else:
         behavior = handler.unary_stream if handler.response_streaming else handler.unary_unary
-        builder = grpc.unary_stream_rpc_method_handler if handler.response_streaming else grpc.unary_unary_rpc_method_handler
+        builder = (
+            grpc.unary_stream_rpc_method_handler if handler.response_streaming else grpc.unary_unary_rpc_method_handler
+        )
 
     def invoke(request, context):
         token = grpc_auth_context.set(auth_info)
@@ -132,9 +142,28 @@ def _authenticated_handler(handler, auth_info):
     def stream(request, context):
         token = grpc_auth_context.set(auth_info)
         try:
-            yield from behavior(request, context)
+            iterator = iter(behavior(request, context))
         finally:
             grpc_auth_context.reset(token)
+
+        try:
+            while True:
+                token = grpc_auth_context.set(auth_info)
+                try:
+                    response = next(iterator)
+                except StopIteration:
+                    return
+                finally:
+                    grpc_auth_context.reset(token)
+                yield response
+        finally:
+            close = getattr(iterator, "close", None)
+            if close is not None:
+                token = grpc_auth_context.set(auth_info)
+                try:
+                    close()
+                finally:
+                    grpc_auth_context.reset(token)
 
     return builder(
         stream if handler.response_streaming else invoke,
@@ -146,6 +175,7 @@ def _authenticated_handler(handler, auth_info):
 def _abort(code: grpc.StatusCode, message: str):
     def abort_handler(request, context):
         context.abort(code, message)
+
     return grpc.unary_unary_rpc_method_handler(
         abort_handler,
         request_deserializer=None,

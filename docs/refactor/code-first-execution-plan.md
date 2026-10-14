@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 308 checked and 20 open items (328 total).
+- The execution checklist has 309 checked and 20 open items (329 total).
 - The latest pushed implementation batch is `26edad1`; CI #310 is in progress
   and Security #34 passed. The last CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -45,7 +45,9 @@ MAN-CAP checks open until each has its own retained evidence.
   health checks fail before importing optional gRPC packages or the server;
   a source inventory pins all 55 application RPC methods to their handlers and
   scopes, with scope checks before database access. Enabled transport, tenant,
-  and native Gateway parity remain open.
+  and native Gateway parity remain open. Streaming RPC auth context now resets
+  before each yielded response and on cancellation/errors, covered in all
+  handler cardinalities by the focused gRPC suite.
   Focused source/disposable checks pass;
   remote CI has not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
@@ -190,6 +192,12 @@ checks scope before acquiring a DB connection; the one public content-hash
 helper is confirmed DB-free. This source check does not establish API-key,
 tenant, streaming, TLS, or native Gateway parity
 ([evidence](builds/2026-10-14-recovery/grpc-rpc-policy-inventory.json)).
+The interceptor also had a streaming context leak: `ContextVar` identity stayed
+set in the caller after a response yielded. The wrapper now scopes identity to
+generator creation/advancement and cleanup, resets before returning control to
+gRPC, and closes canceled iterators under the authenticated context. The five
+new lifecycle regressions and existing gRPC tests pass (33 total)
+([evidence](builds/2026-10-14-recovery/grpc-auth-context-lifecycle.json)).
 The native and Field Collector routers now also have a pinned full method/path
 policy inventory. A 27-test focused Gateway run confirms exact resource/action/
 public policy coverage, 401 for every registered private route when anonymous,

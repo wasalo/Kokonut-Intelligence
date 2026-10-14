@@ -4940,3 +4940,21 @@ passes; Ruff, format, and diff checks pass. This does not establish live API-key
 authentication, tenant isolation, transport/streaming behavior, TLS, or native
 Gateway parity. See
 [`grpc-rpc-policy-inventory.json`](builds/2026-10-14-recovery/grpc-rpc-policy-inventory.json).
+
+### gRPC streaming authentication context lifecycle — 14 October 2026
+
+The auth interceptor previously held its `ContextVar` identity while a response
+generator was suspended at `yield`, leaking the current caller identity to the
+surrounding worker context. The wrapper now binds identity while constructing
+and advancing the response iterator, resets it before each response returns to
+gRPC, and closes a canceled iterator with identity bound while guaranteeing
+cleanup afterward. This applies to unary-stream and bidirectional-stream
+handlers; unary and client-streaming-unary behavior remains covered too.
+
+The five new lifecycle tests and existing `tests/test_grpc.py` suite pass (**33
+total**), including identity visibility inside handlers, reset between yielded
+responses, cancellation cleanup, and exception cleanup. Ruff, format, Python
+compilation, and `git diff --check` pass. No RPC listener or database was used.
+Live network transport, tenant isolation, and native Gateway policy parity
+remain open. See
+[`grpc-auth-context-lifecycle.json`](builds/2026-10-14-recovery/grpc-auth-context-lifecycle.json).
