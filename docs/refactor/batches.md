@@ -533,9 +533,17 @@ reporting views.
   database, internal network, and volume were removed
   ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
   This was a clean-schema replay, not a populated/archive or pilot-seed replay.
-- [ ] Define and implement audited owner-transfer controls, reconcile other
-  locations and legacy operator grants, add transaction-local context, and
-  establish least-privilege worker/direct-database boundaries before RLS.
+- [x] Define and implement migration 390's audited two-party location tenant
+  transfer request/accept/cancel workflow and local operator CLI. Acceptance
+  revokes existing shares and all active location grants, including legacy
+  NULL-tenant grants; see the [transfer contract](tenant-owner-transfer-contract.md).
+- [ ] Run focused disposable PostgreSQL acceptance for transfer request,
+  independent approval, stale/conflicting owner rejection, atomic owner-link
+  change, all-grant/share revocation, cancellation, replay, and rollback before
+  considering a candidate rollout.
+- [ ] Reconcile other locations and legacy operator grants, add transaction-
+  local context, and establish least-privilege worker/direct-database
+  boundaries before RLS.
 - [x] Audit repository-owned downstream consumers of Field Collector data;
   the source review found an unguarded process-interface elapsed-time lookup
   and added the shared eligibility predicate. Reporting, export, metric,

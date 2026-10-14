@@ -4014,3 +4014,22 @@ and candidate rollout remain separate gates. Evidence:
 
 Ruff 0.15.22 is available in `.venv`; `pip check` reports no broken
 requirements and the repository dependency-group alignment check passes.
+
+
+### Audited location tenant transfer source — 13 October 2026
+
+Added migration 390 and `services.gateway.operator_cli tenant-transfer` request,
+accept, and cancel commands. A current owner tenant administrator opens a
+referenced request; a separate enabled target-owner tenant administrator
+accepts it, while the original source administrator must remain active.
+Acceptance atomically changes the verified tenant and owned-primary
+relationships, retires the previous owner evidence, and revokes all location
+shares and grants (including legacy NULL-tenant grants); regranting requires a
+separate review. Pending transfers change no access and source admins may
+cancel them with a reason. Conflicted/unassigned ownership is rejected. The
+[transfer contract](tenant-owner-transfer-contract.md) records that this is a
+platform tenant assignment, not legal land-title evidence.
+
+Ruff and Python syntax checks pass for the changed CLI. Focused disposable
+PostgreSQL acceptance and candidate rollout have not been performed; migration
+390 remains source-only.

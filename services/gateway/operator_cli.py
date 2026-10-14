@@ -453,6 +453,95 @@ def revoke_scope(args) -> None:
     print_json(row)
 
 
+def request_location_tenant_transfer(args) -> None:
+    location_id = _uuid(args.location_id, "location-id")
+    target_organization_id = _uuid(args.target_organization_id, "target-organization-id")
+    requested_by_operator_id = _uuid(args.requested_by_operator_id, "requested-by-operator-id")
+    request_reference = args.request_reference.strip()
+    reason = args.reason.strip()
+    if not request_reference or not reason:
+        raise ValueError("request-reference and reason are required")
+    with get_connection() as conn:
+        transfer_id = conn.execute(
+            """SELECT request_location_tenant_transfer(
+                          :location_id, :target_organization_id,
+                          :requested_by_operator_id, :request_reference, :reason
+                      ) AS id""",
+            {
+                "location_id": location_id,
+                "target_organization_id": target_organization_id,
+                "requested_by_operator_id": requested_by_operator_id,
+                "request_reference": request_reference,
+                "reason": reason,
+            },
+        ).first()["id"]
+        row = conn.execute(
+            """SELECT id, location_id, source_owner_verification_id,
+                      source_organization_id, target_organization_id,
+                      requested_by_operator_id, request_reference, request_reason,
+                      requested_at, status
+                 FROM location_tenant_transfer WHERE id = :transfer_id""",
+            {"transfer_id": transfer_id},
+        ).first()
+    print_json(row)
+
+
+def accept_location_tenant_transfer(args) -> None:
+    transfer_id = _uuid(args.transfer_id, "transfer-id")
+    accepting_operator_id = _uuid(args.accepting_operator_id, "accepting-operator-id")
+    acceptance_reference = args.acceptance_reference.strip()
+    if not acceptance_reference:
+        raise ValueError("acceptance-reference is required")
+    with get_connection() as conn:
+        conn.execute(
+            """SELECT accept_location_tenant_transfer(
+                          :transfer_id, :accepting_operator_id, :acceptance_reference
+                      )""",
+            {
+                "transfer_id": transfer_id,
+                "accepting_operator_id": accepting_operator_id,
+                "acceptance_reference": acceptance_reference,
+            },
+        )
+        row = conn.execute(
+            """SELECT id, location_id, source_organization_id, target_organization_id,
+                      requested_by_operator_id, request_reference, requested_at,
+                      accepted_by_operator_id, acceptance_reference, accepted_at,
+                      resulting_owner_verification_id, revoked_share_ids,
+                      revoked_scope_grant_ids, status
+                 FROM location_tenant_transfer WHERE id = :transfer_id""",
+            {"transfer_id": transfer_id},
+        ).first()
+    print_json(row)
+
+
+def cancel_location_tenant_transfer(args) -> None:
+    transfer_id = _uuid(args.transfer_id, "transfer-id")
+    cancelling_operator_id = _uuid(args.cancelling_operator_id, "cancelling-operator-id")
+    reason = args.reason.strip()
+    if not reason:
+        raise ValueError("reason is required")
+    with get_connection() as conn:
+        conn.execute(
+            """SELECT cancel_location_tenant_transfer(
+                          :transfer_id, :cancelling_operator_id, :reason
+                      )""",
+            {
+                "transfer_id": transfer_id,
+                "cancelling_operator_id": cancelling_operator_id,
+                "reason": reason,
+            },
+        )
+        row = conn.execute(
+            """SELECT id, location_id, source_organization_id, target_organization_id,
+                      requested_by_operator_id, request_reference, requested_at,
+                      cancelled_by_operator_id, cancellation_reason, cancelled_at, status
+                 FROM location_tenant_transfer WHERE id = :transfer_id""",
+            {"transfer_id": transfer_id},
+        ).first()
+    print_json(row)
+
+
 def list_operators(args) -> None:
     with get_connection() as conn:
         identities = conn.execute(
@@ -476,7 +565,22 @@ def list_operators(args) -> None:
                       revocation_reason
                  FROM location_organization_share ORDER BY created_at, id"""
         ).all()
-    print_json({"identities": identities, "grants": grants, "memberships": memberships, "shares": shares})
+        transfers = conn.execute(
+            """SELECT id, location_id, source_organization_id, target_organization_id,
+                      requested_by_operator_id, request_reference, request_reason,
+                      requested_at, status, accepted_by_operator_id, acceptance_reference,
+                      accepted_at, resulting_owner_verification_id, revoked_share_ids,
+                      revoked_scope_grant_ids, cancelled_by_operator_id,
+                      cancellation_reason, cancelled_at
+                 FROM location_tenant_transfer ORDER BY requested_at, id"""
+        ).all()
+    print_json({
+        "identities": identities,
+        "grants": grants,
+        "memberships": memberships,
+        "shares": shares,
+        "tenant_transfers": transfers,
+    })
 
 
 def main() -> None:
@@ -537,6 +641,28 @@ def main() -> None:
     share_revoke.add_argument("--revoked-by-operator-id", required=True)
     share_revoke.add_argument("--reason", required=True)
     share_revoke.set_defaults(func=revoke_location_share)
+
+    transfer = commands.add_parser(
+        "tenant-transfer", help="Request, accept, or cancel an audited location tenant-owner transfer"
+    )
+    transfer_commands = transfer.add_subparsers(dest="transfer_command", required=True)
+    transfer_request = transfer_commands.add_parser("request")
+    transfer_request.add_argument("--location-id", required=True)
+    transfer_request.add_argument("--target-organization-id", required=True)
+    transfer_request.add_argument("--requested-by-operator-id", required=True)
+    transfer_request.add_argument("--request-reference", required=True)
+    transfer_request.add_argument("--reason", required=True)
+    transfer_request.set_defaults(func=request_location_tenant_transfer)
+    transfer_accept = transfer_commands.add_parser("accept")
+    transfer_accept.add_argument("--transfer-id", required=True)
+    transfer_accept.add_argument("--accepting-operator-id", required=True)
+    transfer_accept.add_argument("--acceptance-reference", required=True)
+    transfer_accept.set_defaults(func=accept_location_tenant_transfer)
+    transfer_cancel = transfer_commands.add_parser("cancel")
+    transfer_cancel.add_argument("--transfer-id", required=True)
+    transfer_cancel.add_argument("--cancelling-operator-id", required=True)
+    transfer_cancel.add_argument("--reason", required=True)
+    transfer_cancel.set_defaults(func=cancel_location_tenant_transfer)
 
     listing = commands.add_parser("list", help="List operator identities and grants")
     listing.set_defaults(func=list_operators)

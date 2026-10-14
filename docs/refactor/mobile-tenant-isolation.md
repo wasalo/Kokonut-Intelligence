@@ -52,7 +52,11 @@ access. No current mobile route claims general database RLS protection.
 6. For new tenant-owned rows, store an explicit tenant key or enforce an
    equivalent immutable parent relationship. For existing location-bound
    rows, RLS may resolve the tenant through the location only after ownership
-   immutability or audited transfer semantics are in place.
+   immutability or audited transfer semantics are in place. Migration 390 and
+   the local operator CLI now implement a pending/accepted/cancelled transfer
+   with separate source and target administrators. Its focused database
+   acceptance and candidate rollout remain open; see the
+   [transfer contract](tenant-owner-transfer-contract.md).
 
 ## RLS and connection-context requirements
 
@@ -105,8 +109,9 @@ verification:
    repository owner confirmed Kokonut Network as the exclusive owner of both
    Kokonut Adelphi and Kokonut Genesis on 2026-10-13. This decision applies only
    to those two repository seed locations; it does not assign owners to other
-   locations or resolve unlocated report/dashboard rows. Audited organization
-   transfer and explicit-sharing semantics are still required before RLS.
+   locations or resolve unlocated report/dashboard rows. Explicit-sharing
+   semantics are implemented. Migration 390 defines audited organization-
+   transfer semantics; acceptance and candidate rollout remain open before RLS.
 3. Add server-managed organization membership and tenant-aware grants while
    preserving existing location-grant compatibility. Source foundation is in
    migration 388: tenant grants require an active operator membership plus a
@@ -125,10 +130,15 @@ verification:
    ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
    The replay excluded archived data and pilot seeds; candidate rollout remains
    separately gated, and RLS is not enabled.
-4. Add transaction-local context to each service/worker connection path, then
+4. Migration 390 defines two-party audited owner transfers; run focused
+   disposable PostgreSQL acceptance before any rollout. Unassigned/conflicted
+   locations still require an accountable ownership decision and cannot use
+   the transfer workflow. The transfer revokes prior shares and all active
+   location grants so access must be reissued under the new owner.
+5. Add transaction-local context to each service/worker connection path, then
    add additive RLS policies and indexes through new ordered migrations. Keep
    existing migrations immutable.
-5. Verify through the same least-privilege role used by the application:
+6. Verify through the same least-privilege role used by the application:
    missing context denies; organization A cannot select or mutate organization
    B; same-location partner access requires an explicit share; revoked grants
    stop access; pooled connections do not retain prior context; workers cannot
@@ -180,10 +190,12 @@ review covers the 38 unlocated dashboard definitions and three unlocated draft
 snapshots on the retained archive clone; it does not claim complete downstream
 lineage. The clean-schema replay of all 380 migrations, including the
 384–385–389 trigger stack, has now passed; this did not include archived data
-or pilot seeds. Candidate rollout, least-privilege worker behavior, and audited
-transfer semantics remain open. The operator CLI lifecycle and legacy-grant
-conversion passed separate disposable acceptance; RLS is not enabled by this
-ownership reconciliation ([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json); [replay evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
+or pilot seeds. Migration 390 and the local CLI now implement a two-party
+transfer workflow, but focused acceptance and candidate rollout remain open.
+Least-privilege worker behavior and RLS remain open. The operator CLI
+membership/share lifecycle and legacy-grant conversion passed separate
+disposable acceptance; RLS is not enabled by this ownership reconciliation
+([lineage evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json); [replay evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json); [transfer contract](tenant-owner-transfer-contract.md)).
 
 ## Confirmed seed-location owner mapping — 13 October 2026
 
@@ -260,5 +272,5 @@ archive data or pilot seeds. See
 [`tenant-grants-full-schema-replay.json`](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)
 and the separate operator CLI evidence
 [`tenant-grants-cli-disposable.json`](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
-Candidate rollout, transfer controls, transaction-local tenant context,
-arbitrary direct-SQL isolation, and RLS remain open.
+Candidate rollout and migration-390 transfer acceptance, transaction-local
+tenant context, arbitrary direct-SQL isolation, and RLS remain open.

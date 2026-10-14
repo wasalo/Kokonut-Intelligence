@@ -97,6 +97,14 @@ python3 -m services.cli operator location-share grant --location-id LOCATION_UUI
 python3 -m services.cli operator grant --operator-id UUID --organization-id ORG_UUID --resource farm_activity --action read --location-id LOCATION_UUID --granted-by ADMIN
 ```
 
+Migration 390 adds `tenant-transfer request`, `accept`, and `cancel` commands.
+The transfer requires separate source and target tenant administrators; pending
+requests do not change access, and acceptance revokes all location shares and
+grants before access can be reissued. See the
+[tenant transfer contract](tenant-owner-transfer-contract.md). These commands
+remain source-only until focused disposable acceptance and a separately gated
+candidate rollout pass.
+
 Membership and share revocations require an operator identifier and reason;
 they also revoke dependent tenant-qualified grants. Existing NULL-tenant
 location grants remain compatible and are not assigned to an organization
@@ -110,8 +118,10 @@ pending or failed, including the combined 384–385–389 trigger stack; all 11
 activity/workflow triggers were registered and the candidate remained healthy
 and untouched ([evidence](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json)).
 This replay did not include archived data or pilot seeds. Migration 388 is not
-rolled out to the candidate. Audited ownership transfers, transaction-local
-context, direct-database isolation, and RLS remain open.
+rolled out to the candidate. Migration 390 adds audited transfer operations to
+the local CLI; focused transfer acceptance and candidate rollout remain open.
+See the [transfer contract](tenant-owner-transfer-contract.md). Transaction-
+local context, direct-database isolation, and RLS remain open.
 
 The browser session response includes only the signed-in operator's active
 grant tuples so the page can offer assigned locations. The report review grant
