@@ -76,8 +76,9 @@ passed. For the current head, CI run
 is still running and Security run
 [#39](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38666505418)
 failed on a one-way SHA-256 source digest in the Directus evidence JSON, falsely
-detected as a generic API key. A file-specific digest allowlist is local and
-awaits a later push. The last fully green head is `41412764f8281deea52670bf49de4234aca6e0bd`,
+detected as a generic API key. A file-specific digest allowlist is local;
+Gitleaks 8.30.1 then passed over all local Git refs on `bbf45ff`, and the
+tracked-file secret scan is clean. The fix awaits a later push. The last fully green head is `41412764f8281deea52670bf49de4234aca6e0bd`,
 where CI #313 and Security #37 passed. The Directus preflight and supervisor
 tests are included in the current head; the ClickHouse outbox failure-injection
 tests remain local until a later push. The new notification outbox failure

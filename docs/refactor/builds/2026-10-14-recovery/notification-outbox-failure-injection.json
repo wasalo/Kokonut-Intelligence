@@ -7,7 +7,9 @@
     "combined_pytest": "23 passed across Directus preflight, Kernel supervisor, ClickHouse outbox, and notification outbox suites",
     "ruff": "passed",
     "python_compile": "passed",
-    "git_diff_check": "passed after all code, evidence, and documentation changes"
+    "git_diff_check": "passed after all code, evidence, and documentation changes",
+    "gitleaks_full_history_scan": "Gitleaks 8.30.1 passed over all local Git refs; no leaks found",
+    "tracked_secret_scan": "passed; no tracked secret-like material detected"
   },
   "behaviors": [
     "provider exception details are not placed in persisted error class or warning log; only the exception type is retained",
