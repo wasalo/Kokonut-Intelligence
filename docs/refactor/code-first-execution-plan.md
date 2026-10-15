@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 348 checked and 20 open items (368 total).
+- The execution checklist has 349 checked and 20 open items (369 total).
   The count includes five source/documentation closures in this batch: the
   94-type report registry path, capability-matrix integrity, and the five
   named Kokonut Network location mappings, plus refreshed worker/runtime SQL

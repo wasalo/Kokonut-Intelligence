@@ -95,6 +95,7 @@ Commands:
 - Capture static Kernel inventory: `python3 scripts/kernel-inventory.py --output docs/refactor/repository-inventory.json`
 - Start services with encrypted secrets: `source scripts/load-secrets.sh && docker compose up -d`
 - Start services (plaintext .env fallback): `docker compose up -d`
+- Before starting Directus through Compose from a fresh checkout, build its ignored hook artifact: `make hooks-build` (runs locked `npm ci` when dependencies are missing/stale, then the Directus extension bundler).
 - Decrypt secrets to stdout: `sops -d --input-type dotenv --output-type dotenv .env.sops`
 - Edit encrypted secrets: `sops .env.sops`
 - Source secrets into shell: `source scripts/load-secrets.sh`

@@ -51,21 +51,24 @@ See [Architecture](docs/architecture.md) for system design, data flow, and secur
 cp .env.example .env
 # Edit .env with local secrets before starting services.
 
-# 2. Start infrastructure
+# 2. Build the Directus hook bundle (required by the Directus Compose mount)
+make hooks-build
+
+# 3. Start infrastructure
 docker compose up -d
 
-# 3. Apply schema, base seeds, and pilot data
+# 4. Apply schema, base seeds, and pilot data
 ./scripts/seed.sh
 ./scripts/seed-pilot.sh
 
-# 4. Compute draft, unverified governed metric values
+# 5. Compute draft, unverified governed metric values
 ./scripts/compute-metrics.sh
 
-# 5. Have a human reviewer verify each accepted value
+# 6. Have a human reviewer verify each accepted value
 python3 -m services.metrics --verify-value METRIC_VALUE_UUID \
   --verified-by REVIEWER_UUID --verification-notes "Reviewed evidence"
 
-# 6. Verify the platform definition of done
+# 7. Verify the platform definition of done
 ./scripts/verify-platform.sh
 ```
 
@@ -385,7 +388,7 @@ CI and security checks run through GitHub Actions on pull requests to `main` and
    - Unified CLI smoke test (`python3 -m services.cli --help`)
 3. **Infrastructure**: Docker Compose brings up PostgreSQL 16, ClickHouse 25.8, Redis 7, cache, and Directus. Database is seeded and metrics are computed.
 4. **Version verification**: Reads `VERSION` file and compares to `services.__version__` and `KOKONUT_GIT_SHA` in running containers.
-5. **Full test suite**: 4,034+ Python tests, 62 Solidity tests, 52 Directus hook tests via `verify-full-test-suite.sh` (fails closed on any skip).
+5. **Full test suite**: 4,034+ Python tests, 62 Solidity tests, 53 Directus hook tests via `verify-full-test-suite.sh` (fails closed on any skip).
 6. **Static analysis**: Slither (Solidity), Aderyn (Solidity), and Semgrep (`python.lang.security` + `python.lang.correctness`).
 7. **Solidity**: `forge fmt --check`, `forge build --sizes`, `forge test`.
 8. **Directus hooks**: `npm ci`, `npm run build`, `npm test`.
@@ -402,6 +405,11 @@ Contributing guidelines:
 ---
 
 ## Production Deployment
+
+Build the Directus hook bundle once from the checked-in lockfile before starting
+any Compose deployment. `make hooks-build` runs `npm ci` and produces the
+ignored `extensions/kokonut-hooks/dist/` artifact mounted by Directus. It only
+reinstalls dependencies when they are missing or the lockfile is newer.
 
 ```bash
 # With built-in Caddy (default)

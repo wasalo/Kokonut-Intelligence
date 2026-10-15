@@ -45,6 +45,27 @@ effect parity ([test](../../extensions/kokonut-hooks/src/index.test.ts);
 [evidence](builds/2026-10-15-recovery/directus-hook-event-registration.json);
 [inventory](directus-parity-inventory.md)).
 
+### Directus 12 extension packaging and isolated dispatch — 15 October 2026
+
+The base Compose service had mounted extension sources under non-discoverable
+paths. It now mounts each extension at a `directus-extension-*` path. The hook
+package uses the Directus extension bundler followed by `tsc --noEmit`; the
+Field Collector companion is a declared endpoint package. A fresh isolated
+Directus 12.1.1 database loaded both extensions. Authenticated admin login and
+the endpoint redirect passed. A synthetic `farm_activity.location_id` text
+field allowed the runtime test to prove an invalid value was rejected and no
+row was inserted. The API returned 500 because the existing hook throws a
+plain error; changing this to a typed 400 requires `@directus/errors`, but npm
+registry DNS failed during installation, so the lockfile was left untouched.
+All temporary containers and volumes were removed. This is narrow dispatch
+evidence, not tenant authorization parity ([evidence](builds/2026-10-15-recovery/directus-extension-runtime.json);
+[inventory](directus-parity-inventory.md)).
+
+Fresh-checkout startup is now covered too: `make up` builds the ignored hook
+artifact before Compose startup, and `make hooks-build` installs the locked
+dependencies only when absent or stale. The Quick Start, deployment guide,
+repository commands, and Directus setup note document the same precondition.
+
 ### Directus extension host version is pinned accurately — 15 October 2026
 
 The hook package previously advertised Directus `^11.0.0` while Compose pins

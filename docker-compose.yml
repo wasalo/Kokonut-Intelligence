@@ -35,7 +35,8 @@ services:
       - "${DIRECTUS_HOST_PORT:-127.0.0.1:8055}:8055"
     volumes:
       - directus-uploads:/directus/uploads
-      - ./extensions:/directus/extensions
+      - ./extensions/kokonut-hooks:/directus/extensions/directus-extension-kokonut-hooks:ro
+      - ./extensions/endpoints/kokonut-field-collector:/directus/extensions/directus-extension-endpoint-kokonut-field-collector:ro
     depends_on:
       database:
         condition: service_healthy

@@ -2,6 +2,23 @@
 
 SQL seed file that creates the complete Directus role-based access control system.
 
+## Extension Build Prerequisite
+
+The base Compose service mounts the hook package at
+`/directus/extensions/directus-extension-kokonut-hooks`. Directus loads its
+compiled entry point from the ignored `extensions/kokonut-hooks/dist/`
+directory, so a fresh checkout must build it before starting Compose:
+
+```bash
+make hooks-build
+docker compose up -d directus
+```
+
+`make hooks-build` installs the exact lockfile dependencies with `npm ci` when
+they are missing or stale, then runs the Directus extension bundler plus
+TypeScript validation. The Field Collector endpoint is plain JavaScript and
+does not require a build step.
+
 ## Files
 
 | File | Purpose |
