@@ -21,8 +21,8 @@ MAN-CAP checks open until each has its own retained evidence.
   fail-closed gate and inert-by-default policy creation are checked; schedule
   and legal-hold implementation remain open as owner/runtime gates.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
-  #320 was last recorded in progress on this head. Twenty-one local commits
-  are ahead and hosted CI does not cover them; the newest are `83256be`
+  #320 was last recorded in progress on this head. Multiple local commits are
+  ahead and hosted CI does not cover them; the newest are `83256be`
   (source-less sensor rejection), `2606ee5` (shared dispatcher contract and
   SQL inventory refresh), and `629affd` (isolated ARM64 profile selection).
   Earlier local commit `761cd6c` adds the optional self-hosted ZITADEL profile.

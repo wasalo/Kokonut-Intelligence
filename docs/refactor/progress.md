@@ -4,7 +4,8 @@
 The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the
 last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999);
 [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)).
-The local branch is 21 commits ahead and hosted CI does not cover that work.
+The local branch has multiple unpushed commits, so hosted CI does not cover
+that work.
 The newest commits close the sensor CLI false-success path (`83256be`), verify
 the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
 isolated ARM64 minimal/edge/standard profile selection (`629affd`). Earlier
