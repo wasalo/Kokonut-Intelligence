@@ -5676,3 +5676,17 @@ reconciliation, provider effect review, worker identity/context, runtime grants,
 and RLS remain open. No candidate or legacy database was accessed, and no
 tests or candidate rollout were run.
 ([inventory](worker-effect-inventory.json); [generator](../../scripts/worker_effect_inventory.py)).
+
+### Shared JobSpec default contract inventory — 15 October 2026
+
+Added a source-only comparison for all 15 entries in `services.core.jobs.JOBS`.
+Eleven default command lines pass Kernel module allowlisting and argument
+validation; the sensor default is rejected because it declares no input
+source, and climate is rejected because it supplies `--all` without the
+required location. The projection and remote-sensing modules are not on the
+Kernel scheduled-module allowlist. This report stores only argument counts and
+generic rejection reasons. It does not query task rows, Prefect, databases, or
+providers, and it does not enable or change a schedule. The source/input for
+the two rejected defaults and operation/tenant boundaries for the two
+unallowlisted jobs remain open.
+([inventory](worker-job-contract-inventory.json); [generator](../../scripts/worker_job_contract_inventory.py)).

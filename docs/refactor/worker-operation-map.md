@@ -153,10 +153,21 @@ data effects, and an idempotency/retry note.
   supplies only `--all`; the event-cleanup seed invokes a retention-sensitive
   delete operation. These commands now fail the Kernel argument contract. The
   legacy seed remains excluded from normal Kernel bootstrap.
+- The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
+  compares all 15 shared job templates with the Kernel module allowlist and
+  command validation. Eleven default argument lists pass, the sensor and
+  climate defaults fail closed, and the projection/remote-sensing modules are
+  outside the Kernel allowlist. This is the source catalog only; it does not
+  reconcile persisted tasks or external schedules. Check it with
+  `python3 scripts/worker_job_contract_inventory.py --check
+  docs/refactor/worker-job-contract-inventory.json`. Keep the two rejected
+  defaults and two unallowlisted jobs inactive until source/input, provider,
+  and worker-identity boundaries are reviewed.
 
 ## What remains open
 
-This map, import closure, SQL inventories, effect candidates, and argument
+This map, import closure, SQL inventories, effect candidates, job-template
+comparison, and argument
 schemas are not an ACL, tenant policy, or complete dynamic call graph. All 36 composed/variable sites
 have source-pattern review; the static call graph follows local instance types
 and the explicit metric registry, but 34 SQL sites still have no direct static

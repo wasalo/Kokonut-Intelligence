@@ -141,7 +141,11 @@ The actuation helper reachable from a worker only records an approval-gated
 command; it does not publish MQTT. Next
 code-only work is to reconcile each candidate against its exact scheduler
 command contract, inspect remaining dynamic/provider callbacks and transitive
-effect wrappers, then reconcile persisted task rows with those contracts. A
+effect wrappers, then reconcile persisted task rows with those contracts. The
+source-only JobSpec inventory now identifies 11 accepted default templates,
+two rejected defaults (source-less sensors and unlocated climate), and two
+modules outside the Kernel allowlist; it does not inspect persisted tasks or
+external Prefect state ([inventory](worker-job-contract-inventory.json)). A
 later role/context change needs a non-forgeable system-worker identity and
 narrow operation grants. Active provider schedules, operational owners, and
 any production identity mapping remain separate owner inputs under OFU-16/02.

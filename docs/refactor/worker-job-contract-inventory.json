@@ -1,0 +1,121 @@
+{
+  "version": 1,
+  "generated_by": "scripts/worker_job_contract_inventory.py",
+  "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
+  "summary": {
+    "catalog_jobs": 15,
+    "allowlisted_modules": 13,
+    "outcomes": {
+      "default_arguments_accepted": 11,
+      "default_arguments_rejected": 2,
+      "module_not_allowlisted": 2
+    }
+  },
+  "jobs": [
+    {
+      "job": "anomaly",
+      "module": "services.ingestion.anomaly_detector",
+      "argument_count": 0,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "climate",
+      "module": "services.ingestion.climate_data",
+      "argument_count": 1,
+      "status": "default_arguments_rejected",
+      "reason": "climate refresh requires --location-id"
+    },
+    {
+      "job": "credit_adjustment",
+      "module": "services.analytics.carbon_credits",
+      "argument_count": 1,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "dashboards",
+      "module": "services.export.dataset_refresh",
+      "argument_count": 1,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "eas",
+      "module": "services.ingestion.eas_indexer",
+      "argument_count": 0,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "freshness",
+      "module": "services.ingestion.data_freshness",
+      "argument_count": 1,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "gnosis",
+      "module": "services.ingestion.gnosis_indexer",
+      "argument_count": 0,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "market_data",
+      "module": "services.ingestion.market_data",
+      "argument_count": 2,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "metrics",
+      "module": "services.metrics",
+      "argument_count": 2,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "noi_snapshots",
+      "module": "services.metrics",
+      "argument_count": 1,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "projections",
+      "module": "services.ingestion.clickhouse_outbox",
+      "argument_count": 3,
+      "status": "module_not_allowlisted",
+      "reason": "JobSpec module is outside the Kernel scheduled-module allowlist"
+    },
+    {
+      "job": "remote_sensing",
+      "module": "services.ingestion.remote_sensing_fetcher",
+      "argument_count": 1,
+      "status": "module_not_allowlisted",
+      "reason": "JobSpec module is outside the Kernel scheduled-module allowlist"
+    },
+    {
+      "job": "rpc",
+      "module": "services.ingestion.rpc_indexer",
+      "argument_count": 0,
+      "status": "default_arguments_accepted",
+      "reason": null
+    },
+    {
+      "job": "sensors",
+      "module": "services.ingestion.sensor_ingester",
+      "argument_count": 0,
+      "status": "default_arguments_rejected",
+      "reason": "sensor ingestion has no recurring source contract"
+    },
+    {
+      "job": "weather",
+      "module": "services.ingestion.weather",
+      "argument_count": 0,
+      "status": "default_arguments_accepted",
+      "reason": null
+    }
+  ]
+}

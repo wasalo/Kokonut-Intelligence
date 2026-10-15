@@ -1629,3 +1629,13 @@ configuration.
 Worker identity, role/context, and live recovery gates remain open, so no
 MAN-CAP status or count changes ([inventory](worker-effect-inventory.json);
 [worker map](worker-operation-map.md)).
+
+### CAP-047 scheduler template preflight — 15 October 2026
+
+A source-only comparison covers all 15 shared JobSpecs. Eleven default
+argument lists satisfy the current Kernel command contracts; sensor and
+climate defaults are rejected for missing source/location inputs, while
+ClickHouse projection and remote sensing are outside the Kernel allowlist.
+This does not inspect persisted tasks, Prefect state, provider outcomes, or
+grant boundaries, so it is inventory progress and not scheduler acceptance
+([JobSpec inventory](worker-job-contract-inventory.json)).
