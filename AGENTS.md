@@ -119,7 +119,7 @@ Commands:
 - List metrics: `python3 -m services.metrics --list`
 - Event bus process: `python3 -m services.events --process`
 - Event bus stats: `python3 -m services.events --stats`
-- Event bus cleanup: `python3 -m services.events --cleanup`
+- Event bus cleanup (disabled until an approved retention schedule is configured): `KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true python3 -m services.events --cleanup --days APPROVED_RETENTION_DAYS`
 - Event bus handlers: `python3 -m services.events --list-handlers`
 - Event bus dead letter: `python3 -m services.events --list-dead-letter`
 - Event bus replay dead letter: `python3 -m services.events --replay-dead-letter --event-id UUID --actor OPERATOR`

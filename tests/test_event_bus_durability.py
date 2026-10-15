@@ -86,16 +86,18 @@ def test_replay_preserves_successful_handler_delivery_state():
     assert "status = 'pending'" in sql
 
 
-def test_injected_connection_is_never_closed():
+def test_injected_connection_is_never_closed(monkeypatch):
+    monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
     conn, _ = _connection()
     bus = EventBus(conn=conn)
     bus.get_stats()
-    bus.cleanup_old_events()
+    bus.cleanup_old_events(days=30)
     bus.close()
     conn.close.assert_not_called()
 
 
-def test_cleanup_preserves_events_with_undisposed_dead_letters():
+def test_cleanup_preserves_events_with_undisposed_dead_letters(monkeypatch):
+    monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
     conn, cursor = _connection()
 
     EventBus(conn=conn).cleanup_old_events(days=30)
@@ -117,6 +119,18 @@ def test_cleanup_rejects_nonpositive_or_boolean_retention_before_database_access
             assert False, f"invalid retention window {days!r} should fail"
         except ValueError as exc:
             assert "positive integer" in str(exc)
+
+    bus._conn.cursor.assert_not_called()
+
+
+def test_cleanup_fails_closed_without_approved_retention_feature(monkeypatch):
+    import pytest
+
+    monkeypatch.delenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", raising=False)
+    bus = EventBus(conn=MagicMock())
+
+    with pytest.raises(RuntimeError, match="KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true"):
+        bus.cleanup_old_events(days=30)
 
     bus._conn.cursor.assert_not_called()
 

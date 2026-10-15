@@ -3,7 +3,7 @@
 Usage:
     python3 -m services.events --process [--batch-size N] [--worker-id ID]
     python3 -m services.events --stats
-    python3 -m services.events --cleanup [--days N]
+    python3 -m services.events --cleanup --days N
     python3 -m services.events --list-handlers
     python3 -m services.events --list-dead-letter
     python3 -m services.events --fork-opportunities [--location-id UUID]
@@ -20,7 +20,9 @@ import argparse
 import os
 import sys
 import time
+
 from services.common.cli import print_json
+
 
 def cmd_process(args):
     from services.events.backend import get_event_store
@@ -38,8 +40,8 @@ def cmd_process(args):
 
 
 def cmd_worker(args):
-    from services.events.backend import get_event_store
     from services.common.database import get_connection
+    from services.events.backend import get_event_store
     from services.events.notification_outbox import deliver_batch
 
     bus = get_event_store(lease_seconds=args.lease_seconds)
@@ -75,6 +77,14 @@ def cmd_stats(args):
 
 
 def cmd_cleanup(args):
+    from services.events.retention import require_event_retention_cleanup
+
+    try:
+        require_event_retention_cleanup()
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
     from services.events.backend import get_event_store
 
     bus = get_event_store()
@@ -270,7 +280,7 @@ def main():
     parser.add_argument("--worker-id", default=os.environ.get("HOSTNAME", "cli"), help="Worker identifier")
     parser.add_argument("--poll-interval", type=float, default=2.0)
     parser.add_argument("--lease-seconds", type=int, default=300)
-    parser.add_argument("--days", type=int, default=30, help="Days to keep events")
+    parser.add_argument("--days", type=int, help="Approved event-retention window in days")
     parser.add_argument("--limit", type=int, default=20, help="Max dead letter entries")
     parser.add_argument("--event-id", help="Original event UUID")
     parser.add_argument("--notification-id", help="Notification outbox UUID")
@@ -288,6 +298,11 @@ def main():
     parser.add_argument("--event-data", default="{}", help="JSON event payload for --process-event")
 
     args = parser.parse_args()
+
+    if args.cleanup and args.days is None:
+        parser.error("--days is required for cleanup; no default retention window is approved")
+    if args.cleanup and args.days < 1:
+        parser.error("--days must be a positive integer for cleanup")
 
     if args.process:
         rc = cmd_process(args)

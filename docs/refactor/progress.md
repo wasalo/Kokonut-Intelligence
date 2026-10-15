@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head at this update is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; Security #44 passed and CI #320 is in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). The next local batch adds an optional self-hosted ZITADEL Compose profile; 26 focused Compose/planner checks, Ruff, shell syntax, and whitespace checks pass. Its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; Security #44 passed and CI #320 is in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). Local commit `761cd6c` adds an optional self-hosted ZITADEL Compose profile. The next local batch adds report CLI scoping and a default-off event cleanup gate; focused checks below are not covered by hosted CI. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
 ### Self-hosted ZITADEL Compose profile — 15 October 2026
 
@@ -49,6 +49,31 @@ remains intentionally ignored; this ledger and the
 alongside it. Remaining implementation is ordered in the
 [code-first execution plan](code-first-execution-plan.md); owner decisions and
 external inputs are collected in [Open Follow Ups](open-follow-ups.md).
+
+### Report generator CLI scope — 15 October 2026
+
+Bulk report generation now requires an explicit location scope or `--all`.
+Ordinary location reports require a location selector; only the existing
+five-type network-level allowlist can run without one. Conflicting modes and
+scope selectors fail before opening PostgreSQL, while `--verify HASH` works
+without a report type. All 94 registered report generators remain available.
+Eleven focused tests and Ruff pass; no database or provider was accessed.
+This closes a CLI invocation gap only. Report audience, result parity against
+populated farm data, external dashboards, and tenant authorization remain open
+([test](../../tests/test_report_generator_cli.py);
+[evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)).
+
+### Event retention cleanup gate — 15 October 2026
+
+The owner selected USA and Dominican Republic, but retention durations and the
+legal-hold process remain unapproved. The event cleanup feature now defaults
+off; the CLI requires `--days`, and both the CLI and `EventBus.cleanup_old_events`
+check the feature before connecting to PostgreSQL. Removed the 30-day default
+and preserved the cleanup query's undisposed-dead-letter guard. The query does
+not evaluate event-level legal holds, so cleanup remains disabled pending
+hold-aware eligibility. The focused event-bus, CLI, feature-flag, and prior
+architecture checks pass (34 total), Ruff passes, and no database/provider was accessed
+([evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
 
 ### Kernel supervisor source contract — 14 October 2026
 

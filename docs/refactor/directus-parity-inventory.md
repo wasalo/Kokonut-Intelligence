@@ -29,10 +29,13 @@ The repaired staff permission filters reference
 `directus_users` table has no `location_id` column. A pinned-image probe showed
 the synthetic Field Worker requests denied, with no synthetic rows visible;
 that is fail-closed behavior, not proof of correct own-location access or
-cross-location isolation. The native operator console uses explicit grants
-that can authorize a principal for selected locations. These are different
-identity models; do not infer equivalence from the presence of a location
-predicate in both systems.
+cross-location isolation. The owner selected organization/location grants as
+the Directus tenant model. The native operator console already uses those
+explicit grants. Directus still needs a supported mapping from its
+authenticated user to Kokonut's `operator_identity`, plus effective
+permission filters that evaluate the same active operator, organization,
+location, resource, and action grants. Do not infer equivalence from a legacy
+`$CURRENT_USER.location_id` predicate.
 
 The SQL also grants `fields = '*'` on many read rules, so a row predicate does
 not establish field privacy. The Auditor policy deliberately has unfiltered
@@ -62,8 +65,9 @@ explicitly optional owner. Then use disposable identities and rows to verify:
 2. Anonymous, staff, reviewer, analyst, auditor, and agent identities receive
    the expected collection and field access; rejected fields are not echoed.
 3. A principal scoped to location A cannot read or mutate location B, including
-   bulk and relation-expansion queries. Native explicit multi-location grants
-   are checked separately from the legacy single-location Directus user field.
+   bulk and relation-expansion queries. Verify Directus resolves the principal
+   to the same active organization/location grants as the Gateway, including
+   shared locations only when an active share and operator grant both exist.
 4. Lifecycle writes exercise allowed and denied transitions, independent
    reviewer attribution, append-only history, and domain hook effects.
 5. Field Collector-origin rows are hidden from legacy Directus reads, while
@@ -107,10 +111,10 @@ stopped. Sanitized results are retained in
 
 ## Current disposition
 
-The runtime probe narrows the next Directus task: establish how the deployed
-schema is intended to supply a location to Directus identities (or replace
-those policies with an explicit grant model), then rerun own-location,
-cross-location, write, and field-visibility requests. Hook-by-hook and
+The runtime probe narrows the next Directus task: bind the Directus principal
+to the Kokonut operator identity and implement the owner-selected
+organization/location grant model in effective permissions, then rerun
+own-location, cross-location, write, and field-visibility requests. Hook-by-hook and
 scheduled-job parity still need separate checks. Keep Directus optional and
 retain its archived state until each retained use case has accepted evidence.
 The public native location read remains conservative and is not a substitute
@@ -124,6 +128,7 @@ and farm-activity rows. It now stops as soon as the database schema check finds
 that required field missing, before those API/database writes. Three source
 checks plus a fake-schema execution pass; the execution confirms the blocked
 result without synthetic write requests. It does not claim any runtime
-permission result. Do not resume API parity until the identity
-location attribute or an explicit grant model is provided by the selected
-Directus schema ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
+permission result. The owner has since selected organization/location grants,
+so the next fixture must bind a Directus user to an existing Kokonut operator
+identity and verify the same active grants; a synthetic `location_id` user
+field is no longer the target contract ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).

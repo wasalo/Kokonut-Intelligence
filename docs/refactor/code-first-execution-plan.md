@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
-**Latest pushed head status:** Security #44 passed and CI #320 is in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. The new ZITADEL profile batch is local and not yet pushed.
+**Latest pushed head status:** Security #44 passed and CI #320 remains in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Local commit `761cd6c` adds the optional ZITADEL profile; the next local batch contains report-scope and default-off event-retention changes, which have no hosted CI coverage.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,11 +14,12 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 332 checked and 20 open items (352 total), after
+- The execution checklist has 334 checked and 20 open items (354 total), after
   adding source-checked ZITADEL profile preparation. Live-provider, digest,
   ARM64, and browser acceptance remain open.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
-  #320 is in progress on this head. Security #39's SHA-256
+  #320 is in progress on this head. Local commit `761cd6c` adds the optional
+  self-hosted ZITADEL profile. Security #39's SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
   and hosted Security #41.
 - The latest push includes local commits `db37e6a` (preserve pending EventBus
@@ -113,11 +114,12 @@ MAN-CAP checks open until each has its own retained evidence.
   support a PostgreSQL-only profile, record provider inclusion, and preflight
   required services before writing/restoring data; fake-Compose checks cover
   both ClickHouse-disabled and ClickHouse-enabled paths.
-  Focused source/disposable checks pass. The latest pushed head `c2cdbe9` has
-  Security #43 passed and CI #319 is in progress on this head; CI #318 was
-  cancelled on the previous head. The EventBus cleanup
-  and scoped Field Collector operator inventory are included in the pushed
-  batch.
+  Focused source/disposable checks pass. The latest pushed head `4ad4b06` has
+  Security #44 passed and CI #320 is in progress; CI #318 was cancelled on an
+  earlier head. The pushed batch includes EventBus cleanup protection,
+  location-scoped Field Collector inventory, source OIDC contract coverage,
+  and the provider-aware recovery changes. ZITADEL deployment code is now in
+  local commit `761cd6c`.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–400 were applied schema-only after encrypted
@@ -272,19 +274,20 @@ database write.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** Current pushed head `c2cdbe942dd5a2060119a921e065888fa73b1386`
-has Security #43 passed and CI #319 in progress. CI #318 was cancelled on the
-prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`. The gRPC loopback fix, outbox CLI and disposable PostgreSQL
-acceptance are included in that batch. The Gitleaks
+**Action:** Current pushed head `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
+has Security #44 passed and CI #320 in progress. CI #318 was cancelled on an
+earlier head. The gRPC loopback fix, outbox CLI and disposable PostgreSQL
+acceptance are included in the pushed batches. The Gitleaks
 allowlist fix for the earlier Security #39 SHA-256 source-digest false positive
 is included in the pushed head and Security #41 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
 supplying the test-only operator-auth password before checking the missing
 issuer configuration.
 
-**Acceptance:** current pushed head `c2cdbe9` has Security #43 passed and CI
-#319 in progress; a current-head CI pass is required.
+**Acceptance:** current pushed head `4ad4b06` has Security #44 passed and CI
+#320 in progress; a current-head CI pass is required. Local ZITADEL profile
+commit `761cd6c` and the report CLI scope change are not covered by that run.
 The focused local outbox, EventBus cleanup, and Field Collector inventory
-checks pass and are included in the pushed batch.
+checks pass and are included in prior pushed batches.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -450,14 +453,14 @@ The operator console's cookie-authenticated draft edit now passes both its
 credentialed CORS preflight and successful-response checks; PATCH was added to
 the explicit CORS method allowlist. Browser/runtime ingress acceptance remains
 open ([CORS evidence](builds/2026-10-14-recovery/gateway-cors-patch-preflight.json)).
-The Directus parity fixture also checks its required identity-scope column
+The Directus parity fixture also checks its historical identity-scope column
 before creating synthetic users or activity rows. A missing
-`directus_users.location_id` now returns a blocked precondition with no fixture
+`directus_users.location_id` returns a blocked precondition with no fixture
 writes (three source checks and one fake-schema execution pass, with Ruff and
-Python compilation). This
-does not resolve whether Directus should use that legacy single-location field
-or an explicit grant model; runtime read/write, field, hook, and schedule
-parity remain open ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
+Python compilation). The owner has since selected organization/location
+grants; the next code step must bind Directus identities to Kokonut operator
+identities and enforce those grants. Runtime read/write, field, hook, and
+schedule parity remain open ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
 The enabled gRPC loopback acceptance also found and corrected service methods
 that constructed service request/response messages from `types_pb2` instead of
 `service_pb2`. All handler protobuf references now resolve against their
@@ -495,6 +498,12 @@ measures, audiences, owner scopes, or production semantics: those need the
 report owners and reference data in OFU-04/14. Directus source and permission
 contracts can be improved locally, but supported-version runtime-role parity
 needs the disposable identity/schema fixture in OFU-09.
+
+**Progress (15 October 2026):** the report snapshot CLI now requires explicit
+location scope for bulk generation, rejects conflicting selectors before
+opening PostgreSQL, and accepts standalone hash verification. All 94 report
+generator keys remain available. Eleven focused checks and Ruff pass without
+database or provider access ([evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)).
 
 **Acceptance:** the slice's source tests pass and its contract/evidence path is
 documented. The matrix remains `B`, `D`, or `P` until its named MAN-CAP
@@ -560,6 +569,18 @@ was recreated; candidate health and anonymous route protection passed, and the
 temporary restore project was removed. RLS stayed disabled and no seed SQL ran
 ([restore replay](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json); [clean bootstrap](builds/2026-10-14-recovery/clean-bootstrap-388-migrations.json); [candidate rollout](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
+**Retention gate (15 October 2026):** because USA and Dominican Republic have
+been identified but no category-specific period/legal-hold owner is approved,
+`services.events --cleanup` now fails closed unless
+`KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true` and an explicit `--days` value
+are supplied. The service method enforces the same feature gate before opening
+the database; the previous 30-day CLI default is removed. The query protects
+undisposed dead letters but does not evaluate event-level legal holds, so the
+flag remains off and pruning is not authorized until hold-aware eligibility is
+implemented. Thirty-four focused event-bus, CLI, feature, and legacy architecture
+checks plus Ruff pass without database or provider access
+([evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
+
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and
 operators (OFU-16), alert destination/on-call owner (OFU-05), report retention
@@ -612,20 +633,30 @@ present the owner only with unresolved inputs or separately gated writes.
 These do not block the code-first batches above, but they block the associated
 deployment or semantic acceptance:
 
-- **Ownership and access:** residual location ownership and sharing
-  (OFU-01; demo farms already confirmed), and operator-to-organization grants
-  (OFU-02).
-- **Governance and reporting:** retention/legal hold/disposition (OFU-03),
-  retained report/dashboard owners and expected outputs (OFU-04), sanitized
-  reference data (OFU-14), and Directus consumer/runtime fixture decisions
-  (OFU-09/15).
-- **Production operations:** alert destination/on-call (OFU-05), topology and
-  cutover owner (OFU-06), active scheduler inventory/operators (OFU-16), and
-  the 24-hour availability window (OFU-13).
-- **Provider setup:** production OIDC inputs and test identities (OFU-07), R2
-  bucket/credentials/policy (OFU-08), browser vault and trusted local HTTPS
-  certificate when browser acceptance is scheduled (OFU-10/11).
-- **Candidate-only writes:** approval to apply the 30 curated seeds (OFU-17).
+- **Ownership and access:** the owner mapped Kokonut Genesis, Kokonut Seeds,
+  Kokonut Adelphi, Kokonut Terra Viva, and Kokonut V1 to the Kokonut Network
+  operating tenant (OFU-01). Adelphi and Genesis are confirmed exclusive;
+  do not infer legal land title. Other locations stay unassigned. Operator-to-
+  organization grants and legacy account reconciliation remain open (OFU-02).
+- **Governance and reporting:** USA and Dominican Republic are the selected
+  retention jurisdictions, but record-specific periods and legal-hold
+  ownership remain open (OFU-03). The owner selected all repository-backed
+  reports and provider jobs for code-first porting; populated reference
+  outputs follow the planned farm-data ingestion (OFU-04/14). Directus should
+  consume organization/location grants; supported consumers and runtime
+  identity still need isolated parity evidence (OFU-09/15).
+- **Production operations:** alert destination/on-call (OFU-05), public
+  ingress, trusted proxy hops, TLS, and production recovery topology (OFU-06),
+  active scheduler inventory/operators (OFU-16), and scheduling the
+  owner-selected 24-hour recovery window (OFU-13). Replica/failover checks are
+  deferred to production.
+- **Provider setup:** identity hostname, issuer/client settings and test
+  identities for the selected self-hosted ZITADEL provider (OFU-07); R2
+  credentials and lifecycle policy (OFU-08); browser vault and trusted local
+  HTTPS certificate when browser acceptance is scheduled (OFU-10/11).
+- **Candidate-only writes:** a separate approval to apply the five selected
+  reference catalogs (OFU-17). The earlier 30-file proposal is superseded;
+  pilot rows remain held.
   Migrations 392–400 are rolled out; runtime credential provisioning remains
   tracked under OFU-19. The candidate still has only its original curated seed
   ledger entry; no new seed SQL was applied.
@@ -637,11 +668,10 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The latest push `c2cdbe9` has Security #43 passed and CI #319 in
-progress; CI #318 was cancelled on prior head `f8d90ea`. The pushed batch includes enabled gRPC loopback
-acceptance, disposable PostgreSQL outbox acceptance, EventBus dead-letter
-cleanup protection, and the scoped Field Collector operator inventory. Their
-focused local checks pass.
+requested. The latest push `4ad4b06` has Security #44 passed and CI #320 in
+progress; CI #318 was cancelled on an earlier head. Local commit `761cd6c`
+adds the selected ZITADEL profile, and the current report CLI scope fix is
+being grouped with subsequent code work before the next push.
 Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database

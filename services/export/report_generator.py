@@ -126,8 +126,18 @@ from .reports import (  # noqa: F401 (re-exported public report API)
     store_snapshot,
 )
 
+NETWORK_LEVEL_REPORTS = frozenset(
+    {
+        "state_of_kokonut",
+        "dao_proposal_history",
+        "state_of_kokonut_graphs",
+        "comprehensive_status",
+        "strategic_reserve",
+    }
+)
 
-def main():
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate Kokonut report snapshots")
     parser.add_argument("--type", choices=list(REPORT_GENERATORS.keys()), help="Report type to generate")
     parser.add_argument(
@@ -139,23 +149,40 @@ def main():
     parser.add_argument("--list", action="store_true", help="List existing snapshots")
     parser.add_argument("--verify", help="Verify a snapshot by hash")
     parser.add_argument("--auto", action="store_true", help="Generate all report types for the location")
+    return parser
+
+
+def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Reject ambiguous or unscoped report CLI requests before opening a DB."""
+    if args.type and args.auto:
+        parser.error("--type and --auto are mutually exclusive")
+
+    if args.list and (args.verify or args.type or args.auto or args.all or args.period_start or args.period_end):
+        parser.error("--list may only be combined with --location-id")
+
+    if args.verify and (args.list or args.type or args.auto or args.all or args.location_id or args.period_start or args.period_end):
+        parser.error("--verify cannot be combined with report generation or scope options")
+
+    if args.all and args.location_id:
+        parser.error("--all cannot be combined with --location-id")
+
+    if args.list or args.verify:
+        return
+
+    if not args.type and not args.auto:
+        parser.error("--type or --auto is required (or use --list or --verify)")
+
+    if args.auto and not args.all and not args.location_id:
+        parser.error("--auto requires --location-id or explicit --all")
+
+    if args.type and not args.all and not args.location_id and args.type not in NETWORK_LEVEL_REPORTS:
+        parser.error("--location-id is required (or use --all for network-level reports)")
+
+
+def main():
+    parser = build_parser()
     args = parser.parse_args()
-
-    if not args.list:
-        if not args.type and not args.auto:
-            parser.error("--type or --auto is required (or use --list)")
-
-        # Location requirement: network-level reports (state_of_kokonut, dao_proposal_history)
-        # accept --all or no location; others require at least one --location-id.
-        network_level = args.type in (
-            "state_of_kokonut",
-            "dao_proposal_history",
-            "state_of_kokonut_graphs",
-            "comprehensive_status",
-            "strategic_reserve",
-        )
-        if not args.location_id and not args.all and not network_level:
-            parser.error("--location-id is required (or use --all for network-level reports)")
+    validate_args(parser, args)
 
     conn = get_pg()
 

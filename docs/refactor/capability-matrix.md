@@ -13,11 +13,12 @@ acceptance rows.
 
 **14 October 2026 Directus parity preflight (CAP-001 / CAP-047 / CAP-053):**
 the disposable Directus parity fixture now stops before synthetic user or farm
-activity writes when the configured `$CURRENT_USER.location_id` scope cannot
-exist in the cloned `directus_users` schema. Three source checks and one
-fake-schema preflight execution pass, but this guard only avoids
-unsafe/inapplicable fixture writes; it does not establish
-Directus permissions or accept a named MAN-CAP check
+activity writes when the historical `$CURRENT_USER.location_id` scope cannot
+exist in the cloned `directus_users` schema. The owner later selected
+organization/location grants as the Directus target model. Three source checks
+and one fake-schema preflight execution pass, but this guard only avoids
+unsafe/inapplicable fixture writes; it does not establish Directus permissions
+or accept a named MAN-CAP check
 ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
 
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
@@ -36,6 +37,25 @@ service with a bounded non-superuser role. Compose/planner source checks pass
 network-disabled PostgreSQL 17 container. No IdP container, secret, operator
 identity, grant, or browser session was created; all three named MAN-CAP checks remain open
 ([profile](zitadel-provider.md); [evidence](builds/2026-10-15-recovery/zitadel-compose-profile.json)).
+
+**15 October 2026 report CLI scope contract (CAP-001 / CAP-047):** bulk
+generation across the 94-source report registry now requires an explicit
+location or `--all`; ambiguous and conflicting selectors fail before opening a
+database. Snapshot verification works without a report-generation type. Eleven
+focused checks and Ruff pass without database/provider access. This closes a
+CLI safety gap only: report output parity, report ownership, external consumer
+authorization, and all named MAN-CAP checks remain open
+([evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)).
+
+**15 October 2026 event-retention gate (CAP-047):** completed-event pruning is
+now disabled by default and requires both an explicitly enabled feature and a
+caller-supplied positive retention window. Thirty-four focused tests plus Ruff pass
+without database/provider access; the event cleanup method continues to
+protect undisposed dead letters but does not evaluate event-level legal holds.
+USA and Dominican Republic were selected as retention jurisdictions, but no
+category schedule or legal-hold owner is approved, so cleanup remains disabled
+and this safety gate does not authorize pruning or accept MAN-CAP-047
+([evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
 
 **14 October 2026 supervisor contract (CAP-047):** four focused tests cover
 graceful shutdown, process-group escalation, unexpected zero exit, and
@@ -224,7 +244,7 @@ active 1.2.0 forms and five matching active revisions exact, with five retired
 recorded `seed:140_mobile_forms.sql` as applied without changing business rows;
 120 other seed files remain pending. See the
 [preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json)
-and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. The full 31-seed ordered list applied to an isolated checkpoint restore and skipped cleanly on a second invocation. A separate `template0` bootstrap then passed all 382 schemas through 391 and all 31 curated seeds. The candidate remains at one recorded seed; 90 non-curated seeds remain unselected ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json); [snapshot replay](builds/2026-10-14-recovery/curated-seed-disposable-replay.json); [fresh bootstrap](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json)). A fresh encrypted checkpoint was restore-rehearsed with matching migration and extension fingerprints and selected form/service counts. Applying the other 30 curated seeds to the candidate remains a separate, approval-gated rollout ([preflight](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json)).
+and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. The full 31-seed ordered list applied to an isolated checkpoint restore and skipped cleanly on a second invocation. A separate `template0` bootstrap then passed all 382 schemas through 391 and all 31 curated seeds. The candidate remains at one recorded seed; 90 non-curated seeds remain unselected ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json); [snapshot replay](builds/2026-10-14-recovery/curated-seed-disposable-replay.json); [fresh bootstrap](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json)). A fresh encrypted checkpoint was restore-rehearsed with matching migration and extension fingerprints and selected form/service counts. The old 30-file rollout proposal was superseded on 15 October: only the five reference catalogs in [the selected scope](reference-seed-scope.md) are prepared for a separate approval-gated rollout; pilot rows stay held. No candidate seed SQL has run.
 
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,

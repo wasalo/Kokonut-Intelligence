@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import uuid
-from datetime import datetime, timezone, timedelta
-from unittest.mock import MagicMock, patch, PropertyMock
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Event Bus Tests
@@ -90,9 +88,11 @@ class TestEventBus:
         stats = bus.process_pending(batch_size=10)
         assert stats["skipped"] == 1
 
-    def test_cleanup_old_events(self):
+    def test_cleanup_old_events(self, monkeypatch):
         """cleanup_old_events() deletes old completed/dead_letter events."""
         from services.events.bus import EventBus
+
+        monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
 
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
@@ -426,10 +426,10 @@ class TestEventHandlers:
     def test_cache_event_handlers_exist(self):
         """Cache event handlers are importable."""
         from services.cache.events import (
-            handle_metric_computed,
             handle_crisp_scored,
-            handle_sensor_reading,
             handle_harvest_recorded,
+            handle_metric_computed,
+            handle_sensor_reading,
         )
         assert callable(handle_metric_computed)
         assert callable(handle_crisp_scored)

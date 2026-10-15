@@ -319,9 +319,12 @@ class EventBus:
                             WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY status""")
             return dict(cur.fetchall())
 
-    def cleanup_old_events(self, days: int = 30):
+    def cleanup_old_events(self, days: int):
         if isinstance(days, bool) or not isinstance(days, int) or days < 1:
             raise ValueError("days must be a positive integer")
+        from services.events.retention import require_event_retention_cleanup
+
+        require_event_retention_cleanup()
         conn = self._get_conn()
         with conn.cursor() as cur:
             cur.execute("""DELETE FROM platform_event

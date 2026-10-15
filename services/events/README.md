@@ -20,6 +20,26 @@ python3 -m services.events.cli --help
 - `handlers` — Built-in event handlers for the event bus.
 - `insight_transfer` — Cross-Domain Insight Transfer Engine — propagates insights across domains.
 
+## Event retention cleanup
+
+Deleting completed events is disabled by default. No event-retention schedule
+or legal-hold process has been approved, and this cleanup query does not yet
+evaluate event-level legal holds. Keep
+`KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP` disabled until the schedule is
+approved and hold enforcement is implemented. When enabled, the operator must
+also provide an explicit positive `--days` value:
+
+```bash
+KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true \
+  python3 -m services.events --cleanup --days APPROVED_RETENTION_DAYS
+```
+
+This operation only considers completed or dead-letter events older than the
+specified window and preserves events with an undisposed dead letter. It does
+not yet preserve other event-level holds, and no notification outbox,
+attempt-history, or operator-audit pruning operation is provided. The feature
+flag is a default-off switch, not a substitute for the missing hold check.
+
 ## Notification delivery
 
 `data_stale` and `threshold_breached` handlers persist configured webhook and

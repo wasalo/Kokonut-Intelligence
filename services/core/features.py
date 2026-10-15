@@ -100,6 +100,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "core",
         "description": "Reactive event bus",
     },
+    "event_retention_cleanup": {
+        "enabled": os.getenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "false").lower() == "true",
+        "critical": False,
+        "category": "governance",
+        "description": "Destructive event cleanup; requires approved retention and implemented legal-hold enforcement",
+    },
 }
 
 

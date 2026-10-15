@@ -64,7 +64,8 @@ pending -> processing lease -> each enabled handler delivery
 python3 -m services.events --process
 python3 -m services.events --worker --batch-size 100 --poll-interval 2 --lease-seconds 300
 python3 -m services.events --stats
-python3 -m services.events --cleanup --days 30
+# Keep event cleanup disabled until retention is approved and event-level legal-hold enforcement exists.
+KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true python3 -m services.events --cleanup --days APPROVED_RETENTION_DAYS
 python3 -m services.events --list-handlers
 python3 -m services.events --list-dead-letter
 python3 -m services.events --replay-dead-letter --event-id UUID --actor OPERATOR
