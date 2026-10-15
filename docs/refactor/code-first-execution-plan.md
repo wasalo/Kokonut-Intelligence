@@ -2,8 +2,8 @@
 
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `8c43ac96c129a1d827b4bc9f6cd7263fd734adf8`
-**Latest pushed head status:** Security #47 passed; CI #323 was pending at the last check on this head. See [Security #47](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38768451054) and [CI #323](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38768451180).
+**Latest pushed head:** `72ab775e8b9863795b2c4800c59e9f34ff2ae205`
+**Latest pushed head status:** Security #48 passed; CI #324 is in progress on this head. See [Security #48](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38783691049) and [CI #324](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38783691151).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,12 +20,12 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, retention decisions, external delivery, seed rollout,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
-  [`8c43ac96c129a1d827b4bc9f6cd7263fd734adf8`](https://github.com/wasalo/Kokonut-Intelligence/commit/8c43ac96c129a1d827b4bc9f6cd7263fd734adf8)
-  on `feat/mobile-offline-acceptance`, PR #68. Security #47 passed; CI #323 was
-  pending at the last check. The latest batch adds a fail-closed report
-  calculation connection and scheduler worker reconnection after PostgreSQL
-  outages. See the report guard evidence and the scheduler unit/runtime
-  recovery evidence below.
+  [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
+  on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
+  in progress. This batch includes report calculation and scheduler worker
+  recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
+  permission work. See the relevant evidence below and the current CI status
+  above.
 - The report generator now rejects read-only escapes through transaction
   settings, autocommit, and `cursor.connection`. Nine focused tests and an
   isolated PostgreSQL check pass; the latter proved rejected calculations
@@ -42,12 +42,12 @@ MAN-CAP checks open until each has its own retained evidence.
   failures. Twenty focused event-worker/EventBus tests pass with Ruff and
   compilation; the
   event/notification live restart and delivery checks remain open. This change
-  is not part of the latest pushed head yet.
+  is included in the latest pushed head.
 - A local KGP indexer change now reconnects with a five-second timeout for each
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.
   Fourteen KGP service/indexer tests pass; live database/RPC recovery remains
-  open. It is committed locally as `fb7ec7b` and is not pushed yet.
+  open. It is included in the latest pushed head.
 - Directus source permissions now align with organization/location grants: the
   seed removes its obsolete user-level location filter while preserving other
   predicates, the grant hook covers `revenue_event`, and the isolated API
@@ -58,7 +58,7 @@ MAN-CAP checks open until each has its own retained evidence.
   hidden by the unlicensed Directus custom-permission boundary, so that API
   slice remains denied; license versus Gateway-only operational access is an
   open product decision. Role/field/relationship and hook-dispatch parity
-  remain open. This slice is local and unpushed ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json)).
+  remain open. This slice is included in the latest pushed head ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json)).
 - The capability matrix contains 66 capabilities: 56 baseline-retained, 7
   deployed, and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - The local candidate has 391 applied schemas through migration 400, one
@@ -198,11 +198,12 @@ database write.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** The latest pushed head is `8c43ac96c129a1d827b4bc9f6cd7263fd734adf8`.
-Security #47 passed and CI #323 was pending at the last check. The pushed head
-includes the report calculation read-only guard and scheduler connection
-recovery fix. Continue code work while CI runs; inspect any failure against the
-exact pushed SHA before changing the checklist status.
+**Action:** The latest pushed head is `72ab775e8b9863795b2c4800c59e9f34ff2ae205`.
+Security #48 passed and CI #324 is in progress. The pushed head includes the
+report calculation read-only guard, scheduler and EventBus worker recovery,
+KGP worker reconnection, and Directus organization permission work. Continue
+code work while CI runs; inspect any failure against the exact pushed SHA
+before changing the checklist status.
 
 **Acceptance:** require passing CI and Security on the current PR head before
 merging. The scheduler runtime acceptance is source/disposable evidence only;
@@ -495,11 +496,12 @@ been identified but no category-specific period/legal-hold owner is approved,
 `KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true` and an explicit `--days` value
 are supplied. The service method enforces the same feature gate before opening
 the database; the previous 30-day CLI default is removed. The query protects
-undisposed dead letters but does not evaluate event-level legal holds, so the
-flag remains off and pruning is not authorized until hold-aware eligibility is
-implemented. Thirty-four focused event-bus, CLI, feature, and legacy architecture
-checks plus Ruff pass without database or provider access
-([evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
+undisposed dead letters and non-success durable handler deliveries, but does
+not evaluate event-level legal holds, so the flag remains off and pruning is
+not authorized until hold-aware eligibility and a retention schedule are
+approved. One separate source-unit assertion now passes for failed-delivery
+protection without database/provider access; the existing 34-check evidence
+predates this SQL change ([focused evidence](builds/2026-10-15-recovery/event-retention-handler-delivery-guard.json); [prior evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and
@@ -604,11 +606,11 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The current push is `8c43ac9`; Security #47 passed and CI #323 was
-pending at the last check. The latest push includes report calculation
-read-only enforcement and scheduler worker reconnection. Local follow-on work
-adds EventBus worker retry/reconnection coverage; accumulate it with the next
-coherent code batch before pushing so the repository does not start CI for each
-small commit. Never push directly to `main`. Keep each candidate database
+requested. The current push is `72ab775`; Security #48 passed and CI #324 is in
+progress. It includes report calculation and scheduler worker recovery,
+EventBus reconnect/retry, KGP reconnect, and Directus organization permissions.
+Accumulate new changes with the next coherent code batch before pushing so the
+repository does not start CI for each small commit. Never push directly to
+`main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable
 acceptance are complete.

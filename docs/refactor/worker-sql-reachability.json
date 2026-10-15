@@ -57,21 +57,21 @@
       "operation_ref": "scheduled_module:services.events",
       "statically_reachable_sql_site_count": 40,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:142:12",
-        "services/events/bus.py:161:16",
-        "services/events/bus.py:173:16",
-        "services/events/bus.py:189:16",
-        "services/events/bus.py:194:16",
-        "services/events/bus.py:229:12",
-        "services/events/bus.py:244:12",
-        "services/events/bus.py:253:16",
-        "services/events/bus.py:269:12",
-        "services/events/bus.py:306:12",
-        "services/events/bus.py:318:12",
-        "services/events/bus.py:330:12",
-        "services/events/bus.py:92:12",
-        "services/events/cli.py:105:12",
-        "services/events/cli.py:134:12",
+        "services/events/bus.py:145:12",
+        "services/events/bus.py:164:16",
+        "services/events/bus.py:176:16",
+        "services/events/bus.py:192:16",
+        "services/events/bus.py:197:16",
+        "services/events/bus.py:232:12",
+        "services/events/bus.py:247:12",
+        "services/events/bus.py:256:16",
+        "services/events/bus.py:272:12",
+        "services/events/bus.py:309:12",
+        "services/events/bus.py:321:12",
+        "services/events/bus.py:333:12",
+        "services/events/bus.py:95:12",
+        "services/events/cli.py:132:12",
+        "services/events/cli.py:161:12",
         "services/events/fork_detector.py:133:12",
         "services/events/fork_detector.py:36:8",
         "services/events/fork_detector.py:59:8",
@@ -127,7 +127,7 @@
       "operation_ref": "scheduled_module:services.ingestion.anomaly_detector",
       "statically_reachable_sql_site_count": 35,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:75:16",
+        "services/events/bus.py:78:16",
         "services/events/notification_outbox.py:183:12",
         "services/events/notification_outbox.py:198:12",
         "services/ingestion/anomaly_detector.py:1017:12",
@@ -272,13 +272,13 @@
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:156:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
-        "services/ingestion/sensor_ingester.py:100:8",
-        "services/ingestion/sensor_ingester.py:113:8",
-        "services/ingestion/sensor_ingester.py:132:8",
-        "services/ingestion/sensor_ingester.py:154:8",
-        "services/ingestion/sensor_ingester.py:178:12",
-        "services/ingestion/sensor_ingester.py:508:12",
-        "services/ingestion/sensor_ingester.py:87:12"
+        "services/ingestion/sensor_ingester.py:114:12",
+        "services/ingestion/sensor_ingester.py:127:8",
+        "services/ingestion/sensor_ingester.py:140:8",
+        "services/ingestion/sensor_ingester.py:159:8",
+        "services/ingestion/sensor_ingester.py:181:8",
+        "services/ingestion/sensor_ingester.py:205:12",
+        "services/ingestion/sensor_ingester.py:535:12"
       ]
     },
     {
@@ -375,7 +375,7 @@
       "operation_ref": "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
       "statically_reachable_sql_site_count": 26,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:75:16",
+        "services/events/bus.py:78:16",
         "services/events/notification_outbox.py:183:12",
         "services/events/notification_outbox.py:198:12",
         "services/ingestion/anomaly_detector.py:183:8",
@@ -1771,9 +1771,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/events/bus.py:75:16",
+      "id": "services/events/bus.py:78:16",
       "source": "services/events/bus.py",
-      "line": 75,
+      "line": 78,
       "scope": "EventBus.publish",
       "method": "execute",
       "expression_kind": "literal",
@@ -1797,9 +1797,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:92:12",
+      "id": "services/events/bus.py:95:12",
       "source": "services/events/bus.py",
-      "line": 92,
+      "line": 95,
       "scope": "EventBus._claim",
       "method": "execute",
       "expression_kind": "literal",
@@ -1824,9 +1824,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:142:12",
+      "id": "services/events/bus.py:145:12",
       "source": "services/events/bus.py",
-      "line": 142,
+      "line": 145,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1850,9 +1850,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:161:16",
+      "id": "services/events/bus.py:164:16",
       "source": "services/events/bus.py",
-      "line": 161,
+      "line": 164,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1875,9 +1875,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:173:16",
+      "id": "services/events/bus.py:176:16",
       "source": "services/events/bus.py",
-      "line": 173,
+      "line": 176,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1901,9 +1901,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:189:16",
+      "id": "services/events/bus.py:192:16",
       "source": "services/events/bus.py",
-      "line": 189,
+      "line": 192,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1926,9 +1926,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:194:16",
+      "id": "services/events/bus.py:197:16",
       "source": "services/events/bus.py",
-      "line": 194,
+      "line": 197,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1951,9 +1951,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:229:12",
+      "id": "services/events/bus.py:232:12",
       "source": "services/events/bus.py",
-      "line": 229,
+      "line": 232,
       "scope": "EventBus._complete",
       "method": "execute",
       "expression_kind": "literal",
@@ -1976,9 +1976,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:244:12",
+      "id": "services/events/bus.py:247:12",
       "source": "services/events/bus.py",
-      "line": 244,
+      "line": 247,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2001,9 +2001,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:253:16",
+      "id": "services/events/bus.py:256:16",
       "source": "services/events/bus.py",
-      "line": 253,
+      "line": 256,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2028,9 +2028,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:269:12",
+      "id": "services/events/bus.py:272:12",
       "source": "services/events/bus.py",
-      "line": 269,
+      "line": 272,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2057,9 +2057,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:306:12",
+      "id": "services/events/bus.py:309:12",
       "source": "services/events/bus.py",
-      "line": 306,
+      "line": 309,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2082,9 +2082,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:318:12",
+      "id": "services/events/bus.py:321:12",
       "source": "services/events/bus.py",
-      "line": 318,
+      "line": 321,
       "scope": "EventBus.get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -2107,15 +2107,16 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:330:12",
+      "id": "services/events/bus.py:333:12",
       "source": "services/events/bus.py",
-      "line": 330,
+      "line": 333,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "DELETE",
       "candidate_relations": [
         "event_dead_letter",
+        "event_handler_delivery",
         "platform_event"
       ],
       "import_closure_operations": [
@@ -2133,9 +2134,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:105:12",
+      "id": "services/events/cli.py:132:12",
       "source": "services/events/cli.py",
-      "line": 105,
+      "line": 132,
       "scope": "cmd_list_handlers",
       "method": "execute",
       "expression_kind": "literal",
@@ -2154,9 +2155,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:134:12",
+      "id": "services/events/cli.py:161:12",
       "source": "services/events/cli.py",
-      "line": 134,
+      "line": 161,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -4864,9 +4865,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:87:12",
+      "id": "services/ingestion/sensor_ingester.py:114:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 87,
+      "line": 114,
       "scope": "get_sensor_type_ranges",
       "method": "execute",
       "expression_kind": "literal",
@@ -4885,9 +4886,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:100:8",
+      "id": "services/ingestion/sensor_ingester.py:127:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 100,
+      "line": 127,
       "scope": "get_active_sensors",
       "method": "execute",
       "expression_kind": "literal",
@@ -4907,9 +4908,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:113:8",
+      "id": "services/ingestion/sensor_ingester.py:140:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 113,
+      "line": 140,
       "scope": "get_sensor_by_id_or_slug",
       "method": "execute",
       "expression_kind": "literal",
@@ -4929,9 +4930,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:132:8",
+      "id": "services/ingestion/sensor_ingester.py:159:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 132,
+      "line": 159,
       "scope": "insert_reading",
       "method": "execute",
       "expression_kind": "literal",
@@ -4951,9 +4952,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:154:8",
+      "id": "services/ingestion/sensor_ingester.py:181:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 154,
+      "line": 181,
       "scope": "insert_reading",
       "method": "execute",
       "expression_kind": "literal",
@@ -4972,9 +4973,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:178:12",
+      "id": "services/ingestion/sensor_ingester.py:205:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 178,
+      "line": 205,
       "scope": "insert_reading_clickhouse",
       "method": "execute",
       "expression_kind": "literal",
@@ -4993,9 +4994,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:465:8",
+      "id": "services/ingestion/sensor_ingester.py:492:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 465,
+      "line": 492,
       "scope": "check_calibration_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -5014,9 +5015,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:508:12",
+      "id": "services/ingestion/sensor_ingester.py:535:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 508,
+      "line": 535,
       "scope": "list_calibration_status",
       "method": "execute",
       "expression_kind": "literal",

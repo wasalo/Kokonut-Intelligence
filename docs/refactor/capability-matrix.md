@@ -135,9 +135,11 @@ authorization, and all named MAN-CAP checks remain open
 
 **15 October 2026 event-retention gate (CAP-047):** completed-event pruning is
 now disabled by default and requires both an explicitly enabled feature and a
-caller-supplied positive retention window. Thirty-four focused tests plus Ruff pass
-without database/provider access; the event cleanup method continues to
-protect undisposed dead letters but does not evaluate event-level legal holds.
+caller-supplied positive retention window. The cleanup query protects
+undisposed dead letters and non-success durable handler deliveries, but does
+not evaluate event-level legal holds. One focused source-unit regression for
+the handler-delivery guard passes; prior 34-test/Ruff evidence predates this
+SQL change ([focused evidence](builds/2026-10-15-recovery/event-retention-handler-delivery-guard.json)).
 USA and Dominican Republic were selected as retention jurisdictions, but no
 category schedule or legal-hold owner is approved, so cleanup remains disabled
 and this safety gate does not authorize pruning or accept MAN-CAP-047

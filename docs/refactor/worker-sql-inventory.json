@@ -1161,9 +1161,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:75:16",
+      "id": "services/events/bus.py:78:16",
       "source": "services/events/bus.py",
-      "line": 75,
+      "line": 78,
       "column": 16,
       "scope": "EventBus.publish",
       "method": "execute",
@@ -1182,9 +1182,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:92:12",
+      "id": "services/events/bus.py:95:12",
       "source": "services/events/bus.py",
-      "line": 92,
+      "line": 95,
       "column": 12,
       "scope": "EventBus._claim",
       "method": "execute",
@@ -1205,9 +1205,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:142:12",
+      "id": "services/events/bus.py:145:12",
       "source": "services/events/bus.py",
-      "line": 142,
+      "line": 145,
       "column": 12,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1227,9 +1227,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:161:16",
+      "id": "services/events/bus.py:164:16",
       "source": "services/events/bus.py",
-      "line": 161,
+      "line": 164,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1248,9 +1248,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:173:16",
+      "id": "services/events/bus.py:176:16",
       "source": "services/events/bus.py",
-      "line": 173,
+      "line": 176,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1270,9 +1270,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:189:16",
+      "id": "services/events/bus.py:192:16",
       "source": "services/events/bus.py",
-      "line": 189,
+      "line": 192,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1291,9 +1291,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:194:16",
+      "id": "services/events/bus.py:197:16",
       "source": "services/events/bus.py",
-      "line": 194,
+      "line": 197,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1312,9 +1312,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:229:12",
+      "id": "services/events/bus.py:232:12",
       "source": "services/events/bus.py",
-      "line": 229,
+      "line": 232,
       "column": 12,
       "scope": "EventBus._complete",
       "method": "execute",
@@ -1333,9 +1333,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:244:12",
+      "id": "services/events/bus.py:247:12",
       "source": "services/events/bus.py",
-      "line": 244,
+      "line": 247,
       "column": 12,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -1354,9 +1354,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:253:16",
+      "id": "services/events/bus.py:256:16",
       "source": "services/events/bus.py",
-      "line": 253,
+      "line": 256,
       "column": 16,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -1377,9 +1377,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:269:12",
+      "id": "services/events/bus.py:272:12",
       "source": "services/events/bus.py",
-      "line": 269,
+      "line": 272,
       "column": 12,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
@@ -1402,9 +1402,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:306:12",
+      "id": "services/events/bus.py:309:12",
       "source": "services/events/bus.py",
-      "line": 306,
+      "line": 309,
       "column": 12,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
@@ -1423,9 +1423,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:318:12",
+      "id": "services/events/bus.py:321:12",
       "source": "services/events/bus.py",
-      "line": 318,
+      "line": 321,
       "column": 12,
       "scope": "EventBus.get_stats",
       "method": "execute",
@@ -1444,9 +1444,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:330:12",
+      "id": "services/events/bus.py:333:12",
       "source": "services/events/bus.py",
-      "line": 330,
+      "line": 333,
       "column": 12,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1454,9 +1454,10 @@
       "statement_kind": "DELETE",
       "candidate_relations": [
         "event_dead_letter",
+        "event_handler_delivery",
         "platform_event"
       ],
-      "static_sql_sha256": "672feb799f99d18b7a1a41973817654828bb627654edb5d430ad191539b37f10",
+      "static_sql_sha256": "99c428f6705ceda6a03bfa943f507f7315b8f0459d681463272dccf78c4b77a3",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
@@ -1466,9 +1467,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:105:12",
+      "id": "services/events/cli.py:132:12",
       "source": "services/events/cli.py",
-      "line": 105,
+      "line": 132,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -1483,9 +1484,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:134:12",
+      "id": "services/events/cli.py:161:12",
       "source": "services/events/cli.py",
-      "line": 134,
+      "line": 161,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",

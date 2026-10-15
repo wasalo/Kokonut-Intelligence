@@ -108,7 +108,7 @@ def test_injected_connection_is_never_closed(monkeypatch):
     conn.close.assert_not_called()
 
 
-def test_cleanup_preserves_events_with_undisposed_dead_letters(monkeypatch):
+def test_cleanup_preserves_events_with_pending_disposition_or_failed_delivery(monkeypatch):
     monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
     conn, cursor = _connection()
 
@@ -118,6 +118,8 @@ def test_cleanup_preserves_events_with_undisposed_dead_letters(monkeypatch):
     assert "dead.disposition = 'pending'" in sql
     assert "dead.original_event_id = platform_event.id" in sql
     assert "AND NOT EXISTS ( SELECT 1 FROM event_dead_letter dead" in sql
+    assert "AND NOT EXISTS ( SELECT 1 FROM event_handler_delivery delivery" in sql
+    assert "delivery.status <> 'success'" in sql
     assert "status IN ('completed', 'dead_letter')" in sql
     assert cursor.execute.call_args.args[1] == (30,)
 

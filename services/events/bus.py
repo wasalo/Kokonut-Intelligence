@@ -337,6 +337,11 @@ class EventBus:
                                   SELECT 1 FROM event_dead_letter dead
                                   WHERE dead.original_event_id = platform_event.id
                                     AND dead.disposition = 'pending'
+                              )
+                              AND NOT EXISTS (
+                                  SELECT 1 FROM event_handler_delivery delivery
+                                  WHERE delivery.event_id = platform_event.id
+                                    AND delivery.status <> 'success'
                               )""", (days,))
             count = cur.rowcount
         conn.commit()

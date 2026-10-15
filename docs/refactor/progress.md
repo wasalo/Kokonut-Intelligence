@@ -200,11 +200,13 @@ The owner selected USA and Dominican Republic, but retention durations and the
 legal-hold process remain unapproved. The event cleanup feature now defaults
 off; the CLI requires `--days`, and both the CLI and `EventBus.cleanup_old_events`
 check the feature before connecting to PostgreSQL. Removed the 30-day default
-and preserved the cleanup query's undisposed-dead-letter guard. The query does
-not evaluate event-level legal holds, so cleanup remains disabled pending
-hold-aware eligibility. The focused event-bus, CLI, feature-flag, and prior
-architecture checks pass (34 total), Ruff passes, and no database/provider was accessed
-([evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
+and preserved the cleanup query's undisposed-dead-letter guard. The query now
+also excludes events with any durable handler delivery whose status is not
+`success`. One focused source-unit regression passes without database or
+provider access. The query still does not evaluate event-level legal holds, so
+cleanup remains disabled pending hold-aware eligibility and an approved
+schedule. The existing 34-check evidence predates this SQL change; the separate
+single-test record is retained ([focused evidence](builds/2026-10-15-recovery/event-retention-handler-delivery-guard.json); [prior feature-gate evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
 
 ### Generic data-governance retention gate — 15 October 2026
 
