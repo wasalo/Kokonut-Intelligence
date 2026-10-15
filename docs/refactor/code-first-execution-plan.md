@@ -14,19 +14,19 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 349 checked and 20 open items (369 total).
-  The count includes five source/documentation closures in this batch: the
-  94-type report registry path, capability-matrix integrity, and the five
-  named Kokonut Network location mappings, plus refreshed worker/runtime SQL
-  inventories. The generic-retention fail-closed gate and inert-by-default
-  policy creation are also checked; the schedule and legal-hold implementation
-  remain open as owner/runtime gates. Their remaining acceptance is tracked
-  separately.
-  Live-provider, digest,
-  ARM64, and browser acceptance remain open.
+- The execution checklist has 354 checked and 20 open items (374 total),
+  counting nested implementation subtasks. Open work includes the live-provider,
+  digest, current-schema ARM64, browser, tenant-boundary, populated-report,
+  retention, runtime-recovery, and release gates. The generic-retention
+  fail-closed gate and inert-by-default policy creation are checked; schedule
+  and legal-hold implementation remain open as owner/runtime gates.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
-  #320 is in progress on this head. Local commit `761cd6c` adds the optional
-  self-hosted ZITADEL profile. Security #39's SHA-256
+  #320 was last recorded in progress on this head. Twenty-one local commits
+  are ahead and hosted CI does not cover them; the newest are `83256be`
+  (source-less sensor rejection), `2606ee5` (shared dispatcher contract and
+  SQL inventory refresh), and `629affd` (isolated ARM64 profile selection).
+  Earlier local commit `761cd6c` adds the optional self-hosted ZITADEL profile.
+  Security #39's SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
   and hosted Security #41.
 - Two newer Directus implementation commits are local-only: `3f02a53` packages

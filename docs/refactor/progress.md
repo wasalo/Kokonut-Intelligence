@@ -1,6 +1,21 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). The local branch includes later report, CORS, scheduler, Directus, inventory, and capability-matrix work; the latest local batch adds default-off generic retention enforcement and source-level Directus OIDC/operator-grant enforcement. These commits remain unpushed. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
+The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the
+last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999);
+[Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)).
+The local branch is 21 commits ahead and hosted CI does not cover that work.
+The newest commits close the sensor CLI false-success path (`83256be`), verify
+the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
+isolated ARM64 minimal/edge/standard profile selection (`629affd`). Earlier
+local work includes default-off retention enforcement and Directus OIDC/operator
+grant checks. The ZITADEL profile has 26 focused Compose/planner checks, Ruff,
+shell syntax, Caddy validation, and isolated database-role evidence; its image
+containers have not been started and credentials were not provisioned. The
+last candidate rollout record is migration 400; verify live candidate status
+and checkpoints again before any rollout. Application-table RLS remains
+unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment
+because no hardware is available; physical-device acceptance is not claimed.
 
 ### Capability matrix integrity and owner mapping — 15 October 2026
 
