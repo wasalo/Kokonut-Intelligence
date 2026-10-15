@@ -83,7 +83,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
 
     cors_origins = [
         origin.strip()
-        for origin in os.environ.get("CORS_ORIGIN", "").split(",")
+        for origin in os.environ.get("KOKONUT_GATEWAY_CORS_ORIGINS", "").split(",")
         if origin.strip()
     ]
     if "*" in cors_origins:

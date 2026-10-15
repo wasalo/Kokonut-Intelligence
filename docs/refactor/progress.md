@@ -2,6 +2,18 @@
 
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; Security #44 passed and CI #320 is in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). Unpushed local changes add the optional self-hosted ZITADEL profile, explicit report scoping, a default-off event cleanup gate, and provider-independent public location reads; hosted CI does not cover them yet. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
+### Gateway CORS no longer inherits Directus configuration — 15 October 2026
+
+FastAPI Gateway now reads `KOKONUT_GATEWAY_CORS_ORIGINS`; Directus keeps
+`CORS_ORIGIN`. The Gateway setting is empty by default and wildcard entries
+are ignored, so an existing Directus origin cannot silently enable Gateway
+cross-origin access. Updated Compose profiles, operator/mobile documentation,
+and the acceptance checklist. The focused Gateway and operator suites pass
+85 tests; Ruff, Python compilation, and candidate Compose configuration checks
+pass. This is source/config evidence only. Successful credentialed browser
+requests and public-origin behavior remain open. No database or provider was
+accessed ([evidence](builds/2026-10-15-recovery/gateway-cors-configuration-boundary.json)).
+
 ### Self-hosted ZITADEL Compose profile — 15 October 2026
 
 Added an opt-in ZITADEL deployment path through `python3

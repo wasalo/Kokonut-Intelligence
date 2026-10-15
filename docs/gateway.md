@@ -310,8 +310,11 @@ tenant-parity gate.
 - Base Caddy routes `/directus/*`, `/admin/*`, `/maps/*`, and mobile-specific
   paths to the gateway; it does not route general `/api/*` traffic to port 8099.
 - Metabase is excluded by default and has no route in the default Caddyfiles.
-- `CORS_ORIGIN` configures Directus; the gateway does not install FastAPI CORS
-  middleware.
+- `CORS_ORIGIN` configures Directus only. FastAPI Gateway CORS uses
+  `KOKONUT_GATEWAY_CORS_ORIGINS`, an explicit comma-separated origin list that
+  defaults to empty; wildcard entries are ignored. Same-origin deployments do
+  not need an entry. Keep cookie-authenticated browser origins explicit and
+  verify preflight and successful credentialed requests before exposure.
 - `PUBLIC_RESTRICT=true` configures Directus and is not read by gateway policy.
 - Caddy supplies security headers only for Caddy-served traffic. Direct access
   to port 8099 does not automatically receive those headers.

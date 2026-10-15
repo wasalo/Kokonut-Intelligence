@@ -511,7 +511,7 @@ def _set_operator_cookies(client, *, csrf=False):
 
 
 def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _FarmActivityProvider(allowed_scopes={("farm_activity", "read")})
     monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
     monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
@@ -915,7 +915,7 @@ def test_farm_activity_lifecycle_route_rejects_unknown_body_fields(monkeypatch):
 
 
 def test_farm_activity_draft_edit_route_requires_scope_csrf_and_passes_reason(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _FarmActivityProvider(
         allowed_scopes={
             ("farm_activity", "edit_draft"),
@@ -976,7 +976,7 @@ def test_farm_activity_draft_edit_route_requires_scope_csrf_and_passes_reason(mo
 
 
 def test_operator_cors_preflight_allows_cookie_authenticated_patch(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _FakeProvider()
     monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
 
@@ -1067,7 +1067,7 @@ def test_farm_activity_draft_edit_route_denies_missing_authority_or_invalid_body
 
 
 def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _ReviewProvider(allowed_action="read")
     monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
     audit_records = []
@@ -1108,7 +1108,7 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
 
 
 def test_mobile_operations_inventory_requires_both_grants_and_returns_no_store(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _DispositionProvider(
         allowed_scopes={
             ("mobile_device", "read"),
@@ -1252,7 +1252,7 @@ def test_mobile_collection_detail_uses_separate_grant_and_is_audited(monkeypatch
 
 
 def test_mobile_disposition_inventory_requires_both_grants_and_is_audited(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://operator.example")
     provider = _DispositionProvider(
         allowed_scopes={
             ("mobile_collection_retention", "inventory"),

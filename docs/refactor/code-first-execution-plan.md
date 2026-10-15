@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 335 checked and 20 open items (355 total), after
+- The execution checklist has 336 checked and 20 open items (356 total), after
   adding source-checked ZITADEL profile preparation. Live-provider, digest,
   ARM64, and browser acceptance remain open.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
@@ -145,6 +145,12 @@ MAN-CAP checks open until each has its own retained evidence.
   `scripts/seed.sh --reference-only` behavior still applies the full curated
   seed set; the distinct `--catalog-only` path now applies the documented
   five-file allowlist. Candidate rollout remains separately gated.
+- Gateway CORS now reads the dedicated, empty-by-default
+  `KOKONUT_GATEWAY_CORS_ORIGINS`; Directus retains `CORS_ORIGIN`. The legacy
+  Directus origin can no longer silently enable cross-origin Gateway access.
+  Focused source checks cover explicit, empty, wildcard, and legacy-only
+  configuration. Real-browser successful credentialed-request acceptance is
+  still open.
 - Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
   confirmed as exclusive to Kokonut Network. Do not ask for that mapping again.
 - There is no Raspberry Pi available. The code-only ARM64 assessment passed

@@ -38,7 +38,7 @@ def test_anonymous_gateway_health_is_allowed():
 
 
 def test_mobile_upload_cors_requires_allowlisted_origin_and_allows_device_headers(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "https://collector.example")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://collector.example")
     headers = {
         "Origin": "https://collector.example",
         "Access-Control-Request-Method": "POST",
@@ -66,7 +66,7 @@ def test_mobile_upload_cors_requires_allowlisted_origin_and_allows_device_header
 
 
 def test_gateway_cors_preflight_allows_scoped_enrollment_revocation(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "https://admin.example")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://admin.example")
     with TestClient(create_app()) as client:
         response = client.options(
             "/api/mobile/locations/11111111-1111-4111-8111-111111111111/enrollments/22222222-2222-4222-8222-222222222222",
@@ -82,7 +82,7 @@ def test_gateway_cors_preflight_allows_scoped_enrollment_revocation(monkeypatch)
 
 
 def test_gateway_cors_is_closed_when_no_origin_allowlist_is_configured(monkeypatch):
-    monkeypatch.delenv("CORS_ORIGIN", raising=False)
+    monkeypatch.delenv("KOKONUT_GATEWAY_CORS_ORIGINS", raising=False)
     with TestClient(create_app()) as client:
         response = client.options(
             "/api/mobile/media/uploads",
@@ -96,12 +96,28 @@ def test_gateway_cors_is_closed_when_no_origin_allowlist_is_configured(monkeypat
 
 
 def test_gateway_cors_does_not_trust_wildcard_configuration(monkeypatch):
-    monkeypatch.setenv("CORS_ORIGIN", "*")
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "*")
     with TestClient(create_app()) as client:
         response = client.options(
             "/api/mobile/media/uploads",
             headers={
                 "Origin": "https://attacker.example",
+                "Access-Control-Request-Method": "POST",
+            },
+        )
+
+    assert "access-control-allow-origin" not in response.headers
+
+
+def test_legacy_directus_cors_setting_does_not_enable_gateway_origins(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGIN", "https://directus.example")
+    monkeypatch.delenv("KOKONUT_GATEWAY_CORS_ORIGINS", raising=False)
+
+    with TestClient(create_app()) as client:
+        response = client.options(
+            "/api/mobile/media/uploads",
+            headers={
+                "Origin": "https://directus.example",
                 "Access-Control-Request-Method": "POST",
             },
         )

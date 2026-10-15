@@ -1250,7 +1250,10 @@ Commands:
 - Directus is accessed through Caddy (`/directus/*`) or directly via internal ports.
 - Directus rate limiting: 100 req/s general, 5 login attempts per 15-min lockout.
 - `PUBLIC_RESTRICT=true` disables unauthenticated data access.
-- `CORS_ORIGIN` defaults to `http://localhost:8055` in `.env.example`; the Compose fallback also allows `http://localhost` and `http://localhost:8055`.
+- Directus CORS uses `CORS_ORIGIN`. FastAPI Gateway CORS uses
+  `KOKONUT_GATEWAY_CORS_ORIGINS`, an explicit comma-separated list that is
+  empty by default; wildcard origins are ignored. Same-origin Gateway clients
+  need no CORS entry.
 - `.env.example` uses placeholder warnings (`replace-with-strong-password-min-24-chars`), not real defaults.
 - Python ingestion services are CLI tools, not Docker services. Use the worker container (`docker-compose.worker.yml` + `Dockerfile.worker`) or host-based cron for scheduling.
 - Health monitoring: `scripts/health-check.sh` supports `--json` and `--alert` flags. `scripts/health-alert.sh` is the cron wrapper.

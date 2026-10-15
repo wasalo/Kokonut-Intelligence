@@ -79,7 +79,7 @@ services:
       KOKONUT_GATEWAY_AUDIT_SPOOL_PATH: /var/lib/kokonut/gateway-audit/gateway-audit.sqlite3
       KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS: ${KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS:-10000}
       KOKONUT_GATEWAY_AUDIT_SPOOL_ALERT_THRESHOLD: ${KOKONUT_GATEWAY_AUDIT_SPOOL_ALERT_THRESHOLD:-0}
-      CORS_ORIGIN: ""
+      KOKONUT_GATEWAY_CORS_ORIGINS: ""
     volumes:
       - portability-gateway-audit-spool:/var/lib/kokonut/gateway-audit
     networks:

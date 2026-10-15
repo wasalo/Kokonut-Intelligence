@@ -205,7 +205,8 @@ evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-
   ownership remain open. No bucket or other Cloudflare resource was created in
   this repository-only work.
 - Gateway request bodies are capped at 2 MB for media uploads and 8 MB for
-  other write requests. CORS is closed by default: set `CORS_ORIGIN` to an
+  other write requests. CORS is closed by default: set
+  `KOKONUT_GATEWAY_CORS_ORIGINS` to an
   explicit comma-separated list of trusted browser origins; wildcard origins
   are ignored. Same-origin `/mobile` deployments need no CORS entry. Gateway
   preflight allows the Field Collector's device, collection, form, participant,
