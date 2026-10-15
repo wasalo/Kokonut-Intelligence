@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-from types import SimpleNamespace
+import sys
+from types import ModuleType, SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -25,6 +26,52 @@ _SESSION_TOKEN = "synthetic-opaque-session-token"
 _CSRF_TOKEN = "synthetic-csrf-token"
 _SESSION_HASH = "a" * 64
 _LOCATION_ID = "11111111-1111-4111-8111-111111111111"
+
+
+def test_actual_oidc_adapter_registers_discovery_and_s256_pkce(monkeypatch):
+    registrations = []
+
+    class _FakeOAuth:
+        def register(self, **options):
+            registrations.append(options)
+
+        def create_client(self, name):
+            return SimpleNamespace(name=name)
+
+    authlib = ModuleType("authlib")
+    authlib.__path__ = []
+    integrations = ModuleType("authlib.integrations")
+    integrations.__path__ = []
+    starlette_client = ModuleType("authlib.integrations.starlette_client")
+    starlette_client.OAuth = _FakeOAuth
+    monkeypatch.setitem(sys.modules, "authlib", authlib)
+    monkeypatch.setitem(sys.modules, "authlib.integrations", integrations)
+    monkeypatch.setitem(
+        sys.modules, "authlib.integrations.starlette_client", starlette_client
+    )
+
+    settings = SimpleNamespace(
+        issuer="https://identity.example.test/",
+        client_id="operator-client",
+        client_secret="synthetic-client-secret",
+    )
+    provider = OIDCOperatorProvider(settings)
+
+    assert provider.client.name == "operator"
+    assert registrations == [
+        {
+            "name": "operator",
+            "client_id": "operator-client",
+            "client_secret": "synthetic-client-secret",
+            "server_metadata_url": (
+                "https://identity.example.test/.well-known/openid-configuration"
+            ),
+            "client_kwargs": {
+                "scope": "openid profile email",
+                "code_challenge_method": "S256",
+            },
+        }
+    ]
 
 
 class _FakeOIDCClient:

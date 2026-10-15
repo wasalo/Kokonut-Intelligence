@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `c2cdbe942dd5a2060119a921e065888fa73b1386`
-**Latest pushed head status:** Security #43 passed; CI #318 remains in progress on the prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`. No CI result for `c2cdbe9` was visible at the last check.
+**Latest pushed head status:** Security #43 passed and CI #319 is in progress on `c2cdbe942dd5a2060119a921e065888fa73b1386`. CI #318 was cancelled on prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -15,9 +15,9 @@ MAN-CAP checks open until each has its own retained evidence.
 ## Current accounting
 
 - The execution checklist has 330 checked and 20 open items (350 total).
-- The latest pushed implementation is `c2cdbe9`. Security #43 passed on this
-  head; CI #318 is still running on prior head `f8d90ea`, and a CI run for
-  `c2cdbe9` had not appeared at the last check. Security #39's SHA-256
+- The latest pushed implementation is `c2cdbe9`. Security #43 passed and CI
+  #319 is in progress on this head; CI #318 was cancelled on prior head
+  `f8d90ea`. Security #39's SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
   and hosted Security #41.
 - The latest push includes local commits `db37e6a` (preserve pending EventBus
@@ -25,6 +25,16 @@ MAN-CAP checks open until each has its own retained evidence.
   Collector operator inventory). The inventory requires same-location device
   and collection-review read grants and returns no tokens or collection content;
   its focused source/ASGI/console checks pass.
+- Three additional local commits are ready for the next batch but remain
+  unpushed: `adecedd` ignores stale operations-inventory responses after a
+  location switch; `c05cf8a` adds fake-provider OIDC login/session/logout
+  route-contract coverage; and `6a1ea69` rejects invalid issuer/subject claims
+  before opening the operator-auth database. The OIDC adapter contract also
+  pins its discovery URL, requested scopes, and S256 PKCE setting without
+  network calls. The combined focused operator/mobile/event set passes 105
+  tests; Ruff and Python compilation pass for the OIDC change. These are
+  source/in-process checks;
+  real OIDC, browser, database-role, and tenant acceptance remain open.
 - The pushed head includes the Directus preflight, supervisor, ClickHouse and
   notification outbox CLI regressions, and a nine-check disposable PostgreSQL
   ClickHouse fixture. Focused unit/runtime checks and full-history Gitleaks pass;
@@ -106,8 +116,8 @@ MAN-CAP checks open until each has its own retained evidence.
   required services before writing/restoring data; fake-Compose checks cover
   both ClickHouse-disabled and ClickHouse-enabled paths.
   Focused source/disposable checks pass. The latest pushed head `c2cdbe9` has
-  Security #43 passed; CI #318 remains in progress on the previous head, and
-  no CI run for `c2cdbe9` was visible at the last check. The EventBus cleanup
+  Security #43 passed and CI #319 is in progress on this head; CI #318 was
+  cancelled on the previous head. The EventBus cleanup
   and scoped Field Collector operator inventory are included in the pushed
   batch.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
@@ -142,7 +152,7 @@ until the relevant inputs or authorization arrive.
 | Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. | Confirm non-demo ownership and legacy operator affiliations; provision runtime identities before enabling RLS. |
 | Recovery and delivery | 1, 4, 6 | Continue provider-off/failure, lease reclaim, retry/idempotency, duplicate prevention, process outage, and rollback checks with fake endpoints or disposable databases. | Production provider state, external delivery destination, schedule/operator inventory, alert/on-call owner, and a 24-hour run window. |
 | Reports and dashboards | 1, 5, 6, 10 | Finish repository-owned query safety and synthetic fixture parity; inventory consumers and document safe migration boundaries. | Accountable owners must choose retained reports, audiences/measures, populated reference fixtures, and external database roles. |
-| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; a no-network fake-provider suite now covers login state handoff, callback failures, opaque cookies, active scope response, and CSRF-gated logout. | Real OIDC/Authlib provider settings and test identities, trusted HTTPS browser origin, and human disposition/retention decisions. |
+| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Real OIDC protocol/provider settings and test identities, trusted HTTPS browser origin, and human disposition/retention decisions. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; add deterministic restart/failover tests where they can run without production. | Physical power/device behavior, certificate trust, replica/public ingress topology, 24-hour availability/resource budget, production schedule owners, and reviewed cutover authorization. |
 | Curated seed write | 8 | Prepare a fresh encrypted migration-400 checkpoint and restore rehearsal procedure; verify the exact 30-file allowlist and rollback command. | Applying the selected seeds is a separate candidate data write and remains gated for explicit approval after the fresh checkpoint/rehearsal. |
 | Retention policy | 2 | Keep the existing no-prune behavior and test that pending/retryable/undisposed records remain protected. | Jurisdiction/product owner must set terminal notification, attempt, and operator-audit retention/archival periods. |
@@ -157,17 +167,16 @@ until the relevant inputs or authorization arrive.
 and the focused test named in any failure log.
 
 **Action:** Current pushed head `c2cdbe942dd5a2060119a921e065888fa73b1386`
-has Security #43 passed. CI #318 is still running on the prior head
-`f8d90ea0b6af817e91db6758ff293d3c309f29de`; no CI result for the current head
-was visible at the last check. The gRPC loopback fix, outbox CLI and disposable PostgreSQL
+has Security #43 passed and CI #319 in progress. CI #318 was cancelled on the
+prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`. The gRPC loopback fix, outbox CLI and disposable PostgreSQL
 acceptance are included in that batch. The Gitleaks
 allowlist fix for the earlier Security #39 SHA-256 source-digest false positive
 is included in the pushed head and Security #41 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
 supplying the test-only operator-auth password before checking the missing
 issuer configuration.
 
-**Acceptance:** current pushed head `c2cdbe9` has Security #43 passed. CI #318
-is still in progress on the prior head; a current-head CI pass is required.
+**Acceptance:** current pushed head `c2cdbe9` has Security #43 passed and CI
+#319 in progress; a current-head CI pass is required.
 The focused local outbox, EventBus cleanup, and Field Collector inventory
 checks pass and are included in the pushed batch.
 
@@ -522,9 +531,8 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The latest push `c2cdbe9` has Security #43 passed; CI #318 remains
-in progress on prior head `f8d90ea`, and a current-head CI result was not
-visible at the last check. The pushed batch includes enabled gRPC loopback
+requested. The latest push `c2cdbe9` has Security #43 passed and CI #319 in
+progress; CI #318 was cancelled on prior head `f8d90ea`. The pushed batch includes enabled gRPC loopback
 acceptance, disposable PostgreSQL outbox acceptance, EventBus dead-letter
 cleanup protection, and the scoped Field Collector operator inventory. Their
 focused local checks pass.

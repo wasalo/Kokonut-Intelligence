@@ -81,9 +81,8 @@ report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sq
 **Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053), checked 15 October:**
 PR #68 is at `c2cdbe942dd5a2060119a921e065888fa73b1386`. Security run
 [#43](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38676458903)
-passed on this head. CI #318 remains in progress on the prior head
-`f8d90ea0b6af817e91db6758ff293d3c309f29de`; no CI result for `c2cdbe9` was
-visible at the last check. The current batch adds EventBus cleanup protection
+passed on this head. CI #319 is in progress on `c2cdbe9`; CI #318 was cancelled
+on the prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`. The current batch adds EventBus cleanup protection
 and the location-scoped Field Collector operator inventory. The earlier
 Security #39 source-digest false positive was corrected with a file-scoped
 allowlist; local full-history Gitleaks and hosted Security #43 pass. The last
