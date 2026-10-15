@@ -12,7 +12,9 @@ acceptance passed on disposable PostGIS 16 ([evidence](builds/2026-10-13-recover
 The queue/detail, edit route, and console are deployed to the local candidate
 after migration 385 and an app-only rebuild from `f854d47`. Candidate health
 returns 200 and unauthenticated protected reads and draft edits return 401.
-OIDC remains disabled because no provider settings have been configured.
+OIDC remains disabled because no provider settings have been configured. The
+owner selected self-hosted ZITADEL; its separate identity hostname and secret
+configuration remain open. See the [ZITADEL provider plan](zitadel-provider.md).
 Real-provider login, browser-runtime acceptance, and live payload acceptance
 remain open. A no-network fake-provider route suite now checks login state
 handoff, callback failure, opaque cookie issuance, scope response, and

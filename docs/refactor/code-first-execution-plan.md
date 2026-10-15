@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 330 checked and 20 open items (350 total).
+- The execution checklist has 331 checked and 20 open items (351 total).
 - The latest pushed implementation is `c2cdbe9`. Security #43 passed and CI
   #319 is in progress on this head; CI #318 was cancelled on prior head
   `f8d90ea`. Security #39's SHA-256
@@ -130,8 +130,21 @@ MAN-CAP checks open until each has its own retained evidence.
   public location rows, so farm-data parity remains open. The candidate app was
   not recreated for migration 400; health remains 200 and anonymous protected
   device revocation returns 401. See [migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json) and [restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json).
-  The separate 30-seed candidate rollout remains approval-gated under OFU-17;
-  the other 90 sources were not selected.
+  The owner selected five reference catalogs from the 30-file curated batch;
+  applying those five remains separately gated under OFU-17. The other 25
+  curated files and 90 other seed sources were not selected.
+- On 15 October the owner selected self-hosted ZITADEL, reference-catalog-only
+  seed scope (pilot rows held), and USA plus Dominican Republic as retention
+  jurisdictions. The ZITADEL deployment boundary and identity-host requirement
+  are recorded in [the provider plan](zitadel-provider.md). Its identity hostname, non-secret client/issuer
+  configuration and test identities remain to be supplied; credentials will
+  be provisioned through SOPS. The identity choice does not replace Kokonut's
+  Gateway sessions, organization/location grants, or authorization checks.
+  Retention periods remain category-specific and unapproved, so no-prune stays
+  in force. Seed scope is not seed-write approval. The legacy
+  `scripts/seed.sh --reference-only` behavior still applies the full curated
+  seed set; the distinct `--catalog-only` path now applies the documented
+  five-file allowlist. Candidate rollout remains separately gated.
 - Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
   confirmed as exclusive to Kokonut Network. Do not ask for that mapping again.
 - There is no Raspberry Pi available. The code-only ARM64 assessment passed
@@ -143,19 +156,114 @@ MAN-CAP checks open until each has its own retained evidence.
 ## Selected open gates: code batches before owner inputs
 
 The owner selected the remaining open items in `batches.md` on 14 October.
-Work through these code batches first; keep the named human/runtime gates open
-until the relevant inputs or authorization arrive.
+On 15 October the owner supplied additional product/deployment decisions; see
+the record below. Work through code batches first, then close only the live
+provider, populated-data, and operational gates that cannot be established from
+the repository.
+
+## Owner decisions recorded 15 October 2026
+
+- **Tenant ownership:** Kokonut Genesis, Kokonut Seeds, Kokonut Adelphi,
+  Kokonut Terra Viva, and Kokonut V1 are operated by Kokonut Network. Adelphi
+  and Genesis remain confirmed exclusive. No sharing was specified for the
+  other three, so do not create shared grants without a later explicit mapping.
+  The four existing farms have owner-held data for post-build ingestion;
+  Terra Viva is still in design. This is an operating-tenant mapping, not a
+  claim about legal land title. Other locations remain unassigned until mapped.
+- **Tenant model:** Directus-compatible access follows organization/location
+  grants. The Gateway remains the authorization authority; Directus parity
+  must consume the same grant model.
+- **Reports/providers:** port all repository-verified Kokonut report, dashboard,
+  provider, and scheduled-job capabilities first. The owner will decide what to
+  retain, remove, or improve after review. Validate semantic report output
+  after the four farms' data is ingested. The archive's generic e-commerce
+  sample-H2 Metabase cards are not to be mislabeled as Kokonut product assets.
+- **R2:** production account `7219a605e3c2144a30987e20fd4cf397`, endpoint
+  `https://7219a605e3c2144a30987e20fd4cf397.r2.cloudflarestorage.com`, buckets
+  `kokonut-production` and `kokonut-backups`. No credentials were supplied;
+  provision them through SOPS or at production deployment. Test-prefix,
+  least-privilege, and lifecycle acceptance remain open.
+- **Production/recovery:** target hostname `hub.kokonut.network`; 24-hour
+  recovery target; replica/failover work is deferred to production. Cutover is
+  approved once all readiness gates pass. Public ingress, TLS, trusted proxy
+  hops, and production RPO details remain to be established.
+- **Retention:** the owner requested industry-standard periods and legal holds,
+  and identified the United States and Dominican Republic. There is no single
+  duration to apply across these record types: Dominican Republic Law 172-13
+  governs personal-data protection, and FTC guidance recommends keeping
+  personal information only as long as needed; record-specific duties still
+  need a reviewed schedule. Keep no-prune behavior until purpose-specific
+  periods, archive access, legal-hold ownership, and erasure approval are
+  defined ([Dominican Republic Law 172-13](https://www.consultoria.gov.do/Consulta/Home/FileManagement?documentId=3371232&managementType=1),
+  [FTC data-retention guidance](https://www.ftc.gov/business-guidance/resources/protecting-personal-information-guide-business),
+  [NIST SP 800-92 log-management guide](https://csrc.nist.gov/pubs/sp/800/92/final)).
+
+### Self-hosted OIDC options
+
+Kokonut's own Gateway session, tenant-scope, and authorization layer remains
+self-hosted. OIDC is the protocol used to verify an operator's initial identity;
+the OIDC provider can also be self-hosted. Choosing an IdP does not make
+Directus mandatory or move Kokonut's org/location authorization into that IdP.
+
+| Option | Fit | Trade-off |
+|---|---|---|
+| **ZITADEL (selected)** | Self-hosted OIDC, PostgreSQL-backed, supports Caddy as a reverse proxy, and Redis is optional. Treat its identity database and credentials as a separately backed-up security boundary; shared PostgreSQL is only acceptable with a dedicated database/role and verified privileges. | Adds a separately operated identity service and its own data/backup lifecycle. The current Compose guide lists 2 GB RAM as a prerequisite; the process alone is described at about 512 MB, so do not use the process figure as whole-stack or Raspberry Pi sizing. ([Compose guide](https://zitadel.com/docs/self-hosting/deploy/compose), [production guide](https://zitadel.com/docs/self-hosting/manage/production)) |
+| **Authentik** | Self-hosted OIDC provider with authorization-code and PKCE support and an administrator-facing workflow UI. ([OIDC provider docs](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/)) | Good option when its identity workflows and admin interface are desired; deployment/service footprint should be checked against the lightweight profile before adoption. |
+| **Keycloak** | Mature self-hosted identity and access-management server; official container and production docs cover PostgreSQL and production operation. ([container docs](https://www.keycloak.org/server/containers), [supported configurations](https://www.keycloak.org/server/supported-configurations)) | Broad capabilities and ecosystem, with a larger operational surface than the Kernel itself needs for its current OIDC client contract. |
+| **Kokonut-managed credentials** | Keep account credentials and login entirely in Kokonut's own service. | Maximum control, but Kokonut would own password storage, MFA/passkeys, recovery, abuse defense, security patching, and identity lifecycle. Implementing an OIDC server from scratch is not recommended. |
+
+The owner selected **self-hosted ZITADEL** on 15 October. Keep it as an
+optional, replaceable identity profile behind Caddy, while retaining Kokonut's
+current session/scope/tenant layer. The identity hostname, issuer/client
+details, test accounts, and secret provisioning remain open; no IdP has been
+installed or configured. See the [ZITADEL provider plan](zitadel-provider.md).
+
+### What the originally proposed 30 candidate seeds would write
+
+The originally proposed action was a **data write to the local migration-400 candidate
+database**, not a schema migration and not a production action. It would add
+metric definitions and governance frameworks, dashboard/report datasets,
+business capability and roadmap catalogs, plus Adelphi pilot stakeholder,
+governance, coordination, funding, and reserve records. Some are explicitly
+examples or pilot claims (including stakeholder proxy parties and 2021–2024
+funding/participation rows), so these would appear as candidate data for owner
+review. They are not measurements imported from Genesis, Seeds, Adelphi, or V1.
+
+The earlier proposal was limited to the exact 30 curated seed files through
+the ordered runner, with checksum/ledger tracking. It skipped already-applied
+`seed:140_mobile_forms.sql`, excludes `seed:064-068_impact_network.sql` because
+it contains pilot upserts and a location-owner update, and leaves the other 90
+pending sources alone. A source review found that several “pilot/example” seeds
+write records that can be mistaken for real evidence: `105` creates a consent
+row described as `operator-approved` with `legal_basis='consent'` via
+`system_migration`; `109` and `110` create Adelphi governance circles/roles with
+`active` status; `114` marks 2021–2024 funding rounds closed and participations
+executed, including a “Genesis farm launch capital” round attached to Adelphi;
+and `115` creates active reserves, including a 20,000-tonne carbon buffer and
+balances derived from those funding rows. These are not established by the
+owner's message and must not be treated as real consent, governance, funding,
+or farm data. The owner selected reference catalogs only and held pilot rows. The new
+`scripts/seed.sh --catalog-only` path selects five files: expense categories,
+metric definitions and governance metadata, flow metrics, and carbon reference
+factors/benchmarks/protocols. Dashboard records marked published/verified,
+business assumptions, mixed framework/organization seeds, and pilot records
+remain outside this selection; see the exact [scope and held-file
+rationale](reference-seed-scope.md). The prior preflight restore checkpoint
+predates migrations 392–400, so any later approved candidate data write still
+requires a fresh encrypted checkpoint and isolated restore rehearsal. No
+candidate seed SQL has run; the owner selected scope but did not approve a
+database write.
 
 | Batch | Selected checklist items | Code work to complete first | Owner or external gate held open |
 |---|---|---|---|
 | API and transport parity | 1, 3, 12, 14 | Finish REST/gRPC method and error parity, authenticated CORS, SDK contract coverage, and synthetic auth/scope checks. The enabled gRPC loopback slice now registers both generated services and exercises key/scope decisions; the Directus fixture preflight now blocks without writes when its required identity field is absent. | Real OIDC, trusted HTTPS certificate, Directus runtime identity/schema and effective permissions, tenant-specific parity, and release authorization. |
-| Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. | Confirm non-demo ownership and legacy operator affiliations; provision runtime identities before enabling RLS. |
+| Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. | Known five-location owner mapping is now supplied. Map legacy operator affiliations and any additional/shared locations; provision runtime identities before enabling RLS. |
 | Recovery and delivery | 1, 4, 6 | Continue provider-off/failure, lease reclaim, retry/idempotency, duplicate prevention, process outage, and rollback checks with fake endpoints or disposable databases. | Production provider state, external delivery destination, schedule/operator inventory, alert/on-call owner, and a 24-hour run window. |
-| Reports and dashboards | 1, 5, 6, 10 | Finish repository-owned query safety and synthetic fixture parity; inventory consumers and document safe migration boundaries. The three first-party cards and curated read-only query boundary are covered against copied fixtures; do not infer saved-query ownership from the archived Metabase database. | Accountable owners must choose retained reports/dashboards, audiences/measures, populated reference fixtures, external/operator-edited consumers, and database roles. |
-| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Real OIDC protocol/provider settings and test identities, trusted HTTPS browser origin, and human disposition/retention decisions. |
-| Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; add deterministic restart/failover tests where they can run without production. | Physical power/device behavior, certificate trust, replica/public ingress topology, 24-hour availability/resource budget, production schedule owners, and reviewed cutover authorization. |
-| Curated seed write | 8 | Prepare a fresh encrypted migration-400 checkpoint and restore rehearsal procedure; verify the exact 30-file allowlist and rollback command. | Applying the selected seeds is a separate candidate data write and remains gated for explicit approval after the fresh checkpoint/rehearsal. |
-| Retention policy | 2 | Keep the existing no-prune behavior and test that pending/retryable/undisposed records remain protected. | Jurisdiction/product owner must set terminal notification, attempt, and operator-audit retention/archival periods. |
+| Reports and dashboards | 1, 5, 6, 10 | Port all repository-verified Kokonut surfaces, finish query safety and synthetic parity, and document migration boundaries. Do not infer saved-query ownership from the archived Metabase database or represent generic sample-H2 e-commerce cards as Kokonut product reports. | Owner will decide what to keep/remove/improve after port review. Populated semantic fixtures, external/operator-edited consumers, audience/scope, and DB roles follow farm-data ingestion. |
+| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
+| Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; complete non-disruptive restart/recovery checks. | 24-hour recovery target and conditional cutover approval are supplied. Schedule/resource budget, public ingress/TLS/trusted proxies, physical power/device behavior, production replicas/failover, and production schedule owners remain open or deferred. |
+| Curated seed write | 8 | The exact five-file catalog allowlist and recovery sequence are documented above; prepare a fresh encrypted current-candidate checkpoint and restore rehearsal. | The owner selected scope. Applying the five files still needs separate approval after checkpoint evidence is ready. |
+| Retention policy | 2 | Keep the existing no-prune behavior and protect pending/retryable/undisposed records. | USA and Dominican Republic were supplied; category periods, legal holds, archive access, and erasure ownership still need legal/product review. |
 
 ## Work order
 

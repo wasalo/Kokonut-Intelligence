@@ -5255,3 +5255,26 @@ PKCE configuration. The combined focused operator/mobile/event set passes 105
 tests, and Ruff passes. Authlib protocol execution, PKCE/token verification,
 provider credentials, valid identity/session SQL, and browser acceptance remain
 open. [Evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json).
+
+### Owner decisions and safe reference-seed scope — 15 October 2026
+
+The owner selected self-hosted ZITADEL, reference catalogs only with pilot rows
+held, and the United States plus Dominican Republic as retention jurisdictions.
+The identity hostname, live issuer/client details, test identities, secret
+provisioning, and exact record-category retention periods remain open. Kokonut's
+Gateway sessions and organization/location grants remain the authorization
+authority; no ZITADEL service or credentials were configured.
+
+Added `scripts/seed.sh --catalog-only`, a separate seed-only path that skips
+schema, ClickHouse, and Directus setup and selects five explicit, checksummed
+catalog migrations: expense categories, metric definitions, metric governance
+metadata, flow metrics, and carbon reference factors/benchmarks/protocols. The
+legacy `--reference-only` behavior remains unchanged and still applies the full
+curated seed list. The exact five-file scope and 25 held curated files are
+recorded in [reference-seed-scope.md](reference-seed-scope.md). This changes
+only the selection mechanism; no candidate seed SQL ran. A fresh checkpoint,
+restore rehearsal, and separate rollout approval are still required before a
+candidate write.
+
+No test suite was added or run for this batch. `git diff --check` passed.
+Candidate databases, the legacy stack, R2, and GitHub were not changed.
