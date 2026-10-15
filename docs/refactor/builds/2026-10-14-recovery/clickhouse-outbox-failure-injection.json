@@ -1,0 +1,37 @@
+{
+  "record_type": "clickhouse_outbox_failure_injection_unit_acceptance",
+  "recorded_at": "2026-10-15T01:41:51+00:00",
+  "scope": "Mocked PostgreSQL claim/finish operations and mocked ClickHouse client; no live database or ClickHouse service.",
+  "checks": {
+    "pytest": "10 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behaviors": [
+    "disabled ClickHouse provider does not claim rows or open a client",
+    "client setup exception records a failed outcome for each claimed row",
+    "enabled provider with no client records a sanitized setup failure",
+    "failed setup-outcome persistence propagates without a second finish attempt",
+    "partial batch insert failure is isolated from successful row delivery",
+    "database completion failure after insertion propagates without retrying completion",
+    "successful insert with lost completion fence counts as failed",
+    "client close failure propagates after the row outcome is recorded"
+  ],
+  "limitations": [
+    "Mocked _finish calls do not prove persisted PostgreSQL status transitions or lease expiry recovery.",
+    "No worker process restart, transport/database outage, CLI exit-code, ClickHouse deduplication, or long-duration behavior was exercised.",
+    "No candidate, legacy database, or Docker service was touched."
+  ],
+  "test_environment": {
+    "python": "3.11.15",
+    "environment": "repository .venv",
+    "typer": "0.27.0",
+    "requests": "2.34.2"
+  },
+  "source_sha256": {
+    "services/ingestion/clickhouse_outbox.py": "06a4a112b72ab72b4291740a4827080de9289c862b3ac525f49aeb480fca103e",
+    "tests/test_clickhouse_outbox.py": "7e9e863a867336c40c78253dd29b8c01c35532d21c874432aa23872b23ac8b96",
+    "docs/refactor/projection-failure-boundaries.md": "648b2650697cff192c3f97b746162a3b1282cf125c3daa58fbd75713fb732f1e"
+  }
+}

@@ -26,11 +26,18 @@ projection rows. This correction does not add target-side deduplication or claim
 exactly-once effects. Audit analytical table semantics and source identity before
 certifying crash/replay parity or enabling automatic dispatch.
 
-Static lint and diff checks passed. No tests, claims, client connections,
-projection writes, images, or containers were run. Pending acceptance includes
-client unavailable/exception, failed setup-outcome persistence, insertion error,
-successful insert plus database failure, lost fence, partial batches, expiry
-recovery, close failure, and CLI exit codes. Rebuild before adoption.
+Ten focused unit tests now cover disabled-provider no-claim behavior, client
+setup exception and missing-client outcomes, setup-outcome persistence failure,
+partial batches with independent insert results, insertion failure, successful
+insert followed by database completion failure, lost completion fences, and
+client-close failure. The tests mock PostgreSQL lease operations and the
+ClickHouse client; no database, ClickHouse server, image, or container was used.
+
+Actual PostgreSQL lease expiry/recovery, CLI exit-code behavior, process-level
+worker restart, and transport/database outage acceptance remain open. A lost
+completion after a successful insert can still replay that analytical row;
+these tests do not establish ClickHouse target deduplication or exactly-once
+effects. Rebuild before adoption.
 
 Rollback retains committed outcomes, pending rows, leases, and projection data.
 Pause dispatch while selecting a validated image; preserve source/outbox lineage
