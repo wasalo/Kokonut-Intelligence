@@ -14,7 +14,11 @@ after migration 385 and an app-only rebuild from `f854d47`. Candidate health
 returns 200 and unauthenticated protected reads and draft edits return 401.
 OIDC remains disabled because no provider settings have been configured.
 Real-provider login, browser-runtime acceptance, and live payload acceptance
-remain open. This remains a partial implementation, not an accepted console.
+remain open. A no-network fake-provider route suite now checks login state
+handoff, callback failure, opaque cookie issuance, scope response, and
+CSRF-gated local logout; it does not exercise Authlib discovery, PKCE/token
+exchange, or the identity database. This remains a partial implementation,
+not an accepted console.
 
 ## Current repository boundary
 
@@ -210,6 +214,10 @@ short-lived cookies; PostgreSQL stores only their SHA-256 digests. Session
 cookies are HttpOnly, Secure, SameSite=Lax, and scoped to `/operator`. Unsafe
 operator-auth requests require the CSRF header, readable CSRF cookie, and
 matching stored hash. Local logout revokes the database session.
+
+The in-process fake-provider contract test exercises the route wiring for this
+flow without network access. It is a regression check for the adapter boundary,
+not proof of real OIDC validation or database session behavior.
 
 The default `kernel` image remains dependency-light. Build the `oidc` target
 with `requirements/oidc.txt` by adding

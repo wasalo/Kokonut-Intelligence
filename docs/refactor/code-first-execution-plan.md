@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 329 checked and 20 open items (349 total).
+- The execution checklist has 330 checked and 20 open items (350 total).
 - The latest pushed implementation is `c2cdbe9`. Security #43 passed on this
   head; CI #318 is still running on prior head `f8d90ea`, and a CI run for
   `c2cdbe9` had not appeared at the last check. Security #39's SHA-256
@@ -142,7 +142,7 @@ until the relevant inputs or authorization arrive.
 | Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. | Confirm non-demo ownership and legacy operator affiliations; provision runtime identities before enabling RLS. |
 | Recovery and delivery | 1, 4, 6 | Continue provider-off/failure, lease reclaim, retry/idempotency, duplicate prevention, process outage, and rollback checks with fake endpoints or disposable databases. | Production provider state, external delivery destination, schedule/operator inventory, alert/on-call owner, and a 24-hour run window. |
 | Reports and dashboards | 1, 5, 6, 10 | Finish repository-owned query safety and synthetic fixture parity; inventory consumers and document safe migration boundaries. | Accountable owners must choose retained reports, audiences/measures, populated reference fixtures, and external database roles. |
-| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; retain the mocked-offline limitations. | Real OIDC credentials/test identities, trusted HTTPS browser origin, and human disposition/retention decisions. |
+| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; a no-network fake-provider suite now covers login state handoff, callback failures, opaque cookies, active scope response, and CSRF-gated logout. | Real OIDC/Authlib provider settings and test identities, trusted HTTPS browser origin, and human disposition/retention decisions. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; add deterministic restart/failover tests where they can run without production. | Physical power/device behavior, certificate trust, replica/public ingress topology, 24-hour availability/resource budget, production schedule owners, and reviewed cutover authorization. |
 | Curated seed write | 8 | Prepare a fresh encrypted migration-400 checkpoint and restore rehearsal procedure; verify the exact 30-file allowlist and rollback command. | Applying the selected seeds is a separate candidate data write and remains gated for explicit approval after the fresh checkpoint/rehearsal. |
 | Retention policy | 2 | Keep the existing no-prune behavior and test that pending/retryable/undisposed records remain protected. | Jurisdiction/product owner must set terminal notification, attempt, and operator-audit retention/archival periods. |

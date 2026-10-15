@@ -5241,3 +5241,12 @@ operator changes locations. A source-contract assertion pins the guard. The
 83-test focused route/service/auth/console set, Ruff, Python compilation,
 inline JavaScript syntax, and `git diff --check` pass. This source check does
 not simulate delayed requests in a real browser. [Evidence](builds/2026-10-15-recovery/operator-inventory-stale-response-guard.json).
+
+### Fake-provider operator OIDC route contract — 15 October 2026
+
+Added five in-process checks for login state handoff, callback rejection of
+missing or unprovisioned identities, opaque session/CSRF cookie issuance,
+no-store active-scope response, and CSRF-gated logout/revocation. The fake
+adapter made no network or database calls. Ruff passes. Real Authlib discovery,
+PKCE/token verification, provider credentials, identity/session SQL, and browser
+acceptance remain open. [Evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json).

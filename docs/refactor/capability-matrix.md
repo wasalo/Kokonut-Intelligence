@@ -20,6 +20,13 @@ unsafe/inapplicable fixture writes; it does not establish
 Directus permissions or accept a named MAN-CAP check
 ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
 
+**15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
+five no-network tests cover OIDC login state handoff, callback rejection,
+opaque session/CSRF cookie issuance, scope response, and CSRF-gated logout.
+This pins route wiring only; Authlib/provider verification, identity/session SQL,
+real grants, browser acceptance, and the named MAN-CAP checks remain open
+([evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json)).
+
 **14 October 2026 supervisor contract (CAP-047):** four focused tests cover
 graceful shutdown, process-group escalation, unexpected zero exit, and
 partial-launch cleanup; one POSIX integration case verifies SIGTERM delivery
