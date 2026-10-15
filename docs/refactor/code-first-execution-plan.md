@@ -2,10 +2,10 @@
 
 **Updated:** 14 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `0c703c55e0f991c2460afab1863b950aa7dd53ea`
+**Latest pushed head:** `5dc181c20c9c1c5831c2bebff740a8ca761867d2`
 **Last fully green CI/Security head:** `41412764f8281deea52670bf49de4234aca6e0bd` (CI #313 and Security #37).
-On the latest pushed head, Security #40 passed and CI #316 was still in progress
-at the last check.
+On the latest pushed head, Security #41 passed and CI #317 is pending; CI #316
+remains in progress on the previous head.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -17,16 +17,15 @@ MAN-CAP checks open until each has its own retained evidence.
 ## Current accounting
 
 - The execution checklist has 325 checked and 20 open items (345 total).
-- The latest pushed implementation is `0c703c5`. Security #40 passed; CI #316
-  was still running at the last check. The earlier Security #39 SHA-256
+- The latest pushed implementation is `5dc181c`. Security #41 passed; CI #317
+  is pending and CI #316 remains in progress on the previous head. The earlier Security #39 SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
-  and hosted Security #40. The last fully green CI/Security head is `4141276`
+  and hosted Security #41. The last fully green CI/Security head is `4141276`
   (CI #313 and Security #37).
-- The pushed head includes the Directus preflight, supervisor, and initial
-  ClickHouse/notification outbox tests. The current local batch adds CLI exit
-  regressions and a nine-check disposable PostgreSQL ClickHouse fixture;
-  focused unit/runtime checks pass, but this new batch still needs a later push
-  and CI run.
+- The pushed head includes the Directus preflight, supervisor, ClickHouse and
+  notification outbox CLI regressions, and a nine-check disposable PostgreSQL
+  ClickHouse fixture. Focused unit/runtime checks and full-history Gitleaks pass;
+  the new batch awaits CI #317.
 - The latest pushed batch adds provider-aware PostgreSQL-only backup/restore,
   gRPC streaming-auth lifecycle fixes, and focused RPC policy and
   optional-provider inventories. Earlier pushed work retires the unscoped
@@ -134,19 +133,18 @@ and the focused test named in any failure log.
 
 **Action:** CI #313 and Security #37 passed on pushed head
 `41412764f8281deea52670bf49de4234aca6e0bd`. Current pushed head
-`0c703c55e0f991c2460afab1863b950aa7dd53ea` has Security #40 passed and CI
-#316 still running at the last check. The local outbox CLI and disposable
-PostgreSQL acceptance are queued for a later batch push. The Gitleaks allowlist
-fix for the earlier Security #39 SHA-256 source-digest false positive is now
-included in the pushed head and Security #40 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
+`5dc181c20c9c1c5831c2bebff740a8ca761867d2` has Security #41 passed and CI
+#317 pending; CI #316 is still running on the previous head. The outbox CLI and
+disposable PostgreSQL acceptance are included in the pushed batch. The Gitleaks
+allowlist fix for the earlier Security #39 SHA-256 source-digest false positive
+is included in the pushed head and Security #41 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
 supplying the test-only operator-auth password before checking the missing
 issuer configuration.
 
 **Acceptance:** last fully satisfied on pushed head `4141276`: CI #313 and
-Security #37 both passed. Current pushed head `0c703c5` has Security #40 passed
-and CI #316 still running at the last check. The local outbox CLI and disposable
-PostgreSQL acceptance slice is being accumulated for a later batch push; its
-focused local checks pass.
+Security #37 both passed. Current pushed head `5dc181c` has Security #41 passed
+and CI #317 pending; CI #316 remains in progress on the previous head. The
+focused local outbox checks pass and are included in the latest pushed batch.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -486,11 +484,11 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The latest push `0c703c5` has Security #40 passed and CI #316 was
-still running at the last check. The local ClickHouse/notification CLI
-regressions and disposable PostgreSQL outbox acceptance are being accumulated
-for a subsequent coherent batch; focused local checks and full-history Gitleaks
-pass. Accumulate the next coherent
+requested. The latest push `5dc181c` has Security #41 passed and CI #317
+pending; CI #316 remains in progress on the previous head. The current batch
+includes ClickHouse/notification CLI regressions and disposable PostgreSQL
+outbox acceptance; focused local checks and full-history Gitleaks pass.
+Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable

@@ -71,16 +71,15 @@ report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sq
 [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
 **Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053):** PR #68 is
-at `0c703c55e0f991c2460afab1863b950aa7dd53ea`; Security run
-[#40](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38668069947)
+at `5dc181c20c9c1c5831c2bebff740a8ca761867d2`; Security run
+[#41](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38669548243)
 passed and CI run
-[#316](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38668069930)
-was still running at the last check. The earlier Security #39 source-digest
-false positive was corrected with a file-scoped allowlist; local full-history
-Gitleaks and hosted Security #40 pass. This head includes the Directus preflight,
-supervisor, and initial outbox unit coverage. The current local batch adds
-disposable-PostgreSQL persistence/CLI acceptance and focused CLI parser tests;
-neither hosted workflow covers it yet. The last confirmed fully green head is
+[#317](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38669548218)
+is pending. CI #316 remains in progress on the previous head. The earlier
+Security #39 source-digest false positive was corrected with a file-scoped
+allowlist; local full-history Gitleaks and hosted Security #41 pass. The latest
+head includes Directus preflight, supervisor, and outbox unit, disposable
+PostgreSQL, and CLI acceptance evidence. The last confirmed fully green head is
 `41412764f8281deea52670bf49de4234aca6e0bd`, where CI #313 and Security #37
 passed. The earlier
 CI #307 OIDC fixture failure was corrected in `7953afe`; runs #308/#32 are
