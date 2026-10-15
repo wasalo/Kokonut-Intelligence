@@ -102,7 +102,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     'loss_event', 'labor_event', 'field_note', 'stakeholder_feedback',
     'metric_proposal', 'mrv_claim',
   ]) {
-    filter(`${collection}.create`, async (payload: Record<string, any>) => {
+    filter(`${collection}.items.create`, async (payload: Record<string, any>) => {
       return await validateTenantReferences(database, collection, payload);
     });
   }
@@ -144,7 +144,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
 
   // Register workflow-only filter hooks
   for (const collection of WORKFLOW_ONLY_COLLECTIONS) {
-    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+    filter(`${collection}.items.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
       return await applyWorkflow(collection, payload, meta);
     });
   }
@@ -152,13 +152,13 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   // Data-stream records always enter the governed lifecycle as drafts. Their
   // status can only advance through the standard role-gated workflow.
   for (const collection of ['data_stream_post', 'data_stream_post_comment', 'data_stream_file']) {
-    filter(`${collection}.create`, (payload: Record<string, any>) => {
+    filter(`${collection}.items.create`, (payload: Record<string, any>) => {
       if (payload.status && payload.status !== 'draft') {
         delete payload.status;
       }
       return payload;
     });
-    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+    filter(`${collection}.items.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
       return await applyWorkflow(collection, payload, meta);
     });
   }
@@ -167,7 +167,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   // Filter hooks (blocking - run before DB write)
   // ============================================================
 
-  filter('expense_event.create', (payload: Record<string, any>) => {
+  filter('expense_event.items.create', (payload: Record<string, any>) => {
     const validated = parseOrThrow(validateExpenseEventCreate, payload);
     autoCategorizeExpense(validated);
 
@@ -195,7 +195,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return validated;
   });
 
-  filter('expense_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('expense_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const validated = parseOrThrow(validateExpenseEventUpdate, payload);
     // Re-run auto-categorization if category was cleared
     if (!validated.category || validated.category === '') {
@@ -212,7 +212,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return await applyWorkflow('expense_event', validated, meta);
   });
 
-  filter('sales_event.create', (payload: Record<string, any>) => {
+  filter('sales_event.items.create', (payload: Record<string, any>) => {
     const validated = parseOrThrow(validateSalesEventCreate, payload);
     if (validated.total_amount !== undefined) {
       validated.net_amount = calculateNetAmount(
@@ -246,7 +246,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return validated;
   });
 
-  filter('sales_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('sales_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const validated = parseOrThrow(validateSalesEventUpdate, payload);
     const recordId = meta.keys?.[0];
     if (recordId && (validated.total_amount !== undefined || validated.return_amount !== undefined || validated.discount_amount !== undefined)) {
@@ -263,7 +263,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return await applyWorkflow('sales_event', validated, meta);
   });
 
-  filter('harvest_event.create', (payload: Record<string, any>) => {
+  filter('harvest_event.items.create', (payload: Record<string, any>) => {
     if (payload.loss_amount && !payload.loss_estimated_value) {
       const estimated = autoCalculateLossValue(
         payload.loss_amount,
@@ -300,11 +300,11 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('harvest_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('harvest_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     return await applyWorkflow('harvest_event', payload, meta);
   });
 
-  filter('farm_activity.create', (payload: Record<string, any>) => {
+  filter('farm_activity.items.create', (payload: Record<string, any>) => {
     if (payload.activity_date) {
       const dateError = validateNotFutureDate(payload.activity_date);
       if (dateError) {
@@ -319,11 +319,11 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('farm_activity.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('farm_activity.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     return await applyWorkflow('farm_activity', payload, meta);
   });
 
-  filter('loss_event.create', (payload: Record<string, any>) => {
+  filter('loss_event.items.create', (payload: Record<string, any>) => {
     if (payload.loss_date) {
       const dateError = validateNotFutureDate(payload.loss_date);
       if (dateError) {
@@ -341,11 +341,11 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('loss_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('loss_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     return await applyWorkflow('loss_event', payload, meta);
   });
 
-  filter('labor_event.create', (payload: Record<string, any>) => {
+  filter('labor_event.items.create', (payload: Record<string, any>) => {
     if (payload.hours_worked && payload.hourly_rate && !payload.total_cost) {
       payload.total_cost = calculateLaborCost(payload.hours_worked, payload.hourly_rate);
     }
@@ -360,11 +360,11 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('labor_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('labor_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     return await applyWorkflow('labor_event', payload, meta);
   });
 
-  filter('field_note.create', (payload: Record<string, any>) => {
+  filter('field_note.items.create', (payload: Record<string, any>) => {
     autoSummarizeFieldNote(payload);
 
     if (payload.note_date) {
@@ -384,17 +384,17 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return payload;
   });
 
-  filter('field_note.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('field_note.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     return await applyWorkflow('field_note', payload, meta);
   });
 
-  filter('stakeholder_feedback.create', (payload: Record<string, any>) => {
+  filter('stakeholder_feedback.items.create', (payload: Record<string, any>) => {
     normalizeFeedbackPayload(payload);
     validateStakeholderFeedback(payload);
     return parseOrThrow(validateStakeholderFeedbackCreate, payload);
   });
 
-  filter('stakeholder_feedback.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('stakeholder_feedback.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const current = recordId ? await database('stakeholder_feedback').where('id', recordId).first() : {};
     validateStakeholderFeedback({ ...(current || {}), ...payload });
@@ -402,18 +402,18 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return await applyWorkflow('stakeholder_feedback', validated, meta);
   });
 
-  filter('metric_proposal.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('metric_proposal.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const accountability = meta?.accountability;
     return await handleMetricProposalUpdate(payload, meta, database, accountability);
   });
 
-  filter('impact_claim.create', (payload: Record<string, any>) => {
+  filter('impact_claim.items.create', (payload: Record<string, any>) => {
     normalizeImpactClaimPayload(payload);
     validateImpactClaim(payload);
     return parseOrThrow(validateImpactClaimCreate, payload);
   });
 
-  filter('impact_claim.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('impact_claim.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const current = recordId ? await database('impact_claim').where('id', recordId).first() : {};
     validateImpactClaim({ ...(current || {}), ...payload });
@@ -423,43 +423,43 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     return await applyWorkflow('impact_claim', validated, meta);
   });
 
-  filter('agent_task.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('agent_task.items.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const validated = parseOrThrow(validateAgentTaskCreate, payload);
     const roles = await resolveUserRoles(database, meta);
     return enforceAgentTaskSafety(validated, roles);
   });
-  filter('agent_task.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('agent_task.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const validated = parseOrThrow(validateAgentTaskUpdate, payload);
     const roles = await resolveUserRoles(database, meta);
     return enforceAgentTaskSafety(validated, roles);
   });
-  filter('ai_summary.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('ai_summary.items.create', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const validated = parseOrThrow(validateAiSummaryCreate, payload);
     const roles = await resolveUserRoles(database, meta);
     return enforceAiSummarySafety(validated, roles);
   });
-  filter('ai_summary.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('ai_summary.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const validated = parseOrThrow(validateAiSummaryUpdate, payload);
     const roles = await resolveUserRoles(database, meta);
     enforceAiSummarySafety(validated, roles);
     return await applyWorkflow('ai_summary', validated, meta);
   });
-  filter('agent_action_log.create', (payload: Record<string, any>) => prepareAgentActionLog(parseOrThrow(validateAgentActionLogCreate, payload)));
+  filter('agent_action_log.items.create', (payload: Record<string, any>) => prepareAgentActionLog(parseOrThrow(validateAgentActionLogCreate, payload)));
 
-  filter('revenue_event.create', (payload: Record<string, any>) => {
+  filter('revenue_event.items.create', (payload: Record<string, any>) => {
     return parseOrThrow(validateRevenueEventCreate, payload);
   });
-  filter('revenue_event.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
+  filter('revenue_event.items.update', async (payload: Record<string, any>, meta: Record<string, any>) => {
     const validated = parseOrThrow(validateRevenueEventUpdate, payload);
     return await applyWorkflow('revenue_event', validated, meta);
   });
 
   for (const collection of STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS) {
-    filter(`${collection}.create`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+    filter(`${collection}.items.create`, async (payload: Record<string, any>, meta: Record<string, any>) => {
       const roles = await resolveUserRoles(database, meta);
       return enforceStakeholderGovernanceSafety(collection, payload, roles);
     });
-    filter(`${collection}.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
+    filter(`${collection}.items.update`, async (payload: Record<string, any>, meta: Record<string, any>) => {
       const roles = await resolveUserRoles(database, meta);
       return enforceStakeholderGovernanceSafety(collection, payload, roles);
     });
@@ -470,7 +470,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
   // ============================================================
 
   for (const collection of LIFECYCLE_COLLECTIONS) {
-    action(`${collection}.update`, async (meta: Record<string, any>) => {
+    action(`${collection}.items.update`, async (meta: Record<string, any>) => {
       const newStatus = meta?.payload?.status;
       const recordId = meta.keys?.[0] ?? meta.keys?.id;
       if (newStatus && recordId) {
@@ -480,7 +480,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     });
   }
 
-  action('stakeholder_feedback.update', async (meta: Record<string, any>) => {
+  action('stakeholder_feedback.items.update', async (meta: Record<string, any>) => {
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const status = meta?.payload?.status;
     if (!recordId || !status) return;
@@ -493,7 +493,7 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     }
   });
 
-  action('metric_proposal.update', async (meta: Record<string, any>) => {
+  action('metric_proposal.items.update', async (meta: Record<string, any>) => {
     const recordId = meta.keys?.[0] ?? meta.keys?.id;
     const status = meta?.payload?.status;
     if (!recordId || !status) return;
@@ -506,18 +506,18 @@ export default defineHook(({ filter, action, schedule }, { database }) => {
     );
   });
 
-  action('harvest_event.create', async (meta: Record<string, any>) => {
+  action('harvest_event.items.create', async (meta: Record<string, any>) => {
     const payload = meta.payload || meta;
     await recalculateNoi(payload.crop_cycle_id);
   });
 
-  action('sales_event.create', async (meta: Record<string, any>) => {
+  action('sales_event.items.create', async (meta: Record<string, any>) => {
     const payload = meta.payload || meta;
     await recalculateNoi(payload.crop_cycle_id);
     await writeFinancialEvent('sales', payload);
   });
 
-  action('expense_event.create', async (meta: Record<string, any>) => {
+  action('expense_event.items.create', async (meta: Record<string, any>) => {
     const payload = meta.payload || meta;
     if (payload.crop_cycle_id) {
       await recalculateNoi(payload.crop_cycle_id);

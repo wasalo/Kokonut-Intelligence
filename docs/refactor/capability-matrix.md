@@ -28,10 +28,13 @@ or accept a named MAN-CAP check
 
 **15 October 2026 Directus extension host contract (CAP-001 / CAP-047 / CAP-053):**
 the hook package now declares compatibility with the exact pinned Directus
-12.1.1 image, enforced by a source regression check. This fixes manifest drift;
-hook runtime loading, organization/location authorization, and named MAN-CAP
-acceptance remain open
-([test](../../tests/test_directus_extension_compatibility.py); [evidence](builds/2026-10-15-recovery/directus-extension-host-contract.json); [inventory](directus-parity-inventory.md)).
+12.1.1 image, enforced by a source regression check. Collection listeners now
+use the documented `collection.items.create` / `collection.items.update`
+event names; a registration test invokes the extension and checks all
+registered item events. The 53-test extension suite and TypeScript build pass.
+This is source evidence only; runtime hook dispatch, organization/location
+authorization, and named MAN-CAP acceptance remain open
+([host evidence](builds/2026-10-15-recovery/directus-extension-host-contract.json); [event evidence](builds/2026-10-15-recovery/directus-hook-event-registration.json); [inventory](directus-parity-inventory.md)).
 
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
 six no-network tests cover OIDC login state handoff, callback rejection,

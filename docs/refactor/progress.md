@@ -33,6 +33,18 @@ TypeScript build passes. This does not bind a Directus principal to
 API parity remains open ([source](../../extensions/kokonut-hooks/src/tenant-validation.ts);
 [inventory](directus-parity-inventory.md)).
 
+### Directus collection hooks subscribe to canonical item events — 15 October 2026
+
+The extension had registered listeners as `<collection>.create` and
+`<collection>.update`; these are now `<collection>.items.create` and
+`<collection>.items.update`. A Vitest invokes the real extension register
+function and checks every collected item listener. The four-file hook suite
+passes 53 tests, the TypeScript build passes, and focused Python/matrix checks
+pass. This does not prove runtime dispatch, grant-aware authorization, or hook
+effect parity ([test](../../extensions/kokonut-hooks/src/index.test.ts);
+[evidence](builds/2026-10-15-recovery/directus-hook-event-registration.json);
+[inventory](directus-parity-inventory.md)).
+
 ### Directus extension host version is pinned accurately — 15 October 2026
 
 The hook package previously advertised Directus `^11.0.0` while Compose pins

@@ -10,6 +10,14 @@ aligned with that image. This removes the previous Directus 11 versus 12
 compatibility declaration mismatch; it does not establish runtime hook loading
 or permission parity.
 
+The hook register function also now subscribes to the collection-qualified
+`<collection>.items.create` and `<collection>.items.update` events documented
+by Directus. A Vitest invokes the actual register function and rejects
+noncanonical item-event names. This fixes the source event-name mismatch, but
+does not prove the pinned server dispatches those listeners or that effective
+permissions match Kokonut grants
+([evidence](builds/2026-10-15-recovery/directus-hook-event-registration.json)).
+
 ## Decision boundary
 
 Directus is an optional administrative and compatibility adapter. Its current

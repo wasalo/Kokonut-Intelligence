@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-15",
+  "scope": "Directus hook item-event registration source contract",
+  "event_contract": "<collection>.items.create and <collection>.items.update",
+  "checks": {
+    "hook_extension_tests": {
+      "command": "npm test",
+      "result": "passed",
+      "test_files_passed": 4,
+      "tests_passed": 53
+    },
+    "hook_extension_typescript_build": {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    "focused_directus_source_tests": {
+      "command": "python3 -m pytest tests/test_directus_extension_compatibility.py tests/test_directus_tenant_permissions.py -q",
+      "result": "passed",
+      "tests_passed": 5
+    },
+    "capability_matrix_integrity": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 66
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "directus_runtime_started": false,
+  "database_touched": false,
+  "runtime_dispatch_claimed": false,
+  "remaining": [
+    "authenticated request dispatch through the pinned Directus 12.1.1 server",
+    "Directus principal mapping to Kokonut operator_identity",
+    "current organization/location/resource/action grant enforcement",
+    "field privacy and hook side-effect parity"
+  ]
+}
