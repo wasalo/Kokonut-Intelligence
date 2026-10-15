@@ -27,18 +27,22 @@ to a child and grandchild. Database-outage and lease-recovery acceptance remain
 open, and MAN-CAP-047 is not accepted
 ([evidence](builds/2026-10-14-recovery/kernel-supervisor-unit-contract.json)).
 
-**14 October 2026 projection delivery failures (CAP-007 / CAP-047):** ten
+**14 October 2026 projection delivery failures (CAP-007 / CAP-047):** twelve
 focused unit tests cover optional-provider no-claim behavior, client setup and
-outcome failures, partial batches, completion errors, stale fences, and client
-cleanup. They mock the database and ClickHouse client; actual lease recovery and
-process/outage behavior remain open. This does not accept either named MAN-CAP
-check ([evidence](builds/2026-10-14-recovery/clickhouse-outbox-failure-injection.json)).
+outcome failures, partial batches, completion errors, stale fences, cleanup,
+and one-shot CLI exit codes. A separate disposable-PostgreSQL fixture passes
+nine checks, including durable retry/success state and actual CLI exit behavior;
+it uses controlled ClickHouse outcomes and does not prove live-provider
+interoperability or cross-store crash deduplication. This does not accept either
+named MAN-CAP check ([unit evidence](builds/2026-10-14-recovery/clickhouse-outbox-failure-injection.json);
+[PostgreSQL evidence](builds/2026-10-14-recovery/clickhouse-outbox-cli-disposable.json)).
 
-**14 October 2026 notification delivery failure boundaries (CAP-047):** five
+**14 October 2026 notification delivery failure boundaries (CAP-047):** eight
 focused mocked tests cover exception-class-only provider failure recording,
 independent batch progress, completion database failure propagation, stale
-lease accounting, and SMTP idempotency headers/closure. No real provider or
-database was used; this does not accept MAN-CAP-047 or provider availability
+lease accounting, SMTP idempotency headers/closure, and real CLI argument
+parsing with failure/lease-loss exit codes. No real provider or database was
+used; this does not accept MAN-CAP-047 or provider availability
 ([evidence](builds/2026-10-14-recovery/notification-outbox-failure-injection.json)).
 
 **14 October 2026 runtime default-privilege boundary (CAP-047 / CAP-053):**
@@ -67,22 +71,18 @@ report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sq
 [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
 **Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053):** PR #68 is
-at `b6117e92a5eed68bd71bcf73356c3aa1640e203e`; CI run
-[#314](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38665357085)
-is still running on the previous head `35f7750`; Security run
-[#38](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38665357141)
-passed. For the current head, CI run
-[#315](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38666505364)
-is still running and Security run
-[#39](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38666505418)
-failed on a one-way SHA-256 source digest in the Directus evidence JSON, falsely
-detected as a generic API key. A file-specific digest allowlist is local;
-Gitleaks 8.30.1 then passed over all local Git refs on `bbf45ff`, and the
-tracked-file secret scan is clean. The fix awaits a later push. The last fully green head is `41412764f8281deea52670bf49de4234aca6e0bd`,
-where CI #313 and Security #37 passed. The Directus preflight and supervisor
-tests are included in the current head; the ClickHouse outbox failure-injection
-tests remain local until a later push. The new notification outbox failure
-tests are also local. The earlier
+at `0c703c55e0f991c2460afab1863b950aa7dd53ea`; Security run
+[#40](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38668069947)
+passed and CI run
+[#316](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38668069930)
+was still running at the last check. The earlier Security #39 source-digest
+false positive was corrected with a file-scoped allowlist; local full-history
+Gitleaks and hosted Security #40 pass. This head includes the Directus preflight,
+supervisor, and initial outbox unit coverage. The current local batch adds
+disposable-PostgreSQL persistence/CLI acceptance and focused CLI parser tests;
+neither hosted workflow covers it yet. The last confirmed fully green head is
+`41412764f8281deea52670bf49de4234aca6e0bd`, where CI #313 and Security #37
+passed. The earlier
 CI #307 OIDC fixture failure was corrected in `7953afe`; runs #308/#32 are
 historical, not current-head coverage. The named MAN-CAP checks remain open.
 See [the code-first execution plan](code-first-execution-plan.md) for the

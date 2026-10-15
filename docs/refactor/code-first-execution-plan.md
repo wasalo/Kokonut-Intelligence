@@ -2,9 +2,10 @@
 
 **Updated:** 14 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Last CI-verified pushed head:** `41412764f8281deea52670bf49de4234aca6e0bd`
-**Last passing release checks:** CI #313 and Security #37 passed on pushed head
-`41412764f8281deea52670bf49de4234aca6e0bd`.
+**Latest pushed head:** `0c703c55e0f991c2460afab1863b950aa7dd53ea`
+**Last fully green CI/Security head:** `41412764f8281deea52670bf49de4234aca6e0bd` (CI #313 and Security #37).
+On the latest pushed head, Security #40 passed and CI #316 was still in progress
+at the last check.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -16,17 +17,16 @@ MAN-CAP checks open until each has its own retained evidence.
 ## Current accounting
 
 - The execution checklist has 325 checked and 20 open items (345 total).
-- The latest pushed implementation is `b6117e9`; CI #315 is still running and
-  Security #39 failed on a generic-api-key false positive for a source SHA-256
-  in the Directus preflight evidence JSON. A narrowly scoped allowlist fix is
-  local and passes Gitleaks 8.30.1 over all Git refs on `bbf45ff`; the tracked-file
-  secret scan is clean. The previous pushed head `35f7750` has Security #38
-  passed while CI #314 remains in progress. The last fully green head is
-  `4141276` (CI #313 and Security #37).
-- The Directus fixture-preflight and supervisor tests are included in `b6117e9`;
-  CI #315 has not completed. The ClickHouse and notification outbox
-  failure-injection tests and evidence, plus the Gitleaks allowlist fix, are
-  local and will need a later CI run; the local full-history secret scan passed.
+- The latest pushed implementation is `0c703c5`. Security #40 passed; CI #316
+  was still running at the last check. The earlier Security #39 SHA-256
+  false-positive fix is included and passes both local full-history Gitleaks
+  and hosted Security #40. The last fully green CI/Security head is `4141276`
+  (CI #313 and Security #37).
+- The pushed head includes the Directus preflight, supervisor, and initial
+  ClickHouse/notification outbox tests. The current local batch adds CLI exit
+  regressions and a nine-check disposable PostgreSQL ClickHouse fixture;
+  focused unit/runtime checks pass, but this new batch still needs a later push
+  and CI run.
 - The latest pushed batch adds provider-aware PostgreSQL-only backup/restore,
   gRPC streaming-auth lifecycle fixes, and focused RPC policy and
   optional-provider inventories. Earlier pushed work retires the unscoped
@@ -133,17 +133,20 @@ MAN-CAP checks open until each has its own retained evidence.
 and the focused test named in any failure log.
 
 **Action:** CI #313 and Security #37 passed on pushed head
-`41412764f8281deea52670bf49de4234aca6e0bd`. The next pushed head,
-`35f7750eef7681cc020a565e3ea35d29e2b4f6f3`, has CI #314 in progress and
-Security #38 passed. Current pushed head `b6117e92a5eed68bd71bcf73356c3aa1640e203e`
-has CI #315 still running and Security #39 failed on a SHA-256 source-digest false positive in the Directus preflight evidence. A file-specific Gitleaks allowlist fix is local and passes the full-history local scan on `bbf45ff`. The CI #307 OIDC Compose fixture failure was fixed earlier by
+`41412764f8281deea52670bf49de4234aca6e0bd`. Current pushed head
+`0c703c55e0f991c2460afab1863b950aa7dd53ea` has Security #40 passed and CI
+#316 still running at the last check. The local outbox CLI and disposable
+PostgreSQL acceptance are queued for a later batch push. The Gitleaks allowlist
+fix for the earlier Security #39 SHA-256 source-digest false positive is now
+included in the pushed head and Security #40 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
 supplying the test-only operator-auth password before checking the missing
 issuer configuration.
 
 **Acceptance:** last fully satisfied on pushed head `4141276`: CI #313 and
-Security #37 both passed. The pushed restore batch has CI #314 still in progress
-and Security #38 passed. The latest Directus/supervisor batch is included in
-`b6117e9`; CI #315 remains running and Security #39 failed. The local Gitleaks fix and two outbox failure-injection test slices await the next batch push; Gitleaks has passed locally.
+Security #37 both passed. Current pushed head `0c703c5` has Security #40 passed
+and CI #316 still running at the last check. The local outbox CLI and disposable
+PostgreSQL acceptance slice is being accumulated for a later batch push; its
+focused local checks pass.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -483,10 +486,11 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. CI #313 and Security #37 passed on pushed head `4141276`; CI #314 is
-still running on `35f7750` with Security #38 passed. The latest push `b6117e9`
-has CI #315 still running and Security #39 failed. The local Gitleaks fix and
-two outbox failure-injection test slices await the next batch push; Gitleaks has passed locally. Accumulate the next coherent
+requested. The latest push `0c703c5` has Security #40 passed and CI #316 was
+still running at the last check. The local ClickHouse/notification CLI
+regressions and disposable PostgreSQL outbox acceptance are being accumulated
+for a subsequent coherent batch; focused local checks and full-history Gitleaks
+pass. Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable

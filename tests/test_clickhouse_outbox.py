@@ -1,3 +1,4 @@
+import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -213,3 +214,34 @@ def test_client_close_failure_propagates_after_outcome_is_recorded(monkeypatch):
 
     assert finish.call_args.kwargs["success"] is True
     client.close.assert_called_once()
+
+
+def test_run_once_cli_exits_nonzero_when_any_projection_failed(monkeypatch, capsys):
+    conn = object()
+    database_context = MagicMock()
+    database_context.__enter__.return_value = conn
+    monkeypatch.setattr(sys, "argv", ["clickhouse_outbox", "--run-once", "--worker-id", "worker-cli"])
+    with (
+        patch.object(clickhouse_outbox, "get_connection", return_value=database_context),
+        patch.object(clickhouse_outbox, "deliver_batch", return_value={"claimed": 1, "delivered": 0, "failed": 1}),
+    ):
+        with pytest.raises(SystemExit) as exc_info:
+            clickhouse_outbox.main()
+
+    assert exc_info.value.code == 1
+    assert '"failed": 1' in capsys.readouterr().out
+    database_context.__exit__.assert_called_once()
+
+
+def test_run_once_cli_accepts_empty_or_successful_batch(monkeypatch, capsys):
+    database_context = MagicMock()
+    database_context.__enter__.return_value = object()
+    monkeypatch.setattr(sys, "argv", ["clickhouse_outbox", "--run-once", "--worker-id", "worker-cli"])
+    with (
+        patch.object(clickhouse_outbox, "get_connection", return_value=database_context),
+        patch.object(clickhouse_outbox, "deliver_batch", return_value={"claimed": 0, "delivered": 0, "failed": 0}),
+    ):
+        assert clickhouse_outbox.main() is None
+
+    assert '"failed": 0' in capsys.readouterr().out
+    database_context.__exit__.assert_called_once()

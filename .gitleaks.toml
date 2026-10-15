@@ -30,6 +30,7 @@ regexTarget = "line"
 regexes = ['''^\s*"[^"]+": "[a-fA-F0-9]{64}",?$''']
 paths = [
   '''^docs/refactor/builds/2026-10-10-batch1/(amd64|arm64)-source\.json$''',
+  '''^docs/refactor/builds/2026-10-14-recovery/clickhouse-outbox-cli-disposable\.json$''',
   '''^docs/refactor/builds/2026-10-14-recovery/notification-outbox-failure-injection\.json$''',
   '''^docs/refactor/builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable\.json$''',
   '''^docs/refactor/builds/2026-10-14-recovery/directus-schema-preflight-guard\.json$''',

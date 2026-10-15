@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock
+import sys
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -123,3 +124,37 @@ def test_email_provider_exception_is_recorded_by_class_only(monkeypatch):
 
     assert result == {"claimed": 1, "delivered": 0, "failed": 1, "lease_lost": 0}
     assert finish.call_args.kwargs == {"success": False, "error_class": "OSError"}
+
+
+@pytest.mark.parametrize(
+    ("result", "expected_exit"),
+    [
+        ({"claimed": 0, "delivered": 0, "failed": 0, "lease_lost": 0}, 0),
+        ({"claimed": 1, "delivered": 0, "failed": 1, "lease_lost": 0}, 1),
+        ({"claimed": 1, "delivered": 0, "failed": 0, "lease_lost": 1}, 1),
+    ],
+)
+def test_notification_process_cli_exit_code_tracks_failures_and_lease_loss(
+    result, expected_exit, monkeypatch, capsys
+):
+    from services.common import database
+    from services.events import cli
+
+    conn = object()
+    database_context = MagicMock()
+    database_context.__enter__.return_value = conn
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["services.events", "--notification-process", "--worker-id", "worker-cli", "--batch-size", "10"],
+    )
+    with (
+        patch.object(database, "get_connection", return_value=database_context),
+        patch.object(notification_outbox, "deliver_batch", return_value=result),
+    ):
+        with pytest.raises(SystemExit) as exc_info:
+            cli.main()
+
+    assert exc_info.value.code == expected_exit
+    assert '"claimed"' in capsys.readouterr().out
+    database_context.__exit__.assert_called_once()
