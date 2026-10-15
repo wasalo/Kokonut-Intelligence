@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
-**Latest pushed head status:** Security #44 passed and CI #320 was last recorded in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Six later commits are local only; the newest adds the read-only credit-adjustment scheduler contract. Hosted CI does not cover these changes yet.
+**Latest pushed head status:** Security #44 passed and CI #320 was last recorded in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Nine later commits are local only; the latest is `564b5e8`, which gates generic data-retention enforcement by default. Hosted CI does not cover these changes yet.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,11 +14,13 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 344 checked and 20 open items (364 total).
+- The execution checklist has 345 checked and 20 open items (365 total).
   The count includes five source/documentation closures in this batch: the
   94-type report registry path, capability-matrix integrity, and the five
   named Kokonut Network location mappings, plus refreshed worker/runtime SQL
-  inventories. Their remaining owner/runtime gates stay as separate open items.
+  inventories. The new generic-retention fail-closed gate is also checked;
+  its schedule and legal-hold implementation remain open as owner/runtime
+  gates. Their remaining acceptance is tracked separately.
   Live-provider, digest,
   ARM64, and browser acceptance remain open.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
@@ -124,8 +126,9 @@ MAN-CAP checks open until each has its own retained evidence.
   Security #44 passed and CI #320 is in progress; CI #318 was cancelled on an
   earlier head. The pushed batch includes EventBus cleanup protection,
   location-scoped Field Collector inventory, source OIDC contract coverage,
-  and the provider-aware recovery changes. ZITADEL deployment code is now in
-  local commit `761cd6c`.
+  and the provider-aware recovery changes. ZITADEL deployment code is in local
+  commit `761cd6c`; the latest local commit `564b5e8` adds a default-off generic
+  retention gate ([evidence](builds/2026-10-15-recovery/data-retention-enforcement-gate.json)).
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–400 were applied schema-only after encrypted
@@ -147,7 +150,11 @@ MAN-CAP checks open until each has its own retained evidence.
   be provisioned through SOPS. The identity choice does not replace Kokonut's
   Gateway sessions, organization/location grants, or authorization checks.
   Retention periods remain category-specific and unapproved, so no-prune stays
-  in force. Seed scope is not seed-write approval. The legacy
+  in force. Both event and generic data-governance retention enforcement now
+  require explicit feature switches; the generic switch also blocks before
+  CLI database connection and direct service cursor creation. This does not
+  approve a schedule or provide entity-level legal-hold checks. Seed scope is
+  not seed-write approval. The legacy
   `scripts/seed.sh --reference-only` behavior still applies the full curated
   seed set; the distinct `--catalog-only` path now applies the documented
   five-file allowlist. Candidate rollout remains separately gated.
@@ -296,8 +303,9 @@ supplying the test-only operator-auth password before checking the missing
 issuer configuration.
 
 **Acceptance:** current pushed head `4ad4b06` has Security #44 passed and CI
-#320 in progress; a current-head CI pass is required. Local ZITADEL profile
-commit `761cd6c` and the report CLI scope change are not covered by that run.
+#320 in progress; a current-head CI pass is required. Local commits, including
+the ZITADEL profile, report CLI scope, and retention gate, are not covered by
+that run.
 The focused local outbox, EventBus cleanup, and Field Collector inventory
 checks pass and are included in prior pushed batches.
 
@@ -682,10 +690,9 @@ physical acceptance record rather than revising emulation evidence.
 Keep related code changes in local commits and push in reviewable batches, as
 requested. The latest push `4ad4b06` has Security #44 passed and CI #320 in
 progress; CI #318 was cancelled on an earlier head. Local commit `761cd6c`
-adds the selected ZITADEL profile. Seven commits after that pushed head are
-local only; the newest rejects malformed explicit Directus tenant scopes. The
-extension TypeScript build passes. The current pushed CI does not cover these
-local commits.
+adds the selected ZITADEL profile. Nine commits after that pushed head are
+local only; the newest (`564b5e8`) adds the generic retention gate. The current
+pushed CI does not cover these local commits.
 Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database
