@@ -332,7 +332,7 @@ def generate_revenue_multiplier(conn, location_id: str, period_start: str = None
     """Generate a revenue multiplier opportunity map report."""
     from dataclasses import asdict
 
-    from ..revenue_multiplier.analyzer import analyze_location
+    from ...revenue_multiplier.analyzer import analyze_location
 
     result = analyze_location(location_id)
     return {
@@ -429,7 +429,7 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
     # Determine reporting year from period_start or current year
     from datetime import datetime as _dt
 
-    from ..analytics.carbon_balance import (
+    from ...analytics.carbon_balance import (
         compute_carbon_balance,
         compute_ghg_emissions,
         compute_regenerative_score,

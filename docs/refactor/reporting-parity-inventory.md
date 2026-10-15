@@ -100,6 +100,22 @@ authorization or RLS proof; helper call paths, view lineage, audience, and
 populated semantic parity still need review against owner-approved contracts
 and fixtures ([evidence](builds/2026-10-15-recovery/report-generator-query-scope-inventory.json)).
 
+A third AST-only [helper-scope inventory](report-generator-helper-scope-inventory.json)
+follows statically imported and same-module helper functions across the local
+`services/` source tree. Across 94 report types, 34 have query sites reachable
+through those helpers, producing 167 report-to-helper query-site memberships;
+63 memberships show the scanner's location-scope signal. This membership count
+is not a count of unique SQL statements because helpers can be reused. The
+trace resolves simple import/assignment aliases and records source files,
+relations, lines, and call paths without SQL text. It has no unresolved local
+helper calls under its bounded resolver, but dynamic dispatch, external calls,
+runtime branch selection, database/view lineage, and transitive authorization
+are not proven. Several invalid relative imports in the strategy and core
+report modules were corrected so their analytics helpers resolve to
+`services.analytics` and `services.revenue_multiplier`; this source fix does
+not establish report output parity or tenant isolation. The inventory is a
+source-review map only ([inventory](report-generator-helper-scope-inventory.json)).
+
 The SQL tree contains hundreds of ordinary view definitions across domain
 migrations. A view's existence does not establish that it is a dashboard
 contract, that its measures are correct for a capability, or that it is safe

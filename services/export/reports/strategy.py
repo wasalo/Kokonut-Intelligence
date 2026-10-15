@@ -124,7 +124,7 @@ def generate_pitch_deck(conn, location_id: str, period_start: str = None, period
 
 def generate_capability_dashboard(conn, location_id=None, period_start=None, period_end=None):
     """Generate a capability map dashboard report."""
-    from ..analytics.capability_map import get_capability_dashboard, get_coverage_analysis
+    from ...analytics.capability_map import get_capability_dashboard, get_coverage_analysis
 
     dashboard = get_capability_dashboard()
     coverage = get_coverage_analysis()
@@ -144,9 +144,9 @@ def generate_capability_dashboard(conn, location_id=None, period_start=None, per
 
 def generate_strategy_execution(conn, location_id=None, period_start=None, period_end=None):
     """Generate a strategy execution report (Balanced Scorecard and kernel)."""
-    from ..analytics.competitive_report import health as competitive_health
-    from ..analytics.strategy_execution import dashboard
-    from ..analytics.strategy_map import get_perspective_summary
+    from ...analytics.competitive_report import health as competitive_health
+    from ...analytics.strategy_execution import dashboard
+    from ...analytics.strategy_map import get_perspective_summary
 
     execution = dashboard(conn, scope_type="location", scope_id=location_id) if location_id else dashboard(conn)
     perspectives = get_perspective_summary()
@@ -169,7 +169,7 @@ def generate_strategy_execution(conn, location_id=None, period_start=None, perio
 
 def generate_capability_assessment(conn, location_id=None, period_start=None, period_end=None):
     """Generate a capability maturity and coverage assessment."""
-    from ..analytics.capability_map import get_capability_dashboard, get_coverage_analysis
+    from ...analytics.capability_map import get_capability_dashboard, get_coverage_analysis
 
     dashboard = get_capability_dashboard()
     coverage = get_coverage_analysis()
@@ -190,7 +190,7 @@ def generate_capability_assessment(conn, location_id=None, period_start=None, pe
 
 def generate_value_stream_formal(conn, location_id=None, period_start=None, period_end=None):
     """Generate a formal value stream map report."""
-    from ..analytics.value_stream_defs import get_stream_summary
+    from ...analytics.value_stream_defs import get_stream_summary
 
     streams = get_stream_summary()
     return {

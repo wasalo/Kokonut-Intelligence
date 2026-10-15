@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **373 checked and 19 open items (392 total)**,
+- The execution checklist has **374 checked and 19 open items (393 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -462,6 +462,14 @@ location scope for bulk generation, rejects conflicting selectors before
 opening PostgreSQL, and accepts standalone hash verification. All 94 report
 generator keys remain available. Eleven focused checks and Ruff pass without
 database or provider access ([evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)). All single and bulk calculations use a session-level PostgreSQL read-only default, and draft persistence starts after calculation. A disposable PostgreSQL probe found that switching to autocommit after changing the default could permit a write. The connection facade now denies autocommit changes directly and through `cursor.connection`; direct DML still receives SQLSTATE `25006`, and the draft write succeeds after calculation. Nine focused tests, Ruff, compilation, and the disposable check pass. The application connection remains a writer, so this is a guard rather than a database-role boundary. Populated output parity remains open ([calculation evidence](builds/2026-10-15-recovery/report-generator-read-only-calculation.json); [disposable evidence](builds/2026-10-15-recovery/report-generator-readonly-disposable.json)).
+
+The AST-only helper-scope inventory now follows statically imported and
+same-module local functions for all 94 registered reports. It finds helper
+query sites in 34 report types, with 167 report-to-helper query-site
+memberships and 63 visible location-scope signals. The trace corrected several
+invalid relative analytics imports in the report modules; its source coverage
+does not prove runtime behavior, tenant isolation, authorization, or output
+parity ([inventory](report-generator-helper-scope-inventory.json)).
 
 **Acceptance:** the slice's source tests pass and its contract/evidence path is
 documented. The matrix remains `B`, `D`, or `P` until its named MAN-CAP

@@ -40,6 +40,7 @@ check "Kernel dependency group alignment" "python3 $SCRIPT_DIR/check-requirement
 check "Capability matrix integrity" "python3 $SCRIPT_DIR/check-capability-matrix.py"
 check "Report generator source inventory" "python3 $SCRIPT_DIR/report_generator_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-source-inventory.json"
 check "Report generator query-scope inventory" "python3 $SCRIPT_DIR/report_generator_query_scope_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-query-scope-inventory.json"
+check "Report generator helper-scope inventory" "python3 $SCRIPT_DIR/report_generator_helper_scope_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-helper-scope-inventory.json"
 check "FastAPI dependencies" "python3 -c 'import fastapi; from fastapi.testclient import TestClient; print(fastapi.__version__)'"
 check "Import services.ingestion.base" "python3 -c 'import services.ingestion.base'"
 check "Import services.forecast.engine" "python3 -c 'import services.forecast.engine'"
