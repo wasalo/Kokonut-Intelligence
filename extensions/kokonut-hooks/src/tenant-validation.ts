@@ -31,7 +31,13 @@ export async function validateTenantReferences(
   if (!TENANT_SCOPED_COLLECTIONS.includes(collection)) return payload;
 
   const locationId = payload.location_id;
-  if (!isUuid(locationId)) return payload;
+  // A missing/null location is still handled by the collection's schema and
+  // Directus permission policy (some legacy collections allow global rows).
+  // An explicitly supplied but malformed scope must never skip validation.
+  if (locationId !== undefined && locationId !== null && !isUuid(locationId)) {
+    throw new Error('Invalid location_id');
+  }
+  if (locationId === undefined || locationId === null) return payload;
 
   for (const [field, tables] of Object.entries(REFERENCE_TABLES)) {
     const referenceId = payload[field];

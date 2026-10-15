@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 338 checked and 20 open items (358 total).
+- The execution checklist has 339 checked and 20 open items (359 total).
   Live-provider, digest,
   ARM64, and browser acceptance remain open.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
@@ -468,7 +468,7 @@ writes (three source checks and one fake-schema execution pass, with Ruff and
 Python compilation). The owner has since selected organization/location
 grants; the next code step must bind Directus identities to Kokonut operator
 identities and enforce those grants. Runtime read/write, field, hook, and
-schedule parity remain open ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
+schedule parity remain open ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)). The create-time tenant-reference hook now rejects explicitly malformed `location_id` values instead of silently skipping its reference checks; the extension TypeScript build passes. This is input validation only and does not authorize a caller's tenant scope ([source](../../extensions/kokonut-hooks/src/tenant-validation.ts); [parity inventory](directus-parity-inventory.md)).
 The enabled gRPC loopback acceptance also found and corrected service methods
 that constructed service request/response messages from `types_pb2` instead of
 `service_pb2`. All handler protobuf references now resolve against their
@@ -678,8 +678,10 @@ physical acceptance record rather than revising emulation evidence.
 Keep related code changes in local commits and push in reviewable batches, as
 requested. The latest push `4ad4b06` has Security #44 passed and CI #320 in
 progress; CI #318 was cancelled on an earlier head. Local commit `761cd6c`
-adds the selected ZITADEL profile, and the current report CLI scope fix is
-being grouped with subsequent code work before the next push.
+adds the selected ZITADEL profile. Seven commits after that pushed head are
+local only; the newest rejects malformed explicit Directus tenant scopes. The
+extension TypeScript build passes. The current pushed CI does not cover these
+local commits.
 Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database

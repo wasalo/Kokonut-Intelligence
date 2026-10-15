@@ -37,6 +37,12 @@ permission filters that evaluate the same active operator, organization,
 location, resource, and action grants. Do not infer equivalence from a legacy
 `$CURRENT_USER.location_id` predicate.
 
+The Directus hook's create-time reference validator now rejects an explicitly
+malformed `location_id` instead of silently skipping its same-location
+reference checks. This is input validation only: it does not prove that the
+caller has an active organization/location grant, and nullable legacy rows still
+depend on collection policy. The live Directus grant integration remains open.
+
 The SQL also grants `fields = '*'` on many read rules, so a row predicate does
 not establish field privacy. The Auditor policy deliberately has unfiltered
 reads for collections beyond the ten-collection staff location-repair list,
