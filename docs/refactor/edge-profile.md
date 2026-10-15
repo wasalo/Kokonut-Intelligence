@@ -30,10 +30,11 @@ hardware. AMD64 candidate startup does not certify a Pi deployment.
 
 The base database digest is AMD64-only. The profile planner now selects a
 custom ARM64 PostGIS image and separate Compose project for edge ARM64; see the
-[current profile record](arm64-database.md). Prior QEMU acceptance covers the
-minimal app/database through migration 386 only. Current schema sources through
-migration 400 need a fresh code-only ARM64/QEMU replay, and no physical Pi behavior is
-claimed.
+[current profile record](arm64-database.md). Current-source QEMU acceptance
+now covers the minimal app/database through migration 400, matching logical
+restore, protected-route denial, and short restart recovery
+([evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
+Physical Pi behavior remains unverified.
 
 Public PostgreSQL reads, API auth, offline sync, durable workers, and optional
 Web3 libraries remain present. Remote blockchain/RPC connectivity is still

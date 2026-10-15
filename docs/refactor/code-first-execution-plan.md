@@ -651,6 +651,19 @@ Actual Pi storage wear, thermals, power-loss behavior, physical network
 reliability, and sustained device performance stay unverified until hardware is
 available; no human input is needed for this code-only assessment.
 
+**Current-source refresh (15 October 2026):** the isolated profile planner built
+the app and PostGIS images as linux/arm64, applied all 391 schemas through
+migration 400 with zero failures, restored a logical backup with matching
+migration fingerprints and zero pending migrations, and passed HTTP health,
+anonymous protected-write denial, database restart, and app SIGKILL recovery.
+Spatial and manually enabled raster functions also passed. The database
+restart caused the scheduler child to exit on a closed connection; the Kernel
+supervisor restarted the app processes and health recovered. Repeated/long
+provider outage behavior and physical Pi limits remain open. The earlier
+restricted command shell could not access the Docker Desktop socket; host-
+authorized access reached the healthy daemon and completed this check
+([current evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
+
 ### Batch G — Reconcile ledgers, then request only owner decisions
 
 Update `batches.md`, `progress.md`, `capability-matrix.md`, the relevant

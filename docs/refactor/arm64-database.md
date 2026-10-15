@@ -15,14 +15,17 @@ an ARM64 worker override.
 The planner tests pass, and Compose merged configuration passed for minimal,
 edge, and standard with the expected ARM64 app/database/worker settings and an
 isolated project volume ([profile evidence](builds/2026-10-15-recovery/kernel-arm64-profile-config.json)).
-This host's Docker socket denies daemon access, so this update did not build or
-start images. The earlier QEMU runtime acceptance applied 386 migrations on
-revision `e236251`; the current repository has 391 numbered migration files
-through migration 400.
-Repeat the isolated ARM64/QEMU build, full-schema bootstrap, health, and restore
-against the current source before treating it as runtime accepted. No physical
-Raspberry Pi performance, thermal, storage, power-loss, network, or restart
-claim is made.
+The initial restricted command shell could not access the Docker Desktop socket;
+host-authorized access later reached the healthy daemon. The ARM64 images built
+as `linux/arm64`, and all 391 current schemas through migration 400 applied with
+zero failures. A custom-format restore to a second database had the same 391
+checksums and zero pending migrations; health returned 200, an anonymous
+protected write returned 401, and short database/app restart checks recovered
+([runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
+This is QEMU evidence, not Raspberry Pi acceptance. `postgis_raster` passed a
+disposable function check after manual extension enablement; the ordered schema
+does not currently enable it. Physical performance, thermal, storage, power-loss,
+network, and device restart behavior remain unverified.
 
 On 10 October 2026 registry metadata was inspected for the candidate's exact
 database reference:
@@ -69,13 +72,10 @@ major version, application database/user, private networking, data directory,
 health probe, and extension initialization responsibility. Keep it separate
 from the default candidate until extension/schema parity gates pass.
 
-The remaining software work is to rerun the ARM64 build, initialize its fresh
-database volume, apply the current ordered schema through migration 400, and
-rehearse logical backup/restore plus spatial/raster queries before migrating
-farm data. Do not
-attach an existing candidate or legacy data directory to the replacement
-image. Never upgrade extensions or database versions implicitly as part of
-architecture selection.
+The current-source build, fresh-volume schema replay, logical restore, and
+short health/restart checks are recorded above. Keep the ARM64 volume separate
+from existing candidate or legacy data directories. Never upgrade extensions
+or database versions implicitly as part of architecture selection.
 
 Application ARM64 wheels/builds, hardware memory/CPU/storage measurements,
 offline recovery, and 24-hour operation remain separate gates. Optional MQTT,

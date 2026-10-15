@@ -80,11 +80,14 @@ open ([dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.jso
 **15 October 2026 ARM64 candidate profile (CAP-047):** the planner now selects
 an isolated ARM64 app/PostGIS profile for minimal, edge, and standard; analytics
 and optional service images remain blocked pending architecture verification.
-Planner tests and merged Compose configuration pass, but this host could not
-access the Docker daemon. The previous QEMU acceptance stopped at migration 386
-while the current sources reach migration 400. Repeat current-schema QEMU bootstrap,
-health, restart, and restore before claiming runtime acceptance. Physical Pi
-performance is not claimed ([profile evidence](builds/2026-10-15-recovery/kernel-arm64-profile-config.json);
+Planner tests, merged Compose configuration, and a current-source QEMU runtime
+pass. The ARM64 app/PostGIS images applied all 391 schemas through migration
+400; a logical restore matched all migration fingerprints and had zero pending
+schemas. Health returned 200, a protected write returned 401, and short
+database/app restart checks recovered. `postgis_raster` was enabled manually in
+the disposable database because the ordered schema does not currently install
+it. Physical Pi performance is not claimed ([profile evidence](builds/2026-10-15-recovery/kernel-arm64-profile-config.json);
+[runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json);
 [deployment record](arm64-database.md)).
 
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**

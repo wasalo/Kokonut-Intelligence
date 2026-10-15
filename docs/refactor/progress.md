@@ -1,11 +1,8 @@
 # Kokonut Kernel implementation progress
 
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
-The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the
-last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999);
-[Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)).
-The local branch has multiple unpushed commits, so hosted CI does not cover
-that work.
+Check GitHub Actions for CI and Security status on the current PR head before
+merge; local acceptance evidence is recorded below and linked to its source.
 The newest commits close the sensor CLI false-success path (`83256be`), verify
 the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
 isolated ARM64 minimal/edge/standard profile selection (`629affd`). Earlier
@@ -236,8 +233,10 @@ IDs against stored tenant locations, and create/update/delete require the
 corresponding scoped grant. Bulk writes fail as a whole and location changes
 are rejected. Focused package tests pass (61 across five files); the pinned
 Directus extension bundle and TypeScript check pass. No database or provider
-was accessed. The local Docker socket denied access, so pinned-image requests
-could not be run. Directus role/field/expanded-relation parity, runtime-role
+was accessed. The restricted command shell could not open Docker Desktop's
+socket; this was an execution permission boundary, not a stopped daemon. This
+focused tenant-authorization image request was not rerun in the ARM64 check.
+Directus role/field/expanded-relation parity, runtime-role
 deployment, real provider/operator provisioning, concurrent revocation, and
 signed RLS context remain open
 ([implementation](../../extensions/kokonut-hooks/src/directus-authorization.ts);
@@ -283,15 +282,19 @@ The profile planner now selects the ARM64 app/PostGIS overlay in a separate
 Compose project for minimal, edge, and standard. Standard also receives an
 ARM64 worker override; analytics and optional service overlays remain blocked
 until their images are verified. Nine planner tests, Ruff, and merged Compose
-configuration checks pass, including a distinct database volume. The Docker
-daemon socket denied access during this update, so no current image build or
-runtime check was possible. Prior QEMU evidence covered the minimal app/database
-through migration 386; the current repository has 391 numbered migration files
-through migration 400.
-Repeat ARM64/QEMU bootstrap, health, restart, and restore against the current
-source when Docker is available. Physical Pi behavior remains unverified
+configuration checks pass. The initial restricted command shell could not
+access Docker Desktop's socket; host-authorized access reached the healthy
+daemon. Current-source linux/arm64 app/PostGIS images built, all 391 schemas
+through migration 400 applied, and a logical restore matched all migration
+fingerprints with zero pending schemas. Health 200, protected-write 401, and
+short database/app restart checks passed. The scheduler child exited on one
+closed-connection event before the supervisor restarted processes; longer
+outage behavior remains open. Raster passed only after manual enablement in the
+disposable database because the ordered schema does not enable `postgis_raster`.
+Physical Pi behavior remains unverified
 ([profile tests](../../tests/test_kernel_profile.py);
 [evidence](builds/2026-10-15-recovery/kernel-arm64-profile-config.json);
+[runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json);
 [profile record](arm64-database.md)).
 
 ### Kernel supervisor source contract — 14 October 2026

@@ -16,14 +16,15 @@ PostgreSQL/PostGIS 16 image, and uses the distinct project
 the AMD64 candidate. The standard profile also appends the ARM64 worker
 override. Current ARM64 command selection supports minimal, edge, and standard.
 Analytics and optional service overlays are rejected until their images receive
-separate architecture verification. This declares build/runtime platforms; it
-does not certify the current full schema or Raspberry Pi hardware. See the
+separate architecture verification. Current-source minimal ARM64 runtime,
+schema replay through migration 400, restore, and short recovery checks now pass
+under QEMU; this does not certify Raspberry Pi hardware. See the
 [ARM64 profile record](arm64-database.md).
 
 | Selection | Services/configuration | Acceptance remaining |
 | --- | --- | --- |
 | minimal | PostgreSQL + combined API/workers | Capability parity and recovery |
-| edge | Minimal + encrypted local media/resource limits | Current-schema ARM64/QEMU replay, media/storage recovery and physical-device behavior |
+| edge | Minimal + encrypted local media/resource limits | Media/storage recovery and physical-device behavior |
 | standard | PostgreSQL + separate API and worker; PostgreSQL shared limiter by default | Migration 373, role cutover, and worker progress monitoring |
 | analytics | Minimal + private ClickHouse | Schema bootstrap and projection parity |
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |

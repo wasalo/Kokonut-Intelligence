@@ -5,9 +5,11 @@ Phase 0 inventory, captured 9 October 2026.
 **Current status (15 October):** the local candidate is recorded at migration 400
 with 391 numbered migration sources; the previous 24-hour recovery, current
 PR-head CI, and production cutover gates remain separate. The ARM64 planner now
-selects an isolated profile for minimal, edge, and standard, while current-schema
-QEMU replay remains open. Local work after the last pushed head is not covered by
-hosted CI. See [the phase ledger](progress.md) and
+selects an isolated profile for minimal, edge, and standard, and current-schema
+QEMU replay through migration 400 has passed. Physical Pi acceptance remains
+open. Require passing hosted CI and Security for the PR head that includes this
+acceptance evidence. See
+[the phase ledger](progress.md) and
 [capability progress](capability-matrix.md).
 The baseline sections below preserve historical observations, not current
 phase-completion claims.
@@ -64,14 +66,15 @@ assertion after later commits.
   AMD64/ARM64 Kernel artifacts contain readiness checks and matching package inventories.
 - [Application package inventories](application-package-inventory.md): future
   images retain resolved dependencies for architecture and release comparison.
-- [ARM64 application build](arm64-application.md): minimal dependencies installed
-  and image built; runtime deployment and Pi hardware certification pending.
+- [ARM64 application build](arm64-application.md): current-source app/PostGIS
+  startup, schema, restore, health, and short recovery passed under QEMU; physical
+  Pi certification and optional image architectures remain open.
 - [Portability database preparation](portability-database.md): separate private
   PostGIS/API evaluation manifest with an opt-in schema startup gate; runtime
   acceptance pending.
 - [ARM64 candidate profile](arm64-database.md): the planner selects a separate
   custom PostGIS/app overlay for minimal, edge, and standard; current-schema
-  QEMU replay and physical Pi acceptance remain open.
+  QEMU replay passed and physical Pi acceptance remains open.
 - [Kernel release inputs](kernel-release-inputs.md): build inputs are SHA-256
   locked and GitHub Actions is configured to build/compare the minimal app and
   PostGIS targets across AMD64/ARM64; transitive dependency locks and a

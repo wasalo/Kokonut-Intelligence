@@ -139,5 +139,8 @@ a reviewed backup/migration path. Restart does not apply new migrations by itsel
 Before exposing this API or choosing production cutover, complete reference-data
 planning, backup/restore, capability and authorization acceptance, resource sizing,
 and a committed release/dependency policy. The candidate planner now selects an
-isolated ARM64 image overlay for minimal, edge, and standard; current-schema
-QEMU acceptance remains open ([profile record](arm64-database.md)).
+isolated ARM64 image overlay for minimal, edge, and standard. Current-source
+ARM64 QEMU replay through migration 400, logical restore, health, and short
+restart checks passed; physical Pi acceptance remains open
+([profile record](arm64-database.md);
+[runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
